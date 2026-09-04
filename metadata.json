@@ -1,0 +1,6 @@
+{
+  "name": "CityConnect",
+  "description": "A city-wide super platform connecting hospitals, schools, pharmacies, deliveries, and local services.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

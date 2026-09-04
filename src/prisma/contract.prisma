@@ -1,0 +1,664 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+
+// ----------------------------------------------------------------------------
+// UNIVERSAL IDENTITY (NextAuth Standard Models + CityConnect Additions)
+// ----------------------------------------------------------------------------
+
+model Account {
+  id                String  @id @default(uuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(uuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  
+  // CityConnect specific fields
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now())
+  
+  // Relationships
+  accounts           Account[]
+  sessions           Session[]
+  organizations      OrganizationMember[] // Link to businesses they own/manage
+  wallet             Wallet?              // The Resident's CityPay Wallet
+  gigProfile         GigWorkerProfile?    // If they are a Courier
+  requestedTasks     Task[]               @relation("TaskRequester")
+  acceptedTasks      Task[]               @relation("TaskCourier")
+  reservations       Reservation[]        @relation("GuestReservations")
+  children           Student[]            @relation("GuardianStudents")
+  restaurantOrders   RestaurantOrder[]    @relation("ResidentRestaurantOrders")
+  tickets            Ticket[]             @relation("UserTickets")
+  bookings           Booking[]            @relation("UserBookings")
+  comments           Comment[]            @relation("UserComments")
+  appointments       Appointment[]        @relation("PatientAppointments")
+  prescriptions      Prescription[]       @relation("PatientPrescriptions")
+  pharmacyOrders     PharmacyOrder[]      @relation("ResidentPharmacyOrders")
+}
+
+// ----------------------------------------------------------------------------
+// CITY REGISTRY (CityContext)
+// ----------------------------------------------------------------------------
+// Every supported city, its locale, and the organizations operating there.
+// Kept intentionally minimal for now: no geographic boundaries/rules yet,
+// just enough to scope organizations by city and let CityContext pick one.
+
+model City {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  country   String
+  timezone  String   @default("UTC")
+  currency  String   @default("USD")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  organizations Organization[] @relation("CityOrganizations")
+}
+
+// ----------------------------------------------------------------------------
+// ORGANIZATIONS & RBAC (The SaaS Admin Portals)
+// ----------------------------------------------------------------------------
+
+enum OrgType {
+  GOVERNMENT
+  SCHOOL
+  HEALTHCARE
+  RETAIL
+  RESTAURANT
+  REAL_ESTATE
+  SERVICES
+  LOGISTICS
+  HOTEL
+  EVENT_ORGANIZER
+  PUBLISHER
+  PHARMACY
+}
+
+model Organization {
+  id          String   @id @default(uuid())
+  name        String
+  type        OrgType
+  description String?
+  address     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+
+  cityId      String?
+  city        City?    @relation("CityOrganizations", fields: [cityId], references: [id])
+
+  members     OrganizationMember[]
+  wallet      Wallet?
+  posts       Post[]
+  tasks       Task[]               @relation("OrganizationTasks")
+  hotelRooms  HotelRoom[]          @relation("HotelRooms")
+  reservations Reservation[]       @relation("HotelReservations")
+  students    Student[]            @relation("SchoolStudents")
+  courses     Course[]             @relation("SchoolCourses")
+  menuItems   MenuItem[]           @relation("RestaurantMenuItems")
+  restaurantOrders RestaurantOrder[] @relation("RestaurantOrders")
+  events      Event[]              @relation("OrganizationEvents")
+  rentalResources RentalResource[] @relation("OrganizationRentalResources")
+  appointments Appointment[]       @relation("ClinicAppointments")
+  prescriptions Prescription[]     @relation("ClinicPrescriptions")
+  pharmacyItems PharmacyItem[]     @relation("PharmacyItems")
+  pharmacyOrders PharmacyOrder[]   @relation("PharmacyOrders")
+}
+
+enum OrgRole {
+  OWNER
+  MANAGER
+  STAFF
+  // specific roles
+  TEACHER
+  DOCTOR
+}
+
+model OrganizationMember {
+  id             String       @id @default(uuid())
+  userId         String
+  organizationId String
+  role           OrgRole      @default(STAFF)
+  createdAt      DateTime     @default(now())
+
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  taughtCourses  Course[]     @relation("CourseTeacher")
+  appointments   Appointment[] @relation("DoctorAppointments")
+
+  @@unique([userId, organizationId])
+}
+
+// ----------------------------------------------------------------------------
+// CITYPAY (Financial Engine)
+// ----------------------------------------------------------------------------
+
+enum WalletType {
+  RESIDENT
+  ORGANIZATION
+}
+
+model Wallet {
+  id             String        @id @default(uuid())
+  balance        Float         @default(0.0)
+  type           WalletType
+  
+  // A wallet belongs to either a User or an Organization
+  userId         String?       @unique
+  organizationId String?       @unique
+  
+  user           User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Transactions where this wallet is the sender or receiver
+  sentTransactions     Transaction[] @relation("SenderWallet")
+  receivedTransactions Transaction[] @relation("ReceiverWallet")
+}
+
+model Transaction {
+  id               String   @id @default(uuid())
+  amount           Float
+  currency         String   @default("USD")
+  status           String   @default("COMPLETED") // PENDING, COMPLETED, FAILED
+  description      String?
+  createdAt        DateTime @default(now())
+
+  senderWalletId   String
+  receiverWalletId String
+
+  senderWallet     Wallet   @relation("SenderWallet", fields: [senderWalletId], references: [id])
+  receiverWallet   Wallet   @relation("ReceiverWallet", fields: [receiverWalletId], references: [id])
+}
+
+// ----------------------------------------------------------------------------
+// CITYDRIVE (Logistics Engine)
+// ----------------------------------------------------------------------------
+
+model GigWorkerProfile {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  vehicleType    String?  // CAR, BIKE, SCOOTER
+  licensePlate   String?
+  isOnline       Boolean  @default(false)
+  rating         Float    @default(5.0)
+  createdAt      DateTime @default(now())
+
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum TaskType {
+  PASSENGER_RIDE
+  FOOD_DELIVERY
+  PACKAGE_DELIVERY
+  SERVICE_DISPATCH
+}
+
+enum TaskStatus {
+  PENDING
+  ACCEPTED
+  IN_TRANSIT
+  COMPLETED
+  CANCELLED
+}
+
+model Task {
+  id               String       @id @default(uuid())
+  type             TaskType
+  status           TaskStatus   @default(PENDING)
+  pickupAddress    String
+  dropoffAddress   String
+  price            Float
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @default(now())
+
+  requesterId      String       // The Resident who ordered the ride/food
+  courierId        String?      // The Courier who accepted it
+  organizationId   String?      // The Restaurant that prepared the food (optional)
+
+  requester        User          @relation("TaskRequester", fields: [requesterId], references: [id])
+  courier          User?         @relation("TaskCourier", fields: [courierId], references: [id])
+  organization     Organization? @relation("OrganizationTasks", fields: [organizationId], references: [id])
+  quote            ServiceQuote?
+}
+
+// ----------------------------------------------------------------------------
+// COMMUNITY FEED
+// ----------------------------------------------------------------------------
+
+enum PostStatus {
+  DRAFT
+  REVIEW
+  PUBLISHED
+}
+
+model Post {
+  id             String       @id @default(uuid())
+  title          String
+  content        String
+  category       String
+  isEmergency    Boolean      @default(false)
+  status         PostStatus   @default(PUBLISHED)
+  viewCount      Int          @default(0)
+  shareCount     Int          @default(0)
+  createdAt      DateTime     @default(now())
+  
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  comments       Comment[]
+  likes          PostLike[]
+}
+
+model PostLike {
+  id             String       @id @default(uuid())
+  postId         String
+  userId         String
+  
+  post           Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt      DateTime     @default(now())
+
+  @@unique([postId, userId])
+}
+
+model Comment {
+  id             String       @id @default(uuid())
+  content        String
+  
+  postId         String
+  userId         String
+  
+  post           Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user           User         @relation("UserComments", fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt      DateTime     @default(now())
+}
+
+// ----------------------------------------------------------------------------
+// HOSPITALITY / HOTEL PMS
+// ----------------------------------------------------------------------------
+
+model HotelRoom {
+  id             String       @id @default(uuid())
+  roomNumber     String
+  type           String       // King, Double, Suite
+  status         String       @default("CLEAN") // CLEAN, DIRTY, INSPECTING, OUT_OF_ORDER
+  organizationId String
+  organization   Organization @relation("HotelRooms", fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  reservations   Reservation[]
+}
+
+enum ReservationStatus {
+  CONFIRMED
+  CHECKED_IN
+  CHECKED_OUT
+  CANCELLED
+}
+
+model Reservation {
+  id             String       @id @default(uuid())
+  guestName      String
+  guestId        String?      // Optional link to a Resident User
+  roomId         String?
+  status         ReservationStatus @default(CONFIRMED)
+  checkInDate    DateTime
+  checkOutDate   DateTime
+  
+  organizationId String
+  
+  guest          User?        @relation("GuestReservations", fields: [guestId], references: [id])
+  room           HotelRoom?   @relation(fields: [roomId], references: [id])
+  organization   Organization @relation("HotelReservations", fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  createdAt      DateTime     @default(now())
+}
+
+
+// ----------------------------------------------------------------------------
+// EDUCATION / SCHOOL MANAGEMENT
+// ----------------------------------------------------------------------------
+
+model Student {
+  id             String       @id @default(uuid())
+  firstName      String
+  lastName       String
+  gradeLevel     String
+  medicalInfo    String?
+  
+  guardianId     String?      // Link to Parent User
+  organizationId String
+  
+  guardian       User?        @relation("GuardianStudents", fields: [guardianId], references: [id])
+  organization   Organization @relation("SchoolStudents", fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  attendances    AttendanceRecord[]
+  enrollments    CourseEnrollment[]
+  
+  createdAt      DateTime     @default(now())
+}
+
+model Course {
+  id             String       @id @default(uuid())
+  name           String
+  description    String?
+  roomNumber     String?
+  
+  teacherId      String       // Link to OrganizationMember
+  organizationId String
+  
+  teacher        OrganizationMember @relation("CourseTeacher", fields: [teacherId], references: [id])
+  organization   Organization       @relation("SchoolCourses", fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  enrollments    CourseEnrollment[]
+}
+
+model CourseEnrollment {
+  id             String       @id @default(uuid())
+  studentId      String
+  courseId       String
+  grade          Float?       // Current grade percentage
+  
+  student        Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course         Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  @@unique([studentId, courseId])
+}
+
+model AttendanceRecord {
+  id             String       @id @default(uuid())
+  date           DateTime     @default(now())
+  status         String       @default("PRESENT") // PRESENT, ABSENT, TARDY
+  
+  studentId      String
+  
+  student        Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+
+// ----------------------------------------------------------------------------
+// FOOD & BEVERAGE / RESTAURANT POS
+// ----------------------------------------------------------------------------
+
+model MenuItem {
+  id             String       @id @default(uuid())
+  name           String
+  description    String?
+  price          Float
+  category       String       // e.g. Appetizers, Mains, Drinks
+  imageUrl       String?
+  isAvailable    Boolean      @default(true)
+  
+  organizationId String
+  organization   Organization @relation("RestaurantMenuItems", fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  orderItems     OrderItem[]
+}
+
+enum OrderStatus {
+  PENDING
+  PREPARING
+  READY
+  DELIVERING
+  COMPLETED
+  CANCELLED
+}
+
+enum OrderType {
+  DINE_IN
+  TAKEOUT
+  DELIVERY
+}
+
+model RestaurantOrder {
+  id             String       @id @default(uuid())
+  totalAmount    Float
+  status         OrderStatus  @default(PENDING)
+  type           OrderType    @default(DINE_IN)
+  tableNumber    String?      // If DINE_IN
+  
+  organizationId String
+  residentId     String?      // The user who placed the order
+  
+  organization   Organization @relation("RestaurantOrders", fields: [organizationId], references: [id], onDelete: Cascade)
+  resident       User?        @relation("ResidentRestaurantOrders", fields: [residentId], references: [id])
+  
+  items          OrderItem[]
+  
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now())
+}
+
+model OrderItem {
+  id             String          @id @default(uuid())
+  quantity       Int             @default(1)
+  notes          String?         // Special instructions
+  
+  orderId        String
+  menuItemId     String
+  
+  order          RestaurantOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItem       MenuItem        @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+}
+
+
+// ----------------------------------------------------------------------------
+// EVENTS & RENTALS
+// ----------------------------------------------------------------------------
+
+model Event {
+  id             String       @id @default(uuid())
+  title          String
+  description    String?
+  location       String
+  date           DateTime
+  capacity       Int
+  price          Float        @default(0.0)
+  
+  organizationId String
+  organization   Organization @relation("OrganizationEvents", fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  tickets        Ticket[]
+  createdAt      DateTime     @default(now())
+}
+
+model Ticket {
+  id             String       @id @default(uuid())
+  eventId        String
+  userId         String
+  status         String       @default("VALID") // VALID, SCANNED, REFUNDED
+  
+  event          Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user           User         @relation("UserTickets", fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt      DateTime     @default(now())
+}
+
+model RentalResource {
+  id             String       @id @default(uuid())
+  name           String
+  description    String?
+  type           String       // VENUE, EQUIPMENT
+  pricePerDay    Float
+  
+  organizationId String
+  organization   Organization @relation("OrganizationRentalResources", fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  bookings       Booking[]
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model Booking {
+  id             String         @id @default(uuid())
+  resourceId     String
+  userId         String
+  startDate      DateTime
+  endDate        DateTime
+  status         BookingStatus  @default(CONFIRMED)
+  totalPrice     Float
+  
+  resource       RentalResource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  user           User           @relation("UserBookings", fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt      DateTime       @default(now())
+}
+
+
+// ----------------------------------------------------------------------------
+// HEALTHCARE & PHARMACY MANAGEMENT
+// ----------------------------------------------------------------------------
+
+enum AppointmentStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+model Appointment {
+  id             String             @id @default(uuid())
+  date           DateTime
+  reason         String?
+  status         AppointmentStatus  @default(SCHEDULED)
+  
+  patientId      String
+  doctorId       String
+  organizationId String
+  
+  patient        User               @relation("PatientAppointments", fields: [patientId], references: [id], onDelete: Cascade)
+  doctor         OrganizationMember @relation("DoctorAppointments", fields: [doctorId], references: [id], onDelete: Cascade)
+  organization   Organization       @relation("ClinicAppointments", fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  createdAt      DateTime           @default(now())
+}
+
+enum PrescriptionStatus {
+  ISSUED
+  PREPARING
+  READY
+  DELIVERED
+  CANCELLED
+}
+
+model Prescription {
+  id             String             @id @default(uuid())
+  medication     String
+  dosage         String
+  instructions   String?
+  status         PrescriptionStatus @default(ISSUED)
+  
+  patientId      String
+  organizationId String
+  
+  patient        User               @relation("PatientPrescriptions", fields: [patientId], references: [id], onDelete: Cascade)
+  organization   Organization       @relation("ClinicPrescriptions", fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  createdAt      DateTime           @default(now())
+}
+
+model PharmacyItem {
+  id             String             @id @default(uuid())
+  name           String
+  description    String?
+  price          Float
+  category       String             // e.g. OTC, Prescription, Supplies
+  stockLevel     Int                @default(0)
+  requiresPrescription Boolean      @default(false)
+  
+  organizationId String
+  organization   Organization       @relation("PharmacyItems", fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  orderItems     PharmacyOrderItem[]
+}
+
+enum PharmacyOrderStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+model PharmacyOrder {
+  id             String              @id @default(uuid())
+  totalAmount    Float
+  status         PharmacyOrderStatus @default(PENDING)
+  
+  organizationId String
+  residentId     String?
+  
+  organization   Organization        @relation("PharmacyOrders", fields: [organizationId], references: [id], onDelete: Cascade)
+  resident       User?               @relation("ResidentPharmacyOrders", fields: [residentId], references: [id], onDelete: Cascade)
+  
+  items          PharmacyOrderItem[]
+  
+  createdAt      DateTime            @default(now())
+}
+
+model PharmacyOrderItem {
+  id             String              @id @default(uuid())
+  quantity       Int                 @default(1)
+  
+  orderId        String
+  itemId         String
+  
+  order          PharmacyOrder       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  item           PharmacyItem        @relation(fields: [itemId], references: [id], onDelete: Cascade)
+}
+
+
+// ----------------------------------------------------------------------------
+// LOCAL SERVICES & GIG DISPATCH
+// ----------------------------------------------------------------------------
+
+enum QuoteStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model ServiceQuote {
+  id             String      @id @default(uuid())
+  taskId         String      @unique
+  providerId     String      // The GigWorker or Organization proposing the quote
+  estimatedPrice Float
+  notes          String?
+  status         QuoteStatus @default(PENDING)
+  
+  task           Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  createdAt      DateTime    @default(now())
+}
+

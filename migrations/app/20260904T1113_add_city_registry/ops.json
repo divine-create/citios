@@ -1,0 +1,206 @@
+[
+  {
+    "id": "table.city",
+    "label": "Create table \"city\"",
+    "summary": "Creates table \"city\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "city"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"city\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"city\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"city\"",
+        "sql": "CREATE TABLE \"public\".\"city\" (\n  \"country\" text NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"currency\" text DEFAULT 'USD' NOT NULL,\n  \"id\" text NOT NULL,\n  \"isActive\" bool DEFAULT true NOT NULL,\n  \"name\" text NOT NULL,\n  \"slug\" text NOT NULL,\n  \"timezone\" text DEFAULT 'UTC' NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"city\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"city\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.organization.cityId",
+    "label": "Add column \"cityId\" to \"organization\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "cityId",
+        "table": "organization"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"cityId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization",
+          "cityId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"cityId\"",
+        "sql": "ALTER TABLE \"public\".\"organization\" ADD COLUMN \"cityId\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"cityId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization",
+          "cityId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.city.city_slug_key",
+    "label": "Add unique constraint on \"city\" (slug)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "city_slug_key",
+        "table": "city"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"city_slug_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "city_slug_key",
+          "public",
+          "\"public\".\"city\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"city_slug_key\"",
+        "sql": "ALTER TABLE \"public\".\"city\" ADD CONSTRAINT \"city_slug_key\" UNIQUE (\"slug\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"city_slug_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "city_slug_key",
+          "public",
+          "\"public\".\"city\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.organization.organization_cityId_idx_1ab1b247",
+    "label": "Create index \"organization_cityId_idx_1ab1b247\" on \"organization\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "organization_cityId_idx_1ab1b247",
+        "table": "organization"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"organization_cityId_idx_1ab1b247\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"organization_cityId_idx_1ab1b247\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"organization_cityId_idx_1ab1b247\"",
+        "sql": "CREATE INDEX \"organization_cityId_idx_1ab1b247\" ON \"public\".\"organization\" (\"cityId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"organization_cityId_idx_1ab1b247\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"organization_cityId_idx_1ab1b247\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.organization.organization_cityId_fkey",
+    "label": "Add foreign key \"organization_cityId_fkey\" on \"organization\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "organization_cityId_fkey",
+        "table": "organization"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"organization_cityId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "organization_cityId_fkey",
+          "public",
+          "\"public\".\"organization\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"organization_cityId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"organization\"\nADD CONSTRAINT \"organization_cityId_fkey\"\nFOREIGN KEY (\"cityId\")\nREFERENCES \"public\".\"city\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"organization_cityId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "organization_cityId_fkey",
+          "public",
+          "\"public\".\"organization\""
+        ]
+      }
+    ]
+  }
+]
