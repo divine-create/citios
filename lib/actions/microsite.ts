@@ -243,10 +243,10 @@ export async function createMicrosite(organizationId: string, input: { title: st
         const c = input.customContent || {};
         
         if (input.features.includes('hero')) {
-           defaultSections.push({ type: 'hero', content: { heading: input.title, subheading: c.hero?.subheading || "A tradition of excellence. Inspiring minds.", ctaText: "Admissions", ctaLink: "#contact" } });
+           defaultSections.push({ type: 'hero', content: { heading: input.title, subheading: c.hero?.subheading || "A tradition of excellence. Inspiring minds.", ctaText: "Admissions", ctaLink: "#contact", imageAssetId: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2000&auto=format&fit=crop" } });
         }
         if (input.features.includes('welcome')) {
-           defaultSections.push({ type: 'school-head-welcome', content: { heading: c.welcome?.heading || "Welcome from the Headmaster", body: c.welcome?.body || "At our academy, we believe in nurturing not just academic excellence, but character, leadership, and a lifelong love for learning.", signature: defaultHeadName } });
+           defaultSections.push({ type: 'school-head-welcome', content: { heading: c.welcome?.heading || "Welcome from the Headmaster", body: c.welcome?.body || "At our academy, we believe in nurturing not just academic excellence, but character, leadership, and a lifelong love for learning.", signature: defaultHeadName, imageAssetId: "https://images.unsplash.com/photo-1577896851231-70ef18881754?q=80&w=1200&auto=format&fit=crop" } });
         }
         if (input.features.includes('mission')) {
            defaultSections.push({ type: 'hotel-amenities', content: { heading: "Our Core Values", items: c.mission || [
@@ -263,7 +263,7 @@ export async function createMicrosite(organizationId: string, input: { title: st
            ] } });
         }
         if (input.features.includes('facilities')) {
-           defaultSections.push({ type: 'hotel-feature', content: { heading: "World-Class Facilities", subheading: "Campus Life", body: c.facilities || "Our sprawling campus features state-of-the-art science laboratories, a comprehensive modern library, and professional-grade sports complexes designed to support holistic student development.", reverseLayout: false } }); 
+           defaultSections.push({ type: 'hotel-feature', content: { heading: "World-Class Facilities", subheading: "Campus Life", body: c.facilities || "Our sprawling campus features state-of-the-art science laboratories, a comprehensive modern library, and professional-grade sports complexes designed to support holistic student development.", imageAssetId: "https://images.unsplash.com/photo-1562774053-701939374585?q=80&w=1200&auto=format&fit=crop", reverseLayout: false } }); 
         }
         if (input.features.includes('admissions')) {
            defaultSections.push({ type: 'school-admissions-timeline', content: { heading: "Admissions Process", steps: c.admissions || [
@@ -314,35 +314,69 @@ export async function createMicrosite(organizationId: string, input: { title: st
       defaultSections.push({ type: 'hero', content: { heading: input.title, subheading: "Welcome to our website.", ctaText: "Contact Us", ctaLink: "#contact" } });
     }
 
-    defaultSections.push({ type: 'contact', content: { heading: "Get in Touch", address: defaultAddress, phone: defaultPhone, email: defaultEmail } });
+    const pagesToCreate: { title: string, slug: string, isHome: boolean, sections: any[] }[] = [];
 
-    const homePage = await db.orm.public.MicrositePage.create({
-      micrositeId: microsite.id,
-      title: "Home",
-      slug: "home",
-      isHome: true,
-      status: "published",
-    });
+    if (orgType === 'SCHOOL' && input.features && input.features.length > 0) {
+      // Split into multi-page
+      const homeSections = [];
+      const aboutSections = [];
+      const academicsSections = [];
+      const admissionsSections = [];
 
-    for (let i = 0; i < defaultSections.length; i++) {
-      await db.orm.public.MicrositeSection.create({
-        micrositeId: microsite.id,
-        pageId: homePage.id,
-        type: defaultSections[i].type,
-        order: i,
-        visible: true,
-        content: JSON.stringify(defaultSections[i].content),
-      });
+      for (const sec of defaultSections) {
+        if (sec.type === 'hero' || sec.type === 'school-head-welcome' || sec.type === 'testimonials') {
+          homeSections.push(sec);
+        } else if (sec.type === 'hotel-amenities') { // Mission
+          aboutSections.push(sec);
+        } else if (sec.type === 'school-curriculum' || sec.type === 'hotel-feature') { // Curriculum & Facilities
+          academicsSections.push(sec);
+        } else if (sec.type === 'school-admissions-timeline') {
+          admissionsSections.push(sec);
+        }
+      }
+      
+      pagesToCreate.push({ title: "Home", slug: "home", isHome: true, sections: homeSections });
+      if (aboutSections.length > 0) pagesToCreate.push({ title: "About Us", slug: "about", isHome: false, sections: aboutSections });
+      if (academicsSections.length > 0) pagesToCreate.push({ title: "Academics", slug: "academics", isHome: false, sections: academicsSections });
+      if (admissionsSections.length > 0) pagesToCreate.push({ title: "Admissions", slug: "admissions", isHome: false, sections: admissionsSections });
+      
+      // Add Contact to the last page or create a separate Contact page
+      pagesToCreate.push({ title: "Contact", slug: "contact", isHome: false, sections: [{ type: 'contact', content: { heading: "Get in Touch", address: defaultAddress, phone: defaultPhone, email: defaultEmail } }] });
+      
+    } else {
+      defaultSections.push({ type: 'contact', content: { heading: "Get in Touch", address: defaultAddress, phone: defaultPhone, email: defaultEmail } });
+      pagesToCreate.push({ title: "Home", slug: "home", isHome: true, sections: defaultSections });
     }
 
-    // Default Nav Items
-    await db.orm.public.MicrositeNavigationItem.create({
-      micrositeId: microsite.id,
-      label: "Home",
-      pageId: homePage.id,
-      order: 0,
-      isHidden: false,
-    });
+    let navOrder = 0;
+    for (const pageDef of pagesToCreate) {
+      const page = await db.orm.public.MicrositePage.create({
+        micrositeId: microsite.id,
+        title: pageDef.title,
+        slug: pageDef.slug,
+        isHome: pageDef.isHome,
+        status: "published",
+      });
+
+      for (let i = 0; i < pageDef.sections.length; i++) {
+        await db.orm.public.MicrositeSection.create({
+          micrositeId: microsite.id,
+          pageId: page.id,
+          type: pageDef.sections[i].type,
+          order: i,
+          visible: true,
+          content: JSON.stringify(pageDef.sections[i].content),
+        });
+      }
+
+      await db.orm.public.MicrositeNavigationItem.create({
+        micrositeId: microsite.id,
+        label: pageDef.title,
+        pageId: page.id,
+        order: navOrder++,
+        isHidden: false,
+      });
+    }
 
     return { success: true, microsite: JSON.parse(JSON.stringify(microsite)) };
   } catch (error) {
