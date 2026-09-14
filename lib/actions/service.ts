@@ -206,7 +206,7 @@ export async function createServiceJob(input: {
 
 export async function getServiceQuotes(organizationId: string) {
   try {
-    return await db.orm.public.ServiceQuote.where({ organizationId }).all();
+    return await db.orm.public.ServiceJobQuote.where({ organizationId }).all();
   } catch (error) {
     console.error('Error fetching quotes:', error);
     return [];

@@ -30,7 +30,7 @@ export default async function ServiceOSPage({ searchParams }: { searchParams: Pr
     );
   }
 
-  const membership = session?.user?.memberships?.find((m) => m.organizationType === "SERVICE");
+  const membership = session?.user?.memberships?.find((m) => m.organizationType === "SERVICES");
 
   const isServiceRole = (role?: string): role is ServiceRole => !!role && (SERVICE_ROLES as readonly string[]).includes(role);
 

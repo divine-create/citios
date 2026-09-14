@@ -5,6 +5,15 @@ import { Search, Plus, Minus, CreditCard, Banknote, X, ChevronRight, ShoppingCar
 import { getProducts, getCustomers, createOrder, createCustomer, getRetailSettings } from "@/lib/actions/retail";
 import ReceiptModal from "./ReceiptModal";
 
+const CATEGORY_COLORS = [
+  "bg-blue-100 text-blue-900",
+  "bg-emerald-100 text-emerald-900",
+  "bg-purple-100 text-purple-900",
+  "bg-orange-100 text-orange-900",
+  "bg-pink-100 text-pink-900",
+  "bg-cyan-100 text-cyan-900",
+];
+
 interface Product {
   id: string;
   name: string;
