@@ -19,6 +19,7 @@ import {
   updateMicrositePage,
   deleteMicrositePage,
   updateMicrositeNavigation,
+  resetMicrosite,
 } from "@/lib/actions/microsite";
 import { THEMES, THEME_IDS, SECTION_TYPES, SectionType } from "./themes";
 
@@ -798,6 +799,24 @@ function SettingsPanel({ site, organizationId, orgType, onSaved }: { site: Site;
       >
         {isSaving ? "Saving..." : "Save Settings"}
       </button>
+
+      <div className="pt-8 border-t border-slate-200">
+        <div className="bg-red-50 border border-red-100 rounded-xl p-5">
+          <h4 className="font-bold text-red-800 mb-1">Danger Zone</h4>
+          <p className="text-sm text-red-600 mb-4">Want to start completely fresh? This will delete your current website and restart the setup wizard.</p>
+          <button
+            onClick={async () => {
+              if (confirm("Are you completely sure? This will delete all pages, sections, and navigation links. This cannot be undone.")) {
+                await resetMicrosite(site.id);
+                onSaved(); // This calls load(), which will see site=null and launch the Wizard!
+              }
+            }}
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition-colors"
+          >
+            Rebuild Website from Scratch
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

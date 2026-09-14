@@ -626,3 +626,13 @@ export async function updateMicrositeNavigation(micrositeId: string, items: { id
     return { error: "Failed to update navigation." };
   }
 }
+
+export async function resetMicrosite(micrositeId: string) {
+  try {
+    await db.orm.public.Microsite.where({ id: micrositeId }).delete();
+    return { success: true };
+  } catch (error) {
+    console.error("Error resetting microsite", error);
+    return { error: "Failed to reset website." };
+  }
+}
