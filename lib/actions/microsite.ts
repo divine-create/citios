@@ -290,9 +290,14 @@ export async function createMicrosite(organizationId: string, input: { title: st
       });
     }
 
-    // We do NOT create explicit MicrositeNavigationItems by default anymore.
-    // This forces the MicrositeRenderer to fall back to auto-generating 
-    // a beautiful smooth-scrolling # anchor navigation menu based on sections.
+    // Default Nav Items
+    await db.orm.public.MicrositeNavigationItem.create({
+      micrositeId: microsite.id,
+      label: "Home",
+      pageId: homePage.id,
+      order: 0,
+      isHidden: false,
+    });
 
     return { success: true, microsite: JSON.parse(JSON.stringify(microsite)) };
   } catch (error) {
