@@ -82,6 +82,31 @@ export async function toggleLike(postId: string) {
     }
 }
 
+// Publishes an org broadcast to the resident Community Feed — used by admin
+// dashboards across verticals ("Publish to Feed" / mass communication).
+export async function createOrgPost(input: {
+  organizationId: string;
+  title: string;
+  content: string;
+  category: string;
+  isEmergency?: boolean;
+}) {
+  if (!input.title.trim() || !input.content.trim()) {
+    return { error: 'Title and content are required.' };
+  }
+
+  await db.orm.public.Post.create({
+    organizationId: input.organizationId,
+    title: input.title.trim(),
+    content: input.content.trim(),
+    category: input.category.trim() || 'General',
+    isEmergency: input.isEmergency ?? false,
+    status: 'PUBLISHED',
+  });
+
+  return { success: true };
+}
+
 export async function sharePost(postId: string) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) return JSON.parse(JSON.stringify({ error: 'Not logged in' }));

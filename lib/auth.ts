@@ -1,14 +1,42 @@
 import { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import CredentialsProvider from "next-auth/providers/credentials";
 import { db } from "@/src/prisma/db";
 import type { OrgMembership } from "@/types/next-auth";
 
+// Dev-only demo login so the prototype can be exercised across every
+// vertical without real Google OAuth. Accepts password "1234" for any email
+// that matches an existing User row (e.g. demo@cityconnect.local, seeded
+// with OWNER membership everywhere, or a named per-role account like
+// principal@cityconnect.local). Never enabled in production.
 export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || "mock-client-id",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "mock-client-secret",
     }),
+    ...(process.env.NODE_ENV !== "production"
+      ? [
+          CredentialsProvider({
+            id: "demo",
+            name: "Demo Account",
+            credentials: {
+              email: { label: "Email", type: "text" },
+              password: { label: "Password", type: "password" },
+            },
+            async authorize(credentials) {
+              if (credentials?.password === "1234" && credentials?.email) {
+                // In dev, accept password '1234' for any email and fetch their actual DB user
+                const dbUser = await db.orm.public.User.where({ email: credentials.email }).all().first();
+                if (dbUser) {
+                  return { id: dbUser.id, email: dbUser.email, name: dbUser.name };
+                }
+              }
+              return null;
+            },
+          }),
+        ]
+      : []),
   ],
   session: {
     strategy: "jwt",

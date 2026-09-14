@@ -1,399 +1,624 @@
-﻿"use client";
+"use client";
 
-import React, { useState } from 'react';
-import { AlertTriangle, Award, BookOpen, Calendar, CheckCircle, Clock, FileText, Filter, MessageSquare, Plus, Search, Users, Video, XCircle } from 'lucide-react';
+import React, { useMemo, useState } from "react";
+import { BookOpen, ClipboardCheck, GraduationCap, Plus, Loader2, AlertCircle, X, ShieldAlert, CalendarClock, TrendingUp } from "lucide-react";
+import { Button } from "@/components/Shared";
+import PromotionPanel from "./PromotionPanel";
+import {
+  bulkMarkAttendance,
+  createAssignment,
+  createBehaviorLog,
+  getTeacherPortalData,
+  markAttendance,
+  recordGrade,
+} from "@/lib/actions/school";
 
-// Mock Data
-const SCHEDULE = [
-  { id: 1, time: '08:00 AM', period: '1st Period', subject: 'AP Physics', room: 'Lab 402', students: 24 },
-  { id: 2, time: '09:30 AM', period: '2nd Period', subject: 'Honors Physics', room: 'Lab 402', students: 28 },
-  { id: 3, time: '11:00 AM', period: '3rd Period', subject: 'Planning', room: 'Staff Room', students: 0 },
-  { id: 4, time: '12:30 PM', period: 'Lunch', subject: 'Cafeteria Duty', room: 'Main Cafe', students: 200 },
-  { id: 5, time: '01:30 PM', period: '4th Period', subject: 'AP Physics', room: 'Lab 402', students: 25 },
-];
+type Course = { id: string; name: string; roomNumber: string | null };
+type Enrollment = { id: string; studentId: string; courseId: string; grade: number | null };
+type Student = { id: string; firstName: string; lastName: string };
+type Assignment = { id: string; courseId: string; title: string; category: string; weight: number; maxScore: number };
+type Grade = { id: string; assignmentId: string; studentId: string; score: number };
+type AttendanceStatus = "PRESENT" | "ABSENT" | "LATE" | "EXCUSED";
 
-const ROSTER = [
-  { id: 'S001', name: 'Alex Johnson', grade: 'A-', attendance: 'Present', behavior: 'Good', missingAssignments: 0 },
-  { id: 'S002', name: 'Maria Garcia', grade: 'B+', attendance: 'Late', behavior: 'Excellent', missingAssignments: 1 },
-  { id: 'S003', name: 'James Smith', grade: 'C', attendance: 'Absent', behavior: 'Warning', missingAssignments: 3 },
-  { id: 'S004', name: 'Emma Davis', grade: 'A', attendance: 'Present', behavior: 'Excellent', missingAssignments: 0 },
-  { id: 'S005', name: 'Michael Chen', grade: 'B', attendance: 'Present', behavior: 'Good', missingAssignments: 0 },
-];
+type AttendanceRecord = { id: string; studentId: string; status: AttendanceStatus; date: string };
 
-const ASSIGNMENTS = [
-  { id: 1, title: 'Kinematics Lab Report', dueDate: 'Today', submitted: 20, total: 24, avgScore: '88%' },
-  { id: 2, title: 'Chapter 4 Quiz', dueDate: 'Yesterday', submitted: 24, total: 24, avgScore: '82%' },
-  { id: 3, title: "Newton's Laws Problem Set", dueDate: 'In 3 days', submitted: 5, total: 24, avgScore: '-' },
-];
+interface TeacherDashboardProps {
+  organizationId: string | null;
+  organizationMemberId: string | null;
+  initialCourses: Course[];
+  initialEnrollments: Enrollment[];
+  initialStudents: Student[];
+  initialAssignments: Assignment[];
+  initialGrades: Grade[];
+  initialTodayAttendance: AttendanceRecord[];
+  initialSchedule?: any[];
+  initialEvents?: any[];
+  initialFormSections?: any[];
+}
 
-export default function TeacherDashboard() {
-  const [activeTab, setActiveTab] = useState('schedule');
-  const [searchQuery, setSearchQuery] = useState('');
+const TABS = [
+  { id: "roster", label: "Roster & Attendance", icon: ClipboardCheck },
+  { id: "gradebook", label: "Gradebook", icon: GraduationCap },
+  { id: "schedule", label: "My Schedule", icon: CalendarClock },
+] as const;
+
+type TabId = (typeof TABS)[number]["id"] | "promotion";
+
+export default function TeacherDashboard({
+  organizationId,
+  organizationMemberId,
+  initialCourses,
+  initialEnrollments,
+  initialStudents,
+  initialAssignments,
+  initialGrades,
+  initialTodayAttendance,
+  initialSchedule = [],
+  initialEvents = [],
+  initialFormSections = [],
+}: TeacherDashboardProps) {
+  const [activeTab, setActiveTab] = useState<TabId>("roster");
+  const [courses] = useState<Course[]>(initialCourses);
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(courses[0]?.id ?? null);
+  const [enrollments, setEnrollments] = useState<Enrollment[]>(initialEnrollments);
+  const [students, setStudents] = useState<Student[]>(initialStudents);
+  const [assignments, setAssignments] = useState<Assignment[]>(initialAssignments);
+  const [grades, setGrades] = useState<Grade[]>(initialGrades);
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>(initialTodayAttendance);
+  const [mySchedule, setMySchedule] = useState<any[]>(initialSchedule);
+  const [events, setEvents] = useState<any[]>(initialEvents);
+  const [formSections, setFormSections] = useState<any[]>(initialFormSections);
+
+  const refresh = async () => {
+    const data = organizationMemberId
+      ? await getTeacherPortalData(organizationMemberId, organizationId ?? undefined)
+      : organizationId
+      ? await getTeacherPortalData(undefined, organizationId)
+      : null;
+    if (!data) return;
+    setEnrollments(data.enrollments);
+    setStudents(data.students);
+    setAssignments(data.assignments);
+    setGrades(data.grades);
+    setAttendance(data.todayAttendance);
+    setMySchedule(data.mySchedule ?? []);
+    setEvents(data.events ?? []);
+    setFormSections(data.formSections ?? []);
+  };
+
+  const roster = useMemo(() => {
+    const studentIds = enrollments.filter((e) => e.courseId === selectedCourseId).map((e) => e.studentId);
+    return students.filter((s) => studentIds.includes(s.id));
+  }, [enrollments, students, selectedCourseId]);
+
+  const courseAssignments = assignments.filter((a) => a.courseId === selectedCourseId);
+  const tabs = formSections.length > 0 ? [...TABS, { id: "promotion" as const, label: "Promotion", icon: TrendingUp }] : TABS;
+
+  if (!organizationId) {
+    return (
+      <div className="p-10 text-center text-gray-400">
+        <BookOpen size={48} className="mx-auto mb-4 opacity-20" />
+        <p>No school organization found — run the seed script.</p>
+      </div>
+    );
+  }
+
+  if (courses.length === 0 && formSections.length === 0) {
+    return (
+      <div className="p-10 text-center text-gray-400">
+        <BookOpen size={48} className="mx-auto mb-4 opacity-20" />
+        <p>No courses assigned to you yet.</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex h-screen bg-gray-50 font-sans text-gray-900">
-      {/* Sidebar / Navigation */}
-      <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-blue-600 flex items-center gap-2">
-            <BookOpen className="w-6 h-6" />
-            Teacher Portal
-          </h2>
-          <p className="text-sm text-gray-500 mt-1">Sarah Jenkins</p>
-        </div>
-        
-        <nav className="flex-1 p-4 space-y-2">
-          <button 
-            onClick={() => setActiveTab('schedule')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
-              activeTab === 'schedule' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-50'
-            }`}
-          >
-            <Calendar className="w-5 h-5" />
-            Daily Schedule
-          </button>
-          
-          <button 
-            onClick={() => setActiveTab('gradebook')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
-              activeTab === 'gradebook' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-50'
-            }`}
-          >
-            <BookOpen className="w-5 h-5" />
-            Smart Gradebook
-          </button>
-          
-          <button 
-            onClick={() => setActiveTab('attendance')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
-              activeTab === 'attendance' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-50'
-            }`}
-          >
-            <Users className="w-5 h-5" />
-            Attendance & Roster
-          </button>
-          
-          <button 
-            onClick={() => setActiveTab('behavior')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
-              activeTab === 'behavior' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-50'
-            }`}
-          >
-            <Award className="w-5 h-5" />
-            Behavior Logging
-          </button>
-                  <button 
-            onClick={() => setActiveTab('lms')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
-              activeTab === 'lms' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-50'
-            }`}
-          >
-            <BookOpen className="w-5 h-5" />
-            LMS Workspace
-          </button>
-        </nav>
-      </div>
-
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top Header */}
-        <header className="bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-          <div className="flex items-center gap-4 flex-1">
-            <h1 className="text-2xl font-bold capitalize">
-              {activeTab === 'schedule' && "Today's Schedule"}
-              {activeTab === 'gradebook' && 'Smart Gradebook'}
-              {activeTab === 'attendance' && 'Attendance Management'}
-              {activeTab === 'behavior' && 'Behavior & Discipline'}
-            {activeTab === 'lms' && 'LMS Workspace'}
-            </h1>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input 
-                type="text" 
-                placeholder="Search students..." 
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-full">
-              <MessageSquare className="w-6 h-6" />
+    <div className="min-h-full bg-gray-50">
+      <header className="bg-white border-b border-gray-200 px-6 md:px-10 py-5">
+        <h1 className="text-xl font-bold text-gray-900">Teacher Portal</h1>
+        <p className="text-sm text-gray-500">Roster, attendance, and gradebook for your classes.</p>
+        <div className="flex gap-2 mt-4 overflow-x-auto">
+          {courses.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => setSelectedCourseId(c.id)}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors ${
+                selectedCourseId === c.id ? "bg-indigo-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              {c.name}
             </button>
-          </div>
-        </header>
+          ))}
+        </div>
+      </header>
 
-        {/* Content Body */}
-        <main className="flex-1 overflow-auto p-6">
-          {activeTab === 'schedule' && (
-            <div className="max-w-4xl mx-auto space-y-6">
-              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <div className="p-6 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-                  <h3 className="text-lg font-semibold">Tuesday, October 24th</h3>
-                  <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-                    Current: 1st Period
-                  </span>
-                </div>
-                <div className="divide-y divide-gray-100">
-                  {SCHEDULE.map((slot) => (
-                    <div key={slot.id} className="p-6 flex items-center hover:bg-gray-50 transition-colors">
-                      <div className="w-32 flex flex-col">
-                        <span className="font-bold text-gray-900">{slot.time}</span>
-                        <span className="text-sm text-gray-500">{slot.period}</span>
-                      </div>
-                      <div className="flex-1 pl-6 border-l-2 border-gray-200">
-                        <h4 className="text-lg font-semibold text-gray-900">{slot.subject}</h4>
-                        <div className="flex gap-4 mt-2 text-sm text-gray-600">
-                          <span className="flex items-center gap-1"><Users className="w-4 h-4"/> {slot.students} students</span>
-                          <span className="flex items-center gap-1"><BookOpen className="w-4 h-4"/> {slot.room}</span>
-                        </div>
-                      </div>
-                      <div>
-                        {slot.students > 0 && (
-                           <button className="px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 font-medium rounded-lg transition-colors">
-                             Start Class
-                           </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
+      <nav className="bg-white border-b border-gray-200 px-6 md:px-10 flex gap-1">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
+              activeTab === tab.id ? "border-indigo-600 text-indigo-700" : "border-transparent text-gray-500 hover:text-gray-800"
+            }`}
+          >
+            <tab.icon size={16} />
+            {tab.label}
+          </button>
+        ))}
+      </nav>
 
-          {activeTab === 'gradebook' && (
-            <div className="space-y-6">
-              {/* Gradebook Header Actions */}
-              <div className="flex justify-between items-center">
-                <div className="flex gap-2">
-                  <select className="px-4 py-2 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option>AP Physics - 1st Period</option>
-                    <option>Honors Physics - 2nd Period</option>
-                  </select>
-                  <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 shadow-sm transition-colors">
-                    <Filter className="w-4 h-4" /> Filter
-                  </button>
-                </div>
-                <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-colors">
-                  <Plus className="w-4 h-4" /> New Assignment
-                </button>
-              </div>
-
-              {/* Assignments Overview */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {ASSIGNMENTS.map((assignment) => (
-                  <div key={assignment.id} className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-                    <h4 className="font-semibold text-gray-900 truncate">{assignment.title}</h4>
-                    <p className="text-sm text-gray-500 mt-1">Due: {assignment.dueDate}</p>
-                    <div className="mt-4 flex justify-between items-end">
-                      <div>
-                        <p className="text-2xl font-bold text-gray-900">{assignment.submitted}/{assignment.total}</p>
-                        <p className="text-xs text-gray-500 uppercase tracking-wide">Submitted</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold text-green-600">{assignment.avgScore}</p>
-                        <p className="text-xs text-gray-500 uppercase tracking-wide">Avg Score</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Roster Table */}
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                <table className="w-full text-left">
-                  <thead className="bg-gray-50 border-b border-gray-200 text-sm uppercase text-gray-600">
-                    <tr>
-                      <th className="px-6 py-4 font-semibold">Student</th>
-                      <th className="px-6 py-4 font-semibold text-center">Overall Grade</th>
-                      <th className="px-6 py-4 font-semibold text-center">Missing</th>
-                      <th className="px-6 py-4 font-semibold text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {ROSTER.map((student) => (
-                      <tr key={student.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4">
-                          <div className="font-medium text-gray-900">{student.name}</div>
-                          <div className="text-sm text-gray-500">{student.id}</div>
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-bold ${
-                            student.grade.startsWith('A') ? 'bg-green-100 text-green-700' :
-                            student.grade.startsWith('B') ? 'bg-blue-100 text-blue-700' :
-                            student.grade.startsWith('C') ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-red-100 text-red-700'
-                          }`}>
-                            {student.grade}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          {student.missingAssignments > 0 ? (
-                            <span className="inline-flex items-center gap-1 text-red-600 font-medium">
-                              <AlertTriangle className="w-4 h-4" /> {student.missingAssignments}
-                            </span>
-                          ) : (
-                            <span className="text-gray-400">-</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">View Details</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'attendance' && (
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                 <h3 className="text-xl font-bold">1st Period: AP Physics</h3>
-                 <div className="flex gap-3">
-                   <button className="px-4 py-2 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 font-medium">
-                     Mark All Present
-                   </button>
-                   <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
-                     Save Attendance
-                   </button>
-                 </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {ROSTER.map((student) => (
-                  <div key={student.id} className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold text-gray-900">{student.name}</p>
-                      <p className="text-sm text-gray-500">{student.id}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button className={`p-2 rounded-full transition-colors ${
-                        student.attendance === 'Present' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
-                      }`}>
-                        <CheckCircle className="w-6 h-6" />
-                      </button>
-                      <button className={`p-2 rounded-full transition-colors ${
-                        student.attendance === 'Late' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
-                      }`}>
-                        <Clock className="w-6 h-6" />
-                      </button>
-                      <button className={`p-2 rounded-full transition-colors ${
-                        student.attendance === 'Absent' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
-                      }`}>
-                        <XCircle className="w-6 h-6" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'behavior' && (
-            <div className="space-y-6 max-w-4xl mx-auto">
-              <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                <h3 className="text-lg font-bold mb-4">Log Incident or Commendation</h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Student</label>
-                    <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                      <option>Select a student...</option>
-                      {ROSTER.map(s => <option key={s.id}>{s.name}</option>)}
-                    </select>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                      <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                        <option>Commendation (Positive)</option>
-                        <option>Warning (Minor)</option>
-                        <option>Demerit (Infraction)</option>
-                        <option>Referral (Major)</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                      <input type="date" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" defaultValue="2023-10-24" />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                    <textarea 
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 h-24"
-                      placeholder="Describe the incident or reason for commendation..."
-                    ></textarea>
-                  </div>
-                  
-                  <div className="pt-2">
-                    <button className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-sm w-full">
-                      Submit Log
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-                  {activeTab === 'lms' && (
-            <div className="space-y-6 max-w-5xl mx-auto">
-              <div className="flex gap-4 mb-6">
-                <button className="flex-1 bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition text-center">
-                  <FileText className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                  <h3 className="font-bold text-gray-900">Upload Content</h3>
-                  <p className="text-sm text-gray-500">PDFs, Slides, Docs</p>
-                </button>
-                <button className="flex-1 bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition text-center">
-                  <BookOpen className="w-8 h-8 text-green-600 mx-auto mb-2" />
-                  <h3 className="font-bold text-gray-900">Quiz Builder</h3>
-                  <p className="text-sm text-gray-500">Multiple choice & short answer</p>
-                </button>
-                <button className="flex-1 bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition text-center">
-                  <MessageSquare className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-                  <h3 className="font-bold text-gray-900">Discussions</h3>
-                  <p className="text-sm text-gray-500">Class forums & threads</p>
-                </button>
-              </div>
-
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                <div className="p-4 border-b border-gray-200 bg-gray-50 font-bold text-gray-700">
-                  Recent Course Materials
-                </div>
-                <div className="divide-y divide-gray-100">
-                  <div className="p-4 flex justify-between items-center hover:bg-gray-50">
-                    <div className="flex items-center gap-3">
-                      <Video className="w-5 h-5 text-red-500" />
-                      <div>
-                        <p className="font-bold text-gray-900">Physics 101: Kinematics Lecture</p>
-                        <p className="text-xs text-gray-500">Uploaded Today • Visible to Students</p>
-                      </div>
-                    </div>
-                    <button className="text-blue-600 text-sm font-bold">Edit</button>
-                  </div>
-                  <div className="p-4 flex justify-between items-center hover:bg-gray-50">
-                    <div className="flex items-center gap-3">
-                      <BookOpen className="w-5 h-5 text-green-500" />
-                      <div>
-                        <p className="font-bold text-gray-900">Midterm Practice Quiz</p>
-                        <p className="text-xs text-gray-500">24 Questions • Due Friday</p>
-                      </div>
-                    </div>
-                    <button className="text-blue-600 text-sm font-bold">Edit</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </main>
+      <div className="p-6 md:p-10 max-w-5xl mx-auto">
+        {activeTab === "roster" && (
+          <RosterTab
+            organizationId={organizationId as string}
+            organizationMemberId={organizationMemberId}
+            roster={roster}
+            attendance={attendance}
+            onChanged={refresh}
+          />
+        )}
+        {activeTab === "gradebook" && selectedCourseId && (
+          <GradebookTab
+            courseId={selectedCourseId}
+            roster={roster}
+            assignments={courseAssignments}
+            grades={grades}
+            onChanged={refresh}
+          />
+        )}
+        {activeTab === "schedule" && <ScheduleTab schedule={mySchedule} events={events} />}
+        {activeTab === "promotion" && formSections.length > 0 && (
+          <PromotionTab organizationId={organizationId as string} formSections={formSections} refresh={refresh} />
+        )}
       </div>
     </div>
   );
 }
 
+// =====================================================================
+// Roster & Attendance
+// =====================================================================
 
+function RosterTab({
+  organizationId,
+  organizationMemberId,
+  roster,
+  attendance,
+  onChanged,
+}: {
+  organizationId: string;
+  organizationMemberId: string | null;
+  roster: Student[];
+  attendance: AttendanceRecord[];
+  onChanged: () => Promise<void>;
+}) {
+  const [isBusy, setIsBusy] = useState(false);
+  const [behaviorStudentId, setBehaviorStudentId] = useState<string | null>(null);
+  const [behaviorForm, setBehaviorForm] = useState({ type: "COMMENDATION" as "DEMERIT" | "COMMENDATION" | "REFERRAL", note: "" });
+  const [behaviorError, setBehaviorError] = useState<string | null>(null);
+
+  const mark = async (studentId: string, status: AttendanceStatus) => {
+    await markAttendance(studentId, status);
+    await onChanged();
+  };
+
+  const markAllPresent = async () => {
+    setIsBusy(true);
+    try {
+      await bulkMarkAttendance(roster.map((s) => s.id), "PRESENT");
+      await onChanged();
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const submitBehavior = async () => {
+    if (!behaviorStudentId) return;
+    setBehaviorError(null);
+    try {
+      const result = await createBehaviorLog({
+        organizationId: organizationId as string,
+        studentId: behaviorStudentId,
+        reportedById: organizationMemberId as string,
+        type: behaviorForm.type,
+        note: behaviorForm.note,
+      });
+      if (result?.error) {
+        setBehaviorError(result.error);
+        return;
+      }
+      setBehaviorStudentId(null);
+      setBehaviorForm({ type: "COMMENDATION", note: "" });
+    } catch {
+      setBehaviorError("Failed to log behavior.");
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="font-bold text-gray-900">Today's Roster</h3>
+        <button
+          onClick={markAllPresent}
+          disabled={isBusy || roster.length === 0}
+          className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 disabled:opacity-50"
+        >
+          {isBusy && <Loader2 size={14} className="animate-spin" />}
+          Mark All Present
+        </button>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+            <tr>
+              <th className="text-left px-5 py-3">Student</th>
+              <th className="text-left px-5 py-3">Attendance</th>
+              <th className="px-5 py-3" />
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {roster.map((s) => {
+              const record = attendance.find((a) => a.studentId === s.id);
+              return (
+                <tr key={s.id}>
+                  <td className="px-5 py-3 font-medium text-gray-900">{s.firstName} {s.lastName}</td>
+                  <td className="px-5 py-3">
+                    <div className="flex gap-1">
+                      {(["PRESENT", "LATE", "ABSENT", "EXCUSED"] as AttendanceStatus[]).map((status) => (
+                        <button
+                          key={status}
+                          onClick={() => mark(s.id, status)}
+                          className={`w-8 h-8 rounded-md text-xs font-bold transition-colors ${
+                            record?.status === status
+                              ? "bg-indigo-600 text-white"
+                              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                          }`}
+                        >
+                          {status === "PRESENT" ? "P" : status === "LATE" ? "L" : status === "EXCUSED" ? "E" : "A"}
+                        </button>
+                      ))}
+                    </div>
+                  </td>
+                  <td className="px-5 py-3 text-right">
+                    <button
+                      onClick={() => setBehaviorStudentId(s.id)}
+                      className="text-xs font-semibold text-gray-400 hover:text-indigo-600 flex items-center gap-1 ml-auto"
+                    >
+                      <ShieldAlert size={12} /> Log behavior
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+            {roster.length === 0 && (
+              <tr><td colSpan={3} className="px-5 py-8 text-center text-gray-400">No students enrolled in this course.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      </div>
+
+      {behaviorStudentId && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setBehaviorStudentId(null)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <h2 className="text-lg font-bold text-gray-900">Log Behavior</h2>
+              <button onClick={() => setBehaviorStudentId(null)} className="p-1 rounded-full hover:bg-gray-100 text-gray-500">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              {behaviorError && (
+                <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 text-sm p-3 rounded-lg">
+                  <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
+                  <span>{behaviorError}</span>
+                </div>
+              )}
+              <select
+                value={behaviorForm.type}
+                onChange={(e) => setBehaviorForm((f) => ({ ...f, type: e.target.value as any }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              >
+                <option value="COMMENDATION">Commendation</option>
+                <option value="DEMERIT">Demerit</option>
+                <option value="REFERRAL">Referral</option>
+              </select>
+              <textarea
+                value={behaviorForm.note}
+                onChange={(e) => setBehaviorForm((f) => ({ ...f, note: e.target.value }))}
+                rows={3}
+                placeholder="Note..."
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="flex gap-3 p-5 border-t border-gray-100 bg-gray-50">
+              <Button variant="outline" className="flex-1 justify-center" onClick={() => setBehaviorStudentId(null)}>
+                Cancel
+              </Button>
+              <button
+                onClick={submitBehavior}
+                disabled={!behaviorForm.note.trim()}
+                className="flex-1 bg-indigo-600 text-white rounded-xl font-bold text-xs px-6 py-2.5 hover:bg-indigo-700 disabled:opacity-50"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// =====================================================================
+// Gradebook
+// =====================================================================
+
+function GradebookTab({
+  courseId,
+  roster,
+  assignments,
+  grades,
+  onChanged,
+}: {
+  courseId: string;
+  roster: Student[];
+  assignments: Assignment[];
+  grades: Grade[];
+  onChanged: () => Promise<void>;
+}) {
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [form, setForm] = useState({ title: "", category: "Homework", weight: "1", maxScore: "100" });
+  const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const submitAssignment = async () => {
+    setError(null);
+    setIsSaving(true);
+    try {
+      const result = await createAssignment({
+        courseId,
+        title: form.title,
+        category: form.category,
+        weight: parseFloat(form.weight) || 1,
+        maxScore: parseFloat(form.maxScore) || 100,
+      });
+      if (result?.error) {
+        setError(result.error);
+        return;
+      }
+      setIsAddOpen(false);
+      setForm({ title: "", category: "Homework", weight: "1", maxScore: "100" });
+      await onChanged();
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const saveGrade = async (studentId: string, assignmentId: string, value: string) => {
+    const score = parseFloat(value);
+    if (isNaN(score)) return;
+    await recordGrade({ assignmentId, studentId, courseId, score });
+    await onChanged();
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="font-bold text-gray-900">Gradebook</h3>
+        <button
+          onClick={() => setIsAddOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700"
+        >
+          <Plus size={16} /> New Assignment
+        </button>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-gray-200 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+            <tr>
+              <th className="text-left px-5 py-3 sticky left-0 bg-gray-50">Student</th>
+              {assignments.map((a) => (
+                <th key={a.id} className="text-left px-4 py-3 whitespace-nowrap">
+                  {a.title} <span className="text-gray-300">/{a.maxScore}</span>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {roster.map((s) => (
+              <tr key={s.id}>
+                <td className="px-5 py-3 font-medium text-gray-900 sticky left-0 bg-white">{s.firstName} {s.lastName}</td>
+                {assignments.map((a) => {
+                  const g = grades.find((gr) => gr.assignmentId === a.id && gr.studentId === s.id);
+                  return (
+                    <td key={a.id} className="px-4 py-3">
+                      <input
+                        type="number"
+                        defaultValue={g?.score ?? ""}
+                        onBlur={(e) => saveGrade(s.id, a.id, e.target.value)}
+                        placeholder="-"
+                        className="w-16 border border-transparent hover:border-gray-200 focus:border-indigo-400 rounded px-2 py-1 text-sm focus:outline-none"
+                      />
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+            {assignments.length === 0 && (
+              <tr><td className="px-5 py-8 text-center text-gray-400">No assignments yet — add one to start grading.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {isAddOpen && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setIsAddOpen(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <h2 className="text-lg font-bold text-gray-900">New Assignment</h2>
+              <button onClick={() => setIsAddOpen(false)} className="p-1 rounded-full hover:bg-gray-100 text-gray-500">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              {error && (
+                <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 text-sm p-3 rounded-lg">
+                  <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase">Title</label>
+                <input
+                  value={form.title}
+                  onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                  className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  placeholder="Chapter 4 Quiz"
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase">Category</label>
+                  <input
+                    value={form.category}
+                    onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                    className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase">Weight</label>
+                  <input
+                    type="number"
+                    value={form.weight}
+                    onChange={(e) => setForm((f) => ({ ...f, weight: e.target.value }))}
+                    className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase">Max Score</label>
+                  <input
+                    type="number"
+                    value={form.maxScore}
+                    onChange={(e) => setForm((f) => ({ ...f, maxScore: e.target.value }))}
+                    className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3 p-5 border-t border-gray-100 bg-gray-50">
+              <Button variant="outline" className="flex-1 justify-center" onClick={() => setIsAddOpen(false)}>
+                Cancel
+              </Button>
+              <button
+                onClick={submitAssignment}
+                disabled={isSaving || !form.title.trim()}
+                className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 text-white rounded-xl font-bold text-xs px-6 py-2.5 hover:bg-indigo-700 disabled:opacity-50"
+              >
+                {isSaving && <Loader2 size={14} className="animate-spin" />}
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// =====================================================================
+// My Schedule
+// =====================================================================
+
+const SCHEDULE_DAY_LABELS: Record<number, string> = { 1: "Mon", 2: "Tue", 3: "Wed", 4: "Thu", 5: "Fri", 6: "Sat", 7: "Sun" };
+
+function ScheduleTab({ schedule, events }: { schedule: any[]; events: any[] }) {
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100">
+          <h3 className="font-bold text-gray-900">Weekly Schedule</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+              <tr>
+                <th className="text-left px-5 py-3">Day</th>
+                <th className="text-left px-5 py-3">Period</th>
+                <th className="text-left px-5 py-3">Time</th>
+                <th className="text-left px-5 py-3">Class</th>
+                <th className="text-left px-5 py-3">Room</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {schedule.length === 0 ? (
+                <tr><td colSpan={5} className="px-5 py-8 text-center text-gray-400">No timetable slots scheduled yet.</td></tr>
+              ) : (
+                schedule.map((slot) => (
+                  <tr key={slot.id}>
+                    <td className="px-5 py-3 font-medium text-gray-900">{SCHEDULE_DAY_LABELS[slot.dayOfWeek] ?? slot.dayOfWeek}</td>
+                    <td className="px-5 py-3 text-gray-500">{slot.period}</td>
+                    <td className="px-5 py-3 text-gray-500">{slot.startTime} – {slot.endTime}</td>
+                    <td className="px-5 py-3 text-gray-700">{slot.className}</td>
+                    <td className="px-5 py-3 text-gray-500">{slot.roomName ?? "—"}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100">
+          <h3 className="font-bold text-gray-900">Upcoming Events</h3>
+        </div>
+        <ul className="divide-y divide-gray-100">
+          {events.length === 0 ? (
+            <li className="px-5 py-8 text-center text-gray-400 text-sm">No upcoming events.</li>
+          ) : (
+            events.map((ev) => (
+              <li key={ev.id} className="px-5 py-3 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{ev.title}</p>
+                  <p className="text-xs text-gray-400 capitalize">{ev.category}</p>
+                </div>
+                <span className="text-xs text-gray-500">{new Date(ev.startDate).toLocaleDateString()}</span>
+              </li>
+            ))
+          )}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+// =====================================================================
+// Promotion (only shown when this teacher is a section's form/class teacher)
+// =====================================================================
+
+function PromotionTab({ organizationId, formSections, refresh }: { organizationId: string; formSections: any[]; refresh: () => Promise<void> }) {
+  const [selectedSectionId, setSelectedSectionId] = useState(formSections[0]?.id ?? "");
+
+  return (
+    <div className="space-y-4">
+      {formSections.length > 1 && (
+        <select
+          value={selectedSectionId}
+          onChange={(e) => setSelectedSectionId(e.target.value)}
+          className="px-3 py-2 border border-gray-200 rounded-lg text-sm"
+        >
+          {formSections.map((s: any) => (
+            <option key={s.id} value={s.id}>{s.gradeName ?? ""} - {s.name} ({s.academicYearLabel})</option>
+          ))}
+        </select>
+      )}
+      {selectedSectionId && <PromotionPanel organizationId={organizationId} classSectionId={selectedSectionId} onDone={refresh} />}
+    </div>
+  );
+}

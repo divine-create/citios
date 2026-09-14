@@ -1,6 +1,11 @@
-﻿import SchoolProfilePageClient from './SchoolProfilePageClient';
+import { notFound } from 'next/navigation';
+import { getSchoolProfile } from '@/lib/actions/resident';
+import SchoolProfileView from '@/components/SchoolProfileView';
 
 export default async function SchoolProfilePage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = await params;
-    return <SchoolProfilePageClient id={resolvedParams.id} />;
+    const profile = await getSchoolProfile(resolvedParams.id);
+    if (!profile) notFound();
+
+    return <SchoolProfileView profile={profile} />;
 }

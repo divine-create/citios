@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { CheckCircle, Sparkles, SprayCan, AlertTriangle, Clock, MapPin, Search, Filter, Wrench } from "lucide-react";
+import { updateRoomStatus } from "@/lib/actions/hotel";
 
 type RoomStatus = "OCCUPIED" | "DIRTY" | "CLEANING" | "INSPECTED" | "AVAILABLE";
 
@@ -16,15 +17,6 @@ interface RoomTask {
   type: "checkout" | "stayover";
 }
 
-const MOCK_TASKS: RoomTask[] = [
-  { id: "1", roomNumber: "101", roomType: "Deluxe King", status: "DIRTY", isPriority: true, type: "checkout" },
-  { id: "2", roomNumber: "102", roomType: "Double Queen", status: "CLEANING", isPriority: false, type: "stayover" },
-  { id: "3", roomNumber: "103", roomType: "Suite", status: "INSPECTED", isPriority: false, type: "checkout", guestName: "Smith" },
-  { id: "4", roomNumber: "104", roomType: "Standard", status: "AVAILABLE", isPriority: false, type: "checkout" },
-  { id: "5", roomNumber: "201", roomType: "Deluxe King", status: "OCCUPIED", isPriority: false, type: "stayover" },
-  { id: "6", roomNumber: "202", roomType: "Standard", status: "DIRTY", isPriority: true, type: "checkout" },
-];
-
 const getStatusColor = (status: RoomStatus) => {
   switch (status) {
     case "OCCUPIED": return "bg-gray-100 text-gray-700 border-gray-200";
@@ -32,6 +24,7 @@ const getStatusColor = (status: RoomStatus) => {
     case "CLEANING": return "bg-yellow-50 text-yellow-700 border-yellow-200";
     case "INSPECTED": return "bg-blue-50 text-blue-700 border-blue-200";
     case "AVAILABLE": return "bg-green-50 text-green-700 border-green-200";
+    default: return "bg-gray-100 text-gray-700 border-gray-200";
   }
 };
 
@@ -42,6 +35,7 @@ const getStatusIcon = (status: RoomStatus) => {
     case "CLEANING": return <SprayCan className="w-4 h-4" />;
     case "INSPECTED": return <Search className="w-4 h-4" />;
     case "AVAILABLE": return <Sparkles className="w-4 h-4" />;
+    default: return null;
   }
 };
 
@@ -53,14 +47,30 @@ const NEXT_STATUS: Record<RoomStatus, RoomStatus> = {
   AVAILABLE: "OCCUPIED",
 };
 
-export default function HousekeepingView() {
-  const [tasks, setTasks] = useState<RoomTask[]>(MOCK_TASKS);
+export default function HousekeepingView({ initialTasks = [], organizationId }: { initialTasks?: RoomTask[], organizationId?: string | null }) {
+  const [tasks, setTasks] = useState<RoomTask[]>(initialTasks);
   const [filter, setFilter] = useState<"all" | "checkout" | "stayover">("all");
+  const [loadingIds, setLoadingIds] = useState<Set<string>>(new Set());
 
-  const handleStatusToggle = (id: string) => {
-    setTasks(prev => prev.map(task => 
-      task.id === id ? { ...task, status: NEXT_STATUS[task.status] } : task
-    ));
+  const handleStatusToggle = async (id: string) => {
+    if (loadingIds.has(id)) return;
+    
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+    
+    const next = NEXT_STATUS[task.status as RoomStatus] || "DIRTY";
+    
+    setLoadingIds(prev => { const n = new Set(prev); n.add(id); return n; });
+    
+    const res = await updateRoomStatus(id, next);
+    
+    setLoadingIds(prev => { const n = new Set(prev); n.delete(id); return n; });
+    
+    if (res?.success) {
+      setTasks(prev => prev.map(t => t.id === id ? { ...t, status: next } : t));
+    } else {
+      alert(res?.error || "Failed to update room status");
+    }
   };
 
   const handleReportMaintenance = (roomNumber: string) => {

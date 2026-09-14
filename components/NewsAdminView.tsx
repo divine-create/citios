@@ -22,12 +22,12 @@ export function NewsAdminView({ initialData }: { initialData: any }) {
                 <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-bl-full -z-0" />
                 <div className="relative z-10 flex justify-between items-start mb-6">
                     <div>
-                        <h2 className="text-3xl font-bold tracking-tight text-white">{organization.name}</h2>
+                        <h2 className="text-xl sm:text-3xl font-bold tracking-tight text-white">{organization.name}</h2>
                         <p className="text-slate-400 text-sm font-bold uppercase tracking-widest mt-2">Publisher CMS Portal</p>
                     </div>
                 </div>
 
-                <div className="relative z-10 grid grid-cols-3 gap-8 border-t border-slate-800 pt-8">
+                <div className="relative z-10 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-8 border-t border-slate-800 pt-8">
                     <div>
                         <p className="text-4xl font-black tracking-tighter text-white">{publishedPosts.length}</p>
                         <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-2">Published Articles</p>

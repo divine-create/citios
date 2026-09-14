@@ -180,6 +180,7 @@ export default function HotelSearchView() {
                   </div>
                 )}
                 
+                <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse bg-white border border-gray-200 shadow-sm rounded-lg overflow-hidden text-sm min-w-[600px]">
                   <thead className="bg-blue-600 text-white">
                     <tr>
@@ -227,6 +228,7 @@ export default function HotelSearchView() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             )}
           </div>

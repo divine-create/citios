@@ -53,13 +53,18 @@ model User {
   requestedTasks     Task[]               @relation("TaskRequester")
   acceptedTasks      Task[]               @relation("TaskCourier")
   reservations       Reservation[]        @relation("GuestReservations")
-  children           Student[]            @relation("GuardianStudents")
   restaurantOrders   RestaurantOrder[]    @relation("ResidentRestaurantOrders")
   tickets            Ticket[]             @relation("UserTickets")
   bookings           Booking[]            @relation("UserBookings")
   comments           Comment[]            @relation("UserComments")
   appointments       Appointment[]        @relation("PatientAppointments")
   prescriptions      Prescription[]       @relation("PatientPrescriptions")
+  studentParents     StudentParent[]      @relation("UserStudentParents")
+  studentNotes       StudentNote[]        @relation("UserStudentNotes")
+  
+  // CityOS Universal CRM & ServiceOS
+  orgCustomers       OrgCustomer[]        @relation("UserOrgCustomers")
+  serviceStaff       ServiceStaff[]       @relation("UserServiceStaff")
   pharmacyOrders     PharmacyOrder[]      @relation("ResidentPharmacyOrders")
 }
 
@@ -120,8 +125,14 @@ model Organization {
   tasks       Task[]               @relation("OrganizationTasks")
   hotelRooms  HotelRoom[]          @relation("HotelRooms")
   reservations Reservation[]       @relation("HotelReservations")
+  rateRules   RateRule[]           @relation("HotelRateRules")
+  inventoryItems InventoryItem[]   @relation("OrganizationInventory")
+  roomBlocks  RoomBlock[]          @relation("HotelRoomBlocks")
+  outlets     Outlet[]             @relation("HotelOutlets")
+  outletOrders OutletOrder[]       @relation("HotelOutletOrders")
+  maintenanceTickets MaintenanceTicket[] @relation("HotelMaintenanceTickets")
+  nightAudits NightAuditReport[]   @relation("HotelNightAudits")
   students    Student[]            @relation("SchoolStudents")
-  courses     Course[]             @relation("SchoolCourses")
   menuItems   MenuItem[]           @relation("RestaurantMenuItems")
   restaurantOrders RestaurantOrder[] @relation("RestaurantOrders")
   events      Event[]              @relation("OrganizationEvents")
@@ -130,6 +141,35 @@ model Organization {
   prescriptions Prescription[]     @relation("ClinicPrescriptions")
   pharmacyItems PharmacyItem[]     @relation("PharmacyItems")
   pharmacyOrders PharmacyOrder[]   @relation("PharmacyOrders")
+  microsite   Microsite?           @relation("OrgMicrosite")
+  assets      Asset[]              @relation("OrgAssets")
+
+  // ShopOS (Retail/Grocery)
+  retailProducts      RetailProduct[]      @relation("OrgRetailProducts")
+  retailCategories    RetailCategory[]     @relation("OrgRetailCategories")
+  retailOrders        RetailOrder[]        @relation("OrgRetailOrders")
+  retailSuppliers     RetailSupplier[]     @relation("OrgRetailSuppliers")
+  retailPurchaseOrders RetailPurchaseOrder[] @relation("OrgRetailPurchaseOrders")
+  retailRegisters     RetailRegister[]     @relation("OrgRetailRegisters")
+  retailShifts        RetailShift[]        @relation("OrgRetailShifts")
+  retailExpenses      RetailExpense[]      @relation("OrgRetailExpenses")
+  retailCustomers     RetailCustomer[]     @relation("OrgRetailCustomers")
+  retailSettings      RetailSettings?      @relation("OrgRetailSettings")
+
+  // CityOS Universal CRM
+  orgCustomers        OrgCustomer[]        @relation("OrgCustomers")
+
+  // ServiceOS
+  serviceSettings     ServiceSettings?     @relation("OrgServiceSettings")
+  serviceCategories   ServiceCategory[]    @relation("OrgServiceCategories")
+  serviceCatalogItems ServiceCatalogItem[] @relation("OrgServiceCatalogItems")
+  serviceAddons       ServiceAddon[]       @relation("OrgServiceAddons")
+  serviceStaff        ServiceStaff[]       @relation("OrgServiceStaff")
+  serviceAppointments ServiceAppointment[] @relation("OrgServiceAppointments")
+  serviceJobs         ServiceJob[]         @relation("OrgServiceJobs")
+  serviceQuotes       ServiceJobQuote[]       @relation("OrgServiceQuotes")
+  serviceInvoices     ServiceInvoice[]     @relation("OrgServiceInvoices")
+  serviceExpenses     ServiceExpense[]     @relation("OrgServiceExpenses")
 }
 
 enum OrgRole {
@@ -139,6 +179,37 @@ enum OrgRole {
   // specific roles
   TEACHER
   DOCTOR
+  ADMIN
+  FINANCE
+  REGISTRAR
+  COUNSELOR
+  LIBRARIAN
+  HOTEL_MANAGER
+  HOTEL_FRONT_DESK
+  HOTEL_HOUSEKEEPER
+  CASHIER
+  INVENTORY_STAFF
+}
+
+// ----------------------------------------------------------------------------
+// SHOPOS: RETAIL & GROCERY MANAGEMENT
+// ----------------------------------------------------------------------------
+
+model RetailSettings {
+  id             String       @id @default(uuid())
+  organizationId String       @unique
+  organization   Organization @relation("OrgRetailSettings", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  storeName      String?
+  storeAddress   String?
+  receiptMessage String?
+  taxRate        Float        @default(0)
+  currencySymbol String       @default("$")
+
+  customUnits    String?      // JSON string array e.g. '["ea", "lb", "kg", "pack", "box"]'
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now())
 }
 
 model OrganizationMember {
@@ -150,10 +221,75 @@ model OrganizationMember {
 
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  taughtCourses  Course[]     @relation("CourseTeacher")
   appointments   Appointment[] @relation("DoctorAppointments")
 
   @@unique([userId, organizationId])
+}
+
+// ----------------------------------------------------------------------------
+// MICROSITE BUILDER (cross-vertical: one dedicated public website per
+// Organization, independent of any per-vertical admin portal or of how the
+// org already shows up in-app listings like Explore)
+// ----------------------------------------------------------------------------
+
+model Microsite {
+  id                   String       @id @default(uuid())
+  organizationId       String       @unique
+  organization         Organization @relation("OrgMicrosite", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  slug                 String       @unique // subdomain/path segment: <slug>.cityconnect.app
+  title                String
+  tagline              String?
+  theme                String       @default("minimal")
+  status               String       @default("draft") // draft | published
+  seoTitle             String?
+  seoDescription       String?
+  logoAssetId          String?
+  faviconAssetId       String?
+  publishedAt          DateTime?
+
+  // Domain Management
+  customDomain         String?      @unique
+  domainSubscriptionId String?      // Stripe subscription ID for the domain billing
+  domainAutoRenew      Boolean      @default(true)
+  domainExpiresAt      DateTime?
+
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @default(now())
+
+  sections             MicrositeSection[]
+  inquiries            MicrositeInquiry[] @relation("MicrositeInquiries")
+}
+
+model MicrositeSection {
+  id          String    @id @default(uuid())
+  micrositeId String
+  microsite   Microsite @relation(fields: [micrositeId], references: [id], onDelete: Cascade)
+
+  type        String  // hero | about | services | gallery | hours | testimonials | contact | cta | footer
+  order       Int     @default(0)
+  visible     Boolean @default(true)
+  content     String  // JSON-encoded payload; shape depends on `type`
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+}
+
+// Self-hosted binary storage (base64 in `data`) for microsite images — no
+// external object-store dependency. Fine for a prototype's image volume;
+// swapping the storage backend later only touches this model + the asset
+// route, never the callers, since they only ever hold an Asset id.
+model Asset {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("OrgAssets", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  fileName  String
+  mimeType  String
+  size      Int
+  data      String // base64-encoded file content
+
+  createdAt DateTime @default(now())
 }
 
 // ----------------------------------------------------------------------------
@@ -311,10 +447,23 @@ model HotelRoom {
   roomNumber     String
   type           String       // King, Double, Suite
   status         String       @default("CLEAN") // CLEAN, DIRTY, INSPECTING, OUT_OF_ORDER
+  baseRate       Float        @default(0)
   organizationId String
   organization   Organization @relation("HotelRooms", fields: [organizationId], references: [id], onDelete: Cascade)
-  
+
   reservations   Reservation[]
+  maintenanceTickets MaintenanceTicket[]
+  housekeepingLogs HousekeepingLog[]
+}
+
+model HousekeepingLog {
+  id              String   @id @default(uuid())
+  roomId          String
+  housekeeperId   String?  // Optional relation to User if needed, or string
+  statusChangedTo String
+  timestamp       DateTime @default(now())
+
+  room            HotelRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
 }
 
 enum ReservationStatus {
@@ -332,79 +481,1059 @@ model Reservation {
   status         ReservationStatus @default(CONFIRMED)
   checkInDate    DateTime
   checkOutDate   DateTime
-  
+  totalPrice     Float?       // Nights * room rate at time of booking
+  paymentStatus  String       @default("PENDING") // PENDING, DEPOSIT_PAID, PAID
+  roomBlockId    String?      // Set when this reservation was made as part of a group block
+
   organizationId String
-  
+
   guest          User?        @relation("GuestReservations", fields: [guestId], references: [id])
   room           HotelRoom?   @relation(fields: [roomId], references: [id])
+  roomBlock      RoomBlock?   @relation(fields: [roomBlockId], references: [id], onDelete: SetNull)
   organization   Organization @relation("HotelReservations", fields: [organizationId], references: [id], onDelete: Cascade)
-  
+
+  folioCharges   FolioCharge[]
+  outletOrders   OutletOrder[]
+
   createdAt      DateTime     @default(now())
+}
+
+model RoomBlock {
+  id             String       @id @default(uuid())
+  organizationId String
+  groupName      String
+  checkInDate    DateTime
+  checkOutDate   DateTime
+  notes          String?
+
+  organization   Organization @relation("HotelRoomBlocks", fields: [organizationId], references: [id], onDelete: Cascade)
+  reservations   Reservation[]
+
+  createdAt      DateTime     @default(now())
+}
+
+enum FolioChargeCategory {
+  ROOM
+  FOOD_AND_BEVERAGE
+  SPA
+  OTHER
+}
+
+model FolioCharge {
+  id             String              @id @default(uuid())
+  reservationId  String
+  description    String
+  amount         Float
+  category       FolioChargeCategory @default(OTHER)
+
+  reservation    Reservation         @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+
+  createdAt      DateTime            @default(now())
+}
+
+enum OutletType {
+  RESTAURANT
+  BAR
+  CLUB
+  SPA
+}
+
+model Outlet {
+  id             String       @id @default(uuid())
+  organizationId String
+  name           String
+  type           OutletType
+  isActive       Boolean      @default(true) // whether this outlet's POS is available for staff to use
+
+  organization   Organization @relation("HotelOutlets", fields: [organizationId], references: [id], onDelete: Cascade)
+  items          OutletItem[]
+  orders         OutletOrder[]
+
+  createdAt      DateTime     @default(now())
+}
+
+model OutletItem {
+  id         String   @id @default(uuid())
+  outletId   String
+  name       String
+  price      Float
+  category   String
+
+  outlet     Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  orderItems OutletOrderItem[]
+
+  createdAt  DateTime @default(now())
+}
+
+enum OutletOrderStatus {
+  OPEN
+  PAID
+  CHARGED_TO_ROOM
+}
+
+model OutletOrder {
+  id            String            @id @default(uuid())
+  outletId      String
+  organizationId String
+  tabName       String            // table number, tab name, or guest name for walk-ins
+  status        OutletOrderStatus @default(OPEN)
+  totalAmount   Float             @default(0)
+  reservationId String?           // set once charged to a guest's room
+
+  outlet        Outlet            @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  organization  Organization      @relation("HotelOutletOrders", fields: [organizationId], references: [id], onDelete: Cascade)
+  reservation   Reservation?      @relation(fields: [reservationId], references: [id])
+  items         OutletOrderItem[]
+
+  createdAt     DateTime          @default(now())
+}
+
+model OutletOrderItem {
+  id            String      @id @default(uuid())
+  outletOrderId String
+  outletItemId  String
+  quantity      Int         @default(1)
+
+  outletOrder   OutletOrder @relation(fields: [outletOrderId], references: [id], onDelete: Cascade)
+  outletItem    OutletItem  @relation(fields: [outletItemId], references: [id])
+}
+
+enum MaintenanceTicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}
+
+enum MaintenanceTicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model MaintenanceTicket {
+  id             String                    @id @default(uuid())
+  organizationId String
+  roomId         String?
+  title          String
+  description    String?
+  status         MaintenanceTicketStatus   @default(OPEN)
+  priority       MaintenanceTicketPriority @default(MEDIUM)
+
+  organization   Organization              @relation("HotelMaintenanceTickets", fields: [organizationId], references: [id], onDelete: Cascade)
+  room           HotelRoom?                @relation(fields: [roomId], references: [id])
+
+  createdAt      DateTime                  @default(now())
+  resolvedAt     DateTime?
+}
+
+model NightAuditReport {
+  id             String       @id @default(uuid())
+  organizationId String
+  auditDate      DateTime
+  roomRevenue    Float
+  fnbRevenue     Float
+  otherRevenue   Float
+  totalRevenue   Float
+  occupancyRate  Float
+  roomsSold      Int
+
+  organization   Organization @relation("HotelNightAudits", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt      DateTime     @default(now())
+
+  @@unique([organizationId, auditDate])
+}
+
+enum RateRuleType {
+  WEEKEND_SURGE
+  HOLIDAY_SURGE
+}
+
+model RateRule {
+  id             String       @id @default(uuid())
+  organizationId String
+  type           RateRuleType
+  multiplier     Float        // e.g. 1.20 = +20%
+  isActive       Boolean      @default(true)
+
+  organization   Organization @relation("HotelRateRules", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now())
+
+  @@unique([organizationId, type])
+}
+
+enum InventoryCategory {
+  HOUSEKEEPING
+  FOOD_AND_BEVERAGE
+  MAINTENANCE
+}
+
+model InventoryItem {
+  id             String            @id @default(uuid())
+  organizationId String
+  name           String
+  category       InventoryCategory
+  unit           String            // e.g. "units", "bottles", "rolls"
+  quantityOnHand Int               @default(0)
+  parLevel       Int               @default(0) // reorder threshold
+
+  organization   Organization      @relation("OrganizationInventory", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @default(now())
 }
 
 
 // ----------------------------------------------------------------------------
-// EDUCATION / SCHOOL MANAGEMENT
+// EDUCATION / SCHOOL MANAGEMENT (TPT Integration)
 // ----------------------------------------------------------------------------
+
+model SchoolSettings {
+  id             String       @id @default(uuid())
+  organizationId String       @unique
+  organization   Organization @relation("SchoolSettings", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name           String
+  shortName      String?
+  address        String?
+  phone          String?
+  email          String?
+  website        String?
+  logo           String?
+  timezone       String   @default("UTC")
+  currencyCode   String   @default("USD")
+  currencySymbol String   @default("$")
+  schoolType     String   @default("both")
+  currentYear    Int
+  currentTerm    Int      @default(1)
+  setupComplete  Boolean  @default(false)
+  
+  emailProvider  String   @default("smtp") // smtp | resend | mailjet | sendgrid
+  aiProvider     String   @default("none") // none | anthropic | openrouter | local
+  aiReportMode   String   @default("assist") // assist | auto
+  
+  parentMessagingDefault Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
+}
+
+model AcademicYear {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("SchoolAcademicYears", fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  year      Int
+  startDate DateTime
+  endDate   DateTime
+  active    Boolean  @default(false)
+
+  terms   Term[]
+  classes SchoolClass[]
+
+  @@unique([organizationId, year])
+}
+
+model Term {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("SchoolTerms", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  academicYearId String
+  termNumber     Int
+  name           String
+  startDate      DateTime
+  endDate        DateTime
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
+  attendances    Attendance[]
+  gradebooks     Gradebook[]
+
+  @@unique([academicYearId, termNumber])
+}
+
+model StaffProfile {
+  id             String             @id @default(uuid())
+  organizationId String
+  organization   Organization       @relation("SchoolStaffProfiles", fields: [organizationId], references: [id], onDelete: Cascade)
+  memberId       String             @unique
+  member         OrganizationMember @relation("MemberStaffProfile", fields: [memberId], references: [id], onDelete: Cascade)
+  
+  employeeId     String
+  jobTitle       String?
+  department     String?
+  dateHired      DateTime?
+  dateLeft       DateTime?
+  employmentType String    @default("full-time")
+  bio            String?
+  qualifications String?
+
+  allowParentReplies      Boolean               @default(true)
+
+  classes                 ClassTeacher[]
+  timetableSlots          TimetableSlot[]
+  timetableRequirements   TimetableRequirement[]
+  leaveRequests           LeaveRequest[]
+  attendance              StaffAttendance[]
+  subjects                TeacherSubject[]      @relation("StaffSubjects")
+
+  @@unique([organizationId, employeeId])
+}
+
+model LeaveRequest {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("SchoolLeaveRequests", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  staffId    String
+  type       String
+  startDate  DateTime
+  endDate    DateTime
+  reason     String?
+  status     String   @default("pending")
+  approvedBy String?
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now())
+  staff      StaffProfile    @relation(fields: [staffId], references: [id])
+}
+
+model StaffAttendance {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("SchoolStaffAttendances", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  staffId String
+  date    DateTime
+  status  String
+  notes   String?
+  staff   StaffProfile    @relation(fields: [staffId], references: [id])
+
+  @@unique([staffId, date])
+}
 
 model Student {
   id             String       @id @default(uuid())
-  firstName      String
-  lastName       String
-  gradeLevel     String
-  medicalInfo    String?
-  
-  guardianId     String?      // Link to Parent User
   organizationId String
-  
-  guardian       User?        @relation("GuardianStudents", fields: [guardianId], references: [id])
   organization   Organization @relation("SchoolStudents", fields: [organizationId], references: [id], onDelete: Cascade)
-  
-  attendances    AttendanceRecord[]
-  enrollments    CourseEnrollment[]
-  
-  createdAt      DateTime     @default(now())
+
+  studentId         String
+  firstName         String
+  lastName          String
+  dateOfBirth       DateTime?
+  gender            String?
+  address           String?
+  yearLevel         Int?
+  enrollmentDate    DateTime @default(now())
+  enrollmentStatus  String   @default("active")
+  nsn               String?   
+  nationality       String?
+  ethnicity         String?
+  indigenousStatus  String?   
+  languageBackground String?  
+  religion          String?
+  languages         String?
+  medicalConditions String?
+  allergies         String?
+  medications       String?
+  doctorName        String?
+  doctorPhone       String?
+  emergencyName     String?
+  emergencyPhone    String?
+  emergencyRelation String?
+
+  guardianId          String?
+  guardian            User?              @relation("GuardianStudents", fields: [guardianId], references: [id])
+  classSectionId      String?
+  classSection        ClassSection?      @relation(fields: [classSectionId], references: [id])
+  parents             StudentParent[]
+  classEnrolments     ClassEnrolment[]
+  attendance          Attendance[]
+  grades              Grade[]
+  feeInvoices         FeeInvoice[]
+  documents           Document[]
+  exitRecord          StudentExit?
+  transferIn          StudentTransferIn?
+  behaviourIncidents  BehaviourIncident[]
+  suspensions         Suspension[]
+  truancyAlerts       TruancyAlert[]
+  notes               StudentNote[]
+  waitlistEntries     WaitlistEntry[]
+  enrolmentRequests   EnrolmentRequest[]
+
+  createdAt           DateTime @default(now())
+
+  @@unique([organizationId, studentId])
 }
 
-model Course {
-  id             String       @id @default(uuid())
-  name           String
-  description    String?
-  roomNumber     String?
-  
-  teacherId      String       // Link to OrganizationMember
-  organizationId String
-  
-  teacher        OrganizationMember @relation("CourseTeacher", fields: [teacherId], references: [id])
-  organization   Organization       @relation("SchoolCourses", fields: [organizationId], references: [id], onDelete: Cascade)
-  
-  enrollments    CourseEnrollment[]
-}
-
-model CourseEnrollment {
-  id             String       @id @default(uuid())
-  studentId      String
-  courseId       String
-  grade          Float?       // Current grade percentage
-  
-  student        Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  course         Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  
-  @@unique([studentId, courseId])
-}
-
-model AttendanceRecord {
-  id             String       @id @default(uuid())
-  date           DateTime     @default(now())
-  status         String       @default("PRESENT") // PRESENT, ABSENT, TARDY
-  
-  studentId      String
-  
-  student        Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
-}
 
 
 // ----------------------------------------------------------------------------
+model StudentParent {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("SchoolStudentParents", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  studentId String
+  parentId  String
+  isPrimary Boolean @default(false)
+  relationship String?
+  
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  parent    User    @relation("UserStudentParents", fields: [parentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, parentId])
+}
+
+model Document {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("SchoolDocuments", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  studentId  String
+  name       String
+  type       String
+  filePath   String
+  uploadedAt DateTime @default(now())
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model StudentNote {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("SchoolStudentNotes", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  studentId String
+  authorId  String
+  content   String
+  type      String   @default("general") // general | academic | medical | behaviour | pastoral
+  private   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  author    User     @relation("UserStudentNotes", fields: [authorId], references: [id], onDelete: Cascade)
+}
+
+model WaitlistEntry {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("SchoolWaitlistEntries", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  classId   String
+  studentId String
+  position  Int
+  addedAt   DateTime @default(now())
+  notes     String?
+  class     SchoolClass    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, studentId])
+}
+
+model EnrolmentRequest {
+  id               String       @id @default(uuid())
+  organizationId   String
+  organization     Organization @relation("SchoolEnrolmentRequests", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  classId          String
+  studentId        String
+  requestedById    String
+  message          String?
+  status           String    @default("pending") // pending | approved | rejected
+  reviewedById     String?
+  reviewedAt       DateTime?
+  rejectionReason  String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @default(now())
+  class            SchoolClass     @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student          Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  requestedBy      User      @relation("RequestedBy", fields: [requestedById], references: [id])
+  reviewedBy       User?     @relation("ReviewedBy", fields: [reviewedById], references: [id])
+
+  @@unique([classId, studentId])
+}
+
+model SchoolClass {
+  id             String         @id @default(uuid())
+  organizationId String
+  organization   Organization   @relation("SchoolClasses", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  academicYearId String
+  name           String
+  code           String
+  subject        String? // free-text legacy field; prefer subjectId going forward
+  subjectId      String?
+  classSectionId String? // which class section this subject offering belongs to
+  yearLevel      Int?
+  roomId         String?
+  maxStudents    Int?
+  description    String?
+  periodsPerWeek Int            @default(5)
+
+  academicYear      AcademicYear       @relation(fields: [academicYearId], references: [id])
+  room              Room?              @relation(fields: [roomId], references: [id])
+  subjectRef        Subject?           @relation(fields: [subjectId], references: [id])
+  classSection      ClassSection?      @relation(fields: [classSectionId], references: [id])
+  teachers          ClassTeacher[]
+  enrolments        ClassEnrolment[]
+  timetableSlots    TimetableSlot[]
+  gradebooks        Gradebook[]
+  waitlistEntries   WaitlistEntry[]
+  enrolmentRequests EnrolmentRequest[]
+  timetableRequirements TimetableRequirement[]
+
+  @@unique([academicYearId, code])
+}
+
+model ClassTeacher {
+  id        String       @id @default(uuid())
+  classId   String
+  staffId   String
+  isPrimary Boolean @default(false)
+  class     SchoolClass   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  staff     StaffProfile   @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, staffId])
+}
+
+model ClassEnrolment {
+  id         String   @id @default(uuid())
+  classId    String
+  studentId  String
+  enrolledAt DateTime @default(now())
+  status     String   @default("active")
+  class      SchoolClass    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, studentId])
+}
+
+// A "class arm" is a year-level section/stream (e.g. "Grade 10 - A") that a
+// student is placed into for homeroom/form purposes — distinct from
+// SchoolClass, which is a single subject taught by one teacher.
+model SchoolGrade {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("SchoolGrades", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name           String // "JSS1", "Grade 10", "Class 6"...
+  level          Int    // numeric order, also matched against Student.yearLevel / SchoolClass.yearLevel
+
+  sections       ClassSection[]
+
+  createdAt      DateTime     @default(now())
+
+  @@unique([organizationId, name])
+}
+
+model ClassSection {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("SchoolClassSections", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  academicYearId String
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
+
+  gradeId        String
+  grade          SchoolGrade  @relation(fields: [gradeId], references: [id])
+
+  name           String // "A", "B", "Gold"...
+  formTeacherId  String?
+  formTeacher    StaffProfile? @relation("ClassSectionFormTeacher", fields: [formTeacherId], references: [id])
+
+  students       Student[]
+  classes        SchoolClass[]
+
+  createdAt      DateTime     @default(now())
+
+  @@unique([academicYearId, gradeId, name])
+}
+
+// A subject an org teaches (Mathematics, English...) — admin-managed, freely
+// created. SchoolClass rows are the "offering" of a subject to a class arm
+// with an assigned teacher; TeacherSubject records which subjects a teacher
+// is assigned/qualified to teach in general (independent of any one class).
+model Subject {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("SchoolSubjects", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name           String
+  code           String?
+
+  classes        SchoolClass[]
+  teacherLinks   TeacherSubject[]
+
+  createdAt      DateTime     @default(now())
+
+  @@unique([organizationId, name])
+}
+
+model TeacherSubject {
+  id        String       @id @default(uuid())
+  staffId   String
+  staff     StaffProfile @relation("StaffSubjects", fields: [staffId], references: [id], onDelete: Cascade)
+  subjectId String
+  subject   Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime     @default(now())
+
+  @@unique([staffId, subjectId])
+}
+
+enum SyllabusTopicStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+}
+
+model SyllabusTopic {
+  id          String              @id @default(uuid())
+  classId     String
+  class       SchoolClass         @relation(fields: [classId], references: [id], onDelete: Cascade)
+  termId      String
+  term        Term                @relation(fields: [termId], references: [id])
+
+  title       String
+  description String?
+  week        Int?
+  order       Int                 @default(0)
+  status      SyllabusTopicStatus @default(PLANNED)
+
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @default(now())
+}
+
+model Room {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("SchoolRooms", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name     String
+  code     String
+  capacity Int?
+  type     String?
+  building String?
+  floor    String?
+
+  classes                  SchoolClass[]
+  timetableSlots           TimetableSlot[]
+  timetableRequirements    TimetableRequirement[]
+
+  @@unique([organizationId, name])
+  @@unique([organizationId, code])
+}
+
+model TimetableSlot {
+  id        String  @id @default(uuid())
+  classId   String
+  staffId   String?
+  roomId    String?
+  dayOfWeek Int
+  period    Int
+  startTime String
+  endTime   String
+  notes     String?
+  class     SchoolClass   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  staff     StaffProfile?  @relation(fields: [staffId], references: [id])
+  room      Room?   @relation(fields: [roomId], references: [id])
+}
+
+model TimetableRequirement {
+  id              String  @id @default(uuid())
+  classId         String
+  staffId         String?
+  preferredRoomId String?
+  periodsPerWeek  Int
+  label           String?  // e.g. "Math with Mr Smith"
+  class           SchoolClass   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  staff           StaffProfile?  @relation(fields: [staffId], references: [id])
+  preferredRoom   Room?   @relation(fields: [preferredRoomId], references: [id])
+
+  @@unique([classId, staffId])
+}
+
+model Attendance {
+  id         String   @id @default(uuid())
+  studentId  String
+  termId     String
+  date       DateTime
+  status     String
+  notes      String?
+  markedById String?
+  markedAt   DateTime @default(now())
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  term       Term     @relation(fields: [termId], references: [id])
+
+  @@unique([studentId, date])
+}
+
+model Gradebook {
+  id          String    @id @default(uuid())
+  classId     String
+  termId      String
+  name        String
+  description String?
+  maxScore    Float     @default(100)
+  weight      Float     @default(1)
+  dueDate     DateTime?
+  type        String    @default("assessment")
+  documentUrl String?
+  class       SchoolClass     @relation(fields: [classId], references: [id], onDelete: Cascade)
+  term        Term      @relation(fields: [termId], references: [id])
+  grades      Grade[]
+}
+
+model Grade {
+  id          String    @id @default(uuid())
+  gradebookId String
+  studentId   String
+  score       Float?
+  grade       String?
+  comment     String?
+  submittedAt   DateTime?
+  submissionUrl String?
+  gradedAt      DateTime?
+  gradedById    String?
+  gradebook   Gradebook @relation(fields: [gradebookId], references: [id], onDelete: Cascade)
+  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([gradebookId, studentId])
+}
+
+model ReportCard {
+  id             String    @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("SchoolReportCards", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  studentId      String
+  termId         String
+  academicYear   Int
+  comments       String?
+  teacherNotes   String?
+  principalNotes String?
+  issuedAt       DateTime?
+  published      Boolean   @default(false)
+  pdfPath        String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now())
+
+  @@unique([studentId, termId])
+}
+
+model GradingScale {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("SchoolGradingScales", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name      String
+  isDefault Boolean @default(false)
+
+  boundaries GradeBoundary[]
+
+  createdAt DateTime @default(now())
+
+  @@unique([organizationId, name])
+}
+
+model GradeBoundary {
+  id             String       @id @default(uuid())
+  gradingScaleId String
+  gradingScale   GradingScale @relation(fields: [gradingScaleId], references: [id], onDelete: Cascade)
+
+  minPercent Float
+  maxPercent Float
+  label      String  // "A"
+  remark     String? // "Excellent"
+  order      Int     @default(0)
+}
+
+model Notice {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("SchoolNotices", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  authorId    String
+  title       String
+  body        String
+  category    String    @default("general")
+  targetRoles String    @default("all")
+  targetYears String?
+  publishedAt DateTime?
+  expiresAt   DateTime?
+  pinned      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now())
+  author      User       @relation("UserNotices", fields: [authorId], references: [id])
+  reads       NoticeRead[]
+}
+
+model NoticeRead {
+  id        String   @id @default(uuid())
+  noticeId  String
+  userId    String
+  readAt    DateTime @default(now())
+  notice    Notice   @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+  user      User     @relation("UserNoticeReads", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([noticeId, userId])
+}
+
+model Message {
+  id             String             @id @default(uuid())
+  organizationId String
+  organization   Organization       @relation("SchoolMessages", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  senderId   String
+  subject    String?
+  body       String
+  parentId   String?            // null = root message; set = reply
+  threadId   String             // denormalized root message id (equals id for root)
+  createdAt  DateTime           @default(now())
+  sender     User               @relation("SentMessages", fields: [senderId], references: [id])
+  recipients MessageRecipient[]
+  parent     Message?           @relation("Replies", fields: [parentId], references: [id])
+  replies    Message[]          @relation("Replies")
+
+  @@index([threadId])
+}
+
+model MessageRecipient {
+  id        String   @id @default(uuid())
+  messageId String
+  userId    String
+  readAt    DateTime?
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User     @relation("ReceivedMessages", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+}
+
+model EmailLog {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("SchoolEmailLogs", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  to        String
+  subject   String
+  body      String
+  status    String    @default("pending")
+  sentAt    DateTime?
+  error     String?
+  createdAt DateTime  @default(now())
+}
+
+model AttendanceCode {
+  id             String               @id @default(uuid())
+  organizationId String
+  organization   Organization         @relation("SchoolAttendanceCodes", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  code        String               @unique
+  classId     String
+  date        DateTime
+  termId      String
+  createdById String
+  windowMins  Int                  @default(5)
+  expiresAt   DateTime
+  createdAt   DateTime             @default(now())
+  usages      AttendanceCodeUsage[]
+
+  @@index([code])
+  @@index([classId, date])
+}
+
+model AttendanceCodeUsage {
+  id        String         @id @default(uuid())
+  codeId    String
+  studentId String
+  usedAt    DateTime       @default(now())
+  code      AttendanceCode @relation(fields: [codeId], references: [id], onDelete: Cascade)
+
+  @@unique([codeId, studentId])
+}
+
+model FeeType {
+  id             String           @id @default(uuid())
+  organizationId String
+  organization   Organization     @relation("SchoolFeeTypes", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name         String
+  description  String?
+  amount       Float
+  frequency    String           @default("annual")
+  yearLevel    Int?
+  active       Boolean          @default(true)
+  invoiceItems FeeInvoiceItem[]
+}
+
+model FeeInvoice {
+  id             String           @id @default(uuid())
+  organizationId String
+  organization   Organization     @relation("SchoolFeeInvoices", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  studentId   String
+  issueDate   DateTime         @default(now())
+  dueDate     DateTime
+  status      String           @default("unpaid")
+  notes       String?
+  totalAmount Float
+  paidAmount  Float            @default(0)
+  lastReminderSentAt DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @default(now())
+  student     Student          @relation(fields: [studentId], references: [id])
+  items       FeeInvoiceItem[]
+  payments    FeePayment[]
+}
+
+model FeeInvoiceItem {
+  id          String     @id @default(uuid())
+  invoiceId   String
+  feeTypeId   String?
+  description String
+  amount      Float
+  invoice     FeeInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  feeType     FeeType?   @relation(fields: [feeTypeId], references: [id])
+}
+
+model FeePayment {
+  id         String     @id @default(uuid())
+  invoiceId  String
+  amount     Float
+  method     String     @default("cash")
+  reference  String?
+  paidAt     DateTime   @default(now())
+  recordedBy String?
+  notes      String?
+  invoice    FeeInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+model StudentExit {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("SchoolStudentExits", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  studentId         String   @unique
+  exitType          String   // withdrawn | transferred | expelled | graduated | deceased | other
+  exitDate          DateTime
+  reason            String?
+  destinationSchool String?  
+  authorisedBy      String?  
+  notes             String?
+  documentsIssued   Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now())
+
+  student           Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model StudentTransferIn {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("SchoolStudentTransfersIn", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  studentId       String   @unique
+  previousSchool  String
+  previousYearLevel Int?
+  transferDate    DateTime
+  reason          String?
+  documentsReceived Boolean @default(false) 
+  academicRecordsNotes String?
+  notes           String?
+  processedBy     String?  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+
+  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model BehaviourIncident {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("SchoolBehaviourIncidents", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  studentId    String
+  reportedById String      
+  date         DateTime
+  description  String
+  location     String?     
+  severity     String      @default("MINOR") 
+  witnesses    String?     
+  parentNotified Boolean   @default(false)
+  parentNotifiedAt DateTime?
+  actionTaken  String?
+  followUpRequired Boolean @default(false)
+  followUpNotes String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @default(now())
+
+  student      Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  suspensions  Suspension[]
+}
+
+model Suspension {
+  id             String            @id @default(uuid())
+  organizationId String
+  organization   Organization      @relation("SchoolSuspensions", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  studentId        String
+  incidentId       String?           
+  type             String            @default("out-of-school") 
+  startDate        DateTime
+  endDate          DateTime
+  totalDays        Int
+  reason           String
+  returnConditions String?           
+  authorisedBy     String?           
+  parentNotified   Boolean           @default(false)
+  parentMeetingDate DateTime?
+  returnDate       DateTime?         
+  notes            String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @default(now())
+
+  student          Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  incident         BehaviourIncident? @relation(fields: [incidentId], references: [id])
+}
+
+model TruancyAlert {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("SchoolTruancyAlerts", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  studentId         String
+  termId            String
+  consecutiveAbsences Int    
+  totalUnexcused    Int      
+  alertDate         DateTime @default(now())
+  resolvedAt        DateTime?
+  resolvedBy        String?
+  notes             String?
+
+  student           Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model SchoolEvent {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("SchoolEvents", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  startDate   DateTime
+  endDate     DateTime
+  allDay      Boolean  @default(true)
+  category    String   @default("academic") // academic | sports | cultural | admin | holiday
+  targetRoles String   @default("all")      // JSON array or "all"
+  targetYears String   @default("all")      // JSON array or "all"
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+
+  createdBy   User     @relation("CreatedSchoolEvents", fields: [createdById], references: [id])
+}
+
+
 // FOOD & BEVERAGE / RESTAURANT POS
 // ----------------------------------------------------------------------------
 
@@ -662,3 +1791,519 @@ model ServiceQuote {
   createdAt      DateTime    @default(now())
 }
 
+
+model MicrositeInquiry {
+  id             String       @id @default(uuid())
+  micrositeId    String
+  microsite      Microsite    @relation("MicrositeInquiries", fields: [micrositeId], references: [id])
+  name           String
+  email          String
+  message        String
+  createdAt      DateTime     @default(now())
+  read           Boolean      @default(false)
+}
+
+// ----------------------------------------------------------------------------
+// SHOPOS: RETAIL & GROCERY MANAGEMENT
+// ----------------------------------------------------------------------------
+
+model RetailCategory {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("OrgRetailCategories", fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  name           String
+  description    String?
+  parentId       String?
+  parent         RetailCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children       RetailCategory[] @relation("CategoryHierarchy")
+  
+  products       RetailProduct[]
+  
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now())
+}
+
+model RetailProduct {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("OrgRetailProducts", fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  name           String
+  description    String?
+  barcode        String?
+  sku            String?
+  
+  price          Float
+  cost           Float?       // Used for COGS
+  stockQuantity  Float        @default(0)
+  lowStockLevel  Float?       // Reorder trigger
+  
+  isWeighed      Boolean      @default(false) // e.g. price per kg/lb
+  unit           String       @default("ea")  // ea, kg, lb, pack
+  imageAssetId   String?      // loose ref to Asset.id — see components/microsite's Asset model
+
+  categoryId     String?
+  category       RetailCategory? @relation(fields: [categoryId], references: [id])
+  
+  orderItems     RetailOrderItem[]
+  
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now())
+}
+
+model RetailRegister {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("OrgRetailRegisters", fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  name           String       // e.g. "Register 1", "Self-Checkout A"
+  isActive       Boolean      @default(true)
+  
+  shifts         RetailShift[]
+  
+  createdAt      DateTime     @default(now())
+}
+
+model RetailShift {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("OrgRetailShifts", fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  registerId     String
+  register       RetailRegister @relation(fields: [registerId], references: [id], onDelete: Cascade)
+  
+  openedById     String
+  closedById     String?
+  
+  openedAt       DateTime     @default(now())
+  closedAt       DateTime?
+  
+  openingFloat   Float        @default(0)
+  expectedCash   Float?
+  actualCash     Float?
+  discrepancy    Float?
+  
+  status         String       @default("OPEN") // OPEN, CLOSED
+  
+  orders         RetailOrder[]
+  
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now())
+}
+
+model RetailOrder {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("OrgRetailOrders", fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  shiftId        String?
+  shift          RetailShift? @relation(fields: [shiftId], references: [id])
+  
+  customerId     String?      // If attached to a loyalty program/CityConnect user
+  customer       RetailCustomer? @relation(fields: [customerId], references: [id])
+  cashierId      String       // The user processing it
+  
+  totalAmount    Float
+  taxAmount      Float        @default(0)
+  discountAmount Float        @default(0)
+  
+  paymentMethod  String       // CASH, CARD, SPLIT
+  status         String       @default("COMPLETED") // PENDING, COMPLETED, REFUNDED
+
+  refundedAt     DateTime?
+  refundedById   String?
+  refundReason   String?
+
+  items          RetailOrderItem[]
+  
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now())
+}
+
+model RetailOrderItem {
+  id             String       @id @default(uuid())
+  
+  orderId        String
+  order          RetailOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  productId      String
+  product        RetailProduct @relation(fields: [productId], references: [id])
+  
+  quantity       Float        // Float because it could be 1.5kg
+  unitPrice      Float
+  subtotal       Float
+  
+  discountReason String?
+}
+
+model RetailSupplier {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("OrgRetailSuppliers", fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  name           String
+  contactName    String?
+  email          String?
+  phone          String?
+  leadTimeDays   Int?
+  paymentTerms   String?      // e.g. Net-30
+  
+  purchaseOrders RetailPurchaseOrder[]
+  
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now())
+}
+
+model RetailPurchaseOrder {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("OrgRetailPurchaseOrders", fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  supplierId     String
+  supplier       RetailSupplier @relation(fields: [supplierId], references: [id])
+  
+  poNumber       String
+  status         String       @default("DRAFT") // DRAFT, SENT, RECEIVED, PARTIAL
+  
+  expectedDate   DateTime?
+  totalAmount    Float?
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now())
+}
+
+model RetailExpense {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("OrgRetailExpenses", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  category       String   // Rent, Utilities, Supplies, Payroll, Maintenance, Marketing, Other
+  description    String?
+  amount         Float
+  expenseDate    DateTime
+  paymentMethod  String   @default("CASH") // CASH, CARD, BANK_TRANSFER, OTHER
+  vendorName     String?
+  receiptAssetId String?  // loose ref to Asset.id — see components/microsite's Asset model
+  recordedById   String
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
+}
+
+// A store-scoped loyalty contact — deliberately not the global User model,
+// since capturing a walk-in customer's name/phone at checkout shouldn't
+// require creating a full CityConnect account. totalSpent/visitCount are
+// derived from RetailOrder at read time rather than stored, to avoid drift.
+model RetailCustomer {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("OrgRetailCustomers", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name          String
+  phone         String?
+  email         String?
+  notes         String?
+  loyaltyPoints Int      @default(0)
+
+  orders RetailOrder[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+}
+
+// ============================================================================
+// CITYOS UNIVERSAL CRM
+// ============================================================================
+
+model OrgCustomer {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("OrgCustomers", fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  globalUserId   String?      
+  globalUser     User?        @relation("UserOrgCustomers", fields: [globalUserId], references: [id], onDelete: SetNull)
+
+  firstName      String
+  lastName       String
+  phone          String?
+  email          String?
+  address        String?
+  notes          String?
+  status         String       @default("ACTIVE")
+  
+  appointments   ServiceAppointment[]
+  jobs           ServiceJob[]
+  quotes         ServiceJobQuote[]
+  invoices       ServiceInvoice[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
+}
+
+// ============================================================================
+// SERVICEOS MODULES
+// ============================================================================
+
+model ServiceSettings {
+  id             String       @id @default(uuid())
+  organizationId String       @unique
+  organization   Organization @relation("OrgServiceSettings", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  appointmentsEnabled Boolean @default(true)
+  jobsEnabled         Boolean @default(false)
+  quotesEnabled       Boolean @default(false)
+  onlineBookingEnabled Boolean @default(false)
+
+  currencySymbol  String   @default("$")
+  taxRate         Float    @default(0) // Percentage
+  bookingBufferMinutes Int @default(15)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+}
+
+model ServiceCategory {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("OrgServiceCategories", fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  description    String?
+
+  items          ServiceCatalogItem[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
+}
+
+model ServiceCatalogItem {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("OrgServiceCatalogItems", fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  categoryId     String?
+  category       ServiceCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  name           String
+  description    String?
+  price          Float
+  durationMinutes Int
+  isActive       Boolean      @default(true)
+  imageAssetId   String?
+
+  addons         ServiceAddon[]
+  appointments   ServiceAppointment[]
+  jobs           ServiceJob[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
+}
+
+model ServiceAddon {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("OrgServiceAddons", fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  serviceId      String?
+  service        ServiceCatalogItem? @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  name           String
+  price          Float
+  durationMinutes Int @default(0)
+
+  appointmentAddons ServiceAppointmentAddon[]
+  jobAddons         ServiceJobAddon[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
+}
+
+model ServiceStaff {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("OrgServiceStaff", fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  userId         String?      
+  user           User?        @relation("UserServiceStaff", fields: [userId], references: [id], onDelete: SetNull)
+
+  name           String
+  phone          String?
+  email          String?
+  role           String       @default("TECHNICIAN")
+  isActive       Boolean      @default(true)
+  notes          String?
+
+  appointments   ServiceAppointment[]
+  jobs           ServiceJob[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
+}
+
+model ServiceAppointment {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("OrgServiceAppointments", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  customerId     String
+  customer       OrgCustomer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  serviceId      String
+  service        ServiceCatalogItem @relation(fields: [serviceId], references: [id])
+
+  staffId        String?
+  staff          ServiceStaff? @relation(fields: [staffId], references: [id], onDelete: SetNull)
+
+  startTime      DateTime
+  endTime        DateTime
+  status         String       @default("PENDING") // PENDING, CONFIRMED, CHECKED_IN, IN_PROGRESS, COMPLETED, CANCELLED, NO_SHOW
+  
+  price          Float
+  deposit        Float        @default(0)
+  notes          String?
+
+  addons         ServiceAppointmentAddon[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
+}
+
+model ServiceAppointmentAddon {
+  id             String       @id @default(uuid())
+  appointmentId  String
+  appointment    ServiceAppointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  
+  addonId        String
+  addon          ServiceAddon @relation(fields: [addonId], references: [id])
+
+  price          Float
+}
+
+model ServiceJob {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("OrgServiceJobs", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  customerId     String
+  customer       OrgCustomer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  serviceId      String?
+  service        ServiceCatalogItem? @relation(fields: [serviceId], references: [id])
+
+  staffId        String?
+  staff          ServiceStaff? @relation(fields: [staffId], references: [id], onDelete: SetNull)
+  
+  quoteId        String?      @unique
+  quote          ServiceJobQuote? @relation(fields: [quoteId], references: [id], onDelete: SetNull)
+
+  address        String?
+  description    String?
+  scheduledDate  DateTime?
+  status         String       @default("NEW") // NEW, SCHEDULED, ASSIGNED, IN_PROGRESS, ON_HOLD, COMPLETED, CANCELLED
+  priority       String       @default("NORMAL")
+  notes          String?
+
+  addons         ServiceJobAddon[]
+  invoice        ServiceInvoice?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
+}
+
+model ServiceJobAddon {
+  id             String       @id @default(uuid())
+  jobId          String
+  job            ServiceJob   @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  
+  addonId        String
+  addon          ServiceAddon @relation(fields: [addonId], references: [id])
+
+  price          Float
+}
+
+model ServiceJobQuote {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("OrgServiceQuotes", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  customerId     String
+  customer       OrgCustomer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  status         String       @default("DRAFT") // DRAFT, SENT, APPROVED, REJECTED, EXPIRED, CONVERTED
+  total          Float
+  discount       Float        @default(0)
+  tax            Float        @default(0)
+  notes          String?
+  terms          String?
+  expirationDate DateTime?
+
+  items          ServiceJobQuoteItem[]
+  job            ServiceJob?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
+}
+
+model ServiceJobQuoteItem {
+  id             String       @id @default(uuid())
+  quoteId        String
+  quote          ServiceJobQuote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  description    String
+  quantity       Float
+  unitPrice      Float
+  subtotal       Float
+}
+
+model ServiceInvoice {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("OrgServiceInvoices", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  customerId     String
+  customer       OrgCustomer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  jobId          String?      @unique
+  job            ServiceJob?  @relation(fields: [jobId], references: [id], onDelete: SetNull)
+
+  status         String       @default("DRAFT") // DRAFT, ISSUED, PARTIALLY_PAID, PAID, OVERDUE, VOID, REFUNDED
+  subtotal       Float
+  discount       Float        @default(0)
+  tax            Float        @default(0)
+  total          Float
+  amountPaid     Float        @default(0)
+  dueDate        DateTime?
+
+  items          ServiceInvoiceItem[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
+}
+
+model ServiceInvoiceItem {
+  id             String       @id @default(uuid())
+  invoiceId      String
+  invoice        ServiceInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  description    String
+  quantity       Float
+  unitPrice      Float
+  subtotal       Float
+}
+
+model ServiceExpense {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("OrgServiceExpenses", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  category       String
+  amount         Float
+  description    String?
+  expenseDate    DateTime
+  paymentMethod  String       @default("CASH")
+  status         String       @default("APPROVED") // PENDING, APPROVED, REJECTED
+  createdBy      String
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
+}

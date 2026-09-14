@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
-import type { OrgType } from "@/types/next-auth";
+import type { OrgRole, OrgType } from "@/types/next-auth";
 
 /**
  * Gates a server component behind membership in an org of the given type(s).
@@ -15,6 +15,25 @@ export async function requireOrgAccess(orgType: OrgType | OrgType[]) {
   const session = await getServerSession(authOptions);
   const allowed = Array.isArray(orgType) ? orgType : [orgType];
   const hasAccess = session?.user?.memberships?.some((m) => allowed.includes(m.organizationType)) ?? false;
+
+  if (!hasAccess) {
+    redirect("/");
+  }
+
+  return session;
+}
+
+/**
+ * Gates a server component behind a specific role within an org of the given
+ * type — e.g. only OrgRole.FINANCE (or OWNER, who can see every screen) may
+ * reach the Bursar portal. Falls back to `requireOrgAccess` semantics (any
+ * membership passes) if `allowedRoles` is omitted.
+ */
+export async function requireOrgRole(orgType: OrgType, allowedRoles: OrgRole[]) {
+  const session = await getServerSession(authOptions);
+  const membership = session?.user?.memberships?.find((m) => m.organizationType === orgType);
+
+  const hasAccess = !!membership && (membership.role === 'OWNER' || allowedRoles.includes(membership.role));
 
   if (!hasAccess) {
     redirect("/");

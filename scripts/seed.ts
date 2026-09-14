@@ -35,11 +35,17 @@ async function main() {
     description: 'Luxury accommodations in the heart of the city.',
   });
 
-  if (hotelCreated) {
+  // Child data is keyed off "does this org already have rooms", not off
+  // whether the org itself was just created — an org can pre-exist (from an
+  // earlier partial run) with zero rooms, and gating on `hotelCreated` would
+  // silently leave it empty forever.
+  const existingRooms = await db.orm.public.HotelRoom.where({ organizationId: hotel.id }).all();
+  if (existingRooms.length === 0) {
     const room101 = await db.orm.public.HotelRoom.create({
       roomNumber: '101',
       type: 'King',
       status: 'CLEAN',
+      baseRate: 149,
       organizationId: hotel.id,
     });
 
@@ -47,6 +53,7 @@ async function main() {
       roomNumber: '102',
       type: 'King',
       status: 'DIRTY',
+      baseRate: 149,
       organizationId: hotel.id,
     });
 
@@ -54,6 +61,7 @@ async function main() {
       roomNumber: '103',
       type: 'Double',
       status: 'INSPECTING',
+      baseRate: 119,
       organizationId: hotel.id,
     });
 
@@ -61,6 +69,7 @@ async function main() {
       roomNumber: '104',
       type: 'Suite',
       status: 'OUT_OF_ORDER',
+      baseRate: 249,
       organizationId: hotel.id,
     });
 
@@ -70,61 +79,716 @@ async function main() {
       status: 'CHECKED_IN',
       checkInDate: (globalThis as any).Temporal.Instant.fromEpochMilliseconds(Date.now() - 86400000), // Yesterday
       checkOutDate: (globalThis as any).Temporal.Instant.fromEpochMilliseconds(Date.now() + 86400000), // Tomorrow
+      totalPrice: 149 * 2,
+      paymentStatus: 'PAID',
       organizationId: hotel.id,
     });
   }
 
+  // Backfill baseRate/totalPrice on rows created by an older run of this
+  // script (before those columns existed) — same "gate on missing data, not
+  // on whether the row is new" principle as the room-seeding guard above.
+  const seedRoomRates: Record<string, number> = { '101': 149, '102': 149, '103': 119, '104': 249 };
+  for (const room of existingRooms) {
+    if (room.baseRate === 0 && seedRoomRates[room.roomNumber]) {
+      await db.orm.public.HotelRoom.where({ id: room.id }).update({ baseRate: seedRoomRates[room.roomNumber] });
+    }
+  }
+  const johnDoeReservation = await db.orm.public.Reservation.where({ guestName: 'John Doe', organizationId: hotel.id }).all().first();
+  if (johnDoeReservation && johnDoeReservation.totalPrice == null) {
+    await db.orm.public.Reservation.where({ id: johnDoeReservation.id }).update({ totalPrice: 298, paymentStatus: 'PAID' });
+  }
+
+  const existingRateRules = await db.orm.public.RateRule.where({ organizationId: hotel.id }).all();
+  if (existingRateRules.length === 0) {
+    await db.orm.public.RateRule.create({
+      organizationId: hotel.id,
+      type: 'WEEKEND_SURGE',
+      multiplier: 1.2,
+      isActive: true,
+    });
+    await db.orm.public.RateRule.create({
+      organizationId: hotel.id,
+      type: 'HOLIDAY_SURGE',
+      multiplier: 1.5,
+      isActive: false,
+    });
+  }
+
+  const existingInventory = await db.orm.public.InventoryItem.where({ organizationId: hotel.id }).all();
+  if (existingInventory.length === 0) {
+    await db.orm.public.InventoryItem.create({
+      organizationId: hotel.id,
+      name: 'Bath Towels',
+      category: 'HOUSEKEEPING',
+      unit: 'units',
+      quantityOnHand: 120,
+      parLevel: 80,
+    });
+    await db.orm.public.InventoryItem.create({
+      organizationId: hotel.id,
+      name: 'Bed Linens (Queen)',
+      category: 'HOUSEKEEPING',
+      unit: 'sets',
+      quantityOnHand: 40,
+      parLevel: 50,
+    });
+    await db.orm.public.InventoryItem.create({
+      organizationId: hotel.id,
+      name: 'Travel-Size Shampoo',
+      category: 'HOUSEKEEPING',
+      unit: 'bottles',
+      quantityOnHand: 300,
+      parLevel: 100,
+    });
+    await db.orm.public.InventoryItem.create({
+      organizationId: hotel.id,
+      name: 'House Red Wine',
+      category: 'FOOD_AND_BEVERAGE',
+      unit: 'bottles',
+      quantityOnHand: 18,
+      parLevel: 24,
+    });
+    await db.orm.public.InventoryItem.create({
+      organizationId: hotel.id,
+      name: 'Coffee Pods',
+      category: 'FOOD_AND_BEVERAGE',
+      unit: 'boxes',
+      quantityOnHand: 60,
+      parLevel: 30,
+    });
+    await db.orm.public.InventoryItem.create({
+      organizationId: hotel.id,
+      name: 'HVAC Air Filters',
+      category: 'MAINTENANCE',
+      unit: 'units',
+      quantityOnHand: 6,
+      parLevel: 10,
+    });
+  }
+
+  const existingOutlets = await db.orm.public.Outlet.where({ organizationId: hotel.id }).all();
+  if (existingOutlets.length === 0) {
+    const rooftopBar = await db.orm.public.Outlet.create({
+      organizationId: hotel.id,
+      name: 'The Rooftop Bar',
+      type: 'BAR',
+    });
+    await db.orm.public.OutletItem.create({ outletId: rooftopBar.id, name: 'House Red Wine', price: 14, category: 'Drinks' });
+    await db.orm.public.OutletItem.create({ outletId: rooftopBar.id, name: 'Craft Cocktail', price: 18, category: 'Drinks' });
+    await db.orm.public.OutletItem.create({ outletId: rooftopBar.id, name: 'Sparkling Water', price: 6, category: 'Drinks' });
+    await db.orm.public.OutletItem.create({ outletId: rooftopBar.id, name: 'Charcuterie Board', price: 24, category: 'Food' });
+
+    const grill = await db.orm.public.Outlet.create({
+      organizationId: hotel.id,
+      name: 'Lobby Grill',
+      type: 'RESTAURANT',
+    });
+    await db.orm.public.OutletItem.create({ outletId: grill.id, name: 'Club Sandwich', price: 16, category: 'Food' });
+    await db.orm.public.OutletItem.create({ outletId: grill.id, name: 'Caesar Salad', price: 13, category: 'Food' });
+    await db.orm.public.OutletItem.create({ outletId: grill.id, name: 'Iced Tea', price: 5, category: 'Drinks' });
+  }
+
   // ---------------------------------------------------------------------
-  // School
+  // School (TPT-integration schema). Idempotent throughout: gate each row
+  // on "does it already exist", never on org-creation or a blanket delete —
+  // deleting the org here used to wipe every student/class/grade/fee on
+  // every reseed, which is exactly the trap findOrCreateOrg's own doc
+  // comment above warns against.
   // ---------------------------------------------------------------------
-  const { org: school, created: schoolCreated } = await findOrCreateOrg('SCHOOL', {
+  const toInstant = (ms: number) => (globalThis as any).Temporal.Instant.fromEpochMilliseconds(ms);
+
+  const { org: school } = await findOrCreateOrg('SCHOOL', {
     name: 'Lincoln High School',
     description: 'Home of the Lions',
   });
 
-  if (schoolCreated) {
-    const teacher = await db.orm.public.OrganizationMember.create({
+  let schoolSettings = await db.orm.public.SchoolSettings.where({ organizationId: school.id }).all().first();
+  if (!schoolSettings) {
+    schoolSettings = await db.orm.public.SchoolSettings.create({
+      organizationId: school.id,
+      name: 'Lincoln High School',
+      shortName: 'LHS',
+      currentYear: 2026,
+      currentTerm: 1,
+      setupComplete: true,
+    });
+  }
+
+  let academicYear = await db.orm.public.AcademicYear.where({ organizationId: school.id, year: 2026 }).all().first();
+  if (!academicYear) {
+    academicYear = await db.orm.public.AcademicYear.create({
+      organizationId: school.id,
+      year: 2026,
+      startDate: toInstant(Date.now() - 86400000 * 30),
+      endDate: toInstant(Date.now() + 86400000 * 330),
+      active: true,
+    });
+  }
+
+  let term = await db.orm.public.Term.where({ academicYearId: academicYear.id, termNumber: 1 }).all().first();
+  if (!term) {
+    term = await db.orm.public.Term.create({
+      organizationId: school.id,
+      academicYearId: academicYear.id,
+      termNumber: 1,
+      name: 'Fall Term',
+      startDate: academicYear.startDate,
+      endDate: toInstant(Date.now() + 86400000 * 90),
+    });
+  }
+
+  let teacherMember = await db.orm.public.OrganizationMember
+    .where({ userId: adminUser.id, organizationId: school.id, role: 'TEACHER' })
+    .all()
+    .first();
+  if (!teacherMember) {
+    teacherMember = await db.orm.public.OrganizationMember.create({
       userId: adminUser.id,
       organizationId: school.id,
       role: 'TEACHER',
     });
+  }
 
-    const mathCourse = await db.orm.public.Course.create({
-      name: 'Advanced Calculus',
-      roomNumber: 'Room 302',
-      teacherId: teacher.id,
+  let staffProfile = await db.orm.public.StaffProfile.where({ memberId: teacherMember.id }).all().first();
+  if (!staffProfile) {
+    staffProfile = await db.orm.public.StaffProfile.create({
       organizationId: school.id,
+      memberId: teacherMember.id,
+      employeeId: 'EMP-001',
+      jobTitle: 'Senior Math Teacher',
     });
+  }
 
-    const student1 = await db.orm.public.Student.create({
+  // Classes (grade levels) & Class Sections — "Grade 12" is the Class,
+  // "A" is a Section that belongs to it.
+  let grade12 = await db.orm.public.SchoolGrade.where({ organizationId: school.id, name: 'Grade 12' }).all().first();
+  if (!grade12) {
+    grade12 = await db.orm.public.SchoolGrade.create({ organizationId: school.id, name: 'Grade 12', level: 12 });
+  }
+  let grade12SectionA = await db.orm.public.ClassSection
+    .where({ academicYearId: academicYear.id, gradeId: grade12.id, name: 'A' })
+    .all()
+    .first();
+  if (!grade12SectionA) {
+    grade12SectionA = await db.orm.public.ClassSection.create({
+      organizationId: school.id,
+      academicYearId: academicYear.id,
+      gradeId: grade12.id,
+      name: 'A',
+    });
+  }
+  if (!grade12SectionA.formTeacherId) {
+    await db.orm.public.ClassSection.where({ id: grade12SectionA.id }).update({ formTeacherId: staffProfile.id });
+    grade12SectionA = { ...grade12SectionA, formTeacherId: staffProfile.id };
+  }
+
+  // Promotion demo data — a lower grade (11) in the current academic year,
+  // plus a second (later) academic year with a matching Grade 12 section,
+  // so there's somewhere real to promote *into*. Grade 12 has no "next"
+  // grade, so promoting a Grade 12 student naturally demos graduation
+  // instead — both promotion paths are exercised without extra fixtures.
+  let grade11 = await db.orm.public.SchoolGrade.where({ organizationId: school.id, name: 'Grade 11' }).all().first();
+  if (!grade11) {
+    grade11 = await db.orm.public.SchoolGrade.create({ organizationId: school.id, name: 'Grade 11', level: 11 });
+  }
+  let grade11SectionA = await db.orm.public.ClassSection
+    .where({ academicYearId: academicYear.id, gradeId: grade11.id, name: 'A' })
+    .all()
+    .first();
+  if (!grade11SectionA) {
+    grade11SectionA = await db.orm.public.ClassSection.create({
+      organizationId: school.id,
+      academicYearId: academicYear.id,
+      gradeId: grade11.id,
+      name: 'A',
+      formTeacherId: staffProfile.id,
+    });
+  } else if (!grade11SectionA.formTeacherId) {
+    await db.orm.public.ClassSection.where({ id: grade11SectionA.id }).update({ formTeacherId: staffProfile.id });
+    grade11SectionA = { ...grade11SectionA, formTeacherId: staffProfile.id };
+  }
+
+  let nextAcademicYear = await db.orm.public.AcademicYear.where({ organizationId: school.id, year: academicYear.year + 1 }).all().first();
+  if (!nextAcademicYear) {
+    nextAcademicYear = await db.orm.public.AcademicYear.create({
+      organizationId: school.id,
+      year: academicYear.year + 1,
+      startDate: toInstant(Date.now() + 86400000 * 300),
+      endDate: toInstant(Date.now() + 86400000 * 660),
+      active: false,
+    });
+  }
+  let nextGrade12SectionA = await db.orm.public.ClassSection
+    .where({ academicYearId: nextAcademicYear.id, gradeId: grade12.id, name: 'A' })
+    .all()
+    .first();
+  if (!nextGrade12SectionA) {
+    nextGrade12SectionA = await db.orm.public.ClassSection.create({
+      organizationId: school.id,
+      academicYearId: nextAcademicYear.id,
+      gradeId: grade12.id,
+      name: 'A',
+    });
+  }
+
+  const existingStudent4 = await db.orm.public.Student.where({ organizationId: school.id, studentId: 'STU-004' }).all().first();
+  if (!existingStudent4) {
+    await db.orm.public.Student.create({
+      organizationId: school.id,
+      studentId: 'STU-004',
+      firstName: 'Grace',
+      lastName: 'Adeyemi',
+      yearLevel: 11,
+      classSectionId: grade11SectionA.id,
+    });
+  }
+
+  let mathClass = await db.orm.public.SchoolClass.where({ academicYearId: academicYear.id, code: 'MATH-401' }).all().first();
+  if (!mathClass) {
+    mathClass = await db.orm.public.SchoolClass.create({
+      organizationId: school.id,
+      academicYearId: academicYear.id,
+      name: 'Advanced Calculus',
+      code: 'MATH-401',
+      subject: 'Mathematics',
+      yearLevel: 12,
+      classSectionId: grade12SectionA.id,
+    });
+  }
+
+  const existingClassTeacher = await db.orm.public.ClassTeacher
+    .where({ classId: mathClass.id, staffId: staffProfile.id })
+    .all()
+    .first();
+  if (!existingClassTeacher) {
+    await db.orm.public.ClassTeacher.create({ classId: mathClass.id, staffId: staffProfile.id, isPrimary: true });
+  }
+
+  const existingStudents = await db.orm.public.Student.where({ organizationId: school.id }).all();
+  let student1 = existingStudents.find((s) => s.studentId === 'STU-001');
+  if (!student1) {
+    student1 = await db.orm.public.Student.create({
+      organizationId: school.id,
+      studentId: 'STU-001',
       firstName: 'Alex',
       lastName: 'Johnson',
-      gradeLevel: 'Grade 10',
-      organizationId: school.id,
+      yearLevel: 12,
+      classSectionId: grade12SectionA.id,
     });
-
-    const student2 = await db.orm.public.Student.create({
+  } else if (!student1.classSectionId) {
+    await db.orm.public.Student.where({ id: student1.id }).update({ classSectionId: grade12SectionA.id });
+    student1 = { ...student1, classSectionId: grade12SectionA.id };
+  }
+  let student2 = existingStudents.find((s) => s.studentId === 'STU-002');
+  if (!student2) {
+    student2 = await db.orm.public.Student.create({
+      organizationId: school.id,
+      studentId: 'STU-002',
       firstName: 'Zoe',
       lastName: 'Smith',
-      gradeLevel: 'Grade 11',
+      yearLevel: 12,
+      classSectionId: grade12SectionA.id,
+    });
+  } else if (!student2.classSectionId) {
+    await db.orm.public.Student.where({ id: student2.id }).update({ classSectionId: grade12SectionA.id });
+    student2 = { ...student2, classSectionId: grade12SectionA.id };
+  }
+
+  for (const student of [student1, student2]) {
+    const existingEnrolment = await db.orm.public.ClassEnrolment
+      .where({ classId: mathClass.id, studentId: student.id })
+      .all()
+      .first();
+    if (!existingEnrolment) {
+      await db.orm.public.ClassEnrolment.create({ classId: mathClass.id, studentId: student.id });
+    }
+  }
+
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const attendanceToday: Array<{ student: typeof student1; status: string }> = [
+    { student: student1, status: 'PRESENT' },
+    { student: student2, status: 'TARDY' },
+  ];
+  for (const { student, status } of attendanceToday) {
+    const existingAttendance = await db.orm.public.Attendance
+      .where({ studentId: student.id, date: toInstant(todayStart.getTime()) })
+      .all()
+      .first();
+    if (!existingAttendance) {
+      await db.orm.public.Attendance.create({
+        studentId: student.id,
+        termId: term.id,
+        date: toInstant(todayStart.getTime()),
+        status,
+        markedById: teacherMember.id,
+      });
+    }
+  }
+
+  let midtermAssignment = await db.orm.public.Gradebook.where({ classId: mathClass.id, name: 'Midterm Exam' }).all().first();
+  if (!midtermAssignment) {
+    midtermAssignment = await db.orm.public.Gradebook.create({
+      classId: mathClass.id,
+      termId: term.id,
+      name: 'Midterm Exam',
+      type: 'exam',
+      maxScore: 100,
+      weight: 3,
+    });
+  }
+  const existingGrade = await db.orm.public.Grade
+    .where({ gradebookId: midtermAssignment.id, studentId: student1.id })
+    .all()
+    .first();
+  if (!existingGrade) {
+    await db.orm.public.Grade.create({ gradebookId: midtermAssignment.id, studentId: student1.id, score: 91 });
+  }
+
+  // Examination — a default grading scale (Nigerian-style CA/Exam split
+  // and percentage bands) plus CA + exam assessments for the existing
+  // Advanced Calculus class, so the report card has real data to render.
+  let gradingScale = await db.orm.public.GradingScale.where({ organizationId: school.id, name: 'Standard Scale' }).all().first();
+  if (!gradingScale) {
+    gradingScale = await db.orm.public.GradingScale.create({ organizationId: school.id, name: 'Standard Scale', isDefault: true });
+    const boundaries: Array<{ minPercent: number; maxPercent: number; label: string; remark: string; order: number }> = [
+      { minPercent: 70, maxPercent: 100, label: 'A', remark: 'Excellent', order: 1 },
+      { minPercent: 60, maxPercent: 69.99, label: 'B', remark: 'Very Good', order: 2 },
+      { minPercent: 50, maxPercent: 59.99, label: 'C', remark: 'Good', order: 3 },
+      { minPercent: 45, maxPercent: 49.99, label: 'D', remark: 'Credit', order: 4 },
+      { minPercent: 40, maxPercent: 44.99, label: 'E', remark: 'Pass', order: 5 },
+      { minPercent: 0, maxPercent: 39.99, label: 'F', remark: 'Fail', order: 6 },
+    ];
+    for (const b of boundaries) {
+      await db.orm.public.GradeBoundary.create({ gradingScaleId: gradingScale.id, ...b });
+    }
+  }
+
+  const examSeeds: Array<{ name: string; type: string; maxScore: number; weight: number; scores: { student: typeof student1; score: number }[] }> = [
+    { name: '1st CA', type: 'ca', maxScore: 20, weight: 15, scores: [{ student: student1, score: 17 }, { student: student2, score: 14 }] },
+    { name: '2nd CA', type: 'ca', maxScore: 20, weight: 15, scores: [{ student: student1, score: 18 }, { student: student2, score: 13 }] },
+    { name: 'Final Examination', type: 'exam', maxScore: 100, weight: 70, scores: [{ student: student1, score: 82 }, { student: student2, score: 61 }] },
+  ];
+  for (const examSeed of examSeeds) {
+    let assignment = await db.orm.public.Gradebook.where({ classId: mathClass.id, name: examSeed.name }).all().first();
+    if (!assignment) {
+      assignment = await db.orm.public.Gradebook.create({
+        classId: mathClass.id, termId: term.id, name: examSeed.name, type: examSeed.type,
+        maxScore: examSeed.maxScore, weight: examSeed.weight,
+      });
+    }
+    for (const { student, score } of examSeed.scores) {
+      const existing = await db.orm.public.Grade.where({ gradebookId: assignment.id, studentId: student.id }).all().first();
+      if (!existing) {
+        await db.orm.public.Grade.create({ gradebookId: assignment.id, studentId: student.id, score });
+      }
+    }
+  }
+
+  // Publish student1's report card (demoable in Student/Parent portals);
+  // leave student2's as an unpublished draft (demoable in Admin's review).
+  const existingReportCard1 = await db.orm.public.ReportCard.where({ studentId: student1.id, termId: term.id }).all().first();
+  if (!existingReportCard1) {
+    await db.orm.public.ReportCard.create({
+      organizationId: school.id, studentId: student1.id, termId: term.id, academicYear: academicYear.year,
+      comments: 'A consistently strong term — keep up the excellent work.',
+      teacherNotes: 'Alex shows great initiative in class discussions.',
+      principalNotes: 'Well done this term.',
+      published: true, issuedAt: toInstant(Date.now()),
+    });
+  }
+  const existingReportCard2 = await db.orm.public.ReportCard.where({ studentId: student2.id, termId: term.id }).all().first();
+  if (!existingReportCard2) {
+    await db.orm.public.ReportCard.create({
+      organizationId: school.id, studentId: student2.id, termId: term.id, academicYear: academicYear.year,
+      comments: 'Solid progress — more practice on exam technique recommended.',
+      published: false,
+    });
+  }
+
+  const existingIncidents = await db.orm.public.BehaviourIncident.where({ organizationId: school.id }).all();
+  if (existingIncidents.length === 0) {
+    await db.orm.public.BehaviourIncident.create({
       organizationId: school.id,
-    });
-
-    await db.orm.public.CourseEnrollment.create({
       studentId: student1.id,
-      courseId: mathCourse.id,
-      grade: 88.5,
+      reportedById: teacherMember.id,
+      date: toInstant(Date.now()),
+      description: 'Helped a classmate understand derivatives during group work.',
+      severity: 'COMMENDATION',
     });
+  }
 
-    await db.orm.public.AttendanceRecord.create({
+  let tuitionFeeType = await db.orm.public.FeeType.where({ organizationId: school.id, name: 'Tuition' }).all().first();
+  if (!tuitionFeeType) {
+    tuitionFeeType = await db.orm.public.FeeType.create({
+      organizationId: school.id,
+      name: 'Tuition',
+      amount: 5000,
+      frequency: 'annual',
+    });
+  }
+  const existingInvoice = await db.orm.public.FeeInvoice.where({ organizationId: school.id, studentId: student1.id }).all().first();
+  if (!existingInvoice) {
+    const invoice = await db.orm.public.FeeInvoice.create({
+      organizationId: school.id,
       studentId: student1.id,
-      status: 'PRESENT',
+      dueDate: toInstant(Date.now() + 86400000 * 30),
+      totalAmount: 5000,
+      paidAmount: 2000,
+      status: 'partial',
     });
+    await db.orm.public.FeeInvoiceItem.create({ invoiceId: invoice.id, feeTypeId: tuitionFeeType.id, description: 'Annual Tuition', amount: 5000 });
+    await db.orm.public.FeePayment.create({ invoiceId: invoice.id, amount: 2000, method: 'bank_transfer' });
+  }
 
-    await db.orm.public.AttendanceRecord.create({
+  // School staff (Admin, Finance, etc.)
+  const schoolStaffSeeds: Array<{ email: string; name: string; role: 'ADMIN' | 'FINANCE' | 'REGISTRAR' | 'COUNSELOR' }> = [
+    { email: 'principal@cityconnect.local', name: 'Principal Diane Carter', role: 'ADMIN' },
+    { email: 'bursar@cityconnect.local', name: 'Marcus Reed (Bursar)', role: 'FINANCE' },
+    { email: 'registrar@cityconnect.local', name: 'Sofia Alvarez (Registrar)', role: 'REGISTRAR' },
+    { email: 'counselor@cityconnect.local', name: 'Dr. James Okafor (Counselor)', role: 'COUNSELOR' },
+  ];
+  
+  for (const staffSeed of schoolStaffSeeds) {
+    let staffUser = await db.orm.public.User.where({ email: staffSeed.email }).all().first();
+    if (!staffUser) {
+      staffUser = await db.orm.public.User.create({ name: staffSeed.name, email: staffSeed.email });
+    }
+    const existingMembership = await db.orm.public.OrganizationMember
+      .where({ userId: staffUser.id, organizationId: school.id })
+      .all()
+      .first();
+    if (!existingMembership) {
+      const member = await db.orm.public.OrganizationMember.create({
+        userId: staffUser.id,
+        organizationId: school.id,
+        role: staffSeed.role,
+      });
+      // Also create a staff profile for them
+      await db.orm.public.StaffProfile.create({
+        organizationId: school.id,
+        memberId: member.id,
+        employeeId: 'EMP-' + Math.floor(Math.random() * 10000),
+        jobTitle: staffSeed.name
+      });
+    }
+  }
+
+  // Parents — linked to existing students so the Parent Portal has real data
+  const parentSeeds: Array<{ email: string; name: string; student: typeof student1 }> = [
+    { email: 'parent1@cityconnect.local', name: 'Maria Johnson', student: student1 },
+    { email: 'parent2@cityconnect.local', name: 'David Smith', student: student2 },
+  ];
+  for (const parentSeed of parentSeeds) {
+    let parentUser = await db.orm.public.User.where({ email: parentSeed.email }).all().first();
+    if (!parentUser) {
+      parentUser = await db.orm.public.User.create({ name: parentSeed.name, email: parentSeed.email });
+    }
+    const existingLink = await db.orm.public.StudentParent
+      .where({ studentId: parentSeed.student.id, parentId: parentUser.id })
+      .all()
+      .first();
+    if (!existingLink) {
+      await db.orm.public.StudentParent.create({
+        organizationId: school.id,
+        studentId: parentSeed.student.id,
+        parentId: parentUser.id,
+        isPrimary: true,
+        relationship: 'Parent',
+      });
+    }
+  }
+
+  // Student self-service login — the resident Student Portal resolves
+  // "which Student record is this signed-in resident" via `guardianId`
+  // (the closest existing fit for self-access, see getStudentPortalData).
+  let studentUser = await db.orm.public.User.where({ email: 'student@cityconnect.local' }).all().first();
+  if (!studentUser) {
+    studentUser = await db.orm.public.User.create({ name: 'Alex Johnson (Student)', email: 'student@cityconnect.local' });
+  }
+  if (!student1.guardianId) {
+    await db.orm.public.Student.where({ id: student1.id }).update({ guardianId: studentUser.id });
+  }
+
+  // A third student, not yet enrolled in any class — demo data for the
+  // Registrar's enrolment-request workflow.
+  let student3 = existingStudents.find((s) => s.studentId === 'STU-003');
+  if (!student3) {
+    student3 = await db.orm.public.Student.create({
+      organizationId: school.id,
+      studentId: 'STU-003',
+      firstName: 'Marcus',
+      lastName: 'Lee',
+      yearLevel: 12,
+    });
+  }
+
+  // More fee variety — a second fee type and a second, unpaid invoice.
+  let techFeeType = await db.orm.public.FeeType.where({ organizationId: school.id, name: 'Technology Fee' }).all().first();
+  if (!techFeeType) {
+    techFeeType = await db.orm.public.FeeType.create({
+      organizationId: school.id,
+      name: 'Technology Fee',
+      amount: 250,
+      frequency: 'annual',
+    });
+  }
+  const existingInvoice2 = await db.orm.public.FeeInvoice.where({ organizationId: school.id, studentId: student2.id }).all().first();
+  if (!existingInvoice2) {
+    const invoice2 = await db.orm.public.FeeInvoice.create({
+      organizationId: school.id,
       studentId: student2.id,
-      status: 'LATE',
+      dueDate: toInstant(Date.now() + 86400000 * 45),
+      totalAmount: 250,
+      paidAmount: 0,
+      status: 'unpaid',
     });
+    await db.orm.public.FeeInvoiceItem.create({ invoiceId: invoice2.id, feeTypeId: techFeeType.id, description: 'Annual Technology Fee', amount: 250 });
+  }
+
+  // Registrar + Counselor users are seeded just above (schoolStaffSeeds) —
+  // look them up so the rows below can reference real User ids.
+  const registrarUser = await db.orm.public.User.where({ email: 'registrar@cityconnect.local' }).all().first();
+  const counselorUser = await db.orm.public.User.where({ email: 'counselor@cityconnect.local' }).all().first();
+
+  if (registrarUser) {
+    const existingRequest = await db.orm.public.EnrolmentRequest
+      .where({ classId: mathClass.id, studentId: student3.id })
+      .all()
+      .first();
+    if (!existingRequest) {
+      await db.orm.public.EnrolmentRequest.create({
+        organizationId: school.id,
+        classId: mathClass.id,
+        studentId: student3.id,
+        requestedById: registrarUser.id,
+        message: 'Transferring in from Westside Academy — requesting placement in Advanced Calculus.',
+        status: 'pending',
+      });
+    }
+  }
+
+  if (counselorUser) {
+    const existingNotes = await db.orm.public.StudentNote.where({ organizationId: school.id }).all();
+    if (existingNotes.length === 0) {
+      await db.orm.public.StudentNote.create({
+        organizationId: school.id,
+        studentId: student1.id,
+        authorId: counselorUser.id,
+        content: 'Check-in went well; adjusting fine to senior year workload.',
+        type: 'pastoral',
+      });
+      await db.orm.public.StudentNote.create({
+        organizationId: school.id,
+        studentId: student2.id,
+        authorId: counselorUser.id,
+        content: 'Parent reported a seasonal allergy — keeps antihistamines in her bag.',
+        type: 'medical',
+      });
+    }
+
+    const existingTruancyAlerts = await db.orm.public.TruancyAlert.where({ organizationId: school.id }).all();
+    if (existingTruancyAlerts.length === 0) {
+      await db.orm.public.TruancyAlert.create({
+        organizationId: school.id,
+        studentId: student2.id,
+        termId: term.id,
+        consecutiveAbsences: 3,
+        totalUnexcused: 3,
+      });
+    }
+  }
+
+  // Rooms
+  let room101 = await db.orm.public.Room.where({ organizationId: school.id, code: 'RM-101' }).all().first();
+  if (!room101) {
+    room101 = await db.orm.public.Room.create({
+      organizationId: school.id, name: 'Room 101', code: 'RM-101',
+      capacity: 30, type: 'classroom', building: 'Main Building', floor: '1',
+    });
+  }
+  let labA = await db.orm.public.Room.where({ organizationId: school.id, code: 'LAB-A' }).all().first();
+  if (!labA) {
+    labA = await db.orm.public.Room.create({
+      organizationId: school.id, name: 'Science Lab A', code: 'LAB-A',
+      capacity: 24, type: 'lab', building: 'Science Building', floor: '2',
+    });
+  }
+
+  // Timetable — a few slots across the week for the existing Advanced Calculus class
+  const timetableSeeds: Array<{ dayOfWeek: number; period: number; startTime: string; endTime: string; roomId: string }> = [
+    { dayOfWeek: 1, period: 1, startTime: '08:00', endTime: '08:45', roomId: room101.id },
+    { dayOfWeek: 3, period: 3, startTime: '10:15', endTime: '11:00', roomId: room101.id },
+    { dayOfWeek: 5, period: 2, startTime: '09:00', endTime: '09:45', roomId: labA.id },
+  ];
+  for (const slotSeed of timetableSeeds) {
+    const existingSlots = await db.orm.public.TimetableSlot.where({ classId: mathClass.id }).all();
+    const alreadyExists = existingSlots.some((s) => s.dayOfWeek === slotSeed.dayOfWeek && s.period === slotSeed.period);
+    if (!alreadyExists) {
+      await db.orm.public.TimetableSlot.create({
+        classId: mathClass.id,
+        staffId: staffProfile.id,
+        roomId: slotSeed.roomId,
+        dayOfWeek: slotSeed.dayOfWeek,
+        period: slotSeed.period,
+        startTime: slotSeed.startTime,
+        endTime: slotSeed.endTime,
+      });
+    }
+  }
+
+  // Calendar events — one for each audience-encoding branch, to prove the
+  // per-portal filter logic actually discriminates correctly.
+  const principalUser = await db.orm.public.User.where({ email: 'principal@cityconnect.local' }).all().first();
+  if (principalUser) {
+    const existingFallBreak = await db.orm.public.SchoolEvent.where({ organizationId: school.id, title: 'Fall Break' }).all().first();
+    if (!existingFallBreak) {
+      await db.orm.public.SchoolEvent.create({
+        organizationId: school.id,
+        title: 'Fall Break',
+        description: 'No classes — school closed for Fall Break.',
+        startDate: toInstant(Date.now() + 86400000 * 14),
+        endDate: toInstant(Date.now() + 86400000 * 18),
+        allDay: true,
+        category: 'holiday',
+        targetRoles: 'all',
+        targetYears: 'all',
+        createdById: principalUser.id,
+      });
+    }
+
+    const existingPdDay = await db.orm.public.SchoolEvent.where({ organizationId: school.id, title: 'Staff PD Day — No Classes' }).all().first();
+    if (!existingPdDay) {
+      await db.orm.public.SchoolEvent.create({
+        organizationId: school.id,
+        title: 'Staff PD Day — No Classes',
+        description: 'Professional development day for teaching and administrative staff.',
+        startDate: toInstant(Date.now() + 86400000 * 7),
+        endDate: toInstant(Date.now() + 86400000 * 7),
+        allDay: true,
+        category: 'admin',
+        targetRoles: JSON.stringify(['TEACHER', 'ADMIN']),
+        targetYears: 'all',
+        createdById: principalUser.id,
+      });
+    }
+
+    const existingBriefing = await db.orm.public.SchoolEvent.where({ organizationId: school.id, title: 'Grade 12 Mock Exam Briefing' }).all().first();
+    if (!existingBriefing) {
+      await db.orm.public.SchoolEvent.create({
+        organizationId: school.id,
+        title: 'Grade 12 Mock Exam Briefing',
+        description: 'Information session on the upcoming mock exam schedule and expectations.',
+        startDate: toInstant(Date.now() + 86400000 * 10),
+        endDate: toInstant(Date.now() + 86400000 * 10),
+        allDay: true,
+        category: 'academic',
+        targetRoles: JSON.stringify(['STUDENT', 'PARENT']),
+        targetYears: JSON.stringify(['12']),
+        createdById: principalUser.id,
+      });
+    }
   }
 
   // ---------------------------------------------------------------------
@@ -394,13 +1058,295 @@ async function main() {
   }
 
   // ---------------------------------------------------------------------
-  // Retail / Grocery (CityMall) — org only for now; no data layer built yet
-  // for inventory/orders, the admin UI is still fully mocked client-side.
+  // ShopOS: Retail / Grocery (CityMall) — real POS/inventory data layer.
   // ---------------------------------------------------------------------
-  await findOrCreateOrg('RETAIL', {
+  const { org: retail } = await findOrCreateOrg('RETAIL', {
     name: 'Corner Market Grocers',
     description: 'Neighborhood grocery store on CityMall.',
   });
+
+  const retailCategoryNames = ['Produce', 'Bakery', 'Meat', 'Drinks'];
+  const retailCategories: Record<string, string> = {};
+  for (const name of retailCategoryNames) {
+    let category = await db.orm.public.RetailCategory.where({ organizationId: retail.id, name }).all().first();
+    if (!category) {
+      category = await db.orm.public.RetailCategory.create({ organizationId: retail.id, name });
+    }
+    retailCategories[name] = category.id;
+  }
+
+  const retailProductSeeds = [
+    { name: 'Organic Bananas', sku: 'PRD-001', barcode: '8472948291', category: 'Produce', price: 0.59, cost: 0.20, stockQuantity: 150, lowStockLevel: 50, isWeighed: true, unit: 'lb' },
+    { name: 'Avocado', sku: 'PRD-002', barcode: '8472948292', category: 'Produce', price: 1.20, cost: 0.50, stockQuantity: 45, lowStockLevel: 50 },
+    { name: 'Sourdough Loaf', sku: 'BAK-001', barcode: '8472948293', category: 'Bakery', price: 4.50, cost: 1.10, stockQuantity: 12, lowStockLevel: 20 },
+    { name: 'Croissant', sku: 'BAK-002', barcode: '8472948294', category: 'Bakery', price: 2.50, cost: 0.75, stockQuantity: 30, lowStockLevel: 15 },
+    { name: 'Ground Beef 1lb', sku: 'MEA-001', barcode: '8472948295', category: 'Meat', price: 6.99, cost: 4.00, stockQuantity: 5, lowStockLevel: 10 },
+    { name: 'Chicken Breast', sku: 'MEA-002', barcode: '8472948296', category: 'Meat', price: 8.50, cost: 5.20, stockQuantity: 25, lowStockLevel: 10, isWeighed: true, unit: 'lb' },
+    { name: 'Orange Juice', sku: 'DRK-001', barcode: '8472948297', category: 'Drinks', price: 3.99, cost: 1.80, stockQuantity: 40, lowStockLevel: 15 },
+    { name: 'Sparkling Water', sku: 'DRK-002', barcode: '8472948298', category: 'Drinks', price: 1.99, cost: 0.60, stockQuantity: 80, lowStockLevel: 20 },
+  ];
+  for (const p of retailProductSeeds) {
+    const existing = await db.orm.public.RetailProduct.where({ organizationId: retail.id, sku: p.sku }).all().first();
+    if (!existing) {
+      await db.orm.public.RetailProduct.create({
+        organizationId: retail.id,
+        name: p.name,
+        sku: p.sku,
+        barcode: p.barcode,
+        categoryId: retailCategories[p.category],
+        price: p.price,
+        cost: p.cost,
+        stockQuantity: p.stockQuantity,
+        lowStockLevel: p.lowStockLevel,
+        isWeighed: p.isWeighed ?? false,
+        unit: p.unit ?? 'ea',
+      });
+    }
+  }
+
+  let retailRegister = await db.orm.public.RetailRegister.where({ organizationId: retail.id, name: 'Register 1' }).all().first();
+  if (!retailRegister) {
+    retailRegister = await db.orm.public.RetailRegister.create({ organizationId: retail.id, name: 'Register 1' });
+  }
+
+  let retailSupplier = await db.orm.public.RetailSupplier.where({ organizationId: retail.id, name: 'Fresh Foods Distribution' }).all().first();
+  if (!retailSupplier) {
+    retailSupplier = await db.orm.public.RetailSupplier.create({
+      organizationId: retail.id,
+      name: 'Fresh Foods Distribution',
+      contactName: 'Sam Rivera',
+      email: 'orders@freshfoodsdist.example',
+      phone: '(555) 040-1200',
+      leadTimeDays: 3,
+      paymentTerms: 'Net-30',
+    });
+  }
+
+  // Per-role demo logins for ShopOS (password '1234' via the same demo
+  // Credentials provider as every other seeded account).
+  const retailStaffSeeds = [
+    { email: 'cashier@cityconnect.local', name: 'Cara Cashier', role: 'CASHIER' as const },
+    { email: 'inventory@cityconnect.local', name: 'Ivan Stocker', role: 'INVENTORY_STAFF' as const },
+  ];
+  for (const staffSeed of retailStaffSeeds) {
+    let staffUser = await db.orm.public.User.where({ email: staffSeed.email }).all().first();
+    if (!staffUser) {
+      staffUser = await db.orm.public.User.create({ name: staffSeed.name, email: staffSeed.email });
+    }
+    const existingMember = await db.orm.public.OrganizationMember.where({ userId: staffUser.id, organizationId: retail.id }).all().first();
+    if (!existingMember) {
+      await db.orm.public.OrganizationMember.create({ userId: staffUser.id, organizationId: retail.id, role: staffSeed.role });
+    }
+  }
+
+  // ---------------------------------------------------------------------
+  // Demo login (dev-only Credentials provider, see lib/auth.ts) — one user
+  // with OWNER membership in every vertical org plus a GigWorkerProfile, so
+  // a single login can reach every admin portal and the courier interface.
+  // ---------------------------------------------------------------------
+  let demoUser = await db.orm.public.User.where({ email: 'demo@cityconnect.local' }).all().first();
+  if (!demoUser) {
+    demoUser = await db.orm.public.User.create({
+      name: 'Demo Admin',
+      email: 'demo@cityconnect.local',
+    });
+  }
+
+  async function ensureOwnerMembership(organizationId: string) {
+    const existing = await db.orm.public.OrganizationMember.where({
+      userId: demoUser!.id,
+      organizationId,
+    }).all().first();
+    if (!existing) {
+      await db.orm.public.OrganizationMember.create({
+        userId: demoUser!.id,
+        organizationId,
+        role: 'OWNER',
+      });
+    }
+  }
+
+  for (const org of [hotel, school, restaurant, organizer, publisher, clinic, pharmacy, logisticsOrg, retail]) {
+    await ensureOwnerMembership(org.id);
+  }
+
+  const demoGigProfile = await db.orm.public.GigWorkerProfile.where({ userId: demoUser.id }).all().first();
+  if (!demoGigProfile) {
+    await db.orm.public.GigWorkerProfile.create({
+      userId: demoUser.id,
+      vehicleType: 'CAR',
+      licensePlate: 'DEMO-001',
+      isOnline: true,
+      rating: 5.0,
+    });
+  }
+
+  // Microsite Builder demo — a published single-page website for the
+  // school, so the feature has something real to show immediately.
+  let schoolMicrosite = await db.orm.public.Microsite.where({ organizationId: school.id }).all().first();
+  if (!schoolMicrosite) {
+    schoolMicrosite = await db.orm.public.Microsite.create({
+      organizationId: school.id,
+      slug: 'lincoln-high',
+      title: school.name,
+      tagline: 'Excellence in Education Since 1985',
+      theme: 'editorial',
+      status: 'published',
+      seoTitle: `${school.name} — Official Website`,
+      seoDescription: 'Learn more about our academic programs, admissions, and community.',
+      publishedAt: toInstant(Date.now()),
+    });
+
+    const micrositeSections: { type: string; content: Record<string, unknown> }[] = [
+      {
+        type: 'hero',
+        content: {
+          heading: school.name,
+          subheading: 'Preparing tomorrow\'s leaders through academic excellence, character, and community.',
+          ctaText: 'Discover Our Campus',
+          ctaLink: '#about',
+          imageAssetId: 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1600&q=80',
+        },
+      },
+      {
+        type: 'school-head-welcome',
+        content: {
+          heading: 'A Welcome from Our Principal',
+          body: 'At Lincoln High, we believe that education is about more than just academics. It is about fostering a community of curious, compassionate, and courageous individuals ready to make their mark on the world.',
+          signature: 'Dr. Sarah Jenkins',
+          imageAssetId: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=800&q=80',
+        },
+      },
+      {
+        type: 'school-curriculum',
+        content: {
+          heading: 'Academic Excellence',
+          items: [
+            { phase: 'Junior High (Grades 7-8)', description: 'A foundational program designed to build strong study habits and ignite curiosity.' },
+            { phase: 'Senior High (Grades 9-10)', description: 'Core academic subjects paired with expansive elective opportunities.' },
+            { phase: 'College Prep (Grades 11-12)', description: 'Advanced Placement (AP) courses and dedicated college counseling.' },
+          ],
+        },
+      },
+      {
+        type: 'gallery',
+        content: {
+          heading: 'Campus Life',
+          imageAssetIds: [
+            'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1519452328956-658ee04207f2?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?auto=format&fit=crop&w=800&q=80',
+          ],
+        },
+      },
+      {
+        type: 'school-admissions-timeline',
+        content: {
+          heading: 'Join Our Community',
+          steps: [
+            { title: 'Inquire', description: 'Fill out our online inquiry form to receive our admissions packet.' },
+            { title: 'Campus Tour', description: 'Schedule a visit to see our facilities and meet our faculty.' },
+            { title: 'Application', description: 'Submit your formal application along with transcripts and recommendations.' },
+            { title: 'Interview', description: 'A brief meeting with our admissions team to ensure a mutual fit.' },
+          ],
+        },
+      },
+      {
+        type: 'contact',
+        content: {
+          heading: 'Visit Us',
+          address: '123 Education Way, Springfield',
+          phone: '(555) 010-2026',
+          email: 'info@lincolnhigh.edu',
+        },
+      },
+      {
+        type: 'footer',
+        content: {
+          tagline: `© ${new Date().getFullYear()} ${school.name}. All rights reserved.`,
+          socialLinks: [],
+        },
+      },
+    ];
+
+    for (let i = 0; i < micrositeSections.length; i++) {
+      await db.orm.public.MicrositeSection.create({
+        micrositeId: schoolMicrosite.id,
+        type: micrositeSections[i].type,
+        order: i,
+        content: JSON.stringify(micrositeSections[i].content),
+      });
+    }
+  }
+
+  // Online store for the retail org — demos the live `retail-products`
+  // section, which pulls real ShopOS catalog data rather than static copy.
+  let retailMicrosite = await db.orm.public.Microsite.where({ organizationId: retail.id }).all().first();
+  if (!retailMicrosite) {
+    retailMicrosite = await db.orm.public.Microsite.create({
+      organizationId: retail.id,
+      slug: 'corner-market',
+      title: retail.name,
+      tagline: 'Fresh groceries, right on CityMall.',
+      theme: 'minimal',
+      status: 'published',
+      seoTitle: `${retail.name} — Shop Online`,
+      seoDescription: 'Browse our fresh produce, bakery, meat, and drinks selection.',
+      publishedAt: toInstant(Date.now()),
+    });
+
+    const retailMicrositeSections: { type: string; content: Record<string, unknown> }[] = [
+      {
+        type: 'hero',
+        content: {
+          heading: retail.name,
+          subheading: 'Fresh groceries, everyday essentials, and friendly service — right on CityMall.',
+          ctaText: 'Visit Us',
+          ctaLink: '#contact',
+        },
+      },
+      {
+        type: 'retail-products',
+        content: { heading: 'Our Products', categoryId: '' },
+      },
+      {
+        type: 'hours',
+        content: {
+          heading: 'Store Hours',
+          rows: [
+            { day: 'Monday - Saturday', hours: '8:00 AM - 9:00 PM' },
+            { day: 'Sunday', hours: '9:00 AM - 6:00 PM' },
+          ],
+        },
+      },
+      {
+        type: 'contact',
+        content: {
+          heading: 'Visit Us',
+          address: '45 CityMall Plaza, Springfield',
+          phone: '(555) 040-1100',
+          email: 'hello@cornermarket.example',
+        },
+      },
+      {
+        type: 'footer',
+        content: {
+          tagline: `© ${new Date().getFullYear()} ${retail.name}. All rights reserved.`,
+          socialLinks: [],
+        },
+      },
+    ];
+
+    for (let i = 0; i < retailMicrositeSections.length; i++) {
+      await db.orm.public.MicrositeSection.create({
+        micrositeId: retailMicrosite.id,
+        type: retailMicrositeSections[i].type,
+        order: i,
+        content: JSON.stringify(retailMicrositeSections[i].content),
+      });
+    }
+  }
 
   console.log('Database seeded successfully!');
   await db.close();

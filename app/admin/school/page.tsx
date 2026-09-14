@@ -1,9 +1,8 @@
-import SchoolAdminView from '@/components/SchoolAdminView';
-import { getSchoolAdminData } from '@/lib/actions/school';
-import { requireOrgAccess } from '@/lib/rbac';
+import { redirect } from 'next/navigation';
 
-export default async function SchoolAdminPage() {
-    await requireOrgAccess('SCHOOL');
-    const data = await getSchoolAdminData();
-    return <SchoolAdminView initialData={data} />;
+// This route duplicated app/(admin)/school/admin — consolidated into one
+// real, DB-backed Admin Portal there. Kept as a redirect so old links/bookmarks
+// still land somewhere.
+export default function SchoolAdminPage() {
+  redirect('/school/admin');
 }

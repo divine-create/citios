@@ -6,7 +6,9 @@ export default definePrismaConfig({
   orm: ormConfig({
     contract: "./src/prisma/contract.prisma",
     db: {
-      connection: process.env['DATABASE_URL']!,
+      // Use the direct (non-pooled) connection for migrations/DDL so that
+      // long-running CREATE TABLE batches don't time out through PgBouncer.
+      connection: process.env['DIRECT_URL'] ?? process.env['DATABASE_URL']!,
     },
   }),
 });

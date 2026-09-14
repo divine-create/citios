@@ -1,0 +1,650 @@
+[
+  {
+    "id": "dropCheckConstraint.organizationMember.organizationMember_role_check_59467d3b",
+    "label": "Drop check constraint \"organizationMember_role_check_59467d3b\" on \"organizationMember\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "checkConstraint",
+        "name": "organizationMember_role_check_59467d3b",
+        "table": "organizationMember"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"organizationMember_role_check_59467d3b\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "organizationMember_role_check_59467d3b",
+          "public",
+          "\"public\".\"organizationMember\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop check constraint \"organizationMember_role_check_59467d3b\"",
+        "sql": "ALTER TABLE \"public\".\"organizationMember\" DROP CONSTRAINT \"organizationMember_role_check_59467d3b\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"organizationMember_role_check_59467d3b\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "organizationMember_role_check_59467d3b",
+          "public",
+          "\"public\".\"organizationMember\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.assignment",
+    "label": "Create table \"assignment\"",
+    "summary": "Creates table \"assignment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "assignment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"assignment\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assignment\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"assignment\"",
+        "sql": "CREATE TABLE \"public\".\"assignment\" (\n  \"category\" text DEFAULT 'Homework' NOT NULL,\n  \"courseId\" text NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"dueDate\" timestamptz,\n  \"id\" text NOT NULL,\n  \"maxScore\" float8 DEFAULT 100 NOT NULL,\n  \"title\" text NOT NULL,\n  \"weight\" float8 DEFAULT 1 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"assignment\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assignment\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.behaviorLog",
+    "label": "Create table \"behaviorLog\"",
+    "summary": "Creates table \"behaviorLog\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "behaviorLog"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"behaviorLog\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"behaviorLog\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"behaviorLog\"",
+        "sql": "CREATE TABLE \"public\".\"behaviorLog\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" text NOT NULL,\n  \"note\" text NOT NULL,\n  \"organizationId\" text NOT NULL,\n  \"studentId\" text NOT NULL,\n  \"type\" text NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"behaviorLog_type_check_4c01a1e5\" CHECK (\"type\" IN ('DEMERIT', 'COMMENDATION', 'REFERRAL'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"behaviorLog\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"behaviorLog\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.grade",
+    "label": "Create table \"grade\"",
+    "summary": "Creates table \"grade\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "grade"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"grade\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"grade\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"grade\"",
+        "sql": "CREATE TABLE \"public\".\"grade\" (\n  \"assignmentId\" text NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" text NOT NULL,\n  \"score\" float8 NOT NULL,\n  \"studentId\" text NOT NULL,\n  \"updatedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"grade\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"grade\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.grade.grade_assignmentId_studentId_key",
+    "label": "Add unique constraint on \"grade\" (assignmentId, studentId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "grade_assignmentId_studentId_key",
+        "table": "grade"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"grade_assignmentId_studentId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "grade_assignmentId_studentId_key",
+          "public",
+          "\"public\".\"grade\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"grade_assignmentId_studentId_key\"",
+        "sql": "ALTER TABLE \"public\".\"grade\" ADD CONSTRAINT \"grade_assignmentId_studentId_key\" UNIQUE (\"assignmentId\", \"studentId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"grade_assignmentId_studentId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "grade_assignmentId_studentId_key",
+          "public",
+          "\"public\".\"grade\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "checkConstraint.organizationMember.organizationMember_role_check_916e36c9",
+    "label": "Add check constraint \"organizationMember_role_check_916e36c9\" on \"organizationMember\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "checkConstraint",
+        "name": "organizationMember_role_check_916e36c9",
+        "table": "organizationMember"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"organizationMember_role_check_916e36c9\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "organizationMember_role_check_916e36c9",
+          "public",
+          "\"public\".\"organizationMember\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add check constraint \"organizationMember_role_check_916e36c9\"",
+        "sql": "ALTER TABLE \"public\".\"organizationMember\" ADD CONSTRAINT \"organizationMember_role_check_916e36c9\" CHECK (\"role\" IN ('OWNER', 'MANAGER', 'STAFF', 'TEACHER', 'DOCTOR', 'ADMIN', 'FINANCE', 'REGISTRAR', 'COUNSELOR'))"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"organizationMember_role_check_916e36c9\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "organizationMember_role_check_916e36c9",
+          "public",
+          "\"public\".\"organizationMember\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.assignment.assignment_courseId_idx_12f72d2a",
+    "label": "Create index \"assignment_courseId_idx_12f72d2a\" on \"assignment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "assignment_courseId_idx_12f72d2a",
+        "table": "assignment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"assignment_courseId_idx_12f72d2a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assignment_courseId_idx_12f72d2a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"assignment_courseId_idx_12f72d2a\"",
+        "sql": "CREATE INDEX \"assignment_courseId_idx_12f72d2a\" ON \"public\".\"assignment\" (\"courseId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"assignment_courseId_idx_12f72d2a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assignment_courseId_idx_12f72d2a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.behaviorLog.behaviorLog_organizationId_idx_2e17ef41",
+    "label": "Create index \"behaviorLog_organizationId_idx_2e17ef41\" on \"behaviorLog\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "behaviorLog_organizationId_idx_2e17ef41",
+        "table": "behaviorLog"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"behaviorLog_organizationId_idx_2e17ef41\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"behaviorLog_organizationId_idx_2e17ef41\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"behaviorLog_organizationId_idx_2e17ef41\"",
+        "sql": "CREATE INDEX \"behaviorLog_organizationId_idx_2e17ef41\" ON \"public\".\"behaviorLog\" (\"organizationId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"behaviorLog_organizationId_idx_2e17ef41\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"behaviorLog_organizationId_idx_2e17ef41\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.behaviorLog.behaviorLog_studentId_idx_bf255322",
+    "label": "Create index \"behaviorLog_studentId_idx_bf255322\" on \"behaviorLog\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "behaviorLog_studentId_idx_bf255322",
+        "table": "behaviorLog"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"behaviorLog_studentId_idx_bf255322\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"behaviorLog_studentId_idx_bf255322\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"behaviorLog_studentId_idx_bf255322\"",
+        "sql": "CREATE INDEX \"behaviorLog_studentId_idx_bf255322\" ON \"public\".\"behaviorLog\" (\"studentId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"behaviorLog_studentId_idx_bf255322\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"behaviorLog_studentId_idx_bf255322\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.grade.grade_assignmentId_idx_8cfb4ac4",
+    "label": "Create index \"grade_assignmentId_idx_8cfb4ac4\" on \"grade\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "grade_assignmentId_idx_8cfb4ac4",
+        "table": "grade"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"grade_assignmentId_idx_8cfb4ac4\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"grade_assignmentId_idx_8cfb4ac4\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"grade_assignmentId_idx_8cfb4ac4\"",
+        "sql": "CREATE INDEX \"grade_assignmentId_idx_8cfb4ac4\" ON \"public\".\"grade\" (\"assignmentId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"grade_assignmentId_idx_8cfb4ac4\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"grade_assignmentId_idx_8cfb4ac4\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.grade.grade_studentId_idx_bf255322",
+    "label": "Create index \"grade_studentId_idx_bf255322\" on \"grade\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "grade_studentId_idx_bf255322",
+        "table": "grade"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"grade_studentId_idx_bf255322\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"grade_studentId_idx_bf255322\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"grade_studentId_idx_bf255322\"",
+        "sql": "CREATE INDEX \"grade_studentId_idx_bf255322\" ON \"public\".\"grade\" (\"studentId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"grade_studentId_idx_bf255322\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"grade_studentId_idx_bf255322\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.assignment.assignment_courseId_fkey",
+    "label": "Add foreign key \"assignment_courseId_fkey\" on \"assignment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "assignment_courseId_fkey",
+        "table": "assignment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"assignment_courseId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "assignment_courseId_fkey",
+          "public",
+          "\"public\".\"assignment\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"assignment_courseId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"assignment\"\nADD CONSTRAINT \"assignment_courseId_fkey\"\nFOREIGN KEY (\"courseId\")\nREFERENCES \"public\".\"course\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"assignment_courseId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "assignment_courseId_fkey",
+          "public",
+          "\"public\".\"assignment\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.behaviorLog.behaviorLog_studentId_fkey",
+    "label": "Add foreign key \"behaviorLog_studentId_fkey\" on \"behaviorLog\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "behaviorLog_studentId_fkey",
+        "table": "behaviorLog"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"behaviorLog_studentId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "behaviorLog_studentId_fkey",
+          "public",
+          "\"public\".\"behaviorLog\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"behaviorLog_studentId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"behaviorLog\"\nADD CONSTRAINT \"behaviorLog_studentId_fkey\"\nFOREIGN KEY (\"studentId\")\nREFERENCES \"public\".\"student\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"behaviorLog_studentId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "behaviorLog_studentId_fkey",
+          "public",
+          "\"public\".\"behaviorLog\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.behaviorLog.behaviorLog_organizationId_fkey",
+    "label": "Add foreign key \"behaviorLog_organizationId_fkey\" on \"behaviorLog\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "behaviorLog_organizationId_fkey",
+        "table": "behaviorLog"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"behaviorLog_organizationId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "behaviorLog_organizationId_fkey",
+          "public",
+          "\"public\".\"behaviorLog\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"behaviorLog_organizationId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"behaviorLog\"\nADD CONSTRAINT \"behaviorLog_organizationId_fkey\"\nFOREIGN KEY (\"organizationId\")\nREFERENCES \"public\".\"organization\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"behaviorLog_organizationId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "behaviorLog_organizationId_fkey",
+          "public",
+          "\"public\".\"behaviorLog\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.grade.grade_assignmentId_fkey",
+    "label": "Add foreign key \"grade_assignmentId_fkey\" on \"grade\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "grade_assignmentId_fkey",
+        "table": "grade"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"grade_assignmentId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "grade_assignmentId_fkey",
+          "public",
+          "\"public\".\"grade\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"grade_assignmentId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"grade\"\nADD CONSTRAINT \"grade_assignmentId_fkey\"\nFOREIGN KEY (\"assignmentId\")\nREFERENCES \"public\".\"assignment\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"grade_assignmentId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "grade_assignmentId_fkey",
+          "public",
+          "\"public\".\"grade\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.grade.grade_studentId_fkey",
+    "label": "Add foreign key \"grade_studentId_fkey\" on \"grade\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "grade_studentId_fkey",
+        "table": "grade"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"grade_studentId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "grade_studentId_fkey",
+          "public",
+          "\"public\".\"grade\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"grade_studentId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"grade\"\nADD CONSTRAINT \"grade_studentId_fkey\"\nFOREIGN KEY (\"studentId\")\nREFERENCES \"public\".\"student\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"grade_studentId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "grade_studentId_fkey",
+          "public",
+          "\"public\".\"grade\""
+        ]
+      }
+    ]
+  }
+]

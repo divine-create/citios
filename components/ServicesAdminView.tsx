@@ -22,12 +22,12 @@ export function ServicesAdminView({ initialData }: { initialData: any }) {
                 <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-bl-full -z-0" />
                 <div className="relative z-10 flex justify-between items-start mb-6">
                     <div>
-                        <h2 className="text-3xl font-bold tracking-tight text-white">CityConnect Dispatch Center</h2>
+                        <h2 className="text-xl sm:text-3xl font-bold tracking-tight text-white">CityConnect Dispatch Center</h2>
                         <p className="text-teal-200 text-sm font-bold uppercase tracking-widest mt-2">Logistics & Services</p>
                     </div>
                 </div>
 
-                <div className="relative z-10 grid grid-cols-4 gap-8 border-t border-teal-800/50 pt-8">
+                <div className="relative z-10 grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-8 border-t border-teal-800/50 pt-8">
                     <div>
                         <p className="text-4xl font-black tracking-tighter text-white">{pendingTasks.length}</p>
                         <p className="text-xs text-teal-300 font-bold uppercase tracking-wider mt-2">Active Jobs</p>
@@ -96,6 +96,7 @@ export function ServicesAdminView({ initialData }: { initialData: any }) {
                             <Button className="bg-teal-700 hover:bg-teal-800 text-white font-bold">+ Onboard Worker</Button>
                         </div>
                         <Card className="p-0 overflow-hidden">
+                            <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
                                 <thead className="bg-slate-50 border-b border-slate-200">
                                     <tr>
@@ -125,6 +126,7 @@ export function ServicesAdminView({ initialData }: { initialData: any }) {
                                     ))}
                                 </tbody>
                             </table>
+                            </div>
                         </Card>
                     </div>
                 )}

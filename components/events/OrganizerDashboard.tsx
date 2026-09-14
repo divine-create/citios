@@ -157,6 +157,7 @@ export default function OrganizerDashboard() {
             </div>
             
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead className="bg-gray-50 text-gray-600 border-b border-gray-200">
                   <tr>
@@ -189,6 +190,7 @@ export default function OrganizerDashboard() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         )}
@@ -216,6 +218,7 @@ export default function OrganizerDashboard() {
             </div>
 
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead className="bg-gray-50 text-gray-600 border-b border-gray-200">
                   <tr>
@@ -265,6 +268,7 @@ export default function OrganizerDashboard() {
                   )}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         )}

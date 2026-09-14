@@ -1,0 +1,410 @@
+[
+  {
+    "id": "table.inventoryItem",
+    "label": "Create table \"inventoryItem\"",
+    "summary": "Creates table \"inventoryItem\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "inventoryItem"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"inventoryItem\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"inventoryItem\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"inventoryItem\"",
+        "sql": "CREATE TABLE \"public\".\"inventoryItem\" (\n  \"category\" text NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" text NOT NULL,\n  \"name\" text NOT NULL,\n  \"organizationId\" text NOT NULL,\n  \"parLevel\" int4 DEFAULT 0 NOT NULL,\n  \"quantityOnHand\" int4 DEFAULT 0 NOT NULL,\n  \"unit\" text NOT NULL,\n  \"updatedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"inventoryItem_category_check_12fc6fdb\" CHECK (\"category\" IN ('HOUSEKEEPING', 'FOOD_AND_BEVERAGE', 'MAINTENANCE'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"inventoryItem\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"inventoryItem\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.rateRule",
+    "label": "Create table \"rateRule\"",
+    "summary": "Creates table \"rateRule\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "rateRule"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"rateRule\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"rateRule\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"rateRule\"",
+        "sql": "CREATE TABLE \"public\".\"rateRule\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" text NOT NULL,\n  \"isActive\" bool DEFAULT true NOT NULL,\n  \"multiplier\" float8 NOT NULL,\n  \"organizationId\" text NOT NULL,\n  \"type\" text NOT NULL,\n  \"updatedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"rateRule_type_check_fe6cb8f7\" CHECK (\"type\" IN ('WEEKEND_SURGE', 'HOLIDAY_SURGE'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"rateRule\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"rateRule\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.hotelRoom.baseRate",
+    "label": "Add column \"baseRate\" to \"hotelRoom\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "baseRate",
+        "table": "hotelRoom"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"baseRate\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "hotelRoom",
+          "baseRate"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"baseRate\"",
+        "sql": "ALTER TABLE \"public\".\"hotelRoom\" ADD COLUMN \"baseRate\" float8 DEFAULT 0 NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"baseRate\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "hotelRoom",
+          "baseRate"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.reservation.paymentStatus",
+    "label": "Add column \"paymentStatus\" to \"reservation\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "paymentStatus",
+        "table": "reservation"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"paymentStatus\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "reservation",
+          "paymentStatus"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"paymentStatus\"",
+        "sql": "ALTER TABLE \"public\".\"reservation\" ADD COLUMN \"paymentStatus\" text DEFAULT 'PENDING' NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"paymentStatus\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "reservation",
+          "paymentStatus"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.reservation.totalPrice",
+    "label": "Add column \"totalPrice\" to \"reservation\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "totalPrice",
+        "table": "reservation"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"totalPrice\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "reservation",
+          "totalPrice"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"totalPrice\"",
+        "sql": "ALTER TABLE \"public\".\"reservation\" ADD COLUMN \"totalPrice\" float8"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"totalPrice\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "reservation",
+          "totalPrice"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.rateRule.rateRule_organizationId_type_key",
+    "label": "Add unique constraint on \"rateRule\" (organizationId, type)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "rateRule_organizationId_type_key",
+        "table": "rateRule"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"rateRule_organizationId_type_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "rateRule_organizationId_type_key",
+          "public",
+          "\"public\".\"rateRule\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"rateRule_organizationId_type_key\"",
+        "sql": "ALTER TABLE \"public\".\"rateRule\" ADD CONSTRAINT \"rateRule_organizationId_type_key\" UNIQUE (\"organizationId\", \"type\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"rateRule_organizationId_type_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "rateRule_organizationId_type_key",
+          "public",
+          "\"public\".\"rateRule\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.inventoryItem.inventoryItem_organizationId_idx_2e17ef41",
+    "label": "Create index \"inventoryItem_organizationId_idx_2e17ef41\" on \"inventoryItem\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "inventoryItem_organizationId_idx_2e17ef41",
+        "table": "inventoryItem"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"inventoryItem_organizationId_idx_2e17ef41\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"inventoryItem_organizationId_idx_2e17ef41\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"inventoryItem_organizationId_idx_2e17ef41\"",
+        "sql": "CREATE INDEX \"inventoryItem_organizationId_idx_2e17ef41\" ON \"public\".\"inventoryItem\" (\"organizationId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"inventoryItem_organizationId_idx_2e17ef41\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"inventoryItem_organizationId_idx_2e17ef41\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.rateRule.rateRule_organizationId_idx_2e17ef41",
+    "label": "Create index \"rateRule_organizationId_idx_2e17ef41\" on \"rateRule\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "rateRule_organizationId_idx_2e17ef41",
+        "table": "rateRule"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"rateRule_organizationId_idx_2e17ef41\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"rateRule_organizationId_idx_2e17ef41\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"rateRule_organizationId_idx_2e17ef41\"",
+        "sql": "CREATE INDEX \"rateRule_organizationId_idx_2e17ef41\" ON \"public\".\"rateRule\" (\"organizationId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"rateRule_organizationId_idx_2e17ef41\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"rateRule_organizationId_idx_2e17ef41\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.inventoryItem.inventoryItem_organizationId_fkey",
+    "label": "Add foreign key \"inventoryItem_organizationId_fkey\" on \"inventoryItem\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "inventoryItem_organizationId_fkey",
+        "table": "inventoryItem"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"inventoryItem_organizationId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "inventoryItem_organizationId_fkey",
+          "public",
+          "\"public\".\"inventoryItem\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"inventoryItem_organizationId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"inventoryItem\"\nADD CONSTRAINT \"inventoryItem_organizationId_fkey\"\nFOREIGN KEY (\"organizationId\")\nREFERENCES \"public\".\"organization\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"inventoryItem_organizationId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "inventoryItem_organizationId_fkey",
+          "public",
+          "\"public\".\"inventoryItem\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.rateRule.rateRule_organizationId_fkey",
+    "label": "Add foreign key \"rateRule_organizationId_fkey\" on \"rateRule\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "rateRule_organizationId_fkey",
+        "table": "rateRule"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"rateRule_organizationId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "rateRule_organizationId_fkey",
+          "public",
+          "\"public\".\"rateRule\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"rateRule_organizationId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"rateRule\"\nADD CONSTRAINT \"rateRule_organizationId_fkey\"\nFOREIGN KEY (\"organizationId\")\nREFERENCES \"public\".\"organization\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"rateRule_organizationId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "rateRule_organizationId_fkey",
+          "public",
+          "\"public\".\"rateRule\""
+        ]
+      }
+    ]
+  }
+]

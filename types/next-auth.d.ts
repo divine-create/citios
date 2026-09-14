@@ -14,7 +14,7 @@ export type OrgType =
   | 'PUBLISHER'
   | 'PHARMACY';
 
-export type OrgRole = 'OWNER' | 'MANAGER' | 'STAFF' | 'TEACHER' | 'DOCTOR';
+export type OrgRole = 'OWNER' | 'MANAGER' | 'STAFF' | 'TEACHER' | 'DOCTOR' | 'ADMIN' | 'FINANCE' | 'REGISTRAR' | 'COUNSELOR';
 
 export interface OrgMembership {
   organizationId: string;

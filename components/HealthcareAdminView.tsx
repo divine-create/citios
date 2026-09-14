@@ -18,12 +18,12 @@ export function HealthcareAdminView({ initialData }: { initialData: any }) {
                 <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-bl-full -z-0" />
                 <div className="relative z-10 flex justify-between items-start mb-6">
                     <div>
-                        <h2 className="text-3xl font-bold tracking-tight text-white">{clinic.name} & {pharmacy.name}</h2>
+                        <h2 className="text-xl sm:text-3xl font-bold tracking-tight text-white">{clinic.name} & {pharmacy.name}</h2>
                         <p className="text-rose-200 text-sm font-bold uppercase tracking-widest mt-2">Healthcare Management System</p>
                     </div>
                 </div>
 
-                <div className="relative z-10 grid grid-cols-4 gap-8 border-t border-rose-800/50 pt-8">
+                <div className="relative z-10 grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-8 border-t border-rose-800/50 pt-8">
                     <div>
                         <p className="text-4xl font-black tracking-tighter text-white">{appointments.length}</p>
                         <p className="text-xs text-rose-300 font-bold uppercase tracking-wider mt-2">Today's Appointments</p>
@@ -110,7 +110,7 @@ export function HealthcareAdminView({ initialData }: { initialData: any }) {
 
                 {activeTab === 'pharmacy_pos' && (
                     <div className="space-y-6 animate-in fade-in duration-300">
-                        <div className="flex gap-6">
+                        <div className="flex flex-col lg:flex-row gap-6">
                             <div className="flex-1 space-y-6">
                                 <h3 className="text-xl font-bold text-slate-900">Scan or Search Item</h3>
                                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
@@ -129,8 +129,8 @@ export function HealthcareAdminView({ initialData }: { initialData: any }) {
                                 </div>
                             </div>
                             
-                            <div className="w-96">
-                                <Card className="p-6 sticky top-6 bg-slate-900 text-white">
+                            <div className="w-full lg:w-96">
+                                <Card className="p-6 lg:sticky lg:top-6 bg-slate-900 text-white">
                                     <h3 className="text-lg font-bold mb-4 border-b border-slate-700 pb-2">Current Order</h3>
                                     <div className="space-y-4 min-h-[200px]">
                                         <div className="flex items-center justify-center h-full text-slate-500 text-sm font-medium">
@@ -161,6 +161,7 @@ export function HealthcareAdminView({ initialData }: { initialData: any }) {
                             <Button className="bg-rose-700 hover:bg-rose-800 text-white font-bold">+ Add New SKU</Button>
                         </div>
                         <Card className="p-0 overflow-hidden">
+                            <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
                                 <thead className="bg-slate-50 border-b border-slate-200">
                                     <tr>
@@ -197,6 +198,7 @@ export function HealthcareAdminView({ initialData }: { initialData: any }) {
                                     ))}
                                 </tbody>
                             </table>
+                            </div>
                         </Card>
                     </div>
                 )}

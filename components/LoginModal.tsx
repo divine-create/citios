@@ -64,7 +64,22 @@ export default function LoginModal({
                             Continue with Google
                             <Sparkles className="w-4 h-4 text-teal-200 ml-auto mr-1" />
                         </Button>
-                        <button 
+                        {process.env.NODE_ENV !== 'production' && (
+                            <Button
+                                variant="outline"
+                                className="w-full py-4 text-sm flex items-center justify-center gap-3"
+                                onClick={() =>
+                                    signIn('demo', {
+                                        email: 'demo@cityconnect.local',
+                                        password: '1234',
+                                    })
+                                }
+                            >
+                                <Sparkles className="w-4 h-4" />
+                                Demo Login (all verticals)
+                            </Button>
+                        )}
+                        <button
                             onClick={onClose}
                             className="w-full py-3 text-xs font-bold text-slate-400 hover:text-slate-700 transition-colors uppercase tracking-wider"
                         >

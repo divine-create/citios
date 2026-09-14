@@ -1,0 +1,1451 @@
+[
+  {
+    "id": "table.folioCharge",
+    "label": "Create table \"folioCharge\"",
+    "summary": "Creates table \"folioCharge\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "folioCharge"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"folioCharge\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"folioCharge\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"folioCharge\"",
+        "sql": "CREATE TABLE \"public\".\"folioCharge\" (\n  \"amount\" float8 NOT NULL,\n  \"category\" text DEFAULT 'OTHER' NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"description\" text NOT NULL,\n  \"id\" text NOT NULL,\n  \"reservationId\" text NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"folioCharge_category_check_822f7f6b\" CHECK (\"category\" IN ('ROOM', 'FOOD_AND_BEVERAGE', 'SPA', 'OTHER'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"folioCharge\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"folioCharge\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.maintenanceTicket",
+    "label": "Create table \"maintenanceTicket\"",
+    "summary": "Creates table \"maintenanceTicket\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "maintenanceTicket"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"maintenanceTicket\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"maintenanceTicket\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"maintenanceTicket\"",
+        "sql": "CREATE TABLE \"public\".\"maintenanceTicket\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"description\" text,\n  \"id\" text NOT NULL,\n  \"organizationId\" text NOT NULL,\n  \"priority\" text DEFAULT 'MEDIUM' NOT NULL,\n  \"resolvedAt\" timestamptz,\n  \"roomId\" text,\n  \"status\" text DEFAULT 'OPEN' NOT NULL,\n  \"title\" text NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"maintenanceTicket_priority_check_759b7c5e\" CHECK (\"priority\" IN ('LOW', 'MEDIUM', 'HIGH')),\n  CONSTRAINT \"maintenanceTicket_status_check_91a6794e\" CHECK (\"status\" IN ('OPEN', 'IN_PROGRESS', 'RESOLVED'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"maintenanceTicket\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"maintenanceTicket\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.nightAuditReport",
+    "label": "Create table \"nightAuditReport\"",
+    "summary": "Creates table \"nightAuditReport\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "nightAuditReport"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"nightAuditReport\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"nightAuditReport\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"nightAuditReport\"",
+        "sql": "CREATE TABLE \"public\".\"nightAuditReport\" (\n  \"auditDate\" timestamptz NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"fnbRevenue\" float8 NOT NULL,\n  \"id\" text NOT NULL,\n  \"occupancyRate\" float8 NOT NULL,\n  \"organizationId\" text NOT NULL,\n  \"otherRevenue\" float8 NOT NULL,\n  \"roomRevenue\" float8 NOT NULL,\n  \"roomsSold\" int4 NOT NULL,\n  \"totalRevenue\" float8 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"nightAuditReport\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"nightAuditReport\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.outlet",
+    "label": "Create table \"outlet\"",
+    "summary": "Creates table \"outlet\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "outlet"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"outlet\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"outlet\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"outlet\"",
+        "sql": "CREATE TABLE \"public\".\"outlet\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" text NOT NULL,\n  \"name\" text NOT NULL,\n  \"organizationId\" text NOT NULL,\n  \"type\" text NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"outlet_type_check_d6a6d7f4\" CHECK (\"type\" IN ('RESTAURANT', 'BAR', 'CLUB', 'SPA'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"outlet\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"outlet\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.outletItem",
+    "label": "Create table \"outletItem\"",
+    "summary": "Creates table \"outletItem\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "outletItem"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"outletItem\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"outletItem\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"outletItem\"",
+        "sql": "CREATE TABLE \"public\".\"outletItem\" (\n  \"category\" text NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" text NOT NULL,\n  \"name\" text NOT NULL,\n  \"outletId\" text NOT NULL,\n  \"price\" float8 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"outletItem\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"outletItem\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.outletOrder",
+    "label": "Create table \"outletOrder\"",
+    "summary": "Creates table \"outletOrder\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "outletOrder"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"outletOrder\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"outletOrder\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"outletOrder\"",
+        "sql": "CREATE TABLE \"public\".\"outletOrder\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" text NOT NULL,\n  \"organizationId\" text NOT NULL,\n  \"outletId\" text NOT NULL,\n  \"reservationId\" text,\n  \"status\" text DEFAULT 'OPEN' NOT NULL,\n  \"tabName\" text NOT NULL,\n  \"totalAmount\" float8 DEFAULT 0 NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"outletOrder_status_check_7d6b94c9\" CHECK (\"status\" IN ('OPEN', 'PAID', 'CHARGED_TO_ROOM'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"outletOrder\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"outletOrder\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.outletOrderItem",
+    "label": "Create table \"outletOrderItem\"",
+    "summary": "Creates table \"outletOrderItem\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "outletOrderItem"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"outletOrderItem\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"outletOrderItem\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"outletOrderItem\"",
+        "sql": "CREATE TABLE \"public\".\"outletOrderItem\" (\n  \"id\" text NOT NULL,\n  \"outletItemId\" text NOT NULL,\n  \"outletOrderId\" text NOT NULL,\n  \"quantity\" int4 DEFAULT 1 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"outletOrderItem\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"outletOrderItem\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.roomBlock",
+    "label": "Create table \"roomBlock\"",
+    "summary": "Creates table \"roomBlock\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "roomBlock"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"roomBlock\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"roomBlock\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"roomBlock\"",
+        "sql": "CREATE TABLE \"public\".\"roomBlock\" (\n  \"checkInDate\" timestamptz NOT NULL,\n  \"checkOutDate\" timestamptz NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"groupName\" text NOT NULL,\n  \"id\" text NOT NULL,\n  \"notes\" text,\n  \"organizationId\" text NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"roomBlock\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"roomBlock\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.reservation.roomBlockId",
+    "label": "Add column \"roomBlockId\" to \"reservation\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "roomBlockId",
+        "table": "reservation"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"roomBlockId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "reservation",
+          "roomBlockId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"roomBlockId\"",
+        "sql": "ALTER TABLE \"public\".\"reservation\" ADD COLUMN \"roomBlockId\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"roomBlockId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "reservation",
+          "roomBlockId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.nightAuditReport.nightAuditReport_organizationId_auditDate_key",
+    "label": "Add unique constraint on \"nightAuditReport\" (organizationId, auditDate)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "nightAuditReport_organizationId_auditDate_key",
+        "table": "nightAuditReport"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"nightAuditReport_organizationId_auditDate_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "nightAuditReport_organizationId_auditDate_key",
+          "public",
+          "\"public\".\"nightAuditReport\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"nightAuditReport_organizationId_auditDate_key\"",
+        "sql": "ALTER TABLE \"public\".\"nightAuditReport\" ADD CONSTRAINT \"nightAuditReport_organizationId_auditDate_key\" UNIQUE (\"organizationId\", \"auditDate\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"nightAuditReport_organizationId_auditDate_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "nightAuditReport_organizationId_auditDate_key",
+          "public",
+          "\"public\".\"nightAuditReport\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.folioCharge.folioCharge_reservationId_idx_868923bb",
+    "label": "Create index \"folioCharge_reservationId_idx_868923bb\" on \"folioCharge\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "folioCharge_reservationId_idx_868923bb",
+        "table": "folioCharge"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"folioCharge_reservationId_idx_868923bb\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"folioCharge_reservationId_idx_868923bb\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"folioCharge_reservationId_idx_868923bb\"",
+        "sql": "CREATE INDEX \"folioCharge_reservationId_idx_868923bb\" ON \"public\".\"folioCharge\" (\"reservationId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"folioCharge_reservationId_idx_868923bb\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"folioCharge_reservationId_idx_868923bb\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.maintenanceTicket.maintenanceTicket_organizationId_idx_2e17ef41",
+    "label": "Create index \"maintenanceTicket_organizationId_idx_2e17ef41\" on \"maintenanceTicket\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "maintenanceTicket_organizationId_idx_2e17ef41",
+        "table": "maintenanceTicket"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"maintenanceTicket_organizationId_idx_2e17ef41\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"maintenanceTicket_organizationId_idx_2e17ef41\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"maintenanceTicket_organizationId_idx_2e17ef41\"",
+        "sql": "CREATE INDEX \"maintenanceTicket_organizationId_idx_2e17ef41\" ON \"public\".\"maintenanceTicket\" (\"organizationId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"maintenanceTicket_organizationId_idx_2e17ef41\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"maintenanceTicket_organizationId_idx_2e17ef41\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.maintenanceTicket.maintenanceTicket_roomId_idx_fe51d647",
+    "label": "Create index \"maintenanceTicket_roomId_idx_fe51d647\" on \"maintenanceTicket\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "maintenanceTicket_roomId_idx_fe51d647",
+        "table": "maintenanceTicket"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"maintenanceTicket_roomId_idx_fe51d647\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"maintenanceTicket_roomId_idx_fe51d647\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"maintenanceTicket_roomId_idx_fe51d647\"",
+        "sql": "CREATE INDEX \"maintenanceTicket_roomId_idx_fe51d647\" ON \"public\".\"maintenanceTicket\" (\"roomId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"maintenanceTicket_roomId_idx_fe51d647\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"maintenanceTicket_roomId_idx_fe51d647\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.nightAuditReport.nightAuditReport_organizationId_idx_2e17ef41",
+    "label": "Create index \"nightAuditReport_organizationId_idx_2e17ef41\" on \"nightAuditReport\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "nightAuditReport_organizationId_idx_2e17ef41",
+        "table": "nightAuditReport"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"nightAuditReport_organizationId_idx_2e17ef41\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"nightAuditReport_organizationId_idx_2e17ef41\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"nightAuditReport_organizationId_idx_2e17ef41\"",
+        "sql": "CREATE INDEX \"nightAuditReport_organizationId_idx_2e17ef41\" ON \"public\".\"nightAuditReport\" (\"organizationId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"nightAuditReport_organizationId_idx_2e17ef41\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"nightAuditReport_organizationId_idx_2e17ef41\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.outlet.outlet_organizationId_idx_2e17ef41",
+    "label": "Create index \"outlet_organizationId_idx_2e17ef41\" on \"outlet\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "outlet_organizationId_idx_2e17ef41",
+        "table": "outlet"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"outlet_organizationId_idx_2e17ef41\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"outlet_organizationId_idx_2e17ef41\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"outlet_organizationId_idx_2e17ef41\"",
+        "sql": "CREATE INDEX \"outlet_organizationId_idx_2e17ef41\" ON \"public\".\"outlet\" (\"organizationId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"outlet_organizationId_idx_2e17ef41\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"outlet_organizationId_idx_2e17ef41\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.outletItem.outletItem_outletId_idx_c4b25445",
+    "label": "Create index \"outletItem_outletId_idx_c4b25445\" on \"outletItem\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "outletItem_outletId_idx_c4b25445",
+        "table": "outletItem"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"outletItem_outletId_idx_c4b25445\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"outletItem_outletId_idx_c4b25445\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"outletItem_outletId_idx_c4b25445\"",
+        "sql": "CREATE INDEX \"outletItem_outletId_idx_c4b25445\" ON \"public\".\"outletItem\" (\"outletId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"outletItem_outletId_idx_c4b25445\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"outletItem_outletId_idx_c4b25445\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.outletOrder.outletOrder_organizationId_idx_2e17ef41",
+    "label": "Create index \"outletOrder_organizationId_idx_2e17ef41\" on \"outletOrder\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "outletOrder_organizationId_idx_2e17ef41",
+        "table": "outletOrder"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"outletOrder_organizationId_idx_2e17ef41\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"outletOrder_organizationId_idx_2e17ef41\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"outletOrder_organizationId_idx_2e17ef41\"",
+        "sql": "CREATE INDEX \"outletOrder_organizationId_idx_2e17ef41\" ON \"public\".\"outletOrder\" (\"organizationId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"outletOrder_organizationId_idx_2e17ef41\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"outletOrder_organizationId_idx_2e17ef41\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.outletOrder.outletOrder_outletId_idx_c4b25445",
+    "label": "Create index \"outletOrder_outletId_idx_c4b25445\" on \"outletOrder\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "outletOrder_outletId_idx_c4b25445",
+        "table": "outletOrder"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"outletOrder_outletId_idx_c4b25445\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"outletOrder_outletId_idx_c4b25445\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"outletOrder_outletId_idx_c4b25445\"",
+        "sql": "CREATE INDEX \"outletOrder_outletId_idx_c4b25445\" ON \"public\".\"outletOrder\" (\"outletId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"outletOrder_outletId_idx_c4b25445\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"outletOrder_outletId_idx_c4b25445\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.outletOrder.outletOrder_reservationId_idx_868923bb",
+    "label": "Create index \"outletOrder_reservationId_idx_868923bb\" on \"outletOrder\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "outletOrder_reservationId_idx_868923bb",
+        "table": "outletOrder"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"outletOrder_reservationId_idx_868923bb\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"outletOrder_reservationId_idx_868923bb\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"outletOrder_reservationId_idx_868923bb\"",
+        "sql": "CREATE INDEX \"outletOrder_reservationId_idx_868923bb\" ON \"public\".\"outletOrder\" (\"reservationId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"outletOrder_reservationId_idx_868923bb\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"outletOrder_reservationId_idx_868923bb\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.outletOrderItem.outletOrderItem_outletItemId_idx_f0698039",
+    "label": "Create index \"outletOrderItem_outletItemId_idx_f0698039\" on \"outletOrderItem\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "outletOrderItem_outletItemId_idx_f0698039",
+        "table": "outletOrderItem"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"outletOrderItem_outletItemId_idx_f0698039\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"outletOrderItem_outletItemId_idx_f0698039\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"outletOrderItem_outletItemId_idx_f0698039\"",
+        "sql": "CREATE INDEX \"outletOrderItem_outletItemId_idx_f0698039\" ON \"public\".\"outletOrderItem\" (\"outletItemId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"outletOrderItem_outletItemId_idx_f0698039\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"outletOrderItem_outletItemId_idx_f0698039\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.outletOrderItem.outletOrderItem_outletOrderId_idx_8a0d9c99",
+    "label": "Create index \"outletOrderItem_outletOrderId_idx_8a0d9c99\" on \"outletOrderItem\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "outletOrderItem_outletOrderId_idx_8a0d9c99",
+        "table": "outletOrderItem"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"outletOrderItem_outletOrderId_idx_8a0d9c99\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"outletOrderItem_outletOrderId_idx_8a0d9c99\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"outletOrderItem_outletOrderId_idx_8a0d9c99\"",
+        "sql": "CREATE INDEX \"outletOrderItem_outletOrderId_idx_8a0d9c99\" ON \"public\".\"outletOrderItem\" (\"outletOrderId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"outletOrderItem_outletOrderId_idx_8a0d9c99\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"outletOrderItem_outletOrderId_idx_8a0d9c99\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.reservation.reservation_roomBlockId_idx_f61294ed",
+    "label": "Create index \"reservation_roomBlockId_idx_f61294ed\" on \"reservation\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "reservation_roomBlockId_idx_f61294ed",
+        "table": "reservation"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"reservation_roomBlockId_idx_f61294ed\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"reservation_roomBlockId_idx_f61294ed\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"reservation_roomBlockId_idx_f61294ed\"",
+        "sql": "CREATE INDEX \"reservation_roomBlockId_idx_f61294ed\" ON \"public\".\"reservation\" (\"roomBlockId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"reservation_roomBlockId_idx_f61294ed\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"reservation_roomBlockId_idx_f61294ed\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.roomBlock.roomBlock_organizationId_idx_2e17ef41",
+    "label": "Create index \"roomBlock_organizationId_idx_2e17ef41\" on \"roomBlock\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "roomBlock_organizationId_idx_2e17ef41",
+        "table": "roomBlock"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"roomBlock_organizationId_idx_2e17ef41\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"roomBlock_organizationId_idx_2e17ef41\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"roomBlock_organizationId_idx_2e17ef41\"",
+        "sql": "CREATE INDEX \"roomBlock_organizationId_idx_2e17ef41\" ON \"public\".\"roomBlock\" (\"organizationId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"roomBlock_organizationId_idx_2e17ef41\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"roomBlock_organizationId_idx_2e17ef41\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.folioCharge.folioCharge_reservationId_fkey",
+    "label": "Add foreign key \"folioCharge_reservationId_fkey\" on \"folioCharge\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "folioCharge_reservationId_fkey",
+        "table": "folioCharge"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"folioCharge_reservationId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "folioCharge_reservationId_fkey",
+          "public",
+          "\"public\".\"folioCharge\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"folioCharge_reservationId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"folioCharge\"\nADD CONSTRAINT \"folioCharge_reservationId_fkey\"\nFOREIGN KEY (\"reservationId\")\nREFERENCES \"public\".\"reservation\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"folioCharge_reservationId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "folioCharge_reservationId_fkey",
+          "public",
+          "\"public\".\"folioCharge\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.maintenanceTicket.maintenanceTicket_organizationId_fkey",
+    "label": "Add foreign key \"maintenanceTicket_organizationId_fkey\" on \"maintenanceTicket\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "maintenanceTicket_organizationId_fkey",
+        "table": "maintenanceTicket"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"maintenanceTicket_organizationId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "maintenanceTicket_organizationId_fkey",
+          "public",
+          "\"public\".\"maintenanceTicket\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"maintenanceTicket_organizationId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"maintenanceTicket\"\nADD CONSTRAINT \"maintenanceTicket_organizationId_fkey\"\nFOREIGN KEY (\"organizationId\")\nREFERENCES \"public\".\"organization\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"maintenanceTicket_organizationId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "maintenanceTicket_organizationId_fkey",
+          "public",
+          "\"public\".\"maintenanceTicket\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.maintenanceTicket.maintenanceTicket_roomId_fkey",
+    "label": "Add foreign key \"maintenanceTicket_roomId_fkey\" on \"maintenanceTicket\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "maintenanceTicket_roomId_fkey",
+        "table": "maintenanceTicket"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"maintenanceTicket_roomId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "maintenanceTicket_roomId_fkey",
+          "public",
+          "\"public\".\"maintenanceTicket\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"maintenanceTicket_roomId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"maintenanceTicket\"\nADD CONSTRAINT \"maintenanceTicket_roomId_fkey\"\nFOREIGN KEY (\"roomId\")\nREFERENCES \"public\".\"hotelRoom\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"maintenanceTicket_roomId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "maintenanceTicket_roomId_fkey",
+          "public",
+          "\"public\".\"maintenanceTicket\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.nightAuditReport.nightAuditReport_organizationId_fkey",
+    "label": "Add foreign key \"nightAuditReport_organizationId_fkey\" on \"nightAuditReport\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "nightAuditReport_organizationId_fkey",
+        "table": "nightAuditReport"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"nightAuditReport_organizationId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "nightAuditReport_organizationId_fkey",
+          "public",
+          "\"public\".\"nightAuditReport\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"nightAuditReport_organizationId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"nightAuditReport\"\nADD CONSTRAINT \"nightAuditReport_organizationId_fkey\"\nFOREIGN KEY (\"organizationId\")\nREFERENCES \"public\".\"organization\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"nightAuditReport_organizationId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "nightAuditReport_organizationId_fkey",
+          "public",
+          "\"public\".\"nightAuditReport\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.outlet.outlet_organizationId_fkey",
+    "label": "Add foreign key \"outlet_organizationId_fkey\" on \"outlet\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "outlet_organizationId_fkey",
+        "table": "outlet"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"outlet_organizationId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "outlet_organizationId_fkey",
+          "public",
+          "\"public\".\"outlet\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"outlet_organizationId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"outlet\"\nADD CONSTRAINT \"outlet_organizationId_fkey\"\nFOREIGN KEY (\"organizationId\")\nREFERENCES \"public\".\"organization\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"outlet_organizationId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "outlet_organizationId_fkey",
+          "public",
+          "\"public\".\"outlet\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.outletItem.outletItem_outletId_fkey",
+    "label": "Add foreign key \"outletItem_outletId_fkey\" on \"outletItem\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "outletItem_outletId_fkey",
+        "table": "outletItem"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"outletItem_outletId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "outletItem_outletId_fkey",
+          "public",
+          "\"public\".\"outletItem\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"outletItem_outletId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"outletItem\"\nADD CONSTRAINT \"outletItem_outletId_fkey\"\nFOREIGN KEY (\"outletId\")\nREFERENCES \"public\".\"outlet\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"outletItem_outletId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "outletItem_outletId_fkey",
+          "public",
+          "\"public\".\"outletItem\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.outletOrder.outletOrder_outletId_fkey",
+    "label": "Add foreign key \"outletOrder_outletId_fkey\" on \"outletOrder\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "outletOrder_outletId_fkey",
+        "table": "outletOrder"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"outletOrder_outletId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "outletOrder_outletId_fkey",
+          "public",
+          "\"public\".\"outletOrder\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"outletOrder_outletId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"outletOrder\"\nADD CONSTRAINT \"outletOrder_outletId_fkey\"\nFOREIGN KEY (\"outletId\")\nREFERENCES \"public\".\"outlet\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"outletOrder_outletId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "outletOrder_outletId_fkey",
+          "public",
+          "\"public\".\"outletOrder\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.outletOrder.outletOrder_organizationId_fkey",
+    "label": "Add foreign key \"outletOrder_organizationId_fkey\" on \"outletOrder\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "outletOrder_organizationId_fkey",
+        "table": "outletOrder"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"outletOrder_organizationId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "outletOrder_organizationId_fkey",
+          "public",
+          "\"public\".\"outletOrder\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"outletOrder_organizationId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"outletOrder\"\nADD CONSTRAINT \"outletOrder_organizationId_fkey\"\nFOREIGN KEY (\"organizationId\")\nREFERENCES \"public\".\"organization\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"outletOrder_organizationId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "outletOrder_organizationId_fkey",
+          "public",
+          "\"public\".\"outletOrder\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.outletOrder.outletOrder_reservationId_fkey",
+    "label": "Add foreign key \"outletOrder_reservationId_fkey\" on \"outletOrder\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "outletOrder_reservationId_fkey",
+        "table": "outletOrder"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"outletOrder_reservationId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "outletOrder_reservationId_fkey",
+          "public",
+          "\"public\".\"outletOrder\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"outletOrder_reservationId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"outletOrder\"\nADD CONSTRAINT \"outletOrder_reservationId_fkey\"\nFOREIGN KEY (\"reservationId\")\nREFERENCES \"public\".\"reservation\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"outletOrder_reservationId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "outletOrder_reservationId_fkey",
+          "public",
+          "\"public\".\"outletOrder\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.outletOrderItem.outletOrderItem_outletOrderId_fkey",
+    "label": "Add foreign key \"outletOrderItem_outletOrderId_fkey\" on \"outletOrderItem\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "outletOrderItem_outletOrderId_fkey",
+        "table": "outletOrderItem"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"outletOrderItem_outletOrderId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "outletOrderItem_outletOrderId_fkey",
+          "public",
+          "\"public\".\"outletOrderItem\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"outletOrderItem_outletOrderId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"outletOrderItem\"\nADD CONSTRAINT \"outletOrderItem_outletOrderId_fkey\"\nFOREIGN KEY (\"outletOrderId\")\nREFERENCES \"public\".\"outletOrder\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"outletOrderItem_outletOrderId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "outletOrderItem_outletOrderId_fkey",
+          "public",
+          "\"public\".\"outletOrderItem\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.outletOrderItem.outletOrderItem_outletItemId_fkey",
+    "label": "Add foreign key \"outletOrderItem_outletItemId_fkey\" on \"outletOrderItem\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "outletOrderItem_outletItemId_fkey",
+        "table": "outletOrderItem"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"outletOrderItem_outletItemId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "outletOrderItem_outletItemId_fkey",
+          "public",
+          "\"public\".\"outletOrderItem\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"outletOrderItem_outletItemId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"outletOrderItem\"\nADD CONSTRAINT \"outletOrderItem_outletItemId_fkey\"\nFOREIGN KEY (\"outletItemId\")\nREFERENCES \"public\".\"outletItem\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"outletOrderItem_outletItemId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "outletOrderItem_outletItemId_fkey",
+          "public",
+          "\"public\".\"outletOrderItem\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.roomBlock.roomBlock_organizationId_fkey",
+    "label": "Add foreign key \"roomBlock_organizationId_fkey\" on \"roomBlock\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "roomBlock_organizationId_fkey",
+        "table": "roomBlock"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"roomBlock_organizationId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "roomBlock_organizationId_fkey",
+          "public",
+          "\"public\".\"roomBlock\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"roomBlock_organizationId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"roomBlock\"\nADD CONSTRAINT \"roomBlock_organizationId_fkey\"\nFOREIGN KEY (\"organizationId\")\nREFERENCES \"public\".\"organization\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"roomBlock_organizationId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "roomBlock_organizationId_fkey",
+          "public",
+          "\"public\".\"roomBlock\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.reservation.reservation_roomBlockId_fkey",
+    "label": "Add foreign key \"reservation_roomBlockId_fkey\" on \"reservation\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "reservation_roomBlockId_fkey",
+        "table": "reservation"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"reservation_roomBlockId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "reservation_roomBlockId_fkey",
+          "public",
+          "\"public\".\"reservation\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"reservation_roomBlockId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"reservation\"\nADD CONSTRAINT \"reservation_roomBlockId_fkey\"\nFOREIGN KEY (\"roomBlockId\")\nREFERENCES \"public\".\"roomBlock\" (\"id\")\nON DELETE SET NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"reservation_roomBlockId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "reservation_roomBlockId_fkey",
+          "public",
+          "\"public\".\"reservation\""
+        ]
+      }
+    ]
+  }
+]

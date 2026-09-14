@@ -95,14 +95,14 @@ export default function ProfileView({ initialData }: { initialData: any }) {
                             <ChevronRight className="w-6 h-6 text-slate-300 group-hover:text-slate-500 transition-colors" />
                         </Card>
 
-                        <Card hoverable className="flex items-center justify-between group p-6">
+                        <Card hoverable onClick={() => router.push('/school/parent')} className="flex items-center justify-between group p-6">
                             <div className="flex items-center gap-5">
                                 <div className="p-4 bg-teal-50 text-teal-800 rounded-2xl group-hover:bg-teal-100 group-hover:scale-105 transition-all">
                                     <GraduationCap className="w-7 h-7" />
                                 </div>
                                 <div>
                                     <p className="font-bold text-slate-900 text-lg">School Portal</p>
-                                    <p className="text-sm text-orange-600 font-bold">2 Fees pending</p>
+                                    <p className="text-sm text-slate-500 font-medium">View grades, attendance &amp; fees</p>
                                 </div>
                             </div>
                             <ChevronRight className="w-6 h-6 text-slate-300 group-hover:text-slate-500 transition-colors" />

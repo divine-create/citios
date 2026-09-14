@@ -18,7 +18,7 @@ export function EventsAdminView({ initialData }: { initialData: any }) {
                 <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-bl-full -z-0" />
                 <div className="relative z-10 flex justify-between items-start mb-6">
                     <div>
-                        <h2 className="text-3xl font-bold tracking-tight text-white">{organization.name}</h2>
+                        <h2 className="text-xl sm:text-3xl font-bold tracking-tight text-white">{organization.name}</h2>
                         <p className="text-indigo-200 text-sm font-bold uppercase tracking-widest mt-2">Events & Rentals Portal</p>
                     </div>
                 </div>

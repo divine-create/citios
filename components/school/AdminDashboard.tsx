@@ -1,346 +1,463 @@
 "use client";
 
-import React, { useState } from 'react';
-import { 
-  Users, 
-  Calendar, 
-  MessageSquareWarning, 
-  TrendingUp, 
-  CheckCircle2, 
-  AlertCircle,
-  Clock,
-  Search,
+import React, { useEffect, useState } from "react";
+import UsersManager, { USERS_TABS, TabId as UsersTabId } from "./UsersManager";
+import AcademicManager, { ACADEMIC_TABS, TabId as AcademicTabId } from "./AcademicManager";
+import ExaminationManager, { EXAMINATION_TABS, TabId as ExaminationTabId } from "./ExaminationManager";
+import SettingsManager, { SETTINGS_TABS, TabId as SettingsTabId } from "./SettingsManager";
+import AccountingManager, { ACCOUNTING_TABS, TabId as AccountingTabId } from "./AccountingManager";
+import InquiriesManager from "./InquiriesManager";
+import {
+  LayoutDashboard,
+  Users,
+  GraduationCap,
+  BookOpen,
+  Award,
+  PieChart,
+  Briefcase,
+  Settings,
   Bell,
-  BarChart3,
-  Megaphone,
-  BookOpen
-} from 'lucide-react';
+  Search,
+  Menu,
+  ChevronDown,
+  ChevronRight,
+  Globe,
+  MessageSquare,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 
-const mockAttendance = [
-  { grade: '9th Grade', present: 312, total: 320, percentage: 97.5 },
-  { grade: '10th Grade', present: 298, total: 315, percentage: 94.6 },
-  { grade: '11th Grade', present: 285, total: 300, percentage: 95.0 },
-  { grade: '12th Grade', present: 270, total: 290, percentage: 93.1 },
-];
+interface AdminDashboardProps {
+  organizationId: string | null;
+  currentUserId?: string | null;
+  initialSettings?: any;
+  initialSchool?: any;
+  initialInquiries?: any[];
+  initialAcademicYears?: any[];
+  initialStudents: any[];
+  initialCourses: any[];
+  initialCourseEnrollments: any[];
+  initialStaff: any[];
+  initialParents?: any[];
+  initialGrades?: any[];
+  initialClassSections?: any[];
+  initialSubjects?: any[];
+  initialTerms?: any[];
+  initialRooms?: any[];
+  initialEvents?: any[];
+  initialAttendanceRecords: any[];
+  initialBehaviorLogs: any[];
+  initialFeeInvoices?: any[];
+  initialFeeTypes?: any[];
+}
 
-const mockEnrollmentStats = {
-  totalStudents: 1225,
-  capacity: 1500,
-  target: 1300,
-  staffCount: 85,
-  newAdmissions: 42
-};
+export default function AdminDashboard({
+  organizationId,
+  currentUserId = null,
+  initialSettings,
+  initialSchool,
+  initialInquiries = [],
+  initialAcademicYears = [],
+  initialStudents,
+  initialCourses,
+  initialStaff,
+  initialParents = [],
+  initialGrades = [],
+  initialClassSections = [],
+  initialSubjects = [],
+  initialTerms = [],
+  initialRooms = [],
+  initialEvents = [],
+  initialAttendanceRecords,
+  initialFeeInvoices = [],
+  initialFeeTypes = [],
+}: AdminDashboardProps) {
+  const router = useRouter();
+  const refresh = () => router.refresh();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [activeMenu, setActiveMenu] = useState("Dashboard");
+  const [isAcademicExpanded, setIsAcademicExpanded] = useState(false);
+  const [activeAcademicTab, setActiveAcademicTab] = useState<AcademicTabId>("attendance");
+  const [isExaminationExpanded, setIsExaminationExpanded] = useState(false);
+  const [activeExaminationTab, setActiveExaminationTab] = useState<ExaminationTabId>("reportcards");
+  const [isUsersExpanded, setIsUsersExpanded] = useState(false);
+  const [activeUsersTab, setActiveUsersTab] = useState<UsersTabId>("students");
+  const [isAccountingExpanded, setIsAccountingExpanded] = useState(false);
+  const [activeAccountingTab, setActiveAccountingTab] = useState<AccountingTabId>("invoices");
+  const [isSettingsExpanded, setIsSettingsExpanded] = useState(false);
+  const [activeSettingsTab, setActiveSettingsTab] = useState<SettingsTabId>("general");
 
-const mockSchedules = [
-  { id: 1, name: 'Fall 2026 Master Schedule', status: 'Active', conflicts: 0, lastUpdated: '2 hours ago' },
-  { id: 2, name: 'Spring 2027 Draft', status: 'Draft', conflicts: 12, lastUpdated: '1 day ago' },
-  { id: 3, name: 'Summer School 2026', status: 'Archived', conflicts: 0, lastUpdated: '3 months ago' }
-];
+  useEffect(() => {
+    if (window.matchMedia("(max-width: 767px)").matches) setIsSidebarOpen(false);
+  }, []);
 
-export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'scheduling' | 'communication'>('overview');
+  const closeSidebarOnMobile = () => {
+    if (window.matchMedia("(max-width: 767px)").matches) setIsSidebarOpen(false);
+  };
+
+  const selectMenu = (label: string) => {
+    setActiveMenu(label);
+    closeSidebarOnMobile();
+  };
+
+  // Shared open/select logic for every sidebar item that expands into a
+  // sub-menu instead of navigating directly — each item still needs its
+  // own useState pair (hooks can't be created dynamically), but the
+  // toggle/select behavior itself is identical across all of them.
+  const toggleSubmenu = (label: string, setExpanded: React.Dispatch<React.SetStateAction<boolean>>) => {
+    setActiveMenu(label);
+    setExpanded((v) => !v);
+  };
+
+  const selectSubmenuTab = <T,>(label: string, setExpanded: React.Dispatch<React.SetStateAction<boolean>>, setActiveTab: (tab: T) => void, tabId: T) => {
+    setActiveMenu(label);
+    setActiveTab(tabId);
+    setExpanded(true);
+    closeSidebarOnMobile();
+  };
+
+  if (!organizationId) {
+    return (
+      <div className="p-10 text-center text-gray-400">
+        <GraduationCap size={48} className="mx-auto mb-4 opacity-20" />
+        <p>No school organization found — run the seed script.</p>
+      </div>
+    );
+  }
+
+  const teachersCount = initialStaff.filter((s) => s.role === "TEACHER").length;
+  const staffCount = initialStaff.length;
+  const parentsCount = initialParents.length;
+
+  const presentToday = initialAttendanceRecords.filter((r) => r.status === "PRESENT").length;
+  const upcomingEvents = initialEvents.filter((e) => new Date(e.endDate) >= new Date()).slice(0, 5);
+
+  // Transport, Alumni, Live class, Examination, Back office, and Online
+  // courses were previously listed here as placeholder tabs with zero
+  // backing schema or actions — dropped rather than shipping dead UI.
+  // See CLASSE365_RESEARCH.md for where Alumni/Online courses/LMS content
+  // are tracked as a genuine future phase.
+  const MENU_ITEMS = [
+    { label: "Dashboard", icon: LayoutDashboard },
+    { label: "Users", icon: Users },
+    { label: "Academic", icon: BookOpen },
+    { label: "Examination", icon: Award },
+    { label: "Accounting", icon: PieChart },
+    { label: "Settings", icon: Settings },
+    { label: "Inquiries", icon: MessageSquare },
+  ];
+
+  // Sidebar items that expand into a sub-menu instead of navigating
+  // directly — each maps to the item's own tab list, expand/collapse
+  // state, current tab, and select handler.
+  const SUBMENUS: Record<string, { tabs: { id: any; label: string; icon: any }[]; isExpanded: boolean; toggle: () => void; activeTab: any; select: (id: any) => void }> = {
+    Academic: { tabs: ACADEMIC_TABS, isExpanded: isAcademicExpanded, toggle: () => toggleSubmenu("Academic", setIsAcademicExpanded), activeTab: activeAcademicTab, select: (id) => selectSubmenuTab("Academic", setIsAcademicExpanded, setActiveAcademicTab, id) },
+    Examination: { tabs: EXAMINATION_TABS, isExpanded: isExaminationExpanded, toggle: () => toggleSubmenu("Examination", setIsExaminationExpanded), activeTab: activeExaminationTab, select: (id) => selectSubmenuTab("Examination", setIsExaminationExpanded, setActiveExaminationTab, id) },
+    Users: { tabs: USERS_TABS, isExpanded: isUsersExpanded, toggle: () => toggleSubmenu("Users", setIsUsersExpanded), activeTab: activeUsersTab, select: (id) => selectSubmenuTab("Users", setIsUsersExpanded, setActiveUsersTab, id) },
+    Accounting: { tabs: ACCOUNTING_TABS, isExpanded: isAccountingExpanded, toggle: () => toggleSubmenu("Accounting", setIsAccountingExpanded), activeTab: activeAccountingTab, select: (id) => selectSubmenuTab("Accounting", setIsAccountingExpanded, setActiveAccountingTab, id) },
+    Settings: { tabs: SETTINGS_TABS, isExpanded: isSettingsExpanded, toggle: () => toggleSubmenu("Settings", setIsSettingsExpanded), activeTab: activeSettingsTab, select: (id) => selectSubmenuTab("Settings", setIsSettingsExpanded, setActiveSettingsTab, id) },
+  };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 p-6">
-      {/* Header */}
-      <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-2">
-            <BookOpen className="h-8 w-8 text-blue-600" />
-            Super Admin Portal
-          </h1>
-          <p className="text-slate-500 mt-1">CityConnect School Management System</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Search className="h-5 w-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input 
-              type="text" 
-              placeholder="Search students, staff..." 
-              className="pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-64"
-            />
-          </div>
-          <button className="p-2 border border-slate-200 rounded-lg hover:bg-slate-100 relative">
-            <Bell className="h-5 w-5 text-slate-600" />
-            <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
-          </button>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-4 border-b border-slate-200 mb-6">
-        <button 
-          onClick={() => setActiveTab('overview')}
-          className={`pb-3 px-1 font-medium transition-colors ${activeTab === 'overview' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
-        >
-          <div className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" /> Global Command Center
-          </div>
-        </button>
-        <button 
-          onClick={() => setActiveTab('scheduling')}
-          className={`pb-3 px-1 font-medium transition-colors ${activeTab === 'scheduling' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
-        >
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4" /> Master Scheduling
-          </div>
-        </button>
-        <button 
-          onClick={() => setActiveTab('communication')}
-          className={`pb-3 px-1 font-medium transition-colors ${activeTab === 'communication' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
-        >
-          <div className="flex items-center gap-2">
-            <Megaphone className="h-4 w-4" /> Mass Communication
-          </div>
-        </button>
-      </div>
-
-      {/* Content */}
-      {activeTab === 'overview' && (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-          {/* Top KPIs */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500 font-medium">Total Enrollment</p>
-                <p className="text-2xl font-bold mt-1">{mockEnrollmentStats.totalStudents}</p>
-                <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-                  <TrendingUp className="h-3 w-3" /> +{mockEnrollmentStats.newAdmissions} this month
-                </p>
-              </div>
-              <div className="h-12 w-12 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600">
-                <Users className="h-6 w-6" />
-              </div>
-            </div>
-            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500 font-medium">Today's Attendance</p>
-                <p className="text-2xl font-bold mt-1">95.2%</p>
-                <p className="text-xs text-slate-500 mt-1">School-wide average</p>
-              </div>
-              <div className="h-12 w-12 bg-green-50 rounded-lg flex items-center justify-center text-green-600">
-                <CheckCircle2 className="h-6 w-6" />
-              </div>
-            </div>
-            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500 font-medium">Capacity Status</p>
-                <p className="text-2xl font-bold mt-1">81%</p>
-                <p className="text-xs text-slate-500 mt-1">{mockEnrollmentStats.capacity - mockEnrollmentStats.totalStudents} seats available</p>
-              </div>
-              <div className="h-12 w-12 bg-purple-50 rounded-lg flex items-center justify-center text-purple-600">
-                <BarChart3 className="h-6 w-6" />
-              </div>
-            </div>
-            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500 font-medium">Total Staff</p>
-                <p className="text-2xl font-bold mt-1">{mockEnrollmentStats.staffCount}</p>
-                <p className="text-xs text-slate-500 mt-1">Teachers & Admin</p>
-              </div>
-              <div className="h-12 w-12 bg-orange-50 rounded-lg flex items-center justify-center text-orange-600">
-                <Users className="h-6 w-6" />
-              </div>
-            </div>
-          </div>
-
-          {/* Detailed Attendance */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-            <div className="p-5 border-b border-slate-100 flex justify-between items-center">
-              <h3 className="font-semibold text-lg text-slate-800">Attendance by Grade (Today)</h3>
-              <button className="text-blue-600 text-sm font-medium hover:underline">View Full Report</button>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 text-slate-500 text-sm">
-                    <th className="p-4 font-medium">Grade Level</th>
-                    <th className="p-4 font-medium">Present</th>
-                    <th className="p-4 font-medium">Total Students</th>
-                    <th className="p-4 font-medium">Percentage</th>
-                    <th className="p-4 font-medium">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {mockAttendance.map((row, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50">
-                      <td className="p-4 font-medium text-slate-700">{row.grade}</td>
-                      <td className="p-4 text-slate-600">{row.present}</td>
-                      <td className="p-4 text-slate-600">{row.total}</td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">{row.percentage}%</span>
-                          <div className="w-24 h-2 bg-slate-100 rounded-full overflow-hidden">
-                            <div 
-                              className={`h-full ${row.percentage >= 95 ? 'bg-green-500' : row.percentage >= 90 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                              style={{ width: `${row.percentage}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        {row.percentage >= 95 ? (
-                          <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-md font-medium">Optimal</span>
-                        ) : row.percentage >= 90 ? (
-                          <span className="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-md font-medium">Warning</span>
-                        ) : (
-                          <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-md font-medium">Critical</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+    <div className="flex h-screen bg-[#F4F7FC] text-slate-800 font-sans overflow-hidden">
+      {/* Mobile backdrop */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-30 md:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
       )}
 
-      {activeTab === 'scheduling' && (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <div className="flex justify-between items-center bg-white p-5 rounded-xl shadow-sm border border-slate-100">
-            <div>
-              <h3 className="font-semibold text-lg text-slate-800">Master Scheduling Engine</h3>
-              <p className="text-sm text-slate-500">Create, manage, and resolve conflicts in the school-wide timetable.</p>
-            </div>
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2">
-              <Calendar className="h-4 w-4" /> New Schedule
-            </button>
+      {/* Sidebar */}
+      <aside
+        className={`fixed md:static inset-y-0 left-0 z-40 md:z-20 bg-white border-r border-slate-200 flex-shrink-0 transition-all duration-300 overflow-y-auto ${
+          isSidebarOpen ? "translate-x-0 w-64" : "-translate-x-full w-64 md:translate-x-0 md:w-0"
+        }`}
+      >
+        <div className="p-5 flex items-center gap-3 border-b border-slate-100 sticky top-0 bg-white">
+          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">
+            C
           </div>
+          <span className="font-bold text-lg text-slate-800 tracking-tight">CitySchool</span>
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {mockSchedules.map((schedule) => (
-              <div key={schedule.id} className="bg-white p-5 rounded-xl shadow-sm border border-slate-100 hover:border-blue-200 transition-colors cursor-pointer group">
-                <div className="flex justify-between items-start mb-4">
-                  <div className={`p-2 rounded-lg ${schedule.status === 'Active' ? 'bg-green-100 text-green-700' : schedule.status === 'Draft' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700'}`}>
-                    <Calendar className="h-5 w-5" />
-                  </div>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    schedule.status === 'Active' ? 'bg-green-100 text-green-700' : 
-                    schedule.status === 'Draft' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700'
-                  }`}>
-                    {schedule.status}
-                  </span>
-                </div>
-                <h4 className="font-bold text-slate-800 mb-1 group-hover:text-blue-600 transition-colors">{schedule.name}</h4>
-                <div className="space-y-2 mt-4 text-sm">
-                  <div className="flex justify-between text-slate-600">
-                    <span className="flex items-center gap-1"><AlertCircle className="h-4 w-4 text-orange-500" /> Conflicts</span>
-                    <span className={schedule.conflicts > 0 ? 'font-bold text-red-600' : 'text-slate-500'}>
-                      {schedule.conflicts > 0 ? `${schedule.conflicts} Detected` : 'None'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-slate-600">
-                    <span className="flex items-center gap-1"><Clock className="h-4 w-4" /> Last Updated</span>
-                    <span>{schedule.lastUpdated}</span>
-                  </div>
-                </div>
-                <div className="mt-5 pt-4 border-t border-slate-100 flex gap-2">
-                  <button className="flex-1 bg-slate-50 hover:bg-slate-100 text-slate-700 py-2 rounded-lg text-sm font-medium transition-colors">
-                    Edit
-                  </button>
-                  {schedule.conflicts > 0 && (
-                    <button className="flex-1 bg-red-50 hover:bg-red-100 text-red-700 py-2 rounded-lg text-sm font-medium transition-colors">
-                      Resolve
+        <div className="p-4">
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4 px-2">Navigation</p>
+          <ul className="space-y-1">
+            {MENU_ITEMS.map((item) => {
+              const submenu = SUBMENUS[item.label];
+              return (
+                <li key={item.label}>
+                  {submenu ? (
+                    <>
+                      <button
+                        onClick={submenu.toggle}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                          activeMenu === item.label
+                            ? "bg-blue-50 text-blue-600 font-medium"
+                            : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                        }`}
+                      >
+                        <item.icon size={18} className={activeMenu === item.label ? "text-blue-600" : "text-slate-400"} />
+                        <span className="flex-1 text-left">{item.label}</span>
+                        {submenu.isExpanded ? <ChevronDown size={14} className="text-slate-400" /> : <ChevronRight size={14} className="text-slate-400" />}
+                      </button>
+                      {submenu.isExpanded && (
+                        <ul className="mt-1 ml-4 pl-3 border-l border-slate-100 space-y-0.5">
+                          {submenu.tabs.map((tab) => (
+                            <li key={tab.id}>
+                              <button
+                                onClick={() => submenu.select(tab.id)}
+                                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-colors ${
+                                  activeMenu === item.label && submenu.activeTab === tab.id
+                                    ? "bg-blue-50 text-blue-600 font-medium"
+                                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                                }`}
+                              >
+                                <tab.icon size={14} className={activeMenu === item.label && submenu.activeTab === tab.id ? "text-blue-600" : "text-slate-400"} />
+                                {tab.label}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => selectMenu(item.label)}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                        activeMenu === item.label
+                          ? "bg-blue-50 text-blue-600 font-medium"
+                          : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                      }`}
+                    >
+                      <item.icon size={18} className={activeMenu === item.label ? "text-blue-600" : "text-slate-400"} />
+                      {item.label}
                     </button>
                   )}
-                </div>
-              </div>
-            ))}
-          </div>
+                </li>
+              );
+            })}
+          </ul>
+
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-6 mb-2 px-2 pt-4 border-t border-slate-100">Business</p>
+          <Link
+            href={`/business/website?org=${organizationId}`}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+          >
+            <Globe size={18} className="text-slate-400" />
+            Website
+          </Link>
         </div>
-      )}
+      </aside>
 
-      {activeTab === 'communication' && (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-100 p-6">
-              <h3 className="font-semibold text-lg text-slate-800 mb-4 flex items-center gap-2">
-                <MessageSquareWarning className="h-5 w-5 text-blue-600" /> New Broadcast Message
-              </h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Target Audience</label>
-                  <select className="w-full border border-slate-200 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option>All Parents & Guardians</option>
-                    <option>All Staff & Teachers</option>
-                    <option>All Students</option>
-                    <option>Entire School Community</option>
-                    <option>Custom Segment...</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Channels</label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center gap-2 text-sm p-3 border border-blue-200 bg-blue-50 rounded-lg cursor-pointer flex-1">
-                      <input type="checkbox" defaultChecked className="text-blue-600 focus:ring-blue-500" /> CityConnect Push
-                    </label>
-                    <label className="flex items-center gap-2 text-sm p-3 border border-slate-200 rounded-lg cursor-pointer flex-1">
-                      <input type="checkbox" defaultChecked className="text-blue-600 focus:ring-blue-500" /> SMS Text
-                    </label>
-                    <label className="flex items-center gap-2 text-sm p-3 border border-slate-200 rounded-lg cursor-pointer flex-1">
-                      <input type="checkbox" defaultChecked className="text-blue-600 focus:ring-blue-500" /> Email
-                    </label>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Message Subject / Title</label>
-                  <input type="text" placeholder="e.g., Weather Closure Update" className="w-full border border-slate-200 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Message Body</label>
-                  <textarea rows={5} placeholder="Type your message here..." className="w-full border border-slate-200 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
-                </div>
-
-                <div className="flex justify-end gap-3 pt-2">
-                  <button className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-50 rounded-lg transition-colors">Save Draft</button>
-                  <button className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex items-center gap-2">
-                    <Megaphone className="h-4 w-4" /> Send Broadcast
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
-                <h3 className="font-semibold text-slate-800 mb-4">Quick Templates</h3>
-                <div className="space-y-3">
-                  <button className="w-full text-left p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-between group">
-                    <span className="text-sm font-medium text-slate-700 group-hover:text-blue-600">Weather Closure</span>
-                    <AlertCircle className="h-4 w-4 text-slate-400 group-hover:text-blue-500" />
-                  </button>
-                  <button className="w-full text-left p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-between group">
-                    <span className="text-sm font-medium text-slate-700 group-hover:text-blue-600">Event Reminder</span>
-                    <Calendar className="h-4 w-4 text-slate-400 group-hover:text-blue-500" />
-                  </button>
-                  <button className="w-full text-left p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-between group">
-                    <span className="text-sm font-medium text-slate-700 group-hover:text-blue-600">Emergency Alert</span>
-                    <MessageSquareWarning className="h-4 w-4 text-red-400 group-hover:text-red-500" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
-                <h3 className="font-semibold text-slate-800 mb-4">Recent Broadcasts</h3>
-                <div className="space-y-4">
-                  <div className="border-l-2 border-blue-500 pl-3">
-                    <p className="text-sm font-medium text-slate-800">Early Dismissal Today</p>
-                    <p className="text-xs text-slate-500 mt-1">Sent to: All Parents • 2h ago</p>
-                  </div>
-                  <div className="border-l-2 border-slate-300 pl-3">
-                    <p className="text-sm font-medium text-slate-800">PTA Meeting Reminder</p>
-                    <p className="text-xs text-slate-500 mt-1">Sent to: All Parents • Yesterday</p>
-                  </div>
-                </div>
-              </div>
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col h-full overflow-hidden">
+        {/* Top Header */}
+        <header className="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-4 lg:px-8 flex-shrink-0">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="p-2 -ml-2 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
+            >
+              <Menu size={20} />
+            </button>
+            <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-slate-100 rounded-lg text-sm text-slate-500 w-64">
+              <Search size={16} />
+              <input 
+                type="text" 
+                placeholder="Search..." 
+                className="bg-transparent border-none outline-none w-full placeholder:text-slate-400 text-slate-700" 
+              />
             </div>
           </div>
+          
+          <div className="flex items-center gap-4">
+            <button className="relative p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors">
+              <Bell size={20} />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+            </button>
+            
+            <div className="flex items-center gap-3 pl-4 border-l border-slate-200 cursor-pointer">
+              <div className="text-right hidden sm:block">
+                <p className="text-sm font-semibold text-slate-800">Jonathan Wick</p>
+                <p className="text-xs text-slate-500">Superadmin</p>
+              </div>
+              <div className="w-9 h-9 rounded-full bg-slate-200 border-2 border-white shadow-sm overflow-hidden flex items-center justify-center relative">
+                <img
+                  src="https://api.dicebear.com/9.x/avataaars/svg?seed=Jonathan"
+                  alt="User"
+                  className="object-cover w-full h-full"
+                />
+              </div>
+              <ChevronDown size={16} className="text-slate-400" />
+            </div>
+          </div>
+        </header>
+
+        {/* Dashboard Content */}
+        <div className="flex-1 overflow-y-auto p-4 lg:p-8">
+          <div className="max-w-7xl mx-auto">
+            {activeMenu === "Dashboard" ? (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between mb-2">
+                  <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
+                </div>
+
+                {/* 4 Stat Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+                  {/* Students */}
+                  <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col relative overflow-hidden group">
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <p className="text-3xl font-bold text-slate-800">{initialStudents.length}</p>
+                        <p className="text-sm text-slate-500 font-medium mt-1">Students</p>
+                      </div>
+                      <div className="w-12 h-12 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center">
+                        <Users size={24} />
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-auto pt-4 border-t border-slate-50">Total number of student</p>
+                  </div>
+
+                  {/* Teacher */}
+                  <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col relative overflow-hidden group">
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <p className="text-3xl font-bold text-slate-800">{teachersCount}</p>
+                        <p className="text-sm text-slate-500 font-medium mt-1">Teacher</p>
+                      </div>
+                      <div className="w-12 h-12 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center">
+                        <BookOpen size={24} />
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-auto pt-4 border-t border-slate-50">Total number of teacher</p>
+                  </div>
+
+                  {/* Parents */}
+                  <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col relative overflow-hidden group">
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <p className="text-3xl font-bold text-slate-800">{parentsCount}</p>
+                        <p className="text-sm text-slate-500 font-medium mt-1">Parents</p>
+                      </div>
+                      <div className="w-12 h-12 bg-purple-50 text-purple-500 rounded-full flex items-center justify-center">
+                        <Users size={24} />
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-auto pt-4 border-t border-slate-50">Total number of parent</p>
+                  </div>
+
+                  {/* Staff */}
+                  <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col relative overflow-hidden group">
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <p className="text-3xl font-bold text-slate-800">{staffCount}</p>
+                        <p className="text-sm text-slate-500 font-medium mt-1">Staff</p>
+                      </div>
+                      <div className="w-12 h-12 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center">
+                        <Briefcase size={24} />
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-auto pt-4 border-t border-slate-50">Total number of staff</p>
+                  </div>
+                </div>
+
+                {/* Bottom Sections: Attendance & Events */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+                  {/* Todays attendance */}
+                  <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <h2 className="text-lg font-bold text-slate-800">Todays attendance</h2>
+                    </div>
+                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                      <div className="relative w-40 h-40 mb-4 flex items-center justify-center">
+                        {/* Circular Progress Placeholder */}
+                        <svg className="w-full h-full transform -rotate-90">
+                          <circle cx="80" cy="80" r="70" className="stroke-slate-100" strokeWidth="12" fill="none" />
+                          <circle cx="80" cy="80" r="70" className="stroke-blue-500" strokeWidth="12" fill="none" strokeDasharray="440" strokeDashoffset="440" />
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <span className="text-4xl font-bold text-slate-800">{presentToday}</span>
+                        </div>
+                      </div>
+                      <p className="text-slate-500">{presentToday} Students are attending today</p>
+                    </div>
+                  </div>
+
+                  {/* Recent events */}
+                  <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <h2 className="text-lg font-bold text-slate-800">Upcoming events</h2>
+                    </div>
+                    {upcomingEvents.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-12 text-center text-slate-400 h-full">
+                        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-3">
+                          <Bell size={24} className="text-slate-300" />
+                        </div>
+                        <p>No upcoming events</p>
+                      </div>
+                    ) : (
+                      <ul className="space-y-3">
+                        {upcomingEvents.map((ev) => (
+                          <li key={ev.id} className="flex items-center justify-between text-sm border-b border-slate-50 pb-3 last:border-0 last:pb-0">
+                            <div>
+                              <p className="font-medium text-slate-800">{ev.title}</p>
+                              <p className="text-xs text-slate-400 capitalize">{ev.category}</p>
+                            </div>
+                            <span className="text-xs text-slate-500">{new Date(ev.startDate).toLocaleDateString()}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : activeMenu === "Users" ? (
+              <UsersManager organizationId={organizationId} activeTab={activeUsersTab} students={initialStudents} staff={initialStaff} parents={initialParents} refresh={refresh} />
+            ) : activeMenu === "Academic" ? (
+              <AcademicManager
+                organizationId={organizationId}
+                activeTab={activeAcademicTab}
+                courses={initialCourses}
+                teachers={initialStaff.filter((s) => s.role === "TEACHER")}
+                grades={initialGrades}
+                classSections={initialClassSections}
+                subjects={initialSubjects}
+                terms={initialTerms}
+                academicYears={initialAcademicYears}
+                students={initialStudents}
+                rooms={initialRooms}
+                events={initialEvents}
+                currentUserId={currentUserId}
+                refresh={refresh}
+              />
+            ) : activeMenu === "Examination" ? (
+              <ExaminationManager
+                organizationId={organizationId}
+                activeTab={activeExaminationTab}
+                schoolName={initialSchool?.name ?? ""}
+                classSections={initialClassSections}
+                terms={initialTerms}
+                students={initialStudents}
+                refresh={refresh}
+              />
+            ) : activeMenu === "Settings" ? (
+              <SettingsManager organizationId={organizationId} activeTab={activeSettingsTab} settings={initialSettings} school={initialSchool} academicYears={initialAcademicYears} refresh={refresh} />
+            ) : activeMenu === "Accounting" ? (
+              <AccountingManager organizationId={organizationId} activeTab={activeAccountingTab} feeInvoices={initialFeeInvoices} feeTypes={initialFeeTypes} students={initialStudents} refresh={refresh} />
+            ) : activeMenu === "Inquiries" ? (
+              <InquiriesManager inquiries={initialInquiries} />
+            ) : (
+              <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+                <LayoutDashboard size={48} className="mb-4 opacity-20" />
+                <h2 className="text-xl font-semibold text-slate-700 mb-2">{activeMenu}</h2>
+                <p>This module is under construction.</p>
+              </div>
+            )}
+          </div>
         </div>
-      )}
+      </main>
     </div>
   );
 }

@@ -17,6 +17,33 @@ export async function getEducationOrgs() {
   return JSON.parse(JSON.stringify(orgs));
 }
 
+export async function getSchoolProfile(organizationId: string) {
+  try {
+    const organization = await db.orm.public.Organization.where({ id: organizationId }).all().first();
+    if (!organization || organization.type !== 'SCHOOL') return null;
+
+    const settings = await db.orm.public.SchoolSettings.where({ organizationId }).all().first();
+    const students = await db.orm.public.Student.where({ organizationId }).all();
+    const teacherCount = (await db.orm.public.OrganizationMember.where({ organizationId, role: 'TEACHER' }).all()).length;
+    const classCount = (await db.orm.public.SchoolClass.where({ organizationId }).all()).length;
+
+    const yearLevels = students.map((s) => s.yearLevel).filter((y): y is number => typeof y === 'number');
+    const gradeRange = yearLevels.length > 0 ? `${Math.min(...yearLevels)}-${Math.max(...yearLevels)}` : null;
+
+    return JSON.parse(JSON.stringify({
+      organization,
+      settings,
+      studentCount: students.length,
+      teacherCount,
+      classCount,
+      gradeRange,
+    }));
+  } catch (error) {
+    console.error('Error fetching school profile:', error);
+    return null;
+  }
+}
+
 export async function getRestaurantOrgs() {
   const orgs = await db.orm.public.Organization.where({ type: 'RESTAURANT' }).all();
   return JSON.parse(JSON.stringify(orgs));

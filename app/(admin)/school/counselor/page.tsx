@@ -1,11 +1,28 @@
 import { CounselorDashboard } from "@/components/school/CounselorDashboard";
-import { requireOrgAccess } from '@/lib/rbac';
+import { requireOrgRole } from '@/lib/rbac';
+import { getSchoolAdminData, getCounselorPortalData, getMyMembership } from '@/lib/actions/school';
 
 export default async function CounselorPage() {
-  await requireOrgAccess('SCHOOL');
+  const session = await requireOrgRole('SCHOOL', ['COUNSELOR']);
+  const schoolData = await getSchoolAdminData();
+  const organizationId = schoolData?.school?.id ?? null;
+  const counselorData = organizationId ? await getCounselorPortalData(organizationId) : null;
+
+  const userId = session?.user?.userId;
+  const membership = userId && organizationId ? await getMyMembership(userId, organizationId) : null;
+
   return (
     <main className="h-full bg-slate-50">
-      <CounselorDashboard />
+      <CounselorDashboard
+        organizationId={organizationId ?? ""}
+        authorUserId={userId ?? null}
+        reporterMemberId={membership?.id ?? null}
+        studentNotes={counselorData?.studentNotes ?? []}
+        behaviourIncidents={counselorData?.behaviourIncidents ?? []}
+        suspensions={counselorData?.suspensions ?? []}
+        truancyAlerts={counselorData?.truancyAlerts ?? []}
+        students={counselorData?.students ?? []}
+      />
     </main>
   );
 }
