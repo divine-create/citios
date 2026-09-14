@@ -36,7 +36,7 @@ export default function ShopOSLandingPage() {
             <Link href="#hardware" className="hover:text-emerald-600 transition-colors">Hardware</Link>
             <Link href="#pricing" className="hover:text-emerald-600 transition-colors">Pricing</Link>
           </div>
-          <Link href="/business/register?type=RETAIL" className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-full text-sm font-bold transition-all shadow-md shadow-emerald-600/20">
+          <Link href="/business/shopos/register" className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-full text-sm font-bold transition-all shadow-md shadow-emerald-600/20">
             Open Your Store
           </Link>
         </div>
@@ -66,7 +66,7 @@ export default function ShopOSLandingPage() {
             From high-volume grocery checkouts to omnichannel boutique sales. Manage inventory, suppliers, and customer loyalty all in one lightning-fast platform.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-in fade-in slide-in-from-bottom-10 duration-700 delay-300">
-            <Link href="/business/register?type=RETAIL" className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-full text-lg font-bold transition-all shadow-xl shadow-emerald-600/20 hover:shadow-emerald-600/40 flex items-center justify-center gap-2">
+            <Link href="/business/shopos/register" className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-full text-lg font-bold transition-all shadow-xl shadow-emerald-600/20 hover:shadow-emerald-600/40 flex items-center justify-center gap-2">
               Start Free Setup <ArrowRight size={20} />
             </Link>
             <Link href="#features" className="w-full sm:w-auto bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 px-8 py-4 rounded-full text-lg font-bold transition-colors flex items-center justify-center">
@@ -200,7 +200,7 @@ export default function ShopOSLandingPage() {
                 <span className="text-lg text-slate-500 font-medium">/ month</span>
               </div>
               
-              <Link href="/business/register?type=RETAIL" className="block w-full text-center bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-4 rounded-xl text-lg font-bold transition-all mb-8">
+              <Link href="/business/shopos/register" className="block w-full text-center bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-4 rounded-xl text-lg font-bold transition-all mb-8">
                 Start Selling Free
               </Link>
               
@@ -234,7 +234,7 @@ export default function ShopOSLandingPage() {
           <p className="text-xl text-slate-300 mb-10">Join the growing network of local businesses powering their growth with CityConnect ShopOS.</p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-12">
-            <Link href="/business/register?type=RETAIL" className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-white px-8 py-4 rounded-full text-lg font-bold transition-all shadow-xl shadow-emerald-500/30 flex items-center justify-center gap-2">
+            <Link href="/business/shopos/register" className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-white px-8 py-4 rounded-full text-lg font-bold transition-all shadow-xl shadow-emerald-500/30 flex items-center justify-center gap-2">
               Provision ShopOS <ArrowRight size={20} />
             </Link>
           </div>

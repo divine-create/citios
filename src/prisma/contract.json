@@ -11092,10 +11092,24 @@
           },
           "RetailSettings": {
             "fields": {
+              "country": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "createdAt": {
                 "nullable": false,
                 "type": {
                   "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "currencies": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
                   "kind": "scalar"
                 }
               },
@@ -11127,7 +11141,21 @@
                   "kind": "scalar"
                 }
               },
+              "physicalStores": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "receiptMessage": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "staffCount": {
                 "nullable": true,
                 "type": {
                   "codecId": "pg/text@1",
@@ -11148,6 +11176,13 @@
                   "kind": "scalar"
                 }
               },
+              "storeUrl": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "taxRate": {
                 "nullable": false,
                 "type": {
@@ -11159,6 +11194,13 @@
                 "nullable": false,
                 "type": {
                   "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "weeklyOrders": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
                   "kind": "scalar"
                 }
               }
@@ -11182,8 +11224,14 @@
             },
             "storage": {
               "fields": {
+                "country": {
+                  "column": "country"
+                },
                 "createdAt": {
                   "column": "createdAt"
+                },
+                "currencies": {
+                  "column": "currencies"
                 },
                 "currencySymbol": {
                   "column": "currencySymbol"
@@ -11197,8 +11245,14 @@
                 "organizationId": {
                   "column": "organizationId"
                 },
+                "physicalStores": {
+                  "column": "physicalStores"
+                },
                 "receiptMessage": {
                   "column": "receiptMessage"
+                },
+                "staffCount": {
+                  "column": "staffCount"
                 },
                 "storeAddress": {
                   "column": "storeAddress"
@@ -11206,11 +11260,17 @@
                 "storeName": {
                   "column": "storeName"
                 },
+                "storeUrl": {
+                  "column": "storeUrl"
+                },
                 "taxRate": {
                   "column": "taxRate"
                 },
                 "updatedAt": {
                   "column": "updatedAt"
+                },
+                "weeklyOrders": {
+                  "column": "weeklyOrders"
                 }
               },
               "namespaceId": "public",
@@ -26588,6 +26648,11 @@
             },
             "retailSettings": {
               "columns": {
+                "country": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "createdAt": {
                   "codecId": "pg/timestamptz-temporal@1",
                   "default": {
@@ -26596,6 +26661,11 @@
                   },
                   "nativeType": "timestamptz",
                   "nullable": false
+                },
+                "currencies": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
                 },
                 "currencySymbol": {
                   "codecId": "pg/text@1",
@@ -26621,7 +26691,17 @@
                   "nativeType": "text",
                   "nullable": false
                 },
+                "physicalStores": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "receiptMessage": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "staffCount": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": true
@@ -26632,6 +26712,11 @@
                   "nullable": true
                 },
                 "storeName": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "storeUrl": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": true
@@ -26653,6 +26738,11 @@
                   },
                   "nativeType": "timestamptz",
                   "nullable": false
+                },
+                "weeklyOrders": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
                 }
               },
               "foreignKeys": [
@@ -32569,7 +32659,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "f4b7e4554a9d22579fa71519cd2f9ef90d5c929d4ebd07305e59470ae81899fd"
+    "storageHash": "f88d1cb2c491af5fdf17bbbc8cbe046ffa6725b6ad557dc9c87ce8c757ca6c72"
   },
   "execution": {
     "executionHash": "bc532f03d34f6d09af354387e9d2dbedb2f636affd9291fe046de5a99e0766a1",

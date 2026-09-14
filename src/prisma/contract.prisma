@@ -206,6 +206,14 @@ model RetailSettings {
   taxRate        Float        @default(0)
   currencySymbol String       @default("$")
 
+  // Onboarding Data
+  storeUrl       String?
+  country        String?
+  weeklyOrders   String?
+  currencies     String?      // JSON array of strings
+  staffCount     String?
+  physicalStores String?
+
   customUnits    String?      // JSON string array e.g. '["ea", "lb", "kg", "pack", "box"]'
 
   createdAt      DateTime     @default(now())
@@ -2359,3 +2367,4 @@ model ServiceExpense {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @default(now())
 }
+

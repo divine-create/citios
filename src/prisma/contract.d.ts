@@ -33,7 +33,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'f4b7e4554a9d22579fa71519cd2f9ef90d5c929d4ebd07305e59470ae81899fd'>;
+  StorageHashBase<'f88d1cb2c491af5fdf17bbbc8cbe046ffa6725b6ad557dc9c87ce8c757ca6c72'>;
 export type ExecutionHash =
   ExecutionHashBase<'bc532f03d34f6d09af354387e9d2dbedb2f636affd9291fe046de5a99e0766a1'>;
 export type ProfileHash =
@@ -1011,6 +1011,12 @@ export type FieldOutputTypes = {
       readonly receiptMessage: CodecTypes['pg/text@1']['output'] | null;
       readonly taxRate: CodecTypes['pg/float8@1']['output'];
       readonly currencySymbol: CodecTypes['pg/text@1']['output'];
+      readonly storeUrl: CodecTypes['pg/text@1']['output'] | null;
+      readonly country: CodecTypes['pg/text@1']['output'] | null;
+      readonly weeklyOrders: CodecTypes['pg/text@1']['output'] | null;
+      readonly currencies: CodecTypes['pg/text@1']['output'] | null;
+      readonly staffCount: CodecTypes['pg/text@1']['output'] | null;
+      readonly physicalStores: CodecTypes['pg/text@1']['output'] | null;
       readonly customUnits: CodecTypes['pg/text@1']['output'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
@@ -2313,6 +2319,12 @@ export type FieldInputTypes = {
       readonly receiptMessage: CodecTypes['pg/text@1']['input'] | null;
       readonly taxRate: CodecTypes['pg/float8@1']['input'];
       readonly currencySymbol: CodecTypes['pg/text@1']['input'];
+      readonly storeUrl: CodecTypes['pg/text@1']['input'] | null;
+      readonly country: CodecTypes['pg/text@1']['input'] | null;
+      readonly weeklyOrders: CodecTypes['pg/text@1']['input'] | null;
+      readonly currencies: CodecTypes['pg/text@1']['input'] | null;
+      readonly staffCount: CodecTypes['pg/text@1']['input'] | null;
+      readonly physicalStores: CodecTypes['pg/text@1']['input'] | null;
       readonly customUnits: CodecTypes['pg/text@1']['input'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
@@ -3608,16 +3620,22 @@ export type StorageColumnTypes = {
       readonly organizationId: CodecTypes['pg/text@1']['output'];
     };
     readonly retailSettings: {
+      readonly country: CodecTypes['pg/text@1']['output'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly currencies: CodecTypes['pg/text@1']['output'] | null;
       readonly currencySymbol: CodecTypes['pg/text@1']['output'];
       readonly customUnits: CodecTypes['pg/text@1']['output'] | null;
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly organizationId: CodecTypes['pg/text@1']['output'];
+      readonly physicalStores: CodecTypes['pg/text@1']['output'] | null;
       readonly receiptMessage: CodecTypes['pg/text@1']['output'] | null;
+      readonly staffCount: CodecTypes['pg/text@1']['output'] | null;
       readonly storeAddress: CodecTypes['pg/text@1']['output'] | null;
       readonly storeName: CodecTypes['pg/text@1']['output'] | null;
+      readonly storeUrl: CodecTypes['pg/text@1']['output'] | null;
       readonly taxRate: CodecTypes['pg/float8@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly weeklyOrders: CodecTypes['pg/text@1']['output'] | null;
     };
     readonly retailShift: {
       readonly actualCash: CodecTypes['pg/float8@1']['output'] | null;
@@ -4910,16 +4928,22 @@ export type StorageColumnInputTypes = {
       readonly organizationId: CodecTypes['pg/text@1']['input'];
     };
     readonly retailSettings: {
+      readonly country: CodecTypes['pg/text@1']['input'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly currencies: CodecTypes['pg/text@1']['input'] | null;
       readonly currencySymbol: CodecTypes['pg/text@1']['input'];
       readonly customUnits: CodecTypes['pg/text@1']['input'] | null;
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly organizationId: CodecTypes['pg/text@1']['input'];
+      readonly physicalStores: CodecTypes['pg/text@1']['input'] | null;
       readonly receiptMessage: CodecTypes['pg/text@1']['input'] | null;
+      readonly staffCount: CodecTypes['pg/text@1']['input'] | null;
       readonly storeAddress: CodecTypes['pg/text@1']['input'] | null;
       readonly storeName: CodecTypes['pg/text@1']['input'] | null;
+      readonly storeUrl: CodecTypes['pg/text@1']['input'] | null;
       readonly taxRate: CodecTypes['pg/float8@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly weeklyOrders: CodecTypes['pg/text@1']['input'] | null;
     };
     readonly retailShift: {
       readonly actualCash: CodecTypes['pg/float8@1']['input'] | null;
@@ -11782,6 +11806,36 @@ type ContractBase = Omit<
                     readonly kind: 'literal';
                     readonly value: DefaultLiteralValue<'pg/text@1', '$'>;
                   };
+                };
+                readonly storeUrl: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly country: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly weeklyOrders: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly currencies: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly staffCount: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly physicalStores: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
                 };
                 readonly customUnits: {
                   readonly nativeType: 'text';
@@ -23317,6 +23371,30 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
+              readonly storeUrl: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly country: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly weeklyOrders: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly currencies: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly staffCount: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly physicalStores: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
               readonly customUnits: {
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
@@ -23360,6 +23438,12 @@ type ContractBase = Omit<
                 readonly receiptMessage: { readonly column: 'receiptMessage' };
                 readonly taxRate: { readonly column: 'taxRate' };
                 readonly currencySymbol: { readonly column: 'currencySymbol' };
+                readonly storeUrl: { readonly column: 'storeUrl' };
+                readonly country: { readonly column: 'country' };
+                readonly weeklyOrders: { readonly column: 'weeklyOrders' };
+                readonly currencies: { readonly column: 'currencies' };
+                readonly staffCount: { readonly column: 'staffCount' };
+                readonly physicalStores: { readonly column: 'physicalStores' };
                 readonly customUnits: { readonly column: 'customUnits' };
                 readonly createdAt: { readonly column: 'createdAt' };
                 readonly updatedAt: { readonly column: 'updatedAt' };
