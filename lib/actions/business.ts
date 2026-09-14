@@ -1,7 +1,6 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { db } from "@/src/prisma/contract";
-import { OrgType, OrgRole } from "@/src/prisma/contract";
+import { db } from "@/src/prisma/db";
 
 export async function registerOrganization(data: {
   name: string;
@@ -15,8 +14,8 @@ export async function registerOrganization(data: {
   }
 
   // Validate OrgType
-  const validTypes = Object.values(OrgType);
-  if (!validTypes.includes(data.type as OrgType)) {
+  const validTypes = ['GOVERNMENT', 'SCHOOL', 'HEALTHCARE', 'RETAIL', 'RESTAURANT', 'REAL_ESTATE', 'SERVICES', 'LOGISTICS', 'HOTEL', 'EVENT_ORGANIZER'];
+  if (!validTypes.includes(data.type)) {
     return { error: "Invalid organization type." };
   }
 
@@ -24,14 +23,14 @@ export async function registerOrganization(data: {
     // Run in a transaction: create org and add current user as OWNER
     const org = await db.orm.public.Organization.create({
       name: data.name,
-      type: data.type as OrgType,
+      type: data.type as any,
       description: data.description || "",
     });
 
     await db.orm.public.OrganizationMember.create({
       userId: session.user.userId,
       organizationId: org.id,
-      role: OrgRole.OWNER,
+      role: 'OWNER' as any,
     });
 
     return { success: true, organizationId: org.id };
