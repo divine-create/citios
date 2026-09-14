@@ -91,7 +91,7 @@ export default function MicrositeBuilder({ organizationId }: { organizationId: s
   const [inquiries, setInquiries] = useState<any[]>([]);
   const [orgType, setOrgType] = useState<string | null>(null);
   const [orgName, setOrgName] = useState<string>("");
-  const [tab, setTab] = useState<"pages" | "navigation" | "theme" | "settings">("pages");
+  const [tab, setTab] = useState<"pages" | "sections" | "navigation" | "theme" | "settings">("sections");
   const [activePageId, setActivePageId] = useState<string | null>(null);
   const [editingSection, setEditingSection] = useState<Section | null>(null);
   const [addingType, setAddingType] = useState<string | null>(null);
@@ -207,18 +207,30 @@ export default function MicrositeBuilder({ organizationId }: { organizationId: s
       </div>
 
       <div className="flex gap-2 border-b border-slate-200 pb-2 mb-4 overflow-x-auto">
-        <button
-          onClick={() => { setTab("pages"); setActivePageId(null); }}
-          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${tab === "pages" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
-        >
-          Pages
-        </button>
-        <button
-          onClick={() => setTab("navigation")}
-          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${tab === "navigation" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
-        >
-          Navigation
-        </button>
+        {orgType !== 'SCHOOL' && (
+          <>
+            <button
+              onClick={() => { setTab("pages"); setActivePageId(null); }}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${tab === "pages" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+            >
+              Pages
+            </button>
+            <button
+              onClick={() => setTab("navigation")}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${tab === "navigation" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+            >
+              Navigation
+            </button>
+          </>
+        )}
+        {orgType === 'SCHOOL' && (
+          <button
+            onClick={() => setTab("sections")}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${tab === "sections" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+          >
+            Sections
+          </button>
+        )}
         <button
           onClick={() => setTab("theme")}
           className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${tab === "theme" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
@@ -319,6 +331,76 @@ export default function MicrositeBuilder({ organizationId }: { organizationId: s
                     next.splice(i, 0, item);
                     setSite({ ...site, sections: site.sections.map(s => {
                       if (s.pageId !== activePageId) return s;
+                      const nextIndex = next.findIndex(n => n.id === s.id);
+                      return { ...s, order: nextIndex };
+                    }) } as Site);
+                    await reorderMicrositeSections(site.id, next.map((s) => s.id));
+                    load();
+                  }}
+                  className={`bg-white border border-slate-200 rounded-xl p-4 flex items-center justify-between gap-3 transition-colors ${draggedIndex === i ? 'shadow-inner' : 'hover:border-slate-300'}`}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="text-slate-300 hover:text-slate-500 cursor-grab active:cursor-grabbing flex items-center justify-center -ml-1 py-2">
+                      <GripVertical size={18} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-slate-800 text-sm">{SECTION_TYPES.find((t) => t.id === section.type)?.label ?? section.type}</p>
+                      <p className="text-xs text-slate-400 truncate max-w-xs">{sectionSummary(section as unknown as Section)}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <button onClick={() => toggleVisible(section as unknown as Section)} className="p-1.5 text-slate-400 hover:text-slate-700 transition-colors" title={section.visible ? "Hide" : "Show"}>
+                      {section.visible ? <Eye size={16} /> : <EyeOff size={16} />}
+                    </button>
+                    <button onClick={() => setEditingSection(section as unknown as Section)} className="p-1.5 text-slate-400 hover:text-blue-600 transition-colors"><Edit2 size={16} /></button>
+                    <button onClick={() => remove(section.id)} className="p-1.5 text-slate-400 hover:text-red-600 transition-colors"><Trash2 size={16} /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        );
+      })()}
+
+      {tab === "sections" && (() => {
+        const defaultPageId = site.pages[0]?.id;
+        const pageSections = site.sections.filter(s => s.pageId === defaultPageId).sort((a, b) => a.order - b.order);
+        return (
+        <div className="space-y-3">
+          <div className="flex justify-between items-center bg-white border border-slate-200 rounded-xl p-4">
+            <h3 className="font-bold text-slate-800">Website Sections</h3>
+            <button onClick={() => setAddingType(SECTION_TYPES[0].id)} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+              <Plus size={16} /> Add Section
+            </button>
+          </div>
+
+          {pageSections.length === 0 ? (
+            <div className="bg-white border border-slate-200 rounded-xl text-center py-12 text-slate-400 text-sm">No sections yet — add one to start building your site.</div>
+          ) : (
+            <div className="space-y-2">
+              {pageSections.map((section, i) => (
+                <div
+                  key={section.id}
+                  draggable
+                  onDragStart={(e) => {
+                    setDraggedIndex(i);
+                    e.dataTransfer.effectAllowed = "move";
+                    setTimeout(() => e.currentTarget.classList.add("opacity-40"), 0);
+                  }}
+                  onDragEnd={(e) => {
+                    setDraggedIndex(null);
+                    e.currentTarget.classList.remove("opacity-40");
+                  }}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={async (e) => {
+                    e.preventDefault();
+                    if (draggedIndex === null || draggedIndex === i) return;
+                    const next = [...pageSections];
+                    const item = next.splice(draggedIndex, 1)[0];
+                    next.splice(i, 0, item);
+                    setSite({ ...site, sections: site.sections.map(s => {
+                      if (s.pageId !== defaultPageId) return s;
                       const nextIndex = next.findIndex(n => n.id === s.id);
                       return { ...s, order: nextIndex };
                     }) } as Site);
