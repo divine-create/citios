@@ -31,6 +31,7 @@ export default function SettingsManager({ organizationId, activeTab, settings, s
     currentTerm: settings?.currentTerm || 1,
     timezone: settings?.timezone || "UTC",
     currencyCode: settings?.currencyCode || "USD",
+    logo: settings?.logo || "",
   });
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -138,6 +139,21 @@ export default function SettingsManager({ organizationId, activeTab, settings, s
                   onChange={(e) => set("email", e.target.value)}
                   className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <label className="text-sm font-semibold text-slate-700">School Logo URL</label>
+                <input
+                  type="url"
+                  placeholder="https://example.com/logo.png"
+                  value={form.logo}
+                  onChange={(e) => set("logo", e.target.value)}
+                  className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                />
+                {form.logo && (
+                  <div className="mt-2 w-16 h-16 rounded border border-slate-200 overflow-hidden bg-slate-50 flex items-center justify-center">
+                    <img src={form.logo} alt="School Logo" className="max-w-full max-h-full object-contain" />
+                  </div>
+                )}
               </div>
             </div>
           </div>

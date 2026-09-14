@@ -1344,6 +1344,7 @@ export async function updateSchoolSettings(organizationId: string, input: {
   phone?: string;
   email?: string;
   website?: string;
+  logo?: string;
   timezone?: string;
   currencyCode?: string;
   currentTerm?: number;
@@ -1362,6 +1363,7 @@ export async function updateSchoolSettings(organizationId: string, input: {
         phone: input.phone,
         email: input.email,
         website: input.website,
+        logo: input.logo,
         timezone: input.timezone,
         currencyCode: input.currencyCode,
         currentTerm: input.currentTerm ?? 1,
@@ -1378,6 +1380,7 @@ export async function updateSchoolSettings(organizationId: string, input: {
     if (input.phone !== undefined) data.phone = input.phone;
     if (input.email !== undefined) data.email = input.email;
     if (input.website !== undefined) data.website = input.website;
+    if (input.logo !== undefined) data.logo = input.logo;
     if (input.timezone !== undefined) data.timezone = input.timezone;
     if (input.currencyCode !== undefined) data.currencyCode = input.currencyCode;
     if (input.currentTerm !== undefined) data.currentTerm = input.currentTerm;

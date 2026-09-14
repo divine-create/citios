@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 
 interface AdminDashboardProps {
   organizationId: string | null;
@@ -74,6 +75,7 @@ export default function AdminDashboard({
   initialFeeTypes = [],
 }: AdminDashboardProps) {
   const router = useRouter();
+  const { data: session } = useSession();
   const refresh = () => router.refresh();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [activeMenu, setActiveMenu] = useState("Dashboard");
@@ -283,12 +285,12 @@ export default function AdminDashboard({
             
             <div className="flex items-center gap-3 pl-4 border-l border-slate-200 cursor-pointer">
               <div className="text-right hidden sm:block">
-                <p className="text-sm font-semibold text-slate-800">Jonathan Wick</p>
+                <p className="text-sm font-semibold text-slate-800">{session?.user?.name || "School Administrator"}</p>
                 <p className="text-xs text-slate-500">Superadmin</p>
               </div>
               <div className="w-9 h-9 rounded-full bg-slate-200 border-2 border-white shadow-sm overflow-hidden flex items-center justify-center relative">
                 <img
-                  src="https://api.dicebear.com/9.x/avataaars/svg?seed=Jonathan"
+                  src={session?.user?.image || `https://api.dicebear.com/9.x/avataaars/svg?seed=${session?.user?.name || "Admin"}`}
                   alt="User"
                   className="object-cover w-full h-full"
                 />
