@@ -213,12 +213,14 @@ export default function MicrositeBuilder({ organizationId }: { organizationId: s
         >
           Pages
         </button>
-        <button
-          onClick={() => setTab("navigation")}
-          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${tab === "navigation" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
-        >
-          Navigation
-        </button>
+        {orgType !== 'SCHOOL' && (
+          <button
+            onClick={() => setTab("navigation")}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${tab === "navigation" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+          >
+            Navigation
+          </button>
+        )}
         <button
           onClick={() => setTab("theme")}
           className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${tab === "theme" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}

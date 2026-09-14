@@ -515,6 +515,16 @@ export async function addMicrositePage(micrositeId: string, input: { title: stri
       slug,
       status: "published"
     });
+
+    // Auto-sync: automatically add a navigation item for this new page
+    const existingNavs = await db.orm.public.MicrositeNavigationItem.where({ micrositeId }).all();
+    await db.orm.public.MicrositeNavigationItem.create({
+      micrositeId,
+      label: input.title,
+      pageId: page.id,
+      order: existingNavs.length,
+      isHidden: false,
+    });
     
     return { success: true, page: JSON.parse(JSON.stringify(page)) };
   } catch (error) {
@@ -525,18 +535,17 @@ export async function addMicrositePage(micrositeId: string, input: { title: stri
 
 export async function updateMicrositePage(pageId: string, input: { title?: string, slug?: string, status?: string }) {
   try {
-    const data: Record<string, any> = {};
-    if (input.title !== undefined) data.title = input.title;
-    if (input.status !== undefined) data.status = input.status;
+    const data: any = { ...input };
+    if (input.slug) data.slug = slugify(input.slug);
+    const page = await db.orm.public.MicrositePage.where({ id: pageId }).update(data);
     
-    if (input.slug !== undefined) {
-      data.slug = slugify(input.slug);
+    // Auto-sync: update the navigation label if the page title was changed
+    if (input.title) {
+      await db.orm.public.MicrositeNavigationItem.where({ pageId }).update({ label: input.title });
     }
-    
-    await db.orm.public.MicrositePage.where({ id: pageId }).update(data);
-    return { success: true };
-  } catch(error) {
-    console.error("Error updating page", error);
+
+    return { success: true, page: JSON.parse(JSON.stringify(page)) };
+  } catch (error) {
     return { error: "Failed to update page." };
   }
 }
@@ -545,6 +554,10 @@ export async function deleteMicrositePage(pageId: string) {
   try {
     const page = await db.orm.public.MicrositePage.where({ id: pageId }).all().first();
     if (page?.isHome) return { error: "Cannot delete the home page." };
+
+    // Auto-sync cleanup: remove any navigation items pointing to this page
+    await db.orm.public.MicrositeNavigationItem.where({ pageId }).delete();
+    
     await db.orm.public.MicrositePage.where({ id: pageId }).delete();
     return { success: true };
   } catch(error) {
