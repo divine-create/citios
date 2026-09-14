@@ -15473,6 +15473,13 @@
                   "kind": "scalar"
                 }
               },
+              "middleName": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "nationality": {
                 "nullable": true,
                 "type": {
@@ -15843,6 +15850,9 @@
                 },
                 "medications": {
                   "column": "medications"
+                },
+                "middleName": {
+                  "column": "middleName"
                 },
                 "nationality": {
                   "column": "nationality"
@@ -29999,6 +30009,11 @@
                   "nativeType": "text",
                   "nullable": true
                 },
+                "middleName": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "nationality": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -32554,7 +32569,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "4a0d073c11fe88ac1a3f7a0f1fbd7a3434a3f903e0c2d232b30168f80606ccdd"
+    "storageHash": "f4b7e4554a9d22579fa71519cd2f9ef90d5c929d4ebd07305e59470ae81899fd"
   },
   "execution": {
     "executionHash": "bc532f03d34f6d09af354387e9d2dbedb2f636affd9291fe046de5a99e0766a1",

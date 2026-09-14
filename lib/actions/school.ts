@@ -271,9 +271,11 @@ export async function getCourseGradebook(classId: string) {
 export async function createStudent(input: {
   organizationId: string;
   firstName: string;
+  middleName?: string;
   lastName: string;
   studentId?: string;
   yearLevel?: number;
+  classSectionId?: string;
   gender?: string;
   dateOfBirth?: Date;
 }) {
@@ -289,8 +291,10 @@ export async function createStudent(input: {
       organizationId: input.organizationId,
       studentId: input.studentId?.trim() || generatedId,
       firstName: input.firstName.trim(),
+      middleName: input.middleName?.trim() || null,
       lastName: input.lastName.trim(),
       yearLevel: input.yearLevel ? Number(input.yearLevel) : 1,
+      classSectionId: input.classSectionId || null,
       gender: input.gender,
       // @ts-ignore Prisma 8 Composer DateTime handling
       dateOfBirth: input.dateOfBirth ? (globalThis as any).Temporal.Instant.fromEpochMilliseconds(input.dateOfBirth.getTime()) : undefined,
@@ -303,20 +307,26 @@ export async function createStudent(input: {
   }
 }
 
-export async function updateStudent(
-  id: string,
-  input: { firstName?: string; lastName?: string; yearLevel?: number; gender?: string; dateOfBirth?: Date }
-) {
+export async function updateStudent(id: string, input: {
+  firstName?: string;
+  middleName?: string;
+  lastName?: string;
+  yearLevel?: number;
+  classSectionId?: string;
+  gender?: string;
+  dateOfBirth?: Date;
+}) {
   try {
     const data: Record<string, unknown> = {};
-    if (input.firstName !== undefined) data.firstName = input.firstName.trim();
-    if (input.lastName !== undefined) data.lastName = input.lastName.trim();
-    if (input.yearLevel !== undefined) data.yearLevel = Number(input.yearLevel);
+    if (input.firstName !== undefined) data.firstName = input.firstName;
+    if (input.middleName !== undefined) data.middleName = input.middleName;
+    if (input.lastName !== undefined) data.lastName = input.lastName;
+    if (input.yearLevel !== undefined) data.yearLevel = input.yearLevel;
+    if (input.classSectionId !== undefined) data.classSectionId = input.classSectionId;
     if (input.gender !== undefined) data.gender = input.gender;
     if (input.dateOfBirth !== undefined) {
-      data.dateOfBirth = input.dateOfBirth 
-        ? (globalThis as any).Temporal.Instant.fromEpochMilliseconds(input.dateOfBirth.getTime()) 
-        : null;
+      // @ts-ignore Prisma 8 Composer DateTime handling
+      data.dateOfBirth = input.dateOfBirth ? (globalThis as any).Temporal.Instant.fromEpochMilliseconds(input.dateOfBirth.getTime()) : null;
     }
 
     await db.orm.public.Student.where({ id }).update(data);
@@ -2198,6 +2208,45 @@ export async function getTimetableForClass(classId: string) {
     return JSON.parse(JSON.stringify(enriched));
   } catch (error) {
     console.error('Error fetching timetable for class:', error);
+    return [];
+  }
+}
+
+export async function getTimetableForSection(sectionId: string) {
+  try {
+    const section = await db.orm.public.ClassSection.where({ id: sectionId }).all().first();
+    if (!section) return [];
+
+    const courses = await db.orm.public.SchoolClass.where({ classSectionId: sectionId }).all();
+    const courseIds = courses.map((c) => c.id);
+    if (courseIds.length === 0) return [];
+
+    const allSlots = await db.orm.public.TimetableSlot.all();
+    const slots = allSlots.filter((s) => courseIds.includes(s.classId));
+    
+    const rooms = await db.orm.public.Room.where({ organizationId: section.organizationId }).all();
+    const staffProfiles = await db.orm.public.StaffProfile.where({ organizationId: section.organizationId }).all();
+    const members = await db.orm.public.OrganizationMember.where({ organizationId: section.organizationId }).all();
+    const allUsers = await db.orm.public.User.all();
+
+    const enriched = slots
+      .sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.period - b.period)
+      .map((slot) => {
+        const course = courses.find((c) => c.id === slot.classId);
+        const room = rooms.find((r) => r.id === slot.roomId);
+        const staffProfile = staffProfiles.find((sp) => sp.id === slot.staffId);
+        const member = staffProfile ? members.find((m) => m.id === staffProfile.memberId) : null;
+        const user = member ? allUsers.find((u) => u.id === member.userId) : null;
+        return {
+          ...slot,
+          courseName: course?.name ?? null,
+          roomName: room?.name ?? null,
+          staffName: user?.name ?? user?.email ?? null,
+        };
+      });
+    return JSON.parse(JSON.stringify(enriched));
+  } catch (error) {
+    console.error('Error fetching timetable for section:', error);
     return [];
   }
 }

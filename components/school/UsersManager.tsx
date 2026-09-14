@@ -22,6 +22,8 @@ interface UsersManagerProps {
   students: any[];
   staff: any[];
   parents: any[];
+  grades: any[];
+  classSections: any[];
   refresh: () => void;
 }
 
@@ -55,7 +57,7 @@ export const USERS_TABS: { id: TabId; label: string; icon: any }[] = [
   { id: "staff", label: "Other Staff", icon: Briefcase },
 ];
 
-export default function UsersManager({ organizationId, activeTab, students, staff, parents, refresh }: UsersManagerProps) {
+export default function UsersManager({ organizationId, activeTab, students, staff, parents, grades, classSections, refresh }: UsersManagerProps) {
   const [search, setSearch] = useState("");
 
   // Modal State
@@ -69,12 +71,15 @@ export default function UsersManager({ organizationId, activeTab, students, staf
   // Form State
   const [formData, setFormData] = useState({
     firstName: "",
+    middleName: "",
     lastName: "",
     email: "",
     role: "ADMIN" as any,
     studentId: "",
     gender: "",
     yearLevel: 1,
+    gradeId: "",
+    classSectionId: "",
     dateOfBirth: "",
   });
 
@@ -96,12 +101,15 @@ export default function UsersManager({ organizationId, activeTab, students, staf
     setEditId(null);
     setFormData({
       firstName: "",
+      middleName: "",
       lastName: "",
       email: "",
       role: (ROLE_TABS[activeTab] as any) ?? "ADMIN",
       studentId: "",
       gender: "",
       yearLevel: 1,
+      gradeId: "",
+      classSectionId: "",
       dateOfBirth: "",
     });
     setError(null);
@@ -116,14 +124,21 @@ export default function UsersManager({ organizationId, activeTab, students, staf
 
   const openEditStudent = (s: any) => {
     setEditId(s.id);
+    
+    // Find grade based on yearLevel
+    const grade = grades.find(g => g.level === s.yearLevel);
+    
     setFormData({
       firstName: s.firstName,
+      middleName: s.middleName || "",
       lastName: s.lastName,
       email: "",
       role: "ADMIN",
       studentId: s.studentId || "",
       gender: s.gender || "",
       yearLevel: s.yearLevel || 1,
+      gradeId: grade?.id || "",
+      classSectionId: s.classSectionId || "",
       dateOfBirth: s.dateOfBirth ? new Date(s.dateOfBirth).toISOString().split('T')[0] : "",
     });
     setError(null);
@@ -139,12 +154,15 @@ export default function UsersManager({ organizationId, activeTab, students, staf
 
     setFormData({
       firstName,
+      middleName: "",
       lastName,
       email: s.user?.email || "",
       role: s.role,
       studentId: "",
       gender: "",
       yearLevel: 1,
+      gradeId: "",
+      classSectionId: "",
       dateOfBirth: "",
     });
     setError(null);
@@ -191,12 +209,17 @@ export default function UsersManager({ organizationId, activeTab, students, staf
 
     try {
       if (activeTab === "students") {
+        const selectedGrade = grades.find(g => g.id === formData.gradeId);
+        const yearLevel = selectedGrade ? selectedGrade.level : undefined;
+
         if (editId) {
           const res = await updateStudent(editId, {
             firstName: formData.firstName,
+            middleName: formData.middleName || undefined,
             lastName: formData.lastName,
             gender: formData.gender || undefined,
-            yearLevel: formData.yearLevel ? Number(formData.yearLevel) : undefined,
+            yearLevel: yearLevel,
+            classSectionId: formData.classSectionId || undefined,
             dateOfBirth: formData.dateOfBirth ? new Date(formData.dateOfBirth) : undefined,
           });
           if (res.error) throw new Error(res.error);
@@ -204,10 +227,12 @@ export default function UsersManager({ organizationId, activeTab, students, staf
           const res = await createStudent({
             organizationId,
             firstName: formData.firstName,
+            middleName: formData.middleName || undefined,
             lastName: formData.lastName,
-            studentId: formData.studentId || `STU-${Math.floor(Math.random() * 10000)}`,
+            // studentId is now entirely omitted so the backend always auto-generates it
             gender: formData.gender || undefined,
-            yearLevel: formData.yearLevel ? Number(formData.yearLevel) : undefined,
+            yearLevel: yearLevel,
+            classSectionId: formData.classSectionId || undefined,
             dateOfBirth: formData.dateOfBirth ? new Date(formData.dateOfBirth) : undefined,
           });
           if (res.error) throw new Error(res.error);
@@ -480,6 +505,16 @@ export default function UsersManager({ organizationId, activeTab, students, staf
                   />
                 </div>
                 <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700">Middle Name (Optional)</label>
+                  <input
+                    type="text"
+                    value={formData.middleName}
+                    onChange={(e) => setFormData({ ...formData, middleName: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    placeholder="Middle"
+                  />
+                </div>
+                <div className="space-y-1.5 sm:col-span-2">
                   <label className="text-sm font-medium text-slate-700">Last Name</label>
                   <input
                     required
@@ -494,29 +529,38 @@ export default function UsersManager({ organizationId, activeTab, students, staf
 
               {activeTab === "students" ? (
                 <>
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700">Student ID {editId && "(Cannot edit ID)"}</label>
-                    <input
-                      type="text"
-                      disabled={!!editId}
-                      value={formData.studentId}
-                      onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-500"
-                      placeholder="Leave blank to auto-generate"
-                    />
-                  </div>
-
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <label className="text-sm font-medium text-slate-700">Year Level</label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="12"
-                        value={formData.yearLevel}
-                        onChange={(e) => setFormData({ ...formData, yearLevel: parseInt(e.target.value) })}
+                      <label className="text-sm font-medium text-slate-700">Class</label>
+                      <select
+                        value={formData.gradeId}
+                        onChange={(e) => {
+                          setFormData({ ...formData, gradeId: e.target.value, classSectionId: "" });
+                        }}
                         className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                      />
+                      >
+                        <option value="">Select Class...</option>
+                        {grades.map((g) => (
+                          <option key={g.id} value={g.id}>{g.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-slate-700">Class Section</label>
+                      <select
+                        value={formData.classSectionId}
+                        onChange={(e) => setFormData({ ...formData, classSectionId: e.target.value })}
+                        disabled={!formData.gradeId}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-50 disabled:bg-slate-100"
+                      >
+                        <option value="">Select Section...</option>
+                        {classSections
+                          .filter(cs => cs.gradeId === formData.gradeId)
+                          .map((cs) => (
+                            <option key={cs.id} value={cs.id}>{cs.name}</option>
+                          ))}
+                      </select>
                     </div>
 
                     <div className="space-y-1.5">
@@ -531,16 +575,16 @@ export default function UsersManager({ organizationId, activeTab, students, staf
                         <option value="female">Female</option>
                       </select>
                     </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700">Date of Birth</label>
-                    <input
-                      type="date"
-                      value={formData.dateOfBirth}
-                      onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                    />
+                    
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-slate-700">Date of Birth</label>
+                      <input
+                        type="date"
+                        value={formData.dateOfBirth}
+                        onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
                   </div>
                 </>
               ) : (

@@ -35,6 +35,7 @@ import {
   updateRoom,
   deleteRoom,
   getTimetableForClass,
+  getTimetableForSection,
   createTimetableSlot,
   updateTimetableSlot,
   deleteTimetableSlot,
@@ -124,7 +125,7 @@ export default function AcademicManager({ organizationId, activeTab, courses, te
           <RoomsTab organizationId={organizationId} rooms={rooms} refresh={refresh} />
         )}
         {activeTab === "timetable" && (
-          <TimetableTab organizationId={organizationId} courses={courses} teachers={teachers} rooms={rooms} refresh={refresh} />
+          <TimetableTab organizationId={organizationId} courses={courses} teachers={teachers} rooms={rooms} classSections={classSections} refresh={refresh} />
         )}
         {activeTab === "syllabus" && <SyllabusTab courses={courses} />}
         {activeTab === "terms" && (
@@ -701,12 +702,16 @@ function GradesTab({ organizationId, grades, refresh }: { organizationId: string
           {error && <ErrorBanner text={error} />}
           <TextField label="Class Name" value={form.name} onChange={(v) => setForm((f) => ({ ...f, name: v }))} placeholder="e.g. JSS1, Grade 10" />
           <div>
-            <label className="text-sm font-medium text-slate-700">Level (for ordering)</label>
+            <label className="text-sm font-medium text-slate-700">Progression Level (Numeric Order)</label>
+            <p className="text-xs text-slate-500 mb-1.5">
+              Enter a number to define the academic order. E.g., <strong>1</strong> for Creche, <strong>2</strong> for Nursery, <strong>5</strong> for Primary 1. The system uses this to sort classes and promote students to the next number at the end of the year.
+            </p>
             <input
-              type="number" min={1} max={20}
+              type="number" min={0} max={50}
               value={form.level}
-              onChange={(e) => setForm((f) => ({ ...f, level: parseInt(e.target.value) || 1 }))}
-              className="mt-1.5 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              onChange={(e) => setForm((f) => ({ ...f, level: parseInt(e.target.value) || 0 }))}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              placeholder="e.g. 1"
             />
           </div>
           <ModalActions onCancel={() => setIsAddOpen(false)} onSubmit={submit} disabled={isSaving || !form.name.trim()} isSaving={isSaving} label={editId ? "Save Changes" : "Add Class"} />
@@ -1382,8 +1387,10 @@ function RoomsTab({ organizationId, rooms, refresh }: { organizationId: string; 
 
 const DAY_LABELS: Record<number, string> = { 1: "Mon", 2: "Tue", 3: "Wed", 4: "Thu", 5: "Fri", 6: "Sat", 7: "Sun" };
 
-function TimetableTab({ organizationId, courses, teachers, rooms, refresh }: { organizationId: string; courses: any[]; teachers: any[]; rooms: any[]; refresh: () => void }) {
+function TimetableTab({ organizationId, courses, teachers, rooms, classSections, refresh }: { organizationId: string; courses: any[]; teachers: any[]; rooms: any[]; classSections: any[]; refresh: () => void }) {
+  const [viewMode, setViewMode] = useState<"subject" | "section">("subject");
   const [selectedClassId, setSelectedClassId] = useState<string>(courses[0]?.id ?? "");
+  const [selectedSectionId, setSelectedSectionId] = useState<string>(classSections[0]?.id ?? "");
   const [slots, setSlots] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -1392,21 +1399,27 @@ function TimetableTab({ organizationId, courses, teachers, rooms, refresh }: { o
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  const load = async (classId: string) => {
-    if (!classId) { setSlots([]); return; }
+  const load = async () => {
     setLoading(true);
     try {
-      const data = await getTimetableForClass(classId);
-      setSlots(data);
+      if (viewMode === "subject") {
+        if (!selectedClassId) { setSlots([]); return; }
+        const data = await getTimetableForClass(selectedClassId);
+        setSlots(data);
+      } else {
+        if (!selectedSectionId) { setSlots([]); return; }
+        const data = await getTimetableForSection(selectedSectionId);
+        setSlots(data);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    load(selectedClassId);
+    load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedClassId]);
+  }, [viewMode, selectedClassId, selectedSectionId]);
 
   const primaryTeacherId = () => {
     // best-effort: no ClassTeacher data available client-side here, so leave
@@ -1445,7 +1458,7 @@ function TimetableTab({ organizationId, courses, teachers, rooms, refresh }: { o
         : await createTimetableSlot({ classId: selectedClassId, ...payload });
       if ('error' in res) throw new Error(res.error);
       setIsAddOpen(false);
-      await load(selectedClassId);
+      await load();
       refresh();
     } catch (err: any) {
       setError(err.message);
@@ -1458,30 +1471,58 @@ function TimetableTab({ organizationId, courses, teachers, rooms, refresh }: { o
     if (!confirm("Remove this slot?")) return;
     const res = await deleteTimetableSlot(id);
     if (res?.error) { alert(res.error); return; }
-    await load(selectedClassId);
+    await load();
     refresh();
   };
 
   const periods = [...new Set(slots.map((s) => s.period))].sort((a, b) => a - b);
   const days = [1, 2, 3, 4, 5];
-  const cellFor = (day: number, period: number) => slots.find((s) => s.dayOfWeek === day && s.period === period);
+  const cellsFor = (day: number, period: number) => slots.filter((s) => s.dayOfWeek === day && s.period === period);
 
   return (
     <div className="space-y-4">
+      <div className="flex bg-slate-100 p-1 rounded-lg w-fit">
+        <button
+          onClick={() => setViewMode("subject")}
+          className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${viewMode === "subject" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+        >
+          Manage by Subject Class
+        </button>
+        <button
+          onClick={() => setViewMode("section")}
+          className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${viewMode === "section" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+        >
+          Master View (By Section)
+        </button>
+      </div>
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <label className="text-sm font-medium text-slate-700 mr-2">Class</label>
-          <select
-            value={selectedClassId}
-            onChange={(e) => setSelectedClassId(e.target.value)}
-            className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-          >
-            {courses.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-        </div>
+        {viewMode === "subject" ? (
+          <div>
+            <label className="text-sm font-medium text-slate-700 mr-2">Subject Class</label>
+            <select
+              value={selectedClassId}
+              onChange={(e) => setSelectedClassId(e.target.value)}
+              className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 min-w-[200px]"
+            >
+              {courses.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+        ) : (
+          <div>
+            <label className="text-sm font-medium text-slate-700 mr-2">Class Section</label>
+            <select
+              value={selectedSectionId}
+              onChange={(e) => setSelectedSectionId(e.target.value)}
+              className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 min-w-[200px]"
+            >
+              {classSections.map((cs) => <option key={cs.id} value={cs.id}>{cs.name}</option>)}
+            </select>
+          </div>
+        )}
         <button
           onClick={openAdd}
-          disabled={!selectedClassId}
+          disabled={viewMode === "subject" ? !selectedClassId : !selectedSectionId}
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
         >
           <Plus size={16} /> Add Slot
@@ -1497,6 +1538,7 @@ function TimetableTab({ organizationId, courses, teachers, rooms, refresh }: { o
               <table className="w-full text-sm text-left">
                 <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
                   <tr>
+                    {viewMode === "section" && <th className="px-6 py-4">Subject Class</th>}
                     <th className="px-6 py-4">Day</th>
                     <th className="px-6 py-4">Period</th>
                     <th className="px-6 py-4">Time</th>
@@ -1507,12 +1549,13 @@ function TimetableTab({ organizationId, courses, teachers, rooms, refresh }: { o
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {loading ? (
-                    <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-400">Loading...</td></tr>
+                    <tr><td colSpan={viewMode === "section" ? 7 : 6} className="px-6 py-8 text-center text-slate-400">Loading...</td></tr>
                   ) : slots.length === 0 ? (
-                    <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-500">No slots scheduled for this class yet.</td></tr>
+                    <tr><td colSpan={viewMode === "section" ? 7 : 6} className="px-6 py-8 text-center text-slate-500">No slots scheduled yet.</td></tr>
                   ) : (
                     slots.map((slot) => (
                       <tr key={slot.id} className="hover:bg-slate-50 transition-colors">
+                        {viewMode === "section" && <td className="px-6 py-4 font-medium text-slate-800">{slot.courseName ?? "—"}</td>}
                         <td className="px-6 py-4 font-medium text-slate-800">{DAY_LABELS[slot.dayOfWeek] ?? slot.dayOfWeek}</td>
                         <td className="px-6 py-4 text-slate-500">{slot.period}</td>
                         <td className="px-6 py-4 text-slate-500">{slot.startTime} – {slot.endTime}</td>
@@ -1545,10 +1588,25 @@ function TimetableTab({ organizationId, courses, teachers, rooms, refresh }: { o
                       <tr key={p}>
                         <td className="px-3 py-2 border border-slate-100 font-medium text-slate-600">{p}</td>
                         {days.map((d) => {
-                          const cell = cellFor(d, p);
+                          const cells = cellsFor(d, p);
                           return (
-                            <td key={d} className="px-3 py-2 border border-slate-100 text-slate-600">
-                              {cell ? `${cell.roomName ?? ""}`.trim() || "✓" : ""}
+                            <td key={d} className="px-3 py-2 border border-slate-100 text-slate-600 align-top">
+                              <div className="flex flex-col gap-2">
+                                {cells.length > 0 ? cells.map((cell: any) => (
+                                  <div key={cell.id} className="bg-slate-50 p-1.5 rounded border border-slate-200 shadow-sm">
+                                    {viewMode === "section" ? (
+                                      <div className="flex flex-col items-center justify-center text-xs">
+                                        <span className="font-semibold text-slate-800 text-center">{cell.courseName}</span>
+                                        <span className="text-slate-500 text-[10px]">{cell.roomName || "No Room"}</span>
+                                      </div>
+                                    ) : (
+                                      <div className="flex flex-col items-center justify-center text-xs">
+                                        <span className="font-semibold text-slate-700">{cell.roomName || "✓"}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                )) : ""}
+                              </div>
                             </td>
                           );
                         })}

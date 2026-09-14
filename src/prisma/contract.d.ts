@@ -33,7 +33,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'4a0d073c11fe88ac1a3f7a0f1fbd7a3434a3f903e0c2d232b30168f80606ccdd'>;
+  StorageHashBase<'f4b7e4554a9d22579fa71519cd2f9ef90d5c929d4ebd07305e59470ae81899fd'>;
 export type ExecutionHash =
   ExecutionHashBase<'bc532f03d34f6d09af354387e9d2dbedb2f636affd9291fe046de5a99e0766a1'>;
 export type ProfileHash =
@@ -1325,6 +1325,7 @@ export type FieldOutputTypes = {
       readonly organizationId: CodecTypes['pg/text@1']['output'];
       readonly studentId: CodecTypes['pg/text@1']['output'];
       readonly firstName: CodecTypes['pg/text@1']['output'];
+      readonly middleName: CodecTypes['pg/text@1']['output'] | null;
       readonly lastName: CodecTypes['pg/text@1']['output'];
       readonly dateOfBirth: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
       readonly gender: CodecTypes['pg/text@1']['output'] | null;
@@ -2626,6 +2627,7 @@ export type FieldInputTypes = {
       readonly organizationId: CodecTypes['pg/text@1']['input'];
       readonly studentId: CodecTypes['pg/text@1']['input'];
       readonly firstName: CodecTypes['pg/text@1']['input'];
+      readonly middleName: CodecTypes['pg/text@1']['input'] | null;
       readonly lastName: CodecTypes['pg/text@1']['input'];
       readonly dateOfBirth: CodecTypes['pg/timestamptz-temporal@1']['input'] | null;
       readonly gender: CodecTypes['pg/text@1']['input'] | null;
@@ -3946,6 +3948,7 @@ export type StorageColumnTypes = {
       readonly lastName: CodecTypes['pg/text@1']['output'];
       readonly medicalConditions: CodecTypes['pg/text@1']['output'] | null;
       readonly medications: CodecTypes['pg/text@1']['output'] | null;
+      readonly middleName: CodecTypes['pg/text@1']['output'] | null;
       readonly nationality: CodecTypes['pg/text@1']['output'] | null;
       readonly nsn: CodecTypes['pg/text@1']['output'] | null;
       readonly organizationId: CodecTypes['pg/text@1']['output'];
@@ -5247,6 +5250,7 @@ export type StorageColumnInputTypes = {
       readonly lastName: CodecTypes['pg/text@1']['input'];
       readonly medicalConditions: CodecTypes['pg/text@1']['input'] | null;
       readonly medications: CodecTypes['pg/text@1']['input'] | null;
+      readonly middleName: CodecTypes['pg/text@1']['input'] | null;
       readonly nationality: CodecTypes['pg/text@1']['input'] | null;
       readonly nsn: CodecTypes['pg/text@1']['input'] | null;
       readonly organizationId: CodecTypes['pg/text@1']['input'];
@@ -14418,6 +14422,11 @@ type ContractBase = Omit<
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
                   readonly nullable: false;
+                };
+                readonly middleName: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
                 };
                 readonly lastName: {
                   readonly nativeType: 'text';
@@ -25991,6 +26000,10 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
+              readonly middleName: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
               readonly lastName: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
@@ -26295,6 +26308,7 @@ type ContractBase = Omit<
                 readonly organizationId: { readonly column: 'organizationId' };
                 readonly studentId: { readonly column: 'studentId' };
                 readonly firstName: { readonly column: 'firstName' };
+                readonly middleName: { readonly column: 'middleName' };
                 readonly lastName: { readonly column: 'lastName' };
                 readonly dateOfBirth: { readonly column: 'dateOfBirth' };
                 readonly gender: { readonly column: 'gender' };

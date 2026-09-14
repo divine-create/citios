@@ -419,7 +419,7 @@ export default function AdminDashboard({
                 </div>
               </div>
             ) : activeMenu === "Users" ? (
-              <UsersManager organizationId={organizationId} activeTab={activeUsersTab} students={initialStudents} staff={initialStaff} parents={initialParents} refresh={refresh} />
+              <UsersManager organizationId={organizationId} activeTab={activeUsersTab} students={initialStudents} staff={initialStaff} parents={initialParents} grades={initialGrades} classSections={initialClassSections} refresh={refresh} />
             ) : activeMenu === "Academic" ? (
               <AcademicManager
                 organizationId={organizationId}

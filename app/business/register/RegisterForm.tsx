@@ -42,6 +42,8 @@ export default function RegisterForm({ initialType, isLoggedIn }: { initialType:
         router.push('/school/admin');
       } else if (formData.type === 'SERVICES') {
         router.push('/service');
+      } else if (formData.type === 'RETAIL') {
+        router.push('/grocery');
       } else {
         router.push('/');
       }
