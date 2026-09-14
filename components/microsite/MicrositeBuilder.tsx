@@ -629,16 +629,15 @@ function DomainPromoBanner({ currentDomain, organizationId }: { currentDomain?: 
   );
 }
 
-function SettingsPanel({ site, organizationId, orgType, onSaved }: { site: Site; organizationId: string; orgType: string | null; onSaved: () => void }) {
-  const [form, setForm] = useState({
-    title: site.title,
-    tagline: site.tagline ?? "",
-    slug: site.slug,
-    seoTitle: site.seoTitle ?? "",
-    seoDescription: site.seoDescription ?? "",
-  });
+function ThemePanel({ site, organizationId, orgType, onSaved }: { site: Site; organizationId: string; orgType: string | null; onSaved: () => void }) {
   const [theme, setTheme] = useState(site.theme);
   const [logoAssetId, setLogoAssetId] = useState<string | null>(site.logoAssetId);
+  const [primaryColor, setPrimaryColor] = useState(site.primaryColor ?? "");
+  const [accentColor, setAccentColor] = useState(site.accentColor ?? "");
+  const [headingFont, setHeadingFont] = useState(site.headingFont ?? "inter");
+  const [bodyFont, setBodyFont] = useState(site.bodyFont ?? "inter");
+  const [borderRadius, setBorderRadius] = useState(site.borderRadius ?? "md");
+  
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -655,7 +654,14 @@ function SettingsPanel({ site, organizationId, orgType, onSaved }: { site: Site;
     setError(null);
     setIsSaving(true);
     try {
-      const res = await updateMicrositeSettings(site.id, { ...form, theme, logoAssetId });
+      const payload: any = { theme, logoAssetId };
+      if (primaryColor) payload.primaryColor = primaryColor;
+      if (accentColor) payload.accentColor = accentColor;
+      if (headingFont) payload.headingFont = headingFont;
+      if (bodyFont) payload.bodyFont = bodyFont;
+      if (borderRadius) payload.borderRadius = borderRadius;
+      
+      const res = await updateMicrositeSettings(site.id, payload);
       if ((res as any)?.error) { setError((res as any).error); return; }
       onSaved();
     } finally {
@@ -667,10 +673,50 @@ function SettingsPanel({ site, organizationId, orgType, onSaved }: { site: Site;
     <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-6 max-w-2xl">
       {error && <ErrorBanner text={error} />}
       
-      <DomainPromoBanner currentDomain={null} organizationId={organizationId} />
+      <div className="pt-2">
+        <h3 className="font-bold text-slate-800 mb-4">Brand Kit</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <TextField label="Primary Background Color (Hex)" value={primaryColor} onChange={setPrimaryColor} placeholder="#ffffff" />
+          <TextField label="Accent Color (Hex)" value={accentColor} onChange={setAccentColor} placeholder="#3b82f6" />
+          <div>
+            <label className="text-sm font-medium text-slate-700 mb-2 block">Heading Font</label>
+            <select value={headingFont} onChange={e => setHeadingFont(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white outline-none focus:border-blue-500 transition-colors">
+              <option value="inter">Inter (Sans-Serif)</option>
+              <option value="playfair">Playfair Display (Serif)</option>
+              <option value="monospace">Monospace</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-slate-700 mb-2 block">Body Font</label>
+            <select value={bodyFont} onChange={e => setBodyFont(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white outline-none focus:border-blue-500 transition-colors">
+              <option value="inter">Inter (Sans-Serif)</option>
+              <option value="playfair">Playfair Display (Serif)</option>
+              <option value="monospace">Monospace</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-slate-700 mb-2 block">Border Radius</label>
+            <select value={borderRadius} onChange={e => setBorderRadius(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white outline-none focus:border-blue-500 transition-colors">
+              <option value="none">Square (0px)</option>
+              <option value="sm">Small (4px)</option>
+              <option value="md">Medium (8px)</option>
+              <option value="lg">Large (16px)</option>
+              <option value="full">Pill (Fully rounded)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <AssetPicker
+        label="Logo"
+        organizationId={organizationId}
+        assetId={logoAssetId}
+        onChange={setLogoAssetId}
+      />
 
       <div className="pt-2 border-t border-slate-100">
-        <label className="text-sm font-medium text-slate-700 mb-2 block">Theme</label>
+        <label className="text-sm font-medium text-slate-700 mb-2 block">Base Theme</label>
+        <p className="text-xs text-slate-500 mb-3">Select a layout base. Your brand colors and fonts will override the base theme.</p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {allowedThemes.map((id) => {
             const t = THEMES[id];
@@ -691,12 +737,45 @@ function SettingsPanel({ site, organizationId, orgType, onSaved }: { site: Site;
         </div>
       </div>
 
-      <AssetPicker
-        label="Logo"
-        organizationId={organizationId}
-        assetId={logoAssetId}
-        onChange={setLogoAssetId}
-      />
+      <button
+        onClick={save}
+        disabled={isSaving}
+        className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-sm font-semibold transition-colors"
+      >
+        {isSaving ? "Saving..." : "Save Theme"}
+      </button>
+    </div>
+  );
+}
+
+function SettingsPanel({ site, organizationId, orgType, onSaved }: { site: Site; organizationId: string; orgType: string | null; onSaved: () => void }) {
+  const [form, setForm] = useState({
+    title: site.title,
+    tagline: site.tagline ?? "",
+    slug: site.slug,
+    seoTitle: site.seoTitle ?? "",
+    seoDescription: site.seoDescription ?? "",
+  });
+  const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const save = async () => {
+    setError(null);
+    setIsSaving(true);
+    try {
+      const res = await updateMicrositeSettings(site.id, { ...form });
+      if ((res as any)?.error) { setError((res as any).error); return; }
+      onSaved();
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-6 max-w-2xl">
+      {error && <ErrorBanner text={error} />}
+      
+      <DomainPromoBanner currentDomain={null} organizationId={organizationId} />
 
       <TextField label="Website Title" value={form.title} onChange={(v) => setForm((f) => ({ ...f, title: v }))} />
       <TextField label="Tagline" value={form.tagline} onChange={(v) => setForm((f) => ({ ...f, tagline: v }))} placeholder="A short line about your organization" />
@@ -1007,7 +1086,7 @@ function ListEditor({ label, items, onChange, newItem, fields }: {
   label: string;
   items: any[];
   onChange: (items: any[]) => void;
-  newItem: Record<string, string>;
+  newItem: any;
   fields: { key: string; label: string; textarea?: boolean }[];
 }) {
   const update = (i: number, key: string, value: string) => {
