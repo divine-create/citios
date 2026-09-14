@@ -44,6 +44,8 @@ export async function registerOrganization(data: {
 export async function registerSchool(data: {
   name: string;
   shortName: string;
+  state: string;
+  lga: string;
   address: string;
   phone: string;
   email: string;
@@ -59,7 +61,7 @@ export async function registerSchool(data: {
     const org = await db.orm.public.Organization.create({
       name: data.name,
       type: 'SCHOOL' as any,
-      address: data.address,
+      address: `${data.address}, ${data.lga}, ${data.state}`,
     });
 
     await db.orm.public.OrganizationMember.create({
@@ -72,6 +74,8 @@ export async function registerSchool(data: {
       organizationId: org.id,
       name: data.name,
       shortName: data.shortName,
+      state: data.state,
+      lga: data.lga,
       address: data.address,
       phone: data.phone,
       email: data.email,

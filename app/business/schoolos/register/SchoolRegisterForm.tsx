@@ -6,6 +6,8 @@ import { signIn } from 'next-auth/react';
 import { registerSchool } from '@/lib/actions/business';
 import { Loader2, ArrowRight } from 'lucide-react';
 
+import { NIGERIAN_STATES } from '@/lib/data/nigeria';
+
 export default function SchoolRegisterForm({ isLoggedIn }: { isLoggedIn: boolean }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -14,11 +16,16 @@ export default function SchoolRegisterForm({ isLoggedIn }: { isLoggedIn: boolean
   const [formData, setFormData] = useState({
     name: '',
     shortName: '',
+    state: '',
+    lga: '',
     address: '',
     phone: '',
     email: '',
     website: '',
   });
+
+  // Calculate available LGAs based on selected state
+  const availableLGAs = formData.state ? (NIGERIAN_STATES as Record<string, string[]>)[formData.state] || [] : [];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,6 +33,11 @@ export default function SchoolRegisterForm({ isLoggedIn }: { isLoggedIn: boolean
 
     if (!isLoggedIn) {
       signIn('google', { callbackUrl: '/business/schoolos/register' });
+      return;
+    }
+
+    if (!formData.state || !formData.lga) {
+      setError('Please select a valid State and Local Government Area.');
       return;
     }
 
@@ -63,35 +75,62 @@ export default function SchoolRegisterForm({ isLoggedIn }: { isLoggedIn: boolean
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Short Name / Abbreviation</label>
-          <input 
-            type="text" 
-            placeholder="e.g. SHS"
-            value={formData.shortName}
-            onChange={e => setFormData({...formData, shortName: e.target.value})}
+          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">State *</label>
+          <select 
+            required
+            value={formData.state}
+            onChange={e => {
+              // Reset LGA when state changes
+              setFormData({...formData, state: e.target.value, lga: ''})
+            }}
             className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all font-medium text-slate-900"
-          />
+          >
+            <option value="" disabled>Select a State</option>
+            {Object.keys(NIGERIAN_STATES).sort().map(state => (
+              <option key={state} value={state}>{state} State</option>
+            ))}
+          </select>
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Phone Number</label>
-          <input 
-            type="tel" 
-            placeholder="e.g. +1 (555) 123-4567"
-            value={formData.phone}
-            onChange={e => setFormData({...formData, phone: e.target.value})}
-            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all font-medium text-slate-900"
-          />
+          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Local Government Area (LGA) *</label>
+          <select 
+            required
+            value={formData.lga}
+            onChange={e => setFormData({...formData, lga: e.target.value})}
+            disabled={!formData.state}
+            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all font-medium text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <option value="" disabled>{formData.state ? 'Select an LGA' : 'Select a State first'}</option>
+            {availableLGAs.map((lga: string) => (
+              <option key={lga} value={lga}>{lga}</option>
+            ))}
+          </select>
         </div>
 
         <div className="col-span-1 md:col-span-2">
-          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Campus Address</label>
+          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Street Address *</label>
           <textarea 
-            placeholder="Full physical address"
+            required
+            placeholder="e.g. 14 Awolowo Way"
             value={formData.address}
             onChange={e => setFormData({...formData, address: e.target.value})}
             rows={2}
             className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all font-medium text-slate-900 resize-none"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Phone Number *</label>
+          <input 
+            required
+            type="tel" 
+            placeholder="e.g. 08012345678"
+            pattern="^(0[789][01]\d{8}|\+234[789][01]\d{8})$"
+            title="Please enter a valid Nigerian phone number (e.g., 08012345678 or +2348012345678)"
+            value={formData.phone}
+            onChange={e => setFormData({...formData, phone: e.target.value})}
+            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all font-medium text-slate-900"
           />
         </div>
 

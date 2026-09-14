@@ -697,7 +697,9 @@ model SchoolSettings {
 
   name           String
   shortName      String?
-  address        String?
+  address        String?  // Used as street address
+  state          String?  // Nigerian State
+  lga            String?  // Local Government Area
   phone          String?
   email          String?
   website        String?
