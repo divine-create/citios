@@ -20,16 +20,13 @@ export async function completeSchoolSetup(data: {
   }
 
   try {
-    await db.orm.public.SchoolSettings.update({
-      where: { organizationId: data.organizationId },
-      data: {
-        schoolType: data.schoolType,
-        currentYear: data.currentYear,
-        currentTerm: data.currentTerm,
-        currencyCode: data.currencyCode,
-        currencySymbol: data.currencySymbol,
-        setupComplete: data.setupComplete,
-      }
+    await db.orm.public.SchoolSettings.where({ organizationId: data.organizationId }).update({
+      schoolType: data.schoolType,
+      currentYear: data.currentYear,
+      currentTerm: data.currentTerm,
+      currencyCode: data.currencyCode,
+      currencySymbol: data.currencySymbol,
+      setupComplete: data.setupComplete,
     });
 
     return { success: true };
