@@ -70,8 +70,9 @@ export default function RegisterForm({ initialType, isLoggedIn }: { initialType:
         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Organization Type</label>
         <select 
           value={formData.type}
+          disabled={true}
           onChange={e => setFormData({...formData, type: e.target.value})}
-          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all font-medium text-slate-900"
+          className="w-full px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl focus:outline-none transition-all font-medium text-slate-600 opacity-80 cursor-not-allowed"
         >
           <option value="SCHOOL">School / University</option>
           <option value="SERVICES">Service Business</option>
