@@ -48,3 +48,22 @@ export async function getProfileAndWallet() {
     return null;
   }
 }
+
+export async function updateProfile(input: { name?: string; image?: string }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) {
+    return { error: 'Not authenticated' };
+  }
+
+  try {
+    const data: any = {};
+    if (input.name !== undefined) data.name = input.name;
+    if (input.image !== undefined) data.image = input.image;
+
+    await db.orm.public.User.where({ email: session.user.email }).update(data);
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    return { error: 'Failed to update profile' };
+  }
+}

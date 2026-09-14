@@ -1,11 +1,21 @@
 "use client";
-import { User, CreditCard, HeartPulse, Settings, LogOut, ChevronRight, GraduationCap, ShieldCheck } from 'lucide-react';
+import { useState } from 'react';
+import { User, CreditCard, HeartPulse, Settings, LogOut, ChevronRight, GraduationCap, ShieldCheck, Loader2 } from 'lucide-react';
 import { Card, Button, Badge } from './Shared';
 import { useRouter } from 'next/navigation';
-import { signOut } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
+import { updateProfile } from '@/lib/actions/profile';
 
 export default function ProfileView({ initialData }: { initialData: any }) {
     const router = useRouter();
+    const { update } = useSession();
+    
+    const [isEditing, setIsEditing] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [formData, setFormData] = useState({
+        name: initialData?.user?.name || '',
+        image: initialData?.user?.image || '',
+    });
 
     if (!initialData) {
         return (
@@ -19,6 +29,20 @@ export default function ProfileView({ initialData }: { initialData: any }) {
     const { user, wallet } = initialData;
     const initial = user.name ? user.name.charAt(0).toUpperCase() : 'U';
 
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            await updateProfile(formData);
+            await update(); // refresh NextAuth session
+            setIsEditing(false);
+            router.refresh();
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     return (
         <div className="max-w-5xl mx-auto space-y-6 md:space-y-8 animate-in fade-in duration-500">
             <h2 className="text-2xl font-bold text-slate-900 tracking-tight md:hidden">My Profile</h2>
@@ -26,22 +50,55 @@ export default function ProfileView({ initialData }: { initialData: any }) {
             <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
                 {/* Left Sidebar / Profile Card */}
                 <Card className="w-full md:w-80 flex flex-col items-center text-center p-8 sticky top-24 shrink-0">
-                    <div className="relative mb-6">
-                        <div className="w-28 h-28 rounded-full bg-teal-100 flex items-center justify-center text-teal-800 text-4xl font-black shadow-inner border-4 border-white overflow-hidden">
-                            {user.image ? (
-                                <img src={user.image} alt="Profile" className="w-full h-full object-cover" />
-                            ) : (
-                                initial
-                            )}
+                    {isEditing ? (
+                        <div className="w-full space-y-4 text-left">
+                            <h3 className="font-bold text-lg text-slate-900 text-center mb-4">Edit Profile</h3>
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-slate-700">Display Name</label>
+                                <input
+                                    type="text"
+                                    value={formData.name}
+                                    onChange={(e) => setFormData(f => ({ ...f, name: e.target.value }))}
+                                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:border-teal-500 focus:ring-1 focus:ring-teal-500 outline-none text-sm"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-slate-700">Avatar URL</label>
+                                <input
+                                    type="url"
+                                    value={formData.image}
+                                    placeholder="https://..."
+                                    onChange={(e) => setFormData(f => ({ ...f, image: e.target.value }))}
+                                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:border-teal-500 focus:ring-1 focus:ring-teal-500 outline-none text-sm"
+                                />
+                            </div>
+                            <div className="pt-4 flex gap-2">
+                                <Button variant="outline" className="flex-1" onClick={() => setIsEditing(false)}>Cancel</Button>
+                                <Button variant="primary" className="flex-1" onClick={handleSave} disabled={isSaving}>
+                                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
+                                </Button>
+                            </div>
                         </div>
-                        <div className="absolute bottom-0 right-0 w-8 h-8 bg-orange-500 rounded-full border-4 border-white flex items-center justify-center shadow-sm">
-                            <ShieldCheck className="w-4 h-4 text-white" />
-                        </div>
-                    </div>
-                    <h2 className="text-2xl font-bold text-slate-900 tracking-tight">{user.name || 'Resident'}</h2>
-                    <p className="text-slate-500 font-medium mb-6">{user.email}</p>
-                    <Badge variant="alert" className="mb-6 px-4 py-1.5 text-sm">Verified Resident</Badge>
-                    <Button variant="outline" className="w-full bg-slate-50 border-slate-200 text-slate-700">Edit Profile</Button>
+                    ) : (
+                        <>
+                            <div className="relative mb-6">
+                                <div className="w-28 h-28 rounded-full bg-teal-100 flex items-center justify-center text-teal-800 text-4xl font-black shadow-inner border-4 border-white overflow-hidden">
+                                    {user.image ? (
+                                        <img src={user.image} alt="Profile" className="w-full h-full object-cover" />
+                                    ) : (
+                                        initial
+                                    )}
+                                </div>
+                                <div className="absolute bottom-0 right-0 w-8 h-8 bg-orange-500 rounded-full border-4 border-white flex items-center justify-center shadow-sm">
+                                    <ShieldCheck className="w-4 h-4 text-white" />
+                                </div>
+                            </div>
+                            <h2 className="text-2xl font-bold text-slate-900 tracking-tight">{user.name || 'Resident'}</h2>
+                            <p className="text-slate-500 font-medium mb-6">{user.email}</p>
+                            <Badge variant="alert" className="mb-6 px-4 py-1.5 text-sm">Verified Resident</Badge>
+                            <Button variant="outline" className="w-full bg-slate-50 border-slate-200 text-slate-700" onClick={() => setIsEditing(true)}>Edit Profile</Button>
+                        </>
+                    )}
                 </Card>
 
                 {/* Main Content */}
