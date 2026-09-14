@@ -21,7 +21,6 @@ export default function SchoolRegisterForm({ isLoggedIn }: { isLoggedIn: boolean
     address: '',
     phone: '',
     email: '',
-    website: '',
   });
 
   // Calculate available LGAs based on selected state
@@ -141,17 +140,6 @@ export default function SchoolRegisterForm({ isLoggedIn }: { isLoggedIn: boolean
             placeholder="admissions@school.edu"
             value={formData.email}
             onChange={e => setFormData({...formData, email: e.target.value})}
-            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all font-medium text-slate-900"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Current Website URL</label>
-          <input 
-            type="url" 
-            placeholder="https://www.school.edu"
-            value={formData.website}
-            onChange={e => setFormData({...formData, website: e.target.value})}
             className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all font-medium text-slate-900"
           />
         </div>

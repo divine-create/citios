@@ -49,7 +49,6 @@ export async function registerSchool(data: {
   address: string;
   phone: string;
   email: string;
-  website: string;
 }) {
   const session = await getServerSession(authOptions);
   
@@ -79,7 +78,6 @@ export async function registerSchool(data: {
       address: data.address,
       phone: data.phone,
       email: data.email,
-      website: data.website,
       currentYear: new Date().getFullYear(),
     });
 
