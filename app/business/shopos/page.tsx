@@ -153,7 +153,7 @@ export default function ShopOSLandingPage() {
               </div>
               <h2 className="text-3xl md:text-5xl font-bold text-slate-900 tracking-tight mb-6">Bring your own hardware. <br/>No proprietary lock-in.</h2>
               <p className="text-lg text-slate-600 mb-8 leading-relaxed">
-                ShopOS runs in any modern browser. Connect any standard USB or Bluetooth barcode scanner, thermal receipt printer, and RJ11 cash drawer. We don't force you to buy overpriced, locked-down registers.
+                ShopOS runs in any modern browser. Connect any standard USB or Bluetooth barcode scanner, thermal receipt printer, and RJ11 cash drawer. We don&apos;t force you to buy overpriced, locked-down registers.
               </p>
               <ul className="space-y-4 font-medium text-slate-700">
                 <li className="flex items-center gap-3"><CheckCircle2 className="text-emerald-500" size={20}/> Compatible with Zebra, Symbol, & Honeywell scanners</li>
@@ -209,7 +209,7 @@ export default function ShopOSLandingPage() {
             
             <div className="flex-1 bg-slate-900 text-white p-10 md:p-12 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/20 rounded-full blur-[80px]"></div>
-              <h4 className="text-lg font-bold mb-6 relative z-10">What's included:</h4>
+              <h4 className="text-lg font-bold mb-6 relative z-10">What&apos;s included:</h4>
               <ul className="space-y-4 relative z-10 font-medium text-slate-300">
                 <li className="flex items-center gap-3"><CheckCircle2 className="text-emerald-400" size={20}/> Unlimited Products & Categories</li>
                 <li className="flex items-center gap-3"><CheckCircle2 className="text-emerald-400" size={20}/> Unlimited Staff Accounts</li>
