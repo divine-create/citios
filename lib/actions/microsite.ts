@@ -176,12 +176,40 @@ export async function createMicrosite(organizationId: string, input: { title: st
     else if (orgType === 'HOTEL') theme = 'horizon';
     else if (orgType === 'SCHOOL') theme = 'scholastic';
 
+    // Fetch dynamic defaults for professional look out-of-the-box
+    let defaultPhone = "";
+    let defaultEmail = "";
+    let defaultAddress = "";
+    let defaultHeadName = "Administration";
+    let defaultLogo = null;
+
+    if (orgType === 'SCHOOL') {
+      const settings = await db.orm.public.SchoolSettings.where({ organizationId }).all().first();
+      if (settings) {
+        if (settings.phone) defaultPhone = settings.phone;
+        if (settings.email) defaultEmail = settings.email;
+        if (settings.logo) defaultLogo = settings.logo;
+        let addrParts = [];
+        if (settings.address) addrParts.push(settings.address);
+        if (settings.lga) addrParts.push(settings.lga);
+        if (settings.state) addrParts.push(settings.state);
+        if (addrParts.length > 0) defaultAddress = addrParts.join(", ");
+      }
+      
+      const ownerMember = await db.orm.public.OrganizationMember.where({ organizationId, role: 'OWNER' }).all().first();
+      if (ownerMember) {
+        const ownerUser = await db.orm.public.User.where({ id: ownerMember.userId }).all().first();
+        if (ownerUser?.name) defaultHeadName = ownerUser.name;
+      }
+    }
+
     const microsite = await db.orm.public.Microsite.create({
       organizationId,
       slug,
       title: input.title,
       status: 'draft',
       theme,
+      logoAssetId: defaultLogo,
     });
 
     const defaultSections: { type: string, content: any }[] = [];
@@ -210,7 +238,7 @@ export async function createMicrosite(organizationId: string, input: { title: st
     } else if (orgType === 'SCHOOL') {
       if (input.templateId === 'prep-academy') {
         defaultSections.push({ type: 'hero', content: { heading: input.title, subheading: "A tradition of excellence. Inspiring minds since 1952.", ctaText: "Admissions", ctaLink: "#contact", imageAssetId: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2000&auto=format&fit=crop" } });
-        defaultSections.push({ type: 'school-head-welcome', content: { heading: "Welcome from the Headmaster", body: "At our academy, we believe in nurturing not just academic excellence, but character, leadership, and a lifelong love for learning. Our historic campus provides the perfect environment for students to thrive.", signature: "Dr. Arthur Pendelton" } });
+        defaultSections.push({ type: 'school-head-welcome', content: { heading: "Welcome from the Headmaster", body: "At our academy, we believe in nurturing not just academic excellence, but character, leadership, and a lifelong love for learning. Our historic campus provides the perfect environment for students to thrive.", signature: defaultHeadName } });
         defaultSections.push({ type: 'school-curriculum', content: { heading: "Academic Divisions", items: [
           { phase: "Lower School", description: "Building a strong foundation in core subjects with an emphasis on curiosity." },
           { phase: "Upper School", description: "Rigorous college-preparatory coursework including AP and Honors programs." }
@@ -221,10 +249,10 @@ export async function createMicrosite(organizationId: string, input: { title: st
           { phase: "School of Engineering", description: "Cutting-edge labs and industry partnerships." },
           { phase: "College of Arts", description: "Fostering creativity and critical thinking in a digital age." }
         ] } });
-        defaultSections.push({ type: 'school-head-welcome', content: { heading: "President's Message", body: "We are committed to providing a dynamic, inclusive, and forward-thinking environment. Join us in shaping tomorrow.", signature: "President Sarah Jenkins" } });
+        defaultSections.push({ type: 'school-head-welcome', content: { heading: "President's Message", body: "We are committed to providing a dynamic, inclusive, and forward-thinking environment. Join us in shaping tomorrow.", signature: defaultHeadName } });
       } else {
         defaultSections.push({ type: 'hero', content: { heading: input.title, subheading: "Welcome to our institution.", ctaText: "Learn More", ctaLink: "#contact" } });
-        defaultSections.push({ type: 'school-head-welcome', content: { heading: "Welcome", body: "We are thrilled to welcome you.", signature: "Administration" } });
+        defaultSections.push({ type: 'school-head-welcome', content: { heading: "Welcome", body: "We are thrilled to welcome you.", signature: defaultHeadName } });
       }
     } else if (orgType === 'RETAIL') {
       if (input.templateId === 'modern-apparel') {
@@ -241,7 +269,7 @@ export async function createMicrosite(organizationId: string, input: { title: st
       defaultSections.push({ type: 'hero', content: { heading: input.title, subheading: "Welcome to our website.", ctaText: "Contact Us", ctaLink: "#contact" } });
     }
 
-    defaultSections.push({ type: 'contact', content: { heading: "Get in Touch", address: "", phone: "", email: "" } });
+    defaultSections.push({ type: 'contact', content: { heading: "Get in Touch", address: defaultAddress, phone: defaultPhone, email: defaultEmail } });
 
     const homePage = await db.orm.public.MicrositePage.create({
       micrositeId: microsite.id,
