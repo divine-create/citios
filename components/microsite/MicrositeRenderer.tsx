@@ -224,6 +224,8 @@ export default function MicrositeRenderer({ data }: { data: MicrositeData }) {
 
 function Section({ id, micrositeId, type, content, theme, products, hotelRooms }: { id: string; micrositeId: string; type: string; content: any; theme: typeof THEMES[string]; products: RetailProductSummary[], hotelRooms?: any[] }) {
   const headingStyle: React.CSSProperties = { fontFamily: theme.headingFont, color: theme.text };
+  const isLuxury = theme.label === "Horizon (Hotel)";
+  const isSchoolTheme = theme.label.includes("School") || theme.label.includes("Elementary") || theme.label.includes("Innovator") || theme.label.includes("Scholastic") || theme.label.includes("Academy") || theme.label.includes("Prestige");
 
   switch (type) {
     case "hero":
@@ -236,33 +238,36 @@ function Section({ id, micrositeId, type, content, theme, products, hotelRooms }
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            textAlign: "center",
-            minHeight: theme.label === "Horizon (Hotel)" ? "85vh" : "auto",
-            padding: theme.label === "Horizon (Hotel)" ? "0" : "8rem 2rem",
+            textAlign: isSchoolTheme ? "left" : "center",
+            minHeight: isLuxury ? "85vh" : isSchoolTheme ? "75vh" : "auto",
+            padding: isLuxury ? "0" : "8rem 2rem",
             backgroundImage: content.imageAssetId ? `url(${assetUrl(content.imageAssetId)})` : "none",
             backgroundSize: "cover",
             backgroundPosition: "center",
-            backgroundAttachment: "fixed",
+            backgroundAttachment: isSchoolTheme ? "scroll" : "fixed",
             backgroundColor: theme.surface,
           }}
         >
           {content.imageAssetId && (
-            <div style={{ position: "absolute", inset: 0, backgroundColor: theme.label === "Horizon (Hotel)" ? "rgba(0,0,0,0.6)" : "rgba(0,0,0,0.5)", zIndex: 0 }} />
+            <div style={{ position: "absolute", inset: 0, backgroundColor: isLuxury ? "rgba(0,0,0,0.6)" : isSchoolTheme ? "rgba(15, 23, 42, 0.7)" : "rgba(0,0,0,0.5)", zIndex: 0 }} />
           )}
           <FadeIn>
-            <div style={{ position: "relative", zIndex: 1, maxWidth: "64rem", margin: "0 auto", padding: "4rem 2rem" }}>
+            <div style={{ position: "relative", zIndex: 1, maxWidth: "72rem", margin: "0 auto", padding: isSchoolTheme ? "0" : "4rem 2rem", width: "100%", display: isSchoolTheme ? "flex" : "block", flexDirection: "column", alignItems: "flex-start" }}>
+              {isSchoolTheme && content.heading && (
+                 <div style={{ width: "60px", height: "4px", backgroundColor: theme.accent, marginBottom: "2rem", borderRadius: "2px" }} />
+              )}
               {content.heading && (
-                <h1 style={{ ...headingStyle, fontSize: theme.label === "Horizon (Hotel)" ? "5rem" : "3.5rem", fontWeight: theme.label === "Horizon (Hotel)" ? 300 : 800, letterSpacing: theme.label === "Horizon (Hotel)" ? "0.02em" : "-0.02em", marginBottom: "1.5rem", color: content.imageAssetId ? "#fff" : theme.text, lineHeight: 1.1 }}>
+                <h1 style={{ ...headingStyle, fontSize: isLuxury ? "5rem" : isSchoolTheme ? "4.5rem" : "3.5rem", fontWeight: isLuxury ? 300 : isSchoolTheme ? 800 : 800, letterSpacing: isLuxury ? "0.02em" : "-0.02em", marginBottom: "1.5rem", color: content.imageAssetId ? "#fff" : theme.text, lineHeight: 1.1, maxWidth: isSchoolTheme ? "48rem" : "100%" }}>
                   {content.heading}
                 </h1>
               )}
               {content.subheading && (
-                <p style={{ fontSize: theme.label === "Horizon (Hotel)" ? "1.25rem" : "1.25rem", fontWeight: 300, color: content.imageAssetId ? "rgba(255,255,255,0.8)" : theme.textMuted, marginBottom: "2.5rem", maxWidth: "40rem", margin: "0 auto 2.5rem" }}>
+                <p style={{ fontSize: isLuxury ? "1.25rem" : isSchoolTheme ? "1.35rem" : "1.25rem", fontWeight: isSchoolTheme ? 400 : 300, color: content.imageAssetId ? "rgba(255,255,255,0.9)" : theme.textMuted, marginBottom: "2.5rem", maxWidth: isSchoolTheme ? "36rem" : "40rem", margin: isSchoolTheme ? "0 0 2.5rem 0" : "0 auto 2.5rem" }}>
                   {content.subheading}
                 </p>
               )}
               {content.ctaText && (
-                <a href={content.ctaLink || "#"} style={{ display: "inline-block", padding: theme.label === "Horizon (Hotel)" ? "1rem 3rem" : "1rem 2rem", backgroundColor: theme.accent, color: theme.accentText, fontWeight: theme.label === "Horizon (Hotel)" ? 500 : 700, borderRadius: theme.radius, textDecoration: "none", transition: "opacity 0.2s", textTransform: theme.label === "Horizon (Hotel)" ? "uppercase" : "none", letterSpacing: theme.label === "Horizon (Hotel)" ? "0.1em" : "normal", fontSize: "0.875rem" }}>
+                <a href={content.ctaLink || "#"} style={{ display: "inline-block", padding: isLuxury ? "1rem 3rem" : isSchoolTheme ? "1.125rem 2.5rem" : "1rem 2rem", backgroundColor: theme.accent, color: theme.accentText, fontWeight: isLuxury ? 500 : 700, borderRadius: theme.radius, textDecoration: "none", transition: "all 0.2s", textTransform: isLuxury ? "uppercase" : "none", letterSpacing: isLuxury ? "0.1em" : "normal", fontSize: isSchoolTheme ? "1rem" : "0.875rem", boxShadow: isSchoolTheme ? "0 10px 25px rgba(0,0,0,0.2)" : "none" }}>
                   {content.ctaText}
                 </a>
               )}
@@ -379,19 +384,55 @@ function Section({ id, micrositeId, type, content, theme, products, hotelRooms }
 
     case "contact":
       return (
-        <section id={id} className="section-padding" style={{ background: theme.surface }}>
+        <section id={id} className="section-padding" style={{ background: theme.surface, position: "relative" }}>
+          {isSchoolTheme && (
+            <div style={{ position: "absolute", bottom: 0, right: 0, width: "50%", height: "50%", background: `radial-gradient(circle at 100% 100%, ${theme.accent}10 0%, transparent 50%)`, pointerEvents: "none" }} />
+          )}
           <FadeIn>
-            <div className="contact-grid" style={{ maxWidth: "64rem", margin: "0 auto", display: "grid", gap: "4rem" }}>
-              <div>
-                {content.heading && <h2 style={{ ...headingStyle, fontSize: "2.5rem", fontWeight: 700, marginBottom: "2rem" }}>{content.heading}</h2>}
-                <div style={{ color: theme.textMuted, lineHeight: 2.2, fontSize: "1.1rem" }}>
-                  {content.address && <p>{content.address}</p>}
-                  {content.phone && <p>{content.phone}</p>}
-                  {content.email && <p>{content.email}</p>}
+            <div className="contact-grid" style={{ maxWidth: "72rem", margin: "0 auto", display: "grid", gap: "5rem", position: "relative", zIndex: 1 }}>
+              <div style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                {isSchoolTheme && (
+                  <div style={{ width: "40px", height: "4px", backgroundColor: theme.accent, marginBottom: "2rem", borderRadius: "2px" }} />
+                )}
+                {content.heading && <h2 style={{ ...headingStyle, fontSize: "3rem", fontWeight: 700, marginBottom: "2.5rem" }}>{content.heading}</h2>}
+                <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+                  {content.address && (
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: "1rem" }}>
+                       <div style={{ padding: "1rem", background: theme.bg, borderRadius: "50%", color: theme.accent, boxShadow: "0 4px 15px rgba(0,0,0,0.05)" }}>
+                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                       </div>
+                       <div style={{ paddingTop: "0.5rem" }}>
+                         <p style={{ fontWeight: 600, color: theme.text, marginBottom: "0.25rem", fontSize: "1.1rem" }}>Visit Us</p>
+                         <p style={{ color: theme.textMuted, lineHeight: 1.6, fontSize: "1.05rem" }}>{content.address}</p>
+                       </div>
+                    </div>
+                  )}
+                  {content.phone && (
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: "1rem" }}>
+                       <div style={{ padding: "1rem", background: theme.bg, borderRadius: "50%", color: theme.accent, boxShadow: "0 4px 15px rgba(0,0,0,0.05)" }}>
+                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
+                       </div>
+                       <div style={{ paddingTop: "0.5rem" }}>
+                         <p style={{ fontWeight: 600, color: theme.text, marginBottom: "0.25rem", fontSize: "1.1rem" }}>Call Us</p>
+                         <p style={{ color: theme.textMuted, lineHeight: 1.6, fontSize: "1.05rem" }}>{content.phone}</p>
+                       </div>
+                    </div>
+                  )}
+                  {content.email && (
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: "1rem" }}>
+                       <div style={{ padding: "1rem", background: theme.bg, borderRadius: "50%", color: theme.accent, boxShadow: "0 4px 15px rgba(0,0,0,0.05)" }}>
+                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                       </div>
+                       <div style={{ paddingTop: "0.5rem" }}>
+                         <p style={{ fontWeight: 600, color: theme.text, marginBottom: "0.25rem", fontSize: "1.1rem" }}>Email</p>
+                         <p style={{ color: theme.textMuted, lineHeight: 1.6, fontSize: "1.05rem" }}>{content.email}</p>
+                       </div>
+                    </div>
+                  )}
                 </div>
               </div>
-              <div>
-                <h3 style={{ ...headingStyle, fontSize: "1.5rem", fontWeight: 700, marginBottom: "1.5rem" }}>Send us a message</h3>
+              <div style={{ background: theme.bg, padding: "3rem", borderRadius: theme.radius, boxShadow: "0 20px 40px rgba(0,0,0,0.05)" }}>
+                <h3 style={{ ...headingStyle, fontSize: "1.75rem", fontWeight: 700, marginBottom: "2rem" }}>Send us a message</h3>
                 <ContactForm micrositeId={micrositeId} theme={theme} />
               </div>
             </div>
@@ -469,16 +510,23 @@ function Section({ id, micrositeId, type, content, theme, products, hotelRooms }
       const items: any[] = Array.isArray(content.items) ? content.items : [];
       return (
         <section id={id} className="section-padding">
-          <div style={{ maxWidth: "64rem", margin: "0 auto" }}>
+          <div style={{ maxWidth: "72rem", margin: "0 auto" }}>
             <FadeIn>
               {content.heading && <h2 style={{ ...headingStyle, fontSize: "2.5rem", fontWeight: 700, marginBottom: "4rem", textAlign: "center" }}>{content.heading}</h2>}
             </FadeIn>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "2.5rem" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "2.5rem" }}>
               {items.map((item, i) => (
                 <FadeIn key={i} delay={i * 100}>
-                  <div style={{ background: theme.surface, padding: "3rem", borderRadius: theme.radius, borderTop: `4px solid ${theme.accent}`, height: "100%", boxShadow: "0 10px 30px rgba(0,0,0,0.05)" }}>
-                    <h3 style={{ ...headingStyle, fontSize: "1.5rem", fontWeight: 700, marginBottom: "1rem" }}>{item.phase}</h3>
-                    <p style={{ color: theme.textMuted, lineHeight: 1.7, fontSize: "1.05rem" }}>{item.description}</p>
+                  <div style={{ background: theme.surface, padding: "3rem 2.5rem", borderRadius: theme.radius, position: "relative", overflow: "hidden", height: "100%", boxShadow: isSchoolTheme ? "0 10px 40px rgba(0,0,0,0.03)" : "0 10px 30px rgba(0,0,0,0.05)", border: isSchoolTheme ? "none" : `4px solid ${theme.accent}` }}>
+                    {isSchoolTheme && (
+                      <div style={{ position: "absolute", top: "-1rem", right: "-1rem", fontSize: "8rem", fontWeight: 900, color: theme.accent, opacity: 0.05, lineHeight: 1, zIndex: 0, pointerEvents: "none" }}>
+                        {(i + 1).toString().padStart(2, '0')}
+                      </div>
+                    )}
+                    <div style={{ position: "relative", zIndex: 1 }}>
+                      <h3 style={{ ...headingStyle, fontSize: "1.75rem", fontWeight: 700, marginBottom: "1rem" }}>{item.phase}</h3>
+                      <p style={{ color: theme.textMuted, lineHeight: 1.7, fontSize: "1.1rem" }}>{item.description}</p>
+                    </div>
                   </div>
                 </FadeIn>
               ))}
@@ -490,19 +538,37 @@ function Section({ id, micrositeId, type, content, theme, products, hotelRooms }
 
     case "school-head-welcome": {
       return (
-        <section id={id} className="section-padding" style={{ background: theme.surface }}>
+        <section id={id} className="section-padding" style={{ background: theme.surface, position: "relative", overflow: "hidden" }}>
+          {isSchoolTheme && (
+             <div style={{ position: "absolute", top: 0, left: 0, width: "30%", height: "100%", background: theme.bg, borderRight: `1px solid ${theme.accent}20` }} />
+          )}
           <FadeIn>
-            <div style={{ maxWidth: "56rem", margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+            <div style={{ maxWidth: "72rem", margin: "0 auto", position: "relative", zIndex: 1, display: "flex", flexDirection: isSchoolTheme ? "row" : "column", alignItems: "center", gap: isSchoolTheme ? "5rem" : "0", textAlign: isSchoolTheme ? "left" : "center" }}>
               {content.imageAssetId && (
-                <img
-                  src={assetUrl(content.imageAssetId)!}
-                  alt={content.signature}
-                  style={{ width: "10rem", height: "10rem", borderRadius: "50%", objectFit: "cover", marginBottom: "2.5rem", border: `4px solid ${theme.bg}`, boxShadow: "0 15px 35px rgba(0,0,0,0.1)" }}
-                />
+                <div style={{ flexShrink: 0, width: isSchoolTheme ? "24rem" : "10rem", marginBottom: isSchoolTheme ? "0" : "2.5rem", position: "relative" }}>
+                  {isSchoolTheme && (
+                    <div style={{ position: "absolute", inset: "-1rem", border: `2px solid ${theme.accent}`, borderRadius: theme.radius, transform: "translate(-1rem, 1rem)" }} />
+                  )}
+                  <img
+                    src={assetUrl(content.imageAssetId)!}
+                    alt={content.signature}
+                    style={{ width: "100%", height: isSchoolTheme ? "28rem" : "10rem", borderRadius: isSchoolTheme ? theme.radius : "50%", objectFit: "cover", position: "relative", zIndex: 2, boxShadow: "0 20px 40px rgba(0,0,0,0.15)" }}
+                  />
+                </div>
               )}
-              {content.heading && <h2 style={{ ...headingStyle, fontSize: "2.25rem", fontWeight: 700, marginBottom: "2rem" }}>{content.heading}</h2>}
-              {content.body && <p style={{ color: theme.text, fontSize: "1.35rem", fontStyle: "italic", lineHeight: 1.8, marginBottom: "2.5rem", maxWidth: "48rem" }}>&ldquo;{content.body}&rdquo;</p>}
-              {content.signature && <p style={{ ...headingStyle, fontWeight: 700, fontSize: "1.1rem", textTransform: "uppercase", letterSpacing: "0.1em", color: theme.accent }}>{content.signature}</p>}
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: isSchoolTheme ? "flex-start" : "center" }}>
+                {isSchoolTheme && (
+                  <div style={{ color: theme.accent, fontSize: "4rem", lineHeight: 0, opacity: 0.2, marginBottom: "1rem", fontFamily: "serif" }}>&ldquo;</div>
+                )}
+                {content.heading && <h2 style={{ ...headingStyle, fontSize: "2.25rem", fontWeight: 700, marginBottom: "2rem" }}>{content.heading}</h2>}
+                {content.body && <p style={{ color: theme.text, fontSize: isSchoolTheme ? "1.25rem" : "1.35rem", fontStyle: isSchoolTheme ? "normal" : "italic", lineHeight: 1.8, marginBottom: "2.5rem", maxWidth: "48rem" }}>{isSchoolTheme ? "" : "\u201c"}{content.body}{isSchoolTheme ? "" : "\u201d"}</p>}
+                {content.signature && (
+                  <div style={{ borderTop: isSchoolTheme ? `2px solid ${theme.accent}30` : "none", paddingTop: isSchoolTheme ? "1.5rem" : "0", width: isSchoolTheme ? "auto" : "100%" }}>
+                    <p style={{ ...headingStyle, fontWeight: 700, fontSize: "1.1rem", textTransform: "uppercase", letterSpacing: "0.1em", color: theme.accent }}>{content.signature}</p>
+                    {isSchoolTheme && <p style={{ color: theme.textMuted, fontSize: "0.9rem", marginTop: "0.25rem" }}>Head of School</p>}
+                  </div>
+                )}
+              </div>
             </div>
           </FadeIn>
         </section>
