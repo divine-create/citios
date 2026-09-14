@@ -7,6 +7,7 @@ import ExaminationManager, { EXAMINATION_TABS, TabId as ExaminationTabId } from 
 import SettingsManager, { SETTINGS_TABS, TabId as SettingsTabId } from "./SettingsManager";
 import AccountingManager, { ACCOUNTING_TABS, TabId as AccountingTabId } from "./AccountingManager";
 import InquiriesManager from "./InquiriesManager";
+import SchoolSetupWizard from "./SchoolSetupWizard";
 import {
   LayoutDashboard,
   Users,
@@ -159,7 +160,9 @@ export default function AdminDashboard({
   };
 
   return (
-    <div className="flex h-screen bg-[#F4F7FC] text-slate-800 font-sans overflow-hidden">
+    <>
+      <SchoolSetupWizard settings={initialSettings} />
+      <div className="flex h-screen bg-[#F4F7FC] text-slate-800 font-sans overflow-hidden">
       {/* Mobile backdrop */}
       {isSidebarOpen && (
         <div
@@ -459,5 +462,6 @@ export default function AdminDashboard({
         </div>
       </main>
     </div>
+    </>
   );
 }
