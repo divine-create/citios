@@ -143,6 +143,89 @@ export default function ShopOSLandingPage() {
         </div>
       </section>
 
+            {/* Hardware Section */}
+      <section id="hardware" className="py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex flex-col md:flex-row items-center gap-16">
+            <div className="flex-1">
+              <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-6">
+                <Barcode size={32} />
+              </div>
+              <h2 className="text-3xl md:text-5xl font-bold text-slate-900 tracking-tight mb-6">Bring your own hardware. <br/>No proprietary lock-in.</h2>
+              <p className="text-lg text-slate-600 mb-8 leading-relaxed">
+                ShopOS runs in any modern browser. Connect any standard USB or Bluetooth barcode scanner, thermal receipt printer, and RJ11 cash drawer. We don't force you to buy overpriced, locked-down registers.
+              </p>
+              <ul className="space-y-4 font-medium text-slate-700">
+                <li className="flex items-center gap-3"><CheckCircle2 className="text-emerald-500" size={20}/> Compatible with Zebra, Symbol, & Honeywell scanners</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="text-emerald-500" size={20}/> Works with Epson & Star Micronics receipt printers</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="text-emerald-500" size={20}/> iPad, Mac, PC, and Chromebook friendly</li>
+              </ul>
+            </div>
+            <div className="flex-1 w-full bg-slate-50 p-8 rounded-3xl border border-slate-200 shadow-xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-blue-100 rounded-full blur-[80px] -z-10"></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-center">
+                  <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3"><Barcode className="text-slate-500"/></div>
+                  <h4 className="font-bold text-slate-900">Barcode Scanners</h4>
+                </div>
+                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-center">
+                  <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3"><Store className="text-slate-500"/></div>
+                  <h4 className="font-bold text-slate-900">Cash Drawers</h4>
+                </div>
+                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-center col-span-2">
+                  <h4 className="font-bold text-slate-900">Any Device</h4>
+                  <p className="text-sm text-slate-500 mt-1">Runs purely in-browser.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section id="pricing" className="py-24 bg-slate-50 border-t border-slate-100">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <h2 className="text-3xl md:text-5xl font-bold text-slate-900 tracking-tight mb-4">Simple, transparent pricing.</h2>
+            <p className="text-lg text-slate-500">No monthly software fees. No arbitrary limits on products or staff accounts. You only pay when you make a sale.</p>
+          </div>
+
+          <div className="max-w-4xl mx-auto bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden flex flex-col md:flex-row">
+            <div className="flex-1 p-10 md:p-12">
+              <h3 className="text-2xl font-bold text-slate-900 mb-2">ShopOS Core</h3>
+              <p className="text-slate-500 mb-8">Everything you need to run your physical and online store.</p>
+              
+              <div className="flex items-baseline gap-2 mb-8">
+                <span className="text-5xl font-black text-slate-900"></span>
+                <span className="text-lg text-slate-500 font-medium">/ month</span>
+              </div>
+              
+              <Link href="/business/register?type=RETAIL" className="block w-full text-center bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-4 rounded-xl text-lg font-bold transition-all mb-8">
+                Start Selling Free
+              </Link>
+              
+              <p className="text-sm text-slate-500 text-center font-medium">No credit card required to start.</p>
+            </div>
+            
+            <div className="flex-1 bg-slate-900 text-white p-10 md:p-12 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/20 rounded-full blur-[80px]"></div>
+              <h4 className="text-lg font-bold mb-6 relative z-10">What's included:</h4>
+              <ul className="space-y-4 relative z-10 font-medium text-slate-300">
+                <li className="flex items-center gap-3"><CheckCircle2 className="text-emerald-400" size={20}/> Unlimited Products & Categories</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="text-emerald-400" size={20}/> Unlimited Staff Accounts</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="text-emerald-400" size={20}/> Free Online E-commerce Site</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="text-emerald-400" size={20}/> Inventory & Supplier Sync</li>
+              </ul>
+              
+              <div className="mt-10 pt-8 border-t border-slate-800 relative z-10">
+                <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Transaction Fee</h4>
+                <div className="text-2xl font-bold text-white">2.9% + 30¢ <span className="text-base text-slate-400 font-normal">per tap/dip</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Trust & CTA */}
       <section className="py-24 bg-slate-900 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-emerald-600/20 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/3"></div>
@@ -171,3 +254,4 @@ export default function ShopOSLandingPage() {
     </div>
   );
 }
+
