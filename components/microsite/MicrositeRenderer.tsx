@@ -99,25 +99,45 @@ interface MicrositeData {
   organizationName: string;
   logoAssetId?: string | null;
   sections: { id: string; type: string; content: string; visible: boolean }[];
+  navItems?: { id: string; label: string; url: string | null; pageId: string | null; page?: { slug: string } }[];
   products?: RetailProductSummary[];
   hotelRooms?: any[];
+  primaryColor?: string;
+  accentColor?: string;
+  headingFont?: string;
+  bodyFont?: string;
+  borderRadius?: string;
 }
 
 export default function MicrositeRenderer({ data }: { data: MicrositeData }) {
-  const theme = THEMES[data.theme] ?? THEMES[DEFAULT_THEME];
+  const baseTheme = THEMES[data.theme] ?? THEMES[DEFAULT_THEME];
+  
+  const customTheme = {
+    ...baseTheme,
+    ...(data.primaryColor ? { bg: data.primaryColor === '#2563EB' ? baseTheme.bg : '#ffffff' } : {}), // Keep mostly defaults for bg unless specified
+    accent: data.accentColor ?? baseTheme.accent,
+    headingFont: data.headingFont === 'inter' ? baseTheme.headingFont : (data.headingFont ?? baseTheme.headingFont),
+    bodyFont: data.bodyFont === 'inter' ? baseTheme.bodyFont : (data.bodyFont ?? baseTheme.bodyFont),
+    radius: data.borderRadius === 'none' ? '0' : data.borderRadius === 'sm' ? '0.25rem' : data.borderRadius === 'md' ? '0.5rem' : data.borderRadius === 'lg' ? '1rem' : data.borderRadius === 'full' ? '9999px' : baseTheme.radius,
+  };
+  
+  const theme = customTheme;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const navLinks = data.sections
+  // Use dynamic navItems if they exist, otherwise fallback to sections for backwards compatibility
+  const navLinks = data.navItems && data.navItems.length > 0 
+    ? data.navItems.map(n => ({ id: n.id, label: n.label, url: n.url ?? (n.page ? `/${n.page.slug}` : '#') }))
+    : data.sections
     .filter((s) => s.visible && s.type !== "hero" && s.type !== "footer" && s.type !== "cta")
     .map((s) => {
       try {
         const content = JSON.parse(s.content);
-        return content.heading ? { id: s.id, label: content.heading } : null;
+        return content.heading ? { id: s.id, label: content.heading, url: `#${s.id}` } : null;
       } catch {
         return null;
       }
     })
-    .filter(Boolean) as { id: string; label: string }[];
+    .filter(Boolean) as { id: string; label: string, url: string }[];
 
   return (
     <div style={{ background: theme.bg, color: theme.text, fontFamily: theme.bodyFont, minHeight: "100vh" }}>
@@ -164,7 +184,7 @@ export default function MicrositeRenderer({ data }: { data: MicrositeData }) {
 
         <nav className="desktop-nav" style={{ gap: "1.5rem" }}>
           {navLinks.map((link) => (
-            <a key={link.id} href={`#${link.id}`} style={{ color: theme.textMuted, textDecoration: "none", fontSize: "0.95rem", fontWeight: 500, transition: "color 0.2s" }} onMouseEnter={(e) => (e.currentTarget.style.color = theme.text)} onMouseLeave={(e) => (e.currentTarget.style.color = theme.textMuted)}>
+            <a key={link.id} href={link.url} style={{ color: theme.textMuted, textDecoration: "none", fontSize: "0.95rem", fontWeight: 500, transition: "color 0.2s" }} onMouseEnter={(e) => (e.currentTarget.style.color = theme.text)} onMouseLeave={(e) => (e.currentTarget.style.color = theme.textMuted)}>
               {link.label}
             </a>
           ))}
@@ -175,7 +195,7 @@ export default function MicrositeRenderer({ data }: { data: MicrositeData }) {
             {navLinks.map((link) => (
               <a 
                 key={link.id} 
-                href={`#${link.id}`} 
+                href={link.url} 
                 onClick={() => setIsMobileMenuOpen(false)}
                 style={{ color: theme.text, textDecoration: "none", fontSize: "1.1rem", fontWeight: 500, padding: "0.5rem 0" }}
               >

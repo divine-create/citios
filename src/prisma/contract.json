@@ -156,6 +156,14 @@
       "model": "MicrositeInquiry",
       "namespace": "public"
     },
+    "micrositeNavigationItem": {
+      "model": "MicrositeNavigationItem",
+      "namespace": "public"
+    },
+    "micrositePage": {
+      "model": "MicrositePage",
+      "namespace": "public"
+    },
     "micrositeSection": {
       "model": "MicrositeSection",
       "namespace": "public"
@@ -5468,6 +5476,34 @@
           },
           "Microsite": {
             "fields": {
+              "accentColor": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "bodyFont": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "borderRadius": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "buttonStyle": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "createdAt": {
                 "nullable": false,
                 "type": {
@@ -5510,6 +5546,13 @@
                   "kind": "scalar"
                 }
               },
+              "headingFont": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "id": {
                 "nullable": false,
                 "type": {
@@ -5531,10 +5574,24 @@
                   "kind": "scalar"
                 }
               },
+              "primaryColor": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "publishedAt": {
                 "nullable": true,
                 "type": {
                   "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "secondaryColor": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
                   "kind": "scalar"
                 }
               },
@@ -5611,6 +5668,21 @@
                   "namespace": "public"
                 }
               },
+              "navItems": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "micrositeId"
+                  ]
+                },
+                "to": {
+                  "model": "MicrositeNavigationItem",
+                  "namespace": "public"
+                }
+              },
               "organization": {
                 "cardinality": "N:1",
                 "on": {
@@ -5623,6 +5695,21 @@
                 },
                 "to": {
                   "model": "Organization",
+                  "namespace": "public"
+                }
+              },
+              "pages": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "micrositeId"
+                  ]
+                },
+                "to": {
+                  "model": "MicrositePage",
                   "namespace": "public"
                 }
               },
@@ -5644,6 +5731,18 @@
             },
             "storage": {
               "fields": {
+                "accentColor": {
+                  "column": "accentColor"
+                },
+                "bodyFont": {
+                  "column": "bodyFont"
+                },
+                "borderRadius": {
+                  "column": "borderRadius"
+                },
+                "buttonStyle": {
+                  "column": "buttonStyle"
+                },
                 "createdAt": {
                   "column": "createdAt"
                 },
@@ -5662,6 +5761,9 @@
                 "faviconAssetId": {
                   "column": "faviconAssetId"
                 },
+                "headingFont": {
+                  "column": "headingFont"
+                },
                 "id": {
                   "column": "id"
                 },
@@ -5671,8 +5773,14 @@
                 "organizationId": {
                   "column": "organizationId"
                 },
+                "primaryColor": {
+                  "column": "primaryColor"
+                },
                 "publishedAt": {
                   "column": "publishedAt"
+                },
+                "secondaryColor": {
+                  "column": "secondaryColor"
                 },
                 "seoDescription": {
                   "column": "seoDescription"
@@ -5800,6 +5908,335 @@
               "table": "micrositeInquiry"
             }
           },
+          "MicrositeNavigationItem": {
+            "fields": {
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "isHidden": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
+              "label": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "micrositeId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "order": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "pageId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "parentId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "url": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "children": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "parentId"
+                  ]
+                },
+                "to": {
+                  "model": "MicrositeNavigationItem",
+                  "namespace": "public"
+                }
+              },
+              "microsite": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "micrositeId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Microsite",
+                  "namespace": "public"
+                }
+              },
+              "page": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "pageId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "MicrositePage",
+                  "namespace": "public"
+                }
+              },
+              "parent": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "parentId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "MicrositeNavigationItem",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "id": {
+                  "column": "id"
+                },
+                "isHidden": {
+                  "column": "isHidden"
+                },
+                "label": {
+                  "column": "label"
+                },
+                "micrositeId": {
+                  "column": "micrositeId"
+                },
+                "order": {
+                  "column": "order"
+                },
+                "pageId": {
+                  "column": "pageId"
+                },
+                "parentId": {
+                  "column": "parentId"
+                },
+                "url": {
+                  "column": "url"
+                }
+              },
+              "namespaceId": "public",
+              "table": "micrositeNavigationItem"
+            }
+          },
+          "MicrositePage": {
+            "fields": {
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "isHome": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
+              "micrositeId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "seoDescription": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "seoImage": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "seoTitle": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "slug": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "sortOrder": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "status": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "title": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "microsite": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "micrositeId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Microsite",
+                  "namespace": "public"
+                }
+              },
+              "navItems": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "pageId"
+                  ]
+                },
+                "to": {
+                  "model": "MicrositeNavigationItem",
+                  "namespace": "public"
+                }
+              },
+              "sections": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "pageId"
+                  ]
+                },
+                "to": {
+                  "model": "MicrositeSection",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "isHome": {
+                  "column": "isHome"
+                },
+                "micrositeId": {
+                  "column": "micrositeId"
+                },
+                "seoDescription": {
+                  "column": "seoDescription"
+                },
+                "seoImage": {
+                  "column": "seoImage"
+                },
+                "seoTitle": {
+                  "column": "seoTitle"
+                },
+                "slug": {
+                  "column": "slug"
+                },
+                "sortOrder": {
+                  "column": "sortOrder"
+                },
+                "status": {
+                  "column": "status"
+                },
+                "title": {
+                  "column": "title"
+                },
+                "updatedAt": {
+                  "column": "updatedAt"
+                }
+              },
+              "namespaceId": "public",
+              "table": "micrositePage"
+            }
+          },
           "MicrositeSection": {
             "fields": {
               "content": {
@@ -5834,6 +6271,13 @@
                 "nullable": false,
                 "type": {
                   "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "pageId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
                   "kind": "scalar"
                 }
               },
@@ -5874,6 +6318,21 @@
                   "model": "Microsite",
                   "namespace": "public"
                 }
+              },
+              "page": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "pageId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "MicrositePage",
+                  "namespace": "public"
+                }
               }
             },
             "storage": {
@@ -5892,6 +6351,9 @@
                 },
                 "order": {
                   "column": "order"
+                },
+                "pageId": {
+                  "column": "pageId"
                 },
                 "type": {
                   "column": "type"
@@ -22021,6 +22483,42 @@
             },
             "microsite": {
               "columns": {
+                "accentColor": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "#F59E0B"
+                  },
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "bodyFont": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "inter"
+                  },
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "borderRadius": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "md"
+                  },
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "buttonStyle": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "rounded"
+                  },
+                  "nativeType": "text",
+                  "nullable": false
+                },
                 "createdAt": {
                   "codecId": "pg/timestamptz-temporal@1",
                   "default": {
@@ -22059,6 +22557,15 @@
                   "nativeType": "text",
                   "nullable": true
                 },
+                "headingFont": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "inter"
+                  },
+                  "nativeType": "text",
+                  "nullable": false
+                },
                 "id": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -22074,10 +22581,28 @@
                   "nativeType": "text",
                   "nullable": false
                 },
+                "primaryColor": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "#2563EB"
+                  },
+                  "nativeType": "text",
+                  "nullable": false
+                },
                 "publishedAt": {
                   "codecId": "pg/timestamptz-temporal@1",
                   "nativeType": "timestamptz",
                   "nullable": true
+                },
+                "secondaryColor": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "#1E40AF"
+                  },
+                  "nativeType": "text",
+                  "nullable": false
                 },
                 "seoDescription": {
                   "codecId": "pg/text@1",
@@ -22256,6 +22781,262 @@
               },
               "uniques": []
             },
+            "micrositeNavigationItem": {
+              "columns": {
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "isHidden": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": false
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
+                "label": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "micrositeId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "order": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "pageId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "parentId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "url": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "micrositeId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "micrositeNavigationItem"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "microsite"
+                  }
+                },
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "pageId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "micrositeNavigationItem"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "micrositePage"
+                  }
+                },
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "parentId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "micrositeNavigationItem"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "micrositeNavigationItem"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "micrositeId"
+                  ],
+                  "name": "micrositeNavigationItem_micrositeId_idx_ba6c5afe",
+                  "prefix": "micrositeNavigationItem_micrositeId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "pageId"
+                  ],
+                  "name": "micrositeNavigationItem_pageId_idx_8caaba4f",
+                  "prefix": "micrositeNavigationItem_pageId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "parentId"
+                  ],
+                  "name": "micrositeNavigationItem_parentId_idx_6a68f597",
+                  "prefix": "micrositeNavigationItem_parentId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
+            },
+            "micrositePage": {
+              "columns": {
+                "createdAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "isHome": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": false
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
+                "micrositeId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "seoDescription": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "seoImage": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "seoTitle": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "slug": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "sortOrder": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "status": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "published"
+                  },
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "title": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "updatedAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "micrositeId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "micrositePage"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "microsite"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "micrositeId"
+                  ],
+                  "name": "micrositePage_micrositeId_idx_ba6c5afe",
+                  "prefix": "micrositePage_micrositeId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
+            },
             "micrositeSection": {
               "columns": {
                 "content": {
@@ -22290,6 +23071,11 @@
                   },
                   "nativeType": "int4",
                   "nullable": false
+                },
+                "pageId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
                 },
                 "type": {
                   "codecId": "pg/text@1",
@@ -22332,6 +23118,23 @@
                     "namespaceId": "public",
                     "tableName": "microsite"
                   }
+                },
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "pageId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "micrositeSection"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "micrositePage"
+                  }
                 }
               ],
               "indexes": [
@@ -22341,6 +23144,14 @@
                   ],
                   "name": "micrositeSection_micrositeId_idx_ba6c5afe",
                   "prefix": "micrositeSection_micrositeId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "pageId"
+                  ],
+                  "name": "micrositeSection_pageId_idx_8caaba4f",
+                  "prefix": "micrositeSection_pageId_idx",
                   "unique": false
                 }
               ],
@@ -31743,10 +32554,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "14268282c039fa6caa368f55aabc0b168de8c84c4cf292ed9ff37f330ecfaa08"
+    "storageHash": "4a0d073c11fe88ac1a3f7a0f1fbd7a3434a3f903e0c2d232b30168f80606ccdd"
   },
   "execution": {
-    "executionHash": "300d3f2c1a54f25b30c8ed132e5d299867972e5e6aa19fe7f956b5e6bd648630",
+    "executionHash": "bc532f03d34f6d09af354387e9d2dbedb2f636affd9291fe046de5a99e0766a1",
     "mutations": {
       "defaults": [
         {
@@ -32165,6 +32976,28 @@
             "column": "id",
             "namespace": "public",
             "table": "micrositeInquiry"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "micrositeNavigationItem"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "micrositePage"
           }
         },
         {

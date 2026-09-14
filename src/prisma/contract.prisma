@@ -248,6 +248,15 @@ model Microsite {
   faviconAssetId       String?
   publishedAt          DateTime?
 
+  // Brand Kit
+  primaryColor         String       @default("#2563EB")
+  secondaryColor       String       @default("#1E40AF")
+  accentColor          String       @default("#F59E0B")
+  headingFont          String       @default("inter")
+  bodyFont             String       @default("inter")
+  buttonStyle          String       @default("rounded") // pill | rounded | square
+  borderRadius         String       @default("md")      // none | sm | md | lg | full
+
   // Domain Management
   customDomain         String?      @unique
   domainSubscriptionId String?      // Stripe subscription ID for the domain billing
@@ -257,14 +266,54 @@ model Microsite {
   createdAt            DateTime     @default(now())
   updatedAt            DateTime     @default(now())
 
+  pages                MicrositePage[]
   sections             MicrositeSection[]
+  navItems             MicrositeNavigationItem[] @relation("MicrositeNavItems")
   inquiries            MicrositeInquiry[] @relation("MicrositeInquiries")
+}
+
+model MicrositePage {
+  id             String       @id @default(uuid())
+  micrositeId    String
+  microsite      Microsite    @relation(fields: [micrositeId], references: [id], onDelete: Cascade)
+  title          String
+  slug           String
+  status         String       @default("published") // draft | published
+  isHome         Boolean      @default(false)
+  seoTitle       String?
+  seoDescription String?
+  seoImage       String?
+  sortOrder      Int          @default(0)
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now())
+
+  sections       MicrositeSection[] @relation("PageSections")
+  navItems       MicrositeNavigationItem[] @relation("PageNavItems")
+}
+
+model MicrositeNavigationItem {
+  id            String    @id @default(uuid())
+  micrositeId   String
+  microsite     Microsite @relation("MicrositeNavItems", fields: [micrositeId], references: [id], onDelete: Cascade)
+  label         String
+  url           String?
+  pageId        String?
+  page          MicrositePage? @relation("PageNavItems", fields: [pageId], references: [id], onDelete: Cascade)
+  parentId      String?
+  parent        MicrositeNavigationItem? @relation("NavHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children      MicrositeNavigationItem[] @relation("NavHierarchy")
+  order         Int       @default(0)
+  isHidden      Boolean   @default(false)
 }
 
 model MicrositeSection {
   id          String    @id @default(uuid())
   micrositeId String
   microsite   Microsite @relation(fields: [micrositeId], references: [id], onDelete: Cascade)
+  
+  pageId      String?
+  page        MicrositePage? @relation("PageSections", fields: [pageId], references: [id], onDelete: Cascade)
 
   type        String  // hero | about | services | gallery | hours | testimonials | contact | cta | footer
   order       Int     @default(0)

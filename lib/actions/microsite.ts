@@ -25,6 +25,8 @@ export async function getMicrosite(organizationId: string) {
   try {
     const microsite = await db.orm.public.Microsite.where({ organizationId }).all().first();
     if (!microsite) return null;
+    const pages = await db.orm.public.MicrositePage.where({ micrositeId: microsite.id }).all();
+    const navItems = await db.orm.public.MicrositeNavigationItem.where({ micrositeId: microsite.id }).all();
     const sections = await db.orm.public.MicrositeSection.where({ micrositeId: microsite.id }).all();
     sections.sort((a, b) => a.order - b.order);
 
@@ -42,7 +44,7 @@ export async function getMicrosite(organizationId: string) {
       imageAssetId: p.imageAssetId,
     }));
 
-    return JSON.parse(JSON.stringify({ ...microsite, sections, products }));
+    return JSON.parse(JSON.stringify({ ...microsite, pages, navItems, sections, products }));
   } catch (error) {
     console.error('Error fetching microsite:', error);
     return null;
@@ -74,14 +76,30 @@ export async function getOrganizationName(organizationId: string) {
 // orgs) so a `retail-products` section can render real prices/stock instead
 // of static copy — cheap to always fetch, and keeps the renderer in sync
 // with Products & Inventory with no extra round trip.
-export async function getMicrositeBySlug(slug: string) {
+export async function getMicrositeBySlug(slug: string, path: string[] = []) {
   try {
     const microsite = await db.orm.public.Microsite.where({ slug }).all().first();
     if (!microsite || microsite.status !== 'published') return null;
+    
+    // Find the requested page
+    let pagePath = path.length > 0 ? path.join('/') : 'home';
+    const pages = await db.orm.public.MicrositePage.where({ micrositeId: microsite.id }).all();
+    
+    // Fallback logic
+    let page = pages.find(p => p.slug === pagePath);
+    if (!page && path.length === 0) {
+      page = pages.find(p => p.isHome) || pages[0];
+    }
+    
+    if (!page || page.status !== 'published') return null;
+    
     const organization = await db.orm.public.Organization.where({ id: microsite.organizationId }).all().first();
-    const sections = (await db.orm.public.MicrositeSection.where({ micrositeId: microsite.id }).all())
+    const sections = (await db.orm.public.MicrositeSection.where({ pageId: page.id }).all())
       .filter((s) => s.visible)
       .sort((a, b) => a.order - b.order);
+
+    const navItemsRaw = await db.orm.public.MicrositeNavigationItem.where({ micrositeId: microsite.id }).all();
+    const navItems = navItemsRaw.sort((a, b) => a.order - b.order);
 
     const rawProducts = await db.orm.public.RetailProduct.where({ organizationId: microsite.organizationId }).all();
     const categories = await db.orm.public.RetailCategory.where({ organizationId: microsite.organizationId }).all();
@@ -100,9 +118,19 @@ export async function getMicrositeBySlug(slug: string) {
     const rawRooms = await db.orm.public.HotelRoom.where({ organizationId: microsite.organizationId }).all();
     const hotelRooms = Array.from(new Set(rawRooms.map(r => JSON.stringify({ type: r.type, rate: r.baseRate })))).map(s => JSON.parse(s));
 
-    return JSON.parse(JSON.stringify({ ...microsite, organizationName: organization?.name ?? '', sections, products, categories, hotelRooms }));
+    return JSON.parse(JSON.stringify({ 
+      ...microsite, 
+      organizationName: organization?.name ?? '',
+      page,
+      sections, 
+      navItems,
+      products, 
+      categories,
+      hotelRooms,
+      organization 
+    }));
   } catch (error) {
-    console.error('Error fetching microsite by slug:', error);
+    console.error('Error fetching microsite page:', error);
     return null;
   }
 }
@@ -215,15 +243,33 @@ export async function createMicrosite(organizationId: string, input: { title: st
 
     defaultSections.push({ type: 'contact', content: { heading: "Get in Touch", address: "", phone: "", email: "" } });
 
+    const homePage = await db.orm.public.MicrositePage.create({
+      micrositeId: microsite.id,
+      title: "Home",
+      slug: "home",
+      isHome: true,
+      status: "published",
+    });
+
     for (let i = 0; i < defaultSections.length; i++) {
       await db.orm.public.MicrositeSection.create({
         micrositeId: microsite.id,
+        pageId: homePage.id,
         type: defaultSections[i].type,
         order: i,
         visible: true,
         content: JSON.stringify(defaultSections[i].content),
       });
     }
+
+    // Default Nav Items
+    await db.orm.public.MicrositeNavigationItem.create({
+      micrositeId: microsite.id,
+      label: "Home",
+      pageId: homePage.id,
+      order: 0,
+      isHidden: false,
+    });
 
     return { success: true, microsite: JSON.parse(JSON.stringify(microsite)) };
   } catch (error) {
@@ -241,6 +287,11 @@ export async function updateMicrositeSettings(micrositeId: string, input: {
   seoDescription?: string | null;
   logoAssetId?: string | null;
   faviconAssetId?: string | null;
+  primaryColor?: string;
+  accentColor?: string;
+  headingFont?: string;
+  bodyFont?: string;
+  borderRadius?: string;
 }) {
   try {
     const data: Record<string, unknown> = {};
@@ -251,6 +302,11 @@ export async function updateMicrositeSettings(micrositeId: string, input: {
     if (input.seoDescription !== undefined) data.seoDescription = input.seoDescription;
     if (input.logoAssetId !== undefined) data.logoAssetId = input.logoAssetId;
     if (input.faviconAssetId !== undefined) data.faviconAssetId = input.faviconAssetId;
+    if (input.primaryColor !== undefined) data.primaryColor = input.primaryColor;
+    if (input.accentColor !== undefined) data.accentColor = input.accentColor;
+    if (input.headingFont !== undefined) data.headingFont = input.headingFont;
+    if (input.bodyFont !== undefined) data.bodyFont = input.bodyFont;
+    if (input.borderRadius !== undefined) data.borderRadius = input.borderRadius;
 
     if (input.slug !== undefined) {
       const slug = slugify(input.slug);
@@ -296,12 +352,13 @@ export async function unpublishMicrosite(micrositeId: string) {
 // Sections
 // ---------------------------------------------------------------------
 
-export async function addMicrositeSection(micrositeId: string, input: { type: string; content: Record<string, unknown> }) {
+export async function addMicrositeSection(micrositeId: string, input: { pageId: string, type: string; content: Record<string, unknown> }) {
   try {
-    const existing = await db.orm.public.MicrositeSection.where({ micrositeId }).all();
+    const existing = await db.orm.public.MicrositeSection.where({ micrositeId, pageId: input.pageId }).all();
     const maxOrder = existing.reduce((max, s) => Math.max(max, s.order), -1);
     const section = await db.orm.public.MicrositeSection.create({
       micrositeId,
+      pageId: input.pageId,
       type: input.type,
       order: maxOrder + 1,
       content: JSON.stringify(input.content),
@@ -413,3 +470,75 @@ export async function getInquiries(organizationId: string) {
   }
 }
 
+
+// ---------------------------------------------------------------------
+// Pages & Navigation
+// ---------------------------------------------------------------------
+
+export async function addMicrositePage(micrositeId: string, input: { title: string, slug: string }) {
+  try {
+    const slug = slugify(input.slug);
+    const existing = await db.orm.public.MicrositePage.where({ micrositeId, slug }).all().first();
+    if (existing) return { error: "A page with this slug already exists." };
+    
+    const page = await db.orm.public.MicrositePage.create({
+      micrositeId,
+      title: input.title,
+      slug,
+      status: "published"
+    });
+    
+    return { success: true, page: JSON.parse(JSON.stringify(page)) };
+  } catch (error) {
+    console.error("Error adding page", error);
+    return { error: "Failed to add page." };
+  }
+}
+
+export async function updateMicrositePage(pageId: string, input: { title?: string, slug?: string, status?: string }) {
+  try {
+    const data: Record<string, any> = {};
+    if (input.title !== undefined) data.title = input.title;
+    if (input.status !== undefined) data.status = input.status;
+    
+    if (input.slug !== undefined) {
+      data.slug = slugify(input.slug);
+    }
+    
+    await db.orm.public.MicrositePage.where({ id: pageId }).update(data);
+    return { success: true };
+  } catch(error) {
+    console.error("Error updating page", error);
+    return { error: "Failed to update page." };
+  }
+}
+
+export async function deleteMicrositePage(pageId: string) {
+  try {
+    const page = await db.orm.public.MicrositePage.where({ id: pageId }).all().first();
+    if (page?.isHome) return { error: "Cannot delete the home page." };
+    await db.orm.public.MicrositePage.where({ id: pageId }).delete();
+    return { success: true };
+  } catch(error) {
+    return { error: "Failed to delete page." };
+  }
+}
+
+export async function updateMicrositeNavigation(micrositeId: string, items: { id?: string, label: string, url: string | null, pageId: string | null }[]) {
+  try {
+    // Basic approach: delete all and recreate for simplicity
+    await db.orm.public.MicrositeNavigationItem.where({ micrositeId }).delete();
+    for (let i = 0; i < items.length; i++) {
+      await db.orm.public.MicrositeNavigationItem.create({
+        micrositeId,
+        label: items[i].label,
+        url: items[i].url,
+        pageId: items[i].pageId,
+        order: i
+      });
+    }
+    return { success: true };
+  } catch(error) {
+    return { error: "Failed to update navigation." };
+  }
+}

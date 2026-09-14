@@ -16,9 +16,10 @@ export default async function SuperAdminPage({ searchParams }: { searchParams: P
 
   if (!orgId) {
     session = await requireOrgRole('SCHOOL', ['ADMIN']);
+    orgId = session?.user?.memberships?.find((m) => m.organizationType === 'SCHOOL')?.organizationId || null;
   }
 
-  const data = await getSchoolAdminData();
+  const data = await getSchoolAdminData(orgId || undefined);
   if (!orgId) orgId = data?.school?.id ?? null;
   const [grades, classSections, subjects, terms, rooms, inquiries] = orgId
     ? await Promise.all([getSchoolGrades(orgId), getClassSections(orgId), getSubjects(orgId), getTerms(orgId), getRooms(orgId), getInquiries(orgId)])

@@ -42,20 +42,22 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       // `user` is only populated on the initial sign-in. We resolve real RBAC
       // roles once here and cache them on the token so we don't hit the DB on
       // every request. A change to someone's OrganizationMember rows only
-      // takes effect the next time they sign in.
-      if (user?.email) {
+      // takes effect the next time they sign in, OR when we manually call `update()`
+      // from the client (e.g. immediately after registering a new org).
+      const lookupEmail = user?.email || token?.email;
+      if (lookupEmail && (user || trigger === "update")) {
         try {
-          let dbUser = await db.orm.public.User.where({ email: user.email }).all().first();
+          let dbUser = await db.orm.public.User.where({ email: lookupEmail as string }).all().first();
 
           if (!dbUser) {
             dbUser = await db.orm.public.User.create({
-              email: user.email,
-              name: user.name ?? undefined,
-              image: user.image ?? undefined,
+              email: lookupEmail as string,
+              name: user?.name ?? undefined,
+              image: user?.image ?? undefined,
             });
           }
 

@@ -14,15 +14,35 @@ import {
   deleteMicrositeSection,
   reorderMicrositeSections,
   uploadAsset,
+  addMicrositePage,
+  updateMicrositePage,
+  deleteMicrositePage,
+  updateMicrositeNavigation,
 } from "@/lib/actions/microsite";
 import { THEMES, THEME_IDS, SECTION_TYPES, SectionType } from "./themes";
 
 interface Section {
   id: string;
+  pageId: string | null;
   type: string;
   order: number;
   visible: boolean;
   content: string;
+}
+
+interface Page {
+  id: string;
+  title: string;
+  slug: string;
+  isHome: boolean;
+  status: string;
+}
+
+interface NavItem {
+  id: string;
+  label: string;
+  url: string | null;
+  pageId: string | null;
 }
 
 interface Site {
@@ -32,10 +52,17 @@ interface Site {
   title: string;
   tagline: string | null;
   theme: string;
+  primaryColor: string | null;
+  accentColor: string | null;
+  headingFont: string | null;
+  bodyFont: string | null;
+  borderRadius: string | null;
   status: "draft" | "published";
   seoTitle: string | null;
   seoDescription: string | null;
   logoAssetId: string | null;
+  pages: Page[];
+  navItems: NavItem[];
   sections: Section[];
 }
 
@@ -64,7 +91,8 @@ export default function MicrositeBuilder({ organizationId }: { organizationId: s
   const [inquiries, setInquiries] = useState<any[]>([]);
   const [orgType, setOrgType] = useState<string | null>(null);
   const [orgName, setOrgName] = useState<string>("");
-  const [tab, setTab] = useState<"settings" | "sections" | "inquiries">("sections");
+  const [tab, setTab] = useState<"pages" | "navigation" | "theme" | "settings">("pages");
+  const [activePageId, setActivePageId] = useState<string | null>(null);
   const [editingSection, setEditingSection] = useState<Section | null>(null);
   const [addingType, setAddingType] = useState<string | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -178,41 +206,104 @@ export default function MicrositeBuilder({ organizationId }: { organizationId: s
         </div>
       </div>
 
-      <div className="flex gap-2 border-b border-slate-200 pb-2 mb-4">
+      <div className="flex gap-2 border-b border-slate-200 pb-2 mb-4 overflow-x-auto">
         <button
-          onClick={() => setTab("sections")}
-          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${tab === "sections" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+          onClick={() => { setTab("pages"); setActivePageId(null); }}
+          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${tab === "pages" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
         >
-          Sections
+          Pages
+        </button>
+        <button
+          onClick={() => setTab("navigation")}
+          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${tab === "navigation" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+        >
+          Navigation
+        </button>
+        <button
+          onClick={() => setTab("theme")}
+          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${tab === "theme" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+        >
+          Theme & Brand
         </button>
         <button
           onClick={() => setTab("settings")}
-          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${tab === "settings" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${tab === "settings" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
         >
-          Settings & Theme
+          Settings
         </button>
       </div>
 
-      {tab === "sections" && (
+      {tab === "pages" && !activePageId && (
         <div className="space-y-3">
-          <div className="flex justify-end">
+          <div className="flex justify-between items-center bg-white border border-slate-200 rounded-xl p-4">
+            <h3 className="font-bold text-slate-800">Website Pages</h3>
+            <button onClick={async () => {
+              const title = prompt("New Page Title:");
+              if (!title) return;
+              const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+              const res = await addMicrositePage(site.id, { title, slug });
+              if ((res as any)?.error) alert((res as any).error);
+              else load();
+            }} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">
+              <Plus size={16} /> New Page
+            </button>
+          </div>
+          <div className="space-y-2">
+            {site.pages.map(page => (
+              <div key={page.id} className="bg-white border border-slate-200 rounded-xl p-4 flex items-center justify-between">
+                <div>
+                  <h4 className="font-semibold text-slate-800">{page.title} {page.isHome && <span className="ml-2 text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">Home</span>}</h4>
+                  <p className="text-xs text-slate-400">/{page.isHome ? "" : page.slug}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => setActivePageId(page.id)} className="px-3 py-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-lg text-sm font-medium transition-colors">
+                    Edit Sections
+                  </button>
+                  {!page.isHome && (
+                    <button onClick={async () => {
+                      if (!confirm(`Delete ${page.title}?`)) return;
+                      const res = await deleteMicrositePage(page.id);
+                      if ((res as any)?.error) alert((res as any).error);
+                      else load();
+                    }} className="px-2 py-1.5 text-slate-400 hover:text-red-600 transition-colors">
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {tab === "pages" && activePageId && (() => {
+        const activePage = site.pages.find(p => p.id === activePageId);
+        const pageSections = site.sections.filter(s => s.pageId === activePageId).sort((a, b) => a.order - b.order);
+        return (
+        <div className="space-y-3">
+          <div className="flex justify-between items-center bg-white border border-slate-200 rounded-xl p-4">
+            <div className="flex items-center gap-2">
+              <button onClick={() => setActivePageId(null)} className="text-slate-400 hover:text-slate-700 font-medium text-sm px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded">
+                &larr; Back to Pages
+              </button>
+              <h3 className="font-bold text-slate-800 ml-2">Editing: {activePage?.title}</h3>
+            </div>
             <button onClick={() => setAddingType(SECTION_TYPES[0].id)} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
               <Plus size={16} /> Add Section
             </button>
           </div>
 
-          {sortedSections.length === 0 ? (
-            <div className="bg-white border border-slate-200 rounded-xl text-center py-12 text-slate-400 text-sm">No sections yet — add one to start building your site.</div>
+          {pageSections.length === 0 ? (
+            <div className="bg-white border border-slate-200 rounded-xl text-center py-12 text-slate-400 text-sm">No sections yet — add one to start building this page.</div>
           ) : (
             <div className="space-y-2">
-              {sortedSections.map((section, i) => (
+              {pageSections.map((section, i) => (
                 <div
                   key={section.id}
                   draggable
                   onDragStart={(e) => {
                     setDraggedIndex(i);
                     e.dataTransfer.effectAllowed = "move";
-                    // Add slight delay before adding class to let the drag image generate cleanly
                     setTimeout(() => e.currentTarget.classList.add("opacity-40"), 0);
                   }}
                   onDragEnd={(e) => {
@@ -223,10 +314,14 @@ export default function MicrositeBuilder({ organizationId }: { organizationId: s
                   onDrop={async (e) => {
                     e.preventDefault();
                     if (draggedIndex === null || draggedIndex === i) return;
-                    const next = [...sortedSections];
+                    const next = [...pageSections];
                     const item = next.splice(draggedIndex, 1)[0];
                     next.splice(i, 0, item);
-                    setSite({ ...site, sections: next.map((s, idx) => ({ ...s, order: idx })) } as Site);
+                    setSite({ ...site, sections: site.sections.map(s => {
+                      if (s.pageId !== activePageId) return s;
+                      const nextIndex = next.findIndex(n => n.id === s.id);
+                      return { ...s, order: nextIndex };
+                    }) } as Site);
                     await reorderMicrositeSections(site.id, next.map((s) => s.id));
                     load();
                   }}
@@ -238,14 +333,14 @@ export default function MicrositeBuilder({ organizationId }: { organizationId: s
                     </div>
                     <div className="min-w-0">
                       <p className="font-semibold text-slate-800 text-sm">{SECTION_TYPES.find((t) => t.id === section.type)?.label ?? section.type}</p>
-                      <p className="text-xs text-slate-400 truncate max-w-xs">{sectionSummary(section)}</p>
+                      <p className="text-xs text-slate-400 truncate max-w-xs">{sectionSummary(section as unknown as Section)}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
-                    <button onClick={() => toggleVisible(section)} className="p-1.5 text-slate-400 hover:text-slate-700 transition-colors" title={section.visible ? "Hide" : "Show"}>
+                    <button onClick={() => toggleVisible(section as unknown as Section)} className="p-1.5 text-slate-400 hover:text-slate-700 transition-colors" title={section.visible ? "Hide" : "Show"}>
                       {section.visible ? <Eye size={16} /> : <EyeOff size={16} />}
                     </button>
-                    <button onClick={() => setEditingSection(section)} className="p-1.5 text-slate-400 hover:text-blue-600 transition-colors"><Edit2 size={16} /></button>
+                    <button onClick={() => setEditingSection(section as unknown as Section)} className="p-1.5 text-slate-400 hover:text-blue-600 transition-colors"><Edit2 size={16} /></button>
                     <button onClick={() => remove(section.id)} className="p-1.5 text-slate-400 hover:text-red-600 transition-colors"><Trash2 size={16} /></button>
                   </div>
                 </div>
@@ -253,7 +348,36 @@ export default function MicrositeBuilder({ organizationId }: { organizationId: s
             </div>
           )}
         </div>
+        );
+      })()}
+
+      {tab === "navigation" && (
+        <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-6 max-w-2xl">
+          <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+            <div>
+              <h3 className="font-bold text-slate-800">Navigation Menu</h3>
+              <p className="text-sm text-slate-500">Manage links in your header.</p>
+            </div>
+          </div>
+          <ListEditor
+            label="Menu Items"
+            items={site.navItems || []}
+            onChange={async (items) => {
+              setSite({ ...site, navItems: items });
+              await updateMicrositeNavigation(site.id, items);
+              load();
+            }}
+            newItem={{ label: "New Link", url: "#", pageId: null }}
+            fields={[
+              { key: "label", label: "Link Label" },
+              { key: "url", label: "Custom URL (or #section-id)" },
+              // In a full implementation, we'd add a dropdown to select pageId instead of typing url
+            ]}
+          />
+        </div>
       )}
+
+      {tab === "theme" && <ThemePanel site={site} organizationId={organizationId} orgType={orgType} onSaved={load} />}
 
       {tab === "settings" && <SettingsPanel site={site} organizationId={organizationId} orgType={orgType} onSaved={load} />}
 
@@ -262,11 +386,15 @@ export default function MicrositeBuilder({ organizationId }: { organizationId: s
           orgType={orgType}
           onPick={async (type) => {
             setAddingType(null);
+            // Default to first page for now until multi-page UI is built
+            const targetPageId = (site as any).pages?.[0]?.id || (site as any).sections?.[0]?.pageId;
+            if (!targetPageId) { alert("No page available to add section."); return; }
+
             const tempId = "temp-" + Date.now();
             const tempSection = { id: tempId, type, content: JSON.stringify(DEFAULT_CONTENT[type] ?? {}), visible: true, order: site.sections.length } as any;
             setSite({ ...site!, sections: [...site!.sections, tempSection] });
 
-            const res = await addMicrositeSection(site.id, { type, content: DEFAULT_CONTENT[type] ?? {} });
+            const res = await addMicrositeSection(site.id, { pageId: targetPageId, type, content: DEFAULT_CONTENT[type] ?? {} });
             if ((res as any)?.section) {
               await load();
               setEditingSection((res as any).section);

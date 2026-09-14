@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signIn } from 'next-auth/react';
+import { signIn, useSession } from 'next-auth/react';
 import { registerSchool } from '@/lib/actions/business';
 import { Loader2, ArrowRight } from 'lucide-react';
 
@@ -10,6 +10,7 @@ import { NIGERIAN_STATES } from '@/lib/data/nigeria';
 
 export default function SchoolRegisterForm({ isLoggedIn }: { isLoggedIn: boolean }) {
   const router = useRouter();
+  const { update } = useSession();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
@@ -48,6 +49,7 @@ export default function SchoolRegisterForm({ isLoggedIn }: { isLoggedIn: boolean
       setError(result.error);
       setLoading(false);
     } else if (result.success) {
+      await update();
       router.push('/school/admin');
     }
   };

@@ -40,9 +40,14 @@ async function getCurrentTerm(organizationId: string) {
 // Reads
 // ---------------------------------------------------------------------
 
-export async function getSchoolAdminData() {
+export async function getSchoolAdminData(organizationId?: string) {
   try {
-    const school = await db.orm.public.Organization.where({ type: 'SCHOOL' }).all().first();
+    let school;
+    if (organizationId) {
+      school = await db.orm.public.Organization.where({ id: organizationId, type: 'SCHOOL' }).all().first();
+    } else {
+      school = await db.orm.public.Organization.where({ type: 'SCHOOL' }).all().first();
+    }
     if (!school) return null;
 
     const students = (await db.orm.public.Student.where({ organizationId: school.id }).all())

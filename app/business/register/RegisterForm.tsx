@@ -2,12 +2,13 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signIn } from 'next-auth/react';
+import { signIn, useSession } from 'next-auth/react';
 import { registerOrganization } from '@/lib/actions/business';
 import { Loader2, ArrowRight } from 'lucide-react';
 
 export default function RegisterForm({ initialType, isLoggedIn }: { initialType: string, isLoggedIn: boolean }) {
   const router = useRouter();
+  const { update } = useSession();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
@@ -35,6 +36,7 @@ export default function RegisterForm({ initialType, isLoggedIn }: { initialType:
       setError(result.error);
       setLoading(false);
     } else if (result.success) {
+      await update();
       // Redirect based on type
       if (formData.type === 'SCHOOL') {
         router.push('/school/admin');
