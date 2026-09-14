@@ -210,7 +210,8 @@ export async function createMicrosite(organizationId: string, input: { title: st
       organizationId,
       slug,
       title: input.title,
-      status: 'draft',
+      status: 'published',
+      publishedAt: new Date(),
       theme,
       logoAssetId: defaultLogo,
     });
