@@ -150,7 +150,7 @@ export async function isSlugAvailable(slug: string, excludeOrganizationId?: stri
 // Microsite: write
 // ---------------------------------------------------------------------
 
-export async function createMicrosite(organizationId: string, input: { title: string; slug?: string; templateId?: string; features?: string[] }) {
+export async function createMicrosite(organizationId: string, input: { title: string; slug?: string; templateId?: string; features?: string[]; customContent?: Record<string, any> }) {
   try {
     const existing = await db.orm.public.Microsite.where({ organizationId }).all().first();
     if (existing) return { error: 'This organization already has a website.' };
@@ -240,38 +240,40 @@ export async function createMicrosite(organizationId: string, input: { title: st
       }
     } else if (orgType === 'SCHOOL') {
       if (input.features && input.features.length > 0) {
+        const c = input.customContent || {};
+        
         if (input.features.includes('hero')) {
-           defaultSections.push({ type: 'hero', content: { heading: input.title, subheading: "A tradition of excellence. Inspiring minds.", ctaText: "Admissions", ctaLink: "#contact" } });
+           defaultSections.push({ type: 'hero', content: { heading: input.title, subheading: c.hero?.subheading || "A tradition of excellence. Inspiring minds.", ctaText: "Admissions", ctaLink: "#contact" } });
         }
         if (input.features.includes('welcome')) {
-           defaultSections.push({ type: 'school-head-welcome', content: { heading: "Welcome from the Headmaster", body: "At our academy, we believe in nurturing not just academic excellence, but character, leadership, and a lifelong love for learning.", signature: defaultHeadName } });
+           defaultSections.push({ type: 'school-head-welcome', content: { heading: c.welcome?.heading || "Welcome from the Headmaster", body: c.welcome?.body || "At our academy, we believe in nurturing not just academic excellence, but character, leadership, and a lifelong love for learning.", signature: defaultHeadName } });
         }
         if (input.features.includes('mission')) {
-           defaultSections.push({ type: 'hotel-amenities', content: { heading: "Our Core Values", items: [
+           defaultSections.push({ type: 'hotel-amenities', content: { heading: "Our Core Values", items: c.mission || [
              { name: "Excellence", description: "Striving for the highest standards in all academic and personal endeavors." },
              { name: "Character", description: "Building integrity, empathy, and strong moral foundations." },
              { name: "Community", description: "Fostering a supportive, inclusive, and diverse environment." }
-           ] } }); // Reusing the matrix component for values
+           ] } });
         }
         if (input.features.includes('curriculum')) {
-           defaultSections.push({ type: 'school-curriculum', content: { heading: "Academic Divisions", items: [
+           defaultSections.push({ type: 'school-curriculum', content: { heading: "Academic Divisions", items: c.curriculum || [
              { phase: "Early Years", description: "Play-based learning focusing on social and cognitive development." },
              { phase: "Primary School", description: "Building a strong foundation in core subjects with an emphasis on curiosity." },
              { phase: "Secondary School", description: "Rigorous coursework preparing students for higher education and leadership." }
            ] } });
         }
         if (input.features.includes('facilities')) {
-           defaultSections.push({ type: 'hotel-feature', content: { heading: "World-Class Facilities", subheading: "Campus Life", body: "Our sprawling campus features state-of-the-art science laboratories, a comprehensive modern library, and professional-grade sports complexes designed to support holistic student development.", reverseLayout: false } }); // Reusing feature component
+           defaultSections.push({ type: 'hotel-feature', content: { heading: "World-Class Facilities", subheading: "Campus Life", body: c.facilities || "Our sprawling campus features state-of-the-art science laboratories, a comprehensive modern library, and professional-grade sports complexes designed to support holistic student development.", reverseLayout: false } }); 
         }
         if (input.features.includes('admissions')) {
-           defaultSections.push({ type: 'school-admissions-timeline', content: { heading: "Admissions Process", steps: [
+           defaultSections.push({ type: 'school-admissions-timeline', content: { heading: "Admissions Process", steps: c.admissions || [
              { title: "Submit Application", description: "Complete the online application form and submit required documents." },
              { title: "Entrance Assessment", description: "Students will be invited for a grade-appropriate assessment." },
              { title: "Family Interview", description: "A brief conversation with our admissions team to ensure a mutual fit." }
            ] } });
         }
         if (input.features.includes('testimonials')) {
-           defaultSections.push({ type: 'testimonials', content: { heading: "What Parents Say", items: [
+           defaultSections.push({ type: 'testimonials', content: { heading: "What Parents Say", items: c.testimonials || [
              { quote: "The teachers truly care about each student's personal growth and academic success.", author: "Parent of Grade 4 Student" },
              { quote: "The best decision we made for our children. The community here is incredible.", author: "Alumni Parent" }
            ] } });
