@@ -76,6 +76,7 @@ export async function registerSchool(data: {
       phone: data.phone,
       email: data.email,
       website: data.website,
+      currentYear: new Date().getFullYear(),
     });
 
     return { success: true, organizationId: org.id };
