@@ -132,7 +132,7 @@ export default function ShopOSLandingPage() {
               { icon: Users, color: "text-indigo-600", bg: "bg-indigo-50", title: "Customer Loyalty", desc: "Unified CRM profiles. Reward points for in-store purchases that customers can track via their CityOS app." }
             ].map((feature, idx) => (
               <div key={idx} className="p-8 rounded-3xl bg-white border border-slate-200 hover:border-emerald-200 hover:shadow-lg transition-all group">
-                <div className={w-14 h-14 rounded-2xl flex items-center justify-center mb-6 transition-transform group-hover:scale-110  }>
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 transition-transform group-hover:scale-110 ${feature.bg} ${feature.color}`}>
                   <feature.icon size={28} />
                 </div>
                 <h3 className="text-xl font-bold text-slate-900 mb-3">{feature.title}</h3>
