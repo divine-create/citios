@@ -37,7 +37,7 @@ export default function SchoolOSLandingPage() {
           </div>
           <div className="flex items-center gap-4">
             <Link href="/login" className="text-sm font-medium text-slate-600 hover:text-slate-900 hidden sm:block">Sign In</Link>
-            <Link href="/business/register?type=SCHOOL" className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-full text-sm font-bold transition-all shadow-lg shadow-blue-600/20 hover:shadow-blue-600/40">
+            <Link href="/business/schoolos/register" className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-full text-sm font-bold transition-all shadow-lg shadow-blue-600/20 hover:shadow-blue-600/40">
               Register Institution
             </Link>
           </div>
@@ -59,7 +59,7 @@ export default function SchoolOSLandingPage() {
             Replace dozens of disconnected tools. SchoolOS unifies your admissions, grading, finance, and parent communications into one beautiful, centralized platform on CityConnect.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-in fade-in slide-in-from-bottom-10 duration-700 delay-300">
-            <Link href="/business/register?type=SCHOOL" className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-full text-lg font-bold transition-all shadow-xl shadow-blue-600/20 hover:shadow-blue-600/40 flex items-center justify-center gap-2">
+            <Link href="/business/schoolos/register" className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-full text-lg font-bold transition-all shadow-xl shadow-blue-600/20 hover:shadow-blue-600/40 flex items-center justify-center gap-2">
               Start Free Setup <ArrowRight size={20} />
             </Link>
             <Link href="#features" className="w-full sm:w-auto bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 px-8 py-4 rounded-full text-lg font-bold transition-colors flex items-center justify-center">
@@ -144,7 +144,7 @@ export default function SchoolOSLandingPage() {
           <p className="text-xl text-slate-300 mb-10">Join the growing network of educational institutions utilizing CityConnect to streamline their operations.</p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-12">
-            <Link href="/business/register?type=SCHOOL" className="w-full sm:w-auto bg-blue-500 hover:bg-blue-400 text-white px-8 py-4 rounded-full text-lg font-bold transition-all shadow-xl shadow-blue-500/30 flex items-center justify-center gap-2">
+            <Link href="/business/schoolos/register" className="w-full sm:w-auto bg-blue-500 hover:bg-blue-400 text-white px-8 py-4 rounded-full text-lg font-bold transition-all shadow-xl shadow-blue-500/30 flex items-center justify-center gap-2">
               Create Your School <ArrowRight size={20} />
             </Link>
           </div>

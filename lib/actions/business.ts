@@ -41,3 +41,46 @@ export async function registerOrganization(data: {
     return { error: err.message || "Failed to register organization." };
   }
 }
+export async function registerSchool(data: {
+  name: string;
+  shortName: string;
+  address: string;
+  phone: string;
+  email: string;
+  website: string;
+}) {
+  const session = await getServerSession(authOptions);
+  
+  if (!session?.user?.userId) {
+    return { error: "You must be logged in to register a school." };
+  }
+
+  try {
+    const org = await db.orm.public.Organization.create({
+      name: data.name,
+      type: 'SCHOOL' as any,
+      address: data.address,
+    });
+
+    await db.orm.public.OrganizationMember.create({
+      userId: session.user.userId,
+      organizationId: org.id,
+      role: 'OWNER' as any,
+    });
+
+    await db.orm.public.SchoolSettings.create({
+      organizationId: org.id,
+      name: data.name,
+      shortName: data.shortName,
+      address: data.address,
+      phone: data.phone,
+      email: data.email,
+      website: data.website,
+    });
+
+    return { success: true, organizationId: org.id };
+  } catch (err: any) {
+    console.error("Error registering school:", err);
+    return { error: err.message || "Failed to register school." };
+  }
+}
