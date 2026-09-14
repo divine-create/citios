@@ -26,7 +26,11 @@ export async function getMicrosite(organizationId: string) {
     const microsite = await db.orm.public.Microsite.where({ organizationId }).all().first();
     if (!microsite) return null;
     const pages = await db.orm.public.MicrositePage.where({ micrositeId: microsite.id }).all();
-    const navItems = await db.orm.public.MicrositeNavigationItem.where({ micrositeId: microsite.id }).all();
+    const navItemsRaw = await db.orm.public.MicrositeNavigationItem.where({ micrositeId: microsite.id }).all();
+    const navItems = navItemsRaw.map(n => ({
+      ...n,
+      page: n.pageId ? pages.find(p => p.id === n.pageId) || null : null
+    }));
     const sections = await db.orm.public.MicrositeSection.where({ micrositeId: microsite.id }).all();
     sections.sort((a, b) => a.order - b.order);
 
@@ -99,7 +103,10 @@ export async function getMicrositeBySlug(slug: string, path: string[] = []) {
       .sort((a, b) => a.order - b.order);
 
     const navItemsRaw = await db.orm.public.MicrositeNavigationItem.where({ micrositeId: microsite.id }).all();
-    const navItems = navItemsRaw.sort((a, b) => a.order - b.order);
+    const navItems = navItemsRaw.map(n => ({
+      ...n,
+      page: n.pageId ? pages.find(p => p.id === n.pageId) || null : null
+    })).sort((a, b) => a.order - b.order);
 
     const rawProducts = await db.orm.public.RetailProduct.where({ organizationId: microsite.organizationId }).all();
     const categories = await db.orm.public.RetailCategory.where({ organizationId: microsite.organizationId }).all();
@@ -273,6 +280,9 @@ export async function createMicrosite(organizationId: string, input: { title: st
              { title: "Family Interview", description: "A brief conversation with our admissions team to ensure a mutual fit." }
            ] } });
         }
+        if (input.features.includes('events')) {
+           defaultSections.push({ type: 'hotel-booking', content: { heading: "Upcoming Events", subtext: "Stay tuned for our academic calendar." } }); // Reusing a simple CTA block as a placeholder for Events
+        }
         if (input.features.includes('testimonials')) {
            defaultSections.push({ type: 'testimonials', content: { heading: "What Parents Say", items: c.testimonials || [
              { quote: "The teachers truly care about each student's personal growth and academic success.", author: "Parent of Grade 4 Student" },
@@ -318,30 +328,33 @@ export async function createMicrosite(organizationId: string, input: { title: st
     const pagesToCreate: { title: string, slug: string, isHome: boolean, sections: any[] }[] = [];
 
     if (orgType === 'SCHOOL' && input.features && input.features.length > 0) {
-      // Split into multi-page
+      // Hybrid setup: Home gets About/Academics. Admissions, Events and Contact get their own pages.
       const homeSections = [];
-      const aboutSections = [];
-      const academicsSections = [];
       const admissionsSections = [];
+      const eventsSections = [];
 
       for (const sec of defaultSections) {
-        if (sec.type === 'hero' || sec.type === 'school-head-welcome' || sec.type === 'testimonials') {
-          homeSections.push(sec);
-        } else if (sec.type === 'hotel-amenities') { // Mission
-          aboutSections.push(sec);
-        } else if (sec.type === 'school-curriculum' || sec.type === 'hotel-feature') { // Curriculum & Facilities
-          academicsSections.push(sec);
-        } else if (sec.type === 'school-admissions-timeline') {
+        if (sec.type === 'school-admissions-timeline') {
           admissionsSections.push(sec);
+        } else if (sec.type === 'hotel-booking') { // Used as placeholder for Events
+          eventsSections.push(sec);
+        } else {
+          // Everything else (Hero, Welcome, Mission, Curriculum, Facilities, Testimonials) goes to Home
+          homeSections.push(sec);
         }
       }
       
       pagesToCreate.push({ title: "Home", slug: "home", isHome: true, sections: homeSections });
-      if (aboutSections.length > 0) pagesToCreate.push({ title: "About Us", slug: "about", isHome: false, sections: aboutSections });
-      if (academicsSections.length > 0) pagesToCreate.push({ title: "Academics", slug: "academics", isHome: false, sections: academicsSections });
-      if (admissionsSections.length > 0) pagesToCreate.push({ title: "Admissions", slug: "admissions", isHome: false, sections: admissionsSections });
       
-      // Add Contact to the last page or create a separate Contact page
+      if (admissionsSections.length > 0) {
+        pagesToCreate.push({ title: "Admissions", slug: "admissions", isHome: false, sections: admissionsSections });
+      }
+
+      if (eventsSections.length > 0) {
+        pagesToCreate.push({ title: "Events", slug: "events", isHome: false, sections: eventsSections });
+      }
+      
+      // Always create a dedicated Contact page
       pagesToCreate.push({ title: "Contact", slug: "contact", isHome: false, sections: [{ type: 'contact', content: { heading: "Get in Touch", address: defaultAddress, phone: defaultPhone, email: defaultEmail } }] });
       
     } else {

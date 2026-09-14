@@ -32,6 +32,7 @@ const SECTIONS = [
   { id: "curriculum", label: "Academic Curriculum", default: true },
   { id: "facilities", label: "Campus Facilities", default: false },
   { id: "admissions", label: "Admissions Timeline", default: false },
+  { id: "events", label: "Upcoming Events", default: false },
   { id: "testimonials", label: "Parent Testimonials", default: false },
   { id: "contact", label: "Contact & Location", default: true, required: true },
 ];
@@ -335,6 +336,15 @@ export default function WebsiteSetupWizard({ organizationId, initialTitle, onCre
                           </div>
                         ))}
                         <button onClick={() => addListItem('admissions', { title: "", description: "" })} className="text-sm font-semibold text-blue-600 flex items-center gap-1 hover:text-blue-700"><Plus size={16}/> Add Step</button>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedFeatures.includes("events") && (
+                    <div className="p-6 border border-slate-200 rounded-xl bg-slate-50">
+                      <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><FileText size={18} className="text-blue-600" /> Upcoming Events</h3>
+                      <div className="space-y-3">
+                        <p className="text-sm text-slate-600 mb-2">We will automatically add a section for events on your website.</p>
                       </div>
                     </div>
                   )}
