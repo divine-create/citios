@@ -280,7 +280,10 @@ export async function createMicrosite(organizationId: string, input: { title: st
            ] } });
         }
         if (input.features.includes('events')) {
-           defaultSections.push({ type: 'hotel-booking', content: { heading: "Upcoming Events", subtext: "Stay tuned for our academic calendar." } }); // Reusing a simple CTA block as a placeholder for Events
+           defaultSections.push({ type: 'school-events', content: { heading: "Upcoming Events", subtext: "Stay tuned for our academic calendar.", items: [
+             { date: "Oct 15", title: "Fall Open House", description: "Tour the campus and meet our wonderful faculty." },
+             { date: "Nov 02", title: "Science Fair", description: "Students showcase their innovative projects in the main hall." }
+           ] } });
         }
         if (input.features.includes('testimonials')) {
            defaultSections.push({ type: 'testimonials', content: { heading: "What Parents Say", items: c.testimonials || [

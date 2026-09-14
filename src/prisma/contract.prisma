@@ -870,6 +870,7 @@ model Student {
 
   studentId         String
   firstName         String
+  middleName        String?
   lastName          String
   dateOfBirth       DateTime?
   gender            String?

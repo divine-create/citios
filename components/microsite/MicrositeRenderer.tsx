@@ -636,6 +636,36 @@ function Section({ id, micrositeId, type, content, theme, products, hotelRooms }
       );
     }
 
+    case "school-events": {
+      const items: any[] = Array.isArray(content.items) ? content.items : [];
+      return (
+        <section id={id} className="section-padding" style={{ background: theme.bg }}>
+          <div style={{ maxWidth: "64rem", margin: "0 auto" }}>
+            <FadeIn>
+              {content.heading && <h2 style={{ ...headingStyle, fontSize: "2.5rem", fontWeight: 700, marginBottom: "1rem", textAlign: "center" }}>{content.heading}</h2>}
+              {content.subtext && <p style={{ color: theme.textMuted, fontSize: "1.1rem", textAlign: "center", marginBottom: "3rem" }}>{content.subtext}</p>}
+            </FadeIn>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "2rem" }}>
+              {items.map((item, i) => (
+                <FadeIn key={i} delay={i * 50}>
+                  <div style={{ padding: "2rem", background: theme.surface, borderRadius: theme.radius, boxShadow: "0 4px 15px rgba(0,0,0,0.03)", height: "100%", display: "flex", flexDirection: "column" }}>
+                    <div style={{ color: theme.accent, fontSize: "0.85rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.5rem" }}>{item.date}</div>
+                    <h3 style={{ ...headingStyle, fontSize: "1.25rem", fontWeight: 700, marginBottom: "1rem" }}>{item.title}</h3>
+                    <p style={{ color: theme.textMuted, fontSize: "0.95rem", lineHeight: 1.6, flexGrow: 1 }}>{item.description}</p>
+                  </div>
+                </FadeIn>
+              ))}
+              {items.length === 0 && (
+                <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "4rem 2rem", background: theme.surface, borderRadius: theme.radius, color: theme.textMuted }}>
+                  <p>Check back soon for our upcoming academic calendar.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      );
+    }
+
     case "hotel-booking": {
       const isLuxury = theme.label === "Horizon (Hotel)";
       return (
