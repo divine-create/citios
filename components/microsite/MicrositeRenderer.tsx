@@ -91,15 +91,17 @@ interface RetailProductSummary {
   imageAssetId: string | null;
 }
 
-interface MicrositeData {
+export interface MicrositeData {
   id: string;
+  organizationId: string;
+  slug: string;
   title: string;
   tagline?: string | null;
   theme: string;
   organizationName: string;
   logoAssetId?: string | null;
   sections: { id: string; type: string; content: string; visible: boolean }[];
-  navItems?: { id: string; label: string; url: string | null; pageId: string | null; page?: { slug: string } }[];
+  navItems?: { id: string; label: string; url: string | null; pageId: string | null; page?: { slug: string, isHome: boolean } }[];
   products?: RetailProductSummary[];
   hotelRooms?: any[];
   primaryColor?: string;
@@ -126,7 +128,15 @@ export default function MicrositeRenderer({ data }: { data: MicrositeData }) {
 
   // Use dynamic navItems if they exist, otherwise fallback to sections for backwards compatibility
   const navLinks = data.navItems && data.navItems.length > 0 
-    ? data.navItems.map(n => ({ id: n.id, label: n.label, url: n.url ?? (n.page ? `/${n.page.slug}` : '#') }))
+    ? data.navItems.map(n => {
+        let resolvedUrl = '#';
+        if (n.url) {
+          resolvedUrl = n.url;
+        } else if (n.page) {
+          resolvedUrl = n.page.isHome ? `/site/${data.slug}` : `/site/${data.slug}/${n.page.slug}`;
+        }
+        return { id: n.id, label: n.label, url: resolvedUrl };
+      })
     : data.sections
     .filter((s) => s.visible && s.type !== "hero" && s.type !== "footer" && s.type !== "cta")
     .map((s) => {

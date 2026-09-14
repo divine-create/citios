@@ -324,72 +324,27 @@ export async function createMicrosite(organizationId: string, input: { title: st
       defaultSections.push({ type: 'hero', content: { heading: input.title, subheading: "Welcome to our website.", ctaText: "Contact Us", ctaLink: "#contact" } });
     }
 
-    const pagesToCreate: { title: string, slug: string, isHome: boolean, sections: any[] }[] = [];
+    const homePage = await db.orm.public.MicrositePage.create({
+      micrositeId: microsite.id,
+      title: "Home",
+      slug: "home",
+      isHome: true,
+      status: "published",
+    });
 
-    if (orgType === 'SCHOOL' && input.features && input.features.length > 0) {
-      // Hybrid setup: Home gets About/Academics. Admissions, Events and Contact get their own pages.
-      const homeSections = [];
-      const admissionsSections = [];
-      const eventsSections = [];
-
-      for (const sec of defaultSections) {
-        if (sec.type === 'school-admissions-timeline') {
-          admissionsSections.push(sec);
-        } else if (sec.type === 'hotel-booking') { // Used as placeholder for Events
-          eventsSections.push(sec);
-        } else {
-          // Everything else (Hero, Welcome, Mission, Curriculum, Facilities, Testimonials) goes to Home
-          homeSections.push(sec);
-        }
-      }
-      
-      pagesToCreate.push({ title: "Home", slug: "home", isHome: true, sections: homeSections });
-      
-      if (admissionsSections.length > 0) {
-        pagesToCreate.push({ title: "Admissions", slug: "admissions", isHome: false, sections: admissionsSections });
-      }
-
-      if (eventsSections.length > 0) {
-        pagesToCreate.push({ title: "Events", slug: "events", isHome: false, sections: eventsSections });
-      }
-      
-      // Always create a dedicated Contact page
-      pagesToCreate.push({ title: "Contact", slug: "contact", isHome: false, sections: [{ type: 'contact', content: { heading: "Get in Touch", address: defaultAddress, phone: defaultPhone, email: defaultEmail } }] });
-      
-    } else {
-      defaultSections.push({ type: 'contact', content: { heading: "Get in Touch", address: defaultAddress, phone: defaultPhone, email: defaultEmail } });
-      pagesToCreate.push({ title: "Home", slug: "home", isHome: true, sections: defaultSections });
-    }
-
-    let navOrder = 0;
-    for (const pageDef of pagesToCreate) {
-      const page = await db.orm.public.MicrositePage.create({
+    for (let i = 0; i < defaultSections.length; i++) {
+      await db.orm.public.MicrositeSection.create({
         micrositeId: microsite.id,
-        title: pageDef.title,
-        slug: pageDef.slug,
-        isHome: pageDef.isHome,
-        status: "published",
-      });
-
-      for (let i = 0; i < pageDef.sections.length; i++) {
-        await db.orm.public.MicrositeSection.create({
-          micrositeId: microsite.id,
-          pageId: page.id,
-          type: pageDef.sections[i].type,
-          order: i,
-          visible: true,
-          content: JSON.stringify(pageDef.sections[i].content),
-        });
-      }
-
-      await db.orm.public.MicrositeNavigationItem.create({
-        micrositeId: microsite.id,
-        label: pageDef.title,
-        pageId: page.id,
-        order: navOrder++,
-        isHidden: false,
+        pageId: homePage.id,
+        type: defaultSections[i].type,
+        order: i,
+        visible: true,
+        content: JSON.stringify(defaultSections[i].content),
       });
     }
+
+    // Do NOT create explicit Navigation Items. 
+    // MicrositeRenderer will automatically generate a beautiful smooth-scrolling hash menu from the sections!
 
     return { success: true, microsite: JSON.parse(JSON.stringify(microsite)) };
   } catch (error) {
