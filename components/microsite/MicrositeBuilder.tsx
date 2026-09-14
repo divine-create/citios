@@ -1,4 +1,5 @@
 "use client";
+import WebsiteSetupWizard from './WebsiteSetupWizard';
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
@@ -125,7 +126,12 @@ export default function MicrositeBuilder({ organizationId }: { organizationId: s
 
   if (site === undefined) return <p className="text-sm text-slate-400 py-8 text-center">Loading...</p>;
 
-  if (!site) return <CreateSiteForm organizationId={organizationId} initialTitle={orgName} orgType={orgType} onCreated={load} />;
+  if (!site) {
+    if (orgType === 'SCHOOL') {
+      return <WebsiteSetupWizard organizationId={organizationId} initialTitle={orgName} onCreated={load} />;
+    }
+    return <CreateSiteForm organizationId={organizationId} initialTitle={orgName} orgType={orgType} onCreated={load} />;
+  }
 
   const move = async (index: number, direction: -1 | 1) => {
     const sorted = [...site.sections].sort((a, b) => a.order - b.order);

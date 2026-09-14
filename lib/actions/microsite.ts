@@ -150,7 +150,7 @@ export async function isSlugAvailable(slug: string, excludeOrganizationId?: stri
 // Microsite: write
 // ---------------------------------------------------------------------
 
-export async function createMicrosite(organizationId: string, input: { title: string; slug?: string; templateId?: string }) {
+export async function createMicrosite(organizationId: string, input: { title: string; slug?: string; templateId?: string; features?: string[] }) {
   try {
     const existing = await db.orm.public.Microsite.where({ organizationId }).all().first();
     if (existing) return { error: 'This organization already has a website.' };
@@ -171,8 +171,11 @@ export async function createMicrosite(organizationId: string, input: { title: st
     let theme = 'minimal';
     if (input.templateId === 'luxury-resort') theme = 'horizon';
     else if (input.templateId === 'city-boutique') theme = 'minimal';
-    else if (input.templateId === 'prep-academy') theme = 'scholastic';
-    else if (input.templateId === 'modern-college') theme = 'minimal';
+    else if (input.templateId === 'prep-academy' || input.templateId === 'scholastic') theme = 'scholastic';
+    else if (input.templateId === 'modern-college' || input.templateId === 'innovator') theme = 'innovator';
+    else if (input.templateId === 'playful') theme = 'playful';
+    else if (input.templateId === 'modern-apparel') theme = 'editorial';
+    else if (input.templateId === 'local-market') theme = 'warm';
     else if (orgType === 'HOTEL') theme = 'horizon';
     else if (orgType === 'SCHOOL') theme = 'scholastic';
 
@@ -236,23 +239,63 @@ export async function createMicrosite(organizationId: string, input: { title: st
         defaultSections.push({ type: 'hotel-booking', content: { heading: "Book Your Stay", subtext: "Best rate guaranteed when you book direct." } });
       }
     } else if (orgType === 'SCHOOL') {
-      if (input.templateId === 'prep-academy') {
-        defaultSections.push({ type: 'hero', content: { heading: input.title, subheading: "A tradition of excellence. Inspiring minds since 1952.", ctaText: "Admissions", ctaLink: "#contact", imageAssetId: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2000&auto=format&fit=crop" } });
-        defaultSections.push({ type: 'school-head-welcome', content: { heading: "Welcome from the Headmaster", body: "At our academy, we believe in nurturing not just academic excellence, but character, leadership, and a lifelong love for learning. Our historic campus provides the perfect environment for students to thrive.", signature: defaultHeadName } });
-        defaultSections.push({ type: 'school-curriculum', content: { heading: "Academic Divisions", items: [
-          { phase: "Lower School", description: "Building a strong foundation in core subjects with an emphasis on curiosity." },
-          { phase: "Upper School", description: "Rigorous college-preparatory coursework including AP and Honors programs." }
-        ] } });
-      } else if (input.templateId === 'modern-college') {
-        defaultSections.push({ type: 'hero', content: { heading: input.title, subheading: "Innovating the future. Your journey starts here.", ctaText: "Apply Now", ctaLink: "#contact", imageAssetId: "https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?q=80&w=2000&auto=format&fit=crop" } });
-        defaultSections.push({ type: 'school-curriculum', content: { heading: "Featured Programs", items: [
-          { phase: "School of Engineering", description: "Cutting-edge labs and industry partnerships." },
-          { phase: "College of Arts", description: "Fostering creativity and critical thinking in a digital age." }
-        ] } });
-        defaultSections.push({ type: 'school-head-welcome', content: { heading: "President's Message", body: "We are committed to providing a dynamic, inclusive, and forward-thinking environment. Join us in shaping tomorrow.", signature: defaultHeadName } });
+      if (input.features && input.features.length > 0) {
+        if (input.features.includes('hero')) {
+           defaultSections.push({ type: 'hero', content: { heading: input.title, subheading: "A tradition of excellence. Inspiring minds.", ctaText: "Admissions", ctaLink: "#contact" } });
+        }
+        if (input.features.includes('welcome')) {
+           defaultSections.push({ type: 'school-head-welcome', content: { heading: "Welcome from the Headmaster", body: "At our academy, we believe in nurturing not just academic excellence, but character, leadership, and a lifelong love for learning.", signature: defaultHeadName } });
+        }
+        if (input.features.includes('mission')) {
+           defaultSections.push({ type: 'hotel-amenities', content: { heading: "Our Core Values", items: [
+             { name: "Excellence", description: "Striving for the highest standards in all academic and personal endeavors." },
+             { name: "Character", description: "Building integrity, empathy, and strong moral foundations." },
+             { name: "Community", description: "Fostering a supportive, inclusive, and diverse environment." }
+           ] } }); // Reusing the matrix component for values
+        }
+        if (input.features.includes('curriculum')) {
+           defaultSections.push({ type: 'school-curriculum', content: { heading: "Academic Divisions", items: [
+             { phase: "Early Years", description: "Play-based learning focusing on social and cognitive development." },
+             { phase: "Primary School", description: "Building a strong foundation in core subjects with an emphasis on curiosity." },
+             { phase: "Secondary School", description: "Rigorous coursework preparing students for higher education and leadership." }
+           ] } });
+        }
+        if (input.features.includes('facilities')) {
+           defaultSections.push({ type: 'hotel-feature', content: { heading: "World-Class Facilities", subheading: "Campus Life", body: "Our sprawling campus features state-of-the-art science laboratories, a comprehensive modern library, and professional-grade sports complexes designed to support holistic student development.", reverseLayout: false } }); // Reusing feature component
+        }
+        if (input.features.includes('admissions')) {
+           defaultSections.push({ type: 'school-admissions-timeline', content: { heading: "Admissions Process", steps: [
+             { title: "Submit Application", description: "Complete the online application form and submit required documents." },
+             { title: "Entrance Assessment", description: "Students will be invited for a grade-appropriate assessment." },
+             { title: "Family Interview", description: "A brief conversation with our admissions team to ensure a mutual fit." }
+           ] } });
+        }
+        if (input.features.includes('testimonials')) {
+           defaultSections.push({ type: 'testimonials', content: { heading: "What Parents Say", items: [
+             { quote: "The teachers truly care about each student's personal growth and academic success.", author: "Parent of Grade 4 Student" },
+             { quote: "The best decision we made for our children. The community here is incredible.", author: "Alumni Parent" }
+           ] } });
+        }
       } else {
-        defaultSections.push({ type: 'hero', content: { heading: input.title, subheading: "Welcome to our institution.", ctaText: "Learn More", ctaLink: "#contact" } });
-        defaultSections.push({ type: 'school-head-welcome', content: { heading: "Welcome", body: "We are thrilled to welcome you.", signature: defaultHeadName } });
+        // Fallback for old templates
+        if (input.templateId === 'prep-academy') {
+          defaultSections.push({ type: 'hero', content: { heading: input.title, subheading: "A tradition of excellence. Inspiring minds since 1952.", ctaText: "Admissions", ctaLink: "#contact", imageAssetId: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2000&auto=format&fit=crop" } });
+          defaultSections.push({ type: 'school-head-welcome', content: { heading: "Welcome from the Headmaster", body: "At our academy, we believe in nurturing not just academic excellence, but character, leadership, and a lifelong love for learning. Our historic campus provides the perfect environment for students to thrive.", signature: defaultHeadName } });
+          defaultSections.push({ type: 'school-curriculum', content: { heading: "Academic Divisions", items: [
+            { phase: "Lower School", description: "Building a strong foundation in core subjects with an emphasis on curiosity." },
+            { phase: "Upper School", description: "Rigorous college-preparatory coursework including AP and Honors programs." }
+          ] } });
+        } else if (input.templateId === 'modern-college') {
+          defaultSections.push({ type: 'hero', content: { heading: input.title, subheading: "Innovating the future. Your journey starts here.", ctaText: "Apply Now", ctaLink: "#contact", imageAssetId: "https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?q=80&w=2000&auto=format&fit=crop" } });
+          defaultSections.push({ type: 'school-curriculum', content: { heading: "Featured Programs", items: [
+            { phase: "School of Engineering", description: "Cutting-edge labs and industry partnerships." },
+            { phase: "College of Arts", description: "Fostering creativity and critical thinking in a digital age." }
+          ] } });
+          defaultSections.push({ type: 'school-head-welcome', content: { heading: "President's Message", body: "We are committed to providing a dynamic, inclusive, and forward-thinking environment. Join us in shaping tomorrow.", signature: defaultHeadName } });
+        } else {
+          defaultSections.push({ type: 'hero', content: { heading: input.title, subheading: "Welcome to our institution.", ctaText: "Learn More", ctaLink: "#contact" } });
+          defaultSections.push({ type: 'school-head-welcome', content: { heading: "Welcome", body: "We are thrilled to welcome you.", signature: defaultHeadName } });
+        }
       }
     } else if (orgType === 'RETAIL') {
       if (input.templateId === 'modern-apparel') {
