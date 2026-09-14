@@ -137,14 +137,14 @@ export default function ReceiptModal({ orderId, onClose }: ReceiptModalProps) {
 
       </div>
 
-      <style dangerouslySetInnerHTML={{__html: 
+      <style dangerouslySetInnerHTML={{__html: `
         @media print {
           body * { visibility: hidden; }
           .print\\:hidden { display: none !important; }
           .font-mono { visibility: visible; position: absolute; left: 0; top: 0; width: 100%; padding: 20px; font-family: monospace; }
           .font-mono * { visibility: visible; }
         }
-      }} />
+      `}} />
     </div>
   );
 }
