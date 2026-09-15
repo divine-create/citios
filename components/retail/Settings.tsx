@@ -231,18 +231,27 @@ export default function Settings({ organizationId }: SettingsProps) {
           </div>
         )}
 
-        {activeTab === 'payment' && (
+{activeTab === 'payment' && (
           <div className="max-w-2xl">
             <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
               <h3 className="font-bold text-slate-800 border-b border-slate-100 pb-2">Payment & Wallet</h3>
               <p className="text-sm text-slate-500">Configure how you receive payments and wallet withdrawals.</p>
-              
+
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                <p className="text-sm font-bold text-amber-800">Online gateway payments are not yet enabled.</p>
+                <p className="text-sm text-amber-700 mt-1">Cash and manual payment recording are currently available at the register. Stripe, Paystack and Flutterwave collection will be activated in a future update.</p>
+              </div>
+
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Payment Gateway</label>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase">Payment Gateway</label>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-[10px] font-bold uppercase tracking-wide border border-slate-200">Coming soon</span>
+                </div>
                 <select 
+                  disabled
                   value={settings?.paymentGateway || ''} 
                   onChange={e => setSettings({...settings, paymentGateway: e.target.value})}
-                  className="w-full p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full p-2 border border-slate-200 rounded-lg bg-slate-100 text-slate-400 focus:outline-none cursor-not-allowed"
                 >
                   <option value="">Select Gateway</option>
                   <option value="stripe">Stripe</option>
@@ -252,16 +261,19 @@ export default function Settings({ organizationId }: SettingsProps) {
                 </select>
               </div>
 
-              <div className="space-y-3 pt-2">
-                <h4 className="text-xs font-bold text-slate-800 uppercase">Bank Details for Withdrawal</h4>
-                <div className="space-y-1">
-                  <input type="text" placeholder="Bank Name" value={settings?.bankDetails?.bankName || ''} onChange={e => setSettings({...settings, bankDetails: {...settings.bankDetails, bankName: e.target.value}})} className="w-full p-2 border border-slate-200 rounded-lg text-sm" />
+              <div className="space-y-3 pt-2 opacity-60">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-xs font-bold text-slate-800 uppercase">Bank Details for Withdrawal</h4>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-[10px] font-bold uppercase tracking-wide border border-slate-200">Coming soon</span>
                 </div>
                 <div className="space-y-1">
-                  <input type="text" placeholder="Account Name" value={settings?.bankDetails?.accountName || ''} onChange={e => setSettings({...settings, bankDetails: {...settings.bankDetails, accountName: e.target.value}})} className="w-full p-2 border border-slate-200 rounded-lg text-sm" />
+                  <input disabled type="text" placeholder="Bank Name" value={settings?.bankDetails?.bankName || ''} onChange={e => setSettings({...settings, bankDetails: {...settings.bankDetails, bankName: e.target.value}})} className="w-full p-2 border border-slate-200 rounded-lg text-sm bg-slate-100 text-slate-400" />
                 </div>
                 <div className="space-y-1">
-                  <input type="text" placeholder="Account Number" value={settings?.bankDetails?.accountNumber || ''} onChange={e => setSettings({...settings, bankDetails: {...settings.bankDetails, accountNumber: e.target.value}})} className="w-full p-2 border border-slate-200 rounded-lg text-sm" />
+                  <input disabled type="text" placeholder="Account Name" value={settings?.bankDetails?.accountName || ''} onChange={e => setSettings({...settings, bankDetails: {...settings.bankDetails, accountName: e.target.value}})} className="w-full p-2 border border-slate-200 rounded-lg text-sm bg-slate-100 text-slate-400" />
+                </div>
+                <div className="space-y-1">
+                  <input disabled type="text" placeholder="Account Number" value={settings?.bankDetails?.accountNumber || ''} onChange={e => setSettings({...settings, bankDetails: {...settings.bankDetails, accountNumber: e.target.value}})} className="w-full p-2 border border-slate-200 rounded-lg text-sm bg-slate-100 text-slate-400" />
                 </div>
               </div>
             </div>

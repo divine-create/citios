@@ -22,8 +22,8 @@ export default function ShopOnboardingWidget({ settings, organizationId, onNavig
   const steps = [
     {
       id: "payment",
-      label: "Create your wallet to receive payments",
-      description: "Choose your preferred online payment gateway for your store and add your bank details for wallet withdrawals.",
+      label: "Set up how you receive payments",
+      description: "Cash and manual payment recording are currently available at the register. Online gateway collection (Stripe, Paystack, Flutterwave) is coming soon.",
       isComplete: settings.hasSetPayment,
       actionText: "Add payment",
       onAction: async () => {
