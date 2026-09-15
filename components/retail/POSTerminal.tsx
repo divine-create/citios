@@ -45,11 +45,10 @@ const COLORS = [
   "bg-cyan-100 text-cyan-800",
 ];
 
-export default function POSTerminal({ organizationId, products, shiftId, cashierId, onOrderComplete }: {
+export default function POSTerminal({ organizationId, products, shiftId, onOrderComplete }: {
   organizationId: string;
   products: Product[];
   shiftId: string;
-  cashierId: string;
   onOrderComplete: () => void;
 }) {
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -142,7 +141,6 @@ export default function POSTerminal({ organizationId, products, shiftId, cashier
       const res = await createOrder({
         organizationId,
         shiftId,
-        cashierId,
         customerDataId: selectedCustomer?.id,
         items: cart.map((item) => ({ productId: item.product.id, quantity: item.quantity })),
         paymentMethod,

@@ -1090,16 +1090,123 @@ async function main() {
     });
   }
 
+  // Store settings (one row per org — RetailSettings.organizationId is unique).
+  // Onboarding flags deliberately half-complete so the ShopOS onboarding
+  // widget has steps to demo (payment + shipping still open).
+  let retailSettings = await db.orm.public.RetailSettings.where({ organizationId: retail.id }).all().first();
+  if (!retailSettings) {
+    retailSettings = await db.orm.public.RetailSettings.create({
+      organizationId: retail.id,
+      storeName: retail.name,
+      storeAddress: '45 CityMall Plaza, Springfield',
+      receiptMessage: 'Thank you for shopping at Corner Market!',
+      taxRate: 8,
+      currencySymbol: '$',
+      customUnits: JSON.stringify(['ea', 'kg', 'lb', 'pack', 'box']),
+      hasStoreInfo: true,
+      hasProducts: true,
+    });
+  }
+
+  // Physical branch locations for the retail org (V1 Location model is
+  // org-level; MembershipLocation can optionally scope staff to them).
+  const retailLocationSeeds = [
+    { name: 'Corner Market — Main Street', address: '45 CityMall Plaza, Springfield' },
+    { name: 'Corner Market — Airport Kiosk', address: 'Terminal B, Springfield International' },
+  ];
+  for (const locSeed of retailLocationSeeds) {
+    const existingLoc = await db.orm.public.Location.where({ organizationId: retail.id, name: locSeed.name }).all().first();
+    if (!existingLoc) {
+      await db.orm.public.Location.create({ organizationId: retail.id, name: locSeed.name, address: locSeed.address });
+    }
+  }
+
   // Per-role demo logins for ShopOS (password '1234' via the same demo
   // Credentials provider as every other seeded account).
   const retailStaffSeeds = [
+    { email: 'manager@cityconnect.local', name: 'Marta Manager', role: 'MANAGER' as const },
     { email: 'cashier@cityconnect.local', name: 'Cara Cashier', role: 'CASHIER' as const },
     { email: 'inventory@cityconnect.local', name: 'Ivan Stocker', role: 'INVENTORY_STAFF' as const },
   ];
+  let cashierMembershipId = '';
   for (const staffSeed of retailStaffSeeds) {
     const staffPerson = await findOrCreatePerson(staffSeed.name, staffSeed.email);
     const staffMembership = await findOrCreateMembership(staffPerson.id, retail.id);
     await ensureMembershipRole(staffMembership.id, staffSeed.role);
+    if (staffSeed.role === 'CASHIER') cashierMembershipId = staffMembership.id;
+  }
+
+  // Walk-in customers: Person -> Relationship(type=CUSTOMER) -> CustomerData.
+  // Clearly-marked development identities (*.customer@cityconnect.local).
+  const retailCustomerSeeds = [
+    { name: 'Grace Green', email: 'grace.customer@cityconnect.local', phone: '(555) 201-3301', notes: 'Prefers paper receipts.', loyaltyPoints: 120 },
+    { name: 'Hassan Patel', email: 'hassan.customer@cityconnect.local', phone: '(555) 201-3302', notes: 'Bulk buys rice monthly.', loyaltyPoints: 45 },
+    { name: 'Lucia Alvarez', email: 'lucia.customer@cityconnect.local', phone: '(555) 201-3303', notes: 'Loyalty signup at register.', loyaltyPoints: 0 },
+  ];
+  const retailCustomerDataIds: string[] = [];
+  for (const c of retailCustomerSeeds) {
+    const person = await findOrCreatePerson(c.name, c.email);
+    let rel = await db.orm.public.Relationship.where({ organizationId: retail.id, personId: person.id, type: 'CUSTOMER' }).all().first();
+    if (!rel) {
+      rel = await db.orm.public.Relationship.create({ organizationId: retail.id, personId: person.id, type: 'CUSTOMER' });
+    }
+    let cd = await db.orm.public.CustomerData.where({ relationshipId: rel.id }).all().first();
+    if (!cd) {
+      cd = await db.orm.public.CustomerData.create({ relationshipId: rel.id, notes: c.notes, loyaltyPoints: c.loyaltyPoints });
+    }
+    // Contact details live on PersonIdentifier (V1: no phone/email columns on Person).
+    const emailExists = await db.orm.public.PersonIdentifier.where({ type: 'EMAIL', normalizedValue: c.email.toLowerCase() }).all().first();
+    if (!emailExists) {
+      await db.orm.public.PersonIdentifier.create({ personId: person.id, type: 'EMAIL', normalizedValue: c.email.toLowerCase(), isVerified: false });
+    }
+    const phoneExists = await db.orm.public.PersonIdentifier.where({ type: 'PHONE', normalizedValue: c.phone }).all().first();
+    if (!phoneExists) {
+      await db.orm.public.PersonIdentifier.create({ personId: person.id, type: 'PHONE', normalizedValue: c.phone });
+    }
+    retailCustomerDataIds.push(cd.id);
+  }
+
+  // One historical COMPLETED sale so the dashboard, Sales & Returns and the
+  // customer 360 have data on first run (idempotent: only if the org has none).
+  const existingRetailOrder = await db.orm.public.RetailOrder.where({ organizationId: retail.id }).all().first();
+  if (!existingRetailOrder && retailProductSeeds.length >= 2) {
+    const seededProducts = await db.orm.public.RetailProduct.where({ organizationId: retail.id }).all();
+    const banana = seededProducts.find((p) => p.sku === 'PRD-001');
+    const oj = seededProducts.find((p) => p.sku === 'DRK-001');
+    if (banana && oj) {
+      const line1 = { productId: banana.id, quantity: 2, unitPrice: banana.price, subtotal: banana.price * 2 };
+      const line2 = { productId: oj.id, quantity: 1, unitPrice: oj.price, subtotal: oj.price };
+      const subtotal = line1.subtotal + line2.subtotal;
+      const taxAmount = Math.round(subtotal * 0.08 * 100) / 100;
+      const now = new Date();
+      const shift = await db.orm.public.RetailShift.create({
+        organizationId: retail.id,
+        registerId: retailRegister.id,
+        openedById: cashierMembershipId,
+        closedById: cashierMembershipId,
+        openedAt: toInstant(now.getTime() - 3 * 60 * 60 * 1000),
+        closedAt: toInstant(now.getTime() - 1 * 60 * 60 * 1000),
+        openingFloat: 100,
+        expectedCash: 100 + line1.subtotal + line2.subtotal + taxAmount,
+        actualCash: 100 + line1.subtotal + line2.subtotal + taxAmount,
+        discrepancy: 0,
+        status: 'CLOSED',
+      });
+      const order = await db.orm.public.RetailOrder.create({
+        organizationId: retail.id,
+        shiftId: shift.id,
+        cashierId: cashierMembershipId,
+        customerDataId: retailCustomerDataIds[0],
+        totalAmount: subtotal + taxAmount,
+        taxAmount,
+        discountAmount: 0,
+        paymentMethod: 'CASH',
+        status: 'COMPLETED',
+      });
+      for (const line of [line1, line2]) {
+        await db.orm.public.RetailOrderItem.create({ orderId: order.id, ...line });
+      }
+    }
   }
 
   // ---------------------------------------------------------------------
@@ -1286,13 +1393,42 @@ async function main() {
       },
     ];
 
-    for (let i = 0; i < retailMicrositeSections.length; i++) {
+    // The storefront renderer resolves a page (isHome) before sections, so
+    // the retail site needs a Home page the sections hang off — same shape
+    // provisionShopOS/createMicrosite produce.
+    const retailHomePage = await db.orm.public.MicrositePage.create({
+      micrositeId: retailMicrosite.id,
+      title: 'Home',
+      slug: 'home',
+      isHome: true,
+      status: 'published',
+    });
+
+    for (let i = 0; retailMicrositeSections.length > i; i++) {
       await db.orm.public.MicrositeSection.create({
         micrositeId: retailMicrosite.id,
+        pageId: retailHomePage.id,
         type: retailMicrositeSections[i].type,
         order: i,
         content: JSON.stringify(retailMicrositeSections[i].content),
       });
+    }
+  } else {
+    // Self-heal sites created by the pre-fix seed: sections existed without a
+    // Home page, which 404s the public /site/<slug> route.
+    const retailPages = await db.orm.public.MicrositePage.where({ micrositeId: retailMicrosite.id }).all();
+    if (retailPages.length === 0) {
+      const homePage = await db.orm.public.MicrositePage.create({
+        micrositeId: retailMicrosite.id,
+        title: 'Home',
+        slug: 'home',
+        isHome: true,
+        status: 'published',
+      });
+      const orphanSections = await db.orm.public.MicrositeSection.where({ micrositeId: retailMicrosite.id }).all();
+      for (const s of orphanSections) {
+        await db.orm.public.MicrositeSection.where({ id: s.id }).update({ pageId: homePage.id });
+      }
     }
   }
 

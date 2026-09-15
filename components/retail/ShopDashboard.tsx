@@ -29,6 +29,8 @@ import {
   Bell,
   User,
   Menu,
+  MapPin,
+  UserPlus,
   Settings as SettingsIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -62,6 +64,10 @@ import {
   createCustomer,
   deleteCustomer,
   adjustLoyaltyPoints,
+  getLocations,
+  createLocation,
+  getStaff,
+  addStaffMember,
 } from "@/lib/actions/retail";
 import { uploadAsset } from "@/lib/actions/microsite";
 
@@ -113,6 +119,8 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
     { label: "Suppliers & POs", icon: Truck, roles: ["OWNER", "MANAGER", "INVENTORY_STAFF"] },
     { label: "Cash & Shifts", icon: Store, roles: ["OWNER", "MANAGER", "CASHIER"] },
     { label: "Expenses", icon: DollarSign, roles: ["OWNER", "MANAGER"] },
+    { label: "Locations", icon: MapPin, roles: ["OWNER", "MANAGER"] },
+    { label: "Staff", icon: UserPlus, roles: ["OWNER", "MANAGER"] },
     { label: "Settings", icon: SettingsIcon, roles: ["OWNER", "MANAGER"] },
   ];
 
@@ -245,7 +253,7 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
 
               {activeMenu === "POS Terminal" && (
                 openShiftData ? (
-                  <POSTerminal organizationId={organizationId} products={products} shiftId={openShiftData.id} cashierId={currentUserId} onOrderComplete={loadAll} />
+                  <POSTerminal organizationId={organizationId} products={products} shiftId={openShiftData.id} onOrderComplete={loadAll} />
                 ) : (
                   <OpenShiftPrompt organizationId={organizationId} registers={registers} currentUserId={currentUserId} onOpened={loadAll} />
                 )
@@ -268,6 +276,10 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
               {activeMenu === "Sales & Returns" && <SalesReturnsTab organizationId={organizationId} currentUserId={currentUserId} onChanged={loadAll} />}
 
               {activeMenu === "Customers" && <CustomersTab organizationId={organizationId} />}
+
+              {activeMenu === "Locations" && <LocationsTab organizationId={organizationId} />}
+
+              {activeMenu === "Staff" && <StaffTab organizationId={organizationId} />}
             </>
           )}
         </div>
@@ -315,7 +327,7 @@ function OpenShiftPrompt({ organizationId, registers, currentUserId, onOpened }:
     if (isNaN(float) || float < 0) { setError("Enter a valid opening cash float."); return; }
     setIsSaving(true);
     try {
-      const res = await openShift({ organizationId, registerId, openedById: currentUserId, openingFloat: float });
+      const res = await openShift({ organizationId, registerId, openingFloat: float });
       if ((res as any)?.error) { setError((res as any).error); return; }
       onOpened();
     } finally {
@@ -395,7 +407,7 @@ function ShiftsTab({ organizationId, registers, openShift: openShiftData, curren
     if (isNaN(cash) || cash < 0) { setError("Enter the counted cash amount."); return; }
     setIsSaving(true);
     try {
-      const res = await closeShift(openShiftData.id, { closedById: currentUserId, actualCash: cash });
+      const res = await closeShift(openShiftData.id, { actualCash: cash });
       if ((res as any)?.error) { setError((res as any).error); return; }
       setResult({ expectedCash: (res as any).expectedCash, discrepancy: (res as any).discrepancy });
       setActualCash("");
@@ -738,7 +750,6 @@ function ExpensesTab({ organizationId, currentUserId }: { organizationId: string
         paymentMethod: form.paymentMethod as any,
         vendorName: form.vendorName || undefined,
         receiptAssetId: receiptAssetId ?? undefined,
-        recordedById: currentUserId,
       });
       if ((res as any)?.error) { setError((res as any).error); return; }
       setIsAddOpen(false);
@@ -961,7 +972,7 @@ function SalesReturnsTab({ organizationId, currentUserId, onChanged }: { organiz
     setError(null);
     setIsRefunding(true);
     try {
-      const res = await refundOrder(viewingOrder.id, { refundedById: currentUserId, reason: refundReason || undefined });
+      const res = await refundOrder(viewingOrder.id, { reason: refundReason || undefined });
       if ((res as any)?.error) { setError((res as any).error); return; }
       setViewingOrder(null);
       load();
@@ -1377,6 +1388,211 @@ function CustomerDetailModal({ organizationId, customerDataId, onClose, onChange
           <button onClick={remove} className="px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 rounded-lg transition-colors">Delete Customer</button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// =====================================================================
+// Locations
+// =====================================================================
+
+function LocationsTab({ organizationId }: { organizationId: string }) {
+  const [locations, setLocations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [form, setForm] = useState({ name: "", address: "" });
+  const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const load = async () => {
+    const rows = await getLocations(organizationId);
+    setLocations(rows);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [organizationId]);
+
+  const submit = async () => {
+    setError(null);
+    if (!form.name.trim()) { setError("Location name is required."); return; }
+    setIsSaving(true);
+    try {
+      const res = await createLocation({ organizationId, name: form.name, address: form.address || undefined });
+      if ((res as any)?.error) { setError((res as any).error); return; }
+      setForm({ name: "", address: "" });
+      setIsAddOpen(false);
+      load();
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="p-8 max-w-4xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-slate-800">Locations</h2>
+        <button onClick={() => setIsAddOpen(true)} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm">
+          <Plus size={16} /> Add Location
+        </button>
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+        <table className="w-full text-sm text-left">
+          <thead className="bg-slate-50 text-slate-500 border-b border-slate-200">
+            <tr><th className="px-4 py-3">Name</th><th className="px-4 py-3">Address</th></tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {loading ? (
+              <tr><td colSpan={2} className="px-4 py-6 text-center text-slate-400">Loading...</td></tr>
+            ) : locations.length === 0 ? (
+              <tr><td colSpan={2} className="px-4 py-6 text-center text-slate-400">No locations yet — add your first branch.</td></tr>
+            ) : (
+              locations.map((l) => (
+                <tr key={l.id} className="hover:bg-slate-50">
+                  <td className="px-4 py-3 font-semibold text-slate-800">{l.name}</td>
+                  <td className="px-4 py-3 text-slate-500">{l.address ?? "—"}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {isAddOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-bold text-lg text-slate-800">Add Location</h3>
+              <button onClick={() => setIsAddOpen(false)} className="text-slate-400 hover:text-slate-600"><X size={22} /></button>
+            </div>
+            <div className="p-6 space-y-3">
+              {error && <div className="p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-100">{error}</div>}
+              <input placeholder="Location name (e.g. Main Street)" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className="w-full p-2.5 border border-slate-200 rounded-lg" autoFocus />
+              <textarea placeholder="Address (optional)" value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} rows={2} className="w-full p-2.5 border border-slate-200 rounded-lg" />
+            </div>
+            <div className="p-4 border-t border-slate-100 flex justify-end gap-3">
+              <button onClick={() => setIsAddOpen(false)} className="px-4 py-2 font-semibold text-slate-500 hover:bg-slate-100 rounded-lg">Cancel</button>
+              <button onClick={submit} disabled={isSaving} className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-lg">
+                {isSaving ? "Saving..." : "Save Location"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// =====================================================================
+// Staff
+// =====================================================================
+
+const STAFF_ROLE_OPTIONS = ["MANAGER", "CASHIER", "INVENTORY_STAFF"];
+
+function StaffTab({ organizationId }: { organizationId: string }) {
+  const [staff, setStaff] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [form, setForm] = useState({ email: "", name: "", role: "CASHIER" });
+  const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const load = async () => {
+    const rows = await getStaff(organizationId);
+    setStaff(rows);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [organizationId]);
+
+  const submit = async () => {
+    setError(null);
+    if (!form.email.trim()) { setError("Email is required."); return; }
+    setIsSaving(true);
+    try {
+      const res = await addStaffMember({ organizationId, email: form.email, name: form.name || undefined, role: form.role });
+      if ((res as any)?.error) { setError((res as any).error); return; }
+      setForm({ email: "", name: "", role: "CASHIER" });
+      setIsAddOpen(false);
+      load();
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="p-8 max-w-4xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-slate-800">Staff</h2>
+        <button onClick={() => setIsAddOpen(true)} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm">
+          <Plus size={16} /> Add Staff
+        </button>
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+        <table className="w-full text-sm text-left">
+          <thead className="bg-slate-50 text-slate-500 border-b border-slate-200">
+            <tr><th className="px-4 py-3">Name</th><th className="px-4 py-3">Email</th><th className="px-4 py-3">Roles</th></tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {loading ? (
+              <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-400">Loading...</td></tr>
+            ) : staff.length === 0 ? (
+              <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-400">No staff yet.</td></tr>
+            ) : (
+              staff.map((s) => (
+                <tr key={s.membershipId} className="hover:bg-slate-50">
+                  <td className="px-4 py-3 font-semibold text-slate-800">{s.name}</td>
+                  <td className="px-4 py-3 text-slate-500">{s.email ?? "—"}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-1">
+                      {s.roles.map((r: string) => (
+                        <span key={r} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">{r}</span>
+                      ))}
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <p className="text-xs text-slate-400 max-w-lg">
+        New staff sign in with the email you add here — they can use Google sign-in or the demo password login in development.
+        They&apos;ll land on the ShopOS dashboard automatically.
+      </p>
+
+      {isAddOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-bold text-lg text-slate-800">Add Staff Member</h3>
+              <button onClick={() => setIsAddOpen(false)} className="text-slate-400 hover:text-slate-600"><X size={22} /></button>
+            </div>
+            <div className="p-6 space-y-3">
+              {error && <div className="p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-100">{error}</div>}
+              <input placeholder="Email *" type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} className="w-full p-2.5 border border-slate-200 rounded-lg" autoFocus />
+              <input placeholder="Full name (optional)" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className="w-full p-2.5 border border-slate-200 rounded-lg" />
+              <select value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))} className="w-full p-2.5 border border-slate-200 rounded-lg bg-white">
+                {STAFF_ROLE_OPTIONS.map((r) => <option key={r} value={r}>{r === "INVENTORY_STAFF" ? "Inventory Staff" : r.charAt(0) + r.slice(1).toLowerCase()}</option>)}
+              </select>
+            </div>
+            <div className="p-4 border-t border-slate-100 flex justify-end gap-3">
+              <button onClick={() => setIsAddOpen(false)} className="px-4 py-2 font-semibold text-slate-500 hover:bg-slate-100 rounded-lg">Cancel</button>
+              <button onClick={submit} disabled={isSaving} className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-lg">
+                {isSaving ? "Saving..." : "Add Staff"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
