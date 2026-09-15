@@ -104,6 +104,7 @@ export interface MicrositeData {
   navItems?: { id: string; label: string; url: string | null; pageId: string | null; page?: { slug: string, isHome: boolean } }[];
   products?: RetailProductSummary[];
   hotelRooms?: any[];
+  currencySymbol?: string | null;
   primaryColor?: string;
   accentColor?: string;
   headingFont?: string;
@@ -223,7 +224,7 @@ export default function MicrositeRenderer({ data }: { data: MicrositeData }) {
         } catch {
           content = {};
         }
-        return <Section key={section.id} id={section.id} micrositeId={data.id} type={section.type} content={content} theme={theme} products={data.products ?? []} hotelRooms={data.hotelRooms ?? []} />;
+        return <Section key={section.id} id={section.id} micrositeId={data.id} type={section.type} content={content} theme={theme} products={data.products ?? []} hotelRooms={data.hotelRooms ?? []} currency={data.currencySymbol ?? "$"} />;
       })}
       <div style={{ textAlign: "center", padding: "1.5rem", fontSize: "0.75rem", color: theme.textMuted, borderTop: `1px solid ${theme.surface}` }}>
         Powered by CityConnect
@@ -232,7 +233,8 @@ export default function MicrositeRenderer({ data }: { data: MicrositeData }) {
   );
 }
 
-function Section({ id, micrositeId, type, content, theme, products, hotelRooms }: { id: string; micrositeId: string; type: string; content: any; theme: typeof THEMES[string]; products: RetailProductSummary[], hotelRooms?: any[] }) {
+function Section({ id, micrositeId, type, content, theme, products, hotelRooms, currency }: { id: string; micrositeId: string; type: string; content: any; theme: typeof THEMES[string]; products: RetailProductSummary[], hotelRooms?: any[]; currency?: string }) {
+  const currencySymbol = currency ?? "$";
   const headingStyle: React.CSSProperties = { fontFamily: theme.headingFont, color: theme.text };
   const isLuxury = theme.label === "Horizon (Hotel)";
   const isSchoolTheme = theme.label.includes("School") || theme.label.includes("Elementary") || theme.label.includes("Innovator") || theme.label.includes("Scholastic") || theme.label.includes("Academy") || theme.label.includes("Prestige");
@@ -729,7 +731,7 @@ function Section({ id, micrositeId, type, content, theme, products, hotelRooms }
                         <div style={{ padding: "1.25rem" }}>
                           <h3 style={{ ...headingStyle, fontSize: "1.05rem", fontWeight: 700, marginBottom: "0.35rem" }}>{product.name}</h3>
                           <p style={{ color: theme.accent, fontWeight: 700, fontSize: "1.1rem" }}>
-                            ${product.price.toFixed(2)}{product.isWeighed ? ` / ${product.unit}` : ""}
+                            {currencySymbol}{product.price.toFixed(2)}{product.isWeighed ? ` / ${product.unit}` : ""}
                           </p>
                           {outOfStock && <p style={{ color: theme.textMuted, fontSize: "0.8rem", fontWeight: 600, marginTop: "0.35rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Out of Stock</p>}
                         </div>

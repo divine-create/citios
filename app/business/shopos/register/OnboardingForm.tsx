@@ -2,17 +2,29 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { provisionShopOS } from '@/lib/actions/shopos';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ExternalLink } from 'lucide-react';
+
+const THEME_OPTIONS = [
+  { id: 'minimal', label: 'Minimal', description: 'Clean and modern' },
+  { id: 'innovator', label: 'Innovator', description: 'Bold, tech-forward' },
+  { id: 'warm', label: 'Warm Market', description: 'Friendly, local feel' },
+  { id: 'playful', label: 'Playful', description: 'Bright and fun' },
+  { id: 'editorial', label: 'Editorial', description: 'Boutique, magazine-style' },
+];
 
 export default function OnboardingForm() {
   const router = useRouter();
+  const { update } = useSession();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  
+  const [storeUrl, setStoreUrl] = useState('');
+
   const [formData, setFormData] = useState({
     businessName: '',
     storeUrl: '',
+    theme: 'minimal',
     country: 'Nigeria',
     weeklyOrders: '',
     currencies: [] as string[],
@@ -32,12 +44,15 @@ export default function OnboardingForm() {
     }
 
     const result = await provisionShopOS(formData);
-    
+
     if (result.error) {
       setError(result.error);
       setLoading(false);
     } else if (result.success) {
-      // Send them to their new ShopOS dashboard!
+      // Refresh the JWT so the new OWNER membership is in the session
+      // before the dashboard gate checks it, then send them in.
+      await update();
+      if (result.slug) setStoreUrl(result.slug);
       router.push('/grocery');
     }
   };
@@ -57,6 +72,17 @@ export default function OnboardingForm() {
         <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-medium border border-red-100">
           {error}
         </div>
+      )}
+
+      {storeUrl && (
+        <a
+          href={`/site/${storeUrl}`}
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center gap-2 bg-emerald-50 text-emerald-700 p-4 rounded-xl text-sm font-bold border border-emerald-100 hover:bg-emerald-100 transition-colors"
+        >
+          <ExternalLink size={16} /> Your store is live at /site/{storeUrl} — click to view
+        </a>
       )}
 
       <div className="space-y-4">
@@ -137,6 +163,28 @@ export default function OnboardingForm() {
                   className="w-5 h-5 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"
                 />
                 <span className="font-medium text-slate-700">{curr}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold text-slate-700 mb-2">Store theme</label>
+          <p className="text-xs text-slate-500 mb-3">Your online store is generated automatically — pick the look. You can change it later.</p>
+          <div className="grid grid-cols-2 gap-3">
+            {THEME_OPTIONS.map(t => (
+              <label key={t.id} className={`flex items-start gap-3 p-3 border rounded-xl cursor-pointer transition-colors ${formData.theme === t.id ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 hover:bg-slate-50'}`}>
+                <input
+                  type="radio"
+                  name="theme"
+                  checked={formData.theme === t.id}
+                  onChange={() => setFormData({...formData, theme: t.id})}
+                  className="mt-1 w-4 h-4 text-emerald-600 focus:ring-emerald-500"
+                />
+                <span>
+                  <span className="block font-bold text-sm text-slate-800">{t.label}</span>
+                  <span className="block text-xs text-slate-500">{t.description}</span>
+                </span>
               </label>
             ))}
           </div>

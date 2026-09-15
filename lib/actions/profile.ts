@@ -16,31 +16,43 @@ export async function getProfileAndWallet() {
     const name = session.user.name || 'Resident';
     const image = session.user.image || null;
 
-    // Find the user by email.
-    let user = await db.orm.public.User.where({ email }).all().first();
+    // Find the person by email.
+    const emailLower = email.toLowerCase();
+    let identifier = await db.orm.public.PersonIdentifier.where({ type: "EMAIL", normalizedValue: emailLower }).all().first();
+    let person;
 
-    if (!user) {
-        // Create user if they don't exist
-        user = await db.orm.public.User.create({
-            email,
-            name,
-            image,
+    if (!identifier) {
+        // Create person if they don't exist
+        const firstName = name.split(' ')[0] || 'Unknown';
+        const lastName = name.split(' ').slice(1).join(' ') || 'User';
+        person = await db.orm.public.Person.create({
+            firstName,
+            lastName,
         });
+        identifier = await db.orm.public.PersonIdentifier.create({
+            personId: person.id,
+            type: "EMAIL",
+            normalizedValue: emailLower,
+            isVerified: true
+        });
+    } else {
+        person = await db.orm.public.Person.where({ id: identifier.personId }).all().first();
     }
 
+    if (!person) return null;
+
     // Ensure wallet exists
-    let wallet = await db.orm.public.Wallet.where({ userId: user.id }).all().first();
+    let wallet = await db.orm.public.Wallet.where({ personId: person.id }).all().first();
 
     if (!wallet) {
         wallet = await db.orm.public.Wallet.create({
-            type: 'RESIDENT',
-            userId: user.id,
+            personId: person.id,
             balance: 50.00 // Give new users $50
         });
     }
 
     return JSON.parse(JSON.stringify({
-        user,
+        user: { ...person, email, image, name: `${person.firstName} ${person.lastName}` },
         wallet
     }));
   } catch (error) {
@@ -51,16 +63,30 @@ export async function getProfileAndWallet() {
 
 export async function updateProfile(input: { name?: string; image?: string }) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.email) {
+  if (!session?.user?.email || !session?.user?.personId) {
     return { error: 'Not authenticated' };
   }
 
   try {
     const data: any = {};
-    if (input.name !== undefined) data.name = input.name;
-    if (input.image !== undefined) data.image = input.image;
+    if (input.name !== undefined) {
+      data.firstName = input.name.split(' ')[0] || 'Unknown';
+      data.lastName = input.name.split(' ').slice(1).join(' ') || 'User';
+    }
 
-    await db.orm.public.User.where({ email: session.user.email }).update(data);
+    if (Object.keys(data).length > 0) {
+      await db.orm.public.Person.where({ id: session.user.personId }).update(data);
+    }
+
+    if (input.image !== undefined) {
+      let profile = await db.orm.public.ResidentProfile.where({ personId: session.user.personId }).all().first();
+      if (!profile) {
+        await db.orm.public.ResidentProfile.create({ personId: session.user.personId, avatarUrl: input.image });
+      } else {
+        await db.orm.public.ResidentProfile.where({ id: profile.id }).update({ avatarUrl: input.image });
+      }
+    }
+
     return { success: true };
   } catch (error) {
     console.error('Error updating profile:', error);

@@ -161,7 +161,7 @@ export default function HealthcareBookingView() {
                             {day.slots.map((slot: string, j: number) => (
                               <button 
                                 key={j}
-                                onClick={() => bookAppointment(provider.id, day.date, slot, 'General Visit')}
+                                onClick={() => bookAppointment('org1', 'patient1', provider.id, day.date + 'T' + slot + ':00Z', 'General Visit')}
                                 className="px-3 py-1.5 text-sm bg-blue-100 text-blue-700 hover:bg-blue-600 hover:text-white rounded-md font-medium transition-colors"
                               >
                                 {slot}

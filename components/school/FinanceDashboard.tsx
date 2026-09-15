@@ -30,8 +30,8 @@ export default function FinanceDashboard({
   const refresh = () => router.refresh();
   const [activeTab, setActiveTab] = useState<"invoices" | "feetypes" | "staff">("invoices");
 
-  const getStudentName = (studentId: string) => {
-    const s = students.find((st) => st.id === studentId);
+  const getStudentName = (studentDataId: string) => {
+    const s = students.find((st) => st.id === studentDataId);
     return s ? `${s.firstName} ${s.lastName}` : "Unknown Student";
   };
 
@@ -43,7 +43,7 @@ export default function FinanceDashboard({
   // ---- Invoice modal state ----
   const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
   const [editInvoiceId, setEditInvoiceId] = useState<string | null>(null);
-  const [invoiceForm, setInvoiceForm] = useState({ studentId: "", dueDate: "", notes: "", status: "unpaid" });
+  const [invoiceForm, setInvoiceForm] = useState({ studentDataId: "", dueDate: "", notes: "", status: "unpaid" });
   const [invoiceItems, setInvoiceItems] = useState<{ feeTypeId: string; description: string; amount: number }[]>([
     { feeTypeId: "", description: "", amount: 0 },
   ]);
@@ -57,14 +57,14 @@ export default function FinanceDashboard({
   const [markingStaffId, setMarkingStaffId] = useState<string | null>(null);
   const [attendanceStatus, setAttendanceStatus] = useState("PRESENT");
   const [isLeaveOpen, setIsLeaveOpen] = useState(false);
-  const [leaveForm, setLeaveForm] = useState({ staffId: "", type: "annual", startDate: "", endDate: "", reason: "" });
+  const [leaveForm, setLeaveForm] = useState({ membershipId: "", type: "annual", startDate: "", endDate: "", reason: "" });
 
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const openAddInvoice = () => {
     setEditInvoiceId(null);
-    setInvoiceForm({ studentId: students[0]?.id ?? "", dueDate: "", notes: "", status: "unpaid" });
+    setInvoiceForm({ studentDataId: students[0]?.id ?? "", dueDate: "", notes: "", status: "unpaid" });
     setInvoiceItems([{ feeTypeId: "", description: "", amount: 0 }]);
     setError(null);
     setIsInvoiceOpen(true);
@@ -73,7 +73,7 @@ export default function FinanceDashboard({
   const openEditInvoice = (inv: any) => {
     setEditInvoiceId(inv.id);
     setInvoiceForm({
-      studentId: inv.studentId,
+      studentDataId: inv.studentDataId,
       dueDate: inv.dueDate ? new Date(inv.dueDate).toISOString().slice(0, 10) : "",
       notes: inv.notes || "",
       status: inv.status,
@@ -101,7 +101,7 @@ export default function FinanceDashboard({
       } else {
         const items = invoiceItems.filter((it) => it.description.trim() && it.amount > 0);
         if (items.length === 0) throw new Error("Add at least one valid line item.");
-        const res = await createFeeInvoice({ organizationId, studentId: invoiceForm.studentId, dueDate: invoiceForm.dueDate, notes: invoiceForm.notes, items });
+        const res = await createFeeInvoice({ organizationId, studentDataId: invoiceForm.studentDataId, dueDate: invoiceForm.dueDate, notes: invoiceForm.notes, items });
         if (res.error) throw new Error(res.error);
       }
       setIsInvoiceOpen(false);
@@ -180,15 +180,15 @@ export default function FinanceDashboard({
     refresh();
   };
 
-  const markToday = async (staffId: string, status: string) => {
-    const res = await markStaffAttendance({ organizationId, staffId, date: new Date().toISOString().slice(0, 10), status });
+  const markToday = async (membershipId: string, status: string) => {
+    const res = await markStaffAttendance({ organizationId, membershipId, date: new Date().toISOString().slice(0, 10), status });
     if (res?.error) { alert(res.error); return; }
     setMarkingStaffId(null);
     refresh();
   };
 
-  const openLeave = (staffId: string) => {
-    setLeaveForm({ staffId, type: "annual", startDate: "", endDate: "", reason: "" });
+  const openLeave = (membershipId: string) => {
+    setLeaveForm({ membershipId, type: "annual", startDate: "", endDate: "", reason: "" });
     setError(null);
     setIsLeaveOpen(true);
   };
@@ -214,8 +214,8 @@ export default function FinanceDashboard({
   };
 
   const todayStr = new Date().toISOString().slice(0, 10);
-  const todayAttendanceByStaff = (staffId: string) =>
-    staffAttendance.find((a) => a.staffId === staffId && new Date(a.date).toISOString().slice(0, 10) === todayStr);
+  const todayAttendanceByStaff = (membershipId: string) =>
+    staffAttendance.find((a) => a.membershipId === membershipId && new Date(a.date).toISOString().slice(0, 10) === todayStr);
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
@@ -295,10 +295,10 @@ export default function FinanceDashboard({
                     <div key={item.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50">
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-medium">
-                          {getStudentName(item.studentId).charAt(0)}
+                          {getStudentName(item.studentDataId).charAt(0)}
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-900">{getStudentName(item.studentId)}</p>
+                          <p className="text-sm font-medium text-gray-900">{getStudentName(item.studentDataId)}</p>
                           <p className="text-xs text-gray-500">${item.paidAmount.toFixed(2)} of ${item.totalAmount.toFixed(2)} paid</p>
                         </div>
                       </div>
@@ -420,7 +420,7 @@ export default function FinanceDashboard({
                 <div className="px-6 py-10 text-center text-gray-400">No leave requests.</div>
               ) : (
                 leaveRequests.map((lr) => {
-                  const s = staff.find((st) => st.id === lr.staffId);
+                  const s = staff.find((st) => st.id === lr.membershipId);
                   return (
                     <div key={lr.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50">
                       <div>
@@ -455,7 +455,7 @@ export default function FinanceDashboard({
           {!editInvoiceId && (
             <div>
               <label className="text-sm font-medium text-slate-700">Student</label>
-              <select value={invoiceForm.studentId} onChange={(e) => setInvoiceForm((f) => ({ ...f, studentId: e.target.value }))} className="mt-1.5 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
+              <select value={invoiceForm.studentDataId} onChange={(e) => setInvoiceForm((f) => ({ ...f, studentDataId: e.target.value }))} className="mt-1.5 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
                 {students.map((s) => <option key={s.id} value={s.id}>{s.firstName} {s.lastName}</option>)}
               </select>
             </div>
@@ -490,7 +490,7 @@ export default function FinanceDashboard({
               <p className="text-xs text-slate-500 pt-1">Total: ${invoiceItems.reduce((s, it) => s + (it.amount || 0), 0).toFixed(2)}</p>
             </div>
           )}
-          <ModalActions onCancel={() => setIsInvoiceOpen(false)} onSubmit={submitInvoice} disabled={isSaving || !invoiceForm.dueDate || (!editInvoiceId && !invoiceForm.studentId)} isSaving={isSaving} label={editInvoiceId ? "Save Changes" : "Add Invoice"} />
+          <ModalActions onCancel={() => setIsInvoiceOpen(false)} onSubmit={submitInvoice} disabled={isSaving || !invoiceForm.dueDate || (!editInvoiceId && !invoiceForm.studentDataId)} isSaving={isSaving} label={editInvoiceId ? "Save Changes" : "Add Invoice"} />
         </Modal>
       )}
 

@@ -23,8 +23,8 @@ export async function getSchoolProfile(organizationId: string) {
     if (!organization || organization.type !== 'SCHOOL') return null;
 
     const settings = await db.orm.public.SchoolSettings.where({ organizationId }).all().first();
-    const students = await db.orm.public.Student.where({ organizationId }).all();
-    const teacherCount = (await db.orm.public.OrganizationMember.where({ organizationId, role: 'TEACHER' }).all()).length;
+    const students = await db.orm.public.StudentData.where({ classSectionId: "" }).all(); // approximate for old mock data
+    const teacherCount = (await db.orm.public.MembershipRole.where({ role: 'TEACHER', membershipId: "" }).all()).length;
     const classCount = (await db.orm.public.SchoolClass.where({ organizationId }).all()).length;
 
     const yearLevels = students.map((s) => s.yearLevel).filter((y): y is number => typeof y === 'number');
@@ -87,7 +87,7 @@ export async function getHotelRooms(orgId: string) {
 
 export async function getParentDashboard() {
   try {
-    const students = await db.orm.public.Student.all();
+    const students = await db.orm.public.StudentData.all();
     if (students.length === 0) return [];
     
     // Prisma Next doesn't have deep nested includes easily in .all() without raw SQL, 

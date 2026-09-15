@@ -16,16 +16,61 @@ async function findOrCreateOrg(type: OrgType, data: { name: string; description?
   return { org, created: true as const };
 }
 
+// ---- V1 Identity helpers (used throughout this seed file) ----
+
+/** Find a Person by email via PersonIdentifier, or create one. */
+async function findOrCreatePerson(name: string, email: string) {
+  const emailId = await db.orm.public.PersonIdentifier.where({ type: 'EMAIL', normalizedValue: email.toLowerCase() }).all().first();
+  if (emailId) {
+    const p = await db.orm.public.Person.where({ id: emailId.personId }).all().first();
+    if (p) return p;
+  }
+  const [firstName, ...lastNames] = name.split(' ');
+  const person = await db.orm.public.Person.create({
+    firstName: firstName || name,
+    lastName: lastNames.join(' ') || '',
+  });
+  await db.orm.public.PersonIdentifier.create({ personId: person.id, type: 'EMAIL', normalizedValue: email.toLowerCase() });
+  return person;
+}
+
+/** Find or create a Membership for a Person in an Org. */
+async function findOrCreateMembership(personId: string, organizationId: string) {
+  const existing = await db.orm.public.Membership.where({ personId, organizationId }).all().first();
+  if (existing) return existing;
+  return db.orm.public.Membership.create({ personId, organizationId });
+}
+
+/** Add a role to a Membership if it doesn't already have it. */
+async function ensureMembershipRole(membershipId: string, role: string) {
+  const existing = await db.orm.public.MembershipRole.where({ membershipId, role }).all().first();
+  if (!existing) await db.orm.public.MembershipRole.create({ membershipId, role });
+}
+
+/** Find or create the Relationship+StudentData pair for a student in a school. */
+async function findOrCreateStudentData(
+  organizationId: string,
+  admissionNo: string,
+  firstName: string,
+  lastName: string,
+  yearLevel: number,
+  classSectionId?: string
+): Promise<any> {
+  // Look up by admissionNo via existing StudentData rows
+  const existing = await db.orm.public.StudentData.where({ admissionNo }).all().first();
+  if (existing) return existing as any;
+
+  // Create the Person + Relationship + StudentData
+  const person = await db.orm.public.Person.create({ firstName, lastName });
+  const rel = await db.orm.public.Relationship.create({ personId: person.id, organizationId, type: 'STUDENT' });
+  const sd = await db.orm.public.StudentData.create({ relationshipId: rel.id, admissionNo, yearLevel, classSectionId });
+  return sd as any;
+}
+
 async function main() {
   console.log('Seeding database...');
 
-  let adminUser = await db.orm.public.User.where({ email: 'admin@cityconnect.local' }).all().first();
-  if (!adminUser) {
-    adminUser = await db.orm.public.User.create({
-      name: 'City Planner',
-      email: 'admin@cityconnect.local',
-    });
-  }
+  const adminUser = await findOrCreatePerson('City Planner', 'admin@cityconnect.local');
 
   // ---------------------------------------------------------------------
   // Hotel
@@ -238,25 +283,15 @@ async function main() {
     });
   }
 
-  let teacherMember = await db.orm.public.OrganizationMember
-    .where({ userId: adminUser.id, organizationId: school.id, role: 'TEACHER' })
-    .all()
-    .first();
-  if (!teacherMember) {
-    teacherMember = await db.orm.public.OrganizationMember.create({
-      userId: adminUser.id,
-      organizationId: school.id,
-      role: 'TEACHER',
-    });
-  }
+  const teacherMember = await findOrCreateMembership(adminUser.id, school.id);
+  await ensureMembershipRole(teacherMember.id, 'TEACHER');
 
-  let staffProfile = await db.orm.public.StaffProfile.where({ memberId: teacherMember.id }).all().first();
+  let staffProfile = await db.orm.public.StaffData.where({ membershipId: teacherMember.id }).all().first();
   if (!staffProfile) {
-    staffProfile = await db.orm.public.StaffProfile.create({
-      organizationId: school.id,
-      memberId: teacherMember.id,
+    staffProfile = await db.orm.public.StaffData.create({
+      membershipId: teacherMember.id,
       employeeId: 'EMP-001',
-      jobTitle: 'Senior Math Teacher',
+      
     });
   }
 
@@ -278,9 +313,9 @@ async function main() {
       name: 'A',
     });
   }
-  if (!grade12SectionA.formTeacherId) {
-    await db.orm.public.ClassSection.where({ id: grade12SectionA.id }).update({ formTeacherId: staffProfile.id });
-    grade12SectionA = { ...grade12SectionA, formTeacherId: staffProfile.id };
+  if (!grade12SectionA.formMembershipId) {
+    await db.orm.public.ClassSection.where({ id: grade12SectionA.id }).update({ formMembershipId: teacherMember.id });
+    grade12SectionA = { ...grade12SectionA, formMembershipId: teacherMember.id };
   }
 
   // Promotion demo data — a lower grade (11) in the current academic year,
@@ -302,11 +337,11 @@ async function main() {
       academicYearId: academicYear.id,
       gradeId: grade11.id,
       name: 'A',
-      formTeacherId: staffProfile.id,
+      formMembershipId: teacherMember.id,
     });
-  } else if (!grade11SectionA.formTeacherId) {
-    await db.orm.public.ClassSection.where({ id: grade11SectionA.id }).update({ formTeacherId: staffProfile.id });
-    grade11SectionA = { ...grade11SectionA, formTeacherId: staffProfile.id };
+  } else if (!grade11SectionA.formMembershipId) {
+    await db.orm.public.ClassSection.where({ id: grade11SectionA.id }).update({ formMembershipId: teacherMember.id });
+    grade11SectionA = { ...grade11SectionA, formMembershipId: teacherMember.id };
   }
 
   let nextAcademicYear = await db.orm.public.AcademicYear.where({ organizationId: school.id, year: academicYear.year + 1 }).all().first();
@@ -332,17 +367,7 @@ async function main() {
     });
   }
 
-  const existingStudent4 = await db.orm.public.Student.where({ organizationId: school.id, studentId: 'STU-004' }).all().first();
-  if (!existingStudent4) {
-    await db.orm.public.Student.create({
-      organizationId: school.id,
-      studentId: 'STU-004',
-      firstName: 'Grace',
-      lastName: 'Adeyemi',
-      yearLevel: 11,
-      classSectionId: grade11SectionA.id,
-    });
-  }
+  await findOrCreateStudentData(school.id, 'STU-004', 'Grace', 'Adeyemi', 11, grade11SectionA!.id);
 
   let mathClass = await db.orm.public.SchoolClass.where({ academicYearId: academicYear.id, code: 'MATH-401' }).all().first();
   if (!mathClass) {
@@ -358,50 +383,23 @@ async function main() {
   }
 
   const existingClassTeacher = await db.orm.public.ClassTeacher
-    .where({ classId: mathClass.id, staffId: staffProfile.id })
+    .where({ classId: mathClass.id, membershipId: teacherMember.id })
     .all()
     .first();
   if (!existingClassTeacher) {
-    await db.orm.public.ClassTeacher.create({ classId: mathClass.id, staffId: staffProfile.id, isPrimary: true });
+    await db.orm.public.ClassTeacher.create({ classId: mathClass.id, membershipId: teacherMember.id, isPrimary: true });
   }
 
-  const existingStudents = await db.orm.public.Student.where({ organizationId: school.id }).all();
-  let student1 = existingStudents.find((s) => s.studentId === 'STU-001');
-  if (!student1) {
-    student1 = await db.orm.public.Student.create({
-      organizationId: school.id,
-      studentId: 'STU-001',
-      firstName: 'Alex',
-      lastName: 'Johnson',
-      yearLevel: 12,
-      classSectionId: grade12SectionA.id,
-    });
-  } else if (!student1.classSectionId) {
-    await db.orm.public.Student.where({ id: student1.id }).update({ classSectionId: grade12SectionA.id });
-    student1 = { ...student1, classSectionId: grade12SectionA.id };
-  }
-  let student2 = existingStudents.find((s) => s.studentId === 'STU-002');
-  if (!student2) {
-    student2 = await db.orm.public.Student.create({
-      organizationId: school.id,
-      studentId: 'STU-002',
-      firstName: 'Zoe',
-      lastName: 'Smith',
-      yearLevel: 12,
-      classSectionId: grade12SectionA.id,
-    });
-  } else if (!student2.classSectionId) {
-    await db.orm.public.Student.where({ id: student2.id }).update({ classSectionId: grade12SectionA.id });
-    student2 = { ...student2, classSectionId: grade12SectionA.id };
-  }
+  const student1 = await findOrCreateStudentData(school.id, 'STU-001', 'Alex', 'Johnson', 12, grade12SectionA!.id);
+  const student2 = await findOrCreateStudentData(school.id, 'STU-002', 'Zoe', 'Smith', 12, grade12SectionA!.id);
 
   for (const student of [student1, student2]) {
     const existingEnrolment = await db.orm.public.ClassEnrolment
-      .where({ classId: mathClass.id, studentId: student.id })
+      .where({ classId: mathClass.id, studentDataId: student!.id })
       .all()
       .first();
     if (!existingEnrolment) {
-      await db.orm.public.ClassEnrolment.create({ classId: mathClass.id, studentId: student.id });
+      await db.orm.public.ClassEnrolment.create({ classId: mathClass.id, studentDataId: student!.id });
     }
   }
 
@@ -413,12 +411,12 @@ async function main() {
   ];
   for (const { student, status } of attendanceToday) {
     const existingAttendance = await db.orm.public.Attendance
-      .where({ studentId: student.id, date: toInstant(todayStart.getTime()) })
+      .where({ studentDataId: student!.id, date: toInstant(todayStart.getTime()) })
       .all()
       .first();
     if (!existingAttendance) {
       await db.orm.public.Attendance.create({
-        studentId: student.id,
+        studentDataId: student!.id,
         termId: term.id,
         date: toInstant(todayStart.getTime()),
         status,
@@ -439,11 +437,11 @@ async function main() {
     });
   }
   const existingGrade = await db.orm.public.Grade
-    .where({ gradebookId: midtermAssignment.id, studentId: student1.id })
+    .where({ gradebookId: midtermAssignment.id, studentDataId: student1!.id })
     .all()
     .first();
   if (!existingGrade) {
-    await db.orm.public.Grade.create({ gradebookId: midtermAssignment.id, studentId: student1.id, score: 91 });
+    await db.orm.public.Grade.create({ gradebookId: midtermAssignment.id, studentDataId: student1!.id, score: 91 });
   }
 
   // Examination — a default grading scale (Nigerian-style CA/Exam split
@@ -479,29 +477,29 @@ async function main() {
       });
     }
     for (const { student, score } of examSeed.scores) {
-      const existing = await db.orm.public.Grade.where({ gradebookId: assignment.id, studentId: student.id }).all().first();
+      const existing = await db.orm.public.Grade.where({ gradebookId: assignment.id, studentDataId: student!.id }).all().first();
       if (!existing) {
-        await db.orm.public.Grade.create({ gradebookId: assignment.id, studentId: student.id, score });
+        await db.orm.public.Grade.create({ gradebookId: assignment.id, studentDataId: student!.id, score });
       }
     }
   }
 
   // Publish student1's report card (demoable in Student/Parent portals);
   // leave student2's as an unpublished draft (demoable in Admin's review).
-  const existingReportCard1 = await db.orm.public.ReportCard.where({ studentId: student1.id, termId: term.id }).all().first();
+  const existingReportCard1 = await db.orm.public.ReportCard.where({ studentDataId: student1!.id, termId: term.id }).all().first();
   if (!existingReportCard1) {
     await db.orm.public.ReportCard.create({
-      organizationId: school.id, studentId: student1.id, termId: term.id, academicYear: academicYear.year,
+      organizationId: school.id, studentDataId: student1!.id, termId: term.id, academicYear: academicYear.year,
       comments: 'A consistently strong term — keep up the excellent work.',
       teacherNotes: 'Alex shows great initiative in class discussions.',
       principalNotes: 'Well done this term.',
       published: true, issuedAt: toInstant(Date.now()),
     });
   }
-  const existingReportCard2 = await db.orm.public.ReportCard.where({ studentId: student2.id, termId: term.id }).all().first();
+  const existingReportCard2 = await db.orm.public.ReportCard.where({ studentDataId: student2!.id, termId: term.id }).all().first();
   if (!existingReportCard2) {
     await db.orm.public.ReportCard.create({
-      organizationId: school.id, studentId: student2.id, termId: term.id, academicYear: academicYear.year,
+      organizationId: school.id, studentDataId: student2!.id, termId: term.id, academicYear: academicYear.year,
       comments: 'Solid progress — more practice on exam technique recommended.',
       published: false,
     });
@@ -511,7 +509,7 @@ async function main() {
   if (existingIncidents.length === 0) {
     await db.orm.public.BehaviourIncident.create({
       organizationId: school.id,
-      studentId: student1.id,
+      studentDataId: student1!.id,
       reportedById: teacherMember.id,
       date: toInstant(Date.now()),
       description: 'Helped a classmate understand derivatives during group work.',
@@ -528,11 +526,11 @@ async function main() {
       frequency: 'annual',
     });
   }
-  const existingInvoice = await db.orm.public.FeeInvoice.where({ organizationId: school.id, studentId: student1.id }).all().first();
+  const existingInvoice = await db.orm.public.FeeInvoice.where({ organizationId: school.id, studentDataId: student1!.id }).all().first();
   if (!existingInvoice) {
     const invoice = await db.orm.public.FeeInvoice.create({
       organizationId: school.id,
-      studentId: student1.id,
+      studentDataId: student1!.id,
       dueDate: toInstant(Date.now() + 86400000 * 30),
       totalAmount: 5000,
       paidAmount: 2000,
@@ -551,26 +549,14 @@ async function main() {
   ];
   
   for (const staffSeed of schoolStaffSeeds) {
-    let staffUser = await db.orm.public.User.where({ email: staffSeed.email }).all().first();
-    if (!staffUser) {
-      staffUser = await db.orm.public.User.create({ name: staffSeed.name, email: staffSeed.email });
-    }
-    const existingMembership = await db.orm.public.OrganizationMember
-      .where({ userId: staffUser.id, organizationId: school.id })
-      .all()
-      .first();
-    if (!existingMembership) {
-      const member = await db.orm.public.OrganizationMember.create({
-        userId: staffUser.id,
-        organizationId: school.id,
-        role: staffSeed.role,
-      });
-      // Also create a staff profile for them
-      await db.orm.public.StaffProfile.create({
-        organizationId: school.id,
-        memberId: member.id,
+    const staffPerson = await findOrCreatePerson(staffSeed.name, staffSeed.email);
+    const staffMembership = await findOrCreateMembership(staffPerson.id, school.id);
+    await ensureMembershipRole(staffMembership.id, staffSeed.role);
+    const existingStaffData = await db.orm.public.StaffData.where({ membershipId: staffMembership.id }).all().first();
+    if (!existingStaffData) {
+      await db.orm.public.StaffData.create({
+        membershipId: staffMembership.id,
         employeeId: 'EMP-' + Math.floor(Math.random() * 10000),
-        jobTitle: staffSeed.name
       });
     }
   }
@@ -581,48 +567,26 @@ async function main() {
     { email: 'parent2@cityconnect.local', name: 'David Smith', student: student2 },
   ];
   for (const parentSeed of parentSeeds) {
-    let parentUser = await db.orm.public.User.where({ email: parentSeed.email }).all().first();
-    if (!parentUser) {
-      parentUser = await db.orm.public.User.create({ name: parentSeed.name, email: parentSeed.email });
-    }
-    const existingLink = await db.orm.public.StudentParent
-      .where({ studentId: parentSeed.student.id, parentId: parentUser.id })
-      .all()
-      .first();
-    if (!existingLink) {
-      await db.orm.public.StudentParent.create({
-        organizationId: school.id,
-        studentId: parentSeed.student.id,
-        parentId: parentUser.id,
-        isPrimary: true,
-        relationship: 'Parent',
-      });
+    const parentUser = await findOrCreatePerson(parentSeed.name, parentSeed.email);
+    // FamilyLink: guardian=parent, ward=student (need ward's personId via StudentData->Relationship)
+    const studentRel = await db.orm.public.Relationship.where({ id: parentSeed.student!.relationshipId }).all().first();
+    if (studentRel) {
+      const existingLink = await db.orm.public.FamilyLink.where({ guardianPersonId: parentUser.id, wardPersonId: studentRel.personId }).all().first();
+      if (!existingLink) {
+        await db.orm.public.FamilyLink.create({ guardianPersonId: parentUser.id, wardPersonId: studentRel.personId, type: 'Parent' });
+      }
     }
   }
 
   // Student self-service login — the resident Student Portal resolves
   // "which Student record is this signed-in resident" via `guardianId`
   // (the closest existing fit for self-access, see getStudentPortalData).
-  let studentUser = await db.orm.public.User.where({ email: 'student@cityconnect.local' }).all().first();
-  if (!studentUser) {
-    studentUser = await db.orm.public.User.create({ name: 'Alex Johnson (Student)', email: 'student@cityconnect.local' });
-  }
-  if (!student1.guardianId) {
-    await db.orm.public.Student.where({ id: student1.id }).update({ guardianId: studentUser.id });
-  }
+  const studentUser = await findOrCreatePerson('Alex Johnson', 'student@cityconnect.local');
+  // Note: student self-portal access is via Relationship lookup by personId in V1
 
   // A third student, not yet enrolled in any class — demo data for the
   // Registrar's enrolment-request workflow.
-  let student3 = existingStudents.find((s) => s.studentId === 'STU-003');
-  if (!student3) {
-    student3 = await db.orm.public.Student.create({
-      organizationId: school.id,
-      studentId: 'STU-003',
-      firstName: 'Marcus',
-      lastName: 'Lee',
-      yearLevel: 12,
-    });
-  }
+  const student3 = await findOrCreateStudentData(school.id, 'STU-003', 'Marcus', 'Lee', 12);
 
   // More fee variety — a second fee type and a second, unpaid invoice.
   let techFeeType = await db.orm.public.FeeType.where({ organizationId: school.id, name: 'Technology Fee' }).all().first();
@@ -634,11 +598,11 @@ async function main() {
       frequency: 'annual',
     });
   }
-  const existingInvoice2 = await db.orm.public.FeeInvoice.where({ organizationId: school.id, studentId: student2.id }).all().first();
+  const existingInvoice2 = await db.orm.public.FeeInvoice.where({ organizationId: school.id, studentDataId: student2!.id }).all().first();
   if (!existingInvoice2) {
     const invoice2 = await db.orm.public.FeeInvoice.create({
       organizationId: school.id,
-      studentId: student2.id,
+      studentDataId: student2!.id,
       dueDate: toInstant(Date.now() + 86400000 * 45),
       totalAmount: 250,
       paidAmount: 0,
@@ -649,20 +613,21 @@ async function main() {
 
   // Registrar + Counselor users are seeded just above (schoolStaffSeeds) —
   // look them up so the rows below can reference real User ids.
-  const registrarUser = await db.orm.public.User.where({ email: 'registrar@cityconnect.local' }).all().first();
-  const counselorUser = await db.orm.public.User.where({ email: 'counselor@cityconnect.local' }).all().first();
+  const registrarUser = await db.orm.public.PersonIdentifier.where({ type: 'EMAIL', normalizedValue: 'registrar@cityconnect.local' }).all().first().then(async (id) => id ? db.orm.public.Person.where({ id: id.personId }).all().first() : null);
+  const counselorUser = await db.orm.public.PersonIdentifier.where({ type: 'EMAIL', normalizedValue: 'counselor@cityconnect.local' }).all().first().then(async (id) => id ? db.orm.public.Person.where({ id: id.personId }).all().first() : null);
+  const counselorMembership = counselorUser ? await findOrCreateMembership(counselorUser.id, school.id) : null;
 
   if (registrarUser) {
     const existingRequest = await db.orm.public.EnrolmentRequest
-      .where({ classId: mathClass.id, studentId: student3.id })
+      .where({ classId: mathClass.id, studentDataId: student3!.id })
       .all()
       .first();
     if (!existingRequest) {
       await db.orm.public.EnrolmentRequest.create({
         organizationId: school.id,
         classId: mathClass.id,
-        studentId: student3.id,
-        requestedById: registrarUser.id,
+        studentDataId: student3!.id,
+        requestedByPersonId: registrarUser!.id,
         message: 'Transferring in from Westside Academy — requesting placement in Advanced Calculus.',
         status: 'pending',
       });
@@ -674,15 +639,15 @@ async function main() {
     if (existingNotes.length === 0) {
       await db.orm.public.StudentNote.create({
         organizationId: school.id,
-        studentId: student1.id,
-        authorId: counselorUser.id,
+        studentDataId: student1!.id,
+        authorMembershipId: counselorMembership!.id,
         content: 'Check-in went well; adjusting fine to senior year workload.',
         type: 'pastoral',
       });
       await db.orm.public.StudentNote.create({
         organizationId: school.id,
-        studentId: student2.id,
-        authorId: counselorUser.id,
+        studentDataId: student2!.id,
+        authorMembershipId: counselorMembership!.id,
         content: 'Parent reported a seasonal allergy — keeps antihistamines in her bag.',
         type: 'medical',
       });
@@ -692,7 +657,7 @@ async function main() {
     if (existingTruancyAlerts.length === 0) {
       await db.orm.public.TruancyAlert.create({
         organizationId: school.id,
-        studentId: student2.id,
+        studentDataId: student2!.id,
         termId: term.id,
         consecutiveAbsences: 3,
         totalUnexcused: 3,
@@ -728,7 +693,7 @@ async function main() {
     if (!alreadyExists) {
       await db.orm.public.TimetableSlot.create({
         classId: mathClass.id,
-        staffId: staffProfile.id,
+        membershipId: teacherMember.id,
         roomId: slotSeed.roomId,
         dayOfWeek: slotSeed.dayOfWeek,
         period: slotSeed.period,
@@ -740,8 +705,9 @@ async function main() {
 
   // Calendar events — one for each audience-encoding branch, to prove the
   // per-portal filter logic actually discriminates correctly.
-  const principalUser = await db.orm.public.User.where({ email: 'principal@cityconnect.local' }).all().first();
-  if (principalUser) {
+  const principalUser = await db.orm.public.PersonIdentifier.where({ type: 'EMAIL', normalizedValue: 'principal@cityconnect.local' }).all().first().then(async (id) => id ? db.orm.public.Person.where({ id: id.personId }).all().first() : null);
+  const principalMembership = principalUser ? await findOrCreateMembership(principalUser.id, school.id) : null;
+  if (principalUser && principalMembership) {
     const existingFallBreak = await db.orm.public.SchoolEvent.where({ organizationId: school.id, title: 'Fall Break' }).all().first();
     if (!existingFallBreak) {
       await db.orm.public.SchoolEvent.create({
@@ -754,7 +720,7 @@ async function main() {
         category: 'holiday',
         targetRoles: 'all',
         targetYears: 'all',
-        createdById: principalUser.id,
+        createdByMembershipId: principalMembership!.id,
       });
     }
 
@@ -770,7 +736,7 @@ async function main() {
         category: 'admin',
         targetRoles: JSON.stringify(['TEACHER', 'ADMIN']),
         targetYears: 'all',
-        createdById: principalUser.id,
+        createdByMembershipId: principalMembership!.id,
       });
     }
 
@@ -786,7 +752,7 @@ async function main() {
         category: 'academic',
         targetRoles: JSON.stringify(['STUDENT', 'PARENT']),
         targetYears: JSON.stringify(['12']),
-        createdById: principalUser.id,
+        createdByMembershipId: principalMembership!.id,
       });
     }
   }
@@ -825,7 +791,7 @@ async function main() {
 
     const order = await db.orm.public.RestaurantOrder.create({
       organizationId: restaurant.id,
-      residentId: adminUser.id,
+      
       type: 'DINE_IN',
       tableNumber: 'Table 4',
       status: 'PREPARING',
@@ -873,7 +839,7 @@ async function main() {
 
     await db.orm.public.Ticket.create({
       eventId: summerFest.id,
-      userId: adminUser.id,
+      personId: adminUser.id,
       status: 'VALID',
     });
 
@@ -887,7 +853,7 @@ async function main() {
 
     await db.orm.public.Booking.create({
       resourceId: pavilion.id,
-      userId: adminUser.id,
+      personId: adminUser.id,
       startDate: (globalThis as any).Temporal.Instant.fromEpochMilliseconds(Date.now() + 86400000 * 5),
       endDate: (globalThis as any).Temporal.Instant.fromEpochMilliseconds(Date.now() + 86400000 * 5),
       status: 'CONFIRMED',
@@ -940,7 +906,7 @@ async function main() {
     await db.orm.public.Comment.create({
       content: 'This is amazing news for the local economy! I cannot wait.',
       postId: post1.id,
-      userId: adminUser.id,
+      personId: adminUser.id,
     });
   }
 
@@ -958,18 +924,21 @@ async function main() {
   });
 
   if (clinicCreated) {
-    const doctor = await db.orm.public.OrganizationMember.create({
-      userId: adminUser.id,
-      organizationId: clinic.id,
-      role: 'DOCTOR',
-    });
+    const doctorMembership = await findOrCreateMembership(adminUser.id, clinic.id);
+    await ensureMembershipRole(doctorMembership.id, 'DOCTOR');
+
+    // Create PatientData for admin so they can be a patient
+    const patientRel = await db.orm.public.Relationship.where({ personId: adminUser.id, organizationId: clinic.id, type: 'CUSTOMER' }).all().first()
+      || await db.orm.public.Relationship.create({ personId: adminUser.id, organizationId: clinic.id, type: 'CUSTOMER' });
+    const patientData = await db.orm.public.PatientData.where({ relationshipId: patientRel.id }).all().first()
+      || await db.orm.public.PatientData.create({ relationshipId: patientRel.id });
 
     await db.orm.public.Appointment.create({
       date: (globalThis as any).Temporal.Instant.fromEpochMilliseconds(Date.now() + 86400000), // Tomorrow
       reason: 'Annual Checkup',
       status: 'SCHEDULED',
-      patientId: adminUser.id,
-      doctorId: doctor.id,
+      patientDataId: patientData.id,
+      staffMembershipId: doctorMembership.id,
       organizationId: clinic.id,
     });
 
@@ -978,7 +947,7 @@ async function main() {
       dosage: 'Take 1 pill every 8 hours',
       instructions: 'Take with food.',
       status: 'ISSUED',
-      patientId: adminUser.id,
+      patientDataId: patientData.id,
       organizationId: clinic.id,
     });
   }
@@ -1014,17 +983,16 @@ async function main() {
   });
 
   if (logisticsCreated) {
-    await db.orm.public.GigWorkerProfile.where({ userId: adminUser.id }).all().first().then(async (existing) => {
-      if (!existing) {
-        await db.orm.public.GigWorkerProfile.create({
-          userId: adminUser.id, // Reusing admin as a worker for simplicity
-          vehicleType: 'CAR',
-          licensePlate: 'ABC-1234',
-          isOnline: true,
-          rating: 4.8,
-        });
-      }
-    });
+    let adminGigProfile = await db.orm.public.GigWorkerProfile.where({ personId: adminUser.id }).all().first();
+    if (!adminGigProfile) {
+      adminGigProfile = await db.orm.public.GigWorkerProfile.create({
+        personId: adminUser.id,
+        vehicleType: 'CAR',
+        licensePlate: 'ABC-1234',
+        isOnline: true,
+        rating: 4.8,
+      });
+    }
 
     const task1 = await db.orm.public.Task.create({
       type: 'PACKAGE_DELIVERY',
@@ -1032,7 +1000,7 @@ async function main() {
       pickupAddress: 'Downtown Pharmacy',
       dropoffAddress: '123 Main St, Apt 4B',
       price: 12.5,
-      requesterId: adminUser.id,
+      requesterPersonId: adminUser.id,
       organizationId: logisticsOrg.id,
     });
 
@@ -1042,8 +1010,8 @@ async function main() {
       pickupAddress: 'Not Applicable',
       dropoffAddress: '456 Oak Lane',
       price: 0.0, // TBD by quote
-      requesterId: adminUser.id,
-      courierId: adminUser.id, // Handled by this worker
+      requesterPersonId: adminUser.id,
+      courierProfileId: adminGigProfile?.id, // Handled by this worker
       organizationId: logisticsOrg.id,
     });
     void task1;
@@ -1122,20 +1090,122 @@ async function main() {
     });
   }
 
+  // Store settings (one row per org — RetailSettings.organizationId is unique).
+  // Onboarding flags deliberately half-complete so the ShopOS onboarding
+  // widget has steps to demo (payment + shipping still open).
+  let retailSettings = await db.orm.public.RetailSettings.where({ organizationId: retail.id }).all().first();
+  if (!retailSettings) {
+    retailSettings = await db.orm.public.RetailSettings.create({
+      organizationId: retail.id,
+      storeName: retail.name,
+      storeAddress: '45 CityMall Plaza, Springfield',
+      receiptMessage: 'Thank you for shopping at Corner Market!',
+      taxRate: 8,
+      currencySymbol: '$',
+      customUnits: JSON.stringify(['ea', 'kg', 'lb', 'pack', 'box']),
+      hasStoreInfo: true,
+      hasProducts: true,
+    });
+  }
+
+  // Physical branch locations for the retail org (V1 Location model is
+  // org-level; MembershipLocation can optionally scope staff to them).
+  const retailLocationSeeds = [
+    { name: 'Corner Market — Main Street', address: '45 CityMall Plaza, Springfield' },
+    { name: 'Corner Market — Airport Kiosk', address: 'Terminal B, Springfield International' },
+  ];
+  for (const locSeed of retailLocationSeeds) {
+    const existingLoc = await db.orm.public.Location.where({ organizationId: retail.id, name: locSeed.name }).all().first();
+    if (!existingLoc) {
+      await db.orm.public.Location.create({ organizationId: retail.id, name: locSeed.name, address: locSeed.address });
+    }
+  }
+
   // Per-role demo logins for ShopOS (password '1234' via the same demo
   // Credentials provider as every other seeded account).
   const retailStaffSeeds = [
+    { email: 'manager@cityconnect.local', name: 'Marta Manager', role: 'MANAGER' as const },
     { email: 'cashier@cityconnect.local', name: 'Cara Cashier', role: 'CASHIER' as const },
     { email: 'inventory@cityconnect.local', name: 'Ivan Stocker', role: 'INVENTORY_STAFF' as const },
   ];
+  let cashierMembershipId = '';
   for (const staffSeed of retailStaffSeeds) {
-    let staffUser = await db.orm.public.User.where({ email: staffSeed.email }).all().first();
-    if (!staffUser) {
-      staffUser = await db.orm.public.User.create({ name: staffSeed.name, email: staffSeed.email });
+    const staffPerson = await findOrCreatePerson(staffSeed.name, staffSeed.email);
+    const staffMembership = await findOrCreateMembership(staffPerson.id, retail.id);
+    await ensureMembershipRole(staffMembership.id, staffSeed.role);
+    if (staffSeed.role === 'CASHIER') cashierMembershipId = staffMembership.id;
+  }
+
+  // Walk-in customers: Person -> Relationship(type=CUSTOMER) -> CustomerData.
+  // Clearly-marked development identities (*.customer@cityconnect.local).
+  const retailCustomerSeeds = [
+    { name: 'Grace Green', email: 'grace.customer@cityconnect.local', phone: '(555) 201-3301', notes: 'Prefers paper receipts.', loyaltyPoints: 120 },
+    { name: 'Hassan Patel', email: 'hassan.customer@cityconnect.local', phone: '(555) 201-3302', notes: 'Bulk buys rice monthly.', loyaltyPoints: 45 },
+    { name: 'Lucia Alvarez', email: 'lucia.customer@cityconnect.local', phone: '(555) 201-3303', notes: 'Loyalty signup at register.', loyaltyPoints: 0 },
+  ];
+  const retailCustomerDataIds: string[] = [];
+  for (const c of retailCustomerSeeds) {
+    const person = await findOrCreatePerson(c.name, c.email);
+    let rel = await db.orm.public.Relationship.where({ organizationId: retail.id, personId: person.id, type: 'CUSTOMER' }).all().first();
+    if (!rel) {
+      rel = await db.orm.public.Relationship.create({ organizationId: retail.id, personId: person.id, type: 'CUSTOMER' });
     }
-    const existingMember = await db.orm.public.OrganizationMember.where({ userId: staffUser.id, organizationId: retail.id }).all().first();
-    if (!existingMember) {
-      await db.orm.public.OrganizationMember.create({ userId: staffUser.id, organizationId: retail.id, role: staffSeed.role });
+    let cd = await db.orm.public.CustomerData.where({ relationshipId: rel.id }).all().first();
+    if (!cd) {
+      cd = await db.orm.public.CustomerData.create({ relationshipId: rel.id, notes: c.notes, loyaltyPoints: c.loyaltyPoints });
+    }
+    // Contact details live on PersonIdentifier (V1: no phone/email columns on Person).
+    const emailExists = await db.orm.public.PersonIdentifier.where({ type: 'EMAIL', normalizedValue: c.email.toLowerCase() }).all().first();
+    if (!emailExists) {
+      await db.orm.public.PersonIdentifier.create({ personId: person.id, type: 'EMAIL', normalizedValue: c.email.toLowerCase(), isVerified: false });
+    }
+    const phoneExists = await db.orm.public.PersonIdentifier.where({ type: 'PHONE', normalizedValue: c.phone }).all().first();
+    if (!phoneExists) {
+      await db.orm.public.PersonIdentifier.create({ personId: person.id, type: 'PHONE', normalizedValue: c.phone });
+    }
+    retailCustomerDataIds.push(cd.id);
+  }
+
+  // One historical COMPLETED sale so the dashboard, Sales & Returns and the
+  // customer 360 have data on first run (idempotent: only if the org has none).
+  const existingRetailOrder = await db.orm.public.RetailOrder.where({ organizationId: retail.id }).all().first();
+  if (!existingRetailOrder && retailProductSeeds.length >= 2) {
+    const seededProducts = await db.orm.public.RetailProduct.where({ organizationId: retail.id }).all();
+    const banana = seededProducts.find((p) => p.sku === 'PRD-001');
+    const oj = seededProducts.find((p) => p.sku === 'DRK-001');
+    if (banana && oj) {
+      const line1 = { productId: banana.id, quantity: 2, unitPrice: banana.price, subtotal: banana.price * 2 };
+      const line2 = { productId: oj.id, quantity: 1, unitPrice: oj.price, subtotal: oj.price };
+      const subtotal = line1.subtotal + line2.subtotal;
+      const taxAmount = Math.round(subtotal * 0.08 * 100) / 100;
+      const now = new Date();
+      const shift = await db.orm.public.RetailShift.create({
+        organizationId: retail.id,
+        registerId: retailRegister.id,
+        openedById: cashierMembershipId,
+        closedById: cashierMembershipId,
+        openedAt: toInstant(now.getTime() - 3 * 60 * 60 * 1000),
+        closedAt: toInstant(now.getTime() - 1 * 60 * 60 * 1000),
+        openingFloat: 100,
+        expectedCash: 100 + line1.subtotal + line2.subtotal + taxAmount,
+        actualCash: 100 + line1.subtotal + line2.subtotal + taxAmount,
+        discrepancy: 0,
+        status: 'CLOSED',
+      });
+      const order = await db.orm.public.RetailOrder.create({
+        organizationId: retail.id,
+        shiftId: shift.id,
+        cashierId: cashierMembershipId,
+        customerDataId: retailCustomerDataIds[0],
+        totalAmount: subtotal + taxAmount,
+        taxAmount,
+        discountAmount: 0,
+        paymentMethod: 'CASH',
+        status: 'COMPLETED',
+      });
+      for (const line of [line1, line2]) {
+        await db.orm.public.RetailOrderItem.create({ orderId: order.id, ...line });
+      }
     }
   }
 
@@ -1144,36 +1214,21 @@ async function main() {
   // with OWNER membership in every vertical org plus a GigWorkerProfile, so
   // a single login can reach every admin portal and the courier interface.
   // ---------------------------------------------------------------------
-  let demoUser = await db.orm.public.User.where({ email: 'demo@cityconnect.local' }).all().first();
-  if (!demoUser) {
-    demoUser = await db.orm.public.User.create({
-      name: 'Demo Admin',
-      email: 'demo@cityconnect.local',
-    });
-  }
+  const demoUser = await findOrCreatePerson('Demo Admin', 'demo@cityconnect.local');
 
   async function ensureOwnerMembership(organizationId: string) {
-    const existing = await db.orm.public.OrganizationMember.where({
-      userId: demoUser!.id,
-      organizationId,
-    }).all().first();
-    if (!existing) {
-      await db.orm.public.OrganizationMember.create({
-        userId: demoUser!.id,
-        organizationId,
-        role: 'OWNER',
-      });
-    }
+    const m = await findOrCreateMembership(demoUser.id, organizationId);
+    await ensureMembershipRole(m.id, 'OWNER');
   }
 
   for (const org of [hotel, school, restaurant, organizer, publisher, clinic, pharmacy, logisticsOrg, retail]) {
     await ensureOwnerMembership(org.id);
   }
 
-  const demoGigProfile = await db.orm.public.GigWorkerProfile.where({ userId: demoUser.id }).all().first();
+  const demoGigProfile = await db.orm.public.GigWorkerProfile.where({ personId: demoUser.id }).all().first();
   if (!demoGigProfile) {
     await db.orm.public.GigWorkerProfile.create({
-      userId: demoUser.id,
+      personId: demoUser.id,
       vehicleType: 'CAR',
       licensePlate: 'DEMO-001',
       isOnline: true,
@@ -1338,13 +1393,42 @@ async function main() {
       },
     ];
 
-    for (let i = 0; i < retailMicrositeSections.length; i++) {
+    // The storefront renderer resolves a page (isHome) before sections, so
+    // the retail site needs a Home page the sections hang off — same shape
+    // provisionShopOS/createMicrosite produce.
+    const retailHomePage = await db.orm.public.MicrositePage.create({
+      micrositeId: retailMicrosite.id,
+      title: 'Home',
+      slug: 'home',
+      isHome: true,
+      status: 'published',
+    });
+
+    for (let i = 0; retailMicrositeSections.length > i; i++) {
       await db.orm.public.MicrositeSection.create({
         micrositeId: retailMicrosite.id,
+        pageId: retailHomePage.id,
         type: retailMicrositeSections[i].type,
         order: i,
         content: JSON.stringify(retailMicrositeSections[i].content),
       });
+    }
+  } else {
+    // Self-heal sites created by the pre-fix seed: sections existed without a
+    // Home page, which 404s the public /site/<slug> route.
+    const retailPages = await db.orm.public.MicrositePage.where({ micrositeId: retailMicrosite.id }).all();
+    if (retailPages.length === 0) {
+      const homePage = await db.orm.public.MicrositePage.create({
+        micrositeId: retailMicrosite.id,
+        title: 'Home',
+        slug: 'home',
+        isHome: true,
+        status: 'published',
+      });
+      const orphanSections = await db.orm.public.MicrositeSection.where({ micrositeId: retailMicrosite.id }).all();
+      for (const s of orphanSections) {
+        await db.orm.public.MicrositeSection.where({ id: s.id }).update({ pageId: homePage.id });
+      }
     }
   }
 

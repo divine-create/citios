@@ -265,9 +265,9 @@ function ReportCardsPanel({ organizationId, schoolName, classSections, terms, gr
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSectionId, selectedTermId]);
 
-  const openPreview = async (studentId: string) => {
-    setPreviewStudentId(studentId);
-    const res = await getStudentReportCard(organizationId, studentId, selectedTermId);
+  const openPreview = async (studentDataId: string) => {
+    setPreviewStudentId(studentDataId);
+    const res = await getStudentReportCard(organizationId, studentDataId, selectedTermId);
     setPreviewData(res);
     setRemarksForm({
       comments: res?.reportCard?.comments || "",
@@ -294,10 +294,10 @@ function ReportCardsPanel({ organizationId, schoolName, classSections, terms, gr
     }
   };
 
-  const togglePublish = async (studentId: string, currentlyPublished: boolean) => {
-    if (currentlyPublished) await unpublishReportCard(studentId, selectedTermId);
-    else await publishReportCard(organizationId, studentId, selectedTermId);
-    if (previewStudentId === studentId) await openPreview(studentId);
+  const togglePublish = async (studentDataId: string, currentlyPublished: boolean) => {
+    if (currentlyPublished) await unpublishReportCard(studentDataId, selectedTermId);
+    else await publishReportCard(organizationId, studentDataId, selectedTermId);
+    if (previewStudentId === studentDataId) await openPreview(studentDataId);
     load();
     refresh();
   };

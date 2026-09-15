@@ -1,5 +1,7 @@
 'use server'
 
+import { requireMembership, requireAuthenticatedAccount, findStudentRelationship } from "@/lib/actions/tenant";
+
 import '@js-temporal/polyfill'
 import { db } from '@/src/prisma/db'
 import { getServerSession } from 'next-auth'
@@ -19,10 +21,7 @@ function startOfDay(date: Date) {
   return d;
 }
 
-// Resolves the org's "current" term: the active academic year's term whose
-// date range covers today, falling back to that year's first term. Needed
-// wherever we write an Attendance or Gradebook row, since both require a
-// real termId and there's no single "current term" pointer on the org.
+// Resolves the org's "current" term
 async function getCurrentTerm(organizationId: string) {
   const years = await db.orm.public.AcademicYear.where({ organizationId }).all();
   const activeYear = years.find((y) => y.active) ?? years[0];
@@ -35,6 +34,37 @@ async function getCurrentTerm(organizationId: string) {
   const current = terms.find((t) => epochMs(t.startDate) <= now && now <= epochMs(t.endDate));
   return current ?? terms[0];
 }
+
+async function fetchHydratedStudents(organizationId: string) {
+  const rels = await db.orm.public.Relationship.where({ organizationId, type: 'STUDENT' }).all();
+  const students: any[] = [];
+  for (const rel of rels) {
+    const sd = await db.orm.public.StudentData.where({ relationshipId: rel.id }).all().first();
+    const person = await db.orm.public.Person.where({ id: rel.personId }).all().first();
+    if (sd && person) {
+      students.push({ ...sd, firstName: person.firstName, lastName: person.lastName, organizationId });
+    }
+  }
+  return students;
+}
+
+async function fetchHydratedStaff(organizationId: string) {
+  const memberships = await db.orm.public.Membership.where({ organizationId }).all();
+  const staff: any[] = [];
+  for (const m of memberships) {
+    const sd = await db.orm.public.StaffData.where({ membershipId: m.id }).all().first();
+    const person = await db.orm.public.Person.where({ id: m.personId }).all().first();
+    if (person) {
+      staff.push({ 
+        ...m, 
+        user: person, 
+        staffProfile: sd ? { ...sd, memberId: m.id } : null 
+      });
+    }
+  }
+  return staff;
+}
+
 
 // ---------------------------------------------------------------------
 // Reads
@@ -50,8 +80,7 @@ export async function getSchoolAdminData(organizationId?: string) {
     }
     if (!school) return null;
 
-    const students = (await db.orm.public.Student.where({ organizationId: school.id }).all())
-      .sort((a, b) => a.lastName.localeCompare(b.lastName));
+    const students = (await fetchHydratedStudents(school.id)).sort((a, b) => a.lastName.localeCompare(b.lastName));
 
     const rawClasses = await db.orm.public.SchoolClass.where({ organizationId: school.id }).all();
     const allClassTeachers: any[] = [];
@@ -73,20 +102,12 @@ export async function getSchoolAdminData(organizationId?: string) {
 
     const startOfToday = startOfDay(new Date());
     const attendanceRecords: any[] = [];
-    for (const studentId of studentIds) {
-      const rows = await db.orm.public.Attendance.where({ studentId }).all();
+    for (const studentDataId of studentIds) {
+      const rows = await db.orm.public.Attendance.where({ studentDataId: studentDataId }).all();
       attendanceRecords.push(...rows.filter((r) => epochMs(r.date) >= startOfToday.getTime()));
     }
 
-    const members = await db.orm.public.OrganizationMember.where({ organizationId: school.id }).all();
-    const allUsers = await db.orm.public.User.all();
-    const staffProfiles = await db.orm.public.StaffProfile.where({ organizationId: school.id }).all();
-
-    const staff = members.map((m) => ({
-      ...m,
-      user: allUsers.find((u) => u.id === m.userId) ?? null,
-      staffProfile: staffProfiles.find((sp) => sp.memberId === m.id) ?? null,
-    }));
+    const staff = await fetchHydratedStaff(school.id);
 
     const academicYears = await db.orm.public.AcademicYear.where({ organizationId: school.id }).all();
     const activeYear = academicYears.find((y) => y.active) ?? academicYears[0] ?? null;
@@ -137,7 +158,7 @@ export async function getSchoolAdminData(organizationId?: string) {
 // school org — needed to scope "my courses" for the Teacher Portal.
 export async function getMyMembership(userId: string, organizationId: string) {
   try {
-    const member = await db.orm.public.OrganizationMember.where({ userId, organizationId }).all().first();
+    const member = await db.orm.public.Membership.where({ personId: userId, organizationId }).all().first();
     return JSON.parse(JSON.stringify(member ?? null));
   } catch (error) {
     console.error('Error resolving membership:', error);
@@ -155,14 +176,14 @@ export async function getTeacherPortalData(organizationMemberId?: string, organi
     let mySchedule: any[] = [];
     let formSections: any[] = [];
     if (organizationMemberId) {
-      const staffProfile = await db.orm.public.StaffProfile.where({ memberId: organizationMemberId }).all().first();
+      const staffProfile = await db.orm.public.StaffData.where({ membershipId: organizationMemberId }).all().first();
       if (staffProfile) {
-        const classTeachers = await db.orm.public.ClassTeacher.where({ staffId: staffProfile.id }).all();
+        const classTeachers = await db.orm.public.ClassTeacher.where({ membershipId: organizationMemberId }).all();
         const taughtClassIds = new Set(classTeachers.map((ct) => ct.classId));
         const allClasses = organizationId ? await db.orm.public.SchoolClass.where({ organizationId }).all() : [];
         classes = allClasses.filter((c) => taughtClassIds.has(c.id));
 
-        const slots = await db.orm.public.TimetableSlot.where({ staffId: staffProfile.id }).all();
+        const slots = await db.orm.public.TimetableSlot.where({ membershipId: organizationMemberId }).all();
         const rooms = organizationId ? await db.orm.public.Room.where({ organizationId }).all() : [];
         mySchedule = slots
           .sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.period - b.period)
@@ -174,7 +195,7 @@ export async function getTeacherPortalData(organizationMemberId?: string, organi
 
         // Sections where this teacher is the form/class teacher — this is
         // what unlocks the Promotion tab in the Teacher portal.
-        const rawFormSections = await db.orm.public.ClassSection.where({ formTeacherId: staffProfile.id }).all();
+        const rawFormSections = await db.orm.public.ClassSection.where({ formMembershipId: organizationMemberId }).all();
         if (rawFormSections.length > 0) {
           const allGrades = organizationId ? await db.orm.public.SchoolGrade.where({ organizationId }).all() : [];
           const allYears = organizationId ? await db.orm.public.AcademicYear.where({ organizationId }).all() : [];
@@ -205,8 +226,8 @@ export async function getTeacherPortalData(organizationMemberId?: string, organi
       enrollments.push(...rows);
     }
 
-    const studentIds = [...new Set(enrollments.map((e) => e.studentId))];
-    const allStudents = organizationId ? await db.orm.public.Student.where({ organizationId }).all() : [];
+    const studentIds = [...new Set(enrollments.map((e) => e.studentDataId))];
+    const allStudents = organizationId ? await fetchHydratedStudents(organizationId) : [];
     const students = allStudents.filter((s) => studentIds.includes(s.id));
 
     const assignments: any[] = [];
@@ -224,8 +245,8 @@ export async function getTeacherPortalData(organizationMemberId?: string, organi
 
     const startOfToday = startOfDay(new Date());
     const todayAttendance: any[] = [];
-    for (const studentId of studentIds) {
-      const rows = await db.orm.public.Attendance.where({ studentId }).all();
+    for (const studentDataId of studentIds) {
+      const rows = await db.orm.public.Attendance.where({ studentDataId: studentDataId }).all();
       todayAttendance.push(...rows.filter((r) => epochMs(r.date) >= startOfToday.getTime()));
     }
 
@@ -242,15 +263,20 @@ export async function getCourseGradebook(classId: string) {
     if (!schoolClass) return null;
 
     const enrollments = await db.orm.public.ClassEnrolment.where({ classId }).all();
-    const enrolledStudentIds = new Set(enrollments.map((e) => e.studentId));
-    const orgStudents = await db.orm.public.Student.where({ organizationId: schoolClass.organizationId }).all();
-    const students = orgStudents.filter((s) => enrolledStudentIds.has(s.id));
+    const enrolledStudentDataIds = new Set(enrollments.map((e) => e.studentDataId));
+
+    const relationships = await db.orm.public.Relationship.where({ organizationId: schoolClass.organizationId, type: 'STUDENT' }).all();
+    const students = [];
+    for (const rel of relationships) {
+        const sd = await db.orm.public.StudentData.where({ relationshipId: rel.id }).all().first();
+        if (sd && enrolledStudentDataIds.has(sd.id)) {
+            const person = await db.orm.public.Person.where({ id: rel.personId }).all().first();
+            if (person) students.push({ ...sd, firstName: person.firstName, lastName: person.lastName });
+        }
+    }
 
     const assignments = await db.orm.public.Gradebook.where({ classId }).all();
 
-    // Fetch Grades per assignment and flatten — avoids relying on an `{in:
-    // [...]}` filter operator this project's query builder doesn't use
-    // elsewhere and hasn't been confirmed to support.
     const grades: any[] = [];
     for (const assignment of assignments) {
       const rows = await db.orm.public.Grade.where({ gradebookId: assignment.id }).all();
@@ -273,34 +299,43 @@ export async function createStudent(input: {
   firstName: string;
   middleName?: string;
   lastName: string;
-  studentId?: string;
+  studentDataId?: string;
   yearLevel?: number;
   classSectionId?: string;
   gender?: string;
   dateOfBirth?: Date;
 }) {
   try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
+
     if (!input.firstName.trim() || !input.lastName.trim()) return { error: 'First and last name are required.' };
 
-    const existingStudents = await db.orm.public.Student.where({ organizationId: input.organizationId }).all();
-    const count = existingStudents.length;
-
+    const existingRels = await db.orm.public.Relationship.where({ organizationId: input.organizationId, type: 'STUDENT' }).all();
+    const count = existingRels.length;
     const generatedId = `STU-${String(count + 1).padStart(4, '0')}`;
 
-    const student = await db.orm.public.Student.create({
-      organizationId: input.organizationId,
-      studentId: input.studentId?.trim() || generatedId,
+    const person = await db.orm.public.Person.create({
       firstName: input.firstName.trim(),
-      middleName: input.middleName?.trim() || null,
       lastName: input.lastName.trim(),
-      yearLevel: input.yearLevel ? Number(input.yearLevel) : 1,
-      classSectionId: input.classSectionId || null,
-      gender: input.gender,
+      // middleName and gender are dropped from global V1 schema.
       // @ts-ignore Prisma 8 Composer DateTime handling
       dateOfBirth: input.dateOfBirth ? (globalThis as any).Temporal.Instant.fromEpochMilliseconds(input.dateOfBirth.getTime()) : undefined,
     });
 
-    return { success: true, student: JSON.parse(JSON.stringify(student)) };
+    const relationship = await db.orm.public.Relationship.create({
+      organizationId: input.organizationId,
+      personId: person.id,
+      type: 'STUDENT',
+    });
+
+    const studentData = await db.orm.public.StudentData.create({
+      relationshipId: relationship.id,
+      admissionNo: input.studentDataId?.trim() || generatedId,
+      yearLevel: input.yearLevel ? Number(input.yearLevel) : 1,
+      classSectionId: input.classSectionId || null,
+    });
+
+    return { success: true, student: JSON.parse(JSON.stringify({ ...studentData, person })) };
   } catch (error) {
     console.error('Error creating student:', error);
     return { error: 'Failed to create student.' };
@@ -317,19 +352,34 @@ export async function updateStudent(id: string, input: {
   dateOfBirth?: Date;
 }) {
   try {
-    const data: Record<string, unknown> = {};
-    if (input.firstName !== undefined) data.firstName = input.firstName;
-    if (input.middleName !== undefined) data.middleName = input.middleName;
-    if (input.lastName !== undefined) data.lastName = input.lastName;
-    if (input.yearLevel !== undefined) data.yearLevel = input.yearLevel;
-    if (input.classSectionId !== undefined) data.classSectionId = input.classSectionId;
-    if (input.gender !== undefined) data.gender = input.gender;
-    if (input.dateOfBirth !== undefined) {
-      // @ts-ignore Prisma 8 Composer DateTime handling
-      data.dateOfBirth = input.dateOfBirth ? (globalThis as any).Temporal.Instant.fromEpochMilliseconds(input.dateOfBirth.getTime()) : null;
+    const studentData = await db.orm.public.StudentData.where({ id }).all().first();
+    if (!studentData) return { error: 'Student not found.' };
+
+    const relationship = await db.orm.public.Relationship.where({ id: studentData.relationshipId }).all().first();
+    if (!relationship) return { error: 'Student relationship broken.' };
+
+    await requireMembership(relationship.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
+
+    const sData: Record<string, unknown> = {};
+    if (input.yearLevel !== undefined) sData.yearLevel = input.yearLevel;
+    if (input.classSectionId !== undefined) sData.classSectionId = input.classSectionId;
+
+    if (Object.keys(sData).length > 0) {
+      await db.orm.public.StudentData.where({ id }).update(sData);
     }
 
-    await db.orm.public.Student.where({ id }).update(data);
+    const pData: Record<string, unknown> = {};
+    if (input.firstName !== undefined) pData.firstName = input.firstName.trim();
+    if (input.lastName !== undefined) pData.lastName = input.lastName.trim();
+    if (input.dateOfBirth !== undefined) {
+      // @ts-ignore Prisma 8 Composer DateTime handling
+      pData.dateOfBirth = input.dateOfBirth ? (globalThis as any).Temporal.Instant.fromEpochMilliseconds(input.dateOfBirth.getTime()) : null;
+    }
+
+    if (Object.keys(pData).length > 0) {
+      await db.orm.public.Person.where({ id: relationship.personId }).update(pData);
+    }
+
     return { success: true };
   } catch (error) {
     console.error('Error updating student:', error);
@@ -337,9 +387,19 @@ export async function updateStudent(id: string, input: {
   }
 }
 
-export async function deleteStudent(studentId: string) {
+export async function deleteStudent(studentDataId: string) {
   try {
-    await db.orm.public.Student.where({ id: studentId }).delete();
+    const studentData = await db.orm.public.StudentData.where({ id: studentDataId }).all().first();
+    if (!studentData) return { error: 'Student not found.' };
+
+    const relationship = await db.orm.public.Relationship.where({ id: studentData.relationshipId }).all().first();
+    if (!relationship) return { error: 'Student relationship broken.' };
+
+    await requireMembership(relationship.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
+
+    // Deleting the Relationship will cascade to StudentData
+    await db.orm.public.Relationship.where({ id: relationship.id }).delete();
+    
     return { success: true };
   } catch (error) {
     console.error('Error deleting student:', error);
@@ -362,13 +422,15 @@ export async function createCourse(input: {
   academicYearId?: string;
 }) {
   try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
+
     if (!input.name.trim()) return { error: 'Class name is required.' };
 
     let academicYearId = input.academicYearId;
     if (!academicYearId) {
       const years = await db.orm.public.AcademicYear.where({ organizationId: input.organizationId }).all();
       const activeYear = years.find((y) => y.active) ?? years[0];
-      if (!activeYear) return { error: 'No academic year is set up yet — create one first.' };
+      if (!activeYear) return { error: 'No academic year is set up yet - create one first.' };
       academicYearId = activeYear.id;
     }
 
@@ -388,7 +450,7 @@ export async function createCourse(input: {
     if (input.teacherStaffId) {
       await db.orm.public.ClassTeacher.create({
         classId: created.id,
-        staffId: input.teacherStaffId,
+        membershipId: input.teacherStaffId,
         isPrimary: true,
       });
     }
@@ -405,11 +467,16 @@ export async function updateCourse(
   input: { name?: string; subject?: string; subjectId?: string | null; classSectionId?: string | null; yearLevel?: number }
 ) {
   try {
+    const cls = await db.orm.public.SchoolClass.where({ id: classId }).all().first();
+    if (!cls) return { error: 'Class not found.' };
+
+    await requireMembership(cls.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
+
     const data: Record<string, unknown> = {};
     if (input.name !== undefined) data.name = input.name.trim();
     if (input.subject !== undefined) data.subject = input.subject.trim();
-    if (input.subjectId !== undefined) data.subjectId = input.subjectId;
-    if (input.classSectionId !== undefined) data.classSectionId = input.classSectionId;
+    if (input.subjectId !== undefined) data.subjectId = input.subjectId || null;
+    if (input.classSectionId !== undefined) data.classSectionId = input.classSectionId || null;
     if (input.yearLevel !== undefined) data.yearLevel = input.yearLevel;
 
     await db.orm.public.SchoolClass.where({ id: classId }).update(data);
@@ -420,12 +487,17 @@ export async function updateCourse(
   }
 }
 
-export async function assignTeacherToClass(classId: string, staffId: string, isPrimary = true) {
+export async function assignTeacherToClass(classId: string, membershipId: string, isPrimary = true) {
   try {
-    const existing = await db.orm.public.ClassTeacher.where({ classId, staffId }).all().first();
+    const cls = await db.orm.public.SchoolClass.where({ id: classId }).all().first();
+    if (!cls) return { error: 'Class not found.' };
+
+    await requireMembership(cls.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
+
+    const existing = await db.orm.public.ClassTeacher.where({ classId, membershipId: membershipId }).all().first();
     if (existing) return { error: 'This teacher is already assigned to this class.' };
 
-    await db.orm.public.ClassTeacher.create({ classId, staffId, isPrimary });
+    await db.orm.public.ClassTeacher.create({ classId, membershipId: membershipId, isPrimary });
     return { success: true };
   } catch (error) {
     console.error('Error assigning teacher to class:', error);
@@ -435,7 +507,14 @@ export async function assignTeacherToClass(classId: string, staffId: string, isP
 
 export async function removeTeacherFromClass(classTeacherId: string) {
   try {
-    await db.orm.public.ClassTeacher.where({ id: classTeacherId }).delete();
+    const link = await db.orm.public.ClassTeacher.where({ id: classTeacherId }).all().first();
+    if (link) {
+      const cls = await db.orm.public.SchoolClass.where({ id: link.classId }).all().first();
+      if (cls) {
+         await requireMembership(cls.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
+      }
+      await db.orm.public.ClassTeacher.where({ id: classTeacherId }).delete();
+    }
     return { success: true };
   } catch (error) {
     console.error('Error removing teacher from class:', error);
@@ -461,21 +540,17 @@ export async function getSubjects(organizationId: string) {
   try {
     const subjects = await db.orm.public.Subject.where({ organizationId }).all();
     const links = await db.orm.public.TeacherSubject.all();
-    const staffProfiles = await db.orm.public.StaffProfile.where({ organizationId }).all();
-    const members = await db.orm.public.OrganizationMember.where({ organizationId }).all();
-    const allUsers = await db.orm.public.User.all();
-    const staffIds = new Set(staffProfiles.map((sp) => sp.id));
-
+    const staff = await fetchHydratedStaff(organizationId);
+    
     const enriched = subjects
       .sort((a, b) => a.name.localeCompare(b.name))
       .map((subject) => {
-        const teacherLinks = links.filter((l) => l.subjectId === subject.id && staffIds.has(l.staffId));
+        const teacherLinks = links.filter((l) => l.subjectId === subject.id);
         const teachers = teacherLinks.map((l) => {
-          const profile = staffProfiles.find((sp) => sp.id === l.staffId);
-          const member = profile ? members.find((m) => m.id === profile.memberId) : null;
-          const user = member ? allUsers.find((u) => u.id === member.userId) : null;
-          return { linkId: l.id, staffId: l.staffId, name: user?.name ?? user?.email ?? 'Unknown' };
+          const s = staff.find((s) => s.id === l.membershipId);
+          return { linkId: l.id, membershipId: l.membershipId, name: s?.user?.firstName ? s.user.firstName + ' ' + s.user.lastName : 'Unknown' };
         });
+
         return { ...subject, teachers };
       });
 
@@ -488,6 +563,8 @@ export async function getSubjects(organizationId: string) {
 
 export async function createSubject(organizationId: string, name: string, code?: string) {
   try {
+    await requireMembership(organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
+
     if (!name.trim()) return { error: 'Subject name is required.' };
     await db.orm.public.Subject.create({ organizationId, name: name.trim(), code: code?.trim() || undefined });
     return { success: true };
@@ -499,6 +576,11 @@ export async function createSubject(organizationId: string, name: string, code?:
 
 export async function updateSubject(subjectId: string, input: { name?: string; code?: string }) {
   try {
+    const subj = await db.orm.public.Subject.where({ id: subjectId }).all().first();
+    if (!subj) return { error: 'Subject not found.' };
+
+    await requireMembership(subj.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
+
     const data: Record<string, unknown> = {};
     if (input.name !== undefined) data.name = input.name.trim();
     if (input.code !== undefined) data.code = input.code.trim();
@@ -521,12 +603,17 @@ export async function deleteSubject(subjectId: string) {
   }
 }
 
-export async function assignTeacherToSubject(staffId: string, subjectId: string) {
+export async function assignTeacherToSubject(membershipId: string, subjectId: string) {
   try {
-    const existing = await db.orm.public.TeacherSubject.where({ staffId, subjectId }).all().first();
+    const subj = await db.orm.public.Subject.where({ id: subjectId }).all().first();
+    if (!subj) return { error: 'Subject not found.' };
+
+    await requireMembership(subj.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
+
+    const existing = await db.orm.public.TeacherSubject.where({ membershipId: membershipId, subjectId }).all().first();
     if (existing) return { error: 'This teacher is already assigned to this subject.' };
 
-    await db.orm.public.TeacherSubject.create({ staffId, subjectId });
+    await db.orm.public.TeacherSubject.create({ membershipId: membershipId, subjectId });
     return { success: true };
   } catch (error) {
     console.error('Error assigning teacher to subject:', error);
@@ -536,7 +623,14 @@ export async function assignTeacherToSubject(staffId: string, subjectId: string)
 
 export async function removeTeacherFromSubject(linkId: string) {
   try {
-    await db.orm.public.TeacherSubject.where({ id: linkId }).delete();
+    const link = await db.orm.public.TeacherSubject.where({ id: linkId }).all().first();
+    if (link) {
+       const subj = await db.orm.public.Subject.where({ id: link.subjectId }).all().first();
+       if (subj) {
+           await requireMembership(subj.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
+       }
+       await db.orm.public.TeacherSubject.where({ id: linkId }).delete();
+    }
     return { success: true };
   } catch (error) {
     console.error('Error removing teacher from subject:', error);
@@ -743,10 +837,8 @@ export async function getClassSections(organizationId: string) {
   try {
     const sections = await db.orm.public.ClassSection.where({ organizationId }).all();
     const grades = await db.orm.public.SchoolGrade.where({ organizationId }).all();
-    const students = await db.orm.public.Student.where({ organizationId }).all();
-    const staffProfiles = await db.orm.public.StaffProfile.where({ organizationId }).all();
-    const members = await db.orm.public.OrganizationMember.where({ organizationId }).all();
-    const allUsers = await db.orm.public.User.all();
+    const students = await fetchHydratedStudents(organizationId);
+    const staff = await fetchHydratedStaff(organizationId);
 
     const enriched = sections
       .sort((a, b) => {
@@ -756,15 +848,15 @@ export async function getClassSections(organizationId: string) {
       })
       .map((section) => {
         const grade = grades.find((g) => g.id === section.gradeId);
-        const formTeacherProfile = staffProfiles.find((sp) => sp.id === section.formTeacherId);
-        const formTeacherMember = formTeacherProfile ? members.find((m) => m.id === formTeacherProfile.memberId) : null;
-        const formTeacherUser = formTeacherMember ? allUsers.find((u) => u.id === formTeacherMember.userId) : null;
+        const formTeacher = staff.find((s) => s.id === section.formMembershipId);
+        const sectionStudents = students.filter((s) => s.classSectionId === section.id);
+
         return {
           ...section,
-          gradeName: grade?.name ?? null,
-          gradeLevel: grade?.level ?? null,
-          formTeacherName: formTeacherUser?.name ?? null,
-          studentCount: students.filter((s) => s.classSectionId === section.id).length,
+          gradeName: grade?.name ?? 'Unassigned',
+          gradeLevel: grade?.level ?? 0,
+          formTeacherName: formTeacher?.user?.firstName ? formTeacher.user.firstName + ' ' + formTeacher.user.lastName : 'None',
+          studentCount: sectionStudents.length,
         };
       });
 
@@ -780,7 +872,7 @@ export async function createClassSection(input: {
   academicYearId?: string;
   gradeId: string;
   name: string;
-  formTeacherId?: string;
+  formMembershipId?: string;
 }) {
   try {
     if (!input.name.trim()) return { error: 'Section name is required.' };
@@ -799,7 +891,7 @@ export async function createClassSection(input: {
       academicYearId,
       gradeId: input.gradeId,
       name: input.name.trim(),
-      formTeacherId: input.formTeacherId || undefined,
+      formMembershipId: input.formMembershipId || undefined,
     });
 
     return { success: true };
@@ -811,13 +903,18 @@ export async function createClassSection(input: {
 
 export async function updateClassSection(
   sectionId: string,
-  input: { name?: string; gradeId?: string; formTeacherId?: string | null }
+  input: { name?: string; gradeId?: string; formMembershipId?: string | null }
 ) {
   try {
+    const sec = await db.orm.public.ClassSection.where({ id: sectionId }).all().first();
+    if (!sec) return { error: 'Section not found.' };
+
+    await requireMembership(sec.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
+
     const data: Record<string, unknown> = {};
     if (input.name !== undefined) data.name = input.name.trim();
     if (input.gradeId !== undefined) data.gradeId = input.gradeId;
-    if (input.formTeacherId !== undefined) data.formTeacherId = input.formTeacherId || null;
+    if (input.formMembershipId !== undefined) data.formMembershipId = input.formMembershipId || null;
 
     await db.orm.public.ClassSection.where({ id: sectionId }).update(data);
     return { success: true };
@@ -829,7 +926,12 @@ export async function updateClassSection(
 
 export async function deleteClassSection(sectionId: string) {
   try {
-    const students = await db.orm.public.Student.where({ classSectionId: sectionId }).all();
+    const sec = await db.orm.public.ClassSection.where({ id: sectionId }).all().first();
+    if (!sec) return { error: 'Section not found.' };
+
+    await requireMembership(sec.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
+
+    const students = await db.orm.public.StudentData.where({ classSectionId: sectionId }).all();
     if (students.length > 0) {
       return { error: 'Move students out of this section before removing it.' };
     }
@@ -841,12 +943,9 @@ export async function deleteClassSection(sectionId: string) {
   }
 }
 
-export async function assignStudentToSection(studentId: string, classSectionId: string | null) {
+export async function assignStudentToSection(studentDataId: string, classSectionId: string | null) {
   try {
-    // `undefined` means "leave this field alone" to this ORM — only ever
-    // pass that when there's a real id; an explicit unassign must send a
-    // real `null` or the update silently no-ops.
-    await db.orm.public.Student.where({ id: studentId }).update({ classSectionId });
+    await db.orm.public.StudentData.where({ id: studentDataId }).update({ classSectionId });
     return { success: true };
   } catch (error) {
     console.error('Error assigning student to section:', error);
@@ -941,25 +1040,33 @@ export async function deleteSyllabusTopic(topicId: string) {
 
 export async function getDailyAttendance(organizationId: string, dateStr?: string) {
   try {
+    await requireMembership(organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'TEACHER', 'REGISTRAR']);
+
     const day = startOfDay(dateStr ? new Date(dateStr) : new Date());
     const dayMs = day.getTime();
 
-    const students = (await db.orm.public.Student.where({ organizationId }).all())
-      .sort((a, b) => a.lastName.localeCompare(b.lastName));
     const sections = await db.orm.public.ClassSection.where({ organizationId }).all();
+    const relationships = await db.orm.public.Relationship.where({ organizationId, type: 'STUDENT' }).all();
 
     const records: any[] = [];
-    for (const student of students) {
-      const rows = await db.orm.public.Attendance.where({ studentId: student.id }).all();
+    for (const rel of relationships) {
+      const studentData = await db.orm.public.StudentData.where({ relationshipId: rel.id }).all().first();
+      const person = await db.orm.public.Person.where({ id: rel.personId }).all().first();
+      if (!studentData || !person) continue;
+
+      const rows = await db.orm.public.Attendance.where({ studentDataId: studentData.id }).all();
       const todayRecord = rows.find((r) => epochMs(r.date) === dayMs);
+      
       records.push({
-        studentId: student.id,
-        studentName: `${student.firstName} ${student.lastName}`,
-        classSectionName: sections.find((s) => s.id === student.classSectionId)?.name ?? null,
-        yearLevel: student.yearLevel,
+        studentDataId: studentData.id,
+        studentName: `${person.firstName} ${person.lastName}`,
+        classSectionName: sections.find((s) => s.id === studentData.classSectionId)?.name ?? null,
+        yearLevel: studentData.yearLevel,
         status: todayRecord?.status ?? null,
       });
     }
+    
+    records.sort((a, b) => a.studentName.localeCompare(b.studentName));
 
     return JSON.parse(JSON.stringify({ date: day.toISOString(), records }));
   } catch (error) {
@@ -981,35 +1088,49 @@ export async function createStaff(input: {
   department?: string;
 }) {
   try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
+
     if (!input.name.trim() || !input.email.trim()) return { error: 'Name and email are required.' };
 
-    let user = await db.orm.public.User.where({ email: input.email }).all().first();
-    if (!user) {
-      user = await db.orm.public.User.create({ name: input.name, email: input.email });
-    }
+    const emailLower = input.email.toLowerCase();
+    let identifier = await db.orm.public.PersonIdentifier.where({ type: "EMAIL", normalizedValue: emailLower }).all().first();
+    let person;
 
-    let member = await db.orm.public.OrganizationMember.where({ userId: user.id, organizationId: input.organizationId }).all().first();
-    if (!member) {
-      member = await db.orm.public.OrganizationMember.create({
-        userId: user.id,
-        organizationId: input.organizationId,
-        role: input.role,
+    if (!identifier) {
+      const firstName = input.name.split(' ')[0] || 'Unknown';
+      const lastName = input.name.split(' ').slice(1).join(' ') || 'Staff';
+      person = await db.orm.public.Person.create({ firstName, lastName });
+      await db.orm.public.PersonIdentifier.create({
+        personId: person.id,
+        type: "EMAIL",
+        normalizedValue: emailLower,
+        isVerified: true
       });
     } else {
-      // Update role if they already exist in this org but have a different role
-      if (member.role !== input.role) {
-        await db.orm.public.OrganizationMember.where({ id: member.id }).update({ role: input.role });
-      }
+      person = await db.orm.public.Person.where({ id: identifier.personId }).all().first();
+    }
+    
+    if (!person) return { error: 'Failed to resolve person.' };
+
+    let membership = await db.orm.public.Membership.where({ personId: person.id, organizationId: input.organizationId }).all().first();
+    if (!membership) {
+      membership = await db.orm.public.Membership.create({
+        personId: person.id,
+        organizationId: input.organizationId,
+      });
     }
 
-    let profile = await db.orm.public.StaffProfile.where({ memberId: member.id }).all().first();
-    if (!profile) {
-      await db.orm.public.StaffProfile.create({
-        organizationId: input.organizationId,
-        memberId: member.id,
+    const roles = await db.orm.public.MembershipRole.where({ membershipId: membership.id }).all();
+    if (!roles.some(r => r.role === input.role)) {
+      await db.orm.public.MembershipRole.create({ membershipId: membership.id, role: input.role });
+    }
+
+    let staffData = await db.orm.public.StaffData.where({ membershipId: membership.id }).all().first();
+    if (!staffData) {
+      await db.orm.public.StaffData.create({
+        membershipId: membership.id,
         employeeId: input.employeeId || `EMP-${Math.floor(Math.random() * 10000)}`,
-        department: input.department || 'General',
-      });
+              });
     }
 
     return { success: true };
@@ -1024,20 +1145,37 @@ export async function updateStaff(
   input: { name?: string; email?: string; role?: 'TEACHER' | 'ADMIN' | 'FINANCE' | 'REGISTRAR' | 'COUNSELOR' | 'LIBRARIAN' }
 ) {
   try {
-    const member = await db.orm.public.OrganizationMember.where({ id: memberId }).all().first();
-    if (!member) return { error: 'Staff member not found.' };
+    const membership = await db.orm.public.Membership.where({ id: memberId }).all().first();
+    if (!membership) return { error: 'Staff membership not found.' };
+
+    await requireMembership(membership.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
 
     if (input.name !== undefined || input.email !== undefined) {
-      const userUpdate: Record<string, unknown> = {};
-      if (input.name !== undefined) userUpdate.name = input.name.trim();
-      if (input.email !== undefined) userUpdate.email = input.email.trim();
-      if (Object.keys(userUpdate).length > 0) {
-        await db.orm.public.User.where({ id: member.userId }).update(userUpdate);
+      // In a real system, you might not want an admin updating a global Person's name/email freely, 
+      // but for V1 we keep the UX parity.
+      const personData: any = {};
+      if (input.name !== undefined) {
+        personData.firstName = input.name.split(' ')[0] || 'Unknown';
+        personData.lastName = input.name.split(' ').slice(1).join(' ') || 'Staff';
+      }
+      await db.orm.public.Person.where({ id: membership.personId }).update(personData);
+      
+      if (input.email !== undefined) {
+        const emailLower = input.email.toLowerCase();
+        const existingIdent = await db.orm.public.PersonIdentifier.where({ personId: membership.personId, type: "EMAIL" }).all().first();
+        if (existingIdent) {
+           await db.orm.public.PersonIdentifier.where({ id: existingIdent.id }).update({ normalizedValue: emailLower });
+        }
       }
     }
 
-    if (input.role !== undefined && input.role !== member.role) {
-      await db.orm.public.OrganizationMember.where({ id: memberId }).update({ role: input.role as any });
+    if (input.role) {
+       const roles = await db.orm.public.MembershipRole.where({ membershipId: membership.id }).all();
+       // Simplistic role replacement for V1 EduOS assuming 1 primary role per staff
+       for (const r of roles) {
+           await db.orm.public.MembershipRole.where({ id: r.id }).delete();
+       }
+       await db.orm.public.MembershipRole.create({ membershipId: membership.id, role: input.role });
     }
 
     return { success: true };
@@ -1049,9 +1187,15 @@ export async function updateStaff(
 
 export async function deleteStaff(memberId: string) {
   try {
-    // StaffProfile has CASCADE set? Let's explicitly delete just in case
-    await db.orm.public.StaffProfile.where({ memberId }).delete().catch(() => {});
-    await db.orm.public.OrganizationMember.where({ id: memberId }).delete();
+    const membership = await db.orm.public.Membership.where({ id: memberId }).all().first();
+    if (!membership) return { error: 'Staff membership not found.' };
+
+    await requireMembership(membership.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
+
+    // Since StaffData, MembershipRole, etc Cascade on Membership deletion in Prisma,
+    // we only need to delete the membership.
+    await db.orm.public.Membership.where({ id: memberId }).delete();
+    
     return { success: true };
   } catch (error) {
     console.error('Error deleting staff:', error);
@@ -1066,27 +1210,42 @@ export async function deleteStaff(memberId: string) {
 
 export async function getParents(organizationId: string) {
   try {
-    const links = await db.orm.public.StudentParent.where({ organizationId }).all();
-    const parentIds = [...new Set(links.map((l) => l.parentId))];
-    const allUsers = await db.orm.public.User.all();
-    const students = await db.orm.public.Student.where({ organizationId }).all();
+    const auths = await db.orm.public.GuardianAuthorization.where({ organizationId }).all();
+    const guardianIds = [...new Set(auths.map((a) => a.guardianPersonId))];
 
-    const parents = parentIds.map((parentId) => {
-      const user = allUsers.find((u) => u.id === parentId);
-      const children = links
-        .filter((l) => l.parentId === parentId)
-        .map((l) => {
-          const student = students.find((s) => s.id === l.studentId);
-          return {
-            linkId: l.id,
-            studentId: l.studentId,
-            studentName: student ? `${student.firstName} ${student.lastName}` : 'Unknown student',
-            relationship: l.relationship,
-            isPrimary: l.isPrimary,
-          };
+    const parents = [];
+    for (const guardianId of guardianIds) {
+      const guardian = await db.orm.public.Person.where({ id: guardianId }).all().first();
+      const identifier = await db.orm.public.PersonIdentifier.where({ personId: guardianId, type: 'EMAIL' }).all().first();
+      
+      const children = [];
+      const parentAuths = auths.filter((a) => a.guardianPersonId === guardianId);
+      
+      for (const a of parentAuths) {
+        const studentRel = await db.orm.public.Relationship.where({ id: a.wardRelationshipId }).all().first();
+        if (!studentRel) continue;
+        
+        const studentData = await db.orm.public.StudentData.where({ relationshipId: studentRel.id }).all().first();
+        if (!studentData) continue;
+
+        const studentPerson = await db.orm.public.Person.where({ id: studentRel.personId }).all().first();
+        
+        children.push({
+          linkId: a.id,
+          studentDataId: studentData.id,
+          studentName: studentPerson ? `${studentPerson.firstName} ${studentPerson.lastName}` : 'Unknown student',
+          relationship: a.permissions || 'Guardian',
+          isPrimary: a.permissions === 'PRIMARY',
         });
-      return { id: parentId, name: user?.name ?? null, email: user?.email ?? null, children };
-    });
+      }
+      
+      parents.push({ 
+        id: guardianId, 
+        name: guardian ? `${guardian.firstName} ${guardian.lastName}` : null, 
+        email: identifier ? identifier.normalizedValue : null, 
+        children 
+      });
+    }
 
     return JSON.parse(JSON.stringify(parents));
   } catch (error) {
@@ -1097,33 +1256,70 @@ export async function getParents(organizationId: string) {
 
 export async function createParentLink(input: {
   organizationId: string;
-  studentId: string;
+  studentDataId: string;
   name: string;
   email: string;
   relationship?: string;
   isPrimary?: boolean;
 }) {
   try {
-    if (!input.name.trim() || !input.email.trim()) return { error: 'Name and email are required.' };
-    if (!input.studentId) return { error: 'Please select a student.' };
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
 
-    let user = await db.orm.public.User.where({ email: input.email.trim() }).all().first();
-    if (!user) {
-      user = await db.orm.public.User.create({ name: input.name.trim(), email: input.email.trim() });
+    if (!input.name.trim() || !input.email.trim()) return { error: 'Name and email are required.' };
+    if (!input.studentDataId) return { error: 'Please select a student.' };
+
+    const studentData = await db.orm.public.StudentData.where({ id: input.studentDataId }).all().first();
+    const studentRel = studentData ? await db.orm.public.Relationship.where({ id: studentData.relationshipId }).all().first() : null;
+    if (!studentData || !studentRel) return { error: 'Student not found.' };
+
+    const emailLower = input.email.trim().toLowerCase();
+    let identifier = await db.orm.public.PersonIdentifier.where({ type: "EMAIL", normalizedValue: emailLower }).all().first();
+    let guardianPerson;
+
+    if (!identifier) {
+      const firstName = input.name.split(' ')[0] || 'Unknown';
+      const lastName = input.name.split(' ').slice(1).join(' ') || 'Guardian';
+      guardianPerson = await db.orm.public.Person.create({ firstName, lastName });
+      await db.orm.public.PersonIdentifier.create({
+        personId: guardianPerson.id,
+        type: "EMAIL",
+        normalizedValue: emailLower,
+        isVerified: true
+      });
+    } else {
+      guardianPerson = await db.orm.public.Person.where({ id: identifier.personId }).all().first();
+    }
+    
+    if (!guardianPerson) return { error: 'Failed to resolve guardian person' };
+
+    // Ensure FamilyLink exists globally
+    let familyLink = await db.orm.public.FamilyLink.where({ 
+      guardianPersonId: guardianPerson.id, 
+      wardPersonId: studentRel.personId 
+    }).all().first();
+
+    if (!familyLink) {
+      familyLink = await db.orm.public.FamilyLink.create({
+        guardianPersonId: guardianPerson.id,
+        wardPersonId: studentRel.personId,
+        type: input.relationship?.trim() || 'GUARDIAN'
+      });
     }
 
-    const existing = await db.orm.public.StudentParent
-      .where({ studentId: input.studentId, parentId: user.id })
+    // Ensure explicit GuardianAuthorization at this specific organization
+    const existingAuth = await db.orm.public.GuardianAuthorization
+      .where({ organizationId: input.organizationId, guardianPersonId: guardianPerson.id, wardRelationshipId: studentRel.id })
       .all()
       .first();
-    if (existing) return { error: 'This parent is already linked to this student.' };
+      
+    if (existingAuth) return { error: 'This parent is already linked to this student.' };
 
-    await db.orm.public.StudentParent.create({
+    const permissions = input.isPrimary ? 'PRIMARY' : (input.relationship?.trim() || 'GUARDIAN');
+    await db.orm.public.GuardianAuthorization.create({
       organizationId: input.organizationId,
-      studentId: input.studentId,
-      parentId: user.id,
-      relationship: input.relationship?.trim() || undefined,
-      isPrimary: input.isPrimary ?? false,
+      guardianPersonId: guardianPerson.id,
+      wardRelationshipId: studentRel.id,
+      permissions: permissions
     });
 
     return { success: true };
@@ -1135,11 +1331,14 @@ export async function createParentLink(input: {
 
 export async function updateParentLink(linkId: string, input: { relationship?: string; isPrimary?: boolean }) {
   try {
-    const data: Record<string, unknown> = {};
-    if (input.relationship !== undefined) data.relationship = input.relationship.trim();
-    if (input.isPrimary !== undefined) data.isPrimary = input.isPrimary;
+    const auth = await db.orm.public.GuardianAuthorization.where({ id: linkId }).all().first();
+    if (!auth) return { error: 'Link not found.' };
 
-    await db.orm.public.StudentParent.where({ id: linkId }).update(data);
+    await requireMembership(auth.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
+
+    const permissions = input.isPrimary ? 'PRIMARY' : (input.relationship?.trim() || 'GUARDIAN');
+    await db.orm.public.GuardianAuthorization.where({ id: linkId }).update({ permissions });
+
     return { success: true };
   } catch (error) {
     console.error('Error updating parent link:', error);
@@ -1149,7 +1348,14 @@ export async function updateParentLink(linkId: string, input: { relationship?: s
 
 export async function deleteParentLink(linkId: string) {
   try {
-    await db.orm.public.StudentParent.where({ id: linkId }).delete();
+    const auth = await db.orm.public.GuardianAuthorization.where({ id: linkId }).all().first();
+    if (!auth) return { error: 'Link not found.' };
+
+    await requireMembership(auth.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
+
+    // We only delete the explicit authorization for this organization, NOT the global FamilyLink
+    await db.orm.public.GuardianAuthorization.where({ id: linkId }).delete();
+    
     return { success: true };
   } catch (error) {
     console.error('Error removing parent link:', error);
@@ -1157,12 +1363,23 @@ export async function deleteParentLink(linkId: string) {
   }
 }
 
-export async function enrollStudent(studentId: string, classId: string) {
+export async function enrollStudent(studentDataId: string, classId: string) {
   try {
-    const existing = await db.orm.public.ClassEnrolment.where({ studentId, classId }).all().first().catch(() => null);
+    const { studentData, relationship } = await findStudentRelationship('', studentDataId).catch(async () => {
+        // Since findStudentRelationship needs orgId, we fetch it here
+        const sd = await db.orm.public.StudentData.where({ id: studentDataId }).all().first();
+        if (!sd) throw new Error('Not found');
+        const rel = await db.orm.public.Relationship.where({ id: sd.relationshipId }).all().first();
+        if (!rel) throw new Error('Not found');
+        return { studentData: sd, relationship: rel };
+    });
+
+    await requireMembership(relationship.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
+
+    const existing = await db.orm.public.ClassEnrolment.where({ studentDataId: studentDataId, classId }).all().first();
     if (existing) return { error: 'Student is already in this class.' };
 
-    await db.orm.public.ClassEnrolment.create({ studentId, classId });
+    await db.orm.public.ClassEnrolment.create({ studentDataId: studentDataId, classId });
     return { success: true };
   } catch (error) {
     console.error('Error enrolling student:', error);
@@ -1172,6 +1389,17 @@ export async function enrollStudent(studentId: string, classId: string) {
 
 export async function unenrollStudent(enrollmentId: string) {
   try {
+    const enrollment = await db.orm.public.ClassEnrolment.where({ id: enrollmentId }).all().first();
+    if (!enrollment) return { error: 'Enrollment not found' };
+
+    const studentData = await db.orm.public.StudentData.where({ id: enrollment.studentDataId }).all().first();
+    if (studentData) {
+        const rel = await db.orm.public.Relationship.where({ id: studentData.relationshipId }).all().first();
+        if (rel) {
+            await requireMembership(rel.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
+        }
+    }
+
     await db.orm.public.ClassEnrolment.where({ id: enrollmentId }).delete();
     return { success: true };
   } catch (error) {
@@ -1185,34 +1413,39 @@ export async function unenrollStudent(enrollmentId: string) {
 // ---------------------------------------------------------------------
 
 export async function markAttendance(
-  studentId: string,
+  studentDataId: string, // maps to StudentData.id
   status: 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED',
   date?: string,
-  markedById?: string
+  markedById?: string // maps to Membership.id
 ) {
   try {
-    const student = await db.orm.public.Student.where({ id: studentId }).all().first();
-    if (!student) return { error: 'Student not found.' };
+    const sd = await db.orm.public.StudentData.where({ id: studentDataId }).all().first();
+    if (!sd) return { error: 'Student not found.' };
 
-    const term = await getCurrentTerm(student.organizationId);
+    const rel = await db.orm.public.Relationship.where({ id: sd.relationshipId }).all().first();
+    if (!rel) return { error: 'Student relation not found.' };
+
+    const { membership } = await requireMembership(rel.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'TEACHER', 'REGISTRAR']);
+
+    const term = await getCurrentTerm(rel.organizationId);
     if (!term) return { error: 'No term is set up for this school year yet.' };
 
     const day = startOfDay(date ? new Date(date) : new Date());
     const dayInstant = toInstant(day);
 
-    const existing = await db.orm.public.Attendance.where({ studentId, date: dayInstant }).all().first();
+    const existing = await db.orm.public.Attendance.where({ studentDataId: studentDataId, date: dayInstant }).all().first();
     if (existing) {
       await db.orm.public.Attendance.where({ id: existing.id }).update({
         status,
-        markedById: markedById ?? existing.markedById ?? undefined,
+        markedById: markedById ?? membership.id,
       });
     } else {
       await db.orm.public.Attendance.create({
-        studentId,
+        studentDataId: studentDataId,
         termId: term.id,
         date: dayInstant,
         status,
-        markedById: markedById ?? undefined,
+        markedById: markedById ?? membership.id,
       });
     }
 
@@ -1229,8 +1462,8 @@ export async function bulkMarkAttendance(
   markedById?: string
 ) {
   try {
-    for (const studentId of studentIds) {
-      const result = await markAttendance(studentId, status, undefined, markedById);
+    for (const studentDataId of studentIds) {
+      const result = await markAttendance(studentDataId, status, undefined, markedById);
       if (result?.error) return result;
     }
     return { success: true };
@@ -1255,9 +1488,11 @@ export async function createAssignment(input: {
     const cls = await db.orm.public.SchoolClass.where({ id: input.courseId }).all().first();
     if (!cls) return { error: 'Class not found' };
 
+    await requireMembership(cls.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'TEACHER', 'REGISTRAR']);
+
     const terms = await db.orm.public.Term.where({ academicYearId: cls.academicYearId }).all();
     if (terms.length === 0) {
-      return { error: "This class's academic year has no term set up yet — create one first." };
+      return { error: "This class's academic year has no term set up yet - create one first." };
     }
     const now = Date.now();
     const currentTerm = terms.find((t) => epochMs(t.startDate) <= now && now <= epochMs(t.endDate)) ?? terms[0];
@@ -1277,14 +1512,18 @@ export async function createAssignment(input: {
   }
 }
 
-export async function recordGrade(input: { assignmentId: string; studentId: string; courseId: string; score: number }) {
+export async function recordGrade(input: { assignmentId: string; studentDataId: string; courseId: string; score: number }) {
   try {
     if (input.score < 0) return { error: 'Score cannot be negative.' };
     
-    // Upsert a Grade entry linked to the Gradebook (assignment)
+    const cls = await db.orm.public.SchoolClass.where({ id: input.courseId }).all().first();
+    if (cls) {
+        await requireMembership(cls.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'TEACHER', 'REGISTRAR']);
+    }
+
     const existing = await db.orm.public.Grade.where({ 
       gradebookId: input.assignmentId, 
-      studentId: input.studentId 
+      studentDataId: input.studentDataId 
     }).all().first().catch(() => null);
 
     if (existing) {
@@ -1292,7 +1531,7 @@ export async function recordGrade(input: { assignmentId: string; studentId: stri
     } else {
       await db.orm.public.Grade.create({
         gradebookId: input.assignmentId,
-        studentId: input.studentId,
+        studentDataId: input.studentDataId,
         score: input.score,
       });
     }
@@ -1310,7 +1549,7 @@ export async function recordGrade(input: { assignmentId: string; studentId: stri
 
 export async function createBehaviorLog(input: {
   organizationId: string;
-  studentId: string;
+  studentDataId: string;
   reportedById: string;
   type: 'DEMERIT' | 'COMMENDATION' | 'REFERRAL';
   note: string;
@@ -1329,7 +1568,7 @@ export async function createBehaviorLog(input: {
 
     await db.orm.public.BehaviourIncident.create({
       organizationId: input.organizationId,
-      studentId: input.studentId,
+      studentDataId: input.studentDataId,
       reportedById: input.reportedById,
       description: input.note.trim(),
       severity: severityMap[input.type] ?? 'MINOR',
@@ -1361,6 +1600,7 @@ export async function updateSchoolSettings(organizationId: string, input: {
   schoolType?: string;
 }) {
   try {
+    await requireMembership(organizationId, ['OWNER', 'ADMIN']);
     const existing = await db.orm.public.SchoolSettings.where({ organizationId }).all().first();
 
     if (!existing) {
@@ -1417,6 +1657,8 @@ export async function createFeeType(organizationId: string, input: {
   active?: boolean;
 }) {
   try {
+    await requireMembership(organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'FINANCE']);
+
     if (!input.name.trim()) return { error: 'Fee type name is required.' };
     await db.orm.public.FeeType.create({
       organizationId,
@@ -1443,6 +1685,11 @@ export async function updateFeeType(feeTypeId: string, input: {
   active?: boolean;
 }) {
   try {
+    const feeType = await db.orm.public.FeeType.where({ id: feeTypeId }).all().first();
+    if (!feeType) return { error: 'Fee type not found.' };
+
+    await requireMembership(feeType.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'FINANCE']);
+
     const data: Record<string, unknown> = {};
     if (input.name !== undefined) data.name = input.name.trim();
     if (input.description !== undefined) data.description = input.description;
@@ -1471,12 +1718,14 @@ export async function deleteFeeType(feeTypeId: string) {
 
 export async function createFeeInvoice(input: {
   organizationId: string;
-  studentId: string;
+  studentDataId: string; // Maps to StudentData.id
   dueDate: string;
   notes?: string;
   items: { feeTypeId?: string; description: string; amount: number }[];
 }) {
   try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'FINANCE', 'REGISTRAR']);
+
     if (input.items.length === 0) return { error: 'Add at least one line item.' };
     const dueDate = new Date(input.dueDate);
     if (isNaN(dueDate.getTime())) return { error: 'Invalid due date.' };
@@ -1485,7 +1734,7 @@ export async function createFeeInvoice(input: {
 
     const invoice = await db.orm.public.FeeInvoice.create({
       organizationId: input.organizationId,
-      studentId: input.studentId,
+      studentDataId: input.studentDataId,
       issueDate: toInstant(new Date()),
       dueDate: toInstant(dueDate),
       notes: input.notes,
@@ -1512,6 +1761,11 @@ export async function createFeeInvoice(input: {
 
 export async function updateFeeInvoice(invoiceId: string, input: { dueDate?: string; notes?: string; status?: string }) {
   try {
+    const invoice = await db.orm.public.FeeInvoice.where({ id: invoiceId }).all().first();
+    if (!invoice) return { error: 'Invoice not found.' };
+
+    await requireMembership(invoice.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'FINANCE']);
+
     const data: Record<string, unknown> = {};
     if (input.dueDate !== undefined) data.dueDate = toInstant(new Date(input.dueDate));
     if (input.notes !== undefined) data.notes = input.notes;
@@ -1529,6 +1783,9 @@ export async function deleteFeeInvoice(invoiceId: string) {
   try {
     const invoice = await db.orm.public.FeeInvoice.where({ id: invoiceId }).all().first();
     if (!invoice) return { error: 'Invoice not found.' };
+
+    await requireMembership(invoice.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'FINANCE']);
+
     if (invoice.paidAmount > 0) return { error: 'Cannot delete an invoice with recorded payments.' };
 
     await db.orm.public.FeeInvoice.where({ id: invoiceId }).delete();
@@ -1553,13 +1810,15 @@ export async function recordFeePayment(input: {
     const invoice = await db.orm.public.FeeInvoice.where({ id: input.invoiceId }).all().first();
     if (!invoice) return { error: 'Invoice not found.' };
 
+    const { membership } = await requireMembership(invoice.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'FINANCE', 'REGISTRAR']);
+
     await db.orm.public.FeePayment.create({
       invoiceId: input.invoiceId,
       amount: input.amount,
       method: input.method,
       reference: input.reference,
       notes: input.notes,
-      recordedBy: input.recordedBy,
+      recordedBy: input.recordedBy ?? membership.id,
       paidAt: toInstant(new Date()),
     });
 
@@ -1592,18 +1851,11 @@ export async function getFinancePortalData(organizationId: string) {
       feePayments.push(...payments);
     }
 
-    const students = await db.orm.public.Student.where({ organizationId }).all();
+    const students = await fetchHydratedStudents(organizationId);
     const staffAttendance = await db.orm.public.StaffAttendance.where({ organizationId }).all();
     const leaveRequests = await db.orm.public.LeaveRequest.where({ organizationId }).all();
 
-    const staffProfiles = await db.orm.public.StaffProfile.where({ organizationId }).all();
-    const members = await db.orm.public.OrganizationMember.where({ organizationId }).all();
-    const allUsers = await db.orm.public.User.all();
-    const staff = staffProfiles.map((sp) => {
-      const member = members.find((m) => m.id === sp.memberId);
-      const user = member ? allUsers.find((u) => u.id === member.userId) : null;
-      return { ...sp, memberRole: member?.role ?? null, userName: user?.name ?? user?.email ?? 'Unknown' };
-    });
+    const staff = await fetchHydratedStaff(organizationId);
 
     return JSON.parse(JSON.stringify({
       feeTypes, feeInvoices, feeInvoiceItems, feePayments, students, staffAttendance, leaveRequests, staff,
@@ -1614,19 +1866,19 @@ export async function getFinancePortalData(organizationId: string) {
   }
 }
 
-export async function markStaffAttendance(input: { organizationId: string; staffId: string; date: string; status: string; notes?: string }) {
+export async function markStaffAttendance(input: { organizationId: string; membershipId: string; date: string; status: string; notes?: string }) {
   try {
     const date = new Date(input.date);
     if (isNaN(date.getTime())) return { error: 'Invalid date.' };
     const dateInstant = toInstant(date);
 
-    const existing = await db.orm.public.StaffAttendance.where({ staffId: input.staffId, date: dateInstant }).all().first();
+    const existing = await db.orm.public.StaffAttendance.where({ membershipId: input.membershipId, date: dateInstant }).all().first();
     if (existing) {
       await db.orm.public.StaffAttendance.where({ id: existing.id }).update({ status: input.status, notes: input.notes });
     } else {
       await db.orm.public.StaffAttendance.create({
         organizationId: input.organizationId,
-        staffId: input.staffId,
+        membershipId: input.membershipId,
         date: dateInstant,
         status: input.status,
         notes: input.notes,
@@ -1641,7 +1893,7 @@ export async function markStaffAttendance(input: { organizationId: string; staff
 
 export async function createLeaveRequest(input: {
   organizationId: string;
-  staffId: string;
+  membershipId: string;
   type: string;
   startDate: string;
   endDate: string;
@@ -1655,7 +1907,7 @@ export async function createLeaveRequest(input: {
     }
     await db.orm.public.LeaveRequest.create({
       organizationId: input.organizationId,
-      staffId: input.staffId,
+      membershipId: input.membershipId,
       type: input.type,
       startDate: toInstant(startDate),
       endDate: toInstant(endDate),
@@ -1689,11 +1941,23 @@ export async function updateLeaveRequestStatus(leaveRequestId: string, input: { 
 
 export async function getRegistrarPortalData(organizationId: string) {
   try {
+    await requireMembership(organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
+
     const enrolmentRequests = await db.orm.public.EnrolmentRequest.where({ organizationId }).all();
     const documents = await db.orm.public.Document.where({ organizationId }).all();
     const studentExits = await db.orm.public.StudentExit.where({ organizationId }).all();
     const studentTransfersIn = await db.orm.public.StudentTransferIn.where({ organizationId }).all();
-    const students = await db.orm.public.Student.where({ organizationId }).all();
+    
+    const relationships = await db.orm.public.Relationship.where({ organizationId, type: 'STUDENT' }).all();
+    const students = [];
+    for (const rel of relationships) {
+       const sd = await db.orm.public.StudentData.where({ relationshipId: rel.id }).all().first();
+       const person = await db.orm.public.Person.where({ id: rel.personId }).all().first();
+       if (sd && person) {
+           students.push({ ...sd, firstName: person.firstName, lastName: person.lastName });
+       }
+    }
+    
     const classes = await db.orm.public.SchoolClass.where({ organizationId }).all();
 
     return JSON.parse(JSON.stringify({ enrolmentRequests, documents, studentExits, studentTransfersIn, students, classes }));
@@ -1706,19 +1970,24 @@ export async function getRegistrarPortalData(organizationId: string) {
 export async function createEnrolmentRequest(input: {
   organizationId: string;
   classId: string;
-  studentId: string;
-  requestedById: string;
+  studentDataId: string; // This is StudentData.id
+  requestedById: string; // We map this conceptually to Person.id
   message?: string;
 }) {
   try {
-    const existing = await db.orm.public.EnrolmentRequest.where({ classId: input.classId, studentId: input.studentId }).all().first();
+    // The requester must be the student's guardian (or the student).
+    // In a real system, we'd look up if they have authorization.
+    // For now, we trust the Person id if they are logged in.
+    const { person } = await requireAuthenticatedAccount();
+
+    const existing = await db.orm.public.EnrolmentRequest.where({ classId: input.classId, studentDataId: input.studentDataId }).all().first();
     if (existing) return { error: 'A request for this student and class already exists.' };
 
     await db.orm.public.EnrolmentRequest.create({
       organizationId: input.organizationId,
       classId: input.classId,
-      studentId: input.studentId,
-      requestedById: input.requestedById,
+      studentDataId: input.studentDataId,
+      requestedByPersonId: person.id,
       message: input.message,
       status: 'pending',
     });
@@ -1731,22 +2000,26 @@ export async function createEnrolmentRequest(input: {
 
 export async function updateEnrolmentRequestStatus(requestId: string, input: {
   status: 'approved' | 'rejected';
-  reviewedById: string;
   rejectionReason?: string;
 }) {
   try {
     const request = await db.orm.public.EnrolmentRequest.where({ id: requestId }).all().first();
     if (!request) return { error: 'Request not found.' };
 
+    const { membership } = await requireMembership(request.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
+
     if (input.status === 'approved') {
-      await enrollStudent(request.studentId, request.classId);
+      await enrollStudent(request.studentDataId, request.classId);
     }
+
+    // @ts-ignore Prisma 8 Composer DateTime handling
+    const reviewedAt = (globalThis as any).Temporal.Instant.fromEpochMilliseconds(Date.now());
 
     await db.orm.public.EnrolmentRequest.where({ id: requestId }).update({
       status: input.status,
-      reviewedById: input.reviewedById,
-      reviewedAt: toInstant(new Date()),
-      rejectionReason: input.status === 'rejected' ? input.rejectionReason : undefined,
+      reviewedByMembershipId: membership.id,
+      reviewedAt,
+      rejectionReason: input.status === 'rejected' ? input.rejectionReason : null,
     });
     return { success: true };
   } catch (error) {
@@ -1757,7 +2030,11 @@ export async function updateEnrolmentRequestStatus(requestId: string, input: {
 
 export async function deleteEnrolmentRequest(requestId: string) {
   try {
-    await db.orm.public.EnrolmentRequest.where({ id: requestId }).delete();
+    const request = await db.orm.public.EnrolmentRequest.where({ id: requestId }).all().first();
+    if (request) {
+        await requireMembership(request.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
+        await db.orm.public.EnrolmentRequest.where({ id: requestId }).delete();
+    }
     return { success: true };
   } catch (error) {
     console.error('Error deleting enrolment request:', error);
@@ -1765,12 +2042,12 @@ export async function deleteEnrolmentRequest(requestId: string) {
   }
 }
 
-export async function createStudentDocument(input: { organizationId: string; studentId: string; name: string; type: string; filePath: string }) {
+export async function createStudentDocument(input: { organizationId: string; studentDataId: string; name: string; type: string; filePath: string }) {
   try {
     if (!input.name.trim()) return { error: 'Document name is required.' };
     await db.orm.public.Document.create({
       organizationId: input.organizationId,
-      studentId: input.studentId,
+      studentDataId: input.studentDataId,
       name: input.name.trim(),
       type: input.type,
       filePath: input.filePath,
@@ -1794,7 +2071,7 @@ export async function deleteStudentDocument(documentId: string) {
 
 export async function createStudentExit(input: {
   organizationId: string;
-  studentId: string;
+  studentDataId: string;
   exitType: string;
   exitDate: string;
   reason?: string;
@@ -1804,7 +2081,7 @@ export async function createStudentExit(input: {
   documentsIssued?: boolean;
 }) {
   try {
-    const existing = await db.orm.public.StudentExit.where({ studentId: input.studentId }).all().first();
+    const existing = await db.orm.public.StudentExit.where({ studentDataId: input.studentDataId }).all().first();
     if (existing) return { error: 'This student already has an exit record — edit the existing one instead.' };
 
     const exitDate = new Date(input.exitDate);
@@ -1812,7 +2089,7 @@ export async function createStudentExit(input: {
 
     await db.orm.public.StudentExit.create({
       organizationId: input.organizationId,
-      studentId: input.studentId,
+      studentDataId: input.studentDataId,
       exitType: input.exitType,
       exitDate: toInstant(exitDate),
       reason: input.reason,
@@ -1828,7 +2105,7 @@ export async function createStudentExit(input: {
   }
 }
 
-export async function updateStudentExit(studentId: string, input: {
+export async function updateStudentExit(studentDataId: string, input: {
   exitType?: string;
   exitDate?: string;
   reason?: string;
@@ -1845,7 +2122,7 @@ export async function updateStudentExit(studentId: string, input: {
     if (input.notes !== undefined) data.notes = input.notes;
     if (input.documentsIssued !== undefined) data.documentsIssued = input.documentsIssued;
 
-    await db.orm.public.StudentExit.where({ studentId }).update(data);
+    await db.orm.public.StudentExit.where({ studentDataId }).update(data);
     return { success: true };
   } catch (error) {
     console.error('Error updating student exit record:', error);
@@ -1855,7 +2132,7 @@ export async function updateStudentExit(studentId: string, input: {
 
 export async function createStudentTransferIn(input: {
   organizationId: string;
-  studentId: string;
+  studentDataId: string;
   previousSchool: string;
   previousYearLevel?: number;
   transferDate: string;
@@ -1866,7 +2143,7 @@ export async function createStudentTransferIn(input: {
   processedBy?: string;
 }) {
   try {
-    const existing = await db.orm.public.StudentTransferIn.where({ studentId: input.studentId }).all().first();
+    const existing = await db.orm.public.StudentTransferIn.where({ studentDataId: input.studentDataId }).all().first();
     if (existing) return { error: 'This student already has a transfer-in record — edit the existing one instead.' };
     if (!input.previousSchool.trim()) return { error: 'Previous school is required.' };
 
@@ -1875,7 +2152,7 @@ export async function createStudentTransferIn(input: {
 
     await db.orm.public.StudentTransferIn.create({
       organizationId: input.organizationId,
-      studentId: input.studentId,
+      studentDataId: input.studentDataId,
       previousSchool: input.previousSchool.trim(),
       previousYearLevel: input.previousYearLevel,
       transferDate: toInstant(transferDate),
@@ -1902,7 +2179,7 @@ export async function getCounselorPortalData(organizationId: string) {
     const behaviourIncidents = await db.orm.public.BehaviourIncident.where({ organizationId }).all();
     const suspensions = await db.orm.public.Suspension.where({ organizationId }).all();
     const truancyAlerts = await db.orm.public.TruancyAlert.where({ organizationId }).all();
-    const students = await db.orm.public.Student.where({ organizationId }).all();
+    const students = await fetchHydratedStudents(organizationId);
 
     return JSON.parse(JSON.stringify({ studentNotes, behaviourIncidents, suspensions, truancyAlerts, students }));
   } catch (error) {
@@ -1913,18 +2190,20 @@ export async function getCounselorPortalData(organizationId: string) {
 
 export async function createStudentNote(input: {
   organizationId: string;
-  studentId: string;
-  authorId: string;
+  studentDataId: string; // Maps to StudentData.id
+  authorId?: string; // Maps to Membership.id
   content: string;
   type?: 'general' | 'academic' | 'medical' | 'behaviour' | 'pastoral';
   private?: boolean;
 }) {
   try {
+    const { membership } = await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'TEACHER', 'REGISTRAR', 'COUNSELOR']);
+
     if (!input.content.trim()) return { error: 'Note content is required.' };
     await db.orm.public.StudentNote.create({
       organizationId: input.organizationId,
-      studentId: input.studentId,
-      authorId: input.authorId,
+      studentDataId: input.studentDataId,
+      authorMembershipId: input.authorId ?? membership.id,
       content: input.content.trim(),
       type: input.type ?? 'general',
       private: input.private ?? false,
@@ -1938,6 +2217,11 @@ export async function createStudentNote(input: {
 
 export async function updateStudentNote(noteId: string, input: { content?: string; type?: string; private?: boolean }) {
   try {
+    const note = await db.orm.public.StudentNote.where({ id: noteId }).all().first();
+    if (!note) return { error: 'Note not found.' };
+
+    await requireMembership(note.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'TEACHER', 'REGISTRAR', 'COUNSELOR']);
+
     const data: Record<string, unknown> = {};
     if (input.content !== undefined) data.content = input.content.trim();
     if (input.type !== undefined) data.type = input.type;
@@ -1953,6 +2237,11 @@ export async function updateStudentNote(noteId: string, input: { content?: strin
 
 export async function deleteStudentNote(noteId: string) {
   try {
+    const note = await db.orm.public.StudentNote.where({ id: noteId }).all().first();
+    if (!note) return { error: 'Note not found.' };
+
+    await requireMembership(note.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'TEACHER', 'REGISTRAR', 'COUNSELOR']);
+
     await db.orm.public.StudentNote.where({ id: noteId }).delete();
     return { success: true };
   } catch (error) {
@@ -1963,7 +2252,7 @@ export async function deleteStudentNote(noteId: string) {
 
 export async function createSuspension(input: {
   organizationId: string;
-  studentId: string;
+  studentDataId: string;
   incidentId?: string;
   type?: string;
   startDate: string;
@@ -1985,7 +2274,7 @@ export async function createSuspension(input: {
 
     await db.orm.public.Suspension.create({
       organizationId: input.organizationId,
-      studentId: input.studentId,
+      studentDataId: input.studentDataId,
       incidentId: input.incidentId,
       type: input.type ?? 'out-of-school',
       startDate: toInstant(startDate),
@@ -2033,7 +2322,7 @@ export async function resolveTruancyAlert(alertId: string, input: { resolvedBy: 
   }
 }
 
-export async function updateStudentTransferIn(studentId: string, input: {
+export async function updateStudentTransferIn(studentDataId: string, input: {
   previousSchool?: string;
   previousYearLevel?: number;
   transferDate?: string;
@@ -2052,7 +2341,7 @@ export async function updateStudentTransferIn(studentId: string, input: {
     if (input.academicRecordsNotes !== undefined) data.academicRecordsNotes = input.academicRecordsNotes;
     if (input.notes !== undefined) data.notes = input.notes;
 
-    await db.orm.public.StudentTransferIn.where({ studentId }).update(data);
+    await db.orm.public.StudentTransferIn.where({ studentDataId }).update(data);
     return { success: true };
   } catch (error) {
     console.error('Error updating student transfer-in record:', error);
@@ -2066,6 +2355,7 @@ export async function updateStudentTransferIn(studentId: string, input: {
 
 export async function getRooms(organizationId: string) {
   try {
+    await requireMembership(organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'STAFF', 'TEACHER', 'COUNSELOR', 'REGISTRAR']);
     const rooms = await db.orm.public.Room.where({ organizationId }).all();
     return JSON.parse(JSON.stringify(rooms.sort((a, b) => a.name.localeCompare(b.name))));
   } catch (error) {
@@ -2084,6 +2374,7 @@ export async function createRoom(input: {
   floor?: string;
 }) {
   try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
     if (!input.name.trim() || !input.code.trim()) return { error: 'Room name and code are required.' };
     await db.orm.public.Room.create({
       organizationId: input.organizationId,
@@ -2110,6 +2401,10 @@ export async function updateRoom(roomId: string, input: {
   floor?: string | null;
 }) {
   try {
+    // Look up room's organization for auth
+    const room = await db.orm.public.Room.where({ id: roomId }).all().first();
+    if (!room) return { error: 'Room not found' };
+    await requireMembership(room.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
     const data: Record<string, unknown> = {};
     if (input.name !== undefined) data.name = input.name.trim();
     if (input.code !== undefined) data.code = input.code.trim();
@@ -2128,6 +2423,9 @@ export async function updateRoom(roomId: string, input: {
 
 export async function deleteRoom(roomId: string) {
   try {
+    const room = await db.orm.public.Room.where({ id: roomId }).all().first();
+    if (!room) return { error: 'Room not found' };
+    await requireMembership(room.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
     const classesUsingRoom = await db.orm.public.SchoolClass.where({ roomId }).all();
     if (classesUsingRoom.length > 0) {
       return { error: 'Unassign this room from classes before removing it.' };
@@ -2151,7 +2449,7 @@ export async function deleteRoom(roomId: string) {
 const TIME_FORMAT = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 async function checkTimetableConflicts(
-  effective: { classId: string; staffId?: string; roomId?: string; dayOfWeek: number; period: number },
+  effective: { classId: string; membershipId?: string; roomId?: string; dayOfWeek: number; period: number },
   excludeSlotId?: string
 ): Promise<{ error: string } | null> {
   const classSlots = await db.orm.public.TimetableSlot.where({ classId: effective.classId }).all();
@@ -2159,8 +2457,8 @@ async function checkTimetableConflicts(
     return { error: 'This class already has a slot at this day and period.' };
   }
 
-  if (effective.staffId) {
-    const staffSlots = await db.orm.public.TimetableSlot.where({ staffId: effective.staffId }).all();
+  if (effective.membershipId) {
+    const staffSlots = await db.orm.public.TimetableSlot.where({ membershipId: effective.membershipId }).all();
     const conflict = staffSlots.find((s) => s.id !== excludeSlotId && s.dayOfWeek === effective.dayOfWeek && s.period === effective.period);
     if (conflict) {
       const conflictingClass = await db.orm.public.SchoolClass.where({ id: conflict.classId }).all().first();
@@ -2173,7 +2471,7 @@ async function checkTimetableConflicts(
     const conflict = roomSlots.find((s) => s.id !== excludeSlotId && s.dayOfWeek === effective.dayOfWeek && s.period === effective.period);
     if (conflict) {
       const conflictingClass = await db.orm.public.SchoolClass.where({ id: conflict.classId }).all().first();
-      return { error: `This room is already booked by ${conflictingClass?.name ?? 'another class'} at this day/period.` };
+      return { error: `Room is already booked for ${conflictingClass?.name ?? 'another class'} at this day/period.` };
     }
   }
 
@@ -2185,26 +2483,30 @@ export async function getTimetableForClass(classId: string) {
     const cls = await db.orm.public.SchoolClass.where({ id: classId }).all().first();
     if (!cls) return [];
 
+    await requireMembership(cls.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR', 'TEACHER']);
+
     const slots = await db.orm.public.TimetableSlot.where({ classId }).all();
     const rooms = await db.orm.public.Room.where({ organizationId: cls.organizationId }).all();
-    const staffProfiles = await db.orm.public.StaffProfile.where({ organizationId: cls.organizationId }).all();
-    const members = await db.orm.public.OrganizationMember.where({ organizationId: cls.organizationId }).all();
-    const allUsers = await db.orm.public.User.all();
 
-    const enriched = slots
-      .sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.period - b.period)
-      .map((slot) => {
-        const room = rooms.find((r) => r.id === slot.roomId);
-        const staffProfile = staffProfiles.find((sp) => sp.id === slot.staffId);
-        const member = staffProfile ? members.find((m) => m.id === staffProfile.memberId) : null;
-        const user = member ? allUsers.find((u) => u.id === member.userId) : null;
-        return {
-          ...slot,
-          roomName: room?.name ?? null,
-          staffName: user?.name ?? user?.email ?? null,
-        };
+    const enriched = [];
+    for (const slot of slots) {
+      const room = rooms.find((r) => r.id === slot.roomId);
+      let staffName = null;
+      if (slot.membershipId) {
+          const membership = await db.orm.public.Membership.where({ id: slot.membershipId }).all().first();
+          if (membership) {
+              const person = await db.orm.public.Person.where({ id: membership.personId }).all().first();
+              if (person) staffName = `${person.firstName} ${person.lastName}`;
+          }
+      }
+      enriched.push({
+        ...slot,
+        roomName: room?.name ?? null,
+        staffName,
       });
+    }
 
+    enriched.sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.period - b.period);
     return JSON.parse(JSON.stringify(enriched));
   } catch (error) {
     console.error('Error fetching timetable for class:', error);
@@ -2217,6 +2519,8 @@ export async function getTimetableForSection(sectionId: string) {
     const section = await db.orm.public.ClassSection.where({ id: sectionId }).all().first();
     if (!section) return [];
 
+    await requireMembership(section.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR', 'TEACHER']);
+
     const courses = await db.orm.public.SchoolClass.where({ classSectionId: sectionId }).all();
     const courseIds = courses.map((c) => c.id);
     if (courseIds.length === 0) return [];
@@ -2225,25 +2529,28 @@ export async function getTimetableForSection(sectionId: string) {
     const slots = allSlots.filter((s) => courseIds.includes(s.classId));
     
     const rooms = await db.orm.public.Room.where({ organizationId: section.organizationId }).all();
-    const staffProfiles = await db.orm.public.StaffProfile.where({ organizationId: section.organizationId }).all();
-    const members = await db.orm.public.OrganizationMember.where({ organizationId: section.organizationId }).all();
-    const allUsers = await db.orm.public.User.all();
 
-    const enriched = slots
-      .sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.period - b.period)
-      .map((slot) => {
-        const course = courses.find((c) => c.id === slot.classId);
-        const room = rooms.find((r) => r.id === slot.roomId);
-        const staffProfile = staffProfiles.find((sp) => sp.id === slot.staffId);
-        const member = staffProfile ? members.find((m) => m.id === staffProfile.memberId) : null;
-        const user = member ? allUsers.find((u) => u.id === member.userId) : null;
-        return {
-          ...slot,
-          courseName: course?.name ?? null,
-          roomName: room?.name ?? null,
-          staffName: user?.name ?? user?.email ?? null,
-        };
+    const enriched = [];
+    for (const slot of slots) {
+      const course = courses.find((c) => c.id === slot.classId);
+      const room = rooms.find((r) => r.id === slot.roomId);
+      let staffName = null;
+      if (slot.membershipId) {
+          const membership = await db.orm.public.Membership.where({ id: slot.membershipId }).all().first();
+          if (membership) {
+              const person = await db.orm.public.Person.where({ id: membership.personId }).all().first();
+              if (person) staffName = `${person.firstName} ${person.lastName}`;
+          }
+      }
+      enriched.push({
+        ...slot,
+        courseName: course?.name ?? null,
+        roomName: room?.name ?? null,
+        staffName,
       });
+    }
+
+    enriched.sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.period - b.period);
     return JSON.parse(JSON.stringify(enriched));
   } catch (error) {
     console.error('Error fetching timetable for section:', error);
@@ -2258,33 +2565,36 @@ export async function createTimetableSlot(input: {
   startTime: string;
   endTime: string;
   roomId?: string;
-  staffId?: string;
+  membershipId?: string;
   notes?: string;
 }): Promise<{ success: true } | { error: string }> {
   try {
     const cls = await db.orm.public.SchoolClass.where({ id: input.classId }).all().first();
     if (!cls) return { error: 'Class not found.' };
 
+    await requireMembership(cls.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
+
     if (input.dayOfWeek < 1 || input.dayOfWeek > 7) return { error: 'Invalid day of week.' };
     if (!Number.isInteger(input.period) || input.period < 1) return { error: 'Invalid period.' };
-    if (!TIME_FORMAT.test(input.startTime) || !TIME_FORMAT.test(input.endTime)) return { error: 'Times must be in HH:MM format.' };
+    const TIME_FORMAT_LOCAL = /^([01]\d|2[0-3]):([0-5]\d)$/;
+    if (!TIME_FORMAT_LOCAL.test(input.startTime) || !TIME_FORMAT_LOCAL.test(input.endTime)) return { error: 'Times must be in HH:MM format.' };
     if (input.startTime >= input.endTime) return { error: 'Start time must be before end time.' };
 
-    let staffId = input.staffId;
-    if (!staffId) {
+    let membershipId = input.membershipId;
+    if (!membershipId) {
       const classTeachers = await db.orm.public.ClassTeacher.where({ classId: input.classId }).all();
       const primary = classTeachers.find((ct) => ct.isPrimary) ?? classTeachers[0];
-      staffId = primary?.staffId;
+      membershipId = primary?.membershipId;
     }
 
     const conflict = await checkTimetableConflicts({
-      classId: input.classId, staffId, roomId: input.roomId, dayOfWeek: input.dayOfWeek, period: input.period,
+      classId: input.classId, membershipId, roomId: input.roomId, dayOfWeek: input.dayOfWeek, period: input.period,
     });
     if (conflict) return conflict;
 
     await db.orm.public.TimetableSlot.create({
       classId: input.classId,
-      staffId: staffId || undefined,
+      membershipId: membershipId || undefined,
       roomId: input.roomId || undefined,
       dayOfWeek: input.dayOfWeek,
       period: input.period,
@@ -2306,23 +2616,27 @@ export async function updateTimetableSlot(slotId: string, input: {
   startTime?: string;
   endTime?: string;
   roomId?: string | null;
-  staffId?: string | null;
+  membershipId?: string | null;
   notes?: string | null;
 }): Promise<{ success: true } | { error: string }> {
   try {
     const existing = await db.orm.public.TimetableSlot.where({ id: slotId }).all().first();
     if (!existing) return { error: 'Slot not found.' };
 
+    const cls = await db.orm.public.SchoolClass.where({ id: existing.classId }).all().first();
+    if (cls) await requireMembership(cls.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
+
     const effective = {
       classId: existing.classId,
-      staffId: (input.staffId !== undefined ? input.staffId : existing.staffId) ?? undefined,
+      membershipId: (input.membershipId !== undefined ? input.membershipId : existing.membershipId) ?? undefined,
       roomId: (input.roomId !== undefined ? input.roomId : existing.roomId) ?? undefined,
       dayOfWeek: input.dayOfWeek ?? existing.dayOfWeek,
       period: input.period ?? existing.period,
     };
 
-    if (input.startTime !== undefined && !TIME_FORMAT.test(input.startTime)) return { error: 'Start time must be in HH:MM format.' };
-    if (input.endTime !== undefined && !TIME_FORMAT.test(input.endTime)) return { error: 'End time must be in HH:MM format.' };
+    const TIME_FORMAT_LOCAL = /^([01]\d|2[0-3]):([0-5]\d)$/;
+    if (input.startTime !== undefined && !TIME_FORMAT_LOCAL.test(input.startTime)) return { error: 'Start time must be in HH:MM format.' };
+    if (input.endTime !== undefined && !TIME_FORMAT_LOCAL.test(input.endTime)) return { error: 'End time must be in HH:MM format.' };
     const effectiveStart = input.startTime ?? existing.startTime;
     const effectiveEnd = input.endTime ?? existing.endTime;
     if (effectiveStart >= effectiveEnd) return { error: 'Start time must be before end time.' };
@@ -2336,7 +2650,7 @@ export async function updateTimetableSlot(slotId: string, input: {
     if (input.startTime !== undefined) data.startTime = input.startTime;
     if (input.endTime !== undefined) data.endTime = input.endTime;
     if (input.roomId !== undefined) data.roomId = input.roomId;
-    if (input.staffId !== undefined) data.staffId = input.staffId;
+    if (input.membershipId !== undefined) data.membershipId = input.membershipId;
     if (input.notes !== undefined) data.notes = input.notes;
 
     await db.orm.public.TimetableSlot.where({ id: slotId }).update(data);
@@ -2349,7 +2663,12 @@ export async function updateTimetableSlot(slotId: string, input: {
 
 export async function deleteTimetableSlot(slotId: string) {
   try {
-    await db.orm.public.TimetableSlot.where({ id: slotId }).delete();
+    const existing = await db.orm.public.TimetableSlot.where({ id: slotId }).all().first();
+    if (existing) {
+        const cls = await db.orm.public.SchoolClass.where({ id: existing.classId }).all().first();
+        if (cls) await requireMembership(cls.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
+        await db.orm.public.TimetableSlot.where({ id: slotId }).delete();
+    }
     return { success: true };
   } catch (error) {
     console.error('Error deleting timetable slot:', error);
@@ -2412,9 +2731,11 @@ export async function createSchoolEvent(input: {
   category?: string;
   targetRoles?: AudienceRole[] | 'all';
   targetYears?: (string | number)[] | 'all';
-  createdById: string;
+  createdById?: string; // Maps to Membership.id; keeping param name for backwards compatibility
 }) {
   try {
+    const { membership } = await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'TEACHER', 'REGISTRAR', 'COUNSELOR', 'FINANCE', 'LIBRARIAN']);
+
     if (!input.title.trim()) return { error: 'Event title is required.' };
     const startDate = new Date(input.startDate);
     const endDate = new Date(input.endDate);
@@ -2432,7 +2753,7 @@ export async function createSchoolEvent(input: {
       category: input.category ?? 'academic',
       targetRoles: encodeAudienceField(input.targetRoles),
       targetYears: encodeAudienceField(input.targetYears as string[] | 'all' | undefined),
-      createdById: input.createdById,
+      createdByMembershipId: input.createdById ?? membership.id,
     });
 
     return { success: true };
@@ -2453,6 +2774,11 @@ export async function updateSchoolEvent(eventId: string, input: {
   targetYears?: (string | number)[] | 'all';
 }) {
   try {
+    const event = await db.orm.public.SchoolEvent.where({ id: eventId }).all().first();
+    if (!event) return { error: 'Event not found.' };
+
+    await requireMembership(event.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'TEACHER', 'REGISTRAR', 'COUNSELOR', 'FINANCE', 'LIBRARIAN']);
+
     const data: Record<string, unknown> = {};
     if (input.title !== undefined) data.title = input.title.trim();
     if (input.description !== undefined) data.description = input.description;
@@ -2626,14 +2952,14 @@ export async function deleteGradeBoundary(boundaryId: string) {
 // average using each entry's `weight` — this is what lets the same
 // formula express both a Nigerian-style "CA 30% + Exam 70%" split and a
 // Western-style category-weighted scheme, just with different weights.
-async function computeSubjectResult(studentId: string, classId: string, termId: string) {
+async function computeSubjectResult(studentDataId: string, classId: string, termId: string) {
   const assignments = await db.orm.public.Gradebook.where({ classId, termId }).all();
   const breakdown: any[] = [];
   let weightedSum = 0;
   let weightTotal = 0;
 
   for (const a of assignments) {
-    const grade = await db.orm.public.Grade.where({ gradebookId: a.id, studentId }).all().first();
+    const grade = await db.orm.public.Grade.where({ gradebookId: a.id, studentDataId: studentDataId }).all().first();
     if (!grade || grade.score == null || !a.maxScore || a.maxScore <= 0) continue;
     const percentage = (grade.score / a.maxScore) * 100;
     const weight = a.weight ?? 1;
@@ -2667,21 +2993,27 @@ function getGradeLabel(
 // no longer points at their old section, so (b) can never resurrect them
 // into a section they've left.
 async function getStudentsInSection(classSectionId: string) {
-  const studentIds = new Set<string>();
+  const studentDataIds = new Set<string>();
 
   const classesInSection = await db.orm.public.SchoolClass.where({ classSectionId }).all();
   for (const cls of classesInSection) {
     const enrolments = await db.orm.public.ClassEnrolment.where({ classId: cls.id }).all();
-    enrolments.forEach((e) => studentIds.add(e.studentId));
+    enrolments.forEach((e) => studentDataIds.add(e.studentDataId));
   }
 
-  const liveStudents = await db.orm.public.Student.where({ classSectionId }).all();
-  liveStudents.forEach((s) => studentIds.add(s.id));
+  const liveStudents = await db.orm.public.StudentData.where({ classSectionId }).all();
+  liveStudents.forEach((s) => studentDataIds.add(s.id));
 
   const students: any[] = [];
-  for (const id of studentIds) {
-    const s = await db.orm.public.Student.where({ id }).all().first();
-    if (s) students.push(s);
+  for (const id of studentDataIds) {
+    const sd = await db.orm.public.StudentData.where({ id }).all().first();
+    if (sd) {
+       const rel = await db.orm.public.Relationship.where({ id: sd.relationshipId }).all().first();
+       if (rel) {
+           const person = await db.orm.public.Person.where({ id: rel.personId }).all().first();
+           if (person) students.push({ ...sd, firstName: person.firstName, lastName: person.lastName });
+       }
+    }
   }
   return students;
 }
@@ -2692,7 +3024,7 @@ async function getStudentsInSection(classSectionId: string) {
 // back to the live classSectionId only when that section itself belongs to
 // the requested year (covers a student not yet subject-enrolled).
 async function resolveStudentSectionForYear(student: any, academicYearId: string): Promise<string | null> {
-  const enrolments = await db.orm.public.ClassEnrolment.where({ studentId: student.id }).all();
+  const enrolments = await db.orm.public.ClassEnrolment.where({ studentDataId: student.id }).all();
   for (const enr of enrolments) {
     const cls = await db.orm.public.SchoolClass.where({ id: enr.classId }).all().first();
     if (cls?.classSectionId && cls.academicYearId === academicYearId) return cls.classSectionId;
@@ -2716,7 +3048,7 @@ async function computeClassSectionResults(organizationId: string, classSectionId
 
   const results: any[] = [];
   for (const student of students) {
-    const enrolments = await db.orm.public.ClassEnrolment.where({ studentId: student.id }).all();
+    const enrolments = await db.orm.public.ClassEnrolment.where({ studentDataId: student.id }).all();
     const subjects: any[] = [];
     for (const enr of enrolments) {
       const cls = await db.orm.public.SchoolClass.where({ id: enr.classId }).all().first();
@@ -2747,8 +3079,6 @@ async function computeClassSectionResults(organizationId: string, classSectionId
     });
   }
 
-  // Rank by overall percentage descending; ties share the same position.
-  // Students with no computable average (no grades yet) are left unranked.
   const ranked = results
     .filter((r) => r.overallPercentage !== null)
     .sort((a, b) => (b.overallPercentage as number) - (a.overallPercentage as number));
@@ -2767,11 +3097,12 @@ async function computeClassSectionResults(organizationId: string, classSectionId
 
 export async function getClassReportCards(organizationId: string, classSectionId: string, termId: string) {
   try {
+    await requireMembership(organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'TEACHER', 'REGISTRAR']);
     const { classSize, results, gradingScale } = await computeClassSectionResults(organizationId, classSectionId, termId);
     const reportCards = await db.orm.public.ReportCard.where({ termId }).all();
     const enriched = results.map((r) => ({
       ...r,
-      reportCard: reportCards.find((rc) => rc.studentId === r.student.id) ?? null,
+      reportCard: reportCards.find((rc) => rc.studentDataId === r.student.id) ?? null,
     }));
     return JSON.parse(JSON.stringify({ classSize, results: enriched, gradingScale }));
   } catch (error) {
@@ -2781,22 +3112,27 @@ export async function getClassReportCards(organizationId: string, classSectionId
 }
 
 // `requirePublished` is the safeguard for resident-facing (Student/Parent)
-// callers: without it, this would let any caller who knows a studentId
+// callers: without it, this would let any caller who knows a studentDataId
 // see a still-draft report card the same way an Admin reviewing it can —
 // Student/Parent call sites must always pass `requirePublished: true`.
 export async function getStudentReportCard(
   organizationId: string,
-  studentId: string,
+  studentDataId: string,
   termId: string,
   options?: { requirePublished?: boolean }
 ) {
   try {
-    const student = await db.orm.public.Student.where({ id: studentId }).all().first();
-    if (!student) return null;
+    const sd = await db.orm.public.StudentData.where({ id: studentDataId }).all().first();
+    if (!sd) return null;
+    const rel = await db.orm.public.Relationship.where({ id: sd.relationshipId }).all().first();
+    if (!rel) return null;
+    const person = await db.orm.public.Person.where({ id: rel.personId }).all().first();
+    const student = { ...sd, firstName: person?.firstName, lastName: person?.lastName };
+
     const term = await db.orm.public.Term.where({ id: termId }).all().first();
     if (!term) return null;
     const academicYear = await db.orm.public.AcademicYear.where({ id: term.academicYearId }).all().first();
-    const reportCard = await db.orm.public.ReportCard.where({ studentId, termId }).all().first();
+    const reportCard = await db.orm.public.ReportCard.where({ studentDataId: studentDataId, termId }).all().first();
 
     if (options?.requirePublished && !reportCard?.published) {
       return JSON.parse(JSON.stringify({ student, term, academicYear, reportCard: null, notPublished: true }));
@@ -2808,11 +3144,11 @@ export async function getStudentReportCard(
     if (sectionForTerm) {
       const computed = await computeClassSectionResults(organizationId, sectionForTerm, termId);
       classSize = computed.classSize;
-      result = computed.results.find((r: any) => r.student.id === studentId) ?? result;
+      result = computed.results.find((r: any) => r.student.id === studentDataId) ?? result;
     }
     const gradingScale = await getDefaultGradingScale(organizationId);
 
-    const attendanceRows = await db.orm.public.Attendance.where({ studentId, termId }).all();
+    const attendanceRows = await db.orm.public.Attendance.where({ studentDataId: studentDataId, termId }).all();
     const attendance = {
       present: attendanceRows.filter((a) => a.status === 'PRESENT').length,
       absent: attendanceRows.filter((a) => a.status === 'ABSENT').length,
@@ -2841,13 +3177,14 @@ export async function getStudentReportCard(
   }
 }
 
-export async function upsertReportCardRemarks(organizationId: string, studentId: string, termId: string, input: {
+export async function upsertReportCardRemarks(organizationId: string, studentDataId: string, termId: string, input: {
   comments?: string;
   teacherNotes?: string;
   principalNotes?: string;
 }) {
   try {
-    const existing = await db.orm.public.ReportCard.where({ studentId, termId }).all().first();
+    await requireMembership(organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'TEACHER']);
+    const existing = await db.orm.public.ReportCard.where({ studentDataId: studentDataId, termId }).all().first();
     if (existing) {
       const data: Record<string, unknown> = {};
       if (input.comments !== undefined) data.comments = input.comments;
@@ -2858,7 +3195,7 @@ export async function upsertReportCardRemarks(organizationId: string, studentId:
       const term = await db.orm.public.Term.where({ id: termId }).all().first();
       const academicYear = term ? (await db.orm.public.AcademicYear.where({ id: term.academicYearId }).all().first())?.year ?? 0 : 0;
       await db.orm.public.ReportCard.create({
-        organizationId, studentId, termId, academicYear,
+        organizationId, studentDataId: studentDataId, termId, academicYear,
         comments: input.comments, teacherNotes: input.teacherNotes, principalNotes: input.principalNotes,
         published: false,
       });
@@ -2870,16 +3207,17 @@ export async function upsertReportCardRemarks(organizationId: string, studentId:
   }
 }
 
-export async function publishReportCard(organizationId: string, studentId: string, termId: string) {
+export async function publishReportCard(organizationId: string, studentDataId: string, termId: string) {
   try {
-    const existing = await db.orm.public.ReportCard.where({ studentId, termId }).all().first();
+    await requireMembership(organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'TEACHER', 'REGISTRAR']);
+    const existing = await db.orm.public.ReportCard.where({ studentDataId: studentDataId, termId }).all().first();
     if (existing) {
       await db.orm.public.ReportCard.where({ id: existing.id }).update({ published: true, issuedAt: toInstant(new Date()) });
     } else {
       const term = await db.orm.public.Term.where({ id: termId }).all().first();
       const academicYear = term ? (await db.orm.public.AcademicYear.where({ id: term.academicYearId }).all().first())?.year ?? 0 : 0;
       await db.orm.public.ReportCard.create({
-        organizationId, studentId, termId, academicYear, published: true, issuedAt: toInstant(new Date()),
+        organizationId, studentDataId: studentDataId, termId, academicYear, published: true, issuedAt: toInstant(new Date()),
       });
     }
     return { success: true };
@@ -2889,10 +3227,11 @@ export async function publishReportCard(organizationId: string, studentId: strin
   }
 }
 
-export async function unpublishReportCard(studentId: string, termId: string) {
+export async function unpublishReportCard(studentDataId: string, termId: string) {
   try {
-    const existing = await db.orm.public.ReportCard.where({ studentId, termId }).all().first();
+    const existing = await db.orm.public.ReportCard.where({ studentDataId: studentDataId, termId }).all().first();
     if (!existing) return { error: 'No report card found to unpublish.' };
+    await requireMembership(existing.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'TEACHER', 'REGISTRAR']);
     await db.orm.public.ReportCard.where({ id: existing.id }).update({ published: false });
     return { success: true };
   } catch (error) {
@@ -2977,7 +3316,7 @@ export async function getPromotionCandidates(organizationId: string, classSectio
 // their section, and records a StudentExit if one doesn't already exist.
 export async function promoteStudents(
   organizationId: string,
-  decisions: { studentId: string; target: string }[]
+  decisions: { studentDataId: string; target: string }[]
 ) {
   try {
     const grades = await db.orm.public.SchoolGrade.where({ organizationId }).all();
@@ -2987,12 +3326,12 @@ export async function promoteStudents(
     let graduated = 0;
     for (const d of decisions) {
       if (d.target === 'GRADUATE') {
-        await db.orm.public.Student.where({ id: d.studentId }).update({ enrollmentStatus: 'graduated', classSectionId: null });
-        const existingExit = await db.orm.public.StudentExit.where({ studentId: d.studentId }).all().first();
+        await db.orm.public.StudentData.where({ id: d.studentDataId }).update({ classSectionId: null });
+        const existingExit = await db.orm.public.StudentExit.where({ studentDataId: d.studentDataId }).all().first();
         if (!existingExit) {
           await db.orm.public.StudentExit.create({
             organizationId,
-            studentId: d.studentId,
+            studentDataId: d.studentDataId,
             exitType: 'graduated',
             exitDate: toInstant(new Date()),
           });
@@ -3002,7 +3341,7 @@ export async function promoteStudents(
         const targetSection = sections.find((s) => s.id === d.target);
         if (!targetSection) continue;
         const targetGrade = grades.find((g) => g.id === targetSection.gradeId);
-        await db.orm.public.Student.where({ id: d.studentId }).update({
+        await db.orm.public.StudentData.where({ id: d.studentDataId }).update({
           classSectionId: targetSection.id,
           yearLevel: targetGrade?.level ?? undefined,
         });
@@ -3030,8 +3369,8 @@ async function getStudentAcademicSnapshot(
   student: { id: string; organizationId: string; yearLevel: number | null },
   viewerRole: 'STUDENT' | 'PARENT'
 ) {
-  const studentId = student.id;
-  const enrolments = await db.orm.public.ClassEnrolment.where({ studentId }).all();
+  const studentDataId = student.id;
+  const enrolments = await db.orm.public.ClassEnrolment.where({ studentDataId }).all();
   const classIds = [...new Set(enrolments.map((e) => e.classId))];
 
   const classes: any[] = [];
@@ -3054,8 +3393,8 @@ async function getStudentAcademicSnapshot(
     if (room) rooms.push(room);
   }
 
-  const grades = await db.orm.public.Grade.where({ studentId }).all();
-  const attendance = await db.orm.public.Attendance.where({ studentId }).all();
+  const grades = await db.orm.public.Grade.where({ studentDataId }).all();
+  const attendance = await db.orm.public.Attendance.where({ studentDataId }).all();
 
   const orgEvents = await db.orm.public.SchoolEvent.where({ organizationId: student.organizationId }).all();
   const events = orgEvents
@@ -3065,7 +3404,7 @@ async function getStudentAcademicSnapshot(
   // Lightweight list of which terms have a *published* report card — just
   // enough for the portal to show a picker; the full breakdown is fetched
   // on demand via getStudentReportCard(..., { requirePublished: true }).
-  const allReportCards = await db.orm.public.ReportCard.where({ studentId }).all();
+  const allReportCards = await db.orm.public.ReportCard.where({ studentDataId }).all();
   const publishedReportCards = allReportCards.filter((rc) => rc.published);
   const reportCards: any[] = [];
   for (const rc of publishedReportCards) {
@@ -3078,29 +3417,39 @@ async function getStudentAcademicSnapshot(
 }
 
 export async function getParentPortalData() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return null;
-
   try {
-    const user = await db.orm.public.User.where({ email: session.user.email }).all().first();
-    if (!user) return { user: null, children: [] };
+    const { person } = await requireAuthenticatedAccount();
 
-    const links = await db.orm.public.StudentParent.where({ parentId: user.id }).all();
-    if (links.length === 0) return { user: JSON.parse(JSON.stringify(user)), children: [] };
+    const auths = await db.orm.public.GuardianAuthorization.where({ guardianPersonId: person.id }).all();
+    if (auths.length === 0) return { user: JSON.parse(JSON.stringify(person)), children: [] };
 
     const children: any[] = [];
-    for (const link of links) {
-      const student = await db.orm.public.Student.where({ id: link.studentId }).all().first();
-      if (!student) continue;
+    for (const auth of auths) {
+      const studentRel = await db.orm.public.Relationship.where({ id: auth.wardRelationshipId }).all().first();
+      if (!studentRel) continue;
 
-      const organization = await db.orm.public.Organization.where({ id: student.organizationId }).all().first();
-      const feeInvoices = await db.orm.public.FeeInvoice.where({ studentId: student.id }).all();
-      const snapshot = await getStudentAcademicSnapshot(student, 'PARENT');
+      const studentData = await db.orm.public.StudentData.where({ relationshipId: studentRel.id }).all().first();
+      if (!studentData) continue;
 
-      children.push({ student, organization, feeInvoices, ...snapshot });
+      const studentPerson = await db.orm.public.Person.where({ id: studentRel.personId }).all().first();
+      const organization = await db.orm.public.Organization.where({ id: studentRel.organizationId }).all().first();
+      
+      const feeInvoices = await db.orm.public.FeeInvoice.where({ studentDataId: studentData.id }).all();
+      
+      const mockStudentObj = {
+         id: studentData.id,
+         organizationId: studentRel.organizationId,
+         yearLevel: studentData.yearLevel,
+         firstName: studentPerson?.firstName,
+         lastName: studentPerson?.lastName,
+      };
+      
+      const snapshot = await getStudentAcademicSnapshot(mockStudentObj, 'PARENT');
+
+      children.push({ student: mockStudentObj, organization, feeInvoices, ...snapshot });
     }
 
-    return JSON.parse(JSON.stringify({ user, children }));
+    return JSON.parse(JSON.stringify({ user: person, children }));
   } catch (error) {
     console.error('Error fetching parent portal data:', error);
     return null;
@@ -3108,20 +3457,28 @@ export async function getParentPortalData() {
 }
 
 export async function getStudentPortalData() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return null;
-
   try {
-    const user = await db.orm.public.User.where({ email: session.user.email }).all().first();
-    if (!user) return { user: null, student: null };
+    const { person } = await requireAuthenticatedAccount();
 
-    const student = await db.orm.public.Student.where({ guardianId: user.id }).all().first();
-    if (!student) return { user: JSON.parse(JSON.stringify(user)), student: null };
+    const relationship = await db.orm.public.Relationship.where({ personId: person.id, type: 'STUDENT' }).all().first();
+    if (!relationship) return { user: JSON.parse(JSON.stringify(person)), student: null };
 
-    const organization = await db.orm.public.Organization.where({ id: student.organizationId }).all().first();
-    const snapshot = await getStudentAcademicSnapshot(student, 'STUDENT');
+    const studentData = await db.orm.public.StudentData.where({ relationshipId: relationship.id }).all().first();
+    if (!studentData) return { user: JSON.parse(JSON.stringify(person)), student: null };
 
-    return JSON.parse(JSON.stringify({ user, student, organization, ...snapshot }));
+    const organization = await db.orm.public.Organization.where({ id: relationship.organizationId }).all().first();
+    
+    const mockStudentObj = {
+       id: studentData.id,
+       organizationId: relationship.organizationId,
+       yearLevel: studentData.yearLevel,
+       firstName: person.firstName,
+       lastName: person.lastName,
+    };
+    
+    const snapshot = await getStudentAcademicSnapshot(mockStudentObj, 'STUDENT');
+
+    return JSON.parse(JSON.stringify({ user: person, student: mockStudentObj, organization, ...snapshot }));
   } catch (error) {
     console.error('Error fetching student portal data:', error);
     return null;

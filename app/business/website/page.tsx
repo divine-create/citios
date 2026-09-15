@@ -15,31 +15,13 @@ export default async function BusinessWebsitePage({ searchParams }: { searchPara
   const organizationId = searchOrgId === "null" ? undefined : searchOrgId;
   const session = await getServerSession(authOptions);
 
+  // The org must come from an authenticated membership — never from the URL
+  // alone. If ?org= is omitted, fall back to the caller's first membership.
   const membership = organizationId
     ? session?.user?.memberships?.find((m) => m.organizationId === organizationId)
     : session?.user?.memberships?.[0];
 
   const hasAccess = !!membership && ALLOWED_ROLES.includes(membership.role);
-  
-  // Dev override for testing without a session
-  if (!hasAccess && searchOrgId) {
-    return (
-      <div className="min-h-screen bg-[#F4F7FC]">
-        <header className="bg-white border-b border-slate-200 px-6 py-5">
-          <div className="max-w-4xl mx-auto flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white"><Globe size={20} /></div>
-            <div>
-              <h1 className="text-xl font-bold text-slate-800">Website Builder (Dev Mode)</h1>
-              <p className="text-sm text-slate-500">Build a dedicated, professional website for your organization.</p>
-            </div>
-          </div>
-        </header>
-        <div className="max-w-4xl mx-auto p-6">
-          <MicrositeBuilder organizationId={searchOrgId} />
-        </div>
-      </div>
-    );
-  }
 
   if (!hasAccess || !membership) {
     redirect("/");

@@ -166,10 +166,10 @@ function DailyAttendanceTab({ organizationId }: { organizationId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date]);
 
-  const mark = async (studentId: string, status: (typeof ATTENDANCE_STATUSES)[number]) => {
-    setPendingId(studentId);
+  const mark = async (studentDataId: string, status: (typeof ATTENDANCE_STATUSES)[number]) => {
+    setPendingId(studentDataId);
     try {
-      await markAttendance(studentId, status, date);
+      await markAttendance(studentDataId, status, date);
       await load(date);
     } finally {
       setPendingId(null);
@@ -210,7 +210,7 @@ function DailyAttendanceTab({ organizationId }: { organizationId: string }) {
               <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-500">No students yet.</td></tr>
             ) : (
               records.map((r) => (
-                <tr key={r.studentId} className="hover:bg-slate-50 transition-colors">
+                <tr key={r.studentDataId} className="hover:bg-slate-50 transition-colors">
                   <td className="px-6 py-4 font-medium text-slate-800">{r.studentName}</td>
                   <td className="px-6 py-4 text-slate-500">{r.classSectionName ?? "Unassigned"}</td>
                   <td className="px-6 py-4">
@@ -232,8 +232,8 @@ function DailyAttendanceTab({ organizationId }: { organizationId: string }) {
                       {ATTENDANCE_STATUSES.map((s) => (
                         <button
                           key={s}
-                          onClick={() => mark(r.studentId, s)}
-                          disabled={pendingId === r.studentId}
+                          onClick={() => mark(r.studentDataId, s)}
+                          disabled={pendingId === r.studentDataId}
                           className={`px-2 py-1 rounded text-[10px] font-bold uppercase border disabled:opacity-50 ${
                             r.status === s ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-500 border-slate-200 hover:border-slate-400"
                           }`}
@@ -754,12 +754,12 @@ function ClassSectionsTab({ organizationId, grades, classSections, teachers, stu
     try {
       if (editId) {
         const res = await updateClassSection(editId, {
-          name: form.name, gradeId: form.gradeId, formTeacherId: form.formTeacherStaffId || null,
+          name: form.name, gradeId: form.gradeId, formMembershipId: form.formTeacherStaffId || null,
         });
         if (res.error) throw new Error(res.error);
       } else {
         const res = await createClassSection({
-          organizationId, name: form.name, gradeId: form.gradeId, formTeacherId: form.formTeacherStaffId || undefined,
+          organizationId, name: form.name, gradeId: form.gradeId, formMembershipId: form.formTeacherStaffId || undefined,
         });
         if (res.error) throw new Error(res.error);
       }
@@ -788,8 +788,8 @@ function ClassSectionsTab({ organizationId, grades, classSections, teachers, stu
     refresh();
   };
 
-  const unassign = async (studentId: string) => {
-    await assignStudentToSection(studentId, null);
+  const unassign = async (studentDataId: string) => {
+    await assignStudentToSection(studentDataId, null);
     refresh();
   };
 

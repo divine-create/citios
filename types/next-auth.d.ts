@@ -25,7 +25,7 @@ export interface OrgMembership {
 declare module 'next-auth' {
   interface Session {
     user: DefaultSession['user'] & {
-      userId?: string;
+      personId?: string;
       role?: 'RESIDENT' | 'PROVIDER' | 'COURIER';
       memberships?: OrgMembership[];
       isCourier?: boolean;
@@ -35,7 +35,7 @@ declare module 'next-auth' {
 
 declare module 'next-auth/jwt' {
   interface JWT {
-    userId?: string;
+    personId?: string;
     role?: 'RESIDENT' | 'PROVIDER' | 'COURIER';
     memberships?: OrgMembership[];
     isCourier?: boolean;

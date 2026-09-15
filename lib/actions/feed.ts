@@ -9,7 +9,7 @@ export async function getCommunityFeed() {
     const orgs = await db.orm.public.Organization.all();
     const comments = await db.orm.public.Comment.all();
     const likes = await db.orm.public.PostLike.all();
-    const users = await db.orm.public.User.all();
+    const users = await db.orm.public.Person.all();
 
     let session;
     try {
@@ -20,7 +20,7 @@ export async function getCommunityFeed() {
 
     let currentUser = null;
     if (session?.user?.email) {
-        currentUser = users.find(u => u.email === session?.user?.email);
+        currentUser = users.find(u => u.id === session?.user?.personId);
     }
 
     // Stitch relations and order by emergency first, then date descending
@@ -33,7 +33,7 @@ export async function getCommunityFeed() {
         organization: orgs.find(o => o.id === p.organizationId),
         comments: comments.filter(c => c.postId === p.id),
         likesCount: postLikes.length,
-        hasLiked: currentUser ? postLikes.some(l => l.userId === currentUser.id) : false,
+        hasLiked: currentUser ? postLikes.some(l => l.personId === currentUser.id) : false,
         shareCount: p.shareCount || 0
       }));
     }).sort((a, b) => {

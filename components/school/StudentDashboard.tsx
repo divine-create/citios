@@ -83,7 +83,7 @@ export function StudentDashboard({ initialData }: { initialData: StudentPortalDa
               <GraduationCap className="w-4 h-4" />
               <span>Grade {student.yearLevel}</span>
               <span className="hidden sm:inline">·</span>
-              <span>ID: {student.studentId}</span>
+              <span>ID: {student.studentDataId}</span>
             </div>
           </div>
         </div>

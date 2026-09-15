@@ -37,7 +37,7 @@ export default function JobsTab({
             {jobs.filter(j => j.status === 'NEW').map(job => (
               <div key={job.id} className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 cursor-pointer hover:border-blue-400 transition-colors">
                 <div className="font-bold text-slate-800 text-sm">{job.description}</div>
-                <div className="text-xs text-slate-500 mt-2">Customer: {customers.find(c => c.id === job.customerId)?.firstName || "Unknown"}</div>
+                <div className="text-xs text-slate-500 mt-2">Customer: {customers.find(c => c.id === job.customerDataId)?.firstName || "Unknown"}</div>
               </div>
             ))}
           </div>

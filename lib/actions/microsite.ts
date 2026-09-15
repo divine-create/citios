@@ -1,9 +1,39 @@
 'use server'
 
 import { db } from '@/src/prisma/db'
+import { requireMembership, requireAuthenticatedAccount } from '@/lib/actions/tenant'
 
 function toInstant(date: Date) {
   return (globalThis as any).Temporal.Instant.fromEpochMilliseconds(date.getTime());
+}
+
+// ---- Ownership guards -------------------------------------------------
+// A microsite belongs to an Organization; only OWNER/MANAGER/ADMIN members
+// may read or mutate it. Every action resolves the org from the DATABASE
+// row (never from client arguments) and re-checks membership live.
+async function requireOrgWebsiteAccess(organizationId: string) {
+  return requireMembership(organizationId, ['OWNER', 'MANAGER', 'ADMIN']);
+}
+
+async function requireMicrositeAccess(micrositeId: string) {
+  const site = await db.orm.public.Microsite.where({ id: micrositeId }).all().first();
+  if (!site) throw new Error(`NOT_FOUND: Microsite ${micrositeId}`);
+  await requireOrgWebsiteAccess(site.organizationId);
+  return site;
+}
+
+async function requireSectionAccess(sectionId: string) {
+  const section = await db.orm.public.MicrositeSection.where({ id: sectionId }).all().first();
+  if (!section) throw new Error(`NOT_FOUND: MicrositeSection ${sectionId}`);
+  await requireMicrositeAccess(section.micrositeId);
+  return section;
+}
+
+async function requirePageAccess(pageId: string) {
+  const page = await db.orm.public.MicrositePage.where({ id: pageId }).all().first();
+  if (!page) throw new Error(`NOT_FOUND: MicrositePage ${pageId}`);
+  await requireMicrositeAccess(page.micrositeId);
+  return page;
 }
 
 const MAX_ASSET_BYTES = 5 * 1024 * 1024; // 5MB — self-hosted as base64 text, keep it sane
@@ -23,6 +53,7 @@ function slugify(input: string) {
 
 export async function getMicrosite(organizationId: string) {
   try {
+    await requireOrgWebsiteAccess(organizationId);
     const microsite = await db.orm.public.Microsite.where({ organizationId }).all().first();
     if (!microsite) return null;
     const pages = await db.orm.public.MicrositePage.where({ micrositeId: microsite.id }).all();
@@ -47,8 +78,9 @@ export async function getMicrosite(organizationId: string) {
       stockQuantity: p.stockQuantity,
       imageAssetId: p.imageAssetId,
     }));
+    const settings = await db.orm.public.RetailSettings.where({ organizationId }).all().first();
 
-    return JSON.parse(JSON.stringify({ ...microsite, pages, navItems, sections, products }));
+    return JSON.parse(JSON.stringify({ ...microsite, pages, navItems, sections, products, currencySymbol: settings?.currencySymbol ?? "$" }));
   } catch (error) {
     console.error('Error fetching microsite:', error);
     return null;
@@ -57,6 +89,7 @@ export async function getMicrosite(organizationId: string) {
 
 export async function getOrganizationType(organizationId: string) {
   try {
+    await requireOrgWebsiteAccess(organizationId);
     const org = await db.orm.public.Organization.where({ id: organizationId }).all().first();
     return org?.type || null;
   } catch (error) {
@@ -67,6 +100,7 @@ export async function getOrganizationType(organizationId: string) {
 
 export async function getOrganizationName(organizationId: string) {
   try {
+    await requireOrgWebsiteAccess(organizationId);
     const org = await db.orm.public.Organization.where({ id: organizationId }).all().first();
     return org?.name || null;
   } catch (error) {
@@ -125,6 +159,8 @@ export async function getMicrositeBySlug(slug: string, path: string[] = []) {
     const rawRooms = await db.orm.public.HotelRoom.where({ organizationId: microsite.organizationId }).all();
     const hotelRooms = Array.from(new Set(rawRooms.map(r => JSON.stringify({ type: r.type, rate: r.baseRate })))).map(s => JSON.parse(s));
 
+    const retailSettings = await db.orm.public.RetailSettings.where({ organizationId: microsite.organizationId }).all().first();
+
     return JSON.parse(JSON.stringify({ 
       ...microsite, 
       organizationName: organization?.name ?? '',
@@ -134,6 +170,7 @@ export async function getMicrositeBySlug(slug: string, path: string[] = []) {
       products, 
       categories,
       hotelRooms,
+      currencySymbol: retailSettings?.currencySymbol ?? "$",
       organization 
     }));
   } catch (error) {
@@ -144,6 +181,9 @@ export async function getMicrositeBySlug(slug: string, path: string[] = []) {
 
 export async function isSlugAvailable(slug: string, excludeOrganizationId?: string) {
   try {
+    // Availability check leaks slug existence; require at least an
+    // authenticated session (used during provisioning before an org exists).
+    await requireAuthenticatedAccount();
     const existing = await db.orm.public.Microsite.where({ slug }).all().first();
     if (!existing) return true;
     return excludeOrganizationId ? existing.organizationId === excludeOrganizationId : false;
@@ -159,6 +199,7 @@ export async function isSlugAvailable(slug: string, excludeOrganizationId?: stri
 
 export async function createMicrosite(organizationId: string, input: { title: string; slug?: string; templateId?: string; features?: string[]; customContent?: Record<string, any> }) {
   try {
+    await requireOrgWebsiteAccess(organizationId);
     const existing = await db.orm.public.Microsite.where({ organizationId }).all().first();
     if (existing) return { error: 'This organization already has a website.' };
 
@@ -206,10 +247,15 @@ export async function createMicrosite(organizationId: string, input: { title: st
         if (addrParts.length > 0) defaultAddress = addrParts.join(", ");
       }
       
-      const ownerMember = await db.orm.public.OrganizationMember.where({ organizationId, role: 'OWNER' }).all().first();
-      if (ownerMember) {
-        const ownerUser = await db.orm.public.User.where({ id: ownerMember.userId }).all().first();
-        if (ownerUser?.name) defaultHeadName = ownerUser.name;
+      // Resolve owner name: Membership -> MembershipRole (OWNER) -> Person
+      const memberships = await db.orm.public.Membership.where({ organizationId }).all();
+      for (const m of memberships) {
+        const roles = await db.orm.public.MembershipRole.where({ membershipId: m.id, role: 'OWNER' }).all();
+        if (roles.length > 0) {
+          const ownerPerson = await db.orm.public.Person.where({ id: m.personId }).all().first();
+          if (ownerPerson) defaultHeadName = `${ownerPerson.firstName} ${ownerPerson.lastName}`.trim();
+          break;
+        }
       }
     }
 
@@ -372,6 +418,7 @@ export async function updateMicrositeSettings(micrositeId: string, input: {
   borderRadius?: string;
 }) {
   try {
+    await requireMicrositeAccess(micrositeId);
     const data: Record<string, unknown> = {};
     if (input.title !== undefined) data.title = input.title;
     if (input.tagline !== undefined) data.tagline = input.tagline;
@@ -404,6 +451,7 @@ export async function updateMicrositeSettings(micrositeId: string, input: {
 
 export async function publishMicrosite(micrositeId: string) {
   try {
+    await requireMicrositeAccess(micrositeId);
     const sections = await db.orm.public.MicrositeSection.where({ micrositeId }).all();
     if (sections.filter((s) => s.visible).length === 0) {
       return { error: 'Add at least one visible section before publishing.' };
@@ -418,6 +466,7 @@ export async function publishMicrosite(micrositeId: string) {
 
 export async function unpublishMicrosite(micrositeId: string) {
   try {
+    await requireMicrositeAccess(micrositeId);
     await db.orm.public.Microsite.where({ id: micrositeId }).update({ status: 'draft' });
     return { success: true };
   } catch (error) {
@@ -432,6 +481,8 @@ export async function unpublishMicrosite(micrositeId: string) {
 
 export async function addMicrositeSection(micrositeId: string, input: { pageId: string, type: string; content: Record<string, unknown> }) {
   try {
+    await requireMicrositeAccess(micrositeId);
+    await requirePageAccess(input.pageId);
     const existing = await db.orm.public.MicrositeSection.where({ micrositeId, pageId: input.pageId }).all();
     const maxOrder = existing.reduce((max, s) => Math.max(max, s.order), -1);
     const section = await db.orm.public.MicrositeSection.create({
@@ -452,6 +503,7 @@ export async function addMicrositeSection(micrositeId: string, input: { pageId: 
 
 export async function updateMicrositeSection(sectionId: string, input: { content?: Record<string, unknown>; visible?: boolean }) {
   try {
+    await requireSectionAccess(sectionId);
     const data: Record<string, unknown> = {};
     if (input.content !== undefined) data.content = JSON.stringify(input.content);
     if (input.visible !== undefined) data.visible = input.visible;
@@ -467,6 +519,7 @@ export async function updateMicrositeSection(sectionId: string, input: { content
 
 export async function deleteMicrositeSection(sectionId: string) {
   try {
+    await requireSectionAccess(sectionId);
     await db.orm.public.MicrositeSection.where({ id: sectionId }).delete();
     const { revalidatePath } = await import('next/cache');
     revalidatePath('/', 'layout');
@@ -481,6 +534,7 @@ export async function deleteMicrositeSection(sectionId: string) {
 // list in the desired display order (index becomes the new `order`).
 export async function reorderMicrositeSections(micrositeId: string, orderedIds: string[]) {
   try {
+    await requireMicrositeAccess(micrositeId);
     for (let i = 0; i < orderedIds.length; i++) {
       await db.orm.public.MicrositeSection.where({ id: orderedIds[i] }).update({ order: i });
     }
@@ -499,6 +553,7 @@ export async function reorderMicrositeSections(micrositeId: string, orderedIds: 
 
 export async function uploadAsset(organizationId: string, input: { fileName: string; mimeType: string; base64Data: string }) {
   try {
+    await requireOrgWebsiteAccess(organizationId);
     if (!input.mimeType.startsWith('image/')) return { error: 'Only image uploads are supported.' };
     const approxBytes = Math.ceil((input.base64Data.length * 3) / 4);
     if (approxBytes > MAX_ASSET_BYTES) return { error: 'Image is too large — please use one under 5MB.' };
@@ -519,6 +574,9 @@ export async function uploadAsset(organizationId: string, input: { fileName: str
 
 export async function deleteAsset(assetId: string) {
   try {
+    const asset = await db.orm.public.Asset.where({ id: assetId }).all().first();
+    if (!asset) return { error: 'Image not found.' };
+    await requireOrgWebsiteAccess(asset.organizationId);
     await db.orm.public.Asset.where({ id: assetId }).delete();
     return { success: true };
   } catch (error) {
@@ -539,6 +597,7 @@ export async function submitInquiry(micrositeId: string, name: string, email: st
 
 export async function getInquiries(organizationId: string) {
   try {
+    await requireOrgWebsiteAccess(organizationId);
     const microsite = await db.orm.public.Microsite.where({ organizationId }).all().first();
     if (!microsite) return [];
     return await db.orm.public.MicrositeInquiry.where({ micrositeId: microsite.id }).all();
@@ -555,6 +614,7 @@ export async function getInquiries(organizationId: string) {
 
 export async function addMicrositePage(micrositeId: string, input: { title: string, slug: string }) {
   try {
+    await requireMicrositeAccess(micrositeId);
     const slug = slugify(input.slug);
     const existing = await db.orm.public.MicrositePage.where({ micrositeId, slug }).all().first();
     if (existing) return { error: "A page with this slug already exists." };
@@ -585,6 +645,7 @@ export async function addMicrositePage(micrositeId: string, input: { title: stri
 
 export async function updateMicrositePage(pageId: string, input: { title?: string, slug?: string, status?: string }) {
   try {
+    await requirePageAccess(pageId);
     const data: any = { ...input };
     if (input.slug) data.slug = slugify(input.slug);
     const page = await db.orm.public.MicrositePage.where({ id: pageId }).update(data);
@@ -602,6 +663,7 @@ export async function updateMicrositePage(pageId: string, input: { title?: strin
 
 export async function deleteMicrositePage(pageId: string) {
   try {
+    await requirePageAccess(pageId);
     const page = await db.orm.public.MicrositePage.where({ id: pageId }).all().first();
     if (page?.isHome) return { error: "Cannot delete the home page." };
 
@@ -617,6 +679,7 @@ export async function deleteMicrositePage(pageId: string) {
 
 export async function updateMicrositeNavigation(micrositeId: string, items: { id?: string, label: string, url: string | null, pageId: string | null }[]) {
   try {
+    await requireMicrositeAccess(micrositeId);
     // Basic approach: delete all and recreate for simplicity
     await db.orm.public.MicrositeNavigationItem.where({ micrositeId }).delete();
     for (let i = 0; i < items.length; i++) {
@@ -636,6 +699,7 @@ export async function updateMicrositeNavigation(micrositeId: string, items: { id
 
 export async function resetMicrosite(micrositeId: string) {
   try {
+    await requireMicrositeAccess(micrositeId);
     await db.orm.public.Microsite.where({ id: micrositeId }).delete();
     return { success: true };
   } catch (error) {

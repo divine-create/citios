@@ -75,7 +75,7 @@ export default function UsersManager({ organizationId, activeTab, students, staf
     lastName: "",
     email: "",
     role: "ADMIN" as any,
-    studentId: "",
+    studentDataId: "",
     gender: "",
     yearLevel: 1,
     gradeId: "",
@@ -87,7 +87,7 @@ export default function UsersManager({ organizationId, activeTab, students, staf
   const [parentForm, setParentForm] = useState({
     name: "",
     email: "",
-    studentId: students[0]?.id ?? "",
+    studentDataId: students[0]?.id ?? "",
     relationship: "",
     isPrimary: false,
   });
@@ -105,7 +105,7 @@ export default function UsersManager({ organizationId, activeTab, students, staf
       lastName: "",
       email: "",
       role: (ROLE_TABS[activeTab] as any) ?? "ADMIN",
-      studentId: "",
+      studentDataId: "",
       gender: "",
       yearLevel: 1,
       gradeId: "",
@@ -117,7 +117,7 @@ export default function UsersManager({ organizationId, activeTab, students, staf
   };
 
   const openAddParent = () => {
-    setParentForm({ name: "", email: "", studentId: students[0]?.id ?? "", relationship: "", isPrimary: false });
+    setParentForm({ name: "", email: "", studentDataId: students[0]?.id ?? "", relationship: "", isPrimary: false });
     setError(null);
     setIsModalOpen(true);
   };
@@ -134,7 +134,7 @@ export default function UsersManager({ organizationId, activeTab, students, staf
       lastName: s.lastName,
       email: "",
       role: "ADMIN",
-      studentId: s.studentId || "",
+      studentDataId: s.studentDataId || "",
       gender: s.gender || "",
       yearLevel: s.yearLevel || 1,
       gradeId: grade?.id || "",
@@ -158,7 +158,7 @@ export default function UsersManager({ organizationId, activeTab, students, staf
       lastName,
       email: s.user?.email || "",
       role: s.role,
-      studentId: "",
+      studentDataId: "",
       gender: "",
       yearLevel: 1,
       gradeId: "",
@@ -229,7 +229,7 @@ export default function UsersManager({ organizationId, activeTab, students, staf
             firstName: formData.firstName,
             middleName: formData.middleName || undefined,
             lastName: formData.lastName,
-            // studentId is now entirely omitted so the backend always auto-generates it
+            // studentDataId is now entirely omitted so the backend always auto-generates it
             gender: formData.gender || undefined,
             yearLevel: yearLevel,
             classSectionId: formData.classSectionId || undefined,
@@ -240,7 +240,7 @@ export default function UsersManager({ organizationId, activeTab, students, staf
       } else if (activeTab === "parents") {
         const res = await createParentLink({
           organizationId,
-          studentId: parentForm.studentId,
+          studentDataId: parentForm.studentDataId,
           name: parentForm.name,
           email: parentForm.email,
           relationship: parentForm.relationship || undefined,
@@ -279,7 +279,7 @@ export default function UsersManager({ organizationId, activeTab, students, staf
   const renderStudentsTable = () => {
     const filtered = students.filter((s) =>
       `${s.firstName} ${s.lastName}`.toLowerCase().includes(search.toLowerCase()) ||
-      s.studentId?.toLowerCase().includes(search.toLowerCase())
+      s.studentDataId?.toLowerCase().includes(search.toLowerCase())
     );
 
     return (
@@ -301,7 +301,7 @@ export default function UsersManager({ organizationId, activeTab, students, staf
             ) : (
               filtered.map((s) => (
                 <tr key={s.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-4 font-medium text-slate-800">#{s.studentId}</td>
+                  <td className="px-6 py-4 font-medium text-slate-800">#{s.studentDataId}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold uppercase">
@@ -682,8 +682,8 @@ export default function UsersManager({ organizationId, activeTab, students, staf
                 <label className="text-sm font-medium text-slate-700">Child</label>
                 <select
                   required
-                  value={parentForm.studentId}
-                  onChange={(e) => setParentForm({ ...parentForm, studentId: e.target.value })}
+                  value={parentForm.studentDataId}
+                  onChange={(e) => setParentForm({ ...parentForm, studentDataId: e.target.value })}
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 >
                   {students.length === 0 && <option value="">No students yet</option>}
@@ -725,7 +725,7 @@ export default function UsersManager({ organizationId, activeTab, students, staf
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting || !parentForm.studentId}
+                  disabled={isSubmitting || !parentForm.studentDataId}
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? "Saving..." : "Add Parent"}

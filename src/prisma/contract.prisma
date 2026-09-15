@@ -1,3 +1,323 @@
+
+model Person {
+  id             String             @id @default(uuid())
+  firstName      String
+  lastName       String
+  dateOfBirth    DateTime?
+  
+  account        Account?           
+  identifiers    PersonIdentifier[]
+  profile        ResidentProfile?
+  
+  memberships    Membership[]
+  relationships  Relationship[]
+  
+  guardianLinks  FamilyLink[]       @relation("GuardianToWard")
+  wardLinks      FamilyLink[]       @relation("WardToGuardian")
+  wallets        Wallet[]
+
+  gigProfile     GigWorkerProfile?
+  requestedTasks Task[]             @relation("TaskRequester")
+        tickets        Ticket[]           @relation("UserTickets")
+  bookings       Booking[]          @relation("UserBookings")
+        postLikes      PostLike[]
+  comments       Comment[]          @relation("UserComments")
+  noticeReads    NoticeRead[]       @relation("UserNoticeReads")
+  sentMessages   Message[]          @relation("SentMessages")
+  receivedMessages MessageRecipient[] @relation("ReceivedMessages")
+  enrolmentRequests EnrolmentRequest[] @relation("RequestedBy")
+          createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @default(now())
+}
+
+model PersonIdentifier {
+  id              String   @id @default(uuid())
+  personId        String
+  type            String   
+  normalizedValue String   
+  isVerified      Boolean  @default(false)
+  verifiedAt      DateTime?
+  
+  person          Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  claims          IdentityClaim[]
+  
+  @@unique([type, normalizedValue])
+  @@index([normalizedValue])
+}
+
+model Account {
+  id            String         @id @default(uuid())
+  personId      String         @unique
+  passwordHash  String?
+  isActive      Boolean        @default(true)
+  lastLoginAt   DateTime?
+  
+  person        Person         @relation(fields: [personId], references: [id], onDelete: Cascade)
+  providers     AuthProvider[]
+  
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @default(now())
+}
+
+model AuthProvider {
+  id                String   @id @default(uuid())
+  accountId         String
+  providerId        String   
+  providerAccountId String   
+  
+  account           Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  
+  @@unique([providerId, providerAccountId])
+}
+
+model ResidentProfile {
+  id        String  @id @default(uuid())
+  personId  String  @unique
+  avatarUrl String?
+  timezone  String  @default("UTC")
+  
+  person    Person  @relation(fields: [personId], references: [id], onDelete: Cascade)
+}
+
+model IdentityClaim {
+  id                 String           @id @default(uuid())
+  personIdentifierId String
+  claimedByAccountId String
+  status             String           
+  claimedAt          DateTime         @default(now())
+  resolvedAt         DateTime?
+  
+  identifier         PersonIdentifier @relation(fields: [personIdentifierId], references: [id], onDelete: Cascade)
+}
+
+model Membership {
+  createdNotices Notice[] @relation("UserNotices")
+  createdEvents SchoolEvent[] @relation("CreatedSchoolEvents")
+  studentNotes StudentNote[] @relation("UserStudentNotes")
+  reviewedRequests EnrolmentRequest[] @relation("ReviewedBy")
+  id             String       @id @default(uuid())
+  organizationId String
+  personId       String
+  
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  person         Person       @relation(fields: [personId], references: [id], onDelete: Cascade)
+  
+  roles          MembershipRole[]
+  locationAccess MembershipLocation[]
+  staffData      StaffData?
+
+  classes                 ClassTeacher[]
+  timetableSlots          TimetableSlot[]
+  timetableRequirements   TimetableRequirement[]
+  leaveRequests           LeaveRequest[]
+  attendance              StaffAttendance[]
+  subjects                TeacherSubject[]      
+  formClasses             ClassSection[]        @relation("ClassSectionFormTeacher")
+  doctorAppointments      Appointment[]         @relation("DoctorAppointments")
+  serviceAppointments     ServiceAppointment[]
+  serviceJobs             ServiceJob[]
+  
+  createdAt      DateTime     @default(now())
+  
+  @@unique([organizationId, personId])
+  @@index([personId])
+}
+
+model MembershipRole {
+  id           String     @id @default(uuid())
+  membershipId String
+  role         String     
+  
+  membership   Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  
+  @@unique([membershipId, role])
+}
+
+model MembershipLocation {
+  id           String     @id @default(uuid())
+  membershipId String
+  locationId   String
+  
+  membership   Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  location     Location   @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  
+  @@unique([membershipId, locationId])
+}
+
+model Relationship {
+  guestReservations Reservation[] @relation("GuestReservations")
+  id             String       @id @default(uuid())
+  organizationId String
+  personId       String
+  type           String       
+  
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  person         Person       @relation(fields: [personId], references: [id], onDelete: Cascade)
+  
+  studentData    StudentData?
+  customerData   CustomerData?
+  patientData    PatientData?
+  guardianAuths  GuardianAuthorization[]
+  
+  createdAt      DateTime     @default(now())
+  
+  @@unique([organizationId, personId, type])
+  @@index([personId])
+}
+
+model StudentData {
+  id             String       @id @default(uuid())
+  relationshipId String       @unique
+  admissionNo    String?
+  yearLevel      Int?
+  
+  classSectionId String?
+  classSection   ClassSection? @relation(fields: [classSectionId], references: [id])
+  
+  relationship   Relationship @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
+  
+  classEnrolments     ClassEnrolment[]
+  attendance          Attendance[]
+  grades              Grade[]
+  feeInvoices         FeeInvoice[]
+  documents           Document[]
+  exitRecord          StudentExit?
+  transferIn          StudentTransferIn?
+  behaviourIncidents  BehaviourIncident[]
+  suspensions         Suspension[]
+  truancyAlerts       TruancyAlert[]
+  notes               StudentNote[]
+  waitlistEntries     WaitlistEntry[]
+  enrolmentRequests   EnrolmentRequest[]
+}
+
+model CustomerData {
+  restaurantOrders RestaurantOrder[] @relation("CustomerRestaurantOrders")
+  id             String       @id @default(uuid())
+  relationshipId String       @unique
+  loyaltyPoints  Int          @default(0)
+  notes          String?
+  
+  relationship   Relationship @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
+
+  retailOrders   RetailOrder[]
+  appointments   ServiceAppointment[]
+  jobs           ServiceJob[]
+  quotes         ServiceJobQuote[]
+  invoices       ServiceInvoice[]
+}
+
+model PatientData {
+  appointments Appointment[] @relation("PatientAppointments")
+  prescriptions Prescription[] @relation("PatientPrescriptions")
+  pharmacyOrders PharmacyOrder[] @relation("PatientPharmacyOrders")
+  id             String       @id @default(uuid())
+  relationshipId String       @unique
+  medicalNotes   String?
+  
+  relationship   Relationship @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
+}
+
+model StaffData {
+  id             String       @id @default(uuid())
+  membershipId   String       @unique
+  employeeId     String?
+  bio            String?
+  
+  membership     Membership   @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+}
+
+model Invitation {
+  id             String       @id @default(uuid())
+  organizationId String
+  email          String?
+  phone          String?
+  role           String
+  token          String       @unique
+  expiresAt      DateTime
+  
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model FamilyLink {
+  id               String   @id @default(uuid())
+  guardianPersonId String
+  wardPersonId     String
+  type             String   
+  
+  guardian         Person   @relation("GuardianToWard", fields: [guardianPersonId], references: [id], onDelete: Cascade)
+  ward             Person   @relation("WardToGuardian", fields: [wardPersonId], references: [id], onDelete: Cascade)
+  
+  @@unique([guardianPersonId, wardPersonId])
+}
+
+model GuardianAuthorization {
+  id                 String       @id @default(uuid())
+  organizationId     String
+  guardianPersonId   String
+  wardRelationshipId String
+  permissions        String       
+  
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  wardRelationship   Relationship @relation(fields: [wardRelationshipId], references: [id], onDelete: Cascade)
+  
+  @@unique([organizationId, guardianPersonId, wardRelationshipId])
+}
+
+model Location {
+  id             String       @id @default(uuid())
+  organizationId String
+  name           String
+  address        String?
+  
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  memberAccess   MembershipLocation[]
+}
+
+model Wallet {
+  id             String       @id @default(uuid())
+  balance        Float        @default(0.0)
+  currency       String       @default("USD")
+  
+  personId       String?      
+  organizationId String?      
+  
+  person         Person?      @relation(fields: [personId], references: [id], onDelete: Restrict)
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  
+  entries        LedgerEntry[]
+  
+  @@unique([personId])
+  @@unique([organizationId])
+}
+
+model Transaction {
+  id             String       @id @default(uuid())
+  status         String       
+  reference      String?
+  description    String?
+  
+  entries        LedgerEntry[]
+  
+  createdAt      DateTime     @default(now())
+}
+
+model LedgerEntry {
+  id             String       @id @default(uuid())
+  walletId       String
+  transactionId  String
+  amount         Float        
+  currency       String
+  
+  wallet         Wallet       @relation(fields: [walletId], references: [id], onDelete: Restrict)
+  transaction    Transaction  @relation(fields: [transactionId], references: [id], onDelete: Restrict)
+  
+  createdAt      DateTime     @default(now())
+  
+  @@index([walletId])
+  @@index([transactionId])
+}
+
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
@@ -6,67 +326,11 @@
 // UNIVERSAL IDENTITY (NextAuth Standard Models + CityConnect Additions)
 // ----------------------------------------------------------------------------
 
-model Account {
-  id                String  @id @default(uuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([provider, providerAccountId])
-}
 
-model Session {
-  id           String   @id @default(uuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
 
-model User {
-  id            String    @id @default(uuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  
-  // CityConnect specific fields
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @default(now())
-  
-  // Relationships
-  accounts           Account[]
-  sessions           Session[]
-  organizations      OrganizationMember[] // Link to businesses they own/manage
-  wallet             Wallet?              // The Resident's CityPay Wallet
-  gigProfile         GigWorkerProfile?    // If they are a Courier
-  requestedTasks     Task[]               @relation("TaskRequester")
-  acceptedTasks      Task[]               @relation("TaskCourier")
-  reservations       Reservation[]        @relation("GuestReservations")
-  restaurantOrders   RestaurantOrder[]    @relation("ResidentRestaurantOrders")
-  tickets            Ticket[]             @relation("UserTickets")
-  bookings           Booking[]            @relation("UserBookings")
-  comments           Comment[]            @relation("UserComments")
-  appointments       Appointment[]        @relation("PatientAppointments")
-  prescriptions      Prescription[]       @relation("PatientPrescriptions")
-  studentParents     StudentParent[]      @relation("UserStudentParents")
-  studentNotes       StudentNote[]        @relation("UserStudentNotes")
-  
-  // CityOS Universal CRM & ServiceOS
-  orgCustomers       OrgCustomer[]        @relation("UserOrgCustomers")
-  serviceStaff       ServiceStaff[]       @relation("UserServiceStaff")
-  pharmacyOrders     PharmacyOrder[]      @relation("ResidentPharmacyOrders")
-}
+
 
 // ----------------------------------------------------------------------------
 // CITY REGISTRY (CityContext)
@@ -119,8 +383,6 @@ model Organization {
   cityId      String?
   city        City?    @relation("CityOrganizations", fields: [cityId], references: [id])
 
-  members     OrganizationMember[]
-  wallet      Wallet?
   posts       Post[]
   tasks       Task[]               @relation("OrganizationTasks")
   hotelRooms  HotelRoom[]          @relation("HotelRooms")
@@ -132,7 +394,6 @@ model Organization {
   outletOrders OutletOrder[]       @relation("HotelOutletOrders")
   maintenanceTickets MaintenanceTicket[] @relation("HotelMaintenanceTickets")
   nightAudits NightAuditReport[]   @relation("HotelNightAudits")
-  students    Student[]            @relation("SchoolStudents")
   menuItems   MenuItem[]           @relation("RestaurantMenuItems")
   restaurantOrders RestaurantOrder[] @relation("RestaurantOrders")
   events      Event[]              @relation("OrganizationEvents")
@@ -153,18 +414,14 @@ model Organization {
   retailRegisters     RetailRegister[]     @relation("OrgRetailRegisters")
   retailShifts        RetailShift[]        @relation("OrgRetailShifts")
   retailExpenses      RetailExpense[]      @relation("OrgRetailExpenses")
-  retailCustomers     RetailCustomer[]     @relation("OrgRetailCustomers")
   retailSettings      RetailSettings?      @relation("OrgRetailSettings")
 
   // CityOS Universal CRM
-  orgCustomers        OrgCustomer[]        @relation("OrgCustomers")
-
   // ServiceOS
   serviceSettings     ServiceSettings?     @relation("OrgServiceSettings")
   serviceCategories   ServiceCategory[]    @relation("OrgServiceCategories")
   serviceCatalogItems ServiceCatalogItem[] @relation("OrgServiceCatalogItems")
   serviceAddons       ServiceAddon[]       @relation("OrgServiceAddons")
-  serviceStaff        ServiceStaff[]       @relation("OrgServiceStaff")
   serviceAppointments ServiceAppointment[] @relation("OrgServiceAppointments")
   serviceJobs         ServiceJob[]         @relation("OrgServiceJobs")
   serviceQuotes       ServiceJobQuote[]       @relation("OrgServiceQuotes")
@@ -233,19 +490,7 @@ model RetailSettings {
   updatedAt      DateTime     @default(now())
 }
 
-model OrganizationMember {
-  id             String       @id @default(uuid())
-  userId         String
-  organizationId String
-  role           OrgRole      @default(STAFF)
-  createdAt      DateTime     @default(now())
 
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  appointments   Appointment[] @relation("DoctorAppointments")
-
-  @@unique([userId, organizationId])
-}
 
 // ----------------------------------------------------------------------------
 // MICROSITE BUILDER (cross-vertical: one dedicated public website per
@@ -371,52 +616,25 @@ enum WalletType {
   ORGANIZATION
 }
 
-model Wallet {
-  id             String        @id @default(uuid())
-  balance        Float         @default(0.0)
-  type           WalletType
-  
-  // A wallet belongs to either a User or an Organization
-  userId         String?       @unique
-  organizationId String?       @unique
-  
-  user           User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  // Transactions where this wallet is the sender or receiver
-  sentTransactions     Transaction[] @relation("SenderWallet")
-  receivedTransactions Transaction[] @relation("ReceiverWallet")
-}
 
-model Transaction {
-  id               String   @id @default(uuid())
-  amount           Float
-  currency         String   @default("USD")
-  status           String   @default("COMPLETED") // PENDING, COMPLETED, FAILED
-  description      String?
-  createdAt        DateTime @default(now())
 
-  senderWalletId   String
-  receiverWalletId String
-
-  senderWallet     Wallet   @relation("SenderWallet", fields: [senderWalletId], references: [id])
-  receiverWallet   Wallet   @relation("ReceiverWallet", fields: [receiverWalletId], references: [id])
-}
 
 // ----------------------------------------------------------------------------
 // CITYDRIVE (Logistics Engine)
 // ----------------------------------------------------------------------------
 
 model GigWorkerProfile {
+  acceptedTasks Task[] @relation("TaskCourier")
   id             String   @id @default(uuid())
-  userId         String   @unique
+  personId         String   @unique
   vehicleType    String?  // CAR, BIKE, SCOOTER
   licensePlate   String?
   isOnline       Boolean  @default(false)
   rating         Float    @default(5.0)
   createdAt      DateTime @default(now())
 
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  person           Person     @relation(fields: [personId], references: [id], onDelete: Cascade)
 }
 
 enum TaskType {
@@ -444,12 +662,12 @@ model Task {
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @default(now())
 
-  requesterId      String       // The Resident who ordered the ride/food
-  courierId        String?      // The Courier who accepted it
+  requesterPersonId      String       // The Resident who ordered the ride/food
+  courierProfileId        String?      // The Courier who accepted it
   organizationId   String?      // The Restaurant that prepared the food (optional)
 
-  requester        User          @relation("TaskRequester", fields: [requesterId], references: [id])
-  courier          User?         @relation("TaskCourier", fields: [courierId], references: [id])
+  requester        Person          @relation("TaskRequester", fields: [requesterPersonId], references: [id])
+  courier          GigWorkerProfile?         @relation("TaskCourier", fields: [courierProfileId], references: [id])
   organization     Organization? @relation("OrganizationTasks", fields: [organizationId], references: [id])
   quote            ServiceQuote?
 }
@@ -485,14 +703,14 @@ model Post {
 model PostLike {
   id             String       @id @default(uuid())
   postId         String
-  userId         String
+  personId         String
   
   post           Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  person           Person         @relation(fields: [personId], references: [id], onDelete: Cascade)
   
   createdAt      DateTime     @default(now())
 
-  @@unique([postId, userId])
+  @@unique([postId, personId])
 }
 
 model Comment {
@@ -500,10 +718,10 @@ model Comment {
   content        String
   
   postId         String
-  userId         String
+  personId         String
   
   post           Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user           User         @relation("UserComments", fields: [userId], references: [id], onDelete: Cascade)
+  person           Person         @relation("UserComments", fields: [personId], references: [id], onDelete: Cascade)
   
   createdAt      DateTime     @default(now())
 }
@@ -546,7 +764,7 @@ enum ReservationStatus {
 model Reservation {
   id             String       @id @default(uuid())
   guestName      String
-  guestId        String?      // Optional link to a Resident User
+  guestRelationshipId        String?      // Optional link to a Resident User
   roomId         String?
   status         ReservationStatus @default(CONFIRMED)
   checkInDate    DateTime
@@ -557,7 +775,7 @@ model Reservation {
 
   organizationId String
 
-  guest          User?        @relation("GuestReservations", fields: [guestId], references: [id])
+  guestRelationship          Relationship?        @relation("GuestReservations", fields: [guestRelationshipId], references: [id])
   room           HotelRoom?   @relation(fields: [roomId], references: [id])
   roomBlock      RoomBlock?   @relation(fields: [roomBlockId], references: [id], onDelete: SetNull)
   organization   Organization @relation("HotelReservations", fields: [organizationId], references: [id], onDelete: Cascade)
@@ -824,40 +1042,14 @@ model Term {
   @@unique([academicYearId, termNumber])
 }
 
-model StaffProfile {
-  id             String             @id @default(uuid())
-  organizationId String
-  organization   Organization       @relation("SchoolStaffProfiles", fields: [organizationId], references: [id], onDelete: Cascade)
-  memberId       String             @unique
-  member         OrganizationMember @relation("MemberStaffProfile", fields: [memberId], references: [id], onDelete: Cascade)
-  
-  employeeId     String
-  jobTitle       String?
-  department     String?
-  dateHired      DateTime?
-  dateLeft       DateTime?
-  employmentType String    @default("full-time")
-  bio            String?
-  qualifications String?
 
-  allowParentReplies      Boolean               @default(true)
-
-  classes                 ClassTeacher[]
-  timetableSlots          TimetableSlot[]
-  timetableRequirements   TimetableRequirement[]
-  leaveRequests           LeaveRequest[]
-  attendance              StaffAttendance[]
-  subjects                TeacherSubject[]      @relation("StaffSubjects")
-
-  @@unique([organizationId, employeeId])
-}
 
 model LeaveRequest {
   id             String       @id @default(uuid())
   organizationId String
   organization   Organization @relation("SchoolLeaveRequests", fields: [organizationId], references: [id], onDelete: Cascade)
 
-  staffId    String
+  membershipId    String
   type       String
   startDate  DateTime
   endDate    DateTime
@@ -867,7 +1059,7 @@ model LeaveRequest {
   notes      String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @default(now())
-  staff      StaffProfile    @relation(fields: [staffId], references: [id])
+  staff      Membership    @relation(fields: [membershipId], references: [id])
 }
 
 model StaffAttendance {
@@ -875,100 +1067,33 @@ model StaffAttendance {
   organizationId String
   organization   Organization @relation("SchoolStaffAttendances", fields: [organizationId], references: [id], onDelete: Cascade)
 
-  staffId String
+  membershipId String
   date    DateTime
   status  String
   notes   String?
-  staff   StaffProfile    @relation(fields: [staffId], references: [id])
+  staff   Membership    @relation(fields: [membershipId], references: [id])
 
-  @@unique([staffId, date])
+  @@unique([membershipId, date])
 }
 
-model Student {
-  id             String       @id @default(uuid())
-  organizationId String
-  organization   Organization @relation("SchoolStudents", fields: [organizationId], references: [id], onDelete: Cascade)
 
-  studentId         String
-  firstName         String
-  middleName        String?
-  lastName          String
-  dateOfBirth       DateTime?
-  gender            String?
-  address           String?
-  yearLevel         Int?
-  enrollmentDate    DateTime @default(now())
-  enrollmentStatus  String   @default("active")
-  nsn               String?   
-  nationality       String?
-  ethnicity         String?
-  indigenousStatus  String?   
-  languageBackground String?  
-  religion          String?
-  languages         String?
-  medicalConditions String?
-  allergies         String?
-  medications       String?
-  doctorName        String?
-  doctorPhone       String?
-  emergencyName     String?
-  emergencyPhone    String?
-  emergencyRelation String?
-
-  guardianId          String?
-  guardian            User?              @relation("GuardianStudents", fields: [guardianId], references: [id])
-  classSectionId      String?
-  classSection        ClassSection?      @relation(fields: [classSectionId], references: [id])
-  parents             StudentParent[]
-  classEnrolments     ClassEnrolment[]
-  attendance          Attendance[]
-  grades              Grade[]
-  feeInvoices         FeeInvoice[]
-  documents           Document[]
-  exitRecord          StudentExit?
-  transferIn          StudentTransferIn?
-  behaviourIncidents  BehaviourIncident[]
-  suspensions         Suspension[]
-  truancyAlerts       TruancyAlert[]
-  notes               StudentNote[]
-  waitlistEntries     WaitlistEntry[]
-  enrolmentRequests   EnrolmentRequest[]
-
-  createdAt           DateTime @default(now())
-
-  @@unique([organizationId, studentId])
-}
 
 
 
 // ----------------------------------------------------------------------------
-model StudentParent {
-  id             String       @id @default(uuid())
-  organizationId String
-  organization   Organization @relation("SchoolStudentParents", fields: [organizationId], references: [id], onDelete: Cascade)
 
-  studentId String
-  parentId  String
-  isPrimary Boolean @default(false)
-  relationship String?
-  
-  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  parent    User    @relation("UserStudentParents", fields: [parentId], references: [id], onDelete: Cascade)
-
-  @@unique([studentId, parentId])
-}
 
 model Document {
   id             String       @id @default(uuid())
   organizationId String
   organization   Organization @relation("SchoolDocuments", fields: [organizationId], references: [id], onDelete: Cascade)
 
-  studentId  String
+  studentDataId  String
   name       String
   type       String
   filePath   String
   uploadedAt DateTime @default(now())
-  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student    StudentData  @relation(fields: [studentDataId], references: [id], onDelete: Cascade)
 }
 
 model StudentNote {
@@ -976,15 +1101,15 @@ model StudentNote {
   organizationId String
   organization   Organization @relation("SchoolStudentNotes", fields: [organizationId], references: [id], onDelete: Cascade)
 
-  studentId String
-  authorId  String
+  studentDataId String
+  authorMembershipId  String
   content   String
   type      String   @default("general") // general | academic | medical | behaviour | pastoral
   private   Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
-  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  author    User     @relation("UserStudentNotes", fields: [authorId], references: [id], onDelete: Cascade)
+  student   StudentData  @relation(fields: [studentDataId], references: [id], onDelete: Cascade)
+  author    Membership     @relation("UserStudentNotes", fields: [authorMembershipId], references: [id], onDelete: Cascade)
 }
 
 model WaitlistEntry {
@@ -993,14 +1118,14 @@ model WaitlistEntry {
   organization   Organization @relation("SchoolWaitlistEntries", fields: [organizationId], references: [id], onDelete: Cascade)
 
   classId   String
-  studentId String
+  studentDataId String
   position  Int
   addedAt   DateTime @default(now())
   notes     String?
   class     SchoolClass    @relation(fields: [classId], references: [id], onDelete: Cascade)
-  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student   StudentData  @relation(fields: [studentDataId], references: [id], onDelete: Cascade)
 
-  @@unique([classId, studentId])
+  @@unique([classId, studentDataId])
 }
 
 model EnrolmentRequest {
@@ -1009,21 +1134,21 @@ model EnrolmentRequest {
   organization     Organization @relation("SchoolEnrolmentRequests", fields: [organizationId], references: [id], onDelete: Cascade)
 
   classId          String
-  studentId        String
-  requestedById    String
+  studentDataId        String
+  requestedByPersonId    String
   message          String?
   status           String    @default("pending") // pending | approved | rejected
-  reviewedById     String?
+  reviewedByMembershipId     String?
   reviewedAt       DateTime?
   rejectionReason  String?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @default(now())
   class            SchoolClass     @relation(fields: [classId], references: [id], onDelete: Cascade)
-  student          Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  requestedBy      User      @relation("RequestedBy", fields: [requestedById], references: [id])
-  reviewedBy       User?     @relation("ReviewedBy", fields: [reviewedById], references: [id])
+  student          StudentData   @relation(fields: [studentDataId], references: [id], onDelete: Cascade)
+  requestedBy      Person      @relation("RequestedBy", fields: [requestedByPersonId], references: [id])
+  reviewedBy       Membership?     @relation("ReviewedBy", fields: [reviewedByMembershipId], references: [id])
 
-  @@unique([classId, studentId])
+  @@unique([classId, studentDataId])
 }
 
 model SchoolClass {
@@ -1061,24 +1186,24 @@ model SchoolClass {
 model ClassTeacher {
   id        String       @id @default(uuid())
   classId   String
-  staffId   String
+  membershipId   String
   isPrimary Boolean @default(false)
   class     SchoolClass   @relation(fields: [classId], references: [id], onDelete: Cascade)
-  staff     StaffProfile   @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staff     Membership   @relation(fields: [membershipId], references: [id], onDelete: Cascade)
 
-  @@unique([classId, staffId])
+  @@unique([classId, membershipId])
 }
 
 model ClassEnrolment {
   id         String   @id @default(uuid())
   classId    String
-  studentId  String
+  studentDataId  String
   enrolledAt DateTime @default(now())
   status     String   @default("active")
   class      SchoolClass    @relation(fields: [classId], references: [id], onDelete: Cascade)
-  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student    StudentData  @relation(fields: [studentDataId], references: [id], onDelete: Cascade)
 
-  @@unique([classId, studentId])
+  @@unique([classId, studentDataId])
 }
 
 // A "class arm" is a year-level section/stream (e.g. "Grade 10 - A") that a
@@ -1111,10 +1236,10 @@ model ClassSection {
   grade          SchoolGrade  @relation(fields: [gradeId], references: [id])
 
   name           String // "A", "B", "Gold"...
-  formTeacherId  String?
-  formTeacher    StaffProfile? @relation("ClassSectionFormTeacher", fields: [formTeacherId], references: [id])
+  formMembershipId  String?
+  formTeacher    Membership? @relation("ClassSectionFormTeacher", fields: [formMembershipId], references: [id])
 
-  students       Student[]
+  students       StudentData[]
   classes        SchoolClass[]
 
   createdAt      DateTime     @default(now())
@@ -1144,14 +1269,14 @@ model Subject {
 
 model TeacherSubject {
   id        String       @id @default(uuid())
-  staffId   String
-  staff     StaffProfile @relation("StaffSubjects", fields: [staffId], references: [id], onDelete: Cascade)
+  membershipId   String
+  staff     Membership @relation("StaffSubjects", fields: [membershipId], references: [id], onDelete: Cascade)
   subjectId String
   subject   Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
   createdAt DateTime     @default(now())
 
-  @@unique([staffId, subjectId])
+  @@unique([membershipId, subjectId])
 }
 
 enum SyllabusTopicStatus {
@@ -1200,7 +1325,7 @@ model Room {
 model TimetableSlot {
   id        String  @id @default(uuid())
   classId   String
-  staffId   String?
+  membershipId   String?
   roomId    String?
   dayOfWeek Int
   period    Int
@@ -1208,37 +1333,37 @@ model TimetableSlot {
   endTime   String
   notes     String?
   class     SchoolClass   @relation(fields: [classId], references: [id], onDelete: Cascade)
-  staff     StaffProfile?  @relation(fields: [staffId], references: [id])
+  staff     Membership?  @relation(fields: [membershipId], references: [id])
   room      Room?   @relation(fields: [roomId], references: [id])
 }
 
 model TimetableRequirement {
   id              String  @id @default(uuid())
   classId         String
-  staffId         String?
+  membershipId         String?
   preferredRoomId String?
   periodsPerWeek  Int
   label           String?  // e.g. "Math with Mr Smith"
   class           SchoolClass   @relation(fields: [classId], references: [id], onDelete: Cascade)
-  staff           StaffProfile?  @relation(fields: [staffId], references: [id])
+  staff           Membership?  @relation(fields: [membershipId], references: [id])
   preferredRoom   Room?   @relation(fields: [preferredRoomId], references: [id])
 
-  @@unique([classId, staffId])
+  @@unique([classId, membershipId])
 }
 
 model Attendance {
   id         String   @id @default(uuid())
-  studentId  String
+  studentDataId  String
   termId     String
   date       DateTime
   status     String
   notes      String?
   markedById String?
   markedAt   DateTime @default(now())
-  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student    StudentData  @relation(fields: [studentDataId], references: [id], onDelete: Cascade)
   term       Term     @relation(fields: [termId], references: [id])
 
-  @@unique([studentId, date])
+  @@unique([studentDataId, date])
 }
 
 model Gradebook {
@@ -1260,7 +1385,7 @@ model Gradebook {
 model Grade {
   id          String    @id @default(uuid())
   gradebookId String
-  studentId   String
+  studentDataId   String
   score       Float?
   grade       String?
   comment     String?
@@ -1269,9 +1394,9 @@ model Grade {
   gradedAt      DateTime?
   gradedById    String?
   gradebook   Gradebook @relation(fields: [gradebookId], references: [id], onDelete: Cascade)
-  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student     StudentData   @relation(fields: [studentDataId], references: [id], onDelete: Cascade)
 
-  @@unique([gradebookId, studentId])
+  @@unique([gradebookId, studentDataId])
 }
 
 model ReportCard {
@@ -1279,7 +1404,7 @@ model ReportCard {
   organizationId String
   organization   Organization @relation("SchoolReportCards", fields: [organizationId], references: [id], onDelete: Cascade)
 
-  studentId      String
+  studentDataId      String
   termId         String
   academicYear   Int
   comments       String?
@@ -1291,7 +1416,7 @@ model ReportCard {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @default(now())
 
-  @@unique([studentId, termId])
+  @@unique([studentDataId, termId])
 }
 
 model GradingScale {
@@ -1326,7 +1451,7 @@ model Notice {
   organizationId String
   organization   Organization @relation("SchoolNotices", fields: [organizationId], references: [id], onDelete: Cascade)
 
-  authorId    String
+  authorMembershipId    String
   title       String
   body        String
   category    String    @default("general")
@@ -1337,19 +1462,19 @@ model Notice {
   pinned      Boolean   @default(false)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @default(now())
-  author      User       @relation("UserNotices", fields: [authorId], references: [id])
+  author      Membership       @relation("UserNotices", fields: [authorMembershipId], references: [id])
   reads       NoticeRead[]
 }
 
 model NoticeRead {
   id        String   @id @default(uuid())
   noticeId  String
-  userId    String
+  personId    String
   readAt    DateTime @default(now())
   notice    Notice   @relation(fields: [noticeId], references: [id], onDelete: Cascade)
-  user      User     @relation("UserNoticeReads", fields: [userId], references: [id], onDelete: Cascade)
+  person      Person     @relation("UserNoticeReads", fields: [personId], references: [id], onDelete: Cascade)
 
-  @@unique([noticeId, userId])
+  @@unique([noticeId, personId])
 }
 
 model Message {
@@ -1357,13 +1482,13 @@ model Message {
   organizationId String
   organization   Organization       @relation("SchoolMessages", fields: [organizationId], references: [id], onDelete: Cascade)
 
-  senderId   String
+  senderPersonId   String
   subject    String?
   body       String
   parentId   String?            // null = root message; set = reply
   threadId   String             // denormalized root message id (equals id for root)
   createdAt  DateTime           @default(now())
-  sender     User               @relation("SentMessages", fields: [senderId], references: [id])
+  sender     Person               @relation("SentMessages", fields: [senderPersonId], references: [id])
   recipients MessageRecipient[]
   parent     Message?           @relation("Replies", fields: [parentId], references: [id])
   replies    Message[]          @relation("Replies")
@@ -1374,12 +1499,12 @@ model Message {
 model MessageRecipient {
   id        String   @id @default(uuid())
   messageId String
-  userId    String
+  personId    String
   readAt    DateTime?
   message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  user      User     @relation("ReceivedMessages", fields: [userId], references: [id], onDelete: Cascade)
+  person      Person     @relation("ReceivedMessages", fields: [personId], references: [id], onDelete: Cascade)
 
-  @@unique([messageId, userId])
+  @@unique([messageId, personId])
 }
 
 model EmailLog {
@@ -1418,11 +1543,11 @@ model AttendanceCode {
 model AttendanceCodeUsage {
   id        String         @id @default(uuid())
   codeId    String
-  studentId String
+  studentDataId String
   usedAt    DateTime       @default(now())
   code      AttendanceCode @relation(fields: [codeId], references: [id], onDelete: Cascade)
 
-  @@unique([codeId, studentId])
+  @@unique([codeId, studentDataId])
 }
 
 model FeeType {
@@ -1444,7 +1569,7 @@ model FeeInvoice {
   organizationId String
   organization   Organization     @relation("SchoolFeeInvoices", fields: [organizationId], references: [id], onDelete: Cascade)
 
-  studentId   String
+  studentDataId   String
   issueDate   DateTime         @default(now())
   dueDate     DateTime
   status      String           @default("unpaid")
@@ -1454,7 +1579,7 @@ model FeeInvoice {
   lastReminderSentAt DateTime?
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @default(now())
-  student     Student          @relation(fields: [studentId], references: [id])
+  student     StudentData          @relation(fields: [studentDataId], references: [id])
   items       FeeInvoiceItem[]
   payments    FeePayment[]
 }
@@ -1486,7 +1611,7 @@ model StudentExit {
   organizationId String
   organization   Organization @relation("SchoolStudentExits", fields: [organizationId], references: [id], onDelete: Cascade)
 
-  studentId         String   @unique
+  studentDataId         String   @unique
   exitType          String   // withdrawn | transferred | expelled | graduated | deceased | other
   exitDate          DateTime
   reason            String?
@@ -1497,7 +1622,7 @@ model StudentExit {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @default(now())
 
-  student           Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student           StudentData  @relation(fields: [studentDataId], references: [id], onDelete: Cascade)
 }
 
 model StudentTransferIn {
@@ -1505,7 +1630,7 @@ model StudentTransferIn {
   organizationId String
   organization   Organization @relation("SchoolStudentTransfersIn", fields: [organizationId], references: [id], onDelete: Cascade)
 
-  studentId       String   @unique
+  studentDataId       String   @unique
   previousSchool  String
   previousYearLevel Int?
   transferDate    DateTime
@@ -1517,7 +1642,7 @@ model StudentTransferIn {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @default(now())
 
-  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student         StudentData  @relation(fields: [studentDataId], references: [id], onDelete: Cascade)
 }
 
 model BehaviourIncident {
@@ -1525,7 +1650,7 @@ model BehaviourIncident {
   organizationId String
   organization   Organization @relation("SchoolBehaviourIncidents", fields: [organizationId], references: [id], onDelete: Cascade)
 
-  studentId    String
+  studentDataId    String
   reportedById String      
   date         DateTime
   description  String
@@ -1540,7 +1665,7 @@ model BehaviourIncident {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @default(now())
 
-  student      Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student      StudentData     @relation(fields: [studentDataId], references: [id], onDelete: Cascade)
   suspensions  Suspension[]
 }
 
@@ -1549,7 +1674,7 @@ model Suspension {
   organizationId String
   organization   Organization      @relation("SchoolSuspensions", fields: [organizationId], references: [id], onDelete: Cascade)
 
-  studentId        String
+  studentDataId        String
   incidentId       String?           
   type             String            @default("out-of-school") 
   startDate        DateTime
@@ -1565,7 +1690,7 @@ model Suspension {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @default(now())
 
-  student          Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student          StudentData           @relation(fields: [studentDataId], references: [id], onDelete: Cascade)
   incident         BehaviourIncident? @relation(fields: [incidentId], references: [id])
 }
 
@@ -1574,7 +1699,7 @@ model TruancyAlert {
   organizationId String
   organization   Organization @relation("SchoolTruancyAlerts", fields: [organizationId], references: [id], onDelete: Cascade)
 
-  studentId         String
+  studentDataId         String
   termId            String
   consecutiveAbsences Int    
   totalUnexcused    Int      
@@ -1583,7 +1708,7 @@ model TruancyAlert {
   resolvedBy        String?
   notes             String?
 
-  student           Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student           StudentData  @relation(fields: [studentDataId], references: [id], onDelete: Cascade)
 }
 
 model SchoolEvent {
@@ -1599,11 +1724,11 @@ model SchoolEvent {
   category    String   @default("academic") // academic | sports | cultural | admin | holiday
   targetRoles String   @default("all")      // JSON array or "all"
   targetYears String   @default("all")      // JSON array or "all"
-  createdById String
+  createdByMembershipId String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now())
 
-  createdBy   User     @relation("CreatedSchoolEvents", fields: [createdById], references: [id])
+  createdBy   Membership     @relation("CreatedSchoolEvents", fields: [createdByMembershipId], references: [id])
 }
 
 
@@ -1648,10 +1773,10 @@ model RestaurantOrder {
   tableNumber    String?      // If DINE_IN
   
   organizationId String
-  residentId     String?      // The user who placed the order
+  customerDataId     String?      // The user who placed the order
   
   organization   Organization @relation("RestaurantOrders", fields: [organizationId], references: [id], onDelete: Cascade)
-  resident       User?        @relation("ResidentRestaurantOrders", fields: [residentId], references: [id])
+  customer       CustomerData?        @relation("CustomerRestaurantOrders", fields: [customerDataId], references: [id])
   
   items          OrderItem[]
   
@@ -1695,11 +1820,11 @@ model Event {
 model Ticket {
   id             String       @id @default(uuid())
   eventId        String
-  userId         String
+  personId         String
   status         String       @default("VALID") // VALID, SCANNED, REFUNDED
   
   event          Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  user           User         @relation("UserTickets", fields: [userId], references: [id], onDelete: Cascade)
+  person           Person         @relation("UserTickets", fields: [personId], references: [id], onDelete: Cascade)
   
   createdAt      DateTime     @default(now())
 }
@@ -1728,14 +1853,14 @@ enum BookingStatus {
 model Booking {
   id             String         @id @default(uuid())
   resourceId     String
-  userId         String
+  personId         String
   startDate      DateTime
   endDate        DateTime
   status         BookingStatus  @default(CONFIRMED)
   totalPrice     Float
   
   resource       RentalResource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
-  user           User           @relation("UserBookings", fields: [userId], references: [id], onDelete: Cascade)
+  person           Person           @relation("UserBookings", fields: [personId], references: [id], onDelete: Cascade)
   
   createdAt      DateTime       @default(now())
 }
@@ -1757,12 +1882,12 @@ model Appointment {
   reason         String?
   status         AppointmentStatus  @default(SCHEDULED)
   
-  patientId      String
-  doctorId       String
+  patientDataId      String
+  staffMembershipId       String
   organizationId String
   
-  patient        User               @relation("PatientAppointments", fields: [patientId], references: [id], onDelete: Cascade)
-  doctor         OrganizationMember @relation("DoctorAppointments", fields: [doctorId], references: [id], onDelete: Cascade)
+  patient        PatientData               @relation("PatientAppointments", fields: [patientDataId], references: [id], onDelete: Cascade)
+  doctor         Membership @relation("DoctorAppointments", fields: [staffMembershipId], references: [id], onDelete: Cascade)
   organization   Organization       @relation("ClinicAppointments", fields: [organizationId], references: [id], onDelete: Cascade)
   
   createdAt      DateTime           @default(now())
@@ -1783,10 +1908,10 @@ model Prescription {
   instructions   String?
   status         PrescriptionStatus @default(ISSUED)
   
-  patientId      String
+  patientDataId      String
   organizationId String
   
-  patient        User               @relation("PatientPrescriptions", fields: [patientId], references: [id], onDelete: Cascade)
+  patient        PatientData               @relation("PatientPrescriptions", fields: [patientDataId], references: [id], onDelete: Cascade)
   organization   Organization       @relation("ClinicPrescriptions", fields: [organizationId], references: [id], onDelete: Cascade)
   
   createdAt      DateTime           @default(now())
@@ -1819,10 +1944,10 @@ model PharmacyOrder {
   status         PharmacyOrderStatus @default(PENDING)
   
   organizationId String
-  residentId     String?
+  patientDataId     String?
   
   organization   Organization        @relation("PharmacyOrders", fields: [organizationId], references: [id], onDelete: Cascade)
-  resident       User?               @relation("ResidentPharmacyOrders", fields: [residentId], references: [id], onDelete: Cascade)
+  patient       PatientData?               @relation("PatientPharmacyOrders", fields: [patientDataId], references: [id], onDelete: Cascade)
   
   items          PharmacyOrderItem[]
   
@@ -1973,8 +2098,8 @@ model RetailOrder {
   shiftId        String?
   shift          RetailShift? @relation(fields: [shiftId], references: [id])
   
-  customerId     String?      // If attached to a loyalty program/CityConnect user
-  customer       RetailCustomer? @relation(fields: [customerId], references: [id])
+  customerDataId     String?      // If attached to a loyalty program/CityConnect user
+  customer       CustomerData? @relation(fields: [customerDataId], references: [id])
   cashierId      String       // The user processing it
   
   totalAmount    Float
@@ -2068,51 +2193,13 @@ model RetailExpense {
 // since capturing a walk-in customer's name/phone at checkout shouldn't
 // require creating a full CityConnect account. totalSpent/visitCount are
 // derived from RetailOrder at read time rather than stored, to avoid drift.
-model RetailCustomer {
-  id             String       @id @default(uuid())
-  organizationId String
-  organization   Organization @relation("OrgRetailCustomers", fields: [organizationId], references: [id], onDelete: Cascade)
 
-  name          String
-  phone         String?
-  email         String?
-  notes         String?
-  loyaltyPoints Int      @default(0)
-
-  orders RetailOrder[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now())
-}
 
 // ============================================================================
 // CITYOS UNIVERSAL CRM
 // ============================================================================
 
-model OrgCustomer {
-  id             String       @id @default(uuid())
-  organizationId String
-  organization   Organization @relation("OrgCustomers", fields: [organizationId], references: [id], onDelete: Cascade)
-  
-  globalUserId   String?      
-  globalUser     User?        @relation("UserOrgCustomers", fields: [globalUserId], references: [id], onDelete: SetNull)
 
-  firstName      String
-  lastName       String
-  phone          String?
-  email          String?
-  address        String?
-  notes          String?
-  status         String       @default("ACTIVE")
-  
-  appointments   ServiceAppointment[]
-  jobs           ServiceJob[]
-  quotes         ServiceJobQuote[]
-  invoices       ServiceInvoice[]
-
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @default(now())
-}
 
 // ============================================================================
 // SERVICEOS MODULES
@@ -2191,41 +2278,21 @@ model ServiceAddon {
   updatedAt      DateTime @default(now())
 }
 
-model ServiceStaff {
-  id             String       @id @default(uuid())
-  organizationId String
-  organization   Organization @relation("OrgServiceStaff", fields: [organizationId], references: [id], onDelete: Cascade)
-  
-  userId         String?      
-  user           User?        @relation("UserServiceStaff", fields: [userId], references: [id], onDelete: SetNull)
 
-  name           String
-  phone          String?
-  email          String?
-  role           String       @default("TECHNICIAN")
-  isActive       Boolean      @default(true)
-  notes          String?
-
-  appointments   ServiceAppointment[]
-  jobs           ServiceJob[]
-
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @default(now())
-}
 
 model ServiceAppointment {
   id             String       @id @default(uuid())
   organizationId String
   organization   Organization @relation("OrgServiceAppointments", fields: [organizationId], references: [id], onDelete: Cascade)
 
-  customerId     String
-  customer       OrgCustomer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerDataId     String
+  customer       CustomerData  @relation(fields: [customerDataId], references: [id], onDelete: Cascade)
 
   serviceId      String
   service        ServiceCatalogItem @relation(fields: [serviceId], references: [id])
 
-  staffId        String?
-  staff          ServiceStaff? @relation(fields: [staffId], references: [id], onDelete: SetNull)
+  membershipId        String?
+  staff          Membership? @relation(fields: [membershipId], references: [id], onDelete: SetNull)
 
   startTime      DateTime
   endTime        DateTime
@@ -2257,14 +2324,14 @@ model ServiceJob {
   organizationId String
   organization   Organization @relation("OrgServiceJobs", fields: [organizationId], references: [id], onDelete: Cascade)
 
-  customerId     String
-  customer       OrgCustomer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerDataId     String
+  customer       CustomerData  @relation(fields: [customerDataId], references: [id], onDelete: Cascade)
 
   serviceId      String?
   service        ServiceCatalogItem? @relation(fields: [serviceId], references: [id])
 
-  staffId        String?
-  staff          ServiceStaff? @relation(fields: [staffId], references: [id], onDelete: SetNull)
+  membershipId        String?
+  staff          Membership? @relation(fields: [membershipId], references: [id], onDelete: SetNull)
   
   quoteId        String?      @unique
   quote          ServiceJobQuote? @relation(fields: [quoteId], references: [id], onDelete: SetNull)
@@ -2299,8 +2366,8 @@ model ServiceJobQuote {
   organizationId String
   organization   Organization @relation("OrgServiceQuotes", fields: [organizationId], references: [id], onDelete: Cascade)
 
-  customerId     String
-  customer       OrgCustomer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerDataId     String
+  customer       CustomerData  @relation(fields: [customerDataId], references: [id], onDelete: Cascade)
 
   status         String       @default("DRAFT") // DRAFT, SENT, APPROVED, REJECTED, EXPIRED, CONVERTED
   total          Float
@@ -2333,8 +2400,8 @@ model ServiceInvoice {
   organizationId String
   organization   Organization @relation("OrgServiceInvoices", fields: [organizationId], references: [id], onDelete: Cascade)
 
-  customerId     String
-  customer       OrgCustomer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerDataId     String
+  customer       CustomerData  @relation(fields: [customerDataId], references: [id], onDelete: Cascade)
 
   jobId          String?      @unique
   job            ServiceJob?  @relation(fields: [jobId], references: [id], onDelete: SetNull)

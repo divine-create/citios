@@ -28,7 +28,7 @@ export default async function SuperAdminPage({ searchParams }: { searchParams: P
   return (
     <AdminDashboard
       organizationId={orgId}
-      currentUserId={session?.user?.userId ?? null}
+      currentUserId={session?.user?.personId ?? null}
       initialSettings={data?.settings ?? null}
       initialSchool={data?.school ?? null}
       initialInquiries={inquiries}
