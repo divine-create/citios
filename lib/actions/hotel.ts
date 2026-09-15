@@ -2,6 +2,7 @@
 
 import '@js-temporal/polyfill'
 import { db } from '@/src/prisma/db'
+import { requireMembership } from '@/lib/actions/tenant'
 
 function toInstant(date: Date) {
   return (globalThis as any).Temporal.Instant.fromEpochMilliseconds(date.getTime());
@@ -67,6 +68,7 @@ export async function updateHotelSettings(
   input: { name?: string; description?: string; address?: string }
 ) {
   try {
+    await requireMembership(organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     const data: Record<string, unknown> = {};
     if (input.name !== undefined) {
       if (!input.name.trim()) return { error: 'Hotel name cannot be empty.' };
@@ -92,6 +94,7 @@ export async function createReservation(input: {
   roomBlockId?: string;
 }) {
   try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST']);
     const guestName = input.guestName.trim();
     if (!guestName) return { error: 'Guest name is required.' };
     if (!input.roomId) return { error: 'Please select a room.' };
@@ -151,6 +154,8 @@ export async function updateReservationStatus(
 
 export async function extendReservationStay(reservationId: string, newCheckOutDate: string) {
   try {
+    const res = await db.orm.public.Reservation.where({ id: reservationId }).all().first();
+    if (res) await requireMembership(res.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST']);
     const reservation = await db.orm.public.Reservation.where({ id: reservationId }).all().first();
     if (!reservation) return { error: 'Reservation not found.' };
 
@@ -208,6 +213,7 @@ export async function createRoom(input: {
   status?: string;
 }) {
   try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     const roomNumber = input.roomNumber.trim();
     if (!roomNumber) return { error: 'Room number is required.' };
     if (!input.type.trim()) return { error: 'Room type is required.' };
@@ -257,6 +263,8 @@ export async function updateRoom(
 
 export async function deleteRoom(roomId: string) {
   try {
+    const room = await db.orm.public.HotelRoom.where({ id: roomId }).all().first();
+    if (room) await requireMembership(room.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     const activeReservations = await db.orm.public.Reservation.where({ roomId }).all();
     const hasActive = activeReservations.some((r) => r.status === 'CONFIRMED' || r.status === 'CHECKED_IN');
     if (hasActive) {
@@ -282,6 +290,7 @@ export async function upsertRateRule(input: {
   isActive: boolean;
 }) {
   try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     if (input.multiplier < 1) return { error: 'Multiplier must be at least 1.0 (no discount surges).' };
 
     const existing = await db.orm.public.RateRule
@@ -323,6 +332,7 @@ export async function createInventoryItem(input: {
   parLevel: number;
 }) {
   try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     const name = input.name.trim();
     if (!name) return { error: 'Item name is required.' };
     if (input.quantityOnHand < 0 || input.parLevel < 0) return { error: 'Quantities cannot be negative.' };
@@ -370,6 +380,8 @@ export async function updateInventoryItem(
 
 export async function deleteInventoryItem(itemId: string) {
   try {
+    const item = await db.orm.public.InventoryItem.where({ id: itemId }).all().first();
+    if (item) await requireMembership(item.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     await db.orm.public.InventoryItem.where({ id: itemId }).delete();
     return { success: true };
   } catch (error) {
@@ -411,6 +423,8 @@ export async function addFolioCharge(input: {
   category: 'ROOM' | 'FOOD_AND_BEVERAGE' | 'SPA' | 'OTHER';
 }) {
   try {
+    const res = await db.orm.public.Reservation.where({ id: input.reservationId }).all().first();
+    if (res) await requireMembership(res.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST']);
     if (!input.description.trim()) return { error: 'Description is required.' };
     if (input.amount <= 0) return { error: 'Amount must be positive.' };
 
@@ -437,23 +451,30 @@ export async function settleFolio(reservationId: string) {
     const reservation = await db.orm.public.Reservation.where({ id: reservationId }).all().first();
     if (!reservation) return { error: 'Reservation not found.' };
 
+    await requireMembership(reservation.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST']);
+
     const charges = await db.orm.public.FolioCharge.where({ reservationId }).all();
     const total = (reservation.totalPrice ?? 0) + charges.reduce((sum, c) => sum + c.amount, 0);
 
     let paidViaWallet = false;
-    if (reservation.guestId && total > 0) {
-      const guestWallet = await db.orm.public.Wallet.where({ userId: reservation.guestId }).all().first();
-      const hotelWallet = await db.orm.public.Wallet.where({ organizationId: reservation.organizationId }).all().first();
-      if (guestWallet && hotelWallet && guestWallet.balance >= total) {
-        await db.orm.public.Transaction.create({
-          amount: total,
-          senderWalletId: guestWallet.id,
-          receiverWalletId: hotelWallet.id,
-          description: `Hotel folio settlement — reservation ${reservation.id.slice(0, 8)}`,
-        });
-        await db.orm.public.Wallet.where({ id: guestWallet.id }).update({ balance: guestWallet.balance - total });
-        await db.orm.public.Wallet.where({ id: hotelWallet.id }).update({ balance: hotelWallet.balance + total });
-        paidViaWallet = true;
+    if (reservation.guestRelationshipId && total > 0) {
+      const rel = await db.orm.public.Relationship.where({ id: reservation.guestRelationshipId }).all().first();
+      if (rel) {
+        const guestWallet = await db.orm.public.Wallet.where({ personId: rel.personId }).all().first();
+        const hotelWallet = await db.orm.public.Wallet.where({ organizationId: reservation.organizationId }).all().first();
+        if (guestWallet && hotelWallet && guestWallet.balance >= total) {
+          const txn = await db.orm.public.Transaction.create({
+            status: 'COMPLETED',
+            description: `Hotel stay settlement for reservation ${reservationId}`
+          });
+          await db.orm.public.LedgerEntry.create({ walletId: guestWallet.id, transactionId: txn.id, amount: -total, currency: guestWallet.currency ?? 'USD' });
+          await db.orm.public.LedgerEntry.create({ walletId: hotelWallet.id, transactionId: txn.id, amount: total, currency: hotelWallet.currency ?? 'USD' });
+          
+          await db.orm.public.Wallet.where({ id: guestWallet.id }).update({ balance: guestWallet.balance - total });
+          await db.orm.public.Wallet.where({ id: hotelWallet.id }).update({ balance: hotelWallet.balance + total });
+          
+          paidViaWallet = true;
+        }
       }
     }
 
@@ -498,6 +519,7 @@ export async function getOutletsData(organizationId: string) {
 
 export async function createOutlet(input: { organizationId: string; name: string; type: 'RESTAURANT' | 'BAR' | 'CLUB' | 'SPA' }) {
   try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     if (!input.name.trim()) return { error: 'Outlet name is required.' };
     await db.orm.public.Outlet.create({ organizationId: input.organizationId, name: input.name.trim(), type: input.type });
     return { success: true };
@@ -527,6 +549,8 @@ export async function updateOutlet(
 
 export async function deleteOutlet(outletId: string) {
   try {
+    const outlet = await db.orm.public.Outlet.where({ id: outletId }).all().first();
+    if (outlet) await requireMembership(outlet.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     const openOrders = await db.orm.public.OutletOrder.where({ outletId, status: 'OPEN' }).all();
     if (openOrders.length > 0) {
       return { error: 'This outlet has open tabs — close or settle them before removing it.' };
@@ -541,6 +565,8 @@ export async function deleteOutlet(outletId: string) {
 
 export async function createOutletItem(input: { outletId: string; name: string; price: number; category: string }) {
   try {
+    const outlet = await db.orm.public.Outlet.where({ id: input.outletId }).all().first();
+    if (outlet) await requireMembership(outlet.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     if (!input.name.trim()) return { error: 'Item name is required.' };
     if (input.price < 0) return { error: 'Price cannot be negative.' };
     await db.orm.public.OutletItem.create({
@@ -558,6 +584,11 @@ export async function createOutletItem(input: { outletId: string; name: string; 
 
 export async function updateOutletItem(itemId: string, input: { name?: string; price?: number; category?: string }) {
   try {
+    const item = await db.orm.public.OutletItem.where({ id: itemId }).all().first();
+    if (item) {
+      const outlet = await db.orm.public.Outlet.where({ id: item.outletId }).all().first();
+      if (outlet) await requireMembership(outlet.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
+    }
     if (input.price !== undefined && input.price < 0) return { error: 'Price cannot be negative.' };
     const data: Record<string, unknown> = {};
     if (input.name !== undefined) data.name = input.name.trim();
@@ -574,6 +605,11 @@ export async function updateOutletItem(itemId: string, input: { name?: string; p
 
 export async function deleteOutletItem(itemId: string) {
   try {
+    const item = await db.orm.public.OutletItem.where({ id: itemId }).all().first();
+    if (item) {
+      const outlet = await db.orm.public.Outlet.where({ id: item.outletId }).all().first();
+      if (outlet) await requireMembership(outlet.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
+    }
     await db.orm.public.OutletItem.where({ id: itemId }).delete();
     return { success: true };
   } catch (error) {
@@ -584,6 +620,7 @@ export async function deleteOutletItem(itemId: string) {
 
 export async function createOutletOrder(input: { organizationId: string; outletId: string; tabName: string }) {
   try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST', 'STAFF']);
     if (!input.tabName.trim()) return { error: 'A table/tab name is required.' };
     const order = await db.orm.public.OutletOrder.create({
       organizationId: input.organizationId,
@@ -612,6 +649,8 @@ async function recalculateOrderTotal(outletOrderId: string) {
 
 export async function addItemToOrder(input: { outletOrderId: string; outletItemId: string; quantity: number }) {
   try {
+    const order = await db.orm.public.OutletOrder.where({ id: input.outletOrderId }).all().first();
+    if (order) await requireMembership(order.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST', 'STAFF']);
     if (input.quantity <= 0) return { error: 'Quantity must be positive.' };
     await db.orm.public.OutletOrderItem.create({
       outletOrderId: input.outletOrderId,
@@ -632,6 +671,7 @@ export async function addItemToOrder(input: { outletOrderId: string; outletItemI
 export async function chargeOrderToRoom(outletOrderId: string, reservationId: string) {
   try {
     const order = await db.orm.public.OutletOrder.where({ id: outletOrderId }).all().first();
+    if (order) await requireMembership(order.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST', 'STAFF']);
     if (!order) return { error: 'Order not found.' };
     if (order.status !== 'OPEN') return { error: 'This tab is already closed.' };
 
@@ -665,6 +705,8 @@ export async function chargeOrderToRoom(outletOrderId: string, reservationId: st
 
 export async function payOrderDirectly(outletOrderId: string) {
   try {
+    const order = await db.orm.public.OutletOrder.where({ id: outletOrderId }).all().first();
+    if (order) await requireMembership(order.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST', 'STAFF']);
     await db.orm.public.OutletOrder.where({ id: outletOrderId }).update({ status: 'PAID' });
     return { success: true };
   } catch (error) {
@@ -695,6 +737,7 @@ export async function createMaintenanceTicket(input: {
   priority: 'LOW' | 'MEDIUM' | 'HIGH';
 }) {
   try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST', 'STAFF']);
     if (!input.title.trim()) return { error: 'A short title is required.' };
     await db.orm.public.MaintenanceTicket.create({
       organizationId: input.organizationId,
@@ -765,6 +808,7 @@ export async function createRoomBlock(input: {
   notes?: string;
 }) {
   try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     if (!input.groupName.trim()) return { error: 'Group name is required.' };
     const checkIn = new Date(input.checkInDate);
     const checkOut = new Date(input.checkOutDate);
@@ -796,6 +840,7 @@ export async function addReservationToBlock(input: {
   guestName: string;
 }) {
   try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST']);
     const block = await db.orm.public.RoomBlock.where({ id: input.roomBlockId }).all().first();
     if (!block) return { error: 'Group block not found.' };
 
@@ -835,6 +880,7 @@ export async function getNightAuditReports(organizationId: string) {
 // FolioCharge), and occupancy into one immutable daily report row.
 export async function runNightAudit(organizationId: string, auditDateStr: string) {
   try {
+    await requireMembership(organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     const auditDate = new Date(auditDateStr);
     auditDate.setHours(0, 0, 0, 0);
     if (isNaN(auditDate.getTime())) return { error: 'Invalid date.' };
@@ -964,6 +1010,8 @@ export async function getHousekeepingTasks(organizationId: string) {
 
 export async function updateRoomStatus(roomId: string, newStatus: string, housekeeperId?: string) {
   try {
+    const room = await db.orm.public.HotelRoom.where({ id: roomId }).all().first();
+    if (room) await requireMembership(room.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'HOUSEKEEPER', 'RECEPTIONIST']);
     await db.orm.public.HotelRoom.where({ id: roomId }).update({ status: newStatus });
     await db.orm.public.HousekeepingLog.create({
       roomId,

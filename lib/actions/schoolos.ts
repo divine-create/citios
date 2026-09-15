@@ -15,7 +15,7 @@ export async function completeSchoolSetup(data: {
 }) {
   const session = await getServerSession(authOptions);
   
-  if (!session?.user?.userId) {
+  if (!session?.user?.personId) {
     return { error: "Not authorized" };
   }
 

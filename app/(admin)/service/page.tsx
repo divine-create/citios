@@ -35,12 +35,12 @@ export default async function ServiceOSPage({ searchParams }: { searchParams: Pr
   const isServiceRole = (role?: string): role is ServiceRole => !!role && (SERVICE_ROLES as readonly string[]).includes(role);
 
   // If they have a strict membership, use it. Otherwise, default to the test org so we don't lock the user out during local testing.
-  if (membership && isServiceRole(membership.role) && session?.user?.userId) {
+  if (membership && isServiceRole(membership.role) && session?.user?.personId) {
     return (
       <ServiceDashboard
         organizationId={membership.organizationId}
         userRole={membership.role}
-        currentUserId={session.user.userId}
+        currentUserId={session.user.personId}
       />
     );
   }
@@ -50,7 +50,7 @@ export default async function ServiceOSPage({ searchParams }: { searchParams: Pr
     <ServiceDashboard
       organizationId={devOrgId || "fcdbdcd4-36f6-42b4-8398-99b21e08ac49"}
       userRole={(devRole as ServiceRole) || "MANAGER"}
-      currentUserId={session?.user?.userId || "dev-user-id"}
+      currentUserId={session?.user?.personId || "dev-user-id"}
     />
   );
 }

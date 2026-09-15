@@ -26,10 +26,14 @@ export const authOptions: NextAuthOptions = {
             },
             async authorize(credentials) {
               if (credentials?.password === "1234" && credentials?.email) {
-                // In dev, accept password '1234' for any email and fetch their actual DB user
-                const dbUser = await db.orm.public.User.where({ email: credentials.email }).all().first();
-                if (dbUser) {
-                  return { id: dbUser.id, email: dbUser.email, name: dbUser.name };
+                // In dev, accept password '1234' for any email and fetch their actual DB person
+                const lookupEmail = credentials.email.toLowerCase();
+                const identifier = await db.orm.public.PersonIdentifier.where({ type: "EMAIL", normalizedValue: lookupEmail }).all().first();
+                if (identifier) {
+                  const dbPerson = await db.orm.public.Person.where({ id: identifier.personId }).all().first();
+                  if (dbPerson) {
+                    return { id: dbPerson.id, email: lookupEmail, name: `${dbPerson.firstName} ${dbPerson.lastName}` };
+                  }
                 }
               }
               return null;
@@ -43,43 +47,66 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async jwt({ token, user, trigger }) {
-      // `user` is only populated on the initial sign-in. We resolve real RBAC
-      // roles once here and cache them on the token so we don't hit the DB on
-      // every request. A change to someone's OrganizationMember rows only
-      // takes effect the next time they sign in, OR when we manually call `update()`
-      // from the client (e.g. immediately after registering a new org).
       const lookupEmail = user?.email || token?.email;
       if (lookupEmail && (user || trigger === "update")) {
         try {
-          let dbUser = await db.orm.public.User.where({ email: lookupEmail as string }).all().first();
+          const emailValue = (lookupEmail as string).toLowerCase();
+          let identifier = await db.orm.public.PersonIdentifier.where({ type: "EMAIL", normalizedValue: emailValue }).all().first();
+          let dbPerson;
 
-          if (!dbUser) {
-            dbUser = await db.orm.public.User.create({
-              email: lookupEmail as string,
-              name: user?.name ?? undefined,
-              image: user?.image ?? undefined,
+          if (!identifier) {
+            const firstName = user?.name?.split(' ')[0] ?? 'Unknown';
+            const lastName = user?.name?.split(' ').slice(1).join(' ') || 'User';
+            
+            dbPerson = await db.orm.public.Person.create({
+              firstName,
+              lastName
             });
+
+            identifier = await db.orm.public.PersonIdentifier.create({
+              personId: dbPerson.id,
+              type: "EMAIL",
+              normalizedValue: emailValue,
+              isVerified: true
+            });
+          } else {
+            dbPerson = await db.orm.public.Person.where({ id: identifier.personId }).all().first();
           }
 
-          const [orgMembers, gigProfile] = await Promise.all([
-            db.orm.public.OrganizationMember.where({ userId: dbUser.id }).all(),
-            db.orm.public.GigWorkerProfile.where({ userId: dbUser.id }).all().first(),
-          ]);
+          if (dbPerson) {
+            let account = await db.orm.public.Account.where({ personId: dbPerson.id }).all().first();
+            if (!account) {
+              account = await db.orm.public.Account.create({ personId: dbPerson.id, isActive: true });
+            }
 
-          let memberships: OrgMembership[] = [];
-          if (orgMembers.length > 0) {
-            const organizations = await db.orm.public.Organization.all();
-            memberships = orgMembers.map((member) => ({
-              organizationId: member.organizationId,
-              organizationType: organizations.find((org) => org.id === member.organizationId)?.type as OrgMembership["organizationType"],
-              role: member.role as OrgMembership["role"],
-            }));
+            const [orgMembers, gigProfile] = await Promise.all([
+              db.orm.public.Membership.where({ personId: dbPerson.id }).all(),
+              db.orm.public.GigWorkerProfile.where({ personId: dbPerson.id }).all().first(),
+            ]);
+
+            let memberships: OrgMembership[] = [];
+            if (orgMembers.length > 0) {
+              const organizations = await db.orm.public.Organization.all();
+              
+              for (const member of orgMembers) {
+                const roles = await db.orm.public.MembershipRole.where({ membershipId: member.id }).all();
+                const org = organizations.find((o) => o.id === member.organizationId);
+                
+                if (org && roles.length > 0) {
+                  memberships.push({
+                    organizationId: member.organizationId,
+                    organizationType: org.type as OrgMembership["organizationType"],
+                    role: roles[0].role as OrgMembership["role"],
+                  });
+                }
+              }
+            }
+
+            token.personId = dbPerson.id;
+            token.memberships = memberships;
+            token.isCourier = !!gigProfile;
+            token.role = memberships.length > 0 ? "PROVIDER" : gigProfile ? "COURIER" : "RESIDENT";
           }
-
-          token.userId = dbUser.id;
-          token.memberships = memberships;
-          token.isCourier = !!gigProfile;
-          token.role = memberships.length > 0 ? "PROVIDER" : gigProfile ? "COURIER" : "RESIDENT";
         } catch (error) {
           console.error("Error resolving RBAC roles:", error);
           token.role = token.role ?? "RESIDENT";
@@ -91,7 +118,7 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.userId = token.userId;
+        session.user.personId = token.personId as string | undefined;
         session.user.role = token.role;
         session.user.memberships = token.memberships ?? [];
         session.user.isCourier = !!token.isCourier;

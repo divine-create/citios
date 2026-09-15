@@ -7,7 +7,7 @@ import { db } from "@/src/prisma/db";
 export async function provisionShopOS(formData: any) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.userId) {
+    if (!session?.user?.personId) {
       return { error: "You must be logged in to provision a store." };
     }
 
@@ -26,10 +26,13 @@ export async function provisionShopOS(formData: any) {
       description: "A ShopOS Retail Store",
     });
 
-    // 2. Add User as Owner
-    await db.orm.public.OrganizationMember.create({
-      userId: session.user.userId,
+    // 2. Add User as Owner via Membership + MembershipRole
+    const ownerMembership = await db.orm.public.Membership.create({
+      personId: session.user.personId,
       organizationId: org.id,
+    });
+    await db.orm.public.MembershipRole.create({
+      membershipId: ownerMembership.id,
       role: "OWNER",
     });
 

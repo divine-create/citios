@@ -11,7 +11,7 @@ export async function registerOrganization(data: {
 }) {
   const session = await getServerSession(authOptions);
   
-  if (!session?.user?.userId) {
+  if (!session?.user?.personId) {
     return { error: "You must be logged in to register a business." };
   }
 
@@ -22,17 +22,21 @@ export async function registerOrganization(data: {
   }
 
   try {
-    // Run in a transaction: create org and add current user as OWNER
+    // session.user.personId is a personId in the V1 model
     const org = await db.orm.public.Organization.create({
       name: data.name,
       type: data.type as any,
       description: data.description || "",
     });
 
-    await db.orm.public.OrganizationMember.create({
-      userId: session.user.userId,
+    const membership = await db.orm.public.Membership.create({
+      personId: session.user.personId,
       organizationId: org.id,
-      role: 'OWNER' as any,
+    });
+
+    await db.orm.public.MembershipRole.create({
+      membershipId: membership.id,
+      role: 'OWNER',
     });
 
     return { success: true, organizationId: org.id };
@@ -41,6 +45,7 @@ export async function registerOrganization(data: {
     return { error: err.message || "Failed to register organization." };
   }
 }
+
 export async function registerSchool(data: {
   name: string;
   shortName: string;
@@ -52,7 +57,7 @@ export async function registerSchool(data: {
 }) {
   const session = await getServerSession(authOptions);
   
-  if (!session?.user?.userId) {
+  if (!session?.user?.personId) {
     return { error: "You must be logged in to register a school." };
   }
 
@@ -63,10 +68,14 @@ export async function registerSchool(data: {
       address: `${data.address}, ${data.lga}, ${data.state}`,
     });
 
-    await db.orm.public.OrganizationMember.create({
-      userId: session.user.userId,
+    const membership = await db.orm.public.Membership.create({
+      personId: session.user.personId,
       organizationId: org.id,
-      role: 'OWNER' as any,
+    });
+
+    await db.orm.public.MembershipRole.create({
+      membershipId: membership.id,
+      role: 'OWNER',
     });
 
     await db.orm.public.SchoolSettings.create({

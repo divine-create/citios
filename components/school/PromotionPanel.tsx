@@ -69,7 +69,7 @@ export default function PromotionPanel({ organizationId, classSectionId, onDone 
     if (!data) return;
     const toSubmit = data.students
       .filter((s) => selected[s.id] && decisions[s.id])
-      .map((s) => ({ studentId: s.id, target: decisions[s.id] }));
+      .map((s) => ({ studentDataId: s.id, target: decisions[s.id] }));
     if (toSubmit.length === 0) return;
     if (!confirm(`Apply promotion decisions for ${toSubmit.length} student${toSubmit.length === 1 ? "" : "s"}?`)) return;
     setIsSaving(true);

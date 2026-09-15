@@ -11,7 +11,7 @@ export default async function RegistrarPortalPage() {
   return (
     <RegistrarDashboard
       organizationId={organizationId ?? ""}
-      reviewerUserId={session?.user?.userId ?? null}
+      reviewerUserId={session?.user?.personId ?? null}
       enrolmentRequests={registrarData?.enrolmentRequests ?? []}
       documents={registrarData?.documents ?? []}
       studentExits={registrarData?.studentExits ?? []}

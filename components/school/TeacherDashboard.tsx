@@ -14,13 +14,13 @@ import {
 } from "@/lib/actions/school";
 
 type Course = { id: string; name: string; roomNumber: string | null };
-type Enrollment = { id: string; studentId: string; courseId: string; grade: number | null };
+type Enrollment = { id: string; studentDataId: string; courseId: string; grade: number | null };
 type Student = { id: string; firstName: string; lastName: string };
 type Assignment = { id: string; courseId: string; title: string; category: string; weight: number; maxScore: number };
-type Grade = { id: string; assignmentId: string; studentId: string; score: number };
+type Grade = { id: string; assignmentId: string; studentDataId: string; score: number };
 type AttendanceStatus = "PRESENT" | "ABSENT" | "LATE" | "EXCUSED";
 
-type AttendanceRecord = { id: string; studentId: string; status: AttendanceStatus; date: string };
+type AttendanceRecord = { id: string; studentDataId: string; status: AttendanceStatus; date: string };
 
 interface TeacherDashboardProps {
   organizationId: string | null;
@@ -87,7 +87,7 @@ export default function TeacherDashboard({
   };
 
   const roster = useMemo(() => {
-    const studentIds = enrollments.filter((e) => e.courseId === selectedCourseId).map((e) => e.studentId);
+    const studentIds = enrollments.filter((e) => e.courseId === selectedCourseId).map((e) => e.studentDataId);
     return students.filter((s) => studentIds.includes(s.id));
   }, [enrollments, students, selectedCourseId]);
 
@@ -197,8 +197,8 @@ function RosterTab({
   const [behaviorForm, setBehaviorForm] = useState({ type: "COMMENDATION" as "DEMERIT" | "COMMENDATION" | "REFERRAL", note: "" });
   const [behaviorError, setBehaviorError] = useState<string | null>(null);
 
-  const mark = async (studentId: string, status: AttendanceStatus) => {
-    await markAttendance(studentId, status);
+  const mark = async (studentDataId: string, status: AttendanceStatus) => {
+    await markAttendance(studentDataId, status);
     await onChanged();
   };
 
@@ -218,7 +218,7 @@ function RosterTab({
     try {
       const result = await createBehaviorLog({
         organizationId: organizationId as string,
-        studentId: behaviorStudentId,
+        studentDataId: behaviorStudentId,
         reportedById: organizationMemberId as string,
         type: behaviorForm.type,
         note: behaviorForm.note,
@@ -260,7 +260,7 @@ function RosterTab({
           </thead>
           <tbody className="divide-y divide-gray-100">
             {roster.map((s) => {
-              const record = attendance.find((a) => a.studentId === s.id);
+              const record = attendance.find((a) => a.studentDataId === s.id);
               return (
                 <tr key={s.id}>
                   <td className="px-5 py-3 font-medium text-gray-900">{s.firstName} {s.lastName}</td>
@@ -398,10 +398,10 @@ function GradebookTab({
     }
   };
 
-  const saveGrade = async (studentId: string, assignmentId: string, value: string) => {
+  const saveGrade = async (studentDataId: string, assignmentId: string, value: string) => {
     const score = parseFloat(value);
     if (isNaN(score)) return;
-    await recordGrade({ assignmentId, studentId, courseId, score });
+    await recordGrade({ assignmentId, studentDataId, courseId, score });
     await onChanged();
   };
 
@@ -434,7 +434,7 @@ function GradebookTab({
               <tr key={s.id}>
                 <td className="px-5 py-3 font-medium text-gray-900 sticky left-0 bg-white">{s.firstName} {s.lastName}</td>
                 {assignments.map((a) => {
-                  const g = grades.find((gr) => gr.assignmentId === a.id && gr.studentId === s.id);
+                  const g = grades.find((gr) => gr.assignmentId === a.id && gr.studentDataId === s.id);
                   return (
                     <td key={a.id} className="px-4 py-3">
                       <input

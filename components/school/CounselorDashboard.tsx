@@ -32,26 +32,26 @@ export function CounselorDashboard({
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  const getStudentName = (studentId: string) => {
-    const s = students.find((st) => st.id === studentId);
+  const getStudentName = (studentDataId: string) => {
+    const s = students.find((st) => st.id === studentDataId);
     return s ? `${s.firstName} ${s.lastName}` : "Unknown Student";
   };
 
   // ---- Wellness Notes ----
   const [isNoteOpen, setIsNoteOpen] = useState(false);
   const [editNoteId, setEditNoteId] = useState<string | null>(null);
-  const [noteForm, setNoteForm] = useState({ studentId: "", content: "", type: "pastoral", private: false });
+  const [noteForm, setNoteForm] = useState({ studentDataId: "", content: "", type: "pastoral", private: false });
 
   const openAddNote = () => {
     setEditNoteId(null);
-    setNoteForm({ studentId: students[0]?.id ?? "", content: "", type: "pastoral", private: false });
+    setNoteForm({ studentDataId: students[0]?.id ?? "", content: "", type: "pastoral", private: false });
     setError(null);
     setIsNoteOpen(true);
   };
 
   const openEditNote = (note: any) => {
     setEditNoteId(note.id);
-    setNoteForm({ studentId: note.studentId, content: note.content, type: note.type, private: note.private });
+    setNoteForm({ studentDataId: note.studentDataId, content: note.content, type: note.type, private: note.private });
     setError(null);
     setIsNoteOpen(true);
   };
@@ -65,7 +65,7 @@ export function CounselorDashboard({
         if (res.error) throw new Error(res.error);
       } else {
         if (!authorUserId) throw new Error("Could not resolve your account — please sign in again.");
-        const res = await createStudentNote({ organizationId, studentId: noteForm.studentId, authorId: authorUserId, content: noteForm.content, type: noteForm.type as any, private: noteForm.private });
+        const res = await createStudentNote({ organizationId, studentDataId: noteForm.studentDataId, authorId: authorUserId, content: noteForm.content, type: noteForm.type as any, private: noteForm.private });
         if (res.error) throw new Error(res.error);
       }
       setIsNoteOpen(false);
@@ -85,10 +85,10 @@ export function CounselorDashboard({
 
   // ---- Behaviour & Suspensions ----
   const [isLogOpen, setIsLogOpen] = useState(false);
-  const [logForm, setLogForm] = useState({ studentId: "", type: "DEMERIT" as "DEMERIT" | "COMMENDATION" | "REFERRAL", note: "" });
+  const [logForm, setLogForm] = useState({ studentDataId: "", type: "DEMERIT" as "DEMERIT" | "COMMENDATION" | "REFERRAL", note: "" });
 
   const openAddLog = () => {
-    setLogForm({ studentId: students[0]?.id ?? "", type: "DEMERIT", note: "" });
+    setLogForm({ studentDataId: students[0]?.id ?? "", type: "DEMERIT", note: "" });
     setError(null);
     setIsLogOpen(true);
   };
@@ -98,7 +98,7 @@ export function CounselorDashboard({
     setIsSaving(true);
     try {
       if (!reporterMemberId) throw new Error("Could not resolve your staff profile — please sign in again.");
-      const res = await createBehaviorLog({ organizationId, studentId: logForm.studentId, reportedById: reporterMemberId, type: logForm.type, note: logForm.note });
+      const res = await createBehaviorLog({ organizationId, studentDataId: logForm.studentDataId, reportedById: reporterMemberId, type: logForm.type, note: logForm.note });
       if (res.error) throw new Error(res.error);
       setIsLogOpen(false);
       refresh();
@@ -110,10 +110,10 @@ export function CounselorDashboard({
   };
 
   const [isSuspensionOpen, setIsSuspensionOpen] = useState(false);
-  const [suspensionForm, setSuspensionForm] = useState({ studentId: "", startDate: "", endDate: "", totalDays: 1, reason: "" });
+  const [suspensionForm, setSuspensionForm] = useState({ studentDataId: "", startDate: "", endDate: "", totalDays: 1, reason: "" });
 
   const openAddSuspension = () => {
-    setSuspensionForm({ studentId: students[0]?.id ?? "", startDate: "", endDate: "", totalDays: 1, reason: "" });
+    setSuspensionForm({ studentDataId: students[0]?.id ?? "", startDate: "", endDate: "", totalDays: 1, reason: "" });
     setError(null);
     setIsSuspensionOpen(true);
   };
@@ -140,7 +140,7 @@ export function CounselorDashboard({
     refresh();
   };
 
-  const filteredNotes = studentNotes.filter((n) => getStudentName(n.studentId).toLowerCase().includes(search.toLowerCase()));
+  const filteredNotes = studentNotes.filter((n) => getStudentName(n.studentDataId).toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div className="flex flex-col h-full bg-slate-50 min-h-screen">
@@ -203,7 +203,7 @@ export function CounselorDashboard({
                     ) : (
                       filteredNotes.map((note) => (
                         <tr key={note.id} className="hover:bg-slate-50 transition-colors">
-                          <td className="px-6 py-4 font-medium text-slate-900">{getStudentName(note.studentId)}</td>
+                          <td className="px-6 py-4 font-medium text-slate-900">{getStudentName(note.studentDataId)}</td>
                           <td className="px-6 py-4">
                             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700 capitalize">
                               {note.private && <Lock size={10} />} {note.type}
@@ -244,7 +244,7 @@ export function CounselorDashboard({
                     behaviourIncidents.map((inc) => (
                       <li key={inc.id} className="px-6 py-4 flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-medium text-slate-900">{getStudentName(inc.studentId)}</p>
+                          <p className="text-sm font-medium text-slate-900">{getStudentName(inc.studentDataId)}</p>
                           <p className="text-xs text-slate-500 mt-0.5">{inc.description}</p>
                         </div>
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
@@ -264,7 +264,7 @@ export function CounselorDashboard({
                   ) : (
                     suspensions.map((s) => (
                       <li key={s.id} className="px-6 py-4">
-                        <p className="text-sm font-medium text-slate-900">{getStudentName(s.studentId)} — {s.totalDays} day(s)</p>
+                        <p className="text-sm font-medium text-slate-900">{getStudentName(s.studentDataId)} — {s.totalDays} day(s)</p>
                         <p className="text-xs text-slate-500 mt-0.5">{s.reason} · {new Date(s.startDate).toLocaleDateString()} – {new Date(s.endDate).toLocaleDateString()}</p>
                       </li>
                     ))
@@ -284,7 +284,7 @@ export function CounselorDashboard({
                   truancyAlerts.map((alert) => (
                     <li key={alert.id} className="px-6 py-4 flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-slate-900">{getStudentName(alert.studentId)}</p>
+                        <p className="text-sm font-medium text-slate-900">{getStudentName(alert.studentDataId)}</p>
                         <p className="text-xs text-slate-500 mt-0.5">{alert.consecutiveAbsences} consecutive absences · {alert.totalUnexcused} unexcused total</p>
                       </div>
                       {alert.resolvedAt ? (
@@ -307,7 +307,7 @@ export function CounselorDashboard({
           {!editNoteId && (
             <div>
               <label className="text-sm font-medium text-slate-700">Student</label>
-              <select value={noteForm.studentId} onChange={(e) => setNoteForm((f) => ({ ...f, studentId: e.target.value }))} className="mt-1.5 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
+              <select value={noteForm.studentDataId} onChange={(e) => setNoteForm((f) => ({ ...f, studentDataId: e.target.value }))} className="mt-1.5 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
                 {students.map((s) => <option key={s.id} value={s.id}>{s.firstName} {s.lastName}</option>)}
               </select>
             </div>
@@ -336,7 +336,7 @@ export function CounselorDashboard({
           {error && <ErrorBanner text={error} />}
           <div>
             <label className="text-sm font-medium text-slate-700">Student</label>
-            <select value={logForm.studentId} onChange={(e) => setLogForm((f) => ({ ...f, studentId: e.target.value }))} className="mt-1.5 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
+            <select value={logForm.studentDataId} onChange={(e) => setLogForm((f) => ({ ...f, studentDataId: e.target.value }))} className="mt-1.5 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
               {students.map((s) => <option key={s.id} value={s.id}>{s.firstName} {s.lastName}</option>)}
             </select>
           </div>
@@ -358,7 +358,7 @@ export function CounselorDashboard({
           {error && <ErrorBanner text={error} />}
           <div>
             <label className="text-sm font-medium text-slate-700">Student</label>
-            <select value={suspensionForm.studentId} onChange={(e) => setSuspensionForm((f) => ({ ...f, studentId: e.target.value }))} className="mt-1.5 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
+            <select value={suspensionForm.studentDataId} onChange={(e) => setSuspensionForm((f) => ({ ...f, studentDataId: e.target.value }))} className="mt-1.5 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
               {students.map((s) => <option key={s.id} value={s.id}>{s.firstName} {s.lastName}</option>)}
             </select>
           </div>

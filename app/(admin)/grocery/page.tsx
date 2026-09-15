@@ -34,7 +34,7 @@ export default async function ShopOSPage({ searchParams }: { searchParams: Promi
 
   const isShopRole = (role?: string): role is ShopRole => !!role && (SHOP_ROLES as readonly string[]).includes(role);
 
-  if (!membership || !isShopRole(membership.role) || !session?.user?.userId) {
+  if (!membership || !isShopRole(membership.role) || !session?.user?.personId) {
     redirect("/");
   }
 
@@ -42,7 +42,7 @@ export default async function ShopOSPage({ searchParams }: { searchParams: Promi
     <ShopDashboard
       organizationId={membership.organizationId}
       userRole={membership.role}
-      currentUserId={session.user.userId}
+      currentUserId={session.user.personId}
     />
   );
 }

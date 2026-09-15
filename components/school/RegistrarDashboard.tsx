@@ -35,18 +35,18 @@ export default function RegistrarDashboard({
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  const getStudentName = (studentId: string) => {
-    const s = students.find((st) => st.id === studentId);
+  const getStudentName = (studentDataId: string) => {
+    const s = students.find((st) => st.id === studentDataId);
     return s ? `${s.firstName} ${s.lastName}` : 'Unknown Student';
   };
   const getClassName = (classId: string) => classes.find((c) => c.id === classId)?.name ?? 'Unknown Class';
 
   // ---- Enrolment Requests ----
   const [isRequestOpen, setIsRequestOpen] = useState(false);
-  const [requestForm, setRequestForm] = useState({ mode: 'existing' as 'existing' | 'new', studentId: '', firstName: '', lastName: '', yearLevel: 9, classId: '', message: '' });
+  const [requestForm, setRequestForm] = useState({ mode: 'existing' as 'existing' | 'new', studentDataId: '', firstName: '', lastName: '', yearLevel: 9, classId: '', message: '' });
 
   const openNewRequest = () => {
-    setRequestForm({ mode: 'existing', studentId: students[0]?.id ?? '', firstName: '', lastName: '', yearLevel: 9, classId: classes[0]?.id ?? '', message: '' });
+    setRequestForm({ mode: 'existing', studentDataId: students[0]?.id ?? '', firstName: '', lastName: '', yearLevel: 9, classId: classes[0]?.id ?? '', message: '' });
     setError(null);
     setIsRequestOpen(true);
   };
@@ -56,15 +56,15 @@ export default function RegistrarDashboard({
     setIsSaving(true);
     try {
       if (!reviewerUserId) throw new Error('Could not resolve your account — please sign in again.');
-      let studentId = requestForm.studentId;
+      let studentDataId = requestForm.studentDataId;
       if (requestForm.mode === 'new') {
         if (!requestForm.firstName.trim() || !requestForm.lastName.trim()) throw new Error('First and last name are required.');
         const studentRes = await createStudent({ organizationId, firstName: requestForm.firstName, lastName: requestForm.lastName, yearLevel: requestForm.yearLevel });
         if (studentRes.error || !studentRes.student) throw new Error(studentRes.error || 'Failed to create student.');
-        studentId = studentRes.student.id;
+        studentDataId = studentRes.student.id;
       }
-      if (!studentId || !requestForm.classId) throw new Error('Select a student and a class.');
-      const res = await createEnrolmentRequest({ organizationId, classId: requestForm.classId, studentId, requestedById: reviewerUserId, message: requestForm.message });
+      if (!studentDataId || !requestForm.classId) throw new Error('Select a student and a class.');
+      const res = await createEnrolmentRequest({ organizationId, classId: requestForm.classId, studentDataId, requestedById: reviewerUserId, message: requestForm.message });
       if (res.error) throw new Error(res.error);
       setIsRequestOpen(false);
       refresh();
@@ -77,7 +77,7 @@ export default function RegistrarDashboard({
 
   const reviewRequest = async (id: string, status: 'approved' | 'rejected') => {
     if (!reviewerUserId) return;
-    await updateEnrolmentRequestStatus(id, { status, reviewedById: reviewerUserId });
+    await updateEnrolmentRequestStatus(id, { status });
     refresh();
   };
 
@@ -89,10 +89,10 @@ export default function RegistrarDashboard({
 
   // ---- Documents ----
   const [isDocOpen, setIsDocOpen] = useState(false);
-  const [docForm, setDocForm] = useState({ studentId: '', name: '', type: 'Birth Certificate', filePath: '' });
+  const [docForm, setDocForm] = useState({ studentDataId: '', name: '', type: 'Birth Certificate', filePath: '' });
 
   const openAddDoc = () => {
-    setDocForm({ studentId: students[0]?.id ?? '', name: '', type: 'Birth Certificate', filePath: 'on file' });
+    setDocForm({ studentDataId: students[0]?.id ?? '', name: '', type: 'Birth Certificate', filePath: 'on file' });
     setError(null);
     setIsDocOpen(true);
   };
@@ -101,7 +101,7 @@ export default function RegistrarDashboard({
     setError(null);
     setIsSaving(true);
     try {
-      const res = await createStudentDocument({ organizationId, studentId: docForm.studentId, name: docForm.name || docForm.type, type: docForm.type, filePath: docForm.filePath || 'on file' });
+      const res = await createStudentDocument({ organizationId, studentDataId: docForm.studentDataId, name: docForm.name || docForm.type, type: docForm.type, filePath: docForm.filePath || 'on file' });
       if (res.error) throw new Error(res.error);
       setIsDocOpen(false);
       refresh();
@@ -120,11 +120,11 @@ export default function RegistrarDashboard({
 
   // ---- Lifecycle: Exits ----
   const [isExitOpen, setIsExitOpen] = useState(false);
-  const [exitForm, setExitForm] = useState({ studentId: '', exitType: 'withdrawn', exitDate: '', reason: '' });
+  const [exitForm, setExitForm] = useState({ studentDataId: '', exitType: 'withdrawn', exitDate: '', reason: '' });
 
   const openAddExit = () => {
-    const unenrolled = students.find((s) => !studentExits.some((e) => e.studentId === s.id));
-    setExitForm({ studentId: unenrolled?.id ?? students[0]?.id ?? '', exitType: 'withdrawn', exitDate: '', reason: '' });
+    const unenrolled = students.find((s) => !studentExits.some((e) => e.studentDataId === s.id));
+    setExitForm({ studentDataId: unenrolled?.id ?? students[0]?.id ?? '', exitType: 'withdrawn', exitDate: '', reason: '' });
     setError(null);
     setIsExitOpen(true);
   };
@@ -133,7 +133,7 @@ export default function RegistrarDashboard({
     setError(null);
     setIsSaving(true);
     try {
-      const res = await createStudentExit({ organizationId, studentId: exitForm.studentId, exitType: exitForm.exitType, exitDate: exitForm.exitDate, reason: exitForm.reason });
+      const res = await createStudentExit({ organizationId, studentDataId: exitForm.studentDataId, exitType: exitForm.exitType, exitDate: exitForm.exitDate, reason: exitForm.reason });
       if (res.error) throw new Error(res.error);
       setIsExitOpen(false);
       refresh();
@@ -146,11 +146,11 @@ export default function RegistrarDashboard({
 
   // ---- Lifecycle: Transfers In ----
   const [isTransferOpen, setIsTransferOpen] = useState(false);
-  const [transferForm, setTransferForm] = useState({ studentId: '', previousSchool: '', transferDate: '', reason: '' });
+  const [transferForm, setTransferForm] = useState({ studentDataId: '', previousSchool: '', transferDate: '', reason: '' });
 
   const openAddTransfer = () => {
-    const notYetTransferred = students.find((s) => !studentTransfersIn.some((t) => t.studentId === s.id));
-    setTransferForm({ studentId: notYetTransferred?.id ?? students[0]?.id ?? '', previousSchool: '', transferDate: '', reason: '' });
+    const notYetTransferred = students.find((s) => !studentTransfersIn.some((t) => t.studentDataId === s.id));
+    setTransferForm({ studentDataId: notYetTransferred?.id ?? students[0]?.id ?? '', previousSchool: '', transferDate: '', reason: '' });
     setError(null);
     setIsTransferOpen(true);
   };
@@ -159,7 +159,7 @@ export default function RegistrarDashboard({
     setError(null);
     setIsSaving(true);
     try {
-      const res = await createStudentTransferIn({ organizationId, studentId: transferForm.studentId, previousSchool: transferForm.previousSchool, transferDate: transferForm.transferDate, reason: transferForm.reason });
+      const res = await createStudentTransferIn({ organizationId, studentDataId: transferForm.studentDataId, previousSchool: transferForm.previousSchool, transferDate: transferForm.transferDate, reason: transferForm.reason });
       if (res.error) throw new Error(res.error);
       setIsTransferOpen(false);
       refresh();
@@ -170,8 +170,8 @@ export default function RegistrarDashboard({
     }
   };
 
-  const filteredRequests = enrolmentRequests.filter((r) => getStudentName(r.studentId).toLowerCase().includes(search.toLowerCase()));
-  const filteredDocs = documents.filter((d) => getStudentName(d.studentId).toLowerCase().includes(search.toLowerCase()));
+  const filteredRequests = enrolmentRequests.filter((r) => getStudentName(r.studentDataId).toLowerCase().includes(search.toLowerCase()));
+  const filteredDocs = documents.filter((d) => getStudentName(d.studentDataId).toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div className="flex flex-col h-full bg-slate-50 min-h-screen">
@@ -244,7 +244,7 @@ export default function RegistrarDashboard({
                   ) : (
                     filteredRequests.map((req) => (
                       <tr key={req.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-6 py-4 font-medium text-slate-900">{getStudentName(req.studentId)}</td>
+                        <td className="px-6 py-4 font-medium text-slate-900">{getStudentName(req.studentDataId)}</td>
                         <td className="px-6 py-4">{getClassName(req.classId)}</td>
                         <td className="px-6 py-4 text-slate-500 max-w-xs truncate">{req.message || '—'}</td>
                         <td className="px-6 py-4">
@@ -294,7 +294,7 @@ export default function RegistrarDashboard({
                   <li key={doc.id} className="p-4 md:p-6 flex items-center justify-between hover:bg-slate-50 transition-colors">
                     <div>
                       <h3 className="text-sm font-medium text-slate-900">{doc.name}</h3>
-                      <p className="text-sm text-slate-500 mt-1">Student: <span className="font-medium text-slate-700">{getStudentName(doc.studentId)}</span> · {doc.type}</p>
+                      <p className="text-sm text-slate-500 mt-1">Student: <span className="font-medium text-slate-700">{getStudentName(doc.studentDataId)}</span> · {doc.type}</p>
                     </div>
                     <button onClick={() => removeDoc(doc.id)} className="text-slate-400 hover:text-red-600"><Trash2 size={16} /></button>
                   </li>
@@ -317,7 +317,7 @@ export default function RegistrarDashboard({
                 ) : (
                   studentExits.map((ex) => (
                     <li key={ex.id} className="px-6 py-4">
-                      <p className="text-sm font-medium text-slate-900">{getStudentName(ex.studentId)}</p>
+                      <p className="text-sm font-medium text-slate-900">{getStudentName(ex.studentDataId)}</p>
                       <p className="text-xs text-slate-500 mt-1 capitalize">{ex.exitType} · {new Date(ex.exitDate).toLocaleDateString()}{ex.destinationSchool ? ` · to ${ex.destinationSchool}` : ''}</p>
                     </li>
                   ))
@@ -336,7 +336,7 @@ export default function RegistrarDashboard({
                 ) : (
                   studentTransfersIn.map((t) => (
                     <li key={t.id} className="px-6 py-4">
-                      <p className="text-sm font-medium text-slate-900">{getStudentName(t.studentId)}</p>
+                      <p className="text-sm font-medium text-slate-900">{getStudentName(t.studentDataId)}</p>
                       <p className="text-xs text-slate-500 mt-1">from {t.previousSchool} · {new Date(t.transferDate).toLocaleDateString()}</p>
                     </li>
                   ))
@@ -357,7 +357,7 @@ export default function RegistrarDashboard({
           {requestForm.mode === 'existing' ? (
             <div>
               <label className="text-sm font-medium text-slate-700">Student</label>
-              <select value={requestForm.studentId} onChange={(e) => setRequestForm((f) => ({ ...f, studentId: e.target.value }))} className="mt-1.5 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
+              <select value={requestForm.studentDataId} onChange={(e) => setRequestForm((f) => ({ ...f, studentDataId: e.target.value }))} className="mt-1.5 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
                 {students.map((s) => <option key={s.id} value={s.id}>{s.firstName} {s.lastName}</option>)}
               </select>
             </div>
@@ -383,7 +383,7 @@ export default function RegistrarDashboard({
           {error && <ErrorBanner text={error} />}
           <div>
             <label className="text-sm font-medium text-slate-700">Student</label>
-            <select value={docForm.studentId} onChange={(e) => setDocForm((f) => ({ ...f, studentId: e.target.value }))} className="mt-1.5 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
+            <select value={docForm.studentDataId} onChange={(e) => setDocForm((f) => ({ ...f, studentDataId: e.target.value }))} className="mt-1.5 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
               {students.map((s) => <option key={s.id} value={s.id}>{s.firstName} {s.lastName}</option>)}
             </select>
           </div>
@@ -407,7 +407,7 @@ export default function RegistrarDashboard({
           {error && <ErrorBanner text={error} />}
           <div>
             <label className="text-sm font-medium text-slate-700">Student</label>
-            <select value={exitForm.studentId} onChange={(e) => setExitForm((f) => ({ ...f, studentId: e.target.value }))} className="mt-1.5 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
+            <select value={exitForm.studentDataId} onChange={(e) => setExitForm((f) => ({ ...f, studentDataId: e.target.value }))} className="mt-1.5 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
               {students.map((s) => <option key={s.id} value={s.id}>{s.firstName} {s.lastName}</option>)}
             </select>
           </div>
@@ -432,7 +432,7 @@ export default function RegistrarDashboard({
           {error && <ErrorBanner text={error} />}
           <div>
             <label className="text-sm font-medium text-slate-700">Student</label>
-            <select value={transferForm.studentId} onChange={(e) => setTransferForm((f) => ({ ...f, studentId: e.target.value }))} className="mt-1.5 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
+            <select value={transferForm.studentDataId} onChange={(e) => setTransferForm((f) => ({ ...f, studentDataId: e.target.value }))} className="mt-1.5 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
               {students.map((s) => <option key={s.id} value={s.id}>{s.firstName} {s.lastName}</option>)}
             </select>
           </div>

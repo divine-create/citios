@@ -206,10 +206,15 @@ export async function createMicrosite(organizationId: string, input: { title: st
         if (addrParts.length > 0) defaultAddress = addrParts.join(", ");
       }
       
-      const ownerMember = await db.orm.public.OrganizationMember.where({ organizationId, role: 'OWNER' }).all().first();
-      if (ownerMember) {
-        const ownerUser = await db.orm.public.User.where({ id: ownerMember.userId }).all().first();
-        if (ownerUser?.name) defaultHeadName = ownerUser.name;
+      // Resolve owner name: Membership -> MembershipRole (OWNER) -> Person
+      const memberships = await db.orm.public.Membership.where({ organizationId }).all();
+      for (const m of memberships) {
+        const roles = await db.orm.public.MembershipRole.where({ membershipId: m.id, role: 'OWNER' }).all();
+        if (roles.length > 0) {
+          const ownerPerson = await db.orm.public.Person.where({ id: m.personId }).all().first();
+          if (ownerPerson) defaultHeadName = `${ownerPerson.firstName} ${ownerPerson.lastName}`.trim();
+          break;
+        }
       }
     }
 

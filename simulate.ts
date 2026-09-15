@@ -5,30 +5,29 @@ async function simulate() {
   console.log("🏙️ Starting CityConnect User Simulation...");
 
   try {
-    // 1. User Creation
+    // 1. Person Creation (V1 Identity Model)
     console.log("\n[1/5] Simulating User Onboarding...");
     const email = "simulated.user@cityconnect.local";
-    let user = await db.orm.public.User.where({ email }).all().first();
-    
-    if (!user) {
-        user = await db.orm.public.User.create({
-            email,
-            name: "Simulated Tester",
-        });
-        console.log(`✅ Created new user: ${user.name} (${user.email})`);
+    let person;
+    const existingId = await db.orm.public.PersonIdentifier.where({ type: 'EMAIL', normalizedValue: email.toLowerCase() }).all().first();
+    if (existingId) {
+        person = await db.orm.public.Person.where({ id: existingId.personId }).all().first();
+        console.log(`✅ Found existing simulated person: ${person?.firstName}`);
     } else {
-        console.log(`✅ Found existing simulated user: ${user.name}`);
+        person = await db.orm.public.Person.create({ firstName: 'Simulated', lastName: 'Tester' });
+        await db.orm.public.PersonIdentifier.create({ personId: person!.id, type: 'EMAIL', normalizedValue: email.toLowerCase() });
+        console.log(`✅ Created new person: ${person?.firstName} (${email})`);
     }
 
-    // Initialize Wallet (simulating profile.ts logic)
-    let wallet = await db.orm.public.Wallet.where({ userId: user.id }).all().first();
+    // Initialize Wallet
+    let wallet = await db.orm.public.Wallet.where({ personId: person!.id }).all().first();
     if (!wallet) {
         wallet = await db.orm.public.Wallet.create({
-            userId: user.id,
+            personId: person!.id,
             balance: 0,
-            type: 'RESIDENT'
+            currency: 'USD',
         });
-        console.log(`✅ Initialized CityWallet for user. Balance: ${wallet.balance}`);
+        console.log(`✅ Initialized CityWallet for person. Balance: ${wallet.balance}`);
     } else {
         console.log(`✅ CityWallet already exists. Balance: ${wallet.balance}`);
     }
@@ -61,7 +60,7 @@ async function simulate() {
     console.log("\n[3/5] Simulating User Liking Post...");
     const like = await db.orm.public.PostLike.create({
         postId: post.id,
-        userId: user.id
+        personId: person!.id
     });
     console.log(`✅ User successfully liked the post. Like ID: ${like.id}`);
 
@@ -69,7 +68,7 @@ async function simulate() {
     console.log("\n[4/5] Simulating User Commenting...");
     const comment = await db.orm.public.Comment.create({
         postId: post.id,
-        userId: user.id,
+        personId: person!.id,
         content: "Wow, CityConnect is working flawlessly! Excited for the launch."
     });
     console.log(`✅ User successfully commented: "${comment.content}"`);

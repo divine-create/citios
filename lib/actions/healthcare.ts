@@ -2,6 +2,7 @@
 'use server'
 
 import { db } from '@/src/prisma/db'
+import { requireMembership } from '@/lib/actions/tenant'
 
 export async function getHealthcareAdminData() {
   try {
@@ -13,33 +14,43 @@ export async function getHealthcareAdminData() {
     const appointments = await db.orm.public.Appointment.where({ organizationId: clinic.id }).all();
     const prescriptions = await db.orm.public.Prescription.where({ organizationId: clinic.id }).all();
     const pharmacyItems = await db.orm.public.PharmacyItem.where({ organizationId: pharmacy.id }).all();
-    
-    // Stitch patient data
-    const users = await db.orm.public.User.all();
 
-    const appointmentsWithPatients = appointments.map(apt => ({
+    // Hydrate patient names: PatientData -> Relationship -> Person
+    async function resolvePatientName(patientDataId: string): Promise<string> {
+      const pd = await db.orm.public.PatientData.where({ id: patientDataId }).all().first();
+      if (!pd) return 'Unknown';
+      const rel = await db.orm.public.Relationship.where({ id: pd.relationshipId }).all().first();
+      if (!rel) return 'Unknown';
+      const person = await db.orm.public.Person.where({ id: rel.personId }).all().first();
+      return person ? `${person.firstName} ${person.lastName}`.trim() : 'Unknown';
+    }
+
+    const appointmentsWithPatients = await Promise.all(
+      appointments.map(async (apt) => ({
         ...apt,
-        patient: users.find(u => u.id === apt.patientId)
-    }));
-    
-    const prescriptionsWithPatients = prescriptions.map(px => ({
+        patientName: await resolvePatientName(apt.patientDataId),
+      }))
+    );
+
+    const prescriptionsWithPatients = await Promise.all(
+      prescriptions.map(async (px) => ({
         ...px,
-        patient: users.find(u => u.id === px.patientId)
-    }));
+        patientName: await resolvePatientName(px.patientDataId),
+      }))
+    );
 
     return JSON.parse(JSON.stringify({
       clinic,
       pharmacy,
       appointments: appointmentsWithPatients,
       prescriptions: prescriptionsWithPatients,
-      pharmacyItems
+      pharmacyItems,
     }));
   } catch (error) {
     console.error('Error fetching healthcare data:', error);
     return null;
   }
 }
-
 
 export async function getHealthcareSpecialties() {
   return [
@@ -66,8 +77,8 @@ export async function searchHealthcareProviders(query?: string, specialty?: stri
       location: 'Downtown Medical Center (0.8 mi)',
       availability: [
         { date: 'Today', slots: ['10:00 AM', '1:30 PM', '4:00 PM'] },
-        { date: 'Tomorrow', slots: ['9:00 AM', '11:15 AM', '3:45 PM'] }
-      ]
+        { date: 'Tomorrow', slots: ['9:00 AM', '11:15 AM', '3:45 PM'] },
+      ],
     },
     {
       id: 'doc-2',
@@ -82,8 +93,8 @@ export async function searchHealthcareProviders(query?: string, specialty?: stri
       location: 'Smile Dental (1.2 mi)',
       availability: [
         { date: 'Tomorrow', slots: ['8:00 AM', '10:30 AM', '2:00 PM', '4:30 PM'] },
-        { date: 'Wed, Oct 18', slots: ['9:00 AM', '1:00 PM'] }
-      ]
+        { date: 'Wed, Oct 18', slots: ['9:00 AM', '1:00 PM'] },
+      ],
     },
     {
       id: 'doc-3',
@@ -98,14 +109,86 @@ export async function searchHealthcareProviders(query?: string, specialty?: stri
       location: 'Skin Health Associates (2.5 mi)',
       availability: [
         { date: 'Today', slots: ['3:15 PM'] },
-        { date: 'Tomorrow', slots: ['10:00 AM', '11:30 AM', '2:45 PM'] }
-      ]
-    }
+        { date: 'Tomorrow', slots: ['10:00 AM', '11:30 AM', '2:45 PM'] },
+      ],
+    },
   ];
 }
 
-export async function bookAppointment(providerId: string, date: string, time: string, reason: string) {
-  console.log('Booking appointment with', providerId, 'on', date, 'at', time, 'for', reason);
-  return { success: true, message: 'Appointment booked successfully!' };
+export async function bookAppointment(
+  organizationId: string,
+  patientDataId: string,
+  staffMembershipId: string,
+  date: string,
+  reason: string
+) {
+  try {
+    await requireMembership(organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST', 'DOCTOR']);
+    const appointment = await db.orm.public.Appointment.create({
+      organizationId,
+      patientDataId,
+      staffMembershipId,
+      date: (globalThis as any).Temporal.Instant.fromEpochMilliseconds(new Date(date).getTime()),
+      reason,
+      status: 'SCHEDULED',
+    });
+    return { success: true, appointment: JSON.parse(JSON.stringify(appointment)) };
+  } catch (error) {
+    console.error('Error booking appointment:', error);
+    return { error: 'Failed to book appointment.' };
+  }
 }
 
+export async function updateAppointmentStatus(
+  appointmentId: string,
+  status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED'
+) {
+  try {
+    const apt = await db.orm.public.Appointment.where({ id: appointmentId }).all().first();
+    if (apt) await requireMembership(apt.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST', 'DOCTOR']);
+    await db.orm.public.Appointment.where({ id: appointmentId }).update({ status });
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating appointment status:', error);
+    return { error: 'Failed to update appointment.' };
+  }
+}
+
+export async function issuePrescription(input: {
+  organizationId: string;
+  patientDataId: string;
+  medication: string;
+  dosage: string;
+  instructions?: string;
+}) {
+  try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'DOCTOR']);
+    const prescription = await db.orm.public.Prescription.create({
+      organizationId: input.organizationId,
+      patientDataId: input.patientDataId,
+      medication: input.medication,
+      dosage: input.dosage,
+      instructions: input.instructions,
+      status: 'ISSUED',
+    });
+    return { success: true, prescription: JSON.parse(JSON.stringify(prescription)) };
+  } catch (error) {
+    console.error('Error issuing prescription:', error);
+    return { error: 'Failed to issue prescription.' };
+  }
+}
+
+export async function updatePrescriptionStatus(
+  prescriptionId: string,
+  status: 'ISSUED' | 'PREPARING' | 'READY' | 'DELIVERED' | 'CANCELLED'
+) {
+  try {
+    const px = await db.orm.public.Prescription.where({ id: prescriptionId }).all().first();
+    if (px) await requireMembership(px.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'DOCTOR', 'PHARMACIST']);
+    await db.orm.public.Prescription.where({ id: prescriptionId }).update({ status });
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating prescription:', error);
+    return { error: 'Failed to update prescription.' };
+  }
+}

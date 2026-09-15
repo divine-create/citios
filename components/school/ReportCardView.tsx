@@ -4,7 +4,7 @@ import React from "react";
 import { GraduationCap } from "lucide-react";
 
 interface ReportCardData {
-  student: { firstName: string; lastName: string; studentId: string; yearLevel: number | null };
+  student: { firstName: string; lastName: string; studentDataId: string; yearLevel: number | null };
   subjects: {
     classId: string;
     subjectName: string;
@@ -64,7 +64,7 @@ export default function ReportCardView({ schoolName, data }: { schoolName: strin
         </div>
         <div>
           <p className="text-xs text-slate-400 uppercase tracking-wide">Admission No.</p>
-          <p className="font-semibold text-slate-800">{student.studentId}</p>
+          <p className="font-semibold text-slate-800">{student.studentDataId}</p>
         </div>
         <div>
           <p className="text-xs text-slate-400 uppercase tracking-wide">Class</p>

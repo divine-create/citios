@@ -29,7 +29,7 @@ export default function AccountingManager({ organizationId, activeTab, feeInvoic
 
   const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
   const [editInvoiceId, setEditInvoiceId] = useState<string | null>(null);
-  const [invoiceForm, setInvoiceForm] = useState({ studentId: "", dueDate: "", notes: "", status: "unpaid" });
+  const [invoiceForm, setInvoiceForm] = useState({ studentDataId: "", dueDate: "", notes: "", status: "unpaid" });
   const [invoiceItems, setInvoiceItems] = useState<{ feeTypeId: string; description: string; amount: number }[]>([
     { feeTypeId: "", description: "", amount: 0 },
   ]);
@@ -44,8 +44,8 @@ export default function AccountingManager({ organizationId, activeTab, feeInvoic
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  const getStudentName = (studentId: string) => {
-    const s = students.find((st) => st.id === studentId);
+  const getStudentName = (studentDataId: string) => {
+    const s = students.find((st) => st.id === studentDataId);
     return s ? `${s.firstName} ${s.lastName}` : "Unknown Student";
   };
 
@@ -53,7 +53,7 @@ export default function AccountingManager({ organizationId, activeTab, feeInvoic
 
   const openAddInvoice = () => {
     setEditInvoiceId(null);
-    setInvoiceForm({ studentId: students[0]?.id ?? "", dueDate: "", notes: "", status: "unpaid" });
+    setInvoiceForm({ studentDataId: students[0]?.id ?? "", dueDate: "", notes: "", status: "unpaid" });
     setInvoiceItems([{ feeTypeId: "", description: "", amount: 0 }]);
     setError(null);
     setIsInvoiceOpen(true);
@@ -62,7 +62,7 @@ export default function AccountingManager({ organizationId, activeTab, feeInvoic
   const openEditInvoice = (inv: any) => {
     setEditInvoiceId(inv.id);
     setInvoiceForm({
-      studentId: inv.studentId,
+      studentDataId: inv.studentDataId,
       dueDate: inv.dueDate ? new Date(inv.dueDate).toISOString().slice(0, 10) : "",
       notes: inv.notes || "",
       status: inv.status,
@@ -93,7 +93,7 @@ export default function AccountingManager({ organizationId, activeTab, feeInvoic
         const items = invoiceItems.filter((it) => it.description.trim() && it.amount > 0);
         if (items.length === 0) throw new Error("Add at least one valid line item.");
         const res = await createFeeInvoice({
-          organizationId, studentId: invoiceForm.studentId, dueDate: invoiceForm.dueDate, notes: invoiceForm.notes, items,
+          organizationId, studentDataId: invoiceForm.studentDataId, dueDate: invoiceForm.dueDate, notes: invoiceForm.notes, items,
         });
         if (res.error) throw new Error(res.error);
       }
@@ -139,7 +139,7 @@ export default function AccountingManager({ organizationId, activeTab, feeInvoic
 
   const renderInvoicesTable = () => {
     const filtered = feeInvoices.filter((inv) =>
-      getStudentName(inv.studentId).toLowerCase().includes(search.toLowerCase()) ||
+      getStudentName(inv.studentDataId).toLowerCase().includes(search.toLowerCase()) ||
       inv.status.toLowerCase().includes(search.toLowerCase())
     );
 
@@ -175,7 +175,7 @@ export default function AccountingManager({ organizationId, activeTab, feeInvoic
                           <FileText size={14} />
                         </div>
                         <div>
-                          <p>{getStudentName(inv.studentId)}</p>
+                          <p>{getStudentName(inv.studentDataId)}</p>
                           <p className="text-xs text-slate-500">Issue Date: {new Date(inv.issueDate).toLocaleDateString()}</p>
                         </div>
                       </div>
@@ -386,8 +386,8 @@ export default function AccountingManager({ organizationId, activeTab, feeInvoic
             <div>
               <label className="text-sm font-medium text-slate-700">Student</label>
               <select
-                value={invoiceForm.studentId}
-                onChange={(e) => setInvoiceForm((f) => ({ ...f, studentId: e.target.value }))}
+                value={invoiceForm.studentDataId}
+                onChange={(e) => setInvoiceForm((f) => ({ ...f, studentDataId: e.target.value }))}
                 className="mt-1.5 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               >
                 {students.map((s) => <option key={s.id} value={s.id}>{s.firstName} {s.lastName}</option>)}
@@ -451,7 +451,7 @@ export default function AccountingManager({ organizationId, activeTab, feeInvoic
 
           <ModalActions
             onCancel={() => setIsInvoiceOpen(false)} onSubmit={submitInvoice}
-            disabled={isSaving || !invoiceForm.dueDate || (!editInvoiceId && !invoiceForm.studentId)}
+            disabled={isSaving || !invoiceForm.dueDate || (!editInvoiceId && !invoiceForm.studentDataId)}
             isSaving={isSaving} label={editInvoiceId ? "Save Changes" : "Add Invoice"}
           />
         </Modal>

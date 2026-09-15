@@ -1251,35 +1251,35 @@ function CustomersTab({ organizationId }: { organizationId: string }) {
       )}
 
       {viewingId && (
-        <CustomerDetailModal organizationId={organizationId} customerId={viewingId} onClose={() => setViewingId(null)} onChanged={load} />
+        <CustomerDetailModal organizationId={organizationId} customerDataId={viewingId} onClose={() => setViewingId(null)} onChanged={load} />
       )}
     </div>
   );
 }
 
-function CustomerDetailModal({ organizationId, customerId, onClose, onChanged }: {
-  organizationId: string; customerId: string; onClose: () => void; onChanged: () => void;
+function CustomerDetailModal({ organizationId, customerDataId, onClose, onChanged }: {
+  organizationId: string; customerDataId: string; onClose: () => void; onChanged: () => void;
 }) {
   const [customer, setCustomer] = useState<any>(null);
   const [pointsDelta, setPointsDelta] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   const load = async () => {
-    const data = await getCustomer(organizationId, customerId);
+    const data = await getCustomer(organizationId, customerDataId);
     setCustomer(data);
   };
 
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [customerId]);
+  }, [customerDataId]);
 
   const applyPoints = async (sign: 1 | -1) => {
     const delta = parseInt(pointsDelta, 10);
     if (isNaN(delta) || delta <= 0) return;
     setIsSaving(true);
     try {
-      await adjustLoyaltyPoints(customerId, delta * sign);
+      await adjustLoyaltyPoints(customerDataId, delta * sign);
       setPointsDelta("");
       await load();
       onChanged();
@@ -1290,7 +1290,7 @@ function CustomerDetailModal({ organizationId, customerId, onClose, onChanged }:
 
   const remove = async () => {
     if (!confirm(`Delete ${customer.name}?`)) return;
-    const res = await deleteCustomer(customerId);
+    const res = await deleteCustomer(customerDataId);
     if ((res as any)?.error) { alert((res as any).error); return; }
     onChanged();
     onClose();

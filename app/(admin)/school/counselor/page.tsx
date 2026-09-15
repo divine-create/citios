@@ -8,7 +8,7 @@ export default async function CounselorPage() {
   const organizationId = schoolData?.school?.id ?? null;
   const counselorData = organizationId ? await getCounselorPortalData(organizationId) : null;
 
-  const userId = session?.user?.userId;
+  const userId = session?.user?.personId;
   const membership = userId && organizationId ? await getMyMembership(userId, organizationId) : null;
 
   return (

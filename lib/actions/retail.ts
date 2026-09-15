@@ -2,6 +2,7 @@
 
 import '@js-temporal/polyfill'
 import { db } from '@/src/prisma/db'
+import { requireMembership } from '@/lib/actions/tenant'
 
 function toInstant(date: Date) {
   return (globalThis as any).Temporal.Instant.fromEpochMilliseconds(date.getTime());
@@ -35,6 +36,7 @@ export async function getCategories(organizationId: string) {
 
 export async function createCategory(input: { organizationId: string; name: string; description?: string; parentId?: string }) {
   try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     if (!input.name.trim()) return { error: 'Category name is required.' };
     const category = await db.orm.public.RetailCategory.create({
       organizationId: input.organizationId,
@@ -51,6 +53,8 @@ export async function createCategory(input: { organizationId: string; name: stri
 
 export async function updateCategory(categoryId: string, input: { name?: string; description?: string | null; parentId?: string | null }) {
   try {
+    const cat = await db.orm.public.RetailCategory.where({ id: categoryId }).all().first();
+    if (cat) await requireMembership(cat.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     const data: Record<string, unknown> = {};
     if (input.name !== undefined) data.name = input.name;
     if (input.description !== undefined) data.description = input.description;
@@ -65,6 +69,8 @@ export async function updateCategory(categoryId: string, input: { name?: string;
 
 export async function deleteCategory(categoryId: string) {
   try {
+    const cat = await db.orm.public.RetailCategory.where({ id: categoryId }).all().first();
+    if (cat) await requireMembership(cat.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     const productsUsingIt = await db.orm.public.RetailProduct.where({ categoryId }).all();
     if (productsUsingIt.length > 0) return { error: `${productsUsingIt.length} product(s) still use this category — reassign them first.` };
     await db.orm.public.RetailCategory.where({ id: categoryId }).delete();
@@ -107,6 +113,7 @@ export async function createProduct(input: {
   imageAssetId?: string;
 }) {
   try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     if (!input.name.trim()) return { error: 'Product name is required.' };
     if (input.price == null || input.price < 0) return { error: 'A valid price is required.' };
     const product = await db.orm.public.RetailProduct.create({
@@ -145,6 +152,8 @@ export async function updateProduct(productId: string, input: {
   imageAssetId?: string | null;
 }) {
   try {
+    const prod = await db.orm.public.RetailProduct.where({ id: productId }).all().first();
+    if (prod) await requireMembership(prod.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     const data: Record<string, unknown> = {};
     if (input.name !== undefined) data.name = input.name;
     if (input.description !== undefined) data.description = input.description;
@@ -167,6 +176,8 @@ export async function updateProduct(productId: string, input: {
 
 export async function deleteProduct(productId: string) {
   try {
+    const prod = await db.orm.public.RetailProduct.where({ id: productId }).all().first();
+    if (prod) await requireMembership(prod.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     await db.orm.public.RetailProduct.where({ id: productId }).delete();
     return { success: true };
   } catch (error) {
@@ -179,6 +190,8 @@ export async function deleteProduct(productId: string) {
 // write-offs, stocktake adjustments). `delta` is signed.
 export async function adjustStock(productId: string, delta: number) {
   try {
+    const prod = await db.orm.public.RetailProduct.where({ id: productId }).all().first();
+    if (prod) await requireMembership(prod.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER']);
     const product = await db.orm.public.RetailProduct.where({ id: productId }).all().first();
     if (!product) return { error: 'Product not found.' };
     const next = product.stockQuantity + delta;
@@ -207,6 +220,7 @@ export async function getRegisters(organizationId: string) {
 
 export async function createRegister(organizationId: string, name: string) {
   try {
+    await requireMembership(organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     if (!name.trim()) return { error: 'Register name is required.' };
     const register = await db.orm.public.RetailRegister.create({ organizationId, name, isActive: true });
     return { success: true, register: JSON.parse(JSON.stringify(register)) };
@@ -235,6 +249,7 @@ export async function getOpenShift(organizationId: string) {
 
 export async function openShift(input: { organizationId: string; registerId: string; openedById: string; openingFloat: number }) {
   try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER']);
     const existing = await db.orm.public.RetailShift.where({ registerId: input.registerId, status: 'OPEN' }).all();
     if (existing.length > 0) return { error: 'This register already has an open shift.' };
     const shift = await db.orm.public.RetailShift.create({
@@ -253,6 +268,8 @@ export async function openShift(input: { organizationId: string; registerId: str
 
 export async function closeShift(shiftId: string, input: { closedById: string; actualCash: number }) {
   try {
+    const s = await db.orm.public.RetailShift.where({ id: shiftId }).all().first();
+    if (s) await requireMembership(s.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER']);
     const shift = await db.orm.public.RetailShift.where({ id: shiftId }).all().first();
     if (!shift) return { error: 'Shift not found.' };
     if (shift.status === 'CLOSED') return { error: 'Shift is already closed.' };
@@ -298,12 +315,13 @@ export async function createOrder(input: {
   organizationId: string;
   shiftId?: string;
   cashierId: string;
-  customerId?: string;
+  customerDataId?: string;
   items: { productId: string; quantity: number }[];
   paymentMethod: 'CASH' | 'CARD' | 'SPLIT';
   discountAmount?: number;
 }) {
   try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER']);
     if (input.items.length === 0) return { error: 'Cart is empty.' };
 
     const lineItems: { productId: string; quantity: number; unitPrice: number; subtotal: number }[] = [];
@@ -338,7 +356,7 @@ export async function createOrder(input: {
       organizationId: input.organizationId,
       shiftId: input.shiftId,
       cashierId: input.cashierId,
-      customerId: input.customerId,
+      customerDataId: input.customerDataId,
       totalAmount,
       taxAmount,
       discountAmount,
@@ -369,18 +387,30 @@ export async function createOrder(input: {
 
 async function enrichOrders(organizationId: string, orders: any[]) {
   const products = await db.orm.public.RetailProduct.where({ organizationId }).all();
+  
   const cashierIds = [...new Set(orders.map((o) => o.cashierId))];
   const cashiers: Record<string, string> = {};
   for (const id of cashierIds) {
-    const user = await db.orm.public.User.where({ id }).all().first();
-    cashiers[id] = user?.name ?? 'Unknown';
+    const membership = await db.orm.public.Membership.where({ id }).all().first();
+    if (membership) {
+       const person = await db.orm.public.Person.where({ id: membership.personId }).all().first();
+       cashiers[id] = person ? `${person.firstName} ${person.lastName}`.trim() : 'Unknown';
+    } else {
+       cashiers[id] = 'Unknown';
+    }
   }
 
-  const customerIds = [...new Set(orders.map((o) => o.customerId).filter(Boolean))] as string[];
+  const customerIds = [...new Set(orders.map((o) => o.customerDataId).filter(Boolean))] as string[];
   const customers: Record<string, string> = {};
   for (const id of customerIds) {
-    const customer = await db.orm.public.RetailCustomer.where({ id }).all().first();
-    if (customer) customers[id] = customer.name;
+    const cd = await db.orm.public.CustomerData.where({ id }).all().first();
+    if (cd) {
+       const rel = await db.orm.public.Relationship.where({ id: cd.relationshipId }).all().first();
+       if (rel) {
+           const person = await db.orm.public.Person.where({ id: rel.personId }).all().first();
+           customers[id] = person ? `${person.firstName} ${person.lastName}`.trim() : 'Unknown';
+       }
+    }
   }
 
   const enriched = [];
@@ -389,7 +419,7 @@ async function enrichOrders(organizationId: string, orders: any[]) {
     enriched.push({
       ...order,
       cashierName: cashiers[order.cashierId] ?? 'Unknown',
-      customerName: order.customerId ? (customers[order.customerId] ?? 'Unknown') : null,
+      customerName: order.customerDataId ? (customers[order.customerDataId] ?? 'Unknown') : null,
       items: items.map((i) => ({ ...i, productName: products.find((p) => p.id === i.productId)?.name ?? 'Unknown' })),
     });
   }
@@ -425,6 +455,8 @@ export async function getOrder(organizationId: string, orderId: string) {
 
 export async function refundOrder(orderId: string, input: { refundedById: string; reason?: string }) {
   try {
+    const o = await db.orm.public.RetailOrder.where({ id: orderId }).all().first();
+    if (o) await requireMembership(o.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     const order = await db.orm.public.RetailOrder.where({ id: orderId }).all().first();
     if (!order) return { error: 'Order not found.' };
     if (order.status === 'REFUNDED') return { error: 'Order is already refunded.' };
@@ -465,6 +497,7 @@ export async function getSuppliers(organizationId: string) {
 
 export async function createSupplier(input: { organizationId: string; name: string; contactName?: string; email?: string; phone?: string; leadTimeDays?: number; paymentTerms?: string }) {
   try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     if (!input.name.trim()) return { error: 'Supplier name is required.' };
     const supplier = await db.orm.public.RetailSupplier.create({
       organizationId: input.organizationId,
@@ -484,6 +517,8 @@ export async function createSupplier(input: { organizationId: string; name: stri
 
 export async function updateSupplier(supplierId: string, input: { name?: string; contactName?: string | null; email?: string | null; phone?: string | null; leadTimeDays?: number | null; paymentTerms?: string | null }) {
   try {
+    const sup = await db.orm.public.RetailSupplier.where({ id: supplierId }).all().first();
+    if (sup) await requireMembership(sup.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     const data: Record<string, unknown> = {};
     if (input.name !== undefined) data.name = input.name;
     if (input.contactName !== undefined) data.contactName = input.contactName;
@@ -501,6 +536,8 @@ export async function updateSupplier(supplierId: string, input: { name?: string;
 
 export async function deleteSupplier(supplierId: string) {
   try {
+    const sup = await db.orm.public.RetailSupplier.where({ id: supplierId }).all().first();
+    if (sup) await requireMembership(sup.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     const posUsingIt = await db.orm.public.RetailPurchaseOrder.where({ supplierId }).all();
     if (posUsingIt.length > 0) return { error: `${posUsingIt.length} purchase order(s) reference this supplier.` };
     await db.orm.public.RetailSupplier.where({ id: supplierId }).delete();
@@ -526,6 +563,7 @@ export async function getPurchaseOrders(organizationId: string) {
 
 export async function createPurchaseOrder(input: { organizationId: string; supplierId: string; poNumber: string; expectedDate?: string; totalAmount?: number }) {
   try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     if (!input.poNumber.trim()) return { error: 'PO number is required.' };
     const po = await db.orm.public.RetailPurchaseOrder.create({
       organizationId: input.organizationId,
@@ -544,6 +582,8 @@ export async function createPurchaseOrder(input: { organizationId: string; suppl
 
 export async function updatePurchaseOrderStatus(poId: string, status: 'DRAFT' | 'SENT' | 'RECEIVED' | 'PARTIAL') {
   try {
+    const po = await db.orm.public.RetailPurchaseOrder.where({ id: poId }).all().first();
+    if (po) await requireMembership(po.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     await db.orm.public.RetailPurchaseOrder.where({ id: poId }).update({ status });
     return { success: true };
   } catch (error) {
@@ -619,6 +659,7 @@ export async function createExpense(input: {
   recordedById: string;
 }) {
   try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     if (!input.category.trim()) return { error: 'Category is required.' };
     if (input.amount == null || input.amount <= 0) return { error: 'A valid amount is required.' };
     const date = new Date(input.expenseDate);
@@ -652,6 +693,8 @@ export async function updateExpense(expenseId: string, input: {
   receiptAssetId?: string | null;
 }) {
   try {
+    const exp = await db.orm.public.RetailExpense.where({ id: expenseId }).all().first();
+    if (exp) await requireMembership(exp.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     const data: Record<string, unknown> = {};
     if (input.category !== undefined) data.category = input.category;
     if (input.description !== undefined) data.description = input.description;
@@ -674,6 +717,8 @@ export async function updateExpense(expenseId: string, input: {
 
 export async function deleteExpense(expenseId: string) {
   try {
+    const exp = await db.orm.public.RetailExpense.where({ id: expenseId }).all().first();
+    if (exp) await requireMembership(exp.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     await db.orm.public.RetailExpense.where({ id: expenseId }).delete();
     return { success: true };
   } catch (error) {
@@ -718,7 +763,7 @@ export async function getExpenseSummary(organizationId: string) {
 async function enrichCustomers(organizationId: string, customers: any[]) {
   const orders = await db.orm.public.RetailOrder.where({ organizationId }).all();
   return customers.map((c) => {
-    const theirOrders = orders.filter((o) => o.customerId === c.id && o.status === 'COMPLETED');
+    const theirOrders = orders.filter((o) => o.customerDataId === c.id && o.status === 'COMPLETED');
     const lastVisit = theirOrders.reduce((max, o) => Math.max(max, epochMs(o.createdAt)), 0);
     return {
       ...c,
@@ -731,8 +776,13 @@ async function enrichCustomers(organizationId: string, customers: any[]) {
 
 export async function getCustomers(organizationId: string) {
   try {
-    const customers = await db.orm.public.RetailCustomer.where({ organizationId }).all();
-    const enriched = await enrichCustomers(organizationId, customers);
+    const relationships = await db.orm.public.Relationship.where({ organizationId, type: 'CUSTOMER' }).all();
+    const customerDataList = [];
+    for (const rel of relationships) {
+      const cd = await db.orm.public.CustomerData.where({ relationshipId: rel.id }).all().first();
+      if (cd) customerDataList.push(cd);
+    }
+    const enriched = await enrichCustomers(organizationId, customerDataList);
     enriched.sort((a, b) => b.totalSpent - a.totalSpent);
     return JSON.parse(JSON.stringify(enriched));
   } catch (error) {
@@ -741,13 +791,13 @@ export async function getCustomers(organizationId: string) {
   }
 }
 
-export async function getCustomer(organizationId: string, customerId: string) {
+export async function getCustomer(organizationId: string, customerDataId: string) {
   try {
-    const customer = await db.orm.public.RetailCustomer.where({ id: customerId }).all().first();
+    const customer = await db.orm.public.CustomerData.where({ id: customerDataId }).all().first();
     if (!customer) return null;
     const [enriched] = await enrichCustomers(organizationId, [customer]);
 
-    const orders = await db.orm.public.RetailOrder.where({ organizationId, customerId }).all();
+    const orders = await db.orm.public.RetailOrder.where({ organizationId, customerDataId }).all();
     orders.sort((a, b) => epochMs(b.createdAt) - epochMs(a.createdAt));
     const orderHistory = await enrichOrders(organizationId, orders);
 
@@ -760,29 +810,76 @@ export async function getCustomer(organizationId: string, customerId: string) {
 
 export async function createCustomer(input: { organizationId: string; name: string; phone?: string; email?: string; notes?: string }) {
   try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER']);
     if (!input.name.trim()) return { error: 'Customer name is required.' };
-    const customer = await db.orm.public.RetailCustomer.create({
+
+    // Find or create Person via PersonIdentifier
+    let person = null;
+    if (input.email) {
+      const emailId = await db.orm.public.PersonIdentifier.where({ type: 'EMAIL', normalizedValue: input.email.toLowerCase() }).all().first();
+      if (emailId) person = await db.orm.public.Person.where({ id: emailId.personId }).all().first();
+    }
+    if (!person && input.phone) {
+      const phoneId = await db.orm.public.PersonIdentifier.where({ type: 'PHONE', normalizedValue: input.phone }).all().first();
+      if (phoneId) person = await db.orm.public.Person.where({ id: phoneId.personId }).all().first();
+    }
+
+    if (!person) {
+      const [firstName, ...lastNames] = input.name.split(' ');
+      person = await db.orm.public.Person.create({
+        firstName: firstName || 'Unknown',
+        lastName: lastNames.join(' ') || 'Unknown',
+      });
+      if (input.email) await db.orm.public.PersonIdentifier.create({ personId: person.id, type: 'EMAIL', normalizedValue: input.email.toLowerCase() });
+      if (input.phone) await db.orm.public.PersonIdentifier.create({ personId: person.id, type: 'PHONE', normalizedValue: input.phone });
+    }
+
+    const relationship = await db.orm.public.Relationship.create({
       organizationId: input.organizationId,
-      name: input.name,
-      phone: input.phone,
-      email: input.email,
-      notes: input.notes,
+      personId: person.id,
+      type: 'CUSTOMER',
     });
-    return { success: true, customer: JSON.parse(JSON.stringify(customer)) };
+
+    const customerData = await db.orm.public.CustomerData.create({
+      relationshipId: relationship.id,
+      notes: input.notes,
+      loyaltyPoints: 0,
+    });
+
+    return { success: true, customer: JSON.parse(JSON.stringify(customerData)) };
   } catch (error) {
     console.error('Error creating customer:', error);
     return { error: 'Failed to create customer.' };
   }
 }
 
-export async function updateCustomer(customerId: string, input: { name?: string; phone?: string | null; email?: string | null; notes?: string | null }) {
+export async function updateCustomer(customerDataId: string, input: { name?: string; phone?: string | null; email?: string | null; notes?: string | null }) {
   try {
-    const data: Record<string, unknown> = {};
-    if (input.name !== undefined) data.name = input.name;
-    if (input.phone !== undefined) data.phone = input.phone;
-    if (input.email !== undefined) data.email = input.email;
-    if (input.notes !== undefined) data.notes = input.notes;
-    await db.orm.public.RetailCustomer.where({ id: customerId }).update(data);
+    const c = await db.orm.public.CustomerData.where({ id: customerDataId }).all().first();
+    if (c) {
+        const rel = await db.orm.public.Relationship.where({ id: c.relationshipId }).all().first();
+        if (rel) await requireMembership(rel.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER']);
+    }
+    const customer = await db.orm.public.CustomerData.where({ id: customerDataId }).all().first();
+    if (!customer) return { error: 'Customer not found.' };
+
+    if (input.notes !== undefined) {
+      await db.orm.public.CustomerData.where({ id: customerDataId }).update({ notes: input.notes });
+    }
+
+    const relationship = await db.orm.public.Relationship.where({ id: customer.relationshipId }).all().first();
+    if (relationship && (input.name !== undefined || input.phone !== undefined || input.email !== undefined)) {
+      const pUpdate: any = {};
+      if (input.name !== undefined) {
+        const [firstName, ...lastNames] = input.name.split(' ');
+        pUpdate.firstName = firstName || 'Unknown';
+        pUpdate.lastName = lastNames.join(' ') || 'Unknown';
+      }
+      if (input.phone !== undefined) pUpdate.phone = input.phone;
+      if (input.email !== undefined) pUpdate.email = input.email;
+      await db.orm.public.Person.where({ id: relationship.personId }).update(pUpdate);
+    }
+    
     return { success: true };
   } catch (error) {
     console.error('Error updating customer:', error);
@@ -790,11 +887,20 @@ export async function updateCustomer(customerId: string, input: { name?: string;
   }
 }
 
-export async function deleteCustomer(customerId: string) {
+export async function deleteCustomer(customerDataId: string) {
   try {
-    const ordersUsingIt = await db.orm.public.RetailOrder.where({ customerId }).all();
-    if (ordersUsingIt.length > 0) return { error: `This customer has ${ordersUsingIt.length} order(s) on file — cannot delete.` };
-    await db.orm.public.RetailCustomer.where({ id: customerId }).delete();
+    const c = await db.orm.public.CustomerData.where({ id: customerDataId }).all().first();
+    if (c) {
+        const rel = await db.orm.public.Relationship.where({ id: c.relationshipId }).all().first();
+        if (rel) await requireMembership(rel.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
+    }
+    const ordersUsingIt = await db.orm.public.RetailOrder.where({ customerDataId }).all();
+    if (ordersUsingIt.length > 0) return { error: `This customer has ${ordersUsingIt.length} order(s) on file - cannot delete.` };
+    
+    const customer = await db.orm.public.CustomerData.where({ id: customerDataId }).all().first();
+    if (customer) {
+      await db.orm.public.CustomerData.where({ id: customerDataId }).delete();
+    }
     return { success: true };
   } catch (error) {
     console.error('Error deleting customer:', error);
@@ -802,13 +908,18 @@ export async function deleteCustomer(customerId: string) {
   }
 }
 
-export async function adjustLoyaltyPoints(customerId: string, delta: number) {
+export async function adjustLoyaltyPoints(customerDataId: string, delta: number) {
   try {
-    const customer = await db.orm.public.RetailCustomer.where({ id: customerId }).all().first();
+    const c = await db.orm.public.CustomerData.where({ id: customerDataId }).all().first();
+    if (c) {
+        const rel = await db.orm.public.Relationship.where({ id: c.relationshipId }).all().first();
+        if (rel) await requireMembership(rel.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER']);
+    }
+    const customer = await db.orm.public.CustomerData.where({ id: customerDataId }).all().first();
     if (!customer) return { error: 'Customer not found.' };
     const next = customer.loyaltyPoints + delta;
     if (next < 0) return { error: 'Loyalty points cannot go below zero.' };
-    await db.orm.public.RetailCustomer.where({ id: customerId }).update({ loyaltyPoints: next });
+    await db.orm.public.CustomerData.where({ id: customerDataId }).update({ loyaltyPoints: next });
     return { success: true, loyaltyPoints: next };
   } catch (error) {
     console.error('Error adjusting loyalty points:', error);
@@ -852,6 +963,7 @@ export async function updateRetailSettings(organizationId: string, input: {
   shippingRates?: string;
 }) {
   try {
+    await requireMembership(organizationId, ['OWNER', 'ADMIN']);
     const data: any = {};
     if (input.storeName !== undefined) data.storeName = input.storeName;
     if (input.storeAddress !== undefined) data.storeAddress = input.storeAddress;
@@ -889,13 +1001,14 @@ export async function getReceiptData(orderId: string) {
       return { ...item, product };
     }));
 
-    const cashier = await db.orm.public.User.where({ id: order.cashierId }).all().first();
+    const cashierMembership = await db.orm.public.Membership.where({ id: order.cashierId }).all().first();
+    const cashierPerson = cashierMembership ? await db.orm.public.Person.where({ id: cashierMembership.personId }).all().first() : null;
     const settings = await getRetailSettings(order.organizationId);
 
     return {
       order,
       items: populatedItems,
-      cashier: cashier ? cashier.name : 'Staff',
+      cashier: cashierPerson ? `${cashierPerson.firstName} ${cashierPerson.lastName}`.trim() : 'Staff',
       settings
     };
   } catch (error) {

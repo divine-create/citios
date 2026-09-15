@@ -7,7 +7,7 @@ export default async function TeacherPortalPage() {
   const schoolData = await getSchoolAdminData();
   const organizationId = schoolData?.school?.id ?? null;
 
-  const userId = session?.user?.userId;
+  const userId = session?.user?.personId;
   const membership = userId && organizationId ? await getMyMembership(userId, organizationId) : null;
   const teacherData = membership
     ? await getTeacherPortalData(membership.role === 'TEACHER' ? membership.id : undefined, organizationId ?? undefined)

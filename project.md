@@ -71,12 +71,60 @@ The consumer-facing portal (`app/(resident)`) where local citizens interact with
 ---
 
 ## 4. Current State & Recent Developments
-The application is in an advanced state of integration, shifting from foundational schemas to production-ready UI/UX workflows. 
 
-**Recent updates include:**
-1. **Schema Upgrades**: Successfully migrated the live Supabase production database using `npx prisma db update` to support advanced JSON configurations for Shipping and Payment settings in ShopOS.
-2. **Frontend Polishing**: Refactored massive monolithic settings pages into sleek, tabbed architectures, greatly improving UX for merchants.
-3. **Robust Scheduling**: Hardened the EduOS Timetable rendering logic (`cellsFor`) to prevent UI crashes when courses overlap in complex high-school schedules.
-4. **Vercel CI/CD Stability**: Resolved UTF-8 compilation errors preventing edge deployments.
+### ✅ Session — V1 Identity Canonical Model Migration (Complete)
 
-*Citios is rapidly approaching a state where cross-vertical transactions (e.g., a citizen using the Resident App to pay a ShopOS invoice or EduOS school fee) can be fully realized.*
+The entire codebase has been migrated from a legacy flat `User` model to the **V1 Identity Canonical Model**. This was a sweeping multi-phase refactor touching the schema, all action files, auth layer, seed/simulation scripts, and UI components — without modifying the Prisma schema itself (only application code).
+
+---
+
+#### Phase 1 — Schema (`src/prisma/contract.prisma`) ✅
+- Rewrote the contract to the V1 Blueprint.
+- Replaced the legacy `User` model with the full identity chain: `Person` → `PersonIdentifier` → `Account`.
+- Replaced `OrganizationMember` with `Membership` + `MembershipRole`.
+- Introduced `Relationship` (consumer-to-org link) and tenant-scoped extensions: `CustomerData`, `StudentData`, `PatientData`, `StaffData`.
+- All enum values corrected: `AppointmentStatus`, `PrescriptionStatus`, `LedgerEntry.currency`, etc.
+- `npm run contract:emit` passes cleanly.
+
+#### Phase 2 — Application Actions (`lib/actions/*.ts`) ✅
+Every vertical OS action file individually migrated:
+
+| File | Key Changes |
+|---|---|
+| `school.ts` | `Student` → `StudentData`; `ClassTeacher.staffId` → `membershipId`; `formTeacherId` → `formMembershipId`; `TimetableSlot.staffId` → `membershipId`; `requireMembership` import added |
+| `schoolos.ts` / `shopos.ts` | `session.user.userId` → `session.user.personId` |
+| `hotel.ts` | `addFolioCharge` fixed to safely fetch `orgId`; `LedgerEntry.currency` field added |
+| `healthcare.ts` | `PatientData` → `Relationship` → `Person` chain; `AppointmentStatus` & `PrescriptionStatus` enums corrected |
+| `microsite.ts` | Owner name resolution migrated to V1 identity chain (`Membership` → `Person`) |
+| `business.ts` | `OrganizationMember` creation replaced with `Membership` + `MembershipRole` |
+| `service.ts` / `services.ts` | Worker lookups via `GigWorkerProfile.personId` |
+| `retail.ts` | `CustomerData` → `Relationship` chain |
+| `feed.ts` / `post.ts` | `User.all()` → `Person.all()`; `userId` → `personId` on `Comment` and `PostLike` |
+| `profile.ts` | `PersonIdentifier` EMAIL lookup; `ResidentProfile.personId` |
+| `resident.ts` | `OrganizationMember` teacher count → `MembershipRole`; `Student` → `StudentData` |
+| `tenant.ts` | `requireAuthenticatedAccount` and `requireMembership` implemented using the full V1 chain |
+
+#### Phase 3 — Auth Layer (`lib/auth.ts`, `types/next-auth.d.ts`) ✅
+- `lib/auth.ts`: Full rewrite of `signIn` and JWT/session callbacks. Now uses `PersonIdentifier` for email lookup, creates `Person` + `Account` on first sign-in, and loads `Membership` + `MembershipRole` from DB into the session token.
+- `types/next-auth.d.ts`: `userId?: string` → `personId?: string` in both `Session` and `JWT` module augmentations.
+
+#### Phase 4 — Seed & Simulation Scripts ✅
+- `scripts/seed.ts` (~1300 lines): Fully migrated. All legacy `User.create` calls replaced with `Person` + `PersonIdentifier` + `Account`. All `Student` records replaced with `Relationship` + `StudentData`. `FamilyLink` replaces `StudentParent`. `ClassTeacher.staffId` → `membershipId`.
+- `simulate.ts`: User identity creation migrated to `Person` + `PersonIdentifier`.
+
+#### Phase 5 — UI Components (`app/` and `components/`) ✅
+- All `session.user.userId` references in page components replaced with `session.user.personId`.
+- `studentId` props updated to `studentDataId` across: `AccountingManager`, `CounselorDashboard`, `FinanceDashboard`, `RegistrarDashboard`, `PromotionPanel`, `AcademicManager`.
+- `FinanceDashboard`: `staffId` → `membershipId` for `markStaffAttendance` and `requestLeave` calls.
+- `POSTerminal`: `customerId` → `customerDataId`.
+- `HealthcareBookingView`: `bookAppointment` call updated to match the V1 5-argument signature.
+
+---
+
+**Earlier session updates:**
+1. **Schema Upgrades**: Migrated the Supabase production database using `npx prisma db update` to support JSON configurations for Shipping and Payment settings in ShopOS.
+2. **Frontend Polishing**: Refactored monolithic settings pages into tabbed architectures, improving UX for merchants.
+3. **Robust Scheduling**: Hardened EduOS Timetable rendering logic (`cellsFor`) to prevent crashes on complex overlapping schedules.
+4. **Vercel CI/CD Stability**: Resolved UTF-8 compilation errors blocking edge deployments.
+
+*Citios now has a hardened canonical identity backbone. All cross-vertical transactions — a citizen using the Resident App to pay a ShopOS invoice, book a hospital appointment, or pay an EduOS school fee — are built on a single authoritative `Person` identity.*

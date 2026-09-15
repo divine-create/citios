@@ -143,7 +143,7 @@ export default function POSTerminal({ organizationId, products, shiftId, cashier
         organizationId,
         shiftId,
         cashierId,
-        customerId: selectedCustomer?.id,
+        customerDataId: selectedCustomer?.id,
         items: cart.map((item) => ({ productId: item.product.id, quantity: item.quantity })),
         paymentMethod,
         discountAmount,

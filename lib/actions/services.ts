@@ -1,4 +1,3 @@
-
 'use server'
 
 import { db } from '@/src/prisma/db'
@@ -8,18 +7,21 @@ export async function getServicesAdminData() {
     const tasks = await db.orm.public.Task.all();
     const gigWorkers = await db.orm.public.GigWorkerProfile.all();
     const quotes = await db.orm.public.ServiceQuote.all();
-    const users = await db.orm.public.User.all();
+    const persons = await db.orm.public.Person.all();
 
     const tasksWithDetails = tasks.map(task => ({
         ...task,
-        requester: users.find(u => u.id === task.requesterId),
-        courier: users.find(u => u.id === task.courierId),
+        requester: persons.find(p => p.id === task.requesterPersonId),
+        courierProfile: gigWorkers.find(g => g.id === task.courierProfileId),
+        courierPerson: task.courierProfileId 
+            ? persons.find(p => p.id === gigWorkers.find(g => g.id === task.courierProfileId)?.personId)
+            : null,
         quote: quotes.find(q => q.taskId === task.id)
     }));
 
     const gigWorkersWithUsers = gigWorkers.map(gw => ({
         ...gw,
-        user: users.find(u => u.id === gw.userId)
+        user: persons.find(p => p.id === gw.personId) // Keeping "user" property name for frontend compatibility
     }));
 
     return JSON.parse(JSON.stringify({
@@ -31,4 +33,3 @@ export async function getServicesAdminData() {
     return null;
   }
 }
-
