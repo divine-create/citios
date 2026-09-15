@@ -1,5 +1,6 @@
-import { requireMembership, requireAuthenticatedAccount } from "@/lib/actions/tenant";
 'use server'
+
+import { requireMembership, requireAuthenticatedAccount, findStudentRelationship } from "@/lib/actions/tenant";
 
 import '@js-temporal/polyfill'
 import { db } from '@/src/prisma/db'
@@ -1364,7 +1365,7 @@ export async function deleteParentLink(linkId: string) {
 
 export async function enrollStudent(studentDataId: string, classId: string) {
   try {
-    const { studentData, relationship } = await // findStudentRelationship('', studentDataId).catch(async () => {
+    const { studentData, relationship } = await findStudentRelationship('', studentDataId).catch(async () => {
         // Since findStudentRelationship needs orgId, we fetch it here
         const sd = await db.orm.public.StudentData.where({ id: studentDataId }).all().first();
         if (!sd) throw new Error('Not found');

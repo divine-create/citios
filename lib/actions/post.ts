@@ -1,6 +1,6 @@
-import { requireAuthenticatedAccount } from "@/lib/actions/tenant";
-
 'use server'
+
+import { requireAuthenticatedAccount } from "@/lib/actions/tenant";
 
 import { db } from '@/src/prisma/db'
 import { getServerSession } from 'next-auth'
@@ -16,11 +16,17 @@ export async function getPostDetails(postId: string) {
         const users = await db.orm.public.Person.all();
         const likes = await db.orm.public.PostLike.where({ postId: postId }).all();
 
-        const commentsWithUsers = comments.map(c => ({
-            ...c,
-            createdAt: c.createdAt.toString(),
-            user: users.find(u => u.id === c.userId)
-        }));
+        // V1 identity path: Comment.personId -> Person. `user` key + composed
+        // `name` preserved for PostView.tsx compatibility (Person has
+        // firstName/lastName, not the legacy User.name column).
+        const commentsWithUsers = comments.map(c => {
+            const author = users.find(u => u.id === c.personId);
+            return {
+                ...c,
+                createdAt: c.createdAt.toString(),
+                user: author ? { ...author, name: `${author.firstName} ${author.lastName}`.trim() } : null
+            };
+        });
 
         let hasLiked = false;
         const session = await getServerSession(authOptions);
