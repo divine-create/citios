@@ -847,6 +847,9 @@ export async function updateRetailSettings(organizationId: string, input: {
   hasStoreInfo?: boolean;
   hasShippingPrices?: boolean;
   hasProducts?: boolean;
+  paymentGateway?: string;
+  bankDetails?: string;
+  shippingRates?: string;
 }) {
   try {
     const data: any = {};
@@ -860,6 +863,9 @@ export async function updateRetailSettings(organizationId: string, input: {
     if (input.hasStoreInfo !== undefined) data.hasStoreInfo = input.hasStoreInfo;
     if (input.hasShippingPrices !== undefined) data.hasShippingPrices = input.hasShippingPrices;
     if (input.hasProducts !== undefined) data.hasProducts = input.hasProducts;
+    if (input.paymentGateway !== undefined) data.paymentGateway = input.paymentGateway;
+    if (input.bankDetails !== undefined) data.bankDetails = input.bankDetails;
+    if (input.shippingRates !== undefined) data.shippingRates = input.shippingRates;
 
     await db.orm.public.RetailSettings.where({ organizationId }).update(data);
     return { success: true };

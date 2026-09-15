@@ -220,6 +220,13 @@ model RetailSettings {
   hasShippingPrices  Boolean @default(false)
   hasProducts        Boolean @default(false)
 
+  // Payment Configuration
+  paymentGateway     String?
+  bankDetails        String?      // JSON string: { bankName, accountNumber, accountName }
+  
+  // Shipping Configuration
+  shippingRates      String?      // JSON string array: [{ id, name, price, condition }]
+
   customUnits    String?      // JSON string array e.g. '["ea", "lb", "kg", "pack", "box"]'
 
   createdAt      DateTime     @default(now())

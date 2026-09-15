@@ -18,7 +18,9 @@ export default function Settings({ organizationId }: SettingsProps) {
       if (data) {
         setSettings({
           ...data,
-          customUnits: JSON.parse(data.customUnits || '[]')
+          customUnits: JSON.parse(data.customUnits || '[]'),
+          bankDetails: JSON.parse(data.bankDetails || '{"bankName":"","accountNumber":"","accountName":""}'),
+          shippingRates: JSON.parse(data.shippingRates || '[]'),
         });
       }
       setLoading(false);
@@ -34,7 +36,10 @@ export default function Settings({ organizationId }: SettingsProps) {
       receiptMessage: settings.receiptMessage,
       taxRate: parseFloat(settings.taxRate),
       currencySymbol: settings.currencySymbol,
-      customUnits: settings.customUnits
+      customUnits: settings.customUnits,
+      paymentGateway: settings.paymentGateway,
+      bankDetails: JSON.stringify(settings.bankDetails),
+      shippingRates: JSON.stringify(settings.shippingRates)
     });
     setSaving(false);
     alert('Settings saved successfully!');
@@ -54,6 +59,27 @@ export default function Settings({ organizationId }: SettingsProps) {
     setSettings({
       ...settings,
       customUnits: settings.customUnits.filter((u: string) => u !== unitToRemove)
+    });
+  };
+
+  const addShippingRate = () => {
+    setSettings({
+      ...settings,
+      shippingRates: [...settings.shippingRates, { id: crypto.randomUUID(), name: '', price: 0, condition: '' }]
+    });
+  };
+
+  const updateShippingRate = (id: string, field: string, value: any) => {
+    setSettings({
+      ...settings,
+      shippingRates: settings.shippingRates.map((r: any) => r.id === id ? { ...r, [field]: value } : r)
+    });
+  };
+
+  const removeShippingRate = (id: string) => {
+    setSettings({
+      ...settings,
+      shippingRates: settings.shippingRates.filter((r: any) => r.id !== id)
     });
   };
 
@@ -143,6 +169,61 @@ export default function Settings({ organizationId }: SettingsProps) {
         </div>
 
         <div className="space-y-6">
+          <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+            <h3 className="font-bold text-slate-800 border-b border-slate-100 pb-2">Payment & Wallet</h3>
+            <p className="text-sm text-slate-500">Configure how you receive payments and wallet withdrawals.</p>
+            
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-500 uppercase">Payment Gateway</label>
+              <select 
+                value={settings?.paymentGateway || ''} 
+                onChange={e => setSettings({...settings, paymentGateway: e.target.value})}
+                className="w-full p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+              >
+                <option value="">Select Gateway</option>
+                <option value="stripe">Stripe</option>
+                <option value="paystack">Paystack</option>
+                <option value="flutterwave">Flutterwave</option>
+                <option value="wallet_only">Wallet Only</option>
+              </select>
+            </div>
+
+            <div className="space-y-3 pt-2">
+              <h4 className="text-xs font-bold text-slate-800 uppercase">Bank Details for Withdrawal</h4>
+              <div className="space-y-1">
+                <input type="text" placeholder="Bank Name" value={settings?.bankDetails?.bankName || ''} onChange={e => setSettings({...settings, bankDetails: {...settings.bankDetails, bankName: e.target.value}})} className="w-full p-2 border border-slate-200 rounded-lg text-sm" />
+              </div>
+              <div className="space-y-1">
+                <input type="text" placeholder="Account Name" value={settings?.bankDetails?.accountName || ''} onChange={e => setSettings({...settings, bankDetails: {...settings.bankDetails, accountName: e.target.value}})} className="w-full p-2 border border-slate-200 rounded-lg text-sm" />
+              </div>
+              <div className="space-y-1">
+                <input type="text" placeholder="Account Number" value={settings?.bankDetails?.accountNumber || ''} onChange={e => setSettings({...settings, bankDetails: {...settings.bankDetails, accountNumber: e.target.value}})} className="w-full p-2 border border-slate-200 rounded-lg text-sm" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+            <h3 className="font-bold text-slate-800 border-b border-slate-100 pb-2">Shipping Zones & Rates</h3>
+            <p className="text-sm text-slate-500">Define shipping prices for your website checkout.</p>
+            
+            <div className="space-y-3">
+              {settings?.shippingRates?.map((rate: any) => (
+                <div key={rate.id} className="flex flex-col gap-2 p-3 border border-slate-100 bg-slate-50 rounded-lg relative">
+                  <button onClick={() => removeShippingRate(rate.id)} className="absolute top-2 right-2 text-slate-400 hover:text-red-500"><X size={14}/></button>
+                  <input type="text" placeholder="Zone Name (e.g. Nationwide)" value={rate.name} onChange={e => updateShippingRate(rate.id, 'name', e.target.value)} className="w-full p-2 border border-slate-200 rounded-lg text-sm" />
+                  <div className="flex gap-2">
+                    <input type="number" placeholder="Price" value={rate.price} onChange={e => updateShippingRate(rate.id, 'price', parseFloat(e.target.value))} className="w-1/3 p-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" placeholder="Condition (e.g. Under 5kg)" value={rate.condition} onChange={e => updateShippingRate(rate.id, 'condition', e.target.value)} className="w-2/3 p-2 border border-slate-200 rounded-lg text-sm" />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <button onClick={addShippingRate} className="text-sm font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1">
+              <Plus size={16} /> Add Shipping Rate
+            </button>
+          </div>
+
           <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
             <h3 className="font-bold text-slate-800 border-b border-slate-100 pb-2">Units Management</h3>
             <p className="text-sm text-slate-500">

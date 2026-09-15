@@ -11092,6 +11092,13 @@
           },
           "RetailSettings": {
             "fields": {
+              "bankDetails": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "country": {
                 "nullable": true,
                 "type": {
@@ -11169,6 +11176,13 @@
                   "kind": "scalar"
                 }
               },
+              "paymentGateway": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "physicalStores": {
                 "nullable": true,
                 "type": {
@@ -11177,6 +11191,13 @@
                 }
               },
               "receiptMessage": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "shippingRates": {
                 "nullable": true,
                 "type": {
                   "codecId": "pg/text@1",
@@ -11252,6 +11273,9 @@
             },
             "storage": {
               "fields": {
+                "bankDetails": {
+                  "column": "bankDetails"
+                },
                 "country": {
                   "column": "country"
                 },
@@ -11285,11 +11309,17 @@
                 "organizationId": {
                   "column": "organizationId"
                 },
+                "paymentGateway": {
+                  "column": "paymentGateway"
+                },
                 "physicalStores": {
                   "column": "physicalStores"
                 },
                 "receiptMessage": {
                   "column": "receiptMessage"
+                },
+                "shippingRates": {
+                  "column": "shippingRates"
                 },
                 "staffCount": {
                   "column": "staffCount"
@@ -26688,6 +26718,11 @@
             },
             "retailSettings": {
               "columns": {
+                "bankDetails": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "country": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -26767,12 +26802,22 @@
                   "nativeType": "text",
                   "nullable": false
                 },
+                "paymentGateway": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "physicalStores": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": true
                 },
                 "receiptMessage": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "shippingRates": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": true
@@ -32735,7 +32780,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "8029ffa8040f0df94ccc9f7057392d71663b6d663f1c451cd84bea74ead9f3e5"
+    "storageHash": "cd85333b0703e1e53122dff96fa34c361865a2aebb145e71499f2a59a443e270"
   },
   "execution": {
     "executionHash": "bc532f03d34f6d09af354387e9d2dbedb2f636affd9291fe046de5a99e0766a1",
