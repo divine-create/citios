@@ -571,6 +571,7 @@ export async function getShopDashboardData(organizationId: string) {
     const lowStockCount = products.filter((p) => p.lowStockLevel != null && p.stockQuantity <= (p.lowStockLevel as number)).length;
 
     const openShift = await getOpenShift(organizationId);
+    const settings = await getRetailSettings(organizationId);
 
     return {
       grossSales,
@@ -580,10 +581,11 @@ export async function getShopDashboardData(organizationId: string) {
       lowStockCount,
       totalProducts: products.length,
       openShift,
+      settings,
     };
   } catch (error) {
     console.error('Error fetching shop dashboard data:', error);
-    return { grossSales: 0, transactions: 0, refunds: 0, netSales: 0, lowStockCount: 0, totalProducts: 0, openShift: null };
+    return { grossSales: 0, transactions: 0, refunds: 0, netSales: 0, lowStockCount: 0, totalProducts: 0, openShift: null, settings: null };
   }
 }
 
@@ -841,6 +843,10 @@ export async function updateRetailSettings(organizationId: string, input: {
   taxRate?: number;
   currencySymbol?: string;
   customUnits?: string[];
+  hasSetPayment?: boolean;
+  hasStoreInfo?: boolean;
+  hasShippingPrices?: boolean;
+  hasProducts?: boolean;
 }) {
   try {
     const data: any = {};
@@ -850,6 +856,10 @@ export async function updateRetailSettings(organizationId: string, input: {
     if (input.taxRate !== undefined) data.taxRate = input.taxRate;
     if (input.currencySymbol !== undefined) data.currencySymbol = input.currencySymbol;
     if (input.customUnits !== undefined) data.customUnits = JSON.stringify(input.customUnits);
+    if (input.hasSetPayment !== undefined) data.hasSetPayment = input.hasSetPayment;
+    if (input.hasStoreInfo !== undefined) data.hasStoreInfo = input.hasStoreInfo;
+    if (input.hasShippingPrices !== undefined) data.hasShippingPrices = input.hasShippingPrices;
+    if (input.hasProducts !== undefined) data.hasProducts = input.hasProducts;
 
     await db.orm.public.RetailSettings.where({ organizationId }).update(data);
     return { success: true };

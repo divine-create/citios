@@ -213,6 +213,12 @@ model RetailSettings {
   currencies     String?      // JSON array of strings
   staffCount     String?
   physicalStores String?
+  
+  // Onboarding Progress Flags
+  hasSetPayment      Boolean @default(false)
+  hasStoreInfo       Boolean @default(false)
+  hasShippingPrices  Boolean @default(false)
+  hasProducts        Boolean @default(false)
 
   customUnits    String?      // JSON string array e.g. '["ea", "lb", "kg", "pack", "box"]'
 

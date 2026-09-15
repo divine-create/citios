@@ -11127,6 +11127,34 @@
                   "kind": "scalar"
                 }
               },
+              "hasProducts": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
+              "hasSetPayment": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
+              "hasShippingPrices": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
+              "hasStoreInfo": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
               "id": {
                 "nullable": false,
                 "type": {
@@ -11238,6 +11266,18 @@
                 },
                 "customUnits": {
                   "column": "customUnits"
+                },
+                "hasProducts": {
+                  "column": "hasProducts"
+                },
+                "hasSetPayment": {
+                  "column": "hasSetPayment"
+                },
+                "hasShippingPrices": {
+                  "column": "hasShippingPrices"
+                },
+                "hasStoreInfo": {
+                  "column": "hasStoreInfo"
                 },
                 "id": {
                   "column": "id"
@@ -26681,6 +26721,42 @@
                   "nativeType": "text",
                   "nullable": true
                 },
+                "hasProducts": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": false
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
+                "hasSetPayment": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": false
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
+                "hasShippingPrices": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": false
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
+                "hasStoreInfo": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": false
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
                 "id": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -32659,7 +32735,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "f88d1cb2c491af5fdf17bbbc8cbe046ffa6725b6ad557dc9c87ce8c757ca6c72"
+    "storageHash": "8029ffa8040f0df94ccc9f7057392d71663b6d663f1c451cd84bea74ead9f3e5"
   },
   "execution": {
     "executionHash": "bc532f03d34f6d09af354387e9d2dbedb2f636affd9291fe046de5a99e0766a1",

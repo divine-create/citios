@@ -35,6 +35,7 @@ import Link from "next/link";
 import POSTerminal from "./POSTerminal";
 import InventoryManager from "./InventoryManager";
 import Settings from "./Settings";
+import ShopOnboardingWidget from "./ShopOnboardingWidget";
 import {
   getShopDashboardData,
   getProducts,
@@ -220,6 +221,13 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
             <>
               {activeMenu === "Dashboard" && (
                 <div className="p-8">
+                  {dashboard?.settings && (
+                    <ShopOnboardingWidget 
+                      settings={dashboard.settings} 
+                      organizationId={organizationId} 
+                      onNavigate={(tab) => setActiveMenu(tab)} 
+                    />
+                  )}
                   <h2 className="text-2xl font-bold text-slate-800 mb-6">Today's Overview</h2>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <StatCard label="Gross Sales" value={`$${dashboard.grossSales.toFixed(2)}`} />
