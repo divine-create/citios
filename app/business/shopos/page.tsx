@@ -219,7 +219,7 @@ export default function ShopOSLandingPage() {
               
               <div className="mt-10 pt-8 border-t border-slate-800 relative z-10">
                 <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Transaction Fee</h4>
-                <div className="text-2xl font-bold text-white">2.9% + 30¢ <span className="text-base text-slate-400 font-normal">per tap/dip</span></div>
+                <div className="text-2xl font-bold text-white">2.9% + 30 cents <span className="text-base text-slate-400 font-normal">per tap/dip</span></div>
               </div>
             </div>
           </div>
