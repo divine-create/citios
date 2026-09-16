@@ -1,8 +1,5 @@
-import SearchView from '@/components/SearchView';
-import { getOrganizations } from '@/lib/actions/explore';
+import CityExplore from '@/components/cityos/CityExplore';
 
-export default async function ExplorePage() {
-    const orgs = await getOrganizations();
-    
-    return <SearchView initialOrgs={orgs} />;
+export default function ExplorePage() {
+    return <CityExplore />;
 }

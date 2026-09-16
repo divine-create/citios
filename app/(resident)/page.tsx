@@ -1,8 +1,5 @@
-import HomeView from '@/components/HomeView';
-import { getCommunityFeed } from '@/lib/actions/feed';
+import CityHome from '@/components/cityos/CityHome';
 
-export default async function HomePage() {
-    const posts = await getCommunityFeed();
-    
-    return <HomeView initialPosts={posts} />;
+export default function HomePage() {
+    return <CityHome />;
 }
