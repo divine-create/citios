@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Plus, Search, Edit2, Trash2, ArrowUpDown, Package, AlertTriangle, X, Upload, Loader2, FolderTree } from "lucide-react";
-import { createProduct, updateProduct, deleteProduct, createCategory, updateCategory, deleteCategory, getRetailSettings } from "@/lib/actions/retail";
+import { Plus, Search, Edit2, Trash2, ArrowUpDown, Package, AlertTriangle, X, Upload, Loader2, FolderTree, History, ArrowUpFromLine } from "lucide-react";
+import { createProduct, updateProduct, deleteProduct, createCategory, updateCategory, deleteCategory, getRetailSettings, adjustStock, getStockMovements } from "@/lib/actions/retail";
 import { uploadAsset } from "@/lib/actions/microsite";
 
 interface Product {
@@ -42,21 +42,26 @@ interface Category {
 
 const EMPTY_FORM = { name: "", sku: "", barcode: "", categoryId: "", price: "", cost: "", stockQuantity: "", lowStockLevel: "", isWeighed: false, unit: "ea" };
 
-export default function InventoryManager({ organizationId, products, categories, onChanged }: {
+export default function InventoryManager({ organizationId, products, categories, onChanged, symbol = "$" }: {
   organizationId: string;
   products: Product[];
   categories: Category[];
   onChanged: () => void;
+  symbol?: string;
 }) {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<"PRODUCTS" | "CATEGORIES">("PRODUCTS");
   const [customUnits, setCustomUnits] = useState<string[]>(['ea', 'lb', 'kg', 'pack', 'box']);
+  const [currencySymbol, setCurrencySymbol] = useState<string>(symbol);
 
   useEffect(() => {
     async function loadSettings() {
       const settings = await getRetailSettings(organizationId);
       if (settings?.customUnits) {
         setCustomUnits(JSON.parse(settings.customUnits));
+      }
+      if (settings?.currencySymbol) {
+        setCurrencySymbol(settings.currencySymbol);
       }
     }
     loadSettings();
@@ -71,11 +76,56 @@ export default function InventoryManager({ organizationId, products, categories,
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Category State
+// Category State
   const [isCatModalOpen, setIsCatModalOpen] = useState(false);
   const [editCatId, setEditCatId] = useState<string | null>(null);
   const [catName, setCatName] = useState("");
   const [catDesc, setCatDesc] = useState("");
+
+  // Stock ledger state (Phase 3)
+  const [historyProduct, setHistoryProduct] = useState<Product | null>(null);
+  const [movements, setMovements] = useState<any[]>([]);
+  const [loadingMovements, setLoadingMovements] = useState(false);
+  const [adjustProduct, setAdjustProduct] = useState<Product | null>(null);
+  const [adjustDelta, setAdjustDelta] = useState("");
+  const [adjustNote, setAdjustNote] = useState("");
+  const [adjustError, setAdjustError] = useState<string | null>(null);
+  const [isAdjusting, setIsAdjusting] = useState(false);
+
+  const openHistory = async (p: Product) => {
+    setHistoryProduct(p);
+    setMovements([]);
+    setLoadingMovements(true);
+    try {
+      const rows = await getStockMovements(organizationId, p.id);
+      setMovements(rows);
+    } finally {
+      setLoadingMovements(false);
+    }
+  };
+
+  const openAdjust = (p: Product) => {
+    setAdjustProduct(p);
+    setAdjustDelta("");
+    setAdjustNote("");
+    setAdjustError(null);
+  };
+
+  const submitAdjust = async () => {
+    if (!adjustProduct) return;
+    setAdjustError(null);
+    const delta = parseFloat(adjustDelta);
+    if (isNaN(delta) || delta === 0) { setAdjustError("Enter a quantity change (+ receives, − removes)."); return; }
+    setIsAdjusting(true);
+    try {
+      const res = await adjustStock(adjustProduct.id, delta, adjustNote.trim() || undefined);
+      if ((res as any)?.error) { setAdjustError((res as any).error); return; }
+      setAdjustProduct(null);
+      onChanged();
+    } finally {
+      setIsAdjusting(false);
+    }
+  };
 
   const filteredProducts = products.filter(
     (p) =>
@@ -268,7 +318,7 @@ export default function InventoryManager({ organizationId, products, categories,
           </div>
           <div>
             <p className="text-sm font-medium text-slate-500">Total Inventory Value</p>
-            <p className="text-2xl font-bold text-slate-800">${totalValue.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-slate-800">{currencySymbol}{totalValue.toFixed(2)}</p>
           </div>
         </div>
 
@@ -334,8 +384,8 @@ export default function InventoryManager({ organizationId, products, categories,
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="font-bold text-slate-800">${item.price.toFixed(2)}{item.isWeighed ? `/${item.unit}` : ""}</div>
-                      <div className="text-xs text-slate-500 mt-0.5">Cost: {item.cost != null ? `$${item.cost.toFixed(2)}` : "—"}</div>
+<div className="font-bold text-slate-800">{currencySymbol}{item.price.toFixed(2)}{item.isWeighed ? `/${item.unit}` : ""}</div>
+                      <div className="text-xs text-slate-500 mt-0.5">Cost: {item.cost != null ? `${currencySymbol}${item.cost.toFixed(2)}` : "—"}</div>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className={`font-bold inline-flex items-center gap-1.5 ${isLowStock ? "text-red-600" : "text-slate-800"}`}>
@@ -344,8 +394,14 @@ export default function InventoryManager({ organizationId, products, categories,
                       </div>
                       <div className="text-xs text-slate-500 mt-0.5">Min: {item.lowStockLevel ?? "—"}</div>
                     </td>
-                    <td className="px-6 py-4 text-right">
+<td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
+                        <button title="Stock history" onClick={() => openHistory(item)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
+                          <History size={16} />
+                        </button>
+                        <button title="Adjust stock" onClick={() => openAdjust(item)} className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors">
+                          <ArrowUpFromLine size={16} />
+                        </button>
                         <button onClick={() => openEdit(item)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
                           <Edit2 size={16} />
                         </button>
@@ -485,11 +541,11 @@ export default function InventoryManager({ organizationId, products, categories,
                 <input type="text" value={form.barcode} onChange={(e) => setForm((f) => ({ ...f, barcode: e.target.value }))} className="w-full p-2 border border-slate-200 rounded-lg" placeholder="Scan or type..." />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Selling Price ($)</label>
+                <label className="text-xs font-bold text-slate-500 uppercase">Selling Price ({currencySymbol})</label>
                 <input type="number" step="0.01" value={form.price} onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))} className="w-full p-2 border border-slate-200 rounded-lg" placeholder="0.00" />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Cost Price ($)</label>
+                <label className="text-xs font-bold text-slate-500 uppercase">Cost Price ({currencySymbol})</label>
                 <input type="number" step="0.01" value={form.cost} onChange={(e) => setForm((f) => ({ ...f, cost: e.target.value }))} className="w-full p-2 border border-slate-200 rounded-lg" placeholder="0.00" />
               </div>
               {!editId && (
@@ -546,6 +602,117 @@ export default function InventoryManager({ organizationId, products, categories,
               </button>
               <button onClick={submitCat} disabled={isSaving} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-lg transition-colors">
                 {isSaving ? "Saving..." : "Save Category"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+{/* STOCK HISTORY MODAL */}
+      {historyProduct && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-bold text-lg text-slate-800">Stock History — {historyProduct.name}</h3>
+              <button onClick={() => setHistoryProduct(null)} className="text-slate-400 hover:text-slate-600">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-6 bg-slate-50 max-h-[70vh] overflow-y-auto">
+              <p className="text-sm text-slate-500 mb-4">
+                Current stock: <span className="font-bold text-slate-800">{historyProduct.stockQuantity} {historyProduct.unit}</span>
+              </p>
+              {loadingMovements ? (
+                <div className="flex items-center gap-2 text-sm text-slate-400"><Loader2 size={16} className="animate-spin" /> Loading movements…</div>
+              ) : movements.length === 0 ? (
+                <p className="text-sm text-slate-400">No stock movements recorded yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {movements.map((m) => {
+                    const reasonStyles: Record<string, string> = {
+                      SALE: "bg-blue-100 text-blue-700",
+                      REFUND: "bg-slate-200 text-slate-700",
+                      ADJUSTMENT: "bg-amber-100 text-amber-700",
+                      RECEIVED: "bg-emerald-100 text-emerald-700",
+                    };
+                    return (
+                      <div key={m.id} className="flex items-center justify-between bg-white border border-slate-200 rounded-lg px-4 py-3 text-sm">
+                        <div className="flex items-center gap-3">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${reasonStyles[m.reason] ?? "bg-slate-100 text-slate-600"}`}>
+                            {m.reason}
+                          </span>
+                          <span className={`font-bold ${m.delta > 0 ? "text-emerald-600" : "text-red-600"}`}>
+                            {m.delta > 0 ? `+${m.delta}` : m.delta}
+                          </span>
+                          <span className="text-slate-400 text-xs">
+                            {m.beforeQty} → {m.afterQty}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-xs text-slate-500">{m.note || m.reason}</div>
+                          <div className="text-xs text-slate-400">{new Date(m.createdAt).toLocaleString()}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <div className="p-4 border-t border-slate-100 flex justify-end bg-white">
+              <button onClick={() => setHistoryProduct(null)} className="px-4 py-2 font-semibold text-slate-500 hover:bg-slate-100 rounded-lg transition-colors">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ADJUST STOCK MODAL */}
+      {adjustProduct && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-bold text-lg text-slate-800">Adjust Stock — {adjustProduct.name}</h3>
+              <button onClick={() => setAdjustProduct(null)} className="text-slate-400 hover:text-slate-600">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4 bg-slate-50">
+              {adjustError && <div className="p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-100">{adjustError}</div>}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500 uppercase">Change (+ receive / − remove)</label>
+                <input
+                  type="number"
+                  step="any"
+                  value={adjustDelta}
+                  onChange={(e) => setAdjustDelta(e.target.value)}
+                  className="w-full p-2 border border-slate-200 rounded-lg"
+                  placeholder="e.g. 10 or -2"
+                />
+              </div>
+              <div className="text-sm text-slate-500">
+                Resulting stock:{" "}
+                <span className={`font-bold ${(adjustProduct.stockQuantity + (parseFloat(adjustDelta) || 0)) < 0 ? "text-red-600" : "text-slate-800"}`}>
+                  {adjustProduct.stockQuantity + (parseFloat(adjustDelta) || 0)} {adjustProduct.unit}
+                </span>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500 uppercase">Reason / Note (Optional)</label>
+                <textarea
+                  value={adjustNote}
+                  onChange={(e) => setAdjustNote(e.target.value)}
+                  className="w-full p-2 border border-slate-200 rounded-lg"
+                  placeholder="e.g. Damaged goods written off, stocktake correction, received from supplier…"
+                  rows={2}
+                />
+              </div>
+              <p className="text-xs text-slate-400">Every adjustment is written to the stock ledger with who made it and why.</p>
+            </div>
+            <div className="p-4 border-t border-slate-100 flex justify-end gap-3 bg-white">
+              <button onClick={() => setAdjustProduct(null)} className="px-4 py-2 font-semibold text-slate-500 hover:bg-slate-100 rounded-lg transition-colors">
+                Cancel
+              </button>
+              <button onClick={submitAdjust} disabled={isAdjusting} className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-lg transition-colors">
+                {isAdjusting ? "Saving..." : "Adjust Stock"}
               </button>
             </div>
           </div>

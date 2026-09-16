@@ -29,8 +29,9 @@ export default function Settings({ organizationId }: SettingsProps) {
     load();
   }, [organizationId]);
 
-  const handleSave = async () => {
+const handleSave = async () => {
     setSaving(true);
+    const hasBankDetails = !!(settings.bankDetails?.bankName?.trim() && settings.bankDetails?.accountNumber?.trim() && settings.bankDetails?.accountName?.trim());
     await updateRetailSettings(organizationId, {
       storeName: settings.storeName,
       storeAddress: settings.storeAddress,
@@ -40,7 +41,9 @@ export default function Settings({ organizationId }: SettingsProps) {
       customUnits: settings.customUnits,
       paymentGateway: settings.paymentGateway,
       bankDetails: JSON.stringify(settings.bankDetails),
-      shippingRates: JSON.stringify(settings.shippingRates)
+      shippingRates: JSON.stringify(settings.shippingRates),
+      hasShippingPrices: (settings.shippingRates?.length ?? 0) > 0,
+      hasSetPayment: hasBankDetails,
     });
     setSaving(false);
     alert('Settings saved successfully!');
@@ -261,19 +264,21 @@ export default function Settings({ organizationId }: SettingsProps) {
                 </select>
               </div>
 
-              <div className="space-y-3 pt-2 opacity-60">
+              <div className="space-y-3 pt-2">
                 <div className="flex items-center gap-2">
                   <h4 className="text-xs font-bold text-slate-800 uppercase">Bank Details for Withdrawal</h4>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-[10px] font-bold uppercase tracking-wide border border-slate-200">Coming soon</span>
+                </div>
+                <p className="text-sm text-slate-500">
+                  Saved here so funds accumulated through CityPay settlements can be withdrawn. Online card collection at the register is not enabled yet.
+                </p>
+                <div className="space-y-1">
+                  <input type="text" placeholder="Bank Name" value={settings?.bankDetails?.bankName || ''} onChange={e => setSettings({...settings, bankDetails: {...settings.bankDetails, bankName: e.target.value}})} className="w-full p-2 border border-slate-200 rounded-lg text-sm bg-white" />
                 </div>
                 <div className="space-y-1">
-                  <input disabled type="text" placeholder="Bank Name" value={settings?.bankDetails?.bankName || ''} onChange={e => setSettings({...settings, bankDetails: {...settings.bankDetails, bankName: e.target.value}})} className="w-full p-2 border border-slate-200 rounded-lg text-sm bg-slate-100 text-slate-400" />
+                  <input type="text" placeholder="Account Name" value={settings?.bankDetails?.accountName || ''} onChange={e => setSettings({...settings, bankDetails: {...settings.bankDetails, accountName: e.target.value}})} className="w-full p-2 border border-slate-200 rounded-lg text-sm bg-white" />
                 </div>
                 <div className="space-y-1">
-                  <input disabled type="text" placeholder="Account Name" value={settings?.bankDetails?.accountName || ''} onChange={e => setSettings({...settings, bankDetails: {...settings.bankDetails, accountName: e.target.value}})} className="w-full p-2 border border-slate-200 rounded-lg text-sm bg-slate-100 text-slate-400" />
-                </div>
-                <div className="space-y-1">
-                  <input disabled type="text" placeholder="Account Number" value={settings?.bankDetails?.accountNumber || ''} onChange={e => setSettings({...settings, bankDetails: {...settings.bankDetails, accountNumber: e.target.value}})} className="w-full p-2 border border-slate-200 rounded-lg text-sm bg-slate-100 text-slate-400" />
+                  <input type="text" placeholder="Account Number" value={settings?.bankDetails?.accountNumber || ''} onChange={e => setSettings({...settings, bankDetails: {...settings.bankDetails, accountNumber: e.target.value}})} className="w-full p-2 border border-slate-200 rounded-lg text-sm bg-white" />
                 </div>
               </div>
             </div>

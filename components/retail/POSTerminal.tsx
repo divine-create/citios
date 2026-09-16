@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Search, Plus, Minus, CreditCard, Banknote, X, ChevronRight, ShoppingCart, Loader2, User, UserPlus, CheckCircle2, Package, Trash2, ArrowRight } from "lucide-react";
-import { getProducts, getCustomers, createOrder, createCustomer, getRetailSettings } from "@/lib/actions/retail";
+import { getProducts, getCustomers, createOrder, createCustomer, getRetailSettings, getCouponDiscount } from "@/lib/actions/retail";
 import ReceiptModal from "./ReceiptModal";
 
 const CATEGORY_COLORS = [
@@ -62,6 +62,7 @@ export default function POSTerminal({ organizationId, products, shiftId, onOrder
   const [isCustomerPickerOpen, setIsCustomerPickerOpen] = useState(false);
   const [completedOrderId, setCompletedOrderId] = useState<string | null>(null);
   const [taxRate, setTaxRate] = useState<number>(8); // default fallback of 8%
+  const [symbol, setSymbol] = useState<string>("$");
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -69,6 +70,7 @@ export default function POSTerminal({ organizationId, products, shiftId, onOrder
     getCustomers(organizationId).then(setCustomers);
     getRetailSettings(organizationId).then((s) => {
       if (s && s.taxRate !== undefined) setTaxRate(s.taxRate);
+      if (s && s.currencySymbol) setSymbol(s.currencySymbol);
     });
   }, [organizationId]);
 
@@ -97,10 +99,12 @@ export default function POSTerminal({ organizationId, products, shiftId, onOrder
       }
       return [...prev, { product, quantity: 1 }];
     });
+    clearAppliedCoupon();
     setSearchQuery("");
   };
 
   const updateQuantity = (productId: string, delta: number) => {
+    clearAppliedCoupon();
     setCart((prev) =>
       prev
         .map((item) => {
@@ -116,6 +120,7 @@ export default function POSTerminal({ organizationId, products, shiftId, onOrder
 
   const setAbsoluteQuantity = (productId: string, quantity: number) => {
     if (isNaN(quantity) || quantity < 0) return;
+    clearAppliedCoupon();
     setCart((prev) =>
       prev
         .map((item) => {
@@ -129,10 +134,35 @@ export default function POSTerminal({ organizationId, products, shiftId, onOrder
   };
 
   const [discountAmount, setDiscountAmount] = useState<number>(0);
+  const [couponCode, setCouponCode] = useState<string>("");
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number; label: string } | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [isCouponChecking, setIsCouponChecking] = useState(false);
+
+  const clearAppliedCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode("");
+    setCouponError(null);
+  };
+
+  const applyCoupon = async () => {
+    const code = couponCode.trim();
+    if (!code) { setCouponError("Enter a coupon code."); return; }
+    setIsCouponChecking(true);
+    setCouponError(null);
+    try {
+      const res = await getCouponDiscount(organizationId, code, subtotal);
+      if ((res as any)?.error) { setCouponError((res as any).error); return; }
+      setAppliedCoupon({ code: code.toUpperCase(), discount: (res as any).discount, label: (res as any).label });
+    } finally {
+      setIsCouponChecking(false);
+    }
+  };
 
   const subtotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-  const tax = Math.max(0, (subtotal - discountAmount) * (taxRate / 100));
-  const total = Math.max(0, subtotal - discountAmount + tax);
+  const couponDiscount = appliedCoupon?.discount ?? 0;
+  const tax = Math.max(0, (subtotal - discountAmount - couponDiscount) * (taxRate / 100));
+  const total = Math.max(0, subtotal - discountAmount - couponDiscount + tax);
 
   const finalizeSale = async (paymentMethod: "CASH" | "CARD") => {
     setError(null);
@@ -145,6 +175,7 @@ export default function POSTerminal({ organizationId, products, shiftId, onOrder
         items: cart.map((item) => ({ productId: item.product.id, quantity: item.quantity })),
         paymentMethod,
         discountAmount,
+        couponCode: appliedCoupon?.code,
       });
       if ((res as any)?.error) {
         setError((res as any).error);
@@ -160,6 +191,7 @@ export default function POSTerminal({ organizationId, products, shiftId, onOrder
     setCompletedOrderId(null);
     setCart([]);
     setDiscountAmount(0);
+    setCouponCode("");
     setShowTender(false);
     setSelectedCustomer(null);
     onOrderComplete();
@@ -195,7 +227,7 @@ export default function POSTerminal({ organizationId, products, shiftId, onOrder
                 <div key={item.product.id} className="bg-white border border-slate-200 p-3 rounded-lg flex items-center gap-3">
                   <div className="flex-1">
                     <h4 className="font-bold text-slate-800 leading-tight">{item.product.name}</h4>
-                    <p className="text-slate-500 text-sm mt-0.5">${item.product.price.toFixed(2)} {item.product.isWeighed ? `/${item.product.unit}` : "each"}</p>
+                    <p className="text-slate-500 text-sm mt-0.5">{symbol}{item.product.price.toFixed(2)} {item.product.isWeighed ? `/${item.product.unit}` : "each"}</p>
                   </div>
 
                   <div className="flex items-center gap-3 bg-slate-50 rounded-lg p-1 border border-slate-200">
@@ -215,7 +247,7 @@ export default function POSTerminal({ organizationId, products, shiftId, onOrder
                   </div>
 
                   <div className="w-16 text-right font-black text-slate-900">
-                    ${(item.product.price * item.quantity).toFixed(2)}
+                    {symbol}{(item.product.price * item.quantity).toFixed(2)}
                   </div>
                 </div>
               ))}
@@ -227,12 +259,12 @@ export default function POSTerminal({ organizationId, products, shiftId, onOrder
             <div className="space-y-2 mb-4">
               <div className="flex justify-between text-slate-500 text-sm font-medium">
                 <span>Subtotal</span>
-                <span>${subtotal.toFixed(2)}</span>
+                <span>{symbol}{subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-emerald-600 text-sm font-medium items-center">
                 <span>Discount</span>
                 <div className="flex items-center gap-1">
-                  <span>-$</span>
+                  <span>-{symbol}</span>
                   <input 
                     type="number"
                     step="0.01"
@@ -245,13 +277,47 @@ export default function POSTerminal({ organizationId, products, shiftId, onOrder
                   />
                 </div>
               </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-slate-500 font-medium">Coupon</span>
+                {appliedCoupon ? (
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold">
+                      <CheckCircle2 size={12} /> {appliedCoupon.code} (−{symbol}{appliedCoupon.discount.toFixed(2)})
+                    </span>
+                    <button onClick={clearAppliedCoupon} className="text-slate-400 hover:text-red-600 font-bold" type="button">
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="text"
+                      value={couponCode}
+                      onChange={(e) => { setCouponCode(e.target.value); setCouponError(null); }}
+                      onKeyDown={(e) => e.key === "Enter" && applyCoupon()}
+                      disabled={cart.length === 0}
+                      className="w-28 text-right bg-white border border-slate-200 rounded p-0.5 uppercase focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100"
+                      placeholder="CODE"
+                    />
+                    <button
+                      onClick={applyCoupon}
+                      disabled={isCouponChecking || cart.length === 0}
+                      className="px-2 py-0.5 bg-blue-600 text-white text-xs font-bold rounded hover:bg-blue-700 disabled:opacity-50"
+                      type="button"
+                    >
+                      {isCouponChecking ? <Loader2 size={12} className="animate-spin" /> : "Apply"}
+                    </button>
+                  </div>
+                )}
+              </div>
+              {couponError && <p className="text-xs text-red-600 font-medium">{couponError}</p>}
               <div className="flex justify-between text-slate-500 text-sm font-medium">
                 <span>Tax ({taxRate}%)</span>
-                <span>${tax.toFixed(2)}</span>
+                <span>{symbol}{tax.toFixed(2)}</span>
               </div>
               <div className="flex justify-between items-end pt-2 border-t border-slate-200">
                 <span className="text-slate-700 font-bold text-lg">Total</span>
-                <span className="text-4xl font-black text-slate-900 tracking-tight">${total.toFixed(2)}</span>
+                <span className="text-4xl font-black text-slate-900 tracking-tight">{symbol}{total.toFixed(2)}</span>
               </div>
             </div>
 
@@ -306,7 +372,7 @@ export default function POSTerminal({ organizationId, products, shiftId, onOrder
               >
                 <span className="font-extrabold text-lg leading-tight">{product.name}</span>
                 <div className="flex items-center justify-between w-full">
-                  <span className="font-bold text-black/60 bg-white/40 px-2 py-1 rounded-md text-sm">${product.price.toFixed(2)}</span>
+                  <span className="font-bold text-black/60 bg-white/40 px-2 py-1 rounded-md text-sm">{symbol}{product.price.toFixed(2)}</span>
                   {!product.isWeighed && product.stockQuantity <= 5 && (
                     <span className="text-xs font-bold text-black/50">{product.stockQuantity <= 0 ? "OUT" : `${product.stockQuantity} left`}</span>
                   )}
@@ -326,7 +392,7 @@ export default function POSTerminal({ organizationId, products, shiftId, onOrder
           <div className="bg-white rounded-3xl w-full max-w-4xl flex overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="w-1/2 bg-slate-50 p-10 flex flex-col justify-center border-r border-slate-200">
               <p className="text-slate-500 font-bold uppercase tracking-wider mb-2">Total Due</p>
-              <p className="text-6xl font-black text-slate-900 tracking-tighter mb-8">${total.toFixed(2)}</p>
+              <p className="text-6xl font-black text-slate-900 tracking-tighter mb-8">{symbol}{total.toFixed(2)}</p>
 
               {error && <div className="mb-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-100">{error}</div>}
 
@@ -337,7 +403,7 @@ export default function POSTerminal({ organizationId, products, shiftId, onOrder
                   className="w-full py-4 bg-white border-2 border-slate-200 hover:border-emerald-500 hover:text-emerald-700 rounded-xl font-bold text-xl transition-colors shadow-sm text-slate-700 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {isProcessing ? <Loader2 size={20} className="animate-spin" /> : null}
-                  Exact Cash (${total.toFixed(2)})
+                  Exact Cash ({symbol}{total.toFixed(2)})
                 </button>
               </div>
             </div>

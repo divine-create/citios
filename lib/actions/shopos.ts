@@ -84,9 +84,9 @@ export async function provisionShopOS(formData: any) {
       title: businessName,
       slug,
       theme,
-      status: "published",
+      status: "draft",
       tagline: "Shop the best of " + businessName,
-      publishedAt: (globalThis as any).Temporal.Instant.fromEpochMilliseconds(Date.now()),
+      publishedAt: null,
     });
 
     const homePage = await db.orm.public.MicrositePage.create({

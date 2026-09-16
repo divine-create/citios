@@ -28,6 +28,19 @@ function startOfDay(date: Date) {
 
 const TAX_RATE = 0.08;
 
+async function createShopNotification(organizationId: string, type: string, title: string, message?: string) {
+  try {
+    await db.orm.public.RetailNotification.create({ organizationId, type, title, message, isRead: false });
+  } catch (error) {
+    console.error('Error creating shop notification:', error);
+  }
+}
+
+// ISO date to a sortable Date (contract stores Temporal.Instant).
+function instantToMillis(instant: unknown): number {
+  return (instant as { epochMilliseconds: number }).epochMilliseconds;
+}
+
 // ---------------------------------------------------------------------
 // Categories
 // ---------------------------------------------------------------------
@@ -197,20 +210,68 @@ export async function deleteProduct(productId: string) {
 }
 
 // Manual stock correction (receiving stock outside a PO, shrinkage/damage
-// write-offs, stocktake adjustments). `delta` is signed.
-export async function adjustStock(productId: string, delta: number) {
+// write-offs, stocktake adjustments). `delta` is signed. Every change writes
+// an immutable RetailStockMovement row so the store has an audit trail.
+export async function adjustStock(productId: string, delta: number, note?: string) {
   try {
-    const prod = await db.orm.public.RetailProduct.where({ id: productId }).all().first();
-    if (prod) await requireMembership(prod.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER']);
     const product = await db.orm.public.RetailProduct.where({ id: productId }).all().first();
     if (!product) return { error: 'Product not found.' };
-    const next = product.stockQuantity + delta;
-    if (next < 0) return { error: 'Stock cannot go below zero.' };
-    await db.orm.public.RetailProduct.where({ id: productId }).update({ stockQuantity: next });
-    return { success: true, stockQuantity: next };
+    const { membership } = await requireMembership(product.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'INVENTORY_STAFF']);
+    if (!(Number.isFinite(delta))) return { error: 'Enter a valid stock change.' };
+
+    await db.transaction(async (tx) => {
+      const current = await tx.orm.public.RetailProduct.where({ id: productId }).all().first();
+      if (!current) throw new Error('Product not found.');
+      const next = current.stockQuantity + delta;
+      if (next < 0) throw new Error('Stock cannot go below zero.');
+      await tx.orm.public.RetailProduct.where({ id: productId }).update({ stockQuantity: next });
+      await tx.orm.public.RetailStockMovement.create({
+        organizationId: current.organizationId,
+        productId,
+        delta,
+        beforeQty: current.stockQuantity,
+        afterQty: next,
+        reason: 'ADJUSTMENT',
+        note: note ?? null,
+        recordedById: membership.id,
+      });
+      if (delta < 0 && current.lowStockLevel != null && next <= current.lowStockLevel) {
+        await txCheckLowStock(current);
+      }
+    });
+
+    return { success: true };
   } catch (error) {
     console.error('Error adjusting stock:', error);
-    return { error: 'Failed to adjust stock.' };
+    return { error: error instanceof Error ? error.message : 'Failed to adjust stock.' };
+  }
+}
+
+// Emits a LOW_STOCK notification when a product just crossed its threshold.
+async function txCheckLowStock(product: { id: string; name: string; organizationId: string; lowStockLevel: number | null; stockQuantity: number }) {
+  if (product.lowStockLevel != null && product.stockQuantity <= product.lowStockLevel) {
+    await createShopNotification(
+      product.organizationId,
+      'LOW_STOCK',
+      `Low stock: ${product.name}`,
+      `${product.stockQuantity} remaining (min ${product.lowStockLevel}).`,
+    );
+  }
+}
+
+export async function getStockMovements(organizationId: string, productId?: string) {
+  try {
+    await requireMembership(organizationId);
+    const rows = productId
+      ? await db.orm.public.RetailStockMovement.where({ organizationId, productId }).all()
+      : await db.orm.public.RetailStockMovement.where({ organizationId }).all();
+    rows.sort((a, b) => instantToMillis(b.createdAt) - instantToMillis(a.createdAt));
+    const products = await db.orm.public.RetailProduct.where({ organizationId }).all();
+    const productName = (id: string) => products.find((p) => p.id === id)?.name ?? 'Unknown';
+    return JSON.parse(JSON.stringify(rows.map((r) => ({ ...r, productName: productName(r.productId) }))));
+  } catch (error) {
+    console.error('Error fetching stock movements:', error);
+    return [];
   }
 }
 
@@ -243,6 +304,33 @@ export async function createLocation(input: { organizationId: string; name: stri
   } catch (error) {
     console.error('Error creating location:', error);
     return { error: 'Failed to create location.' };
+  }
+}
+
+export async function updateLocation(locationId: string, input: { name?: string; address?: string | null }) {
+  try {
+    const location = await db.orm.public.Location.where({ id: locationId }).all().first();
+    if (location) await requireMembership(location.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
+    const data: Record<string, unknown> = {};
+    if (input.name !== undefined) data.name = input.name;
+    if (input.address !== undefined) data.address = input.address;
+    await db.orm.public.Location.where({ id: locationId }).update(data);
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating location:', error);
+    return { error: 'Failed to update location.' };
+  }
+}
+
+export async function deleteLocation(locationId: string) {
+  try {
+    const location = await db.orm.public.Location.where({ id: locationId }).all().first();
+    if (location) await requireMembership(location.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
+    await db.orm.public.Location.where({ id: locationId }).delete();
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting location:', error);
+    return { error: 'Failed to delete location.' };
   }
 }
 
@@ -299,6 +387,61 @@ export async function addStaffMember(input: { organizationId: string; email: str
   } catch (error) {
     console.error('Error adding staff member:', error);
     return { error: error instanceof Error ? error.message : 'Failed to add staff member.' };
+  }
+}
+
+export async function updateStaffRole(input: { organizationId: string; membershipId: string; role: string }) {
+  try {
+    const { roles: actorRoles } = await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
+    if (!(ASSIGNABLE_STAFF_ROLES as readonly string[]).includes(input.role)) {
+      return { error: 'Role must be MANAGER, CASHIER, or INVENTORY_STAFF.' };
+    }
+
+    const target = await db.orm.public.Membership.where({ id: input.membershipId, organizationId: input.organizationId }).all().first();
+    if (!target) return { error: 'Staff member not found in this store.' };
+
+    const targetRoles = await db.orm.public.MembershipRole.where({ membershipId: target.id }).all();
+    const isActorOwner = actorRoles.some((r) => r.role === 'OWNER');
+
+    if (targetRoles.some((r) => r.role === 'OWNER')) {
+      if (!isActorOwner) return { error: 'Only the store owner can manage owners.' };
+      return { error: 'The store owner role cannot be changed from Staff.' };
+    }
+
+    // Replace the membership's assignable roles with the single new role.
+    for (const roleRow of targetRoles) {
+      await db.orm.public.MembershipRole.where({ id: roleRow.id, membershipId: target.id }).delete();
+    }
+    await db.orm.public.MembershipRole.create({ membershipId: target.id, role: input.role });
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating staff role:', error);
+    return { error: error instanceof Error ? error.message : 'Failed to update staff role.' };
+  }
+}
+
+export async function removeStaffMember(input: { organizationId: string; membershipId: string }) {
+  try {
+    const { roles: actorRoles } = await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
+    const target = await db.orm.public.Membership.where({ id: input.membershipId, organizationId: input.organizationId }).all().first();
+    if (!target) return { error: 'Staff member not found in this store.' };
+
+    const targetRoles = await db.orm.public.MembershipRole.where({ membershipId: target.id }).all();
+    const isActorOwner = actorRoles.some((r) => r.role === 'OWNER');
+
+    if (targetRoles.some((r) => r.role === 'OWNER')) {
+      if (!isActorOwner) return { error: 'Only the store owner can remove owners.' };
+      return { error: 'The store owner cannot be removed from their own store.' };
+    }
+
+    for (const roleRow of targetRoles) {
+      await db.orm.public.MembershipRole.where({ id: roleRow.id, membershipId: target.id }).delete();
+    }
+    await db.orm.public.Membership.where({ id: target.id }).delete();
+    return { success: true };
+  } catch (error) {
+    console.error('Error removing staff member:', error);
+    return { error: error instanceof Error ? error.message : 'Failed to remove staff member.' };
   }
 }
 
@@ -415,6 +558,12 @@ export async function closeShift(shiftId: string, input: { actualCash: number })
       actualCash: input.actualCash,
       discrepancy,
     });
+    await createShopNotification(
+      s.organizationId,
+      'SHIFT_CLOSED',
+      `Shift closed`,
+      `Expected ${expectedCash.toFixed(2)}, counted ${input.actualCash.toFixed(2)}${discrepancy !== 0 ? ` (discrepancy ${discrepancy > 0 ? '+' : ''}${discrepancy.toFixed(2)})` : '.'}`,
+    );
     return { success: true, expectedCash, discrepancy };
   } catch (error) {
     console.error('Error closing shift:', error);
@@ -445,6 +594,7 @@ export async function createOrder(input: {
   items: { productId: string; quantity: number }[];
   paymentMethod: 'CASH' | 'CARD' | 'SPLIT';
   discountAmount?: number;
+  couponCode?: string;
 }) {
   try {
     // Cashier identity comes from the session (the Membership processing the
@@ -453,61 +603,146 @@ export async function createOrder(input: {
     const cashierId = membership.id;
     if (input.items.length === 0) return { error: 'Cart is empty.' };
 
+    // Resolve products in ONE org-scoped fetch and refuse any cart item whose
+    // product does not belong to the sale's organization. Without this guard a
+    // member of another store could craft a cart that decrements that store's
+    // stock — a cross-tenant inventory corruption vector.
+    const orgProducts = await db.orm.public.RetailProduct.where({ organizationId: input.organizationId }).all();
+    const productById = new Map(orgProducts.map((p) => [p.id, p]));
+
     const lineItems: { productId: string; quantity: number; unitPrice: number; subtotal: number }[] = [];
     let subtotal = 0;
     for (const item of input.items) {
-      const product = await db.orm.public.RetailProduct.where({ id: item.productId }).all().first();
-      if (!product) return { error: 'A product in the cart no longer exists.' };
-      if (!product.isWeighed && product.stockQuantity < item.quantity) {
-        return { error: `Not enough stock for ${product.name} (have ${product.stockQuantity}, need ${item.quantity}).` };
+      const product = productById.get(item.productId);
+      if (!product) return { error: 'A product in the cart is not available for this store.' };
+      const quantity = item.quantity;
+      if (!(quantity > 0)) return { error: 'Item quantities must be greater than zero.' };
+      if (!product.isWeighed && product.stockQuantity < quantity) {
+        return { error: `Not enough stock for ${product.name} (have ${product.stockQuantity}, need ${quantity}).` };
       }
-      const lineSubtotal = product.price * item.quantity;
-      lineItems.push({ productId: product.id, quantity: item.quantity, unitPrice: product.price, subtotal: lineSubtotal });
+      const lineSubtotal = product.price * quantity;
+      lineItems.push({ productId: product.id, quantity, unitPrice: product.price, subtotal: lineSubtotal });
       subtotal += lineSubtotal;
     }
 
-    // Guard the money inputs: a negative discount would inflate the total,
-    // and a discount larger than the subtotal would produce a negative sale.
-    const discountAmount = Math.max(0, Math.min(input.discountAmount ?? 0, subtotal));
-    
-    // FETCH REAL TAX RATE
+    // Manual discount (typed at the register) is clamped to the subtotal. A
+    // coupon code, when given, is validated org-scoped and its discount is
+    // stacked on top — still never taking the sale below zero.
+    let coupon: { id: string; code: string; type: string; value: number; minSpend: number; isActive: boolean; usageLimit: number | null; timesUsed: number; expiresAt: unknown } | null = null;
+    const manualDiscount = Math.max(0, Math.min(input.discountAmount ?? 0, subtotal));
+    if (input.couponCode?.trim()) {
+      const code = input.couponCode.trim().toUpperCase();
+      const found = await db.orm.public.RetailCoupon.where({ organizationId: input.organizationId, code }).all().first();
+      if (!found) return { error: `Coupon code ${code} is not valid for this store.` };
+      if (!found.isActive) return { error: `Coupon code ${code} is inactive.` };
+      if (found.minSpend > 0 && subtotal < found.minSpend) {
+        return { error: `Coupon ${code} requires a minimum spend of ${found.minSpend}.` };
+      }
+      if (found.expiresAt) {
+        const expires = instantToMillis(found.expiresAt);
+        if (expires < Date.now()) return { error: `Coupon code ${code} has expired.` };
+      }
+      if (found.usageLimit != null && found.timesUsed >= found.usageLimit) {
+        return { error: `Coupon code ${code} has reached its usage limit.` };
+      }
+      coupon = found;
+    }
+    const couponDiscount = coupon
+      ? Math.max(0, Math.min(coupon.type === 'FIXED' ? coupon.value : (subtotal * coupon.value) / 100, subtotal - manualDiscount))
+      : 0;
+    const discountAmount = manualDiscount + couponDiscount;
+
+    // Fetch the store's tax rate (Settings stores a percentage — 8 for 8%).
     let taxRate = 0;
+    let walletSettlementEnabled = false;
     const settings = await db.orm.public.RetailSettings.where({ organizationId: input.organizationId }).all().first();
     if (settings && settings.taxRate !== undefined) {
-      taxRate = settings.taxRate / 100; // assuming UI inputs 8 for 8%
-    } else {
-      taxRate = 0;
+      taxRate = settings.taxRate / 100;
     }
-    // Note: Actually UI sets 0.08 if it's decimal. Let's check Settings.tsx.
-    
+    if (settings && settings.walletSettlementEnabled) {
+      walletSettlementEnabled = true;
+    }
+
     const taxAmount = (subtotal - discountAmount) * taxRate;
     const totalAmount = subtotal - discountAmount + taxAmount;
 
-    const order = await db.orm.public.RetailOrder.create({
-      organizationId: input.organizationId,
-      shiftId: input.shiftId,
-      cashierId,
-      customerDataId: input.customerDataId,
-      totalAmount,
-      taxAmount,
-      discountAmount,
-      paymentMethod: input.paymentMethod,
-      status: 'COMPLETED',
-    });
-
-    for (const line of lineItems) {
-      await db.orm.public.RetailOrderItem.create({
-        orderId: order.id,
-        productId: line.productId,
-        quantity: line.quantity,
-        unitPrice: line.unitPrice,
-        subtotal: line.subtotal,
+    // Order, line items, stock movements, coupon usage, and (when enabled)
+    // the CityPay wallet credit are one atomic unit: a failure anywhere rolls
+    // the whole sale back.
+    const order = await db.transaction(async (tx) => {
+      const created = await tx.orm.public.RetailOrder.create({
+        organizationId: input.organizationId,
+        shiftId: input.shiftId,
+        cashierId,
+        customerDataId: input.customerDataId,
+        couponId: coupon?.id,
+        totalAmount,
+        taxAmount,
+        discountAmount,
+        paymentMethod: input.paymentMethod,
+        status: 'COMPLETED',
       });
-      const product = await db.orm.public.RetailProduct.where({ id: line.productId }).all().first();
-      if (product) {
-        await db.orm.public.RetailProduct.where({ id: line.productId }).update({ stockQuantity: Math.max(0, product.stockQuantity - line.quantity) });
+
+      for (const line of lineItems) {
+        await tx.orm.public.RetailOrderItem.create({
+          orderId: created.id,
+          productId: line.productId,
+          quantity: line.quantity,
+          unitPrice: line.unitPrice,
+          subtotal: line.subtotal,
+        });
+        const product = await tx.orm.public.RetailProduct.where({ id: line.productId }).all().first();
+        if (product) {
+          const next = Math.max(0, product.stockQuantity - line.quantity);
+          await tx.orm.public.RetailProduct.where({ id: line.productId }).update({ stockQuantity: next });
+          await tx.orm.public.RetailStockMovement.create({
+            organizationId: input.organizationId,
+            productId: line.productId,
+            delta: -line.quantity,
+            beforeQty: product.stockQuantity,
+            afterQty: next,
+            reason: 'SALE',
+            note: `Order ${created.id.slice(0, 8)}`,
+            recordedById: cashierId,
+          });
+          if (coupon) {
+            await tx.orm.public.RetailCoupon.where({ id: coupon.id }).update({ timesUsed: coupon.timesUsed + 1 });
+            coupon = { ...coupon, timesUsed: coupon.timesUsed + 1 };
+          }
+          if (next <= (product.lowStockLevel ?? Number.NEGATIVE_INFINITY)) {
+            await createShopNotification(input.organizationId, 'LOW_STOCK', `Low stock: ${product.name}`, `${next} remaining (min ${product.lowStockLevel}).`);
+          }
+        }
       }
-    }
+
+      // CityPay settlement: credit this store's organization wallet with the
+      // sale total in the same transaction as the order itself. The wallet is
+      // created on first settlement if the org doesn't have one yet.
+      if (walletSettlementEnabled && totalAmount > 0) {
+        let wallet = await tx.orm.public.Wallet.where({ organizationId: input.organizationId }).all().first();
+        if (!wallet) {
+          wallet = await tx.orm.public.Wallet.create({
+            organizationId: input.organizationId,
+            balance: 0,
+            currency: 'USD',
+          });
+        }
+        const transaction = await tx.orm.public.Transaction.create({
+          status: 'SETTLED',
+          reference: `RET-${created.id.slice(0, 8)}`,
+          description: `ShopOS sale settlement`,
+        });
+        await tx.orm.public.LedgerEntry.create({
+          walletId: wallet.id,
+          transactionId: transaction.id,
+          amount: totalAmount,
+          currency: wallet.currency ?? 'USD',
+        });
+        await tx.orm.public.Wallet.where({ id: wallet.id }).update({ balance: wallet.balance + totalAmount });
+      }
+
+      return created;
+    });
 
     return { success: true, orderId: order.id, totalAmount, taxAmount };
   } catch (error) {
@@ -591,27 +826,53 @@ export async function refundOrder(orderId: string, input: { reason?: string }) {
     const o = await db.orm.public.RetailOrder.where({ id: orderId }).all().first();
     if (!o) return { error: 'Order not found.' };
     const { membership } = await requireMembership(o.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
-    const order = await db.orm.public.RetailOrder.where({ id: orderId }).all().first();
-    if (!order) return { error: 'Order not found.' };
-    if (order.status === 'REFUNDED') return { error: 'Order is already refunded.' };
 
-    const items = await db.orm.public.RetailOrderItem.where({ orderId }).all();
-    for (const item of items) {
-      const product = await db.orm.public.RetailProduct.where({ id: item.productId }).all().first();
-      if (product) {
-        await db.orm.public.RetailProduct.where({ id: item.productId }).update({ stockQuantity: product.stockQuantity + item.quantity });
+    // Stock restoration and the refunded status flip are one atomic unit — a
+    // failure can never leave stock restored onto a still-"completed" order.
+    await db.transaction(async (tx) => {
+      const order = await tx.orm.public.RetailOrder.where({ id: orderId }).all().first();
+      if (!order) throw new Error('Order not found.');
+      if (order.status === 'REFUNDED') throw new Error('Order is already refunded.');
+
+      const items = await tx.orm.public.RetailOrderItem.where({ orderId }).all();
+      for (const item of items) {
+        const product = await tx.orm.public.RetailProduct.where({ id: item.productId }).all().first();
+        if (product) {
+          await tx.orm.public.RetailProduct.where({ id: item.productId }).update({ stockQuantity: product.stockQuantity + item.quantity });
+          await tx.orm.public.RetailStockMovement.create({
+            organizationId: product.organizationId,
+            productId: product.id,
+            delta: item.quantity,
+            beforeQty: product.stockQuantity,
+            afterQty: product.stockQuantity + item.quantity,
+            reason: 'REFUND',
+            note: input.reason ?? `Order ${order.id.slice(0, 8)} refunded`,
+            recordedById: membership.id,
+          });
+        }
       }
-    }
-    await db.orm.public.RetailOrder.where({ id: orderId }).update({
-      status: 'REFUNDED',
-      refundedAt: toInstant(new Date()),
-      refundedById: membership.id,
-      refundReason: input.reason,
+      await tx.orm.public.RetailOrder.where({ id: orderId }).update({
+        status: 'REFUNDED',
+        refundedAt: toInstant(new Date()),
+        refundedById: membership.id,
+        refundReason: input.reason,
+      });
     });
+
+    const matched = await db.orm.public.RetailOrder.where({ id: orderId }).all().first();
+    if (matched) {
+      await createShopNotification(
+        matched.organizationId,
+        'REFUND',
+        'Refund processed',
+        `Order #${orderId.slice(0, 8)} was refunded.`,
+      );
+    }
+
     return { success: true };
   } catch (error) {
     console.error('Error refunding order:', error);
-    return { error: 'Failed to refund order.' };
+    return { error: error instanceof Error ? error.message : 'Failed to refund order.' };
   }
 }
 
@@ -721,10 +982,218 @@ export async function updatePurchaseOrderStatus(poId: string, status: 'DRAFT' | 
     const po = await db.orm.public.RetailPurchaseOrder.where({ id: poId }).all().first();
     if (po) await requireMembership(po.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     await db.orm.public.RetailPurchaseOrder.where({ id: poId }).update({ status });
+    if (po && status === 'RECEIVED') {
+      await createShopNotification(po.organizationId, 'PO_RECEIVED', 'Purchase order received', `PO #${po.poNumber} was marked received.`);
+    }
     return { success: true };
   } catch (error) {
     console.error('Error updating purchase order:', error);
     return { error: 'Failed to update purchase order.' };
+  }
+}
+
+// ---------------------------------------------------------------------
+// Coupons / Discounts
+// ---------------------------------------------------------------------
+
+export async function getCoupons(organizationId: string) {
+  try {
+    await requireMembership(organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
+    const coupons = await db.orm.public.RetailCoupon.where({ organizationId }).all();
+    coupons.sort((a, b) => epochMs(b.createdAt) - epochMs(a.createdAt));
+    return JSON.parse(JSON.stringify(coupons));
+  } catch (error) {
+    console.error('Error fetching coupons:', error);
+    return [];
+  }
+}
+
+// Validate a coupon against a live subtotal and return the exact discount it
+// would apply. Used by the register so the cashier sees a true total before
+// tendering. The authoritative, race-safe validation still happens inside
+// createOrder's transaction.
+export async function getCouponDiscount(organizationId: string, code: string, subtotal: number) {
+  try {
+    await requireMembership(organizationId);
+    const found = await db.orm.public.RetailCoupon.where({ organizationId, code: code.trim().toUpperCase() }).all().first();
+    if (!found) return { error: `Coupon code ${code.trim().toUpperCase()} is not valid for this store.` };
+    if (!found.isActive) return { error: `Coupon code ${code.trim().toUpperCase()} is inactive.` };
+    if (found.minSpend > 0 && subtotal < found.minSpend) {
+      return { error: `Coupon ${code.trim().toUpperCase()} requires a minimum spend of ${found.minSpend}.` };
+    }
+    if (found.expiresAt) {
+      if (instantToMillis(found.expiresAt) < Date.now()) return { error: `Coupon code ${code.trim().toUpperCase()} has expired.` };
+    }
+    if (found.usageLimit != null && found.timesUsed >= found.usageLimit) {
+      return { error: `Coupon code ${code.trim().toUpperCase()} has reached its usage limit.` };
+    }
+    const discount = Math.max(0, Math.min(found.type === 'FIXED' ? found.value : (subtotal * found.value) / 100, subtotal));
+    return JSON.parse(JSON.stringify({
+      success: true,
+      discount,
+      type: found.type,
+      label: found.type === 'FIXED' ? `${found.value}` : `${found.value}%`,
+    }));
+  } catch (error) {
+    console.error('Error checking coupon:', error);
+    return { error: 'Failed to check coupon.' };
+  }
+}
+
+export async function createCoupon(input: {
+  organizationId: string;
+  code: string;
+  type: 'PERCENT' | 'FIXED';
+  value: number;
+  minSpend?: number;
+  usageLimit?: number | null;
+  expiresAt?: string | null;
+  description?: string | null;
+}) {
+  try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
+    const code = input.code.trim().toUpperCase();
+    if (!code) return { error: 'Coupon code is required.' };
+    const existing = await db.orm.public.RetailCoupon.where({ organizationId: input.organizationId, code }).all().first();
+    if (existing) return { error: `A coupon with code ${code} already exists.` };
+    if (!(input.value > 0)) return { error: 'Coupon value must be greater than zero.' };
+    const coupon = await db.orm.public.RetailCoupon.create({
+      organizationId: input.organizationId,
+      code,
+      type: input.type,
+      value: input.type === 'PERCENT' ? Math.min(100, input.value) : input.value,
+      minSpend: input.minSpend ?? 0,
+      usageLimit: input.usageLimit ?? null,
+      expiresAt: input.expiresAt ? toInstant(new Date(input.expiresAt)) : null,
+      description: input.description ?? null,
+    });
+    return { success: true, coupon: JSON.parse(JSON.stringify(coupon)) };
+  } catch (error) {
+    console.error('Error creating coupon:', error);
+    return { error: 'Failed to create coupon.' };
+  }
+}
+
+export async function updateCoupon(couponId: string, input: { isActive?: boolean; value?: number; minSpend?: number; usageLimit?: number | null; expiresAt?: string | null; description?: string | null }) {
+  try {
+    const existing = await db.orm.public.RetailCoupon.where({ id: couponId }).all().first();
+    if (existing) await requireMembership(existing.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
+    const data: Record<string, unknown> = {};
+    if (input.isActive !== undefined) data.isActive = input.isActive;
+    if (input.value !== undefined) data.value = input.value;
+    if (input.minSpend !== undefined) data.minSpend = input.minSpend;
+    if (input.usageLimit !== undefined) data.usageLimit = input.usageLimit;
+    if (input.expiresAt !== undefined) data.expiresAt = input.expiresAt ? toInstant(new Date(input.expiresAt)) : null;
+    if (input.description !== undefined) data.description = input.description;
+    await db.orm.public.RetailCoupon.where({ id: couponId }).update(data);
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating coupon:', error);
+    return { error: 'Failed to update coupon.' };
+  }
+}
+
+export async function deleteCoupon(couponId: string) {
+  try {
+    const existing = await db.orm.public.RetailCoupon.where({ id: couponId }).all().first();
+    if (existing) await requireMembership(existing.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
+    await db.orm.public.RetailCoupon.where({ id: couponId }).delete();
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting coupon:', error);
+    return { error: 'Failed to delete coupon.' };
+  }
+}
+
+// ---------------------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------------------
+
+export async function getShopNotifications(organizationId: string) {
+  try {
+    await requireMembership(organizationId);
+    const rows = await db.orm.public.RetailNotification.where({ organizationId }).all();
+    rows.sort((a, b) => instantToMillis(b.createdAt) - instantToMillis(a.createdAt));
+    return JSON.parse(JSON.stringify(rows));
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    return [];
+  }
+}
+
+export async function markShopNotificationsRead(organizationId: string, notificationId?: string) {
+  try {
+    await requireMembership(organizationId);
+    if (notificationId) {
+      await db.orm.public.RetailNotification.where({ id: notificationId }).update({ isRead: true });
+    } else {
+      const unread = await db.orm.public.RetailNotification.where({ organizationId, isRead: false }).all();
+      for (const n of unread) {
+        await db.orm.public.RetailNotification.where({ id: n.id }).update({ isRead: true });
+      }
+    }
+    return { success: true };
+  } catch (error) {
+    console.error('Error marking notifications read:', error);
+    return { error: 'Failed to update notifications.' };
+  }
+}
+
+// ---------------------------------------------------------------------
+// CSV export of report data (client turns rows into a downloadable file)
+// ---------------------------------------------------------------------
+
+export async function exportShopReport(organizationId: string, kind: 'orders' | 'products' | 'customers') {
+  try {
+    await requireMembership(organizationId);
+    const rows: Record<string, unknown>[] = [];
+    if (kind === 'products') {
+      const allProducts = await db.orm.public.RetailProduct.where({ organizationId }).all();
+      for (const p of allProducts) {
+        rows.push({ SKU: p.sku ?? '', Name: p.name, Price: p.price, Cost: p.cost ?? '', Stock: p.stockQuantity, LowStockLevel: p.lowStockLevel ?? '', Unit: p.unit });
+      }
+    } else if (kind === 'orders') {
+      const allOrders = await db.orm.public.RetailOrder.where({ organizationId }).all();
+      allOrders.sort((a, b) => epochMs(b.createdAt) - epochMs(a.createdAt));
+      for (const o of allOrders) {
+        let customerName = 'Walk-in';
+        if (o.customerDataId) {
+          const cd = await db.orm.public.CustomerData.where({ id: o.customerDataId }).all().first();
+          if (cd) {
+            const rel = await db.orm.public.Relationship.where({ id: cd.relationshipId }).all().first();
+            if (rel) {
+              const person = await db.orm.public.Person.where({ id: rel.personId }).all().first();
+              if (person) customerName = `${person.firstName} ${person.lastName}`.trim() || 'Customer';
+            }
+          }
+        }
+        rows.push({
+          OrderId: o.id,
+          Date: o.createdAt,
+          Status: o.status,
+          Total: o.totalAmount,
+          Tax: o.taxAmount,
+          Discount: o.discountAmount,
+          PaymentMethod: o.paymentMethod,
+          Customer: customerName,
+        });
+      }
+    } else {
+      const relationships = await db.orm.public.Relationship.where({ organizationId, type: 'CUSTOMER' }).all();
+      for (const rel of relationships) {
+        const cd = await db.orm.public.CustomerData.where({ relationshipId: rel.id }).all().first();
+        const person = await db.orm.public.Person.where({ id: rel.personId }).all().first();
+        rows.push({
+          Name: person ? `${person.firstName} ${person.lastName}`.trim() : 'Unknown',
+          LoyaltyPoints: cd?.loyaltyPoints ?? 0,
+          Notes: cd?.notes ?? '',
+        });
+      }
+    }
+    return JSON.parse(JSON.stringify(rows));
+  } catch (error) {
+    console.error('Error exporting report:', error);
+    return [];
   }
 }
 
@@ -736,6 +1205,7 @@ export async function getShopDashboardData(organizationId: string) {
   try {
     await requireMembership(organizationId);
     const allOrders = await db.orm.public.RetailOrder.where({ organizationId }).all();
+    allOrders.sort((a, b) => epochMs(b.createdAt) - epochMs(a.createdAt));
     const startOfToday = startOfDay(new Date()).getTime();
     const todayOrders = allOrders.filter((o) => epochMs(o.createdAt) >= startOfToday);
 
@@ -744,8 +1214,39 @@ export async function getShopDashboardData(organizationId: string) {
     const grossSales = completedToday.reduce((sum, o) => sum + o.totalAmount, 0);
     const refundsTotal = refundedToday.reduce((sum, o) => sum + o.totalAmount, 0);
 
+    const completedOrders = allOrders.filter((o) => o.status === 'COMPLETED');
+    const refundedAll = allOrders.filter((o) => o.status === 'REFUNDED');
+
     const products = await db.orm.public.RetailProduct.where({ organizationId }).all();
     const lowStockCount = products.filter((p) => p.lowStockLevel != null && p.stockQuantity <= (p.lowStockLevel as number)).length;
+    const lowStockProducts = products
+      .filter((p) => p.lowStockLevel != null && p.stockQuantity <= (p.lowStockLevel as number))
+      .sort((a, b) => a.stockQuantity - b.stockQuantity)
+      .map((p) => ({ id: p.id, name: p.name, stockQuantity: p.stockQuantity, lowStockLevel: p.lowStockLevel, unit: p.unit, sku: p.sku }));
+
+    // Top products by units sold & revenue — derived from this org's own
+    // completed order line items (never a cross-tenant scan).
+    const productById = new Map(products.map((p) => [p.id, p.name]));
+    const salesByProduct: Record<string, { units: number; revenue: number }> = {};
+    for (const order of completedOrders) {
+      const items = await db.orm.public.RetailOrderItem.where({ orderId: order.id }).all();
+      for (const item of items) {
+        const agg = (salesByProduct[item.productId] ??= { units: 0, revenue: 0 });
+        agg.units += item.quantity;
+        agg.revenue += item.subtotal;
+      }
+    }
+    const topProducts = Object.entries(salesByProduct)
+      .map(([productId, agg]) => ({ productId, name: productById.get(productId) ?? 'Unknown', ...agg }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5);
+
+    // New customer relationships created since the start of today.
+    let newCustomersToday = 0;
+    const relationships = await db.orm.public.Relationship.where({ organizationId, type: 'CUSTOMER' }).all();
+    newCustomersToday = relationships.filter((r) => epochMs(r.createdAt) >= startOfToday).length;
+
+    const recentOrders = await enrichOrders(organizationId, completedOrders.slice(0, 6));
 
     const openShift = await getOpenShift(organizationId);
     const settings = await getRetailSettings(organizationId);
@@ -757,12 +1258,19 @@ export async function getShopDashboardData(organizationId: string) {
       netSales: grossSales - refundsTotal,
       lowStockCount,
       totalProducts: products.length,
+      totalOrders: allOrders.length,
+      totalCompletedOrders: completedOrders.length,
+      totalItemsSold: completedOrders.reduce((sum, o) => sum + o.totalAmount, 0),
+      newCustomersToday,
+      topProducts: JSON.parse(JSON.stringify(topProducts)),
+      recentOrders: JSON.parse(JSON.stringify(recentOrders)),
+      lowStockProducts: JSON.parse(JSON.stringify(lowStockProducts)),
       openShift,
       settings,
     };
   } catch (error) {
     console.error('Error fetching shop dashboard data:', error);
-    return { grossSales: 0, transactions: 0, refunds: 0, netSales: 0, lowStockCount: 0, totalProducts: 0, openShift: null, settings: null };
+    return { grossSales: 0, transactions: 0, refunds: 0, netSales: 0, lowStockCount: 0, totalProducts: 0, totalOrders: 0, totalCompletedOrders: 0, totalItemsSold: 0, newCustomersToday: 0, topProducts: [], recentOrders: [], lowStockProducts: [], openShift: null, settings: null };
   }
 }
 
@@ -922,26 +1430,32 @@ export async function getCustomers(organizationId: string) {
       const cd = await db.orm.public.CustomerData.where({ relationshipId: rel.id }).all().first();
       if (cd) customerDataList.push(cd);
     }
-    // Compose display name/contact from the Person behind the Relationship
+    // Compose display name/contact from the Person behind each Relationship
     // (CustomerData is deliberately just loyalty data; PersonIdentifier holds
-    // the canonical contact points).
+    // the canonical contact points). Identifiers are fetched per-relationship
+    // so a tenant request never scans the global identifier table.
     const persons: Record<string, any> = {};
     for (const rel of relationships) {
       const p = await db.orm.public.Person.where({ id: rel.personId }).all().first();
       if (p) persons[rel.id] = p;
     }
-    const identifiers = await db.orm.public.PersonIdentifier.where({}).all();
-    const enriched = await enrichCustomers(organizationId, customerDataList.map((cd: any) => {
+    const enriched = await enrichCustomers(organizationId, await Promise.all(customerDataList.map(async (cd: any) => {
       const rel = relationships.find((r) => r.id === cd.relationshipId);
       const person = rel ? persons[rel.id] : null;
-      const relIds = identifiers.filter((i) => i.personId === rel?.personId);
+      let phone: string | null = null;
+      let email: string | null = null;
+      if (rel) {
+        const relIds = await db.orm.public.PersonIdentifier.where({ personId: rel.personId }).all();
+        phone = relIds.find((i) => i.type === 'PHONE')?.normalizedValue ?? null;
+        email = relIds.find((i) => i.type === 'EMAIL')?.normalizedValue ?? null;
+      }
       return {
         ...cd,
         name: person ? `${person.firstName} ${person.lastName}`.trim() : 'Unknown',
-        phone: relIds.find((i) => i.type === 'PHONE')?.normalizedValue ?? null,
-        email: relIds.find((i) => i.type === 'EMAIL')?.normalizedValue ?? null,
+        phone,
+        email,
       };
-    }));
+    })));
     enriched.sort((a, b) => b.totalSpent - a.totalSpent);
     return JSON.parse(JSON.stringify(enriched));
   } catch (error) {
@@ -1214,5 +1728,279 @@ export async function getReceiptData(orderId: string) {
   } catch (error) {
     console.error('Error fetching receipt data:', error);
     return null;
+  }
+}
+
+// ---------------------------------------------------------------------
+// Global search (⌘K palette)
+// ---------------------------------------------------------------------
+
+export async function searchShopOS(organizationId: string, query: string) {
+  try {
+    await requireMembership(organizationId);
+    const q = query.trim().toLowerCase();
+    if (!q) return { products: [], customers: [], orders: [], staff: [] };
+
+    const [products, rels] = await Promise.all([
+      db.orm.public.RetailProduct.where({ organizationId }).all(),
+      db.orm.public.Relationship.where({ organizationId, type: 'CUSTOMER' }).all(),
+    ]);
+
+    const productResults = products
+      .filter((p) => p.name.toLowerCase().includes(q) || (p.sku ?? '').toLowerCase().includes(q) || (p.barcode ?? '').includes(q))
+      .slice(0, 6)
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        subtitle: `${p.sku ? `SKU ${p.sku} · ` : ''}${p.stockQuantity} ${p.unit} in stock`,
+        icon: 'PRODUCT',
+      }));
+
+    const customerResults: any[] = [];
+    for (const rel of rels) {
+      const cd = await db.orm.public.CustomerData.where({ relationshipId: rel.id }).all().first();
+      if (!cd) continue;
+      const person = await db.orm.public.Person.where({ id: rel.personId }).all().first();
+      const displayName = person ? `${person.firstName} ${person.lastName}`.trim() : 'Unknown';
+      const relIds = await db.orm.public.PersonIdentifier.where({ personId: rel.personId }).all();
+      const phone = relIds.find((i) => i.type === 'PHONE')?.normalizedValue ?? '';
+      const email = relIds.find((i) => i.type === 'EMAIL')?.normalizedValue ?? '';
+      if (displayName.toLowerCase().includes(q) || phone.toLowerCase().includes(q) || email.toLowerCase().includes(q)) {
+        customerResults.push({ id: cd.id, name: displayName, subtitle: phone || email || 'Customer', icon: 'CUSTOMER' });
+        if (customerResults.length >= 6) break;
+      }
+    }
+
+    // Orders match by short/long id reference or by cashier/customer/item name
+    // over the 15 most recent orders (enrichment is bounded to that window).
+    const allOrders = await db.orm.public.RetailOrder.where({ organizationId }).all();
+    allOrders.sort((a, b) => epochMs(b.createdAt) - epochMs(a.createdAt));
+    const enrichedRecent = await enrichOrders(organizationId, allOrders.slice(0, 15));
+    const orderResults = enrichedRecent
+      .filter((o) =>
+        o.id.toLowerCase().includes(q) ||
+        o.cashierName.toLowerCase().includes(q) ||
+        (o.customerName ?? '').toLowerCase().includes(q) ||
+        o.items.some((i: any) => i.productName.toLowerCase().includes(q))
+      )
+      .slice(0, 6)
+      .map((o) => ({
+        id: o.id,
+        name: `Order #${o.id.slice(0, 8)}`,
+        subtitle: `${o.cashierName} · ${o.items.length} item${o.items.length === 1 ? '' : 's'} · ${o.paymentMethod}`,
+        icon: 'ORDER',
+      }));
+
+    const staffRows = await getStaff(organizationId);
+    const staffResults = staffRows
+      .filter((s: any) => s.name.toLowerCase().includes(q) || (s.email ?? '').toLowerCase().includes(q))
+      .slice(0, 6)
+      .map((s: any) => ({ id: s.membershipId, name: s.name, subtitle: s.email ?? s.roles.join(', '), icon: 'STAFF' }));
+
+    return JSON.parse(JSON.stringify({
+      products: productResults,
+      customers: customerResults,
+      orders: orderResults,
+      staff: staffResults,
+    }));
+  } catch (error) {
+    console.error('Error searching shop:', error);
+    return { products: [], customers: [], orders: [], staff: [] };
+  }
+}
+
+// ---------------------------------------------------------------------
+// Reports (real, derived figures — no fabrications)
+// ---------------------------------------------------------------------
+
+export async function getShopReports(organizationId: string) {
+  try {
+    await requireMembership(organizationId);
+    const allOrders = await db.orm.public.RetailOrder.where({ organizationId }).all();
+    const completed = allOrders.filter((o) => o.status === 'COMPLETED');
+    const refunded = allOrders.filter((o) => o.status === 'REFUNDED');
+
+    const dayMs = 24 * 60 * 60 * 1000;
+    const startToday = startOfDay(new Date()).getTime();
+    const start7 = startToday - 6 * dayMs;
+    const start30 = startToday - 29 * dayMs;
+
+    const series = (since: number) => {
+      const comp = completed.filter((o) => epochMs(o.createdAt) >= since);
+      const ref = refunded.filter((o) => epochMs(o.refundedAt ?? o.createdAt) >= since);
+      return {
+        sales: comp.reduce((sum, o) => sum + o.totalAmount, 0),
+        transactions: comp.length,
+        refunds: ref.reduce((sum, o) => sum + o.totalAmount, 0),
+      };
+    };
+    const periods = {
+      today: series(startToday),
+      sevenDays: series(start7),
+      thirtyDays: series(start30),
+    };
+
+    // All-time product performance from this org's completed line items.
+    const products = await db.orm.public.RetailProduct.where({ organizationId }).all();
+    const productById = new Map(products.map((p) => [p.id, p]));
+    const byProduct: Record<string, { units: number; revenue: number; orders: number }> = {};
+    for (const order of completed) {
+      const items = await db.orm.public.RetailOrderItem.where({ orderId: order.id }).all();
+      for (const item of items) {
+        const agg = (byProduct[item.productId] ??= { units: 0, revenue: 0, orders: 0 });
+        agg.units += item.quantity;
+        agg.revenue += item.subtotal;
+        agg.orders += 1;
+      }
+    }
+    const salesByProduct = Object.entries(byProduct)
+      .map(([productId, agg]) => {
+        const p = productById.get(productId);
+        return {
+          productId,
+          name: p?.name ?? 'Removed product',
+          sku: p?.sku ?? null,
+          unit: p?.unit ?? 'ea',
+          ...agg,
+        };
+      })
+      .sort((a, b) => b.revenue - a.revenue);
+
+    // Cashier performance from session-derived cashierId on orders.
+    const membershipCache: Record<string, string> = {};
+    const cashierName = async (membershipId: string) => {
+      if (membershipCache[membershipId]) return membershipCache[membershipId];
+      const m = await db.orm.public.Membership.where({ id: membershipId }).all().first();
+      if (!m) { membershipCache[membershipId] = 'Former staff'; return 'Former staff'; }
+      const p = await db.orm.public.Person.where({ id: m.personId }).all().first();
+      const name = p ? `${p.firstName} ${p.lastName}`.trim() : 'Unknown';
+      membershipCache[membershipId] = name;
+      return name;
+    };
+    const byCashier: Record<string, { orders: number; revenue: number }> = {};
+    for (const order of completed) {
+      const agg = (byCashier[order.cashierId] ??= { orders: 0, revenue: 0 });
+      agg.orders += 1;
+      agg.revenue += order.totalAmount;
+    }
+    const salesByCashier = [];
+    for (const [cashierId, agg] of Object.entries(byCashier)) {
+      salesByCashier.push({ cashierId, cashierName: await cashierName(cashierId), ...agg });
+    }
+    salesByCashier.sort((a, b) => b.revenue - a.revenue);
+
+    // Top customers reuses the canonical enrichment (totals are real spend).
+    const customers = await getCustomers(organizationId);
+    const topCustomers = (customers as any[])
+      .slice(0, 5)
+      .map((c) => ({ id: c.id, name: c.name, totalSpent: c.totalSpent, orderCount: c.orderCount, loyaltyPoints: c.loyaltyPoints }));
+
+    const lowStock = products
+      .filter((p) => p.lowStockLevel != null && p.stockQuantity <= (p.lowStockLevel as number))
+      .sort((a, b) => a.stockQuantity - b.stockQuantity)
+      .map((p) => ({ id: p.id, name: p.name, stockQuantity: p.stockQuantity, lowStockLevel: p.lowStockLevel, unit: p.unit }));
+
+    return JSON.parse(JSON.stringify({
+      periods,
+      salesByProduct,
+      salesByCashier,
+      topCustomers,
+      lowStock,
+      totals: {
+        gross: completed.reduce((sum, o) => sum + o.totalAmount, 0),
+        refunded: refunded.reduce((sum, o) => sum + o.totalAmount, 0),
+        completedCount: completed.length,
+        refundedCount: refunded.length,
+      },
+    }));
+  } catch (error) {
+    console.error('Error fetching shop reports:', error);
+    return {
+      periods: { today: { sales: 0, transactions: 0, refunds: 0 }, sevenDays: { sales: 0, transactions: 0, refunds: 0 }, thirtyDays: { sales: 0, transactions: 0, refunds: 0 } },
+      salesByProduct: [], salesByCashier: [], topCustomers: [], lowStock: [],
+      totals: { gross: 0, refunded: 0, completedCount: 0, refundedCount: 0 },
+    };
+  }
+}
+
+// ---------------------------------------------------------------------
+// Storefront publish flow
+// ---------------------------------------------------------------------
+
+export async function getShopStorefront(organizationId: string) {
+  try {
+    await requireMembership(organizationId);
+    const settings = await db.orm.public.RetailSettings.where({ organizationId }).all().first();
+    const site = await db.orm.public.Microsite.where({ organizationId }).all().first();
+    return JSON.parse(JSON.stringify({
+      settings,
+      site: site
+        ? { id: site.id, slug: site.slug, title: site.title, status: site.status, publishedAt: site.publishedAt }
+        : null,
+    }));
+  } catch (error) {
+    console.error('Error fetching storefront:', error);
+    return { settings: null, site: null };
+  }
+}
+
+export async function updateShopStorefront(
+  organizationId: string,
+  input: { storeName?: string; storeAddress?: string; receiptMessage?: string; published?: boolean },
+) {
+  try {
+    await requireMembership(organizationId, ['OWNER', 'ADMIN']);
+    const data: Record<string, unknown> = {};
+    if (input.storeName !== undefined) data.storeName = input.storeName;
+    if (input.storeAddress !== undefined) data.storeAddress = input.storeAddress;
+    if (input.receiptMessage !== undefined) data.receiptMessage = input.receiptMessage;
+    if (Object.keys(data).length > 0) {
+      data.hasStoreInfo = true;
+      await db.orm.public.RetailSettings.where({ organizationId }).update(data);
+    }
+
+    if (input.published !== undefined) {
+      const site = await db.orm.public.Microsite.where({ organizationId }).all().first();
+      if (site) {
+        await db.orm.public.Microsite.where({ id: site.id }).update({
+          status: input.published ? 'published' : 'draft',
+          publishedAt: input.published ? toInstant(new Date()) : null,
+        });
+      }
+    }
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating storefront:', error);
+    return { error: 'Failed to update storefront.' };
+  }
+}
+
+// ---------------------------------------------------------------------
+// CityPay wallet settlement (Phase 7)
+// ---------------------------------------------------------------------
+
+export async function toggleWalletSettlement(organizationId: string, enabled: boolean) {
+  try {
+    await requireMembership(organizationId, ['OWNER', 'ADMIN']);
+    await db.orm.public.RetailSettings.where({ organizationId }).update({ walletSettlementEnabled: enabled });
+    return { success: true };
+  } catch (error) {
+    console.error('Error toggling wallet settlement:', error);
+    return { error: 'Failed to update wallet settlement.' };
+  }
+}
+
+export async function getShopWalletBalance(organizationId: string) {
+  try {
+    await requireMembership(organizationId);
+    const settings = await db.orm.public.RetailSettings.where({ organizationId }).all().first();
+    const wallet = await db.orm.public.Wallet.where({ organizationId }).all().first();
+    return JSON.parse(JSON.stringify({
+      enabled: settings?.walletSettlementEnabled ?? false,
+      wallet: wallet ? { balance: wallet.balance, currency: wallet.currency } : null,
+    }));
+  } catch (error) {
+    console.error('Error fetching shop wallet:', error);
+    return { enabled: false, wallet: null };
   }
 }
