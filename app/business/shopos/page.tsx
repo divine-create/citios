@@ -11,7 +11,13 @@ import {
   Globe,
   Users,
   CheckCircle2,
-  LayoutDashboard
+  LayoutDashboard,
+  Wallet,
+  Truck,
+  FileSpreadsheet,
+  MessageSquare,
+  Store as StoreIcon,
+  ShoppingBag
 } from 'lucide-react';
 
 export const metadata: Metadata = {
@@ -42,7 +48,7 @@ export default function ShopOSLandingPage() {
         </div>
       </nav>
 
-      {/* Hero Section */}
+        {/* Hero Section */}
       <section className="pt-40 pb-24 px-6 relative overflow-hidden">
         {/* Background Gradients */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-emerald-50 rounded-full blur-[100px] -z-10 opacity-70"></div>
@@ -58,12 +64,15 @@ export default function ShopOSLandingPage() {
           </div>
           
           <h1 className="text-5xl md:text-7xl font-black text-slate-900 tracking-tight leading-[1.1] mb-8 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-100">
-            The intelligent OS for <br className="hidden md:block"/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500">modern retail.</span>
+            Sell in your store <br className="hidden md:block"/>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500">and online, from one counter.</span>
           </h1>
           
-          <p className="text-xl text-slate-600 mb-12 max-w-2xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
-            From high-volume grocery checkouts to omnichannel boutique sales. Manage inventory, suppliers, and customer loyalty all in one lightning-fast platform.
+          <p className="text-xl text-slate-600 mb-6 max-w-2xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
+            Your inventory, POS, and published online storefront stay in perfect sync. Add stock once — sell it from the physical terminal, a custom-shop link, or both, instantly.
+          </p>
+          <p className="text-sm font-semibold text-emerald-600 mb-12 flex items-center justify-center gap-2 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
+            <Globe size={16}/> Claim your custom shop link — publish in minutes, no page builder required.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-in fade-in slide-in-from-bottom-10 duration-700 delay-300">
             <Link href="/business/shopos/register" className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-full text-lg font-bold transition-all shadow-xl shadow-emerald-600/20 hover:shadow-emerald-600/40 flex items-center justify-center gap-2">
@@ -143,7 +152,56 @@ export default function ShopOSLandingPage() {
         </div>
       </section>
 
-            {/* Hardware Section */}
+            {/* Integrations */}
+      <section className="py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <h2 className="text-3xl md:text-5xl font-bold text-slate-900 tracking-tight mb-4">Extends your whole workflow.</h2>
+            <p className="text-lg text-slate-500">ShopOS plugs straight into the CityConnect ecosystem you already use — no re-keying, no CSV dance.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {[
+              { icon: Wallet, color: "text-emerald-600", bg: "bg-emerald-50", title: "CityPay", desc: "Every sale settles into a real Shop Wallet. Cash your balance out or roll it straight into a Purchase Order." },
+              { icon: Truck, color: "text-blue-600", bg: "bg-blue-50", title: "CityDrive", desc: "Accept delivery requests from customers and dispatch couriers from your POS tail — no second platform." },
+              { icon: FileSpreadsheet, color: "text-purple-600", bg: "bg-purple-50", title: "Shop Reports", desc: "One-click CSV export of sales, products, and customers. Hand your ledger straight to your accountant." },
+              { icon: MessageSquare, color: "text-orange-600", bg: "bg-orange-50", title: "Customer Contact", desc: "Order-ready and restock notifications flow to staff and customers via their CityConnect app." }
+            ].map((int, idx) => (
+              <div key={idx} className="p-8 rounded-3xl bg-slate-50 border border-slate-100 hover:border-emerald-200 hover:bg-white hover:shadow-lg transition-all group">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-5 ${int.bg} ${int.color}`}>
+                  <int.icon size={24} />
+                </div>
+                <h4 className="text-lg font-bold text-slate-900 mb-2">{int.title}</h4>
+                <p className="text-slate-600 text-sm leading-relaxed">{int.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Customer Stories */}
+      <section className="py-24 bg-slate-50 border-y border-slate-100">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <h2 className="text-3xl md:text-5xl font-bold text-slate-900 tracking-tight mb-4">From unboxed to online in minutes.</h2>
+            <p className="text-lg text-slate-500">No PhD in e-commerce required. Here&apos;s the exact path every ShopOS store takes.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              { step: "01", title: "Sign up free", desc: "Provision your store and invite your team. No credit card, no hardware required." },
+              { step: "02", title: "Add stock & scan", desc: "Import products with barcodes, set par levels, and open a shift on any browser." },
+              { step: "03", title: "Publish your store", desc: "One click turns your inventory into a live city.store URL — in-store and online from the same catalog." }
+            ].map((s) => (
+              <div key={s.step} className="relative p-8 rounded-3xl bg-white border border-slate-200 shadow-sm">
+                <div className="text-5xl font-black text-slate-100 mb-6">{s.step}</div>
+                <h4 className="text-xl font-bold text-slate-900 mb-3">{s.title}</h4>
+                <p className="text-slate-600 leading-relaxed">{s.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Hardware Section */}
       <section id="hardware" className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col md:flex-row items-center gap-16">
