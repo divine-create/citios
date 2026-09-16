@@ -90,7 +90,7 @@ const handleSave = async () => {
   if (loading) {
     return (
       <div className="p-8 flex justify-center items-center h-64">
-        <Loader2 className="animate-spin text-blue-500" size={32} />
+        <Loader2 className="animate-spin text-brand-600" size={32} />
       </div>
     );
   }
@@ -98,11 +98,11 @@ const handleSave = async () => {
   return (
     <div className="p-8 max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-800">Store Settings</h2>
+<h2 className="text-2xl font-black text-ink">Store Settings</h2>
         <button 
           onClick={handleSave} 
           disabled={saving}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm disabled:opacity-50"
+          className="flex items-center gap-2 bg-brand-700 hover:bg-brand-800 text-white px-4 py-2 rounded-lg font-bold text-sm disabled:opacity-50 shadow-sm shadow-brand-700/25"
         >
           {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
           Save Changes
@@ -111,19 +111,19 @@ const handleSave = async () => {
 
       <div className="flex gap-4 border-b border-slate-200">
         <button 
-          className={`pb-3 px-2 font-bold text-sm border-b-2 transition-colors ${activeTab === 'general' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
+          className={`pb-3 px-2 font-bold text-sm border-b-2 transition-colors ${activeTab === 'general' ? 'border-brand-700 text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
           onClick={() => setActiveTab('general')}
         >
           General
         </button>
         <button 
-          className={`pb-3 px-2 font-bold text-sm border-b-2 transition-colors ${activeTab === 'payment' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
+          className={`pb-3 px-2 font-bold text-sm border-b-2 transition-colors ${activeTab === 'payment' ? 'border-brand-700 text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
           onClick={() => setActiveTab('payment')}
         >
           Payment & Wallet
         </button>
         <button 
-          className={`pb-3 px-2 font-bold text-sm border-b-2 transition-colors ${activeTab === 'shipping' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
+          className={`pb-3 px-2 font-bold text-sm border-b-2 transition-colors ${activeTab === 'shipping' ? 'border-brand-700 text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
           onClick={() => setActiveTab('shipping')}
         >
           Shipping Zones
@@ -143,7 +143,7 @@ const handleSave = async () => {
                     type="text" 
                     value={settings?.storeName || ''} 
                     onChange={e => setSettings({...settings, storeName: e.target.value})}
-                    className="w-full p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500" 
+                    className="w-full p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20" 
                   />
                 </div>
 
@@ -152,7 +152,7 @@ const handleSave = async () => {
                   <textarea 
                     value={settings?.storeAddress || ''} 
                     onChange={e => setSettings({...settings, storeAddress: e.target.value})}
-                    className="w-full p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 h-24 resize-none" 
+                    className="w-full p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 h-24 resize-none" 
                   />
                 </div>
               </div>
@@ -167,7 +167,7 @@ const handleSave = async () => {
                       type="text" 
                       value={settings?.currencySymbol || '$'} 
                       onChange={e => setSettings({...settings, currencySymbol: e.target.value})}
-                      className="w-full p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-center text-lg font-bold" 
+                      className="w-full p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 text-center text-lg font-bold" 
                     />
                   </div>
                   <div className="space-y-1">
@@ -177,7 +177,7 @@ const handleSave = async () => {
                       step="0.01"
                       value={settings?.taxRate || 0} 
                       onChange={e => setSettings({...settings, taxRate: e.target.value})}
-                      className="w-full p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500" 
+                      className="w-full p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20" 
                     />
                   </div>
                 </div>
@@ -189,7 +189,7 @@ const handleSave = async () => {
                     placeholder="Thank you for shopping with us!"
                     value={settings?.receiptMessage || ''} 
                     onChange={e => setSettings({...settings, receiptMessage: e.target.value})}
-                    className="w-full p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500" 
+                    className="w-full p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20" 
                   />
                 </div>
               </div>
@@ -220,7 +220,7 @@ const handleSave = async () => {
                     value={newUnit}
                     onChange={e => setNewUnit(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && addUnit()}
-                    className="flex-1 p-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500" 
+                    className="flex-1 p-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20" 
                   />
                   <button 
                     onClick={addUnit}
@@ -304,7 +304,7 @@ const handleSave = async () => {
                 ))}
               </div>
 
-              <button onClick={addShippingRate} className="text-sm font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1">
+              <button onClick={addShippingRate} className="text-sm font-bold text-brand-700 hover:text-brand-800 flex items-center gap-1">
                 <Plus size={16} /> Add Shipping Rate
               </button>
             </div>

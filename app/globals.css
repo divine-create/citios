@@ -34,4 +34,24 @@
   --color-orange-700: #994040;
   --color-orange-800: #662B2B;
   --color-orange-900: #331515;
+
+  /* ShopOS / DAASH design language */
+  --color-brand-50: #EFF7FF;
+  --color-brand-100: #DBEEFE;
+  --color-brand-200: #BFE2FE;
+  --color-brand-300: #8FD0FD;
+  --color-brand-400: #5CBEFD;
+  --color-brand-500: #3CBDFE;
+  --color-brand-600: #31B1FE;
+  --color-brand-700: #1C9BFD;
+  --color-brand-800: #1278C8;
+  --color-brand-900: #0B5B99;
+
+  --color-ink: #0D2741;
+  --color-ink-soft: #40516B;
+
+  --color-coral-50: #FFF1EC;
+  --color-coral-100: #FFE3D8;
+  --color-coral-500: #F84012;
+  --color-coral-600: #D9360F;
 }

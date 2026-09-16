@@ -126,7 +126,7 @@ export default function GlobalSearch({ organizationId, onClose, onNavigate }: {
             className="flex-1 border-none outline-none text-slate-800 placeholder:text-slate-400 text-base"
           />
           {loading ? (
-            <Loader2 size={18} className="animate-spin text-blue-500" />
+            <Loader2 size={18} className="animate-spin text-brand-600" />
           ) : (
             <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
           )}
@@ -158,9 +158,9 @@ export default function GlobalSearch({ organizationId, onClose, onNavigate }: {
                           key={`${key}-${r.id}`}
                           onMouseEnter={() => setActiveIndex(idx)}
                           onClick={() => go(r)}
-                          className={`w-full flex items-center gap-3 px-5 py-2.5 text-left transition-colors ${activeIndex === idx ? "bg-blue-50" : "hover:bg-slate-50"}`}
+                          className={`w-full flex items-center gap-3 px-5 py-2.5 text-left transition-colors ${activeIndex === idx ? "bg-brand-50" : "hover:bg-slate-50"}`}
                         >
-                          <span className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${activeIndex === idx ? "bg-blue-100 text-blue-600" : "bg-slate-100 text-slate-500"}`}>
+                          <span className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${activeIndex === idx ? "bg-brand-100 text-brand-800" : "bg-slate-100 text-slate-500"}`}>
                             <Icon size={15} />
                           </span>
                           <span className="flex-1 min-w-0">
@@ -183,5 +183,5 @@ export default function GlobalSearch({ organizationId, onClose, onNavigate }: {
 }
 
 function Kbd({ children }: { children: React.ReactNode }) {
-  return <kbd className="inline-flex items-center px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-xs font-mono border border-slate-200">{children}</kbd>;
+  return <kbd className="inline-flex items-center px-1.5 py-0.5 rounded bg-white text-slate-400 text-xs font-mono border border-slate-200">{children}</kbd>;
 }

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Search, Plus, Minus, CreditCard, Banknote, X, ChevronRight, ShoppingCart, Loader2, User, UserPlus, CheckCircle2, Package, Trash2, ArrowRight } from "lucide-react";
 import { getProducts, getCustomers, createOrder, createCustomer, getRetailSettings, getCouponDiscount } from "@/lib/actions/retail";
 import ReceiptModal from "./ReceiptModal";
+import { inputCls } from "./ShopUI";
 
 const CATEGORY_COLORS = [
   "bg-blue-100 text-blue-900",
@@ -203,12 +204,12 @@ export default function POSTerminal({ organizationId, products, shiftId, onOrder
       <div className="w-[400px] flex-shrink-0 bg-white border-r border-slate-200 flex flex-col shadow-xl z-10">
         <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between gap-2">
           {selectedCustomer ? (
-            <button onClick={() => setIsCustomerPickerOpen(true)} className="flex items-center gap-2 text-sm font-bold text-blue-700 bg-blue-50 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors">
+            <button onClick={() => setIsCustomerPickerOpen(true)} className="flex items-center gap-2 text-sm font-bold text-brand-800 bg-brand-50 px-3 py-1.5 rounded-full hover:bg-brand-100 transition-colors">
               <User size={14} /> {selectedCustomer.name}
-              <X size={14} className="text-blue-400 hover:text-blue-700" onClick={(e) => { e.stopPropagation(); setSelectedCustomer(null); }} />
+              <X size={14} className="text-brand-400 hover:text-brand-800" onClick={(e) => { e.stopPropagation(); setSelectedCustomer(null); }} />
             </button>
           ) : (
-            <button onClick={() => setIsCustomerPickerOpen(true)} className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 px-3 py-1.5 rounded-full transition-colors">
+            <button onClick={() => setIsCustomerPickerOpen(true)} className="flex items-center gap-1.5 text-xs font-semibold text-brand-700 hover:text-brand-800 bg-brand-50 px-3 py-1.5 rounded-full transition-colors">
               <UserPlus size={14} /> Add Customer
             </button>
           )}
@@ -296,13 +297,13 @@ export default function POSTerminal({ organizationId, products, shiftId, onOrder
                       onChange={(e) => { setCouponCode(e.target.value); setCouponError(null); }}
                       onKeyDown={(e) => e.key === "Enter" && applyCoupon()}
                       disabled={cart.length === 0}
-                      className="w-28 text-right bg-white border border-slate-200 rounded p-0.5 uppercase focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100"
+                      className="w-28 text-right bg-white border border-slate-200 rounded p-0.5 uppercase focus:ring-1 focus:ring-brand-600 disabled:bg-slate-100"
                       placeholder="CODE"
                     />
                     <button
                       onClick={applyCoupon}
                       disabled={isCouponChecking || cart.length === 0}
-                      className="px-2 py-0.5 bg-blue-600 text-white text-xs font-bold rounded hover:bg-blue-700 disabled:opacity-50"
+                      className="px-2 py-0.5 bg-brand-700 text-white text-xs font-bold rounded hover:bg-brand-800 disabled:opacity-50"
                       type="button"
                     >
                       {isCouponChecking ? <Loader2 size={12} className="animate-spin" /> : "Apply"}
@@ -324,7 +325,7 @@ export default function POSTerminal({ organizationId, products, shiftId, onOrder
           <button
             disabled={cart.length === 0}
             onClick={() => setShowTender(true)}
-            className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-300 disabled:text-slate-500 text-white rounded-xl font-black text-2xl tracking-wide transition-colors shadow-lg shadow-emerald-500/30 disabled:shadow-none flex items-center justify-center gap-2"
+            className="w-full py-4 bg-gradient-to-r from-brand-500 via-brand-600 to-brand-700 hover:from-brand-600 hover:via-brand-700 hover:to-brand-800 disabled:bg-slate-300 disabled:text-slate-500 text-white rounded-xl font-black text-2xl tracking-wide transition-all shadow-lg shadow-brand-700/30 disabled:shadow-none disabled:from-slate-300 disabled:via-slate-300 disabled:to-slate-300 flex items-center justify-center gap-2"
           >
             PAY <ChevronRight size={28} />
           </button>
@@ -342,18 +343,18 @@ export default function POSTerminal({ organizationId, products, shiftId, onOrder
               placeholder="Scan barcode or search products..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 bg-slate-100 border-none rounded-xl text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-blue-50 font-medium transition-colors"
+              className="w-full pl-12 pr-4 py-4 bg-slate-100 border-none rounded-xl text-lg focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-brand-50 font-medium transition-colors"
             />
           </div>
         </div>
 
-        <div className="px-4 py-3 flex gap-2 overflow-x-auto hide-scrollbar bg-white border-b border-slate-200">
+        <div className="px-4 py-3 flex gap-1.5 overflow-x-auto hide-scrollbar bg-white border-b border-slate-200">
           {categories.map((cat) => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`px-5 py-2.5 rounded-lg font-bold text-sm whitespace-nowrap transition-colors ${
-                activeCategory === cat ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              className={`px-5 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition-colors ${
+                activeCategory === cat ? "bg-brand-700 text-white shadow-sm shadow-brand-700/25" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
             >
               {cat}
@@ -390,9 +391,9 @@ export default function POSTerminal({ organizationId, products, shiftId, onOrder
       {showTender && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl w-full max-w-4xl flex overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="w-1/2 bg-slate-50 p-10 flex flex-col justify-center border-r border-slate-200">
-              <p className="text-slate-500 font-bold uppercase tracking-wider mb-2">Total Due</p>
-              <p className="text-6xl font-black text-slate-900 tracking-tighter mb-8">{symbol}{total.toFixed(2)}</p>
+            <div className="w-1/2 bg-gradient-to-br from-brand-50 to-white p-10 flex flex-col justify-center border-r border-slate-100">
+              <p className="text-brand-700 font-bold uppercase tracking-wider mb-2">Total Due</p>
+              <p className="text-6xl font-black text-ink tracking-tighter mb-8">{symbol}{total.toFixed(2)}</p>
 
               {error && <div className="mb-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-100">{error}</div>}
 
@@ -419,14 +420,14 @@ export default function POSTerminal({ organizationId, products, shiftId, onOrder
                 <button
                   disabled={isProcessing}
                   onClick={() => finalizeSale("CARD")}
-                  className="w-full flex items-center gap-6 p-6 rounded-2xl bg-blue-50 hover:bg-blue-100 text-blue-700 transition-colors border border-blue-200 group disabled:opacity-50"
+                  className="w-full flex items-center gap-6 p-6 rounded-2xl bg-brand-50 hover:bg-brand-100 text-brand-800 transition-colors border border-brand-200 group disabled:opacity-50"
                 >
-                  <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+                  <div className="w-16 h-16 bg-gradient-to-br from-brand-500 to-brand-700 rounded-full flex items-center justify-center text-white shadow-lg shadow-brand-700/30 group-hover:scale-110 transition-transform">
                     <CreditCard size={32} />
                   </div>
                   <div className="text-left">
-                    <div className="text-2xl font-black">Credit / Debit Card</div>
-                    <div className="text-blue-600/70 font-medium">Send to terminal</div>
+                    <div className="text-2xl font-black text-ink">Credit / Debit Card</div>
+                    <div className="text-slate-500 font-medium">Send to terminal</div>
                   </div>
                 </button>
 
@@ -502,11 +503,11 @@ function CustomerPicker({ organizationId, customers, onSelect, onCreated, onClos
 
         {isNewMode ? (
           <div className="p-5 space-y-3">
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" className="w-full p-2.5 border border-slate-200 rounded-lg" autoFocus />
-            <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone (optional)" className="w-full p-2.5 border border-slate-200 rounded-lg" />
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" className={inputCls} autoFocus />
+            <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone (optional)" className={inputCls} />
             <div className="flex gap-2 pt-1">
               <button onClick={() => setIsNewMode(false)} className="flex-1 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-100 rounded-lg">Back</button>
-              <button onClick={submitNew} disabled={isSaving || !name.trim()} className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-bold rounded-lg">
+              <button onClick={submitNew} disabled={isSaving || !name.trim()} className="flex-1 py-2 bg-brand-700 hover:bg-brand-800 disabled:opacity-50 text-white text-sm font-bold rounded-lg">
                 {isSaving ? "Saving..." : "Add & Select"}
               </button>
             </div>
@@ -514,7 +515,7 @@ function CustomerPicker({ organizationId, customers, onSelect, onCreated, onClos
         ) : (
           <>
             <div className="p-3 border-b border-slate-100">
-              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search customers..." className="w-full p-2 border border-slate-200 rounded-lg text-sm" autoFocus />
+              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search customers..." className="w-full p-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 transition-all" autoFocus />
             </div>
             <div className="max-h-64 overflow-y-auto">
               {filtered.length === 0 ? (
@@ -522,7 +523,7 @@ function CustomerPicker({ organizationId, customers, onSelect, onCreated, onClos
               ) : (
                 filtered.map((c) => (
                   <button key={c.id} onClick={() => onSelect(c)} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors text-left">
-                    <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold flex-shrink-0">{c.name.slice(0, 2).toUpperCase()}</div>
+                    <div className="w-8 h-8 rounded-full bg-brand-100 text-brand-800 flex items-center justify-center text-xs font-bold flex-shrink-0">{c.name.slice(0, 2).toUpperCase()}</div>
                     <div>
                       <p className="text-sm font-semibold text-slate-800">{c.name}</p>
                       {c.phone && <p className="text-xs text-slate-400">{c.phone}</p>}
@@ -532,7 +533,7 @@ function CustomerPicker({ organizationId, customers, onSelect, onCreated, onClos
               )}
             </div>
             <div className="p-3 border-t border-slate-100">
-              <button onClick={() => { setName(search); setIsNewMode(true); }} className="w-full flex items-center justify-center gap-1.5 py-2 text-sm font-semibold text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+              <button onClick={() => { setName(search); setIsNewMode(true); }} className="w-full flex items-center justify-center gap-1.5 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50 rounded-lg transition-colors">
                 <UserPlus size={14} /> New Customer
               </button>
             </div>

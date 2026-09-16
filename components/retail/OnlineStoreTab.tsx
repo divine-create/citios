@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Globe, X, Loader2, Wallet, ExternalLink, Store as StoreIcon } from "lucide-react";
 import { getShopStorefront, updateShopStorefront, getShopWalletBalance, toggleWalletSettlement } from "@/lib/actions/retail";
+import { inputCls } from "./ShopUI";
 
 export default function OnlineStoreTab({ organizationId, onChanged }: { organizationId: string; onChanged: () => void }) {
   const [loading, setLoading] = useState(true);
@@ -99,7 +100,7 @@ export default function OnlineStoreTab({ organizationId, onChanged }: { organiza
 
   return (
     <div className="p-8 max-w-4xl mx-auto">
-      <h2 className="text-2xl font-bold text-slate-800 mb-1">Online Store</h2>
+      <h2 className="text-2xl font-black text-ink mb-1">Online Store</h2>
       <p className="text-sm text-slate-500 mb-6">
         Your customer-facing storefront lives at <span className="font-semibold text-slate-700">{slug ? `${slug}.cityconnect.app` : "your slug"}</span>. Nothing is public until you publish.
       </p>
@@ -110,23 +111,23 @@ export default function OnlineStoreTab({ organizationId, onChanged }: { organiza
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center"><Globe size={20} /></div>
-            <h3 className="font-bold text-slate-800">Store Details</h3>
+            <div className="w-10 h-10 rounded-xl bg-brand-100 text-brand-800 flex items-center justify-center"><Globe size={20} /></div>
+            <h3 className="font-bold text-ink">Store Details</h3>
           </div>
           <div className="space-y-3">
             <div className="space-y-1">
               <label className="text-xs font-bold text-slate-500 uppercase">Store name</label>
-              <input value={storeName} onChange={(e) => setStoreName(e.target.value)} className="w-full p-2 border border-slate-200 rounded-lg" placeholder="Your store name" />
+              <input value={storeName} onChange={(e) => setStoreName(e.target.value)} className={inputCls} placeholder="Your store name" />
             </div>
             <div className="space-y-1">
               <label className="text-xs font-bold text-slate-500 uppercase">Address</label>
-              <textarea value={storeAddress} onChange={(e) => setStoreAddress(e.target.value)} rows={2} className="w-full p-2 border border-slate-200 rounded-lg" placeholder="Street, city, region" />
+              <textarea value={storeAddress} onChange={(e) => setStoreAddress(e.target.value)} rows={2} className={inputCls} placeholder="Street, city, region" />
             </div>
             <div className="space-y-1">
               <label className="text-xs font-bold text-slate-500 uppercase">Receipt message</label>
-              <input value={receiptMessage} onChange={(e) => setReceiptMessage(e.target.value)} className="w-full p-2 border border-slate-200 rounded-lg" placeholder="Thanks for shopping with us!" />
+              <input value={receiptMessage} onChange={(e) => setReceiptMessage(e.target.value)} className={inputCls} placeholder="Thanks for shopping with us!" />
             </div>
-            <button onClick={saveMeta} disabled={savingMeta} className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-lg transition-colors">
+            <button onClick={saveMeta} disabled={savingMeta} className="w-full px-4 py-2 bg-brand-700 hover:bg-brand-800 disabled:opacity-50 text-white font-bold rounded-lg transition-colors">
               {savingMeta ? <Loader2 size={16} className="animate-spin inline" /> : "Save store details"}
             </button>
           </div>
@@ -143,7 +144,7 @@ export default function OnlineStoreTab({ organizationId, onChanged }: { organiza
                     href={`/site/${slug}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-xs text-blue-600 hover:underline inline-flex items-center gap-1"
+                    className="text-xs text-brand-700 hover:underline inline-flex items-center gap-1"
                   >
                     {slug}.cityconnect.app <ExternalLink size={12} />
                   </a>

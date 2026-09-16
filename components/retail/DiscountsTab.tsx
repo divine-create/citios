@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Plus, X, Loader2, Tag, Trash2, Pencil } from "lucide-react";
 import { getCoupons, createCoupon, updateCoupon, deleteCoupon } from "@/lib/actions/retail";
+import { inputCls, selectCls } from "./ShopUI";
 
 interface Coupon {
   id: string;
@@ -114,12 +115,12 @@ export default function DiscountsTab({ organizationId, symbol = "$" }: { organiz
     <div className="p-8 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">Discounts</h2>
+          <h2 className="text-2xl font-black text-ink">Discounts</h2>
           <p className="text-sm text-slate-500 mt-1">
             Coupon codes your cashiers can apply at the register. Percent coupons cap at 100%.
           </p>
         </div>
-        <button onClick={openAdd} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm">
+        <button onClick={openAdd} className="flex items-center gap-2 bg-brand-700 hover:bg-brand-800 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm shadow-brand-700/25">
           <Plus size={16} /> New Coupon
         </button>
       </div>
@@ -173,7 +174,7 @@ export default function DiscountsTab({ organizationId, symbol = "$" }: { organiz
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-2">
-                        <button onClick={() => openEdit(c)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
+                        <button onClick={() => openEdit(c)} className="p-1.5 text-slate-400 hover:text-brand-700 hover:bg-brand-50 rounded-md transition-colors">
                           <Pencil size={15} />
                         </button>
                         <button onClick={() => remove(c.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors">
@@ -205,42 +206,42 @@ export default function DiscountsTab({ organizationId, symbol = "$" }: { organiz
                     value={form.code}
                     disabled={!!editId}
                     onChange={(e) => setForm((f) => ({ ...f, code: e.target.value.toUpperCase() }))}
-                    className="w-full p-2 border border-slate-200 rounded-lg uppercase font-bold"
+                    className="w-full p-2 border border-slate-200 rounded-lg uppercase font-bold focus:outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 transition-all"
                     placeholder="WELCOME10"
                   />
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-500 uppercase">Type</label>
-                  <select value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as "PERCENT" | "FIXED" }))} className="w-full p-2 border border-slate-200 rounded-lg bg-white">
+                  <select value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as "PERCENT" | "FIXED" }))} className={selectCls}>
                     <option value="PERCENT">Percentage (%)</option>
                     <option value="FIXED">Fixed amount</option>
                   </select>
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-500 uppercase">{form.type === "PERCENT" ? "Percent off" : `Amount off (${symbol})`}</label>
-                  <input type="number" step="any" min="0" value={form.value} onChange={(e) => setForm((f) => ({ ...f, value: e.target.value }))} className="w-full p-2 border border-slate-200 rounded-lg" placeholder={form.type === "PERCENT" ? "10" : "5.00"} />
+                  <input type="number" step="any" min="0" value={form.value} onChange={(e) => setForm((f) => ({ ...f, value: e.target.value }))} className={inputCls} placeholder={form.type === "PERCENT" ? "10" : "5.00"} />
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-500 uppercase">Min spend (optional)</label>
-                  <input type="number" step="any" min="0" value={form.minSpend} onChange={(e) => setForm((f) => ({ ...f, minSpend: e.target.value }))} className="w-full p-2 border border-slate-200 rounded-lg" placeholder="0" />
+                  <input type="number" step="any" min="0" value={form.minSpend} onChange={(e) => setForm((f) => ({ ...f, minSpend: e.target.value }))} className={inputCls} placeholder="0" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-500 uppercase">Usage limit (optional)</label>
-                  <input type="number" min="1" value={form.usageLimit} onChange={(e) => setForm((f) => ({ ...f, usageLimit: e.target.value }))} className="w-full p-2 border border-slate-200 rounded-lg" placeholder="Unlimited" />
+                  <input type="number" min="1" value={form.usageLimit} onChange={(e) => setForm((f) => ({ ...f, usageLimit: e.target.value }))} className={inputCls} placeholder="Unlimited" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-500 uppercase">Expires (optional)</label>
-                  <input type="date" value={form.expiresAt} onChange={(e) => setForm((f) => ({ ...f, expiresAt: e.target.value }))} className="w-full p-2 border border-slate-200 rounded-lg" />
+                  <input type="date" value={form.expiresAt} onChange={(e) => setForm((f) => ({ ...f, expiresAt: e.target.value }))} className={inputCls} />
                 </div>
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase">Description (optional)</label>
-                <input value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} className="w-full p-2 border border-slate-200 rounded-lg" placeholder="e.g. 10% off first order" />
+                <input value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} className={inputCls} placeholder="e.g. 10% off first order" />
               </div>
             </div>
             <div className="p-4 border-t border-slate-100 flex justify-end gap-3 bg-white">
               <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 font-semibold text-slate-500 hover:bg-slate-100 rounded-lg transition-colors">Cancel</button>
-              <button onClick={submit} disabled={isSaving} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-lg transition-colors">
+              <button onClick={submit} disabled={isSaving} className="px-6 py-2 bg-brand-700 hover:bg-brand-800 disabled:opacity-50 text-white font-bold rounded-lg transition-colors">
                 {isSaving ? <Loader2 size={16} className="animate-spin inline" /> : (editId ? "Save Changes" : "Create Coupon")}
               </button>
             </div>

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Plus, Search, Edit2, Trash2, ArrowUpDown, Package, AlertTriangle, X, Upload, Loader2, FolderTree, History, ArrowUpFromLine } from "lucide-react";
 import { createProduct, updateProduct, deleteProduct, createCategory, updateCategory, deleteCategory, getRetailSettings, adjustStock, getStockMovements } from "@/lib/actions/retail";
 import { uploadAsset } from "@/lib/actions/microsite";
+import { PillTabs, inputCls, selectCls } from "./ShopUI";
 
 interface Product {
   id: string;
@@ -272,27 +273,19 @@ export default function InventoryManager({ organizationId, products, categories,
 
   return (
     <div className="p-8 max-w-7xl mx-auto h-full flex flex-col">
-      <div className="flex items-center justify-between mb-8">
+<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">Products & Inventory</h2>
-          <div className="flex gap-4 mt-3">
-            <button
-              onClick={() => setActiveTab("PRODUCTS")}
-              className={`text-sm font-bold pb-2 border-b-2 transition-colors ${activeTab === 'PRODUCTS' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-            >
-              Products
-            </button>
-            <button
-              onClick={() => setActiveTab("CATEGORIES")}
-              className={`text-sm font-bold pb-2 border-b-2 transition-colors ${activeTab === 'CATEGORIES' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-            >
-              Categories
-            </button>
-          </div>
+          <h2 className="text-2xl font-black text-ink">Products & Inventory</h2>
+          <PillTabs
+            tabs={[{ value: "PRODUCTS", label: "Products" }, { value: "CATEGORIES", label: "Categories" }]}
+            active={activeTab}
+            onChange={setActiveTab}
+            className="mt-4"
+          />
         </div>
         <button
           onClick={activeTab === 'PRODUCTS' ? openAdd : openCatAdd}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-bold transition-colors shadow-sm mt-2"
+          className="flex items-center gap-2 bg-brand-700 hover:bg-brand-800 text-white px-5 py-2.5 rounded-lg font-bold transition-colors shadow-sm shadow-brand-700/25 mt-2"
         >
           <Plus size={18} /> {activeTab === 'PRODUCTS' ? 'Add Product' : 'Add Category'}
         </button>
@@ -301,34 +294,34 @@ export default function InventoryManager({ organizationId, products, categories,
       {activeTab === 'PRODUCTS' && (
         <>
           {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 flex-shrink-0">
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
+<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 flex-shrink-0">
+        <div className="bg-white p-5 rounded-xl border border-slate-200 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-brand-100 text-brand-800 flex items-center justify-center">
             <Package size={24} />
           </div>
           <div>
             <p className="text-sm font-medium text-slate-500">Total Products</p>
-            <p className="text-2xl font-bold text-slate-800">{products.length}</p>
+            <p className="text-2xl font-black text-ink">{products.length}</p>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center">
+        <div className="bg-white p-5 rounded-xl border border-slate-200 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
             <ArrowUpDown size={24} />
           </div>
           <div>
             <p className="text-sm font-medium text-slate-500">Total Inventory Value</p>
-            <p className="text-2xl font-bold text-slate-800">{currencySymbol}{totalValue.toFixed(2)}</p>
+            <p className="text-2xl font-black text-ink">{currencySymbol}{totalValue.toFixed(2)}</p>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-xl border border-red-100 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center">
+        <div className="bg-white p-5 rounded-xl border border-red-100 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-red-100 text-red-700 flex items-center justify-center">
             <AlertTriangle size={24} />
           </div>
           <div>
             <p className="text-sm font-medium text-slate-500">Low Stock Alerts</p>
-            <p className="text-2xl font-bold text-red-600">{lowStockCount} Items</p>
+            <p className="text-2xl font-black text-red-600">{lowStockCount} Items</p>
           </div>
         </div>
       </div>
@@ -342,7 +335,7 @@ export default function InventoryManager({ organizationId, products, categories,
             placeholder="Search by name, SKU, or barcode..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-shadow"
+            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-brand-600 focus:ring-1 focus:ring-brand-600 transition-shadow"
           />
         </div>
       </div>
@@ -396,13 +389,13 @@ export default function InventoryManager({ organizationId, products, categories,
                     </td>
 <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
-                        <button title="Stock history" onClick={() => openHistory(item)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
+                        <button title="Stock history" onClick={() => openHistory(item)} className="p-1.5 text-slate-400 hover:text-brand-700 hover:bg-brand-50 rounded-md transition-colors">
                           <History size={16} />
                         </button>
-                        <button title="Adjust stock" onClick={() => openAdjust(item)} className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors">
+                        <button title="Adjust stock" onClick={() => openAdjust(item)} className="p-1.5 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-md transition-colors">
                           <ArrowUpFromLine size={16} />
                         </button>
-                        <button onClick={() => openEdit(item)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
+                        <button onClick={() => openEdit(item)} className="p-1.5 text-slate-400 hover:text-brand-700 hover:bg-brand-50 rounded-md transition-colors">
                           <Edit2 size={16} />
                         </button>
                         <button onClick={() => remove(item.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors">
@@ -445,7 +438,7 @@ export default function InventoryManager({ organizationId, products, categories,
                     <tr key={cat.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-4 font-bold text-slate-800">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center"><FolderTree size={14} /></div>
+                          <div className="w-8 h-8 rounded-lg bg-brand-100 text-brand-800 flex items-center justify-center"><FolderTree size={14} /></div>
                           {cat.name}
                         </div>
                       </td>
@@ -453,7 +446,7 @@ export default function InventoryManager({ organizationId, products, categories,
                       <td className="px-6 py-4 text-slate-500">{prodCount}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2">
-                          <button onClick={() => openCatEdit(cat)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
+<button onClick={() => openCatEdit(cat)} className="p-1.5 text-slate-400 hover:text-brand-700 hover:bg-brand-50 rounded-md transition-colors">
                             <Edit2 size={16} />
                           </button>
                           <button onClick={() => removeCat(cat.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors">
@@ -492,7 +485,7 @@ export default function InventoryManager({ organizationId, products, categories,
               )}
               <div className="col-span-2 space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase">Product Name</label>
-                <input type="text" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className="w-full p-2 border border-slate-200 rounded-lg" placeholder="e.g. Organic Bananas" />
+                <input type="text" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className={inputCls} placeholder="e.g. Organic Bananas" />
               </div>
               <div className="col-span-2 space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase">Photo</label>
@@ -511,7 +504,7 @@ export default function InventoryManager({ organizationId, products, categories,
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase">Category</label>
-                <select value={form.categoryId} onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))} className="w-full p-2 border border-slate-200 rounded-lg bg-white">
+                <select value={form.categoryId} onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))} className={selectCls}>
                   <option value="">Uncategorized</option>
                   {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
@@ -523,7 +516,7 @@ export default function InventoryManager({ organizationId, products, categories,
                   list="unit-suggestions"
                   value={form.unit} 
                   onChange={(e) => setForm((f) => ({ ...f, unit: e.target.value }))} 
-                  className="w-full p-2 border border-slate-200 rounded-lg" 
+                  className={inputCls} 
                   placeholder="ea"
                 />
                 <datalist id="unit-suggestions">
@@ -534,29 +527,29 @@ export default function InventoryManager({ organizationId, products, categories,
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase">SKU</label>
-                <input type="text" value={form.sku} onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))} className="w-full p-2 border border-slate-200 rounded-lg" placeholder="PRD-001" />
+                <input type="text" value={form.sku} onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))} className={inputCls} placeholder="PRD-001" />
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase">Barcode (UPC)</label>
-                <input type="text" value={form.barcode} onChange={(e) => setForm((f) => ({ ...f, barcode: e.target.value }))} className="w-full p-2 border border-slate-200 rounded-lg" placeholder="Scan or type..." />
+                <input type="text" value={form.barcode} onChange={(e) => setForm((f) => ({ ...f, barcode: e.target.value }))} className={inputCls} placeholder="Scan or type..." />
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase">Selling Price ({currencySymbol})</label>
-                <input type="number" step="0.01" value={form.price} onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))} className="w-full p-2 border border-slate-200 rounded-lg" placeholder="0.00" />
+                <input type="number" step="0.01" value={form.price} onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))} className={inputCls} placeholder="0.00" />
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase">Cost Price ({currencySymbol})</label>
-                <input type="number" step="0.01" value={form.cost} onChange={(e) => setForm((f) => ({ ...f, cost: e.target.value }))} className="w-full p-2 border border-slate-200 rounded-lg" placeholder="0.00" />
+                <input type="number" step="0.01" value={form.cost} onChange={(e) => setForm((f) => ({ ...f, cost: e.target.value }))} className={inputCls} placeholder="0.00" />
               </div>
               {!editId && (
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-500 uppercase">Initial Stock</label>
-                  <input type="number" value={form.stockQuantity} onChange={(e) => setForm((f) => ({ ...f, stockQuantity: e.target.value }))} className="w-full p-2 border border-slate-200 rounded-lg" placeholder="0" />
+                  <input type="number" value={form.stockQuantity} onChange={(e) => setForm((f) => ({ ...f, stockQuantity: e.target.value }))} className={inputCls} placeholder="0" />
                 </div>
               )}
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase">Low Stock Alert Level</label>
-                <input type="number" value={form.lowStockLevel} onChange={(e) => setForm((f) => ({ ...f, lowStockLevel: e.target.value }))} className="w-full p-2 border border-slate-200 rounded-lg" placeholder="0" />
+                <input type="number" value={form.lowStockLevel} onChange={(e) => setForm((f) => ({ ...f, lowStockLevel: e.target.value }))} className={inputCls} placeholder="0" />
               </div>
               <div className="col-span-2 flex items-center gap-2 pt-2">
                 <input type="checkbox" id="isWeighed" checked={form.isWeighed} onChange={(e) => setForm((f) => ({ ...f, isWeighed: e.target.checked }))} />
@@ -567,7 +560,7 @@ export default function InventoryManager({ organizationId, products, categories,
               <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 font-semibold text-slate-500 hover:bg-slate-100 rounded-lg transition-colors">
                 Cancel
               </button>
-              <button onClick={submit} disabled={isSaving} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-lg transition-colors">
+              <button onClick={submit} disabled={isSaving} className="px-6 py-2 bg-brand-700 hover:bg-brand-800 disabled:opacity-50 text-white font-bold rounded-lg transition-colors">
                 {isSaving ? "Saving..." : "Save Product"}
               </button>
             </div>
@@ -589,18 +582,18 @@ export default function InventoryManager({ organizationId, products, categories,
               {error && <div className="p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-100">{error}</div>}
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase">Category Name</label>
-                <input type="text" value={catName} onChange={(e) => setCatName(e.target.value)} className="w-full p-2 border border-slate-200 rounded-lg" placeholder="e.g. Produce" />
+                <input type="text" value={catName} onChange={(e) => setCatName(e.target.value)} className={inputCls} placeholder="e.g. Produce" />
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase">Description (Optional)</label>
-                <textarea value={catDesc} onChange={(e) => setCatDesc(e.target.value)} className="w-full p-2 border border-slate-200 rounded-lg" placeholder="Fresh fruits and vegetables..." rows={3} />
+                <textarea value={catDesc} onChange={(e) => setCatDesc(e.target.value)} className={inputCls} placeholder="Fresh fruits and vegetables..." rows={3} />
               </div>
             </div>
             <div className="p-4 border-t border-slate-100 flex justify-end gap-3 bg-white">
               <button onClick={() => setIsCatModalOpen(false)} className="px-4 py-2 font-semibold text-slate-500 hover:bg-slate-100 rounded-lg transition-colors">
                 Cancel
               </button>
-              <button onClick={submitCat} disabled={isSaving} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-lg transition-colors">
+              <button onClick={submitCat} disabled={isSaving} className="px-6 py-2 bg-brand-700 hover:bg-brand-800 disabled:opacity-50 text-white font-bold rounded-lg transition-colors">
                 {isSaving ? "Saving..." : "Save Category"}
               </button>
             </div>
@@ -685,7 +678,7 @@ export default function InventoryManager({ organizationId, products, categories,
                   step="any"
                   value={adjustDelta}
                   onChange={(e) => setAdjustDelta(e.target.value)}
-                  className="w-full p-2 border border-slate-200 rounded-lg"
+                  className={inputCls}
                   placeholder="e.g. 10 or -2"
                 />
               </div>
@@ -700,7 +693,7 @@ export default function InventoryManager({ organizationId, products, categories,
                 <textarea
                   value={adjustNote}
                   onChange={(e) => setAdjustNote(e.target.value)}
-                  className="w-full p-2 border border-slate-200 rounded-lg"
+                  className={inputCls}
                   placeholder="e.g. Damaged goods written off, stocktake correction, received from supplier…"
                   rows={2}
                 />

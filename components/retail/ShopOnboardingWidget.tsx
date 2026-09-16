@@ -159,12 +159,12 @@ export default function ShopOnboardingWidget({ settings, organizationId, onNavig
   return (
     <>
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6 overflow-hidden relative">
-        <div className="absolute right-0 top-0 w-64 h-full bg-gradient-to-l from-emerald-50 to-transparent -z-10 pointer-events-none" />
-        <Store className="absolute -right-4 -bottom-4 text-emerald-100 opacity-50 pointer-events-none" size={120} />
+        <div className="absolute right-0 top-0 w-64 h-full bg-gradient-to-l from-brand-50 to-transparent pointer-events-none" />
+        <Store className="absolute -right-4 -bottom-4 text-brand-200 opacity-40 pointer-events-none" size={120} />
 
         <div className="flex-1">
           <div className="flex items-center justify-between gap-4">
-            <h2 className="text-xl font-bold text-slate-800">Set up your store, step by step</h2>
+            <h2 className="text-xl font-black text-ink">Let&apos;s get your store set up</h2>
             <button onClick={dismiss} title="Hide this checklist" className="p-1.5 text-slate-300 hover:text-slate-500 rounded-lg transition-colors flex-shrink-0">
               <X size={18} />
             </button>
@@ -173,16 +173,16 @@ export default function ShopOnboardingWidget({ settings, organizationId, onNavig
 
           <div className="flex items-center gap-4 max-w-md">
             <div className="h-2 flex-1 bg-slate-100 rounded-full overflow-hidden">
-              <div className="h-full bg-emerald-500 rounded-full transition-all duration-700 ease-out" style={{ width: `${progressPercent}%` }} />
+              <div className="h-full bg-brand-600 rounded-full transition-all duration-700 ease-out" style={{ width: `${progressPercent}%` }} />
             </div>
-            <span className="text-sm font-bold text-slate-700">{completedCount} / {totalCount} completed</span>
+            <span className="text-sm font-bold text-ink">{completedCount} / {totalCount} completed · {progressPercent}%</span>
           </div>
         </div>
 
         <div>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="w-full md:w-auto bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-lg font-bold transition-colors flex items-center justify-center gap-2"
+            className="w-full md:w-auto inline-flex items-center justify-center gap-2 bg-brand-700 hover:bg-brand-800 text-white px-6 py-3 rounded-lg font-bold transition-colors shadow-sm shadow-brand-700/25"
           >
             {nextIncompleteStep?.actionText} <ArrowRight size={16} />
           </button>
@@ -194,10 +194,10 @@ export default function ShopOnboardingWidget({ settings, organizationId, onNavig
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50">
               <div>
-                <h3 className="text-xl font-bold text-slate-800">Store setup</h3>
+                <h3 className="text-xl font-black text-ink">Store setup</h3>
                 <p className="text-sm text-slate-500 mt-1">{completedCount} of {totalCount} steps done — choose what to do next.</p>
               </div>
-              <button onClick={() => setIsModalOpen(false)} className="p-2 text-slate-400 hover:bg-slate-200 rounded-full transition-colors">
+              <button onClick={() => setIsModalOpen(false)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors">
                 <X size={20} />
               </button>
             </div>
@@ -211,7 +211,7 @@ export default function ShopOnboardingWidget({ settings, organizationId, onNavig
                       step.isComplete
                         ? "border-emerald-100 bg-emerald-50/50"
                         : nextIncompleteStep?.id === step.id
-                          ? "border-slate-800 bg-white shadow-sm"
+                          ? "border-brand-600 bg-white shadow-sm"
                           : "border-slate-100 bg-white"
                     }`}
                   >
@@ -219,16 +219,16 @@ export default function ShopOnboardingWidget({ settings, organizationId, onNavig
                       {step.isComplete ? (
                         <CheckCircle2 className="text-emerald-500" size={24} />
                       ) : (
-                        <Circle className="text-slate-300" size={24} />
+                        <Circle className={`${nextIncompleteStep?.id === step.id ? "text-brand-600" : "text-slate-300"}`} size={24} />
                       )}
                     </div>
                     <div className="flex-1">
-                      <h4 className={`font-bold ${step.isComplete ? "text-emerald-900" : "text-slate-800"}`}>{step.label}</h4>
+                      <h4 className={`font-bold ${step.isComplete ? "text-emerald-900" : "text-ink"}`}>{step.label}</h4>
                       <p className={`text-sm mt-1 mb-3 ${step.isComplete ? "text-emerald-700/80" : "text-slate-500"}`}>{step.description}</p>
                       {!step.isComplete && nextIncompleteStep?.id === step.id && (
                         <button
                           onClick={() => go(step)}
-                          className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-bold rounded-lg transition-colors flex items-center gap-2"
+                          className="px-4 py-2 inline-flex items-center justify-center gap-2 bg-brand-700 hover:bg-brand-800 text-white text-sm font-bold rounded-lg transition-colors"
                         >
                           {step.actionText} <ChevronRight size={16} />
                         </button>
