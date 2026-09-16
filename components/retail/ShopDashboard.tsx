@@ -10,6 +10,7 @@ import {
   DollarSign,
   ArrowRightLeft,
   Truck,
+  ChevronDown,
   ChevronRight,
   Globe,
   Lock,
@@ -100,7 +101,16 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
     return "Dashboard";
   });
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [searchOpen, setSearchOpen] = useState(false);
+  const isGroupCollapsed = (label: string) => collapsedGroups.has(label);
+  const toggleGroup = (label: string) =>
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      return next;
+    });
   const [dashboard, setDashboard] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -240,25 +250,36 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
         <div className="p-4">
           {visibleGroups.map((group) => (
             <div key={group.label} className="mb-5">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 px-2">{group.label}</p>
-              <ul className="space-y-1">
-                {group.items.map((item) => (
-                  <li key={item.label}>
-                    <button
-                      onClick={() => {
-                        setActiveMenu(item.label);
-                        if (window.matchMedia("(max-width: 767px)").matches) setIsSidebarOpen(false);
-                      }}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                        activeMenu === item.label ? "bg-blue-50 text-blue-600 font-medium" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                      }`}
-                    >
-                      <item.icon size={18} className={activeMenu === item.label ? "text-blue-600" : "text-slate-400"} />
-                      {item.label}
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              <button
+                onClick={() => toggleGroup(group.label)}
+                className="w-full flex items-center justify-between group/edit text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 px-2 hover:text-slate-600"
+              >
+                {group.label}
+                <ChevronDown
+                  size={14}
+                  className={`text-slate-300 transition-transform duration-200 ${isGroupCollapsed(group.label) ? "-rotate-90" : ""}`}
+                />
+              </button>
+              {!isGroupCollapsed(group.label) && (
+                <ul className="space-y-1">
+                  {group.items.map((item) => (
+                    <li key={item.label}>
+                      <button
+                        onClick={() => {
+                          setActiveMenu(item.label);
+                          if (window.matchMedia("(max-width: 767px)").matches) setIsSidebarOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                          activeMenu === item.label ? "bg-blue-50 text-blue-600 font-medium" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                        }`}
+                      >
+                        <item.icon size={18} className={activeMenu === item.label ? "text-blue-600" : "text-slate-400"} />
+                        {item.label}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           ))}
 
