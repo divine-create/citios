@@ -248,36 +248,58 @@ function Services({ data }: { data: ServiceOSDataSet }) {
 function Requests({ data, orgId }: { data: ServiceOSDataSet, orgId: string }) {
   const [realRequests, setRealRequests] = useState<any[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     import('@/app/actions/service').then(({ fetchServiceJobs }) => {
       fetchServiceJobs(orgId)
-        .then(setRealRequests)
-        .catch((err) => setError(err.message));
+        .then((reqs) => {
+          setRealRequests(reqs);
+          setLoading(false);
+        })
+        .catch((err) => {
+          setError(err.message);
+          setLoading(false);
+        });
     });
   }, [orgId]);
+
+  if (loading) {
+    return (
+      <div className="rounded-2xl border-2 border-slate-100 bg-slate-50 p-12 text-center animate-pulse">
+        <div className="w-8 h-8 rounded-full border-4 border-slate-200 border-t-slate-400 animate-spin mx-auto mb-4"></div>
+        <p className="text-[13px] font-black text-slate-500">Loading production requests...</p>
+      </div>
+    );
+  }
 
   if (error) {
     return (
       <div className="rounded-2xl border-2 border-red-100 bg-red-50 p-6 text-center">
         <AlertTriangle className="w-6 h-6 text-red-500 mx-auto mb-2" />
-        <p className="text-[13px] font-black text-red-900">Access Denied</p>
+        <p className="text-[13px] font-black text-red-900">Access Denied / Error</p>
         <p className="text-[11px] font-medium text-red-700 mt-1">{error}</p>
       </div>
     );
   }
 
-  const requestsToDisplay = realRequests ?? data.requests;
+  if (!realRequests || realRequests.length === 0) {
+    return (
+      <div className="rounded-2xl border-2 border-slate-100 bg-white p-12 text-center">
+        <Activity className="w-8 h-8 text-slate-300 mx-auto mb-3" />
+        <p className="text-[14px] font-black text-slate-700">No active requests</p>
+        <p className="text-[12px] font-medium text-slate-500 mt-1">When residents book services, they will securely appear here.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
-      {realRequests ? (
-        <div className="mb-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase tracking-widest border border-emerald-100">
-          <CheckCircle2 className="w-3.5 h-3.5" /> Showing live DB requests
-        </div>
-      ) : null}
+      <div className="mb-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase tracking-widest border border-emerald-100">
+        <CheckCircle2 className="w-3.5 h-3.5" /> Showing live DB requests
+      </div>
       <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-50">
-        {requestsToDisplay.map((r) => {
+        {realRequests.map((r) => {
           const s = REQ_META[r.status] || { label: r.status, tone: 'blue' };
           return (
             <div key={r.id} className="px-5 py-4">
@@ -290,48 +312,46 @@ function Requests({ data, orgId }: { data: ServiceOSDataSet, orgId: string }) {
               </div>
               {r.note && <p className="text-[11px] text-slate-500 font-medium italic mt-1.5 ml-1">“{r.note}”</p>}
               
-              {realRequests && (
-                <div className="mt-3 flex gap-2">
-                  {r.status === 'NEW' && (
-                    <button
-                      onClick={async () => {
-                        const tmr = new Date(); tmr.setDate(tmr.getDate() + 1); tmr.setHours(10, 0, 0, 0);
-                        const end = new Date(tmr); end.setHours(12, 0, 0, 0);
-                        const m = await import('@/app/actions/service');
-                        await m.acceptAndScheduleServiceJob({ jobId: r.id, startTime: tmr, endTime: end, price: 10000 });
-                        m.fetchServiceJobs(orgId).then(setRealRequests);
-                      }}
-                      className="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-[11px] font-bold rounded-lg transition-colors"
-                    >
-                      Accept & Schedule
-                    </button>
-                  )}
-                  {r.status === 'SCHEDULED' && (
-                    <button
-                      onClick={async () => {
-                        const m = await import('@/app/actions/service');
-                        await m.updateServiceJobLifecycle({ jobId: r.id, status: 'IN_PROGRESS' });
-                        m.fetchServiceJobs(orgId).then(setRealRequests);
-                      }}
-                      className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-[11px] font-bold rounded-lg transition-colors"
-                    >
-                      Start Job
-                    </button>
-                  )}
-                  {r.status === 'IN_PROGRESS' && (
-                    <button
-                      onClick={async () => {
-                        const m = await import('@/app/actions/service');
-                        await m.updateServiceJobLifecycle({ jobId: r.id, status: 'COMPLETED' });
-                        m.fetchServiceJobs(orgId).then(setRealRequests);
-                      }}
-                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-[11px] font-bold rounded-lg transition-colors"
-                    >
-                      Mark Completed
-                    </button>
-                  )}
-                </div>
-              )}
+              <div className="mt-3 flex gap-2">
+                {r.status === 'NEW' && (
+                  <button
+                    onClick={async () => {
+                      const tmr = new Date(); tmr.setDate(tmr.getDate() + 1); tmr.setHours(10, 0, 0, 0);
+                      const end = new Date(tmr); end.setHours(12, 0, 0, 0);
+                      const m = await import('@/app/actions/service');
+                      await m.acceptAndScheduleServiceJob({ jobId: r.id, startTime: tmr, endTime: end, price: 10000 });
+                      m.fetchServiceJobs(orgId).then(setRealRequests);
+                    }}
+                    className="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-[11px] font-bold rounded-lg transition-colors"
+                  >
+                    Accept & Schedule
+                  </button>
+                )}
+                {r.status === 'SCHEDULED' && (
+                  <button
+                    onClick={async () => {
+                      const m = await import('@/app/actions/service');
+                      await m.updateServiceJobLifecycle({ jobId: r.id, status: 'IN_PROGRESS' });
+                      m.fetchServiceJobs(orgId).then(setRealRequests);
+                    }}
+                    className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-[11px] font-bold rounded-lg transition-colors"
+                  >
+                    Start Job
+                  </button>
+                )}
+                {r.status === 'IN_PROGRESS' && (
+                  <button
+                    onClick={async () => {
+                      const m = await import('@/app/actions/service');
+                      await m.updateServiceJobLifecycle({ jobId: r.id, status: 'COMPLETED' });
+                      m.fetchServiceJobs(orgId).then(setRealRequests);
+                    }}
+                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-[11px] font-bold rounded-lg transition-colors"
+                  >
+                    Mark Completed
+                  </button>
+                )}
+              </div>
             </div>
           );
         })}

@@ -34,7 +34,46 @@ export default function CityActivity() {
       .catch(console.error);
   }, []);
 
-  const items = [...realServices, ...activity, ...DEMO_ACTIVITY].filter((a) => filter === 'All' || kindGroup(a.kind) === filter);
+  const liveItems = [...realServices, ...activity].filter((a) => filter === 'All' || kindGroup(a.kind) === filter);
+  const demoItems = [...DEMO_ACTIVITY].filter((a) => filter === 'All' || kindGroup(a.kind) === filter);
+
+  const renderItem = (a: typeof liveItems[0]) => {
+    const meta = ACTIVITY_KIND_META[a.kind];
+    return (
+      <Link
+        key={a.id}
+        href={a.href ?? '/activity'}
+        className="flex items-start gap-3 bg-white rounded-2xl border border-slate-100 p-4 hover:shadow-md hover:-translate-y-0.5 transition-all"
+      >
+        <span
+          className={cn(
+            'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
+            a.kind === 'payment'
+              ? 'bg-emerald-50 text-emerald-600'
+              : a.kind === 'security'
+              ? 'bg-orange-50 text-orange-500'
+              : a.kind === 'event'
+              ? 'bg-indigo-50 text-indigo-600'
+              : a.kind === 'job'
+              ? 'bg-sky-50 text-sky-600'
+              : a.kind === 'service'
+              ? 'bg-purple-50 text-purple-600'
+              : 'bg-teal-50 text-teal-800',
+          )}
+        >
+          <meta.icon className="w-4.5 h-4.5" />
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-[13px] font-black text-ink">{a.title}</p>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{meta.label}</span>
+          </div>
+          <p className="text-[12px] text-slate-500 font-medium leading-relaxed mt-0.5">{a.body}</p>
+        </div>
+        <span className="text-[10px] font-bold text-slate-400 shrink-0">{a.time}</span>
+      </Link>
+    );
+  };
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in duration-500">
@@ -64,49 +103,35 @@ export default function CityActivity() {
       </div>
 
       <div className="space-y-2">
-        {items.map((a) => {
-          const meta = ACTIVITY_KIND_META[a.kind];
-          return (
-            <Link
-              key={a.id}
-              href={a.href ?? '/activity'}
-              className="flex items-start gap-3 bg-white rounded-2xl border border-slate-100 p-4 hover:shadow-md hover:-translate-y-0.5 transition-all"
-            >
-              <span
-                className={cn(
-                  'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
-                  a.kind === 'payment'
-                    ? 'bg-emerald-50 text-emerald-600'
-                    : a.kind === 'security'
-                    ? 'bg-orange-50 text-orange-500'
-                    : a.kind === 'event'
-                    ? 'bg-indigo-50 text-indigo-600'
-                    : a.kind === 'job'
-                    ? 'bg-sky-50 text-sky-600'
-                    : a.kind === 'service'
-                    ? 'bg-purple-50 text-purple-600'
-                    : 'bg-teal-50 text-teal-800',
-                )}
-              >
-                <meta.icon className="w-4.5 h-4.5" />
-              </span>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-[13px] font-black text-ink">{a.title}</p>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{meta.label}</span>
-                </div>
-                <p className="text-[12px] text-slate-500 font-medium leading-relaxed mt-0.5">{a.body}</p>
-              </div>
-              <span className="text-[10px] font-bold text-slate-400 shrink-0">{a.time}</span>
-            </Link>
-          );
-        })}
         {cleared ? (
           <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-5 text-center">
             <p className="text-[13px] font-black text-ink">You are all caught up</p>
             <p className="text-[11px] text-slate-400 font-medium mt-0.5">New activity will land here as the city moves.</p>
           </div>
-        ) : null}
+        ) : (
+          <>
+            {liveItems.length === 0 && demoItems.length === 0 && (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-5 text-center">
+                <p className="text-[13px] font-black text-ink">No recent activity</p>
+              </div>
+            )}
+            
+            {liveItems.map(renderItem)}
+
+            {demoItems.length > 0 && (
+              <div className="pt-6 pb-2">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="h-px flex-1 bg-slate-100"></div>
+                  <span className="text-[10px] uppercase font-black tracking-widest text-slate-400">Simulated City History</span>
+                  <div className="h-px flex-1 bg-slate-100"></div>
+                </div>
+                <div className="space-y-2">
+                  {demoItems.map(renderItem)}
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
