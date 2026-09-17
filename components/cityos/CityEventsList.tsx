@@ -31,7 +31,7 @@ export default function CityEventsList() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {events.map((e) => (
           <CityCard key={e.id} href={`/events/${e.id}`} className="flex flex-col">
-            <FallbackImg src={null} alt={e.title} className="h-32 w-full" />
+            <FallbackImg src={undefined} alt={e.title} className="h-32 w-full" />
             <div className="p-4 flex-1 flex flex-col gap-2">
               <div className="flex items-center justify-between gap-2">
                 <Pill tone="orange">Event</Pill>
