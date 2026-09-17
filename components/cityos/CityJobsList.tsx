@@ -119,8 +119,6 @@ export default function CityJobsList() {
           </div>
         )}
       </section>
-
-      <DemoBanner />
     </div>
   );
 }

@@ -46,16 +46,33 @@ export async function getCityEvents() {
   return events;
 }
 
-export async function applyForJob(jobId: string, coverLetter?: string) {
+export async function getCanonicalJob(id: string) {
+  const job = await db.orm.public.Job.where({ id }).include('organization', o => o.select('name', 'id')).first();
+  return job;
+}
+
+export async function checkJobApplication(jobId: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.personId) return null;
+  const app = await db.orm.public.JobApplication.where({ jobId, personId: session.user.personId }).first();
+  return app;
+}
+
+export async function toggleJobApplication(jobId: string) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.personId) throw new Error('Unauthorized');
 
-  await db.orm.public.JobApplication.create({
-    jobId,
-    personId: session.user.personId,
-    coverLetter,
-  });
-  return true;
+  const existing = await db.orm.public.JobApplication.where({ jobId, personId: session.user.personId }).first();
+  if (existing) {
+    await db.orm.public.JobApplication.where({ id: existing.id }).delete();
+    return false;
+  } else {
+    await db.orm.public.JobApplication.create({
+      jobId,
+      personId: session.user.personId,
+    });
+    return true;
+  }
 }
 
 export async function getCanonicalEvent(id: string) {
