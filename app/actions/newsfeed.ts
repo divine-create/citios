@@ -60,7 +60,7 @@ export async function fetchFeed(filter: string) {
       author,
       role,
       isOrg,
-      time: new Date(post.createdAt).toISOString(),
+      time: typeof post.createdAt === 'string' ? new Date(post.createdAt).toISOString() : post.createdAt.toString(),
       category: post.category,
       title: post.title,
       body: post.content,
@@ -120,7 +120,7 @@ export async function togglePostLike(postId: string) {
 
   const personId = session.user.personId;
 
-  const existing = await db.orm.public.PostLike.where({ postId, personId }).all().first();
+  const existing = await db.orm.public.PostLike.where({ postId, personId }).first();
 
   if (existing) {
     await db.orm.public.PostLike.where({ id: existing.id }).delete();
@@ -151,7 +151,7 @@ export async function toggleFollow(organizationId: string) {
 
   const personId = session.user.personId;
 
-  const existing = await db.orm.public.Follow.where({ personId, organizationId }).all().first();
+  const existing = await db.orm.public.Follow.where({ personId, organizationId }).first();
 
   if (existing) {
     await db.orm.public.Follow.where({ id: existing.id }).delete();
