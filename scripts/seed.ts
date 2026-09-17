@@ -1,6 +1,7 @@
 import { db } from '../src/prisma/db.js';
 import { RESIDENT_ACCOUNTS, bizOrgId, bizOrgName } from '../lib/demo/app/seed.js';
 import { getBusiness, DEMO_PRODUCTS } from '../lib/demo/cityos.js';
+// @ts-ignore
 import { v4 as uuidv4 } from 'uuid';
 
 async function seed() {

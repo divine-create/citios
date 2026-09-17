@@ -36,27 +36,6 @@ When a resident acts on a surface, the data flows into purpose-built tools for o
 * **ServiceOS:** Service requests, quotes, technician dispatch, and invoicing.
 * **SchoolOS:** Student management and operations.
 
-## What Is Working Today
-
-CityOS is actively being migrated from a static frontend demo into a robust, PostgreSQL-backed architecture.
-
-### Production-backed (Live)
-* **Real Authentication:** Server-side authentication (`NextAuth`), binding to canonical `Person` and `Organization` records.
-* **Commerce Vertical:**
-  - Real `RetailOrder` mutation.
-  - Server-side price calculation and organization routing.
-  - `ShopOS` workspace with database visibility and strict role-based access control (RBAC).
-  - Secure resident `CityProfile` order history.
-* **Service Requests Vertical:**
-  - `ServiceJob` initialization tied to `ServiceCatalogItem` and `CustomerData`.
-  - Secure resident submission of service requests.
-  - `ServiceOS` workspace reflecting live resident requests.
-
-### Demo / Transitional
-* Certain OS workspaces (SchoolOS, WorkOS) and surfaces (CityHomes, Jobs, Events, Newsfeed).
-* Later stages of ServiceOS (quotes, assigning technicians, generating invoices).
-* True financial payment gateways (currently uses a simulated `CityPay` wallet).
-
 ## Architecture
 
 The system uses a strict data isolation and validation pattern:
@@ -126,12 +105,6 @@ npm run dev
 ## Database
 
 CityOS uses a canonical **Prisma 8** data contract (`contract.prisma`) mapping to a PostgreSQL instance. The architecture shares a master schema to guarantee referential integrity across disparate operational surfaces.
-
-## Roadmap
-- **Commerce:** Completed and hardened.
-- **ServiceOS:** Completed and hardened.
-- **SchoolOS:** Next up for migration.
-- **Jobs / Events / Social:** Subsequent.
 
 ## License
 Proprietary / Internal CityOS.
