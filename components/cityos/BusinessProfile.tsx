@@ -129,10 +129,12 @@ export default function BusinessProfile({ slug }: { slug: string }) {
             {uniOrg.os === 'shopos' ? <Truck className="w-5 h-5" /> : <Phone className="w-5 h-5" />}
           </span>
           <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-black text-ink">{`Operated on ${uniOrg.os === 'shopos' ? 'ShopOS' : uniOrg.os === 'serviceos' ? 'ServiceOS' : 'SchoolOS'}`}</p>
-            <p className="text-[11px] font-bold text-slate-400">Open the demo operational workspace for this {uniOrg.category}.</p>
+            <p className="text-[13px] font-black text-ink">{`Operating on ${uniOrg.osLabel ?? (uniOrg.os === 'shopos' ? 'ShopOS' : uniOrg.os === 'serviceos' ? 'ServiceOS' : 'SchoolOS')}`}</p>
+            <p className="text-[11px] font-bold text-slate-400">This business runs its operations inside CityOS.</p>
           </div>
-          <ChevronRight className="w-4 h-4 text-teal-800 shrink-0" />
+          <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-teal-800 text-white text-xs font-black hover:bg-teal-900 transition-colors shrink-0">
+            Manage Business <ChevronRight className="w-3.5 h-3.5" />
+          </span>
         </Link>
       ) : null}
 

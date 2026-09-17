@@ -27,13 +27,13 @@ export default function DemoAccess() {
         <div className="absolute -left-10 -bottom-16 w-64 h-64 rounded-full bg-teal-400/20 blur-3xl" />
         <div className="relative">
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 ring-1 ring-white/15 text-[10px] font-black uppercase tracking-widest">
-            <LayoutGrid className="w-3 h-3" /> CityOS demo access
+            <LayoutGrid className="w-3 h-3" /> Explore CityOS Demo
           </span>
           <h1 className="mt-4 text-3xl md:text-4xl font-black tracking-tight leading-tight">
-            One city. Two front doors.
+            One platform. Every door.
           </h1>
           <p className="mt-3 text-teal-50/85 text-sm font-medium max-w-2xl leading-relaxed">
-            {`Residents get Home, Map, Create, Activity and Profile. Organizations get an operational workspace — a ShopOS, ServiceOS or SchoolOS portal for the people running the business. Enter as yourself, or step into a role.`}
+            {`CityOS is one platform serving the whole city. Residents use the everyday surfaces — Home, Map, Create, Activity, Profile. Organizations run on ShopOS, ServiceOS and SchoolOS underneath. Pick an experience below to see the same city from a different door.`}
           </p>
 
           {current ? (
@@ -56,9 +56,9 @@ export default function DemoAccess() {
             🏙️
           </span>
           <div className="flex-1 min-w-0">
-            <p className="text-base font-black text-ink">Continue as City Resident</p>
+            <p className="text-base font-black text-ink">Resident</p>
             <p className="text-[12px] text-slate-500 font-medium mt-0.5">
-              Home, Map, Create, Activity and Profile — the full everyday surface of CityOS.
+              Explore CityOS as a Calabar resident — Home, Map, Create, Activity and Profile.
             </p>
           </div>
           <span className="inline-flex items-center gap-1 px-4 py-2 rounded-xl bg-teal-800 text-white text-xs font-black group-hover:bg-teal-900 transition-colors">

@@ -2,13 +2,15 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { GraduationCap, ChevronRight, Check, Mail } from 'lucide-react';
+import { GraduationCap, ChevronRight, Check, Mail, School } from 'lucide-react';
 import { getSchool, DEMO_USER } from '@/lib/demo/cityos';
+import { getOrg } from '@/lib/demo/universe/orgs';
 import { FallbackImg, Pill, Stars, LocationRow, DemoBanner } from '@/components/cityos/CityUI';
 
 export default function CitySchoolDetail({ slug }: { slug: string }) {
   const s = getSchool(slug);
   const [asked, setAsked] = useState(false);
+  const uniOrg = s?.osSlug ? getOrg(s.osSlug) : undefined;
 
   if (!s) {
     return (
@@ -55,6 +57,22 @@ export default function CitySchoolDetail({ slug }: { slug: string }) {
           {s.programs.map((p) => <Pill key={p} tone="blue">{p}</Pill>)}
         </div>
       </div>
+
+      {uniOrg?.os ? (
+        <Link
+          href={`/workspaces/${uniOrg.os}/${uniOrg.slug}`}
+          className="flex items-center gap-4 rounded-2xl border border-teal-100 bg-teal-50/60 p-4 hover:shadow-md hover:-translate-y-0.5 transition-all"
+        >
+          <span className="w-11 h-11 rounded-xl bg-teal-800 text-white flex items-center justify-center shrink-0">
+            <School className="w-5 h-5" />
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-black text-ink">{`Operated on ${uniOrg.osLabel}`}</p>
+            <p className="text-[11px] font-bold text-slate-400">Open the SchoolOS workspace for this school.</p>
+          </div>
+          <ChevronRight className="w-4 h-4 text-teal-800 shrink-0" />
+        </Link>
+      ) : null}
 
       <div className="bg-white rounded-2xl border border-slate-100 p-6">
         {asked ? (

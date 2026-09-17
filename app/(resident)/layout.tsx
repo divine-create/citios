@@ -15,7 +15,6 @@ import {
   LayoutDashboard,
   FlaskConical,
   ShoppingCart,
-  ShieldAlert,
   ChevronRight,
   BedDouble,
   Stethoscope,
@@ -27,6 +26,12 @@ import {
   PenSquare,
   Briefcase,
   Users as UsersIcon,
+  Store,
+  UtensilsCrossed,
+  Bookmark,
+  Calendar,
+  Menu as MenuIcon,
+  X,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -121,69 +126,68 @@ export default function ResidentLayout({ children }: { children: React.ReactNode
   const pathname = usePathname();
   const router = useRouter();
   const { data: session } = useSession();
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  const navGroups: { label: string; items: { id: string; path: string; label: string; icon: any }[] }[] = [
+  type NavItem = { id: string; path: string; label: string; icon: any; secondary?: boolean };
+
+const navGroups: { label: string; items: NavItem[] }[] = [
     {
       label: 'Discover',
       items: [
         { id: 'home', path: '/', label: 'Home', icon: LayoutGrid },
         { id: 'explore', path: '/explore', label: 'Explore', icon: Compass },
+        { id: 'feed', path: '/feed', label: 'Newsfeed', icon: Rss },
         { id: 'ai', path: '/ai', label: 'Ask CityOS', icon: Sparkles },
-        { id: 'feed', path: '/feed', label: 'Feed', icon: Rss },
-        { id: 'news', path: '/news', label: 'News', icon: Newspaper },
+        { id: 'news', path: '/news', label: 'News', icon: Newspaper, secondary: true },
       ],
     },
     {
-      label: 'Move & Live',
+      label: 'Around You',
       items: [
-        { id: 'ride', path: '/drive/ride', label: 'City Ride', icon: Car },
-        { id: 'delivery', path: '/drive/delivery', label: 'City Delivery', icon: Package },
-        { id: 'house', path: '/house', label: 'CityHouse', icon: Building2 },
-        { id: 'stay', path: '/stay', label: 'Hotels Tonight', icon: BedDouble },
-      ],
-    },
-    {
-      label: 'Care & Civic',
-      items: [
-        { id: 'care', path: '/care', label: 'City Care', icon: Stethoscope },
+        { id: 'map', path: '/map', label: 'Map', icon: MapIcon },
+        { id: 'market', path: '/market', label: 'Market', icon: Store },
+        { id: 'food', path: '/food', label: 'Food', icon: UtensilsCrossed },
+        { id: 'services', path: '/services', label: 'Services', icon: Wrench },
         { id: 'schools', path: '/schools', label: 'Schools', icon: GraduationCap },
-        { id: 'tasks', path: '/tasks', label: 'City Tasks', icon: Wrench },
-        { id: 'bills', path: '/bills', label: 'Bills & Airtime', icon: Receipt },
-      ],
-    },
-    {
-      label: 'ShopOS Marketplaces',
-      items: [
-        { id: 'biz-fresh', path: '/biz/calabar-fresh', label: 'Calabar Fresh Market', icon: LayoutGrid },
-        { id: 'biz-watt', path: '/biz/watt-market-delicacies', label: 'Watt Market Delicacies', icon: LayoutGrid },
-        { id: 'biz-eko', path: '/biz/eko-kitchen', label: 'Eko Kitchen', icon: LayoutGrid },
-        { id: 'biz-medline', path: '/biz/medline-pharmacy', label: 'Medline Pharmacy', icon: LayoutGrid },
+        { id: 'jobs', path: '/jobs', label: 'Jobs', icon: Briefcase },
+        { id: 'events', path: '/events', label: 'Events', icon: Calendar },
+        { id: 'house', path: '/house', label: 'Homes', icon: Building2 },
+        { id: 'care', path: '/care', label: 'Health', icon: Stethoscope },
+        { id: 'community', path: '/community', label: 'Communities', icon: UsersIcon },
+        { id: 'ride', path: '/drive/ride', label: 'Ride', icon: Car, secondary: true },
+        { id: 'delivery', path: '/drive/delivery', label: 'Delivery', icon: Package, secondary: true },
+        { id: 'stay', path: '/stay', label: 'Hotels', icon: BedDouble, secondary: true },
+        { id: 'bills', path: '/bills', label: 'Bills & Airtime', icon: Receipt, secondary: true },
       ],
     },
     {
       label: 'Your City',
       items: [
-        { id: 'map', path: '/map', label: 'City Map', icon: MapIcon },
         { id: 'create', path: '/create', label: 'Create', icon: PenSquare },
-        { id: 'jobs', path: '/jobs', label: 'CityJobs', icon: Briefcase },
-        { id: 'community', path: '/community', label: 'Communities', icon: UsersIcon },
         { id: 'activity', path: '/activity', label: 'Activity', icon: Bell },
+        { id: 'saved', path: '/saved', label: 'Saved', icon: Bookmark },
         { id: 'profile', path: '/profile', label: 'Profile', icon: UserIcon },
-        { id: 'business', path: '/business', label: 'Business Dashboard', icon: LayoutDashboard },
-        { id: 'demo', path: '/demo', label: 'Demo Hub', icon: FlaskConical },
       ],
     },
     {
-      label: 'Admin Access',
-      items: [{ id: 'school-admin', path: '/admin/school', label: 'School Admin', icon: ShieldAlert }],
+      label: 'Organization',
+      items: [
+        { id: 'business', path: '/business', label: 'Business Dashboard', icon: LayoutDashboard },
+        { id: 'demo', path: '/demo/access', label: 'Demo Access', icon: FlaskConical },
+      ],
     },
   ];
 
   const getTitle = () => {
     if (!pathname) return 'CityOS';
     if (pathname.startsWith('/ai')) return 'Ask CityOS';
-    if (pathname.startsWith('/feed')) return 'City Feed';
+    if (pathname.startsWith('/feed')) return 'Newsfeed';
     if (pathname.startsWith('/explore')) return 'Explore Calabar';
+    if (pathname.startsWith('/market')) return 'Market';
+    if (pathname.startsWith('/food')) return 'Food';
+    if (pathname.startsWith('/services')) return 'Services';
+    if (pathname.startsWith('/org/')) return 'Business Profile';
+    if (pathname.startsWith('/saved')) return 'Saved';
     if (pathname.startsWith('/cart')) return 'Your Cart';
     if (pathname.startsWith('/checkout')) return 'CityPay Checkout';
     if (pathname.startsWith('/pay/')) return 'CityPay';
@@ -206,7 +210,7 @@ export default function ResidentLayout({ children }: { children: React.ReactNode
     if (pathname.startsWith('/demo')) return 'Demo Hub';
     if (pathname.startsWith('/map')) return 'City Map';
     if (pathname.startsWith('/create')) return 'Create';
-    if (pathname.startsWith('/jobs')) return 'CityJobs';
+    if (pathname.startsWith('/jobs')) return 'Jobs';
     if (pathname.startsWith('/community')) return 'Communities';
     if (pathname.startsWith('/workspaces')) return 'Workspaces';
     if (pathname.startsWith('/profile')) return 'Profile';
@@ -250,19 +254,23 @@ export default function ResidentLayout({ children }: { children: React.ReactNode
                 <div className="space-y-0.5">
                   {group.items.map((item) => {
                     const active = isActive(item.path);
+                    const secondary = item.secondary;
                     return (
                       <Link
                         key={item.id}
                         href={item.path}
                         className={cn(
-                          'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-bold transition-all',
+                          'w-full flex items-center gap-3 rounded-xl transition-all',
+                          secondary ? 'px-3 pb-1 pt-1 text-[11px] font-bold text-slate-400 hover:text-slate-900 hover:bg-slate-50' : 'px-3 py-2.5 text-[13px] font-bold',
                           active
                             ? 'bg-teal-50 text-teal-900 ring-1 ring-teal-100'
-                            : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50',
+                            : secondary
+                              ? 'mt-0.5'
+                              : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50',
                         )}
                       >
                         <item.icon
-                          className={cn('w-4 h-4', active ? 'text-teal-800' : 'text-slate-400')}
+                          className={cn('w-4 h-4', active ? 'text-teal-800' : secondary ? 'text-slate-300' : 'text-slate-400')}
                         />
                         {item.label}
                         {active ? <span className="ml-auto w-1.5 h-1.5 rounded-full bg-teal-600" /> : null}
@@ -276,6 +284,13 @@ export default function ResidentLayout({ children }: { children: React.ReactNode
 
           <div className="p-5 border-t border-slate-100">
             <WalletChip />
+          </div>
+
+          <div className="px-5 pb-5 border-t border-slate-100">
+            <Link href="/demo" className="flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] font-bold text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-colors">
+              <FlaskConical className="w-3.5 h-3.5" />
+              Demo Hub
+            </Link>
           </div>
         </aside>
 
@@ -333,7 +348,7 @@ export default function ResidentLayout({ children }: { children: React.ReactNode
           {/* Mobile Header */}
           <header className="md:hidden flex flex-col px-5 pt-4 pb-3 bg-[#F6F7F8] sticky top-0 z-20">
             <div className="flex items-center justify-between">
-              <Link href="/" className="flex items-center gap-2">
+              <Link href="/" className="flex items-center gap-2" onClick={() => setMenuOpen(false)}>
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-700 to-teal-500 flex items-center justify-center text-white">
                   <LayoutGrid className="w-4 h-4" />
                 </div>
@@ -345,9 +360,82 @@ export default function ResidentLayout({ children }: { children: React.ReactNode
               <div className="flex items-center gap-2">
                 <CartBell />
                 <NotificationsDropdown />
+                <button
+                  onClick={() => setMenuOpen((o) => !o)}
+                  aria-label="Menu"
+                  className="w-9 h-9 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 active:bg-slate-50 transition-colors"
+                >
+                  {menuOpen ? <X className="w-4 h-4" /> : <MenuIcon className="w-4 h-4" />}
+                </button>
               </div>
             </div>
           </header>
+
+          {/* Mobile Menu Drawer */}
+          {menuOpen ? (
+            <div className="md:hidden fixed inset-0 z-[60]">
+              <div className="absolute inset-0 bg-slate-900/40" onClick={() => setMenuOpen(false)} />
+              <div className="absolute right-0 top-0 bottom-0 w-[84%] max-w-xs bg-white shadow-2xl flex flex-col overflow-y-auto">
+                <div className="px-5 py-4 flex items-center justify-between border-b border-slate-100 sticky top-0 bg-white z-10">
+                  <div>
+                    <p className="text-sm font-black text-ink leading-none">CityOS Menu</p>
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1">Calabar · Prototype</p>
+                  </div>
+                  <button
+                    onClick={() => setMenuOpen(false)}
+                    aria-label="Close menu"
+                    className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <nav className="flex-1 px-4 py-4 space-y-6">
+                  {navGroups.map((group) => (
+                    <div key={group.label}>
+                      <h3 className="px-3 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                        {group.label}
+                      </h3>
+                      <div>
+                        {group.items.map((item) => {
+                          const active = isActive(item.path);
+                          const secondary = item.secondary;
+                          return (
+                            <Link
+                              key={item.id}
+                              href={item.path}
+                              onClick={() => setMenuOpen(false)}
+                              className={cn(
+                                'w-full flex items-center gap-3 rounded-xl transition-colors',
+                                secondary ? 'px-3 py-1.5 text-[12px] font-bold text-slate-400' : 'px-3 py-2.5 text-[13px] font-bold',
+                                active
+                                  ? 'bg-teal-50 text-teal-900'
+                                  : secondary
+                                    ? ''
+                                    : 'text-slate-600 hover:bg-slate-50',
+                              )}
+                            >
+                              <item.icon className={cn('w-4 h-4 shrink-0', active ? 'text-teal-800' : secondary ? 'text-slate-300' : 'text-slate-400')} />
+                              {item.label}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </nav>
+                <div className="px-4 pb-6 border-t border-slate-100 pt-4">
+                  <Link
+                    href="/demo"
+                    onClick={() => setMenuOpen(false)}
+                    className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-slate-50 text-[11px] font-bold text-slate-500 transition-colors"
+                  >
+                    <FlaskConical className="w-3.5 h-3.5" />
+                    Demo Hub
+                  </Link>
+                </div>
+              </div>
+            </div>
+          ) : null}
 
           {/* Scrollable View Area */}
           <main className="flex-1 overflow-y-auto px-4 md:px-8 py-5 md:py-8 relative scroll-smooth pb-28 md:pb-8">
@@ -361,7 +449,7 @@ export default function ResidentLayout({ children }: { children: React.ReactNode
               { id: 'map', path: '/map', label: 'Map', icon: MapIcon },
               { id: 'create', path: '/create', label: 'Create', icon: PenSquare },
               { id: 'activity', path: '/activity', label: 'Activity', icon: Bell },
-              { id: 'profile', path: '/profile', label: 'You', icon: UserIcon },
+              { id: 'profile', path: '/profile', label: 'Profile', icon: UserIcon },
             ].map((item) => {
               const active = isActive(item.path);
               return (

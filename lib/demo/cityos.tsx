@@ -699,6 +699,7 @@ export interface DemoSchool {
   term: string;
   contact: string;
   featured: boolean;
+  osSlug?: string;
 }
 
 export const DEMO_SCHOOLS: DemoSchool[] = [
@@ -746,6 +747,23 @@ export const DEMO_SCHOOLS: DemoSchool[] = [
     term: 'Tours open · 45 places',
     contact: 'hello@cypressgarden.example',
     featured: false,
+    osSlug: 'cypress-garden-school',
+  },
+  {
+    slug: 'hope-academy',
+    name: 'Hope Academy Calabar',
+    level: 'Nursery to Senior Secondary',
+    area: 'Ikot Ansa',
+    address: '5 Hope Avenue, Ikot Ansa, Calabar',
+    tagline: 'Nursery to Senior Secondary',
+    desc: 'The SchoolOS anchor school. Nursery through SSS with low student-teacher ratios, termly results published to parents, and intake around the year.',
+    rating: 4.7,
+    image: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1000&q=80',
+    programs: ['Creche & nursery', 'Primary school', 'Junior Secondary', 'Senior Secondary', 'ICT studio'],
+    term: 'New intake open · 60 places',
+    contact: 'admissions@hopeacademy.example',
+    featured: true,
+    osSlug: 'hope-academy',
   },
 ];
 
