@@ -14,34 +14,43 @@ export async function fetchResidentActivity() {
 
   // 1. Service Jobs & Retail Orders (via Relationship -> CustomerData)
   const relationships = await db.orm.public.Relationship.where({ personId }).all();
-  for (const rel of relationships) {
-    const cust = await db.orm.public.CustomerData.where({ relationshipId: rel.id }).first();
-    if (!cust) continue;
+  const relIds = relationships.map(r => r.id);
+  
+  if (relIds.length > 0) {
+    // @ts-ignore - Prisma Next in operator
+    const custs = await db.orm.public.CustomerData.where({ relationshipId: { in: relIds } }).all();
+    const custIds = custs.map(c => c.id);
+    
+    if (custIds.length > 0) {
+      // @ts-ignore
+      const jobs = await db.orm.public.ServiceJob.where({ customerDataId: { in: custIds } }).include('organization', o => o.select('name')).all();
+      for (const job of jobs) {
+        activities.push({
+          id: job.id,
+          kind: 'service_booked',
+          title: `Service Booked: ${job.description || 'Service'}`,
+          desc: `with ${job.organization?.name || 'Organization'}`,
+          date: typeof job.createdAt === 'string' ? new Date(job.createdAt).toISOString() : job.createdAt.toString(),
+          href: `/services/${job.id}`,
+        });
+      }
 
-    const jobs = await db.orm.public.ServiceJob.where({ customerDataId: cust.id }).include('organization', o => o.select('name')).all();
-    for (const job of jobs) {
-      activities.push({
-        id: job.id,
-        kind: 'service_booked',
-        title: `Service Booked: ${job.description || 'Service'}`,
-        desc: `with ${job.organization?.name || 'Organization'}`,
-        date: typeof job.createdAt === 'string' ? new Date(job.createdAt).toISOString() : job.createdAt.toString(),
-        href: `/services/${job.id}`,
-      });
-    }
-
-    const retailOrders = await db.orm.public.RetailOrder.where({ customerDataId: cust.id }).include('organization', o => o.select('name')).all();
-    for (const order of retailOrders) {
-      activities.push({
-        id: order.id,
-        kind: 'shop_order',
-        title: `Order Placed`,
-        desc: `from ${order.organization?.name || 'Organization'}`,
-        date: typeof order.createdAt === 'string' ? new Date(order.createdAt).toISOString() : order.createdAt.toString(),
-        href: `/cart/orders/${order.id}`,
-      });
+      // @ts-ignore
+      const retailOrders = await db.orm.public.RetailOrder.where({ customerDataId: { in: custIds } }).include('organization', o => o.select('name')).all();
+      for (const order of retailOrders) {
+        activities.push({
+          id: order.id,
+          kind: 'shop_order',
+          title: `Order Placed`,
+          desc: `from ${order.organization?.name || 'Organization'}`,
+          date: typeof order.createdAt === 'string' ? new Date(order.createdAt).toISOString() : order.createdAt.toString(),
+          href: `/cart/orders/${order.id}`,
+        });
+      }
     }
   }
+
+  // 3. Jobs Applied
 
   // 3. Jobs Applied
   const jobApps = await db.orm.public.JobApplication.where({ personId }).include('job', j => j.select('title', 'organizationId')).all();
