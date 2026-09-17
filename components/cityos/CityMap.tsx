@@ -111,12 +111,12 @@ export default function CityMap() {
             })}
             {/* nodes */}
             {NEIGHBORHOODS.map((n, i) => {
-              const pos = NODES[n.slug] ?? { x: 20 + i * 7, y: 20 + (i % 5) * 9 };
+              const pos = NODES[n.id] ?? { x: 20 + i * 7, y: 20 + (i % 5) * 9 };
               const count = entitiesForArea(n.name).length;
-              const active = n.slug === selected;
+              const active = n.id === selected;
               const size = active ? 5 : dotSize(n.name);
               return (
-                <g key={n.slug} onClick={() => setSelected(n.slug)} className="cursor-pointer">
+                <g key={n.id} onClick={() => setSelected(n.id)} className="cursor-pointer">
                   <circle
                     cx={pos.x}
                     cy={pos.y}

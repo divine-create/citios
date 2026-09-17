@@ -389,7 +389,7 @@ export default function CityHome() {
         <SectionHead title="City news" sub="The Journal on Calabar desks today" more="All stories" moreHref="/news" />
         <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden divide-y divide-slate-50">
           {headlines.map((n) => (
-            <CityCard key={n.slug} href={`/news/${n.slug}`} className="flex gap-4 p-4 items-center rounded-none border-0 hover:bg-slate-50/60">
+            <CityCard key={n.id} href={`/news/${n.id}`} className="flex gap-4 p-4 items-center rounded-none border-0 hover:bg-slate-50/60">
               <FallbackImg src={n.image} alt={n.title} className="w-20 h-14 rounded-xl shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-black text-ink leading-snug line-clamp-2">{n.title}</p>

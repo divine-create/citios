@@ -196,10 +196,10 @@ export default function RegistrarDashboard({
             { id: 'lifecycle', label: 'Student Lifecycle', icon: FileText },
           ].map((tab) => (
             <button
-              key={tab.slug}
-              onClick={() => setActiveTab(tab.slug as any)}
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
               className={`pb-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
-                activeTab === tab.slug ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                activeTab === tab.id ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
               }`}
             >
               <tab.icon size={18} />

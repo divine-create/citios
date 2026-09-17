@@ -108,10 +108,10 @@ function ParentDashboardContent({ children }: { children: Child[] }) {
           { id: "reportcard", label: "Report Card", icon: FileText },
         ].map((tab) => (
           <button
-            key={tab.slug}
-            onClick={() => setActiveTab(tab.slug as any)}
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as any)}
             className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
-              activeTab === tab.slug ? "border-indigo-600 text-indigo-700" : "border-transparent text-gray-500 hover:text-gray-800"
+              activeTab === tab.id ? "border-indigo-600 text-indigo-700" : "border-transparent text-gray-500 hover:text-gray-800"
             }`}
           >
             <tab.icon size={16} />

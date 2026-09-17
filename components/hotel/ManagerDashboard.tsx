@@ -241,11 +241,11 @@ export function ManagerDashboard({
 
       <nav className="bg-white border-b border-gray-200 px-6 md:px-10 flex gap-1 overflow-x-auto">
         {TABS.map((tab) => {
-          const isActive = activeTab === tab.slug;
+          const isActive = activeTab === tab.id;
           return (
             <button
-              key={tab.slug}
-              onClick={() => setActiveTab(tab.slug)}
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
                 isActive ? "border-blue-600 text-blue-700" : "border-transparent text-gray-500 hover:text-gray-800"
               }`}

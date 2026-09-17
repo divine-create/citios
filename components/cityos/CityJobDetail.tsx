@@ -26,7 +26,7 @@ export default function CityJobDetail({ id }: { id: string }) {
   }
 
   const org = getOrg(job.orgId);
-  const related = getJobsByOrg(job.orgId).filter((r) => r.id !== job.slug).slice(0, 2);
+  const related = getJobsByOrg(job.orgId).filter((r) => r.id !== job.id).slice(0, 2);
 
   const apply = () => {
     applyJob(id);
@@ -103,7 +103,7 @@ export default function CityJobDetail({ id }: { id: string }) {
           <div className="rounded-2xl bg-white border border-slate-100 p-5">
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Hiring organization</p>
             {org ? (
-              <Link href={org.os ? `/workspaces/${org.os}/${org.slug}` : `/org/${org.id}`} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-teal-50 transition-colors">
+              <Link href={org.os ? `/workspaces/${org.os}/${org.id}` : `/org/${org.id}`} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-teal-50 transition-colors">
                 <span className="text-2xl">{org.emoji}</span>
                 <div className="min-w-0">
                   <p className="text-[13px] font-black text-ink truncate">{org.name}</p>

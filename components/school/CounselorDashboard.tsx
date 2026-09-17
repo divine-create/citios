@@ -157,10 +157,10 @@ export function CounselorDashboard({
             { id: "truancy", label: "Truancy Alerts", icon: Bell },
           ].map((tab) => (
             <button
-              key={tab.slug}
-              onClick={() => setActiveTab(tab.slug as any)}
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
               className={`pb-3 flex items-center gap-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === tab.slug ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                activeTab === tab.id ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
               }`}
             >
               <tab.icon className="w-4 h-4" />

@@ -261,10 +261,10 @@ export default function FinanceDashboard({
             { id: "staff", label: "Staff Attendance & Leave", icon: Users },
           ].map((tab) => (
             <button
-              key={tab.slug}
-              onClick={() => setActiveTab(tab.slug as any)}
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
               className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
-                activeTab === tab.slug ? "border-blue-500 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                activeTab === tab.id ? "border-blue-500 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
               }`}
             >
               <tab.icon className="w-4 h-4" />

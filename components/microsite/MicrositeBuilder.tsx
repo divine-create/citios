@@ -147,9 +147,9 @@ export default function MicrositeBuilder({ organizationId }: { organizationId: s
     // Optimistic UI update
     setSite({
       ...site!,
-      sections: site!.sections.map((s) => s.id === section.slug ? { ...s, visible: !s.visible } : s)
+      sections: site!.sections.map((s) => s.id === section.id ? { ...s, visible: !s.visible } : s)
     });
-    const res = await updateMicrositeSection(section.slug, { visible: !section.visible });
+    const res = await updateMicrositeSection(section.id, { visible: !section.visible });
     if ((res as any)?.error) {
       alert((res as any).error);
       load(); // revert on failure
@@ -308,7 +308,7 @@ export default function MicrositeBuilder({ organizationId }: { organizationId: s
             <div className="space-y-2">
               {pageSections.map((section, i) => (
                 <div
-                  key={section.slug}
+                  key={section.id}
                   draggable
                   onDragStart={(e) => {
                     setDraggedIndex(i);
@@ -328,7 +328,7 @@ export default function MicrositeBuilder({ organizationId }: { organizationId: s
                     next.splice(i, 0, item);
                     setSite({ ...site, sections: site.sections.map(s => {
                       if (s.pageId !== activePageId) return s;
-                      const nextIndex = next.findIndex(n => n.slug === s.id);
+                      const nextIndex = next.findIndex(n => n.id === s.id);
                       return { ...s, order: nextIndex };
                     }) } as Site);
                     await reorderMicrositeSections(site.id, next.map((s) => s.id));
@@ -350,7 +350,7 @@ export default function MicrositeBuilder({ organizationId }: { organizationId: s
                       {section.visible ? <Eye size={16} /> : <EyeOff size={16} />}
                     </button>
                     <button onClick={() => setEditingSection(section as unknown as Section)} className="p-1.5 text-slate-400 hover:text-blue-600 transition-colors"><Edit2 size={16} /></button>
-                    <button onClick={() => remove(section.slug)} className="p-1.5 text-slate-400 hover:text-red-600 transition-colors"><Trash2 size={16} /></button>
+                    <button onClick={() => remove(section.id)} className="p-1.5 text-slate-400 hover:text-red-600 transition-colors"><Trash2 size={16} /></button>
                   </div>
                 </div>
               ))}
@@ -864,7 +864,7 @@ function SectionEditorModal({ section, organizationId, onClose, onSaved }: {
   const save = async () => {
     setIsSaving(true);
     try {
-      await updateMicrositeSection(section.slug, { content });
+      await updateMicrositeSection(section.id, { content });
       onSaved();
     } finally {
       setIsSaving(false);

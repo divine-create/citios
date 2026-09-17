@@ -210,16 +210,16 @@ export default function AdminDashboard({
                       {submenu.isExpanded && (
                         <ul className="mt-1 ml-4 pl-3 border-l border-slate-100 space-y-0.5">
                           {submenu.tabs.map((tab) => (
-                            <li key={tab.slug}>
+                            <li key={tab.id}>
                               <button
-                                onClick={() => submenu.select(tab.slug)}
+                                onClick={() => submenu.select(tab.id)}
                                 className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-colors ${
-                                  activeMenu === item.label && submenu.activeTab === tab.slug
+                                  activeMenu === item.label && submenu.activeTab === tab.id
                                     ? "bg-blue-50 text-blue-600 font-medium"
                                     : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                                 }`}
                               >
-                                <tab.icon size={14} className={activeMenu === item.label && submenu.activeTab === tab.slug ? "text-blue-600" : "text-slate-400"} />
+                                <tab.icon size={14} className={activeMenu === item.label && submenu.activeTab === tab.id ? "text-blue-600" : "text-slate-400"} />
                                 {tab.label}
                               </button>
                             </li>

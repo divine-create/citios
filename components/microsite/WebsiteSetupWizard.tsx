@@ -211,11 +211,11 @@ export default function WebsiteSetupWizard({ organizationId, initialTitle, onCre
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto pt-4">
                   {SECTIONS.map((section) => {
-                    const isSelected = selectedFeatures.includes(section.slug);
+                    const isSelected = selectedFeatures.includes(section.id);
                     return (
                       <div 
-                        key={section.slug}
-                        onClick={() => toggleFeature(section.slug, section.required)}
+                        key={section.id}
+                        onClick={() => toggleFeature(section.id, section.required)}
                         className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all cursor-pointer ${section.required ? 'bg-slate-50 border-slate-200 opacity-70' : isSelected ? 'border-blue-600 bg-blue-50/50' : 'border-slate-200 hover:border-blue-300'}`}
                       >
                         <div className={`w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 transition-colors ${isSelected ? 'bg-blue-600 text-white' : 'bg-white border-2 border-slate-300'}`}>

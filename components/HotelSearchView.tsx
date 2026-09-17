@@ -193,7 +193,7 @@ export default function HotelSearchView() {
                     {hotel.rooms.map((room, rIdx) => (
                       <React.Fragment key={room.id}>
                         {room.options.map((option, oIdx) => (
-                          <tr key={option.slug} className="border-b border-gray-200 hover:bg-gray-50">
+                          <tr key={option.id} className="border-b border-gray-200 hover:bg-gray-50">
                             {oIdx === 0 && (
                               <td rowSpan={room.options.length} className="p-3 border-r border-gray-200 align-top bg-white">
                                 <div className="font-bold text-blue-600 text-base mb-1 hover:underline cursor-pointer">{room.type}</div>

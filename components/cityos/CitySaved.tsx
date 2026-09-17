@@ -34,7 +34,7 @@ export default async function CitySaved() {
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {orgs.map((b) => (
-            <CityCard key={b.slug} href={`/org/${b.slug}`} className="flex flex-col">
+            <CityCard key={b.id} href={`/org/${b.id}`} className="flex flex-col">
               <FallbackImg src="" alt={b.name} className="h-28 w-full" />
               <div className="p-4 flex-1 flex flex-col gap-2">
                 <div className="flex items-start justify-between gap-2">
@@ -49,7 +49,7 @@ export default async function CitySaved() {
                   <OpenBadge open={true} />
                   <form action={async () => {
                     'use server';
-                    await toggleSavedItem('biz', b.slug);
+                    await toggleSavedItem('biz', b.id);
                     revalidatePath('/saved');
                   }}>
                     <button
