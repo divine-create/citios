@@ -1,13 +1,55 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Banknote, ShoppingBag, Users, TrendingUp, Star, Truck, ChevronRight, BadgeCheck } from 'lucide-react';
-import { DEMO_BIZ_DASHBOARD } from '@/lib/demo/cityos';
+import { DEMO_BIZ_DASHBOARD, fmtNaira, parseNaira } from '@/lib/demo/cityos';
 import { StatTile, Pill, DemoBanner, SectionHead } from '@/components/cityos/CityUI';
+
+interface LiveOrder {
+  ref: string;
+  name: string;
+  area: string;
+  amount: number;
+  status: string;
+  time: string;
+}
 
 export default function BusinessDashboard() {
   const d = DEMO_BIZ_DASHBOARD;
   const maxWeek = Math.max(...d.week);
+  const [live, setLive] = useState<LiveOrder[]>([]);
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem('cityos-demo-order');
+      if (raw) {
+        const o = JSON.parse(raw);
+        const total = typeof o.total === 'number' ? o.total : parseNaira(o.total ?? '0');
+        const itemsText = Array.isArray(o.items) && o.items.length > 0
+          ? o.items.map((i: { qty?: number; name?: string }) => `${i.qty ?? 1}× ${i.name ?? 'item'}`).join(', ')
+          : 'market order';
+        window.setTimeout(() => {
+          setLive([
+            {
+              ref: o.ref ?? 'CC-WEB',
+              name: 'Ada Ani (you)',
+              area: `Calabar · ${itemsText.slice(0, 22)}`,
+              amount: total,
+              status: 'Paid now',
+              time: (o.placedAt ? new Date(o.placedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'now') + ' · CityPay',
+            },
+          ]);
+        }, 0);
+      }
+    } catch {
+      /* no live order */
+    }
+  }, []);
+
+  const liveTotal = live.reduce((s, o) => s + o.amount, 0);
+  const todayRevenue = parseNaira(d.today.revenue) + liveTotal;
+  const todayOrders = d.today.orders + live.length;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -35,8 +77,8 @@ export default function BusinessDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatTile label="Revenue today" value={d.today.revenue} delta="+12% vs yesterday" icon={<Banknote className="w-4 h-4" />} tone="teal" />
-        <StatTile label="Orders today" value={d.today.orders.toString()} delta="6 riders active" icon={<ShoppingBag className="w-4 h-4" />} tone="orange" />
+        <StatTile label="Revenue today" value={fmtNaira(todayRevenue)} delta={live.length > 0 ? 'incl. your live order' : '+12% vs yesterday'} icon={<Banknote className="w-4 h-4" />} tone="teal" />
+        <StatTile label="Orders today" value={todayOrders.toString()} delta="6 riders active" icon={<ShoppingBag className="w-4 h-4" />} tone="orange" />
         <StatTile label="New customers" value={d.today.customers.toString()} delta="+9 this week" icon={<Users className="w-4 h-4" />} tone="blue" />
         <StatTile label="Gross merchandise" value={d.today.gmv} delta="includes fresh daily" icon={<TrendingUp className="w-4 h-4" />} tone="emerald" />
       </div>
@@ -111,6 +153,18 @@ export default function BusinessDashboard() {
             <span className="col-span-2">Amount</span>
             <span className="col-span-2">Status</span>
           </div>
+          {live.map((o) => (
+            <div key={o.ref} className="grid grid-cols-2 md:grid-cols-12 gap-2 md:gap-3 px-5 py-3.5 border-b border-slate-50 text-[12px] items-center bg-emerald-50/40">
+              <span className="col-span-1 font-black text-teal-800">{o.ref}</span>
+              <span className="col-span-3 font-black text-ink truncate">{o.name}</span>
+              <span className="col-span-3 text-slate-500 font-medium truncate">{o.area}</span>
+              <span className="col-span-2 font-black text-ink">{fmtNaira(o.amount)}</span>
+              <span className="col-span-2">
+                <Pill tone="green">{o.status}</Pill>
+              </span>
+              <span className="hidden md:block col-span-1 text-right text-[10px] font-bold text-slate-400">{o.time}</span>
+            </div>
+          ))}
           {d.recentOrders.map((o) => (
             <div key={o.ref} className="grid grid-cols-2 md:grid-cols-12 gap-2 md:gap-3 px-5 py-3.5 border-b border-slate-50 text-[12px] items-center">
               <span className="col-span-1 font-black text-teal-800">{o.ref}</span>

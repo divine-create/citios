@@ -2,12 +2,14 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { Sparkles, Send, ArrowRight, Bot, Car } from 'lucide-react';
+import { Sparkles, Send, ArrowRight, Bot, Car, Stethoscope } from 'lucide-react';
 import {
   AI_SCRIPTS,
   getBusiness,
   getProduct,
   getProperty,
+  getHotel,
+  getClinic,
   fmtNaira,
   CITY_NOTES,
   DEMO_ROUTE_FARES,
@@ -123,6 +125,52 @@ function ResultCards({ scriptId }: { scriptId: number }) {
             </Link>
           );
         }
+        if (r.type === 'hotel') {
+          const h = getHotel(r.id);
+          if (!h) return null;
+          return (
+            <Link
+              key={r.id}
+              href={`/stay/${h.slug}`}
+              className="flex items-center gap-3 p-3 rounded-xl bg-white border border-slate-200 hover:border-teal-300 transition-colors group"
+            >
+              <FallbackImg src={h.image} alt={h.name} className="w-12 h-12 rounded-lg" icon={<span className="text-sm font-black">H</span>} />
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-black text-ink truncate group-hover:text-teal-900">{h.name}</p>
+                <LocationRow text={`${h.address} · ${h.area}`} className="text-[10px]" />
+                <div className="flex items-center gap-2 mt-1">
+                  <Stars rating={h.rating} />
+                  <span className="text-[10px] font-bold text-slate-400">{`${h.roomsLeft} rooms left`}</span>
+                </div>
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-[12px] font-black text-teal-900">{fmtNaira(h.pricePerNight)}</p>
+                <p className="text-[9px] font-bold text-slate-400">/ night</p>
+              </div>
+            </Link>
+          );
+        }
+        if (r.type === 'clinic') {
+          const c = getClinic(r.id);
+          if (!c) return null;
+          return (
+            <Link
+              key={r.id}
+              href={`/care/${c.slug}`}
+              className="flex items-center gap-3 p-3 rounded-xl bg-white border border-slate-200 hover:border-teal-300 transition-colors group"
+            >
+              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-teal-700 to-teal-500 text-white flex items-center justify-center shrink-0">
+                <Stethoscope className="w-5 h-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-black text-ink truncate group-hover:text-teal-900">{c.name}</p>
+                <LocationRow text={`${c.area} · ${c.tagline}`} className="text-[10px]" />
+                <p className="text-[10px] font-bold text-slate-400">{`${c.hours} · free consults`}</p>
+              </div>
+              <Pill tone="teal">Book visit ▲</Pill>
+            </Link>
+          );
+        }
         return null;
       })}
     </div>
@@ -156,7 +204,7 @@ export default function CityAI() {
           text:
             idx >= 0
               ? AI_SCRIPTS[idx].answer
-              : "I searched Calabar for that and it isn't in my demo brief yet. Try one of the sample prompts below — or ask about a room under ₦10,000 tonight, fresh ogbono, a party tray, or a ride to the airport.",
+              : "I searched Calabar for that and it isn't in my demo brief yet. Try one of the sample prompts below — or ask about a room under ₦10,000 tonight, fresh ogbono, a party tray, a ride to the airport, power bill, or a clinic consult.",
           scriptId: idx >= 0 ? idx : undefined,
         },
       ]);

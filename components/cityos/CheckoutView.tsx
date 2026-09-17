@@ -2,14 +2,15 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Wallet, CreditCard, Landmark, ShieldCheck, Loader2, ChevronRight, Truck, Lock } from 'lucide-react';
+import { Wallet, CreditCard, Landmark, ShieldCheck, Loader2, ChevronRight, Truck, Lock, AlertCircle } from 'lucide-react';
 import { getProduct, getBusiness, fmtNaira, DEMO_USER } from '@/lib/demo/cityos';
 import { useCart } from '@/components/cityos/CartStore';
+import { useWallet } from '@/components/cityos/WalletStore';
 import { Money, Pill } from '@/components/cityos/CityUI';
 import { cn } from '@/lib/utils';
 
 const METHODS = [
-  { id: 'wallet', label: 'CityPay Wallet', sub: `Balance ${fmtNaira(DEMO_USER.walletBalance)}`, icon: Wallet },
+  { id: 'wallet', label: 'CityPay Wallet', sub: 'Tap to use CityPay', icon: Wallet },
   { id: 'card', label: 'Bank card', sub: 'Visa / Mastercard · saved', icon: CreditCard },
   { id: 'transfer', label: 'Bank transfer', sub: 'GTBank · reference shown', icon: Landmark },
 ] as const;
@@ -19,8 +20,10 @@ type MethodId = 'wallet' | 'card' | 'transfer';
 export default function CheckoutView() {
   const router = useRouter();
   const { lines, subtotal, deliveryFee, clear } = useCart();
+  const { spend, balance } = useWallet();
   const [method, setMethod] = useState<MethodId>('wallet');
   const [processing, setProcessing] = useState(false);
+  const [walletError, setWalletError] = useState(false);
 
   if (lines.length === 0 && !processing) {
     return (
@@ -35,10 +38,10 @@ export default function CheckoutView() {
   }
 
   const total = subtotal + deliveryFee;
+  const walletOk = method === 'wallet' ? balance - total >= 0 : true;
 
   const pay = () => {
     if (processing) return;
-    setProcessing(true);
     const order = {
       ref: `CC-${2841 + Math.floor(Math.random() * 90)}`,
       method,
@@ -51,6 +54,15 @@ export default function CheckoutView() {
       total,
       placedAt: new Date().toISOString(),
     };
+    if (method === 'wallet') {
+      const ok = spend(total, `CityPay order ${order.ref}`);
+      if (!ok) {
+        setWalletError(true);
+        return;
+      }
+    }
+    setWalletError(false);
+    setProcessing(true);
     try {
       window.localStorage.setItem('cityos-demo-order', JSON.stringify(order));
     } catch {
@@ -123,7 +135,7 @@ export default function CheckoutView() {
                 <m.icon className={cn('w-5 h-5', method === m.id ? 'text-teal-800' : 'text-slate-400')} />
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-black text-ink">{m.label}</p>
-                  <p className="text-[11px] font-bold text-slate-400">{m.sub}</p>
+                  <p className="text-[11px] font-bold text-slate-400">{m.id === 'wallet' ? `Balance ${fmtNaira(balance)}` : m.sub}</p>
                 </div>
                 <span
                   className={cn(
@@ -139,8 +151,13 @@ export default function CheckoutView() {
             {method === 'wallet' ? (
               <div className="rounded-xl bg-slate-50 p-3.5 flex items-center justify-between">
                 <span className="text-[11px] font-bold text-slate-500">Wallet balance</span>
-                <span className={cn('text-sm font-black', DEMO_USER.walletBalance - total >= 0 ? 'text-emerald-700' : 'text-red-600')}>{fmtNaira(DEMO_USER.walletBalance)}</span>
+                <span className={cn('text-sm font-black', walletOk ? 'text-emerald-700' : 'text-red-600')}>{fmtNaira(balance)}</span>
               </div>
+            ) : null}
+            {walletError ? (
+              <p className="inline-flex items-center gap-1.5 text-[11px] font-bold text-red-600">
+                <AlertCircle className="w-3.5 h-3.5" /> Wallet balance is too low — top up on your profile.
+              </p>
             ) : null}
 
             <div className="flex justify-between text-[13px] font-medium text-slate-600 pt-1">

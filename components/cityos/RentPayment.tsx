@@ -3,15 +3,18 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Wallet, Check, ShieldCheck, ChevronRight, Building2, Download } from 'lucide-react';
+import { Wallet, Check, ShieldCheck, ChevronRight, Building2, Download, AlertCircle } from 'lucide-react';
 import { getProperty, fmtNaira, DEMO_USER } from '@/lib/demo/cityos';
 import { FallbackImg, Pill, Money, DemoBanner } from '@/components/cityos/CityUI';
+import { useWallet } from '@/components/cityos/WalletStore';
 import { cn } from '@/lib/utils';
 
 export default function RentPayment({ id }: { id: string }) {
   const router = useRouter();
   const p = getProperty(id);
+  const { spend, balance } = useWallet();
   const [paid, setPaid] = useState(false);
+  const [low, setLow] = useState(false);
 
   if (!p) {
     return (
@@ -25,6 +28,13 @@ export default function RentPayment({ id }: { id: string }) {
   const rent = p.pricePerYear / 12;
 
   const pay = () => {
+    if (paid) return;
+    const ok = spend(rent, `Rent · ${p.title}`);
+    if (!ok) {
+      setLow(true);
+      return;
+    }
+    setLow(false);
     setPaid(true);
     window.setTimeout(() => router.push('/pay/success'), 1300);
     try {
@@ -98,7 +108,7 @@ export default function RentPayment({ id }: { id: string }) {
             <div className="flex items-center justify-between rounded-xl bg-slate-50 p-4">
               <div>
                 <p className="text-[13px] font-black text-ink">CityPay Wallet</p>
-                <p className="text-[11px] font-bold text-slate-400">{`${DEMO_USER.walletId} · available ${fmtNaira(DEMO_USER.walletBalance)}`}</p>
+                <p className="text-[11px] font-bold text-slate-400">{`${DEMO_USER.walletId} · available ${fmtNaira(balance)}`}</p>
               </div>
               <Pill tone="blue">Instant</Pill>
             </div>
@@ -125,6 +135,11 @@ export default function RentPayment({ id }: { id: string }) {
             >
               {paid ? (<><Check className="w-4 h-4" /> Paid — confirming…</>) : (<><ShieldCheck className="w-4 h-4" /> {`Pay ${fmtNaira(rent)} now`}</>)}
             </button>
+            {low ? (
+              <p className="inline-flex items-center gap-1.5 text-[11px] font-bold text-red-600">
+                <AlertCircle className="w-3.5 h-3.5" /> Wallet balance is too low — top up on your profile.
+              </p>
+            ) : null}
             <p className="flex items-center justify-center gap-1.5 text-[10px] text-slate-400 font-medium">
               <ShieldCheck className="w-3 h-3" /> Demo payment — no real money moves.
             </p>

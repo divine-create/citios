@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { Wallet, Plus, ChevronRight, Package, Car, Banknote, Truck, Building2, Heart, Settings } from 'lucide-react';
-import { DEMO_USER, DEMO_PAYMENTS, DEMO_ORDERS, fmtNaira, getProperty } from '@/lib/demo/cityos';
+import { Wallet, Plus, ChevronRight, Package, Car, Banknote, Truck, Building2, Heart, Settings, ArrowUp } from 'lucide-react';
+import { DEMO_USER, DEMO_ORDERS, TOP_UP_AMOUNT, fmtNaira, getProperty } from '@/lib/demo/cityos';
 import { Pill, Money, ChipButton, DemoBanner } from '@/components/cityos/CityUI';
+import { useWallet } from '@/components/cityos/WalletStore';
 import { cn } from '@/lib/utils';
 
 const TABS = ['Orders', 'Payments', 'CityHouse', 'Saved', 'Settings'] as const;
@@ -12,7 +13,14 @@ type Tab = (typeof TABS)[number];
 
 export default function CityProfile() {
   const [tab, setTab] = useState<Tab>('Orders');
-  const walletPct = Math.min(100, Math.round(((DEMO_USER.walletBalance + 80000 - 54600) / (DEMO_USER.walletBalance + 80000)) * 100));
+  const { balance, topUp, transactions } = useWallet();
+  const [toppedUp, setToppedUp] = useState(false);
+  const walletPct = Math.min(100, Math.round((balance / 200000) * 100));
+
+  const addToWallet = () => {
+    topUp(TOP_UP_AMOUNT);
+    setToppedUp(true);
+  };
 
   const tabs = (
     <div className="flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">
@@ -56,22 +64,22 @@ export default function CityProfile() {
             <p className="inline-flex items-center gap-1.5 text-[10px] font-black text-teal-200 uppercase tracking-widest">
               <Wallet className="w-3.5 h-3.5" /> CityPay wallet
             </p>
-            <p className="mt-2 text-3xl font-black tracking-tight">{fmtNaira(DEMO_USER.walletBalance)}</p>
+            <p className="mt-2 text-3xl font-black tracking-tight">{fmtNaira(balance)}</p>
             <div className="flex items-center gap-2 mt-2 text-[11px] font-bold text-teal-200/80">
               <span>{DEMO_USER.walletId}</span>
               <span>·</span>
-              <span>all good</span>
+              <span>{toppedUp ? 'just topped up' : 'all good'}</span>
             </div>
             <div className="mt-3 h-1.5 w-40 rounded-full bg-white/10 overflow-hidden">
               <div className="h-full rounded-full bg-emerald-400" style={{ width: `${walletPct}%` }} />
             </div>
           </div>
-          <Link
-            href="/checkout"
+          <button
+            onClick={addToWallet}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-teal-950 text-xs font-black hover:bg-teal-50 transition-colors shadow-lg shrink-0"
           >
-            <Plus className="w-4 h-4" /> Top up wallet
-          </Link>
+            <ArrowUp className="w-4 h-4" /> {`Top up ${fmtNaira(TOP_UP_AMOUNT)}`}
+          </button>
         </div>
       </div>
 
@@ -125,19 +133,30 @@ export default function CityProfile() {
           </div>
         </div>
       ) : tab === 'Payments' ? (
-        <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-50">
-          {DEMO_PAYMENTS.map((p) => (
-            <div key={p.ref} className="px-5 py-3.5 flex items-center gap-3">
-              <span className={cn('w-9 h-9 rounded-xl flex items-center justify-center shrink-0', p.amount < 0 ? 'bg-orange-50 text-orange-500' : 'bg-emerald-50 text-emerald-600')}>
-                {p.amount < 0 ? '−' : '+'}
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-black text-ink truncate">{p.note}</p>
-                <p className="text-[11px] font-bold text-slate-400">{`${p.ref} · ${p.at}`}</p>
+        <div className="space-y-3">
+          <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-50">
+            {transactions.map((t) => (
+              <div key={t.ref} className="px-5 py-3.5 flex items-center gap-3">
+                <span className={cn('w-9 h-9 rounded-xl flex items-center justify-center shrink-0', t.amount < 0 ? 'bg-orange-50 text-orange-500' : 'bg-emerald-50 text-emerald-600')}>
+                  {t.amount < 0 ? '−' : '+'}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-black text-ink truncate">{t.note}</p>
+                  <p className="text-[11px] font-bold text-slate-400">{`${t.ref} · ${t.at}`}</p>
+                </div>
+                <Money amount={t.amount} className={cn('text-[15px]', t.amount < 0 && 'text-red-600')} />
               </div>
-              <Money amount={p.amount} className={cn('text-[15px]', p.amount < 0 && 'text-red-600')} />
+            ))}
+          </div>
+          <div className="flex items-center gap-3 p-4 rounded-2xl bg-teal-50/70 ring-1 ring-teal-100">
+            <span className="w-10 h-10 rounded-xl bg-teal-800 text-white flex items-center justify-center shrink-0">
+              <Wallet className="w-5 h-5" />
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-black text-ink">Every spend moves the same wallet</p>
+              <p className="text-[11px] font-bold text-slate-400">Holds, consults, bills, deposits and orders land here in real time.</p>
             </div>
-          ))}
+          </div>
         </div>
       ) : tab === 'CityHouse' ? (
         <div className="space-y-3">

@@ -17,11 +17,18 @@ import {
   ShoppingCart,
   ShieldAlert,
   ChevronRight,
+  BedDouble,
+  Stethoscope,
+  GraduationCap,
+  Wrench,
+  Receipt,
+  Newspaper,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { CartProvider, useCart } from '@/components/cityos/CartStore';
-import { NOTIFICATIONS, DEMO_USER, APP_STATE } from '@/lib/demo/cityos';
+import { WalletProvider, useWallet } from '@/components/cityos/WalletStore';
+import { NOTIFICATIONS, DEMO_USER, APP_STATE, fmtNaira } from '@/lib/demo/cityos';
 import { cn } from '@/lib/utils';
 
 function CartBell() {
@@ -84,6 +91,27 @@ function NotificationsDropdown() {
   );
 }
 
+function WalletChip() {
+  const { balance } = useWallet();
+  return (
+    <Link
+      href="/profile"
+      className="flex items-center gap-3 rounded-2xl bg-gradient-to-br from-teal-900 to-teal-700 p-3.5 text-white hover:opacity-95 transition-opacity"
+    >
+      <div className="w-9 h-9 rounded-full bg-white/15 border border-white/20 flex items-center justify-center text-sm font-black">
+        {DEMO_USER.initials}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[13px] font-bold leading-tight truncate">{DEMO_USER.name}</p>
+        <p className="text-[10px] text-teal-100/80 font-bold tabular-nums">
+          {`CityPay · ${fmtNaira(balance)}`}
+        </p>
+      </div>
+      <ChevronRight className="w-4 h-4 text-teal-100/70" />
+    </Link>
+  );
+}
+
 export default function ResidentLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -97,6 +125,7 @@ export default function ResidentLayout({ children }: { children: React.ReactNode
         { id: 'explore', path: '/explore', label: 'Explore', icon: Compass },
         { id: 'ai', path: '/ai', label: 'Ask CityOS', icon: Sparkles },
         { id: 'feed', path: '/feed', label: 'Feed', icon: Rss },
+        { id: 'news', path: '/news', label: 'News', icon: Newspaper },
       ],
     },
     {
@@ -105,6 +134,16 @@ export default function ResidentLayout({ children }: { children: React.ReactNode
         { id: 'ride', path: '/drive/ride', label: 'City Ride', icon: Car },
         { id: 'delivery', path: '/drive/delivery', label: 'City Delivery', icon: Package },
         { id: 'house', path: '/house', label: 'CityHouse', icon: Building2 },
+        { id: 'stay', path: '/stay', label: 'Hotels Tonight', icon: BedDouble },
+      ],
+    },
+    {
+      label: 'Care & Civic',
+      items: [
+        { id: 'care', path: '/care', label: 'City Care', icon: Stethoscope },
+        { id: 'schools', path: '/schools', label: 'Schools', icon: GraduationCap },
+        { id: 'tasks', path: '/tasks', label: 'City Tasks', icon: Wrench },
+        { id: 'bills', path: '/bills', label: 'Bills & Airtime', icon: Receipt },
       ],
     },
     {
@@ -145,6 +184,13 @@ export default function ResidentLayout({ children }: { children: React.ReactNode
     if (pathname.startsWith('/drive/delivery')) return 'City Delivery';
     if (pathname.startsWith('/drive/')) return 'CityDrive';
     if (pathname.startsWith('/house')) return 'CityHouse';
+    if (pathname.startsWith('/stay')) return 'Hotels Tonight';
+    if (pathname.startsWith('/care')) return 'City Care';
+    if (pathname.startsWith('/schools')) return 'Schools';
+    if (pathname.startsWith('/tasks')) return 'City Tasks';
+    if (pathname.startsWith('/bills')) return 'Bills & Airtime';
+    if (pathname.startsWith('/news')) return 'News';
+    if (pathname.startsWith('/events')) return 'Events';
     if (pathname.startsWith('/activity')) return 'Activity';
     if (pathname.startsWith('/business')) return 'Business Dashboard';
     if (pathname.startsWith('/demo')) return 'Demo Hub';
@@ -157,7 +203,8 @@ export default function ResidentLayout({ children }: { children: React.ReactNode
 
   return (
     <CartProvider>
-      <div className="flex h-screen bg-[#F6F7F8] overflow-hidden font-sans text-slate-900 selection:bg-teal-200">
+      <WalletProvider>
+        <div className="flex h-screen bg-[#F6F7F8] overflow-hidden font-sans text-slate-900 selection:bg-teal-200">
         {/* Desktop Sidebar */}
         <aside className="hidden md:flex flex-col w-[268px] bg-white border-r border-slate-100 z-20 h-full overflow-y-auto">
           <div className="p-6 pb-4 flex flex-col gap-1 sticky top-0 bg-white z-10 border-b border-slate-100/60">
@@ -212,21 +259,7 @@ export default function ResidentLayout({ children }: { children: React.ReactNode
           </nav>
 
           <div className="p-5 border-t border-slate-100">
-            <Link
-              href="/profile"
-              className="flex items-center gap-3 rounded-2xl bg-gradient-to-br from-teal-900 to-teal-700 p-3.5 text-white hover:opacity-95 transition-opacity"
-            >
-              <div className="w-9 h-9 rounded-full bg-white/15 border border-white/20 flex items-center justify-center text-sm font-black">
-                {DEMO_USER.initials}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-bold leading-tight truncate">{DEMO_USER.name}</p>
-                <p className="text-[10px] text-teal-100/80 font-bold tabular-nums">
-                  {`Wallet ₦${DEMO_USER.walletBalance.toLocaleString()}`}
-                </p>
-              </div>
-              <ChevronRight className="w-4 h-4 text-teal-100/70" />
-            </Link>
+            <WalletChip />
           </div>
         </aside>
 
@@ -332,6 +365,7 @@ export default function ResidentLayout({ children }: { children: React.ReactNode
           </nav>
         </div>
       </div>
+      </WalletProvider>
     </CartProvider>
   );
 }

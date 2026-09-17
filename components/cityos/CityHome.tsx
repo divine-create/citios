@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Sparkles, MapPin, PartyPopper, ShieldAlert, Plus } from 'lucide-react';
+import { ArrowRight, Sparkles, MapPin, PartyPopper, Plus, BedDouble, Newspaper, Megaphone } from 'lucide-react';
 import {
   CITY_CATEGORIES,
   DEMO_EVENTS,
@@ -10,6 +10,9 @@ import {
   DEMO_PRODUCTS,
   DEMO_PROPERTIES,
   DEMO_POSTS,
+  DEMO_HOTELS,
+  DEMO_NEWS,
+  DEMO_CITY_NOTICES,
   CITY_NOTES,
   DEMO_USER,
   fmtNaira,
@@ -34,6 +37,8 @@ export default function CityHome() {
   const fresh = DEMO_PRODUCTS.slice(0, 6);
   const stays = DEMO_PROPERTIES.filter((p) => p.featured);
   const feedTeaser = DEMO_POSTS.slice(0, 6);
+  const hotels = DEMO_HOTELS.slice(0, 3);
+  const headlines = DEMO_NEWS.slice(0, 3);
 
   return (
     <div className="space-y-8 md:space-y-10 animate-in fade-in duration-500">
@@ -121,11 +126,11 @@ export default function CityHome() {
         <SectionHead
           title="Happening in Calabar"
           sub="Events, rehearsals and market days"
-          more="All events" moreHref="/services/events"
+          more="All events" moreHref="/events"
         />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {DEMO_EVENTS.map((e) => (
-            <CityCard key={e.id} href="/services/events" className="flex flex-col">
+            <CityCard key={e.id} href={`/events/${e.id}`} className="flex flex-col">
               <FallbackImg src={e.image} alt={e.title} className="h-32 w-full" />
               <div className="p-4 flex-1 flex flex-col gap-2">
                 <div className="flex items-center justify-between gap-2">
@@ -217,6 +222,38 @@ export default function CityHome() {
         </div>
       </section>
 
+      {/* Rooms tonight */}
+      <section>
+        <SectionHead title="Rooms tonight" sub="Hold a bed with CityPay — no card needed" more="All stays" moreHref="/stay" />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {hotels.map((h) => (
+            <CityCard key={h.slug} href={`/stay/${h.slug}`} className="flex flex-col">
+              <div className="relative">
+                <FallbackImg src={h.image} alt={h.name} className="h-36 w-full" />
+                <span className="absolute top-2 left-2">
+                  <Pill tone="teal">{h.area}</Pill>
+                </span>
+                <span className="absolute top-2 right-2 inline-flex items-center gap-1 px-2 py-1 rounded-full bg-white/90 text-emerald-700 text-[10px] font-black">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />{`${h.roomsLeft} left`}
+                </span>
+              </div>
+              <div className="p-4 flex-1 flex flex-col gap-1.5">
+                <p className="text-[13px] font-black text-ink truncate">{h.name}</p>
+                <LocationRow text={h.address} className="text-[11px]" />
+                <Stars rating={h.rating} className="mt-0.5" />
+                <div className="mt-auto pt-2 flex items-end justify-between">
+                  <div>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">per night</p>
+                    <p className="text-[15px] font-black text-ink">{fmtNaira(h.pricePerNight)}</p>
+                  </div>
+                  <Pill tone="blue">{h.nearStadium ? 'Near stadium' : h.tags[0]}</Pill>
+                </div>
+              </div>
+            </CityCard>
+          ))}
+        </div>
+      </section>
+
       {/* Places to stay */}
       <section>
         <SectionHead title="Places to stay" sub="CityHouse rooms and flats open now" more="All listings" moreHref="/house" />
@@ -286,22 +323,59 @@ export default function CityHome() {
         </div>
       </section>
 
+      {/* City news */}
+      <section>
+        <SectionHead title="City news" sub="The Journal on Calabar desks today" more="All stories" moreHref="/news" />
+        <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden divide-y divide-slate-50">
+          {headlines.map((n) => (
+            <CityCard key={n.id} href={`/news/${n.id}`} className="flex gap-4 p-4 items-center rounded-none border-0 hover:bg-slate-50/60">
+              <FallbackImg src={n.image} alt={n.title} className="w-20 h-14 rounded-xl shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-black text-ink leading-snug line-clamp-2">{n.title}</p>
+                <p className="text-[11px] font-bold text-slate-400 mt-1">{`${n.category} · ${n.time}`}</p>
+              </div>
+              <Pill tone="teal">Read</Pill>
+            </CityCard>
+          ))}
+        </div>
+      </section>
+
       {/* Safety / demo note */}
       <section className="space-y-3">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="flex gap-3 p-4 rounded-2xl bg-white border border-slate-100 items-start">
-            <span className="w-9 h-9 rounded-xl bg-teal-50 text-teal-800 flex items-center justify-center shrink-0">
-              <ShieldAlert className="w-4.5 h-4.5" />
-            </span>
-            <div>
-              <p className="text-[13px] font-black text-ink">City Status — all clear</p>
-              <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
-                No reported outages on Marian Road or the Uyo corridor. Market line is open.
-              </p>
+        <div className="rounded-2xl bg-white border border-slate-100 p-5">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="w-9 h-9 rounded-xl bg-teal-50 text-teal-800 flex items-center justify-center">
+                <Megaphone className="w-4.5 h-4.5" />
+              </span>
+              <div>
+                <p className="text-[13px] font-black text-ink">City notices</p>
+                <p className="text-[10px] font-bold text-slate-400">From the COC about your street</p>
+              </div>
             </div>
+            <Link href="/feed" className="text-[10px] font-black text-teal-800 hover:underline">See all</Link>
           </div>
-          <DemoBanner />
+          <div className="space-y-2">
+            {DEMO_CITY_NOTICES.map((n, i) => (
+              <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50/70">
+                <span
+                  className={
+                    'w-2.5 h-2.5 rounded-full shrink-0 ' +
+                    (n.tone === 'warn' ? 'bg-orange-400' : n.tone === 'ok' ? 'bg-emerald-400' : n.tone === 'update' ? 'bg-teal-500' : 'bg-sky-400')
+                  }
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] font-black text-ink leading-snug line-clamp-1">{n.title}</p>
+                  <p className="text-[10px] font-bold text-slate-400 mt-0.5 line-clamp-1">{`${n.body} · ${n.time}`}</p>
+                </div>
+                <Pill tone={n.tone === 'warn' ? 'orange' : n.tone === 'ok' ? 'green' : n.tone === 'update' ? 'teal' : 'blue'}>
+                  {n.tone === 'warn' ? 'Heads up' : n.tone === 'ok' ? 'All clear' : n.tone === 'update' ? 'Update' : 'Notice'}
+                </Pill>
+              </div>
+            ))}
+          </div>
         </div>
+        <DemoBanner />
       </section>
     </div>
   );

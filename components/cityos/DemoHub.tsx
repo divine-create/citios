@@ -17,6 +17,9 @@ import {
   Compass,
   ChevronRight,
   FlaskConical,
+  Stethoscope,
+  BedDouble,
+  Receipt,
 } from 'lucide-react';
 import { DEMO_USER } from '@/lib/demo/cityos';
 import { SectionHead, Pill } from '@/components/cityos/CityUI';
@@ -66,6 +69,38 @@ const JOURNEYS = [
       { label: 'Business dashboard', href: '/business' },
     ],
   },
+  {
+    icon: BedDouble,
+    tone: 'from-teal-800 to-teal-600',
+    title: 'Hotels tonight',
+    desc: 'Rooms start under ₦10,000 and a hold is paid straight from the CityPay wallet.',
+    steps: [
+      { label: 'Rooms tonight', href: '/stay' },
+      { label: 'One night at ₦9,200', href: '/stay/bogobiri-stadium-lodge' },
+      { label: 'Wallet hold', href: '/profile' },
+    ],
+  },
+  {
+    icon: Stethoscope,
+    tone: 'from-emerald-700 to-teal-600',
+    title: 'Care, booked in-app',
+    desc: 'Find the clinic, pick a doctor, and confirm the visit — consult fees leave the wallet.',
+    steps: [
+      { label: 'Clinics & pharmacies', href: '/care' },
+      { label: 'Book a doctor', href: '/care/shepherds-care' },
+    ],
+  },
+  {
+    icon: Receipt,
+    tone: 'from-orange-600 to-amber-500',
+    title: 'Bills, paid in-app',
+    desc: 'Power, water, data and cable settle instantly through CityPay in the demo.',
+    steps: [
+      { label: 'Bills & Airtime', href: '/bills' },
+      { label: 'PHEDC ₦12,400', href: '/bills/phec' },
+      { label: 'Wallet top-up', href: '/profile' },
+    ],
+  },
 ];
 
 const QUICK_LINKS = [
@@ -78,7 +113,13 @@ const QUICK_LINKS = [
   { icon: Car, label: 'Book a ride', href: '/drive/ride' },
   { icon: Building2, label: 'CityHouse', href: '/house' },
   { icon: Sparkles, label: 'Ask AI', href: '/ai' },
-  { icon: PenSquare, label: 'Create post', href: '/feed/new' },
+  { icon: BedDouble, label: 'Hotels', href: '/stay' },
+  { icon: Stethoscope, label: 'Clinics', href: '/care' },
+  { icon: PenSquare, label: 'Schools', href: '/schools' },
+  { icon: Wallet, label: 'Services', href: '/tasks' },
+  { icon: Receipt, label: 'Bills', href: '/bills' },
+  { icon: Compass, label: 'Events', href: '/events' },
+  { icon: Rss, label: 'News', href: '/news' },
   { icon: Bell, label: 'Activity', href: '/activity' },
   { icon: UserIcon, label: 'Profile', href: '/profile' },
 ];
@@ -97,7 +138,7 @@ export default function DemoHub() {
             CityOS in 90 seconds
           </h1>
           <p className="mt-3 text-teal-50/80 text-sm font-medium max-w-2xl leading-relaxed">
-            {`Four journeys tie the city together — one app, one identity ${`(${DEMO_USER.name}, ${DEMO_USER.area})`}, one wallet. Everything below uses the same demo dataset, so each screen leads to the next.`}
+            {`Seven journeys tie the city together — one app, one identity ${`(${DEMO_USER.name}, ${DEMO_USER.area})`}, one wallet. Everything below uses the same demo dataset, so each screen leads to the next.`}
           </p>
           <div className="mt-5 flex gap-2 flex-wrap text-[11px] font-bold">
             <span className="px-3 py-1.5 rounded-full bg-emerald-400/20 text-emerald-200">47 marketplaces</span>
@@ -162,6 +203,7 @@ export default function DemoHub() {
           <li>• Open Home → tap the AI bar → ask “best room under ₦10,000 tonight”.</li>
           <li>• From any product, add to bag → cart → CityPay checkout → payment success → live delivery track.</li>
           <li>• Pan a market → business dashboard shows the same order numbers.</li>
+          <li>• Anything that moves money (holds, consults, bills, deposits, tickets) spends the live wallet and shows in Activity.</li>
           <li>• All data is static demo content — nothing is real, billable, or networked.</li>
         </ul>
       </section>

@@ -17,6 +17,13 @@ import {
   ShieldCheck,
   Banknote,
   Truck,
+  BedDouble,
+  Zap,
+  Droplets,
+  Smartphone,
+  Tv,
+  GraduationCap,
+  Newspaper,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -40,6 +47,14 @@ export const DEMO_USER = {
   stats: { orders: 23, rides: 41, payments: 87, deliveries: 18 },
 };
 
+export const DEMO_WALLET_INITIAL = DEMO_USER.walletBalance;
+export const WALLET_STORAGE_KEY = 'cityos-demo-wallet';
+export const TOP_UP_AMOUNT = 50000;
+
+export function parseNaira(s: string | number): number {
+  return typeof s === 'number' ? s : Number(String(s).replace(/[₦,\s]/g, '')) || 0;
+}
+
 export interface CategoryDef {
   id: string;
   label: string;
@@ -54,9 +69,11 @@ export const CITY_CATEGORIES: CategoryDef[] = [
   { id: 'ride', label: 'Ride Now', icon: Car, href: '/drive/ride', desc: 'Keke · Solo · SUV' },
   { id: 'delivery', label: 'Delivery', icon: Package, href: '/drive/delivery', desc: 'Track your parcels' },
   { id: 'house', label: 'Housing', icon: Building2, href: '/house', desc: 'CityHouse listings' },
-  { id: 'health', label: 'Health', icon: Stethoscope, href: '/services/healthcare', desc: 'Pharmacies & clinics' },
-  { id: 'events', label: 'Events', icon: Calendar, href: '/services/events', desc: 'Around town today' },
-  { id: 'services', label: 'Services', icon: Wrench, href: '/services/local', desc: 'Trades & services' },
+  { id: 'stay', label: 'Hotels Tonight', icon: BedDouble, href: '/stay', desc: 'Rooms held with CityPay' },
+  { id: 'health', label: 'Health', icon: Stethoscope, href: '/care', desc: 'Clinics & pharmacies' },
+  { id: 'events', label: 'Events', icon: Calendar, href: '/events', desc: 'Around town today' },
+  { id: 'services', label: 'Services', icon: Wrench, href: '/tasks', desc: 'Trades & services' },
+  { id: 'bills', label: 'Bills & Airtime', icon: Zap, href: '/bills', desc: 'Power, water & data' },
 ];
 
 export interface Product {
@@ -77,14 +94,14 @@ export interface Product {
 
 export const DEMO_PRODUCTS: Product[] = [
   { id: 'p01', bizSlug: 'calabar-fresh', name: 'Farm-fresh Palm Oil', price: 6500, oldPrice: 7500, unit: '1 litre', stock: 42, tag: 'best', image: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&w=900&q=80', category: 'Pantry', rating: 4.8, reviews: 121, desc: 'Single-origin palm oil pressed from Calabar groves this week. Rich, unrefined, and ready for your edikang ikong.' },
-  { id: 'p02', bizSlug: 'calabar-fresh', name: 'Wild Ogbono (Bush Mango)', price: 7200, unit: '1 kg', stock: 26, tag: 'local', image: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&w=900&q=80', category: 'Pantry', rating: 4.9, reviews: 88, desc: 'Premium ogbono seeds for the thickest, richest draw soup. Sourced from Cross River bush markets.' },
+  { id: 'p02', bizSlug: 'calabar-fresh', name: 'Wild Ogbono (Bush Mango)', price: 7200, unit: '1 kg', stock: 26, tag: 'local', image: 'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=80', category: 'Pantry', rating: 4.9, reviews: 88, desc: 'Premium ogbono seeds for the thickest, richest draw soup. Sourced from Cross River bush markets.' },
   { id: 'p03', bizSlug: 'calabar-fresh', name: 'Fresh Snails (6 pcs)', price: 8000, unit: 'pack', stock: 15, tag: 'best', image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=900&q=80', category: 'Protein', rating: 4.7, reviews: 64, desc: 'Cleaned, live snails straight from the farm. Perfect for pepper soup and Sunday soup.' },
   { id: 'p04', bizSlug: 'calabar-fresh', name: 'Calabar Crayfish', price: 4500, unit: '500 g', stock: 58, tag: 'new', image: 'https://images.unsplash.com/photo-1565680018434-b513d5e5fd47?auto=format&fit=crop&w=900&q=80', category: 'Pantry', rating: 4.8, reviews: 143, desc: 'Sun-dried, smoked crayfish ground to order. The backbone of authentic Calabar soups.' },
   { id: 'p05', bizSlug: 'watt-market-delicacies', name: 'Periwinkle 1 kg', price: 6000, unit: '1 kg', stock: 19, tag: 'best', image: 'https://images.unsplash.com/photo-1535399831218-d5bd36d1a6b3?auto=format&fit=crop&w=900&q=80', category: 'Protein', rating: 4.6, reviews: 57, desc: 'Salted periwinkle from the creeks, cleaned and ready for efik soup.' },
   { id: 'p06', bizSlug: 'watt-market-delicacies', name: 'Big Robo Pepper', price: 3200, unit: '250 g', stock: 33, tag: 'best', image: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=900&q=80', category: 'Fresh', rating: 4.7, reviews: 92, desc: 'Smoky dried big robo — your secret ingredient for that deep-forest heat.' },
   { id: 'p07', bizSlug: 'watt-market-delicacies', name: 'Edikang Ikong Veg Pack', price: 5800, unit: 'bundle', stock: 12, tag: 'local', image: 'https://images.unsplash.com/photo-1515543904379-3d757afe72e4?auto=format&fit=crop&w=900&q=80', category: 'Fresh', rating: 4.9, reviews: 76, desc: 'Waterleaf + fluted pumpkin prepped and bundled. Make the king of Calabar soups tonight.' },
   { id: 'p08', bizSlug: 'eko-kitchen', name: 'Party Jollof + Chicken (Serves 8)', price: 24500, oldPrice: 28000, unit: 'tray', stock: 8, tag: 'promo', image: 'https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?auto=format&fit=crop&w=900&q=80', category: 'Meals', rating: 4.8, reviews: 210, desc: 'The Eko Kitchen party tray. Smoky rice, grilled chicken, and moin moin. Book 48 hours ahead.' },
-  { id: 'p09', bizSlug: 'eko-kitchen', name: 'Afang Soup + Water Fufu (2)', price: 9500, unit: 'set', stock: 20, tag: 'best', image: 'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=80', category: 'Meals', rating: 4.7, reviews: 134, desc: 'Crown chef special: rich afang with palm oil, periwinkle and stockfish, plus fresh fufu.' },
+  { id: 'p09', bizSlug: 'eko-kitchen', name: 'Afang Soup + Water Fufu (2)', price: 9500, unit: 'set', stock: 20, tag: 'best', image: 'https://images.unsplash.com/photo-1556911220-bff31c812dba?auto=format&fit=crop&w=900&q=80', category: 'Meals', rating: 4.7, reviews: 134, desc: 'Crown chef special: rich afang with palm oil, periwinkle and stockfish, plus fresh fufu.' },
   { id: 'p10', bizSlug: 'tinapa-fashion', name: 'Ankara Two-Piece Set', price: 24000, unit: 'piece', stock: 14, tag: 'new', image: 'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=900&q=80', category: 'Fashion', rating: 4.6, reviews: 45, desc: 'Contemporary ankara blouse and wrapper set tailored in Tinapa district.' },
   { id: 'p11', bizSlug: 'tinapa-fashion', name: 'Men’s Leather Sandals', price: 15500, oldPrice: 19500, unit: 'pair', stock: 9, tag: 'promo', image: 'https://images.unsplash.com/photo-1533867617858-e7b97e060509?auto=format&fit=crop&w=900&q=80', category: 'Fashion', rating: 4.5, reviews: 31, desc: 'Hand-stitched leather sandals, made for our heat. Built to last years, not months.' },
   { id: 'p12', bizSlug: 'medline-pharmacy', name: 'Antimalarial Combo (3-day)', price: 4200, unit: 'pack', stock: 40, tag: 'best', image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=900&q=80', category: 'Health', rating: 4.9, reviews: 118, desc: 'Prescribed course, delivered to your door. Pharmacist consult included via City Care.' },
@@ -374,6 +391,431 @@ export function getProperty(id: string): DemoProperty | undefined {
   return DEMO_PROPERTIES.find((p) => p.id === id);
 }
 
+export interface DemoHotel {
+  slug: string;
+  name: string;
+  area: string;
+  address: string;
+  tagline: string;
+  desc: string;
+  rating: number;
+  reviews: number;
+  pricePerNight: number;
+  nearStadium: boolean;
+  guests: number;
+  roomsLeft: number;
+  image: string;
+  amenities: string[];
+  tags: string[];
+  open24: boolean;
+  featured: boolean;
+}
+
+export const DEMO_HOTELS: DemoHotel[] = [
+  {
+    slug: 'bogobiri-stadium-lodge',
+    name: 'Bogobiri Stadium Lodge',
+    area: 'Bogobiri',
+    address: '7 Stadium Road, Bogobiri',
+    tagline: 'Four minutes from the parade grounds',
+    desc: 'The nearest beds to the carnival rehearsals. Simple, clean doubles with AC, hot water and parking — most rooms fill by 5 PM on rehearsal nights.',
+    rating: 4.5,
+    reviews: 212,
+    pricePerNight: 9200,
+    roomsLeft: 4,
+    nearStadium: true,
+    guests: 2,
+    image: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1000&q=80',
+    amenities: ['A/C', 'Hot water', 'Parking', 'Free Wi-Fi'],
+    tags: ['Near stadium', 'Budget'],
+    open24: true,
+    featured: false,
+  },
+  {
+    slug: 'ekorinim-guest',
+    name: 'Ekorinim Guest House',
+    area: 'Ekorinim',
+    address: '4 Ekorinim Avenue, Calabar',
+    tagline: 'Clean rooms, steady power, sleep easy',
+    desc: 'A favourite of the coffee-house crowd. Bright en-suite doubles with backup power through the night and a covered porch for morning phone calls.',
+    rating: 4.6,
+    reviews: 240,
+    pricePerNight: 8500,
+    roomsLeft: 6,
+    nearStadium: false,
+    guests: 2,
+    image: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=1000&q=80',
+    amenities: ['A/C', 'Hot water', 'Backup power', 'Free Wi-Fi'],
+    tags: ['Best value', 'Quiet'],
+    open24: true,
+    featured: true,
+  },
+  {
+    slug: 'tinapa-crown',
+    name: 'Tinapa Crown Hotel',
+    area: 'Tinapa',
+    address: 'Tinapa Business Resort, Calabar',
+    tagline: 'Resort rooms with the river view',
+    desc: 'Full-service rooms by the Tinapa waterside — pool access, room service and the famous Friday night jollof buffet.',
+    rating: 4.4,
+    reviews: 96,
+    pricePerNight: 12500,
+    roomsLeft: 3,
+    nearStadium: false,
+    guests: 2,
+    image: 'https://images.unsplash.com/photo-1564501049412-61c2a3083791?auto=format&fit=crop&w=1000&q=80',
+    amenities: ['Pool', 'Room service', 'A/C', 'Breakfast'],
+    tags: ['Resort'],
+    open24: true,
+    featured: false,
+  },
+  {
+    slug: 'marina-suites',
+    name: 'Calabar Marina Suites',
+    area: 'Marina Road',
+    address: 'Marina Road, Calabar South',
+    tagline: 'Business comfort on the water',
+    desc: 'Suites along the Marina with city-facing balconies, fast Wi-Fi and a rooftop restaurant that catches the sunset over the canal.',
+    rating: 4.6,
+    reviews: 158,
+    pricePerNight: 24000,
+    roomsLeft: 5,
+    nearStadium: false,
+    guests: 3,
+    image: 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=1000&q=80',
+    amenities: ['Sea view', 'Fast Wi-Fi', 'Restaurant', 'Gym'],
+    tags: ['Premium'],
+    open24: true,
+    featured: false,
+  },
+  {
+    slug: 'maple-square',
+    name: 'Maple Square Hotel',
+    area: 'Ekorinim',
+    address: '12 Ndidem, Ekorinim',
+    tagline: 'Quiet rooms off the main drag',
+    desc: 'Compact, spotless floors and a yard to park in. Popular with visitors who want the Ekorinim neighbourhood without the noise.',
+    rating: 4.2,
+    reviews: 71,
+    pricePerNight: 11000,
+    roomsLeft: 7,
+    nearStadium: false,
+    guests: 2,
+    image: 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=1000&q=80',
+    amenities: ['A/C', 'Parking', '24-hr desk'],
+    tags: ['Quiet'],
+    open24: false,
+    featured: false,
+  },
+];
+
+export function getHotel(slug: string): DemoHotel | undefined {
+  return DEMO_HOTELS.find((h) => h.slug === slug);
+}
+
+export interface DemoDoctor {
+  name: string;
+  specialty: string;
+  fee: number;
+  slots: string;
+  rating: number;
+}
+
+export interface DemoClinic {
+  slug: string;
+  name: string;
+  type: string;
+  area: string;
+  address: string;
+  tagline: string;
+  desc: string;
+  rating: number;
+  reviews: number;
+  hours: string;
+  banner: string;
+  doctors: DemoDoctor[];
+  services: string[];
+  open: boolean;
+  featured: boolean;
+}
+
+export const DEMO_CLINICS: DemoClinic[] = [
+  {
+    slug: 'calabar-general',
+    name: 'Calabar General Hospital · Outpatient',
+    type: 'Hospital',
+    area: 'Marina Road',
+    address: 'General Hospital Road, Calabar South',
+    tagline: 'The city hospital, without the queue of the past',
+    desc: 'Outpatient clinics with appointments booked through CityOS. Labs, pharmacy and the walk-in ward are under one roof on the Marina.',
+    rating: 4.6,
+    reviews: 310,
+    hours: '8:00 AM – 9:00 PM · Daily',
+    banner: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=1200&q=80',
+    doctors: [
+      { name: 'Dr Nkechi Bassey', specialty: 'General Practice', fee: 4000, slots: '3 open today', rating: 4.8 },
+      { name: 'Dr Orok Asuquo', specialty: 'Internal Medicine', fee: 6000, slots: '2 open today', rating: 4.7 },
+      { name: 'Dr Ifiok Essien', specialty: 'Paediatrics', fee: 5000, slots: 'Am & PM tomorrow', rating: 4.9 },
+    ],
+    services: ['General practice', 'Labs & scans', 'Pharmacy on site', 'NHIS accepted'],
+    open: true,
+    featured: true,
+  },
+  {
+    slug: 'shepherds-care',
+    name: "Shepherd's Care Clinic",
+    type: 'Clinic',
+    area: 'Ekorinim',
+    address: '9 Ekorinim Road, Calabar',
+    tagline: 'Family medicine that keeps neighbourhood hours',
+    desc: 'A small neighbourhood clinic with GP and skin clinics that stay open late. Same-day slots most evenings.',
+    rating: 4.7,
+    reviews: 188,
+    hours: '8:00 AM – 8:00 PM · Mon–Sat',
+    banner: 'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?auto=format&fit=crop&w=1200&q=80',
+    doctors: [
+      { name: 'Dr Mercy Eyo', specialty: 'Family Medicine', fee: 3500, slots: '4 open today', rating: 4.8 },
+      { name: 'Dr David Atim', specialty: 'Dermatology', fee: 5000, slots: 'Open Sat AM', rating: 4.6 },
+    ],
+    services: ['Family medicine', 'Skin clinic', 'Malaria tests', 'BP checks'],
+    open: true,
+    featured: true,
+  },
+  {
+    slug: 'medline-care',
+    name: 'Medline Care Centre',
+    type: 'Pharmacy-led clinic',
+    area: 'Ekorinim',
+    address: '5 Ekorinim Road, Calabar',
+    tagline: 'Pharmacist first, doctor when you need one',
+    desc: 'Run by the Medline Pharmacy team. Start with a free pharmacist consult and escalate to a doctor if the situation asks for it.',
+    rating: 4.8,
+    reviews: 121,
+    hours: '8:00 AM – 10:00 PM · Daily',
+    banner: 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&w=1200&q=80',
+    doctors: [
+      { name: 'Dr Aniekan Effiom', specialty: 'Pharmacist-led clinic', fee: 3000, slots: 'Walk in today', rating: 4.7 },
+      { name: 'Phm Comfort Odu', specialty: 'Free pharmacist consult', fee: 0, slots: 'Instant', rating: 4.9 },
+    ],
+    services: ['Free pharmacist consult', 'Doctor on call', 'Med delivery', 'Vaccines'],
+    open: true,
+    featured: false,
+  },
+];
+
+export function getClinic(slug: string): DemoClinic | undefined {
+  return DEMO_CLINICS.find((c) => c.slug === slug);
+}
+
+export interface DemoSchool {
+  slug: string;
+  name: string;
+  level: string;
+  area: string;
+  address: string;
+  tagline: string;
+  desc: string;
+  rating: number;
+  image: string;
+  programs: string[];
+  term: string;
+  contact: string;
+  featured: boolean;
+}
+
+export const DEMO_SCHOOLS: DemoSchool[] = [
+  {
+    slug: 'unical-admissions',
+    name: 'University of Calabar',
+    level: 'Higher Education',
+    area: 'University of Calabar',
+    address: 'PMB 1115, Calabar',
+    tagline: 'Admissions office, open desk & help desk',
+    desc: 'Admission enquiries for the new session: status checks, direct entry and pre-degree applications. Book a desk session and skip the morning queue.',
+    rating: 4.4,
+    image: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1000&q=80',
+    programs: ['Admissions & status checks', 'Direct entry', 'Pre-degree', 'Transcript requests'],
+    term: '2026/27 session open',
+    contact: 'admissions@unical.example',
+    featured: true,
+  },
+  {
+    slug: 'west-end-schools',
+    name: 'West End School Calabar',
+    level: 'Primary & Junior Secondary',
+    area: 'Calabar South',
+    address: '14 West End Lane, Calabar South',
+    tagline: 'Crèche to JSS in one familiar compound',
+    desc: 'A full-run school by the canal: creche mornings, structured primary classes and a junior secondary stream with after-school clubs.',
+    rating: 4.6,
+    image: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1000&q=80',
+    programs: ['Creche & daycare', 'Primary (Basic 1–6)', 'Junior Secondary (JSS 1–3)', 'After-school clubs'],
+    term: 'New intake open · 60 places',
+    contact: 'admin@westend.example',
+    featured: true,
+  },
+  {
+    slug: 'cypress-garden',
+    name: 'Cypress Garden School',
+    level: 'Creche to Secondary',
+    area: 'Ekorinim',
+    address: '2 Cypress Close, Ekorinim',
+    tagline: 'Small classes, steady routines',
+    desc: 'A garden school in Ekorinim with capped class sizes and a feeding programme. Tour bookings run every Saturday morning.',
+    rating: 4.5,
+    image: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=1000&q=80',
+    programs: ['Creche & nursery', 'Primary school', 'Secondary school', 'Saturday tours'],
+    term: 'Tours open · 45 places',
+    contact: 'hello@cypressgarden.example',
+    featured: false,
+  },
+];
+
+export function getSchool(slug: string): DemoSchool | undefined {
+  return DEMO_SCHOOLS.find((s) => s.slug === slug);
+}
+
+export interface DemoTask {
+  id: string;
+  name: string;
+  category: string;
+  desc: string;
+  area: string;
+  from: number;
+  eta: string;
+  pro: string;
+  rating: number;
+  image: string;
+}
+
+export const DEMO_TASKS: DemoTask[] = [
+  { id: 't01', name: 'Leaky pipe, sink or toilet', category: 'Plumbing', desc: 'Call-out, diagnosis and a same-day fix for a leak, blocked drain or running toilet. Parts billed after approval.', area: 'Anywhere in Calabar', from: 7500, eta: '2 hrs', pro: 'Ubong Okon', rating: 4.8, image: 'https://images.unsplash.com/photo-1585704032915-c3400ca199e7?auto=format&fit=crop&w=900&q=80' },
+  { id: 't02', name: 'Sockets, switches & rewiring', category: 'Electrical', desc: 'Dead sockets, tripping breakers or a new point for your inverter. Testing kit on board, invoice on the go.', area: 'Anywhere in Calabar', from: 6500, eta: '3 hrs', pro: 'Ekaette Bassey', rating: 4.7, image: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=900&q=80' },
+  { id: 't03', name: 'Deep home & office cleaning', category: 'Cleaning', desc: 'Two-person crew, your products or ours. Floors, kitchens, bathrooms and a final walk-through list.', area: 'Calabar metro', from: 12000, eta: '4 hrs', pro: 'Comfort Udofia', rating: 4.9, image: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=900&q=80' },
+  { id: 't04', name: 'AC service & gas refill', category: 'HVAC', desc: 'Filter service, coil clean and a pressure test — with gas refill quoted before we touch the unit.', area: 'Calabar metro', from: 9000, eta: 'Half day', pro: 'Chidi Eze', rating: 4.6, image: 'https://images.unsplash.com/photo-1621905251918-48416bd8575a?auto=format&fit=crop&w=900&q=80' },
+  { id: 't05', name: 'Moving / haulage runs', category: 'Logistics', desc: 'One van, careful crew, cross-town moves and market pickups. Hourly rate with a fixed quote first.', area: 'Calabar + outskirts', from: 25000, eta: 'Same day', pro: 'Effiong Ekanem', rating: 4.7, image: 'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=900&q=80' },
+  { id: 't06', name: 'TV mount & setup', category: 'Installation', desc: 'Mount, level, hide the cables and pair everything. We bring the drill and the anchors.', area: 'Calabar metro', from: 5000, eta: '2 hrs', pro: 'Pius Nyong', rating: 4.8, image: 'https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?auto=format&fit=crop&w=900&q=80' },
+];
+
+export function getTask(id: string): DemoTask | undefined {
+  return DEMO_TASKS.find((t) => t.id === id);
+}
+
+export interface DemoBill {
+  slug: string;
+  name: string;
+  kind: 'power' | 'water' | 'data' | 'tv';
+  note: string;
+  balance: number;
+  due: string;
+}
+
+export const DEMO_BILLS: DemoBill[] = [
+  { slug: 'phec', name: 'Calabar Electric (PHEDC)', kind: 'power', note: 'Account 42-1829-01 · State Housing Estate', balance: 12400, due: 'due in 4 days' },
+  { slug: 'water-board', name: 'Cross River Water Board', kind: 'water', note: 'Bill 005-7712 · Marian Road 02', balance: 3200, due: 'due in 9 days' },
+  { slug: 'mtn-data', name: 'MTN Data Bundle', kind: 'data', note: 'Line 0803 44 55 66', balance: 5000, due: 'top up anytime' },
+  { slug: 'dstv-go', name: 'DStv / GOtv Subscription', kind: 'tv', note: 'SmartCard 1200558827', balance: 19000, due: 'due in 2 days' },
+];
+
+export function getBill(slug: string): DemoBill | undefined {
+  return DEMO_BILLS.find((b) => b.slug === slug);
+}
+
+export const BILL_KIND_ICONS: Record<DemoBill['kind'], LucideIcon> = {
+  power: Zap,
+  water: Droplets,
+  data: Smartphone,
+  tv: Tv,
+};
+
+export interface DemoNews {
+  id: string;
+  title: string;
+  category: string;
+  excerpt: string;
+  author: string;
+  time: string;
+  image: string;
+  content: string[];
+}
+
+export const DEMO_NEWS: DemoNews[] = [
+  {
+    id: 'n01',
+    title: 'Carnival 2026: parade route and traffic plan released',
+    category: 'City',
+    excerpt: 'The Carnival Commission has published the December route, road closures and the rehearsal schedule that starts this week.',
+    author: 'Calabar City Journal',
+    time: '2h ago',
+    image: 'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=1000&q=80',
+    content: [
+      'The Carnival Commission released the full parade route this morning, with the grand procession line opening at the stadium and closing at the marina roundabout.',
+      'Rehearsal nights at Bogobiri Stadium Grounds begin this week and run 6–9 PM daily. Band lanes and keke parking are marked along the fence line.',
+      'Residents can view the interactive route and register for road-closure alerts from the City desk inside the app. The full traffic plan applies from Friday.',
+    ],
+  },
+  {
+    id: 'n02',
+    title: 'Cross River opens new rice mill near Eight Miles',
+    category: 'Business',
+    excerpt: 'The 3,000-tonne-capacity mill plans to take paddy from local farmers and cut imported rice reliance across the state.',
+    author: 'Calabar City Journal',
+    time: '6h ago',
+    image: 'https://images.unsplash.com/photo-1581578749513-dbf749b2d9bb?auto=format&fit=crop&w=1000&q=80',
+    content: [
+      'A new rice mill has opened on the Estate Road near Eight Miles, backed by the state agricultural board and two trading cooperatives.',
+      'Officials say the mill will process paddy bought directly from Cross River farmers, with first sale expected before the end of the month.',
+      'The project adds about 40 jobs on the mill floor and a buying station on the outskirts of Calabar.',
+    ],
+  },
+  {
+    id: 'n03',
+    title: 'Free blood-pressure clinics start at Watt Market',
+    category: 'Health',
+    excerpt: 'Pharmacists and nurses will run free BP checks at Stall D12 every market Tuesday, in partnership with the City care network.',
+    author: 'Calabar City Journal',
+    time: '1d ago',
+    image: 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&w=1000&q=80',
+    content: [
+      'From this week, market Tuesday at Watt Market includes a free blood-pressure clinic under the canopy near Stall D12.',
+      'Trained pharmacists take readings between 9 AM and 1 PM, with instant referrals to the outpatient clinic for anything high.',
+      'The programme is a pilot with Shepherd’s Care Clinic and the pharmacy network, and may extend to Marian Road after the first month.',
+    ],
+  },
+  {
+    id: 'n04',
+    title: 'Festive funfair lighting up Marina Road this weekend',
+    category: 'Culture',
+    excerpt: 'Stalls, carnival bands and an evening light show run Saturday to Sunday along the Marina walkway.',
+    author: 'Calabar City Journal',
+    time: '2d ago',
+    image: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1000&q=80',
+    content: [
+      'The Marina funfair returns this weekend with food stalls, two carnival band sessions and a late-evening light show on the walkway.',
+      'Entry is free for residents; the main band performance on Saturday runs from 6 PM. Weekend parking is directed to the Bogobiri lot.',
+      'Organisers ask everyone to use the marked keke stands so the walkway stays clear.',
+    ],
+  },
+];
+
+export function getNews(id: string): DemoNews | undefined {
+  return DEMO_NEWS.find((n) => n.id === id);
+}
+
+export interface CityNotice {
+  tone: 'info' | 'warn' | 'ok' | 'update';
+  title: string;
+  body: string;
+  time: string;
+}
+
+export const DEMO_CITY_NOTICES: CityNotice[] = [
+  { tone: 'warn', title: 'Water work on Marian Road', body: 'Cross River Water Board repairs run 9 AM – 1 PM. Feed your tank in the morning.', time: 'Starts today' },
+  { tone: 'update', title: 'Carnival traffic plan published', body: 'Parade route and closures are live on the City desk and in the feed.', time: 'City Affairs' },
+  { tone: 'info', title: 'Evening voltage low in S.H.E.', body: 'PHEDC reports lower evening load in State Housing Estate; keep backups charged.', time: 'Power' },
+  { tone: 'ok', title: 'Market line open', body: 'Marian Road and Watt Market are moving freely this afternoon.', time: 'Just now' },
+];
+
 export const PROPERTY_TAGS = ['All', 'Available', 'Furnished', 'Affordable', 'New'];
 
 export interface FeedPost {
@@ -410,22 +852,87 @@ export interface DemoEvent {
   id: string;
   title: string;
   venue: string;
+  address: string;
   date: string;
   time: string;
   image: string;
   tag: string;
   price: string;
+  ticket: number;
+  host: string;
+  desc: string;
+  lineup: string[];
 }
 
 export const DEMO_EVENTS: DemoEvent[] = [
-  { id: 'e01', title: 'Carnival Band Rehearsal', venue: 'Bogobiri Stadium Grounds', date: 'Today', time: '6:00 PM', image: 'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=600&q=80', tag: 'Free', price: 'Free' },
-  { id: 'e02', title: 'Watt Market Weekend Fair', venue: 'Watt Market', date: 'Sat', time: '10:00 AM', image: 'https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=600&q=80', tag: 'All day', price: 'Free entry' },
-  { id: 'e03', title: 'UNICAL Art & Design Open Day', venue: 'UNICAL Gallery', date: 'Fri', time: '2:00 PM', image: 'https://images.unsplash.com/photo-1536924940846-227afb31e858?auto=format&fit=crop&w=600&q=80', tag: 'Students', price: 'Free' },
-  { id: 'e04', title: 'Ekorinim Evening Football', venue: 'Ekorinim Field', date: 'Sun', time: '4:30 PM', image: 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=600&q=80', tag: 'Family', price: '₦500 entry' },
+  {
+    id: 'e01',
+    title: 'Carnival Band Rehearsal',
+    venue: 'Bogobiri Stadium Grounds',
+    address: 'Stadium Road, Bogobiri',
+    date: 'Today',
+    time: '6:00 PM',
+    image: 'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=600&q=80',
+    tag: 'Free',
+    price: 'Free',
+    ticket: 0,
+    host: 'Calabar Carnival Committee',
+    desc: 'The parade bands open a full rehearsal on the stadium field — drum lines, dance troupes and the costume units running their final formations.',
+    lineup: ['Drum line warm-up', 'Senior band formation', 'Costume parade walk', 'Public photo window'],
+  },
+  {
+    id: 'e02',
+    title: 'Watt Market Weekend Fair',
+    venue: 'Watt Market',
+    address: 'Watt Market, Calabar',
+    date: 'Sat',
+    time: '10:00 AM',
+    image: 'https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=600&q=80',
+    tag: 'All day',
+    price: 'Free entry',
+    ticket: 0,
+    host: 'Watt Market Traders Union',
+    desc: 'The whole market opens late for a weekend fair — sample stalls, weighing demos and the day’s freshest produce straight off the trucks.',
+    lineup: ['Morning fresh market', 'Cooking demos (noon)', 'Evening glows'],
+  },
+  {
+    id: 'e03',
+    title: 'UNICAL Art & Design Open Day',
+    venue: 'UNICAL Gallery',
+    address: 'University of Calabar Gallery',
+    date: 'Fri',
+    time: '2:00 PM',
+    image: 'https://images.unsplash.com/photo-1536924940846-227afb31e858?auto=format&fit=crop&w=600&q=80',
+    tag: 'Students',
+    price: 'Free',
+    ticket: 0,
+    host: 'UNICAL Fine Arts Dept',
+    desc: 'Final-year portfolios, printmaking demos and a short film block from the design programme. Open to residents and families.',
+    lineup: ['Portfolio walk-through', 'Printmaking live', 'Short film block'],
+  },
+  {
+    id: 'e04',
+    title: 'Ekorinim Evening Football',
+    venue: 'Ekorinim Field',
+    address: 'Ekorinim Field, Calabar',
+    date: 'Sun',
+    time: '4:30 PM',
+    image: 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=600&q=80',
+    tag: 'Family',
+    price: '₦500 entry',
+    ticket: 500,
+    host: 'Ekorinim United',
+    desc: 'The neighbourhood derby under lights. Entry is ₦500 through CityOS — keke parking is free on the grass verge.',
+    lineup: ['Youths warm-up', 'Main derby', 'Kids penalty shootout'],
+  },
 ];
 
+export function getEvent(id: string): DemoEvent | undefined {
+  return DEMO_EVENTS.find((e) => e.id === id);
+}
+
 export interface AIResultItem {
-  type: 'business' | 'product' | 'property' | 'route';
+  type: 'business' | 'product' | 'property' | 'route' | 'hotel' | 'clinic';
   id: string;
 }
 
@@ -440,10 +947,27 @@ export interface AIScript {
 export const AI_SCRIPTS: AIScript[] = [
   {
     keywords: ['room', 'stay', 'hotel', '10,000', 'tonight'],
-    question: "Best place to stay under ₦10,000 near the stadium tonight?",
-    answer: 'For tonight around the stadium, the best fit on CityHouse is the Ekorinim Close studio — ₦13,150/mo equivalent, furnished, and a 12-minute ride from Bogobiri. It is the most-booked room this week. Want me to hold it, or compare the garden flat instead?',
-    results: [{ type: 'property', id: 'h04' }, { type: 'property', id: 'h01' }],
-    followUps: ['Hold the studio room', 'Compare 2-bedroom flats', 'Add a ride to the venue'],
+    question: 'Best place to stay under ₦10,000 near the stadium tonight?',
+    answer:
+      'For tonight near the stadium, Bogobiri Stadium Lodge is ₦9,200 with A/C, hot water and parking — four minutes walk from the grounds. If you would rather sleep quiet, Ekorinim Guest House is ₦8,500 with backup power all night. Beds are held with a small CityPay deposit and refunded at the front desk on arrival.',
+    results: [{ type: 'hotel', id: 'bogobiri-stadium-lodge' }, { type: 'hotel', id: 'ekorinim-guest' }],
+    followUps: ['Hold the stadium lodge', 'Compare the ₦8,500 guest house', 'Add a ride to the venue'],
+  },
+  {
+    keywords: ['doctor', 'clinic', 'hospital', 'care', 'pharmacist', 'malaria'],
+    question: 'Is there a clinic I can see today around Ekorinim?',
+    answer:
+      "Around Ekorinim, Shepherd’s Care Clinic has GP slots this afternoon — Dr Mercy Eyo, ₦3,500 consult, open until 8 PM. For labs or something more serious, Calabar General outpatient is on the Marina and takes same-day appointments through CityOS.",
+    results: [{ type: 'clinic', id: 'shepherds-care' }, { type: 'clinic', id: 'calabar-general' }],
+    followUps: ['Book Dr Mercy Eyo', 'See the general hospital', 'Order antimalarial for delivery'],
+  },
+  {
+    keywords: ['bill', 'electric', 'water', 'airtime', 'data', 'top up'],
+    question: 'How do I pay my electricity bill?',
+    answer:
+      'CityPay settles utility bills in-app — no queues, no airtime stress. Your PHEDC account shows ₦12,400 due and the Cross River Water Board is at ₦3,200. Pay from the Bills page and the credit lands instantly on your account reference.',
+    results: [],
+    followUps: ['Pay my PHEDC bill', 'Buy a data bundle', 'Check the water bill'],
   },
   {
     keywords: ['ogbono', 'soup', 'palm oil', 'crayfish', 'market'],

@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { Check, Truck, MapPin, Receipt, ChevronRight, PartyPopper } from 'lucide-react';
+import { Check, Truck, MapPin, Receipt, ChevronRight, PartyPopper, Wallet } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { fmtNaira } from '@/lib/demo/cityos';
 import { Pill } from '@/components/cityos/CityUI';
+import { useWallet } from '@/components/cityos/WalletStore';
 
 interface StoredOrder {
   ref: string;
@@ -19,6 +20,7 @@ interface StoredOrder {
 export default function PaymentSuccess() {
   const [order, setOrder] = useState<StoredOrder | null>(null);
   const [steps, setSteps] = useState(1);
+  const { balance } = useWallet();
 
   useEffect(() => {
     try {
@@ -116,6 +118,12 @@ export default function PaymentSuccess() {
             <span className="text-sm font-black text-ink">Total paid</span>
             <span className="text-2xl font-black text-ink">{fmtNaira(order.total)}</span>
           </div>
+          {order.method === 'wallet' ? (
+            <div className="flex justify-between items-center text-[13px] text-slate-500 font-medium">
+              <span className="inline-flex items-center gap-1.5"><Wallet className="w-3.5 h-3.5 text-teal-700" /> Wallet balance now</span>
+              <span className="font-black text-teal-900">{fmtNaira(balance)}</span>
+            </div>
+          ) : null}
         </div>
       </div>
 

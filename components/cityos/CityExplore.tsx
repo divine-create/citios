@@ -155,6 +155,18 @@ export default function CityExplore() {
           <Link href="/house" className="px-4 py-2 rounded-xl bg-white/10 ring-1 ring-white/20 text-white text-xs font-black hover:bg-white/20 transition-colors">
             CityHouse
           </Link>
+          <Link href="/tasks" className="px-4 py-2 rounded-xl bg-white/10 ring-1 ring-white/20 text-white text-xs font-black hover:bg-white/20 transition-colors">
+            Services
+          </Link>
+          <Link href="/bills" className="px-4 py-2 rounded-xl bg-white/10 ring-1 ring-white/20 text-white text-xs font-black hover:bg-white/20 transition-colors">
+            Bills & Airtime
+          </Link>
+          <Link href="/stay" className="px-4 py-2 rounded-xl bg-white/10 ring-1 ring-white/20 text-white text-xs font-black hover:bg-white/20 transition-colors">
+            Hotels Tonight
+          </Link>
+          <Link href="/care" className="px-4 py-2 rounded-xl bg-white/10 ring-1 ring-white/20 text-white text-xs font-black hover:bg-white/20 transition-colors">
+            Clinics
+          </Link>
           <Link href="/ai" className="px-4 py-2 rounded-xl bg-white/10 ring-1 ring-white/20 text-white text-xs font-black hover:bg-white/20 transition-colors inline-flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5" /> Ask AI
           </Link>

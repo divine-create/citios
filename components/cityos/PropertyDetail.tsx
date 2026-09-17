@@ -1,12 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { BedDouble, Bath, Building2, MapPin, ShieldCheck, ChevronRight, BadgeCheck } from 'lucide-react';
+import { useState } from 'react';
+import { BedDouble, Bath, Building2, MapPin, ShieldCheck, ChevronRight, BadgeCheck, Eye, Check } from 'lucide-react';
 import { getProperty, fmtNaira } from '@/lib/demo/cityos';
 import { FallbackImg, Pill, LocationRow, DemoBanner } from '@/components/cityos/CityUI';
+import { cn } from '@/lib/utils';
 
 export default function PropertyDetail({ id }: { id: string }) {
   const p = getProperty(id);
+  const [requested, setRequested] = useState(false);
 
   if (!p) {
     return (
@@ -60,8 +63,15 @@ export default function PropertyDetail({ id }: { id: string }) {
           <Link href={`/house/${p.id}/pay`} className="px-5 py-3 rounded-xl bg-teal-800 hover:bg-teal-900 text-white text-xs font-black transition-colors shadow-sm inline-flex items-center gap-1.5">
             Pay via CityPay <ChevronRight className="w-4 h-4" />
           </Link>
-          <button className="px-4 py-3 rounded-xl bg-slate-50 ring-1 ring-slate-200 text-slate-700 text-xs font-black hover:ring-teal-300 transition-all">
-            Contact landlord
+          <button
+            onClick={() => setRequested(true)}
+            disabled={requested}
+            className={cn(
+              'px-4 py-3 rounded-xl text-xs font-black transition-all inline-flex items-center gap-1.5',
+              requested ? 'bg-emerald-600 text-white' : 'bg-slate-50 ring-1 ring-slate-200 text-slate-700 hover:ring-teal-300',
+            )}
+          >
+            {requested ? (<><Check className="w-4 h-4" /> Request sent</>) : (<><Eye className="w-4 h-4" /> Request viewing</>)}
           </button>
         </div>
       </div>
