@@ -24,7 +24,7 @@ export default function ReceiptModal({ orderId, onClose }: ReceiptModalProps) {
     return (
       <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl p-8 shadow-2xl flex flex-col items-center">
-          <Loader2 className="animate-spin text-blue-500 mb-4" size={32} />
+          <Loader2 className="animate-spin text-brand-600 mb-4" size={32} />
           <p className="text-slate-600 font-medium">Generating Receipt...</p>
         </div>
       </div>
@@ -126,9 +126,9 @@ export default function ReceiptModal({ orderId, onClose }: ReceiptModalProps) {
             <Printer size={18} />
             Print
           </button>
-          <button 
+<button 
             onClick={onClose}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors shadow-lg shadow-blue-500/30"
+            className="flex-1 bg-brand-700 hover:bg-brand-800 text-white px-4 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors shadow-lg shadow-brand-700/30"
           >
             <CheckCircle2 size={18} />
             Done

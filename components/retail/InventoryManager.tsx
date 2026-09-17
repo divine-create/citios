@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Plus, Search, Edit2, Trash2, ArrowUpDown, Package, AlertTriangle, X, Upload, Loader2, FolderTree } from "lucide-react";
-import { createProduct, updateProduct, deleteProduct, createCategory, updateCategory, deleteCategory, getRetailSettings } from "@/lib/actions/retail";
+import { Plus, Search, Edit2, Trash2, ArrowUpDown, Package, AlertTriangle, X, Upload, Loader2, FolderTree, History, ArrowUpFromLine } from "lucide-react";
+import { createProduct, updateProduct, deleteProduct, createCategory, updateCategory, deleteCategory, getRetailSettings, adjustStock, getStockMovements } from "@/lib/actions/retail";
 import { uploadAsset } from "@/lib/actions/microsite";
+import { PillTabs, inputCls, selectCls } from "./ShopUI";
 
 interface Product {
   id: string;
@@ -42,21 +43,26 @@ interface Category {
 
 const EMPTY_FORM = { name: "", sku: "", barcode: "", categoryId: "", price: "", cost: "", stockQuantity: "", lowStockLevel: "", isWeighed: false, unit: "ea" };
 
-export default function InventoryManager({ organizationId, products, categories, onChanged }: {
+export default function InventoryManager({ organizationId, products, categories, onChanged, symbol = "$" }: {
   organizationId: string;
   products: Product[];
   categories: Category[];
   onChanged: () => void;
+  symbol?: string;
 }) {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<"PRODUCTS" | "CATEGORIES">("PRODUCTS");
   const [customUnits, setCustomUnits] = useState<string[]>(['ea', 'lb', 'kg', 'pack', 'box']);
+  const [currencySymbol, setCurrencySymbol] = useState<string>(symbol);
 
   useEffect(() => {
     async function loadSettings() {
       const settings = await getRetailSettings(organizationId);
       if (settings?.customUnits) {
         setCustomUnits(JSON.parse(settings.customUnits));
+      }
+      if (settings?.currencySymbol) {
+        setCurrencySymbol(settings.currencySymbol);
       }
     }
     loadSettings();
@@ -71,11 +77,56 @@ export default function InventoryManager({ organizationId, products, categories,
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Category State
+// Category State
   const [isCatModalOpen, setIsCatModalOpen] = useState(false);
   const [editCatId, setEditCatId] = useState<string | null>(null);
   const [catName, setCatName] = useState("");
   const [catDesc, setCatDesc] = useState("");
+
+  // Stock ledger state (Phase 3)
+  const [historyProduct, setHistoryProduct] = useState<Product | null>(null);
+  const [movements, setMovements] = useState<any[]>([]);
+  const [loadingMovements, setLoadingMovements] = useState(false);
+  const [adjustProduct, setAdjustProduct] = useState<Product | null>(null);
+  const [adjustDelta, setAdjustDelta] = useState("");
+  const [adjustNote, setAdjustNote] = useState("");
+  const [adjustError, setAdjustError] = useState<string | null>(null);
+  const [isAdjusting, setIsAdjusting] = useState(false);
+
+  const openHistory = async (p: Product) => {
+    setHistoryProduct(p);
+    setMovements([]);
+    setLoadingMovements(true);
+    try {
+      const rows = await getStockMovements(organizationId, p.id);
+      setMovements(rows);
+    } finally {
+      setLoadingMovements(false);
+    }
+  };
+
+  const openAdjust = (p: Product) => {
+    setAdjustProduct(p);
+    setAdjustDelta("");
+    setAdjustNote("");
+    setAdjustError(null);
+  };
+
+  const submitAdjust = async () => {
+    if (!adjustProduct) return;
+    setAdjustError(null);
+    const delta = parseFloat(adjustDelta);
+    if (isNaN(delta) || delta === 0) { setAdjustError("Enter a quantity change (+ receives, − removes)."); return; }
+    setIsAdjusting(true);
+    try {
+      const res = await adjustStock(adjustProduct.id, delta, adjustNote.trim() || undefined);
+      if ((res as any)?.error) { setAdjustError((res as any).error); return; }
+      setAdjustProduct(null);
+      onChanged();
+    } finally {
+      setIsAdjusting(false);
+    }
+  };
 
   const filteredProducts = products.filter(
     (p) =>
@@ -222,27 +273,19 @@ export default function InventoryManager({ organizationId, products, categories,
 
   return (
     <div className="p-8 max-w-7xl mx-auto h-full flex flex-col">
-      <div className="flex items-center justify-between mb-8">
+<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">Products & Inventory</h2>
-          <div className="flex gap-4 mt-3">
-            <button
-              onClick={() => setActiveTab("PRODUCTS")}
-              className={`text-sm font-bold pb-2 border-b-2 transition-colors ${activeTab === 'PRODUCTS' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-            >
-              Products
-            </button>
-            <button
-              onClick={() => setActiveTab("CATEGORIES")}
-              className={`text-sm font-bold pb-2 border-b-2 transition-colors ${activeTab === 'CATEGORIES' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-            >
-              Categories
-            </button>
-          </div>
+          <h2 className="text-2xl font-black text-ink">Products & Inventory</h2>
+          <PillTabs
+            tabs={[{ value: "PRODUCTS", label: "Products" }, { value: "CATEGORIES", label: "Categories" }]}
+            active={activeTab}
+            onChange={setActiveTab}
+            className="mt-4"
+          />
         </div>
         <button
           onClick={activeTab === 'PRODUCTS' ? openAdd : openCatAdd}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-bold transition-colors shadow-sm mt-2"
+          className="flex items-center gap-2 bg-brand-700 hover:bg-brand-800 text-white px-5 py-2.5 rounded-lg font-bold transition-colors shadow-sm shadow-brand-700/25 mt-2"
         >
           <Plus size={18} /> {activeTab === 'PRODUCTS' ? 'Add Product' : 'Add Category'}
         </button>
@@ -251,34 +294,34 @@ export default function InventoryManager({ organizationId, products, categories,
       {activeTab === 'PRODUCTS' && (
         <>
           {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 flex-shrink-0">
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
+<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 flex-shrink-0">
+        <div className="bg-white p-5 rounded-xl border border-slate-200 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-brand-100 text-brand-800 flex items-center justify-center">
             <Package size={24} />
           </div>
           <div>
             <p className="text-sm font-medium text-slate-500">Total Products</p>
-            <p className="text-2xl font-bold text-slate-800">{products.length}</p>
+            <p className="text-2xl font-black text-ink">{products.length}</p>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center">
+        <div className="bg-white p-5 rounded-xl border border-slate-200 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
             <ArrowUpDown size={24} />
           </div>
           <div>
             <p className="text-sm font-medium text-slate-500">Total Inventory Value</p>
-            <p className="text-2xl font-bold text-slate-800">${totalValue.toFixed(2)}</p>
+            <p className="text-2xl font-black text-ink">{currencySymbol}{totalValue.toFixed(2)}</p>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-xl border border-red-100 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center">
+        <div className="bg-white p-5 rounded-xl border border-red-100 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-red-100 text-red-700 flex items-center justify-center">
             <AlertTriangle size={24} />
           </div>
           <div>
             <p className="text-sm font-medium text-slate-500">Low Stock Alerts</p>
-            <p className="text-2xl font-bold text-red-600">{lowStockCount} Items</p>
+            <p className="text-2xl font-black text-red-600">{lowStockCount} Items</p>
           </div>
         </div>
       </div>
@@ -292,7 +335,7 @@ export default function InventoryManager({ organizationId, products, categories,
             placeholder="Search by name, SKU, or barcode..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-shadow"
+            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-brand-600 focus:ring-1 focus:ring-brand-600 transition-shadow"
           />
         </div>
       </div>
@@ -334,8 +377,8 @@ export default function InventoryManager({ organizationId, products, categories,
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="font-bold text-slate-800">${item.price.toFixed(2)}{item.isWeighed ? `/${item.unit}` : ""}</div>
-                      <div className="text-xs text-slate-500 mt-0.5">Cost: {item.cost != null ? `$${item.cost.toFixed(2)}` : "—"}</div>
+<div className="font-bold text-slate-800">{currencySymbol}{item.price.toFixed(2)}{item.isWeighed ? `/${item.unit}` : ""}</div>
+                      <div className="text-xs text-slate-500 mt-0.5">Cost: {item.cost != null ? `${currencySymbol}${item.cost.toFixed(2)}` : "—"}</div>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className={`font-bold inline-flex items-center gap-1.5 ${isLowStock ? "text-red-600" : "text-slate-800"}`}>
@@ -344,9 +387,15 @@ export default function InventoryManager({ organizationId, products, categories,
                       </div>
                       <div className="text-xs text-slate-500 mt-0.5">Min: {item.lowStockLevel ?? "—"}</div>
                     </td>
-                    <td className="px-6 py-4 text-right">
+<td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
-                        <button onClick={() => openEdit(item)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
+                        <button title="Stock history" onClick={() => openHistory(item)} className="p-1.5 text-slate-400 hover:text-brand-700 hover:bg-brand-50 rounded-md transition-colors">
+                          <History size={16} />
+                        </button>
+                        <button title="Adjust stock" onClick={() => openAdjust(item)} className="p-1.5 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-md transition-colors">
+                          <ArrowUpFromLine size={16} />
+                        </button>
+                        <button onClick={() => openEdit(item)} className="p-1.5 text-slate-400 hover:text-brand-700 hover:bg-brand-50 rounded-md transition-colors">
                           <Edit2 size={16} />
                         </button>
                         <button onClick={() => remove(item.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors">
@@ -389,7 +438,7 @@ export default function InventoryManager({ organizationId, products, categories,
                     <tr key={cat.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-4 font-bold text-slate-800">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center"><FolderTree size={14} /></div>
+                          <div className="w-8 h-8 rounded-lg bg-brand-100 text-brand-800 flex items-center justify-center"><FolderTree size={14} /></div>
                           {cat.name}
                         </div>
                       </td>
@@ -397,7 +446,7 @@ export default function InventoryManager({ organizationId, products, categories,
                       <td className="px-6 py-4 text-slate-500">{prodCount}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2">
-                          <button onClick={() => openCatEdit(cat)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
+<button onClick={() => openCatEdit(cat)} className="p-1.5 text-slate-400 hover:text-brand-700 hover:bg-brand-50 rounded-md transition-colors">
                             <Edit2 size={16} />
                           </button>
                           <button onClick={() => removeCat(cat.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors">
@@ -436,7 +485,7 @@ export default function InventoryManager({ organizationId, products, categories,
               )}
               <div className="col-span-2 space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase">Product Name</label>
-                <input type="text" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className="w-full p-2 border border-slate-200 rounded-lg" placeholder="e.g. Organic Bananas" />
+                <input type="text" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className={inputCls} placeholder="e.g. Organic Bananas" />
               </div>
               <div className="col-span-2 space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase">Photo</label>
@@ -455,7 +504,7 @@ export default function InventoryManager({ organizationId, products, categories,
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase">Category</label>
-                <select value={form.categoryId} onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))} className="w-full p-2 border border-slate-200 rounded-lg bg-white">
+                <select value={form.categoryId} onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))} className={selectCls}>
                   <option value="">Uncategorized</option>
                   {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
@@ -467,7 +516,7 @@ export default function InventoryManager({ organizationId, products, categories,
                   list="unit-suggestions"
                   value={form.unit} 
                   onChange={(e) => setForm((f) => ({ ...f, unit: e.target.value }))} 
-                  className="w-full p-2 border border-slate-200 rounded-lg" 
+                  className={inputCls} 
                   placeholder="ea"
                 />
                 <datalist id="unit-suggestions">
@@ -478,29 +527,29 @@ export default function InventoryManager({ organizationId, products, categories,
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase">SKU</label>
-                <input type="text" value={form.sku} onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))} className="w-full p-2 border border-slate-200 rounded-lg" placeholder="PRD-001" />
+                <input type="text" value={form.sku} onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))} className={inputCls} placeholder="PRD-001" />
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase">Barcode (UPC)</label>
-                <input type="text" value={form.barcode} onChange={(e) => setForm((f) => ({ ...f, barcode: e.target.value }))} className="w-full p-2 border border-slate-200 rounded-lg" placeholder="Scan or type..." />
+                <input type="text" value={form.barcode} onChange={(e) => setForm((f) => ({ ...f, barcode: e.target.value }))} className={inputCls} placeholder="Scan or type..." />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Selling Price ($)</label>
-                <input type="number" step="0.01" value={form.price} onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))} className="w-full p-2 border border-slate-200 rounded-lg" placeholder="0.00" />
+                <label className="text-xs font-bold text-slate-500 uppercase">Selling Price ({currencySymbol})</label>
+                <input type="number" step="0.01" value={form.price} onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))} className={inputCls} placeholder="0.00" />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Cost Price ($)</label>
-                <input type="number" step="0.01" value={form.cost} onChange={(e) => setForm((f) => ({ ...f, cost: e.target.value }))} className="w-full p-2 border border-slate-200 rounded-lg" placeholder="0.00" />
+                <label className="text-xs font-bold text-slate-500 uppercase">Cost Price ({currencySymbol})</label>
+                <input type="number" step="0.01" value={form.cost} onChange={(e) => setForm((f) => ({ ...f, cost: e.target.value }))} className={inputCls} placeholder="0.00" />
               </div>
               {!editId && (
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-500 uppercase">Initial Stock</label>
-                  <input type="number" value={form.stockQuantity} onChange={(e) => setForm((f) => ({ ...f, stockQuantity: e.target.value }))} className="w-full p-2 border border-slate-200 rounded-lg" placeholder="0" />
+                  <input type="number" value={form.stockQuantity} onChange={(e) => setForm((f) => ({ ...f, stockQuantity: e.target.value }))} className={inputCls} placeholder="0" />
                 </div>
               )}
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase">Low Stock Alert Level</label>
-                <input type="number" value={form.lowStockLevel} onChange={(e) => setForm((f) => ({ ...f, lowStockLevel: e.target.value }))} className="w-full p-2 border border-slate-200 rounded-lg" placeholder="0" />
+                <input type="number" value={form.lowStockLevel} onChange={(e) => setForm((f) => ({ ...f, lowStockLevel: e.target.value }))} className={inputCls} placeholder="0" />
               </div>
               <div className="col-span-2 flex items-center gap-2 pt-2">
                 <input type="checkbox" id="isWeighed" checked={form.isWeighed} onChange={(e) => setForm((f) => ({ ...f, isWeighed: e.target.checked }))} />
@@ -511,7 +560,7 @@ export default function InventoryManager({ organizationId, products, categories,
               <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 font-semibold text-slate-500 hover:bg-slate-100 rounded-lg transition-colors">
                 Cancel
               </button>
-              <button onClick={submit} disabled={isSaving} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-lg transition-colors">
+              <button onClick={submit} disabled={isSaving} className="px-6 py-2 bg-brand-700 hover:bg-brand-800 disabled:opacity-50 text-white font-bold rounded-lg transition-colors">
                 {isSaving ? "Saving..." : "Save Product"}
               </button>
             </div>
@@ -533,19 +582,130 @@ export default function InventoryManager({ organizationId, products, categories,
               {error && <div className="p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-100">{error}</div>}
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase">Category Name</label>
-                <input type="text" value={catName} onChange={(e) => setCatName(e.target.value)} className="w-full p-2 border border-slate-200 rounded-lg" placeholder="e.g. Produce" />
+                <input type="text" value={catName} onChange={(e) => setCatName(e.target.value)} className={inputCls} placeholder="e.g. Produce" />
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase">Description (Optional)</label>
-                <textarea value={catDesc} onChange={(e) => setCatDesc(e.target.value)} className="w-full p-2 border border-slate-200 rounded-lg" placeholder="Fresh fruits and vegetables..." rows={3} />
+                <textarea value={catDesc} onChange={(e) => setCatDesc(e.target.value)} className={inputCls} placeholder="Fresh fruits and vegetables..." rows={3} />
               </div>
             </div>
             <div className="p-4 border-t border-slate-100 flex justify-end gap-3 bg-white">
               <button onClick={() => setIsCatModalOpen(false)} className="px-4 py-2 font-semibold text-slate-500 hover:bg-slate-100 rounded-lg transition-colors">
                 Cancel
               </button>
-              <button onClick={submitCat} disabled={isSaving} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-lg transition-colors">
+              <button onClick={submitCat} disabled={isSaving} className="px-6 py-2 bg-brand-700 hover:bg-brand-800 disabled:opacity-50 text-white font-bold rounded-lg transition-colors">
                 {isSaving ? "Saving..." : "Save Category"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+{/* STOCK HISTORY MODAL */}
+      {historyProduct && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-bold text-lg text-slate-800">Stock History — {historyProduct.name}</h3>
+              <button onClick={() => setHistoryProduct(null)} className="text-slate-400 hover:text-slate-600">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-6 bg-slate-50 max-h-[70vh] overflow-y-auto">
+              <p className="text-sm text-slate-500 mb-4">
+                Current stock: <span className="font-bold text-slate-800">{historyProduct.stockQuantity} {historyProduct.unit}</span>
+              </p>
+              {loadingMovements ? (
+                <div className="flex items-center gap-2 text-sm text-slate-400"><Loader2 size={16} className="animate-spin" /> Loading movements…</div>
+              ) : movements.length === 0 ? (
+                <p className="text-sm text-slate-400">No stock movements recorded yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {movements.map((m) => {
+                    const reasonStyles: Record<string, string> = {
+                      SALE: "bg-blue-100 text-blue-700",
+                      REFUND: "bg-slate-200 text-slate-700",
+                      ADJUSTMENT: "bg-amber-100 text-amber-700",
+                      RECEIVED: "bg-emerald-100 text-emerald-700",
+                    };
+                    return (
+                      <div key={m.id} className="flex items-center justify-between bg-white border border-slate-200 rounded-lg px-4 py-3 text-sm">
+                        <div className="flex items-center gap-3">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${reasonStyles[m.reason] ?? "bg-slate-100 text-slate-600"}`}>
+                            {m.reason}
+                          </span>
+                          <span className={`font-bold ${m.delta > 0 ? "text-emerald-600" : "text-red-600"}`}>
+                            {m.delta > 0 ? `+${m.delta}` : m.delta}
+                          </span>
+                          <span className="text-slate-400 text-xs">
+                            {m.beforeQty} → {m.afterQty}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-xs text-slate-500">{m.note || m.reason}</div>
+                          <div className="text-xs text-slate-400">{new Date(m.createdAt).toLocaleString()}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <div className="p-4 border-t border-slate-100 flex justify-end bg-white">
+              <button onClick={() => setHistoryProduct(null)} className="px-4 py-2 font-semibold text-slate-500 hover:bg-slate-100 rounded-lg transition-colors">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ADJUST STOCK MODAL */}
+      {adjustProduct && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-bold text-lg text-slate-800">Adjust Stock — {adjustProduct.name}</h3>
+              <button onClick={() => setAdjustProduct(null)} className="text-slate-400 hover:text-slate-600">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4 bg-slate-50">
+              {adjustError && <div className="p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-100">{adjustError}</div>}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500 uppercase">Change (+ receive / − remove)</label>
+                <input
+                  type="number"
+                  step="any"
+                  value={adjustDelta}
+                  onChange={(e) => setAdjustDelta(e.target.value)}
+                  className={inputCls}
+                  placeholder="e.g. 10 or -2"
+                />
+              </div>
+              <div className="text-sm text-slate-500">
+                Resulting stock:{" "}
+                <span className={`font-bold ${(adjustProduct.stockQuantity + (parseFloat(adjustDelta) || 0)) < 0 ? "text-red-600" : "text-slate-800"}`}>
+                  {adjustProduct.stockQuantity + (parseFloat(adjustDelta) || 0)} {adjustProduct.unit}
+                </span>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500 uppercase">Reason / Note (Optional)</label>
+                <textarea
+                  value={adjustNote}
+                  onChange={(e) => setAdjustNote(e.target.value)}
+                  className={inputCls}
+                  placeholder="e.g. Damaged goods written off, stocktake correction, received from supplier…"
+                  rows={2}
+                />
+              </div>
+              <p className="text-xs text-slate-400">Every adjustment is written to the stock ledger with who made it and why.</p>
+            </div>
+            <div className="p-4 border-t border-slate-100 flex justify-end gap-3 bg-white">
+              <button onClick={() => setAdjustProduct(null)} className="px-4 py-2 font-semibold text-slate-500 hover:bg-slate-100 rounded-lg transition-colors">
+                Cancel
+              </button>
+              <button onClick={submitAdjust} disabled={isAdjusting} className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-lg transition-colors">
+                {isAdjusting ? "Saving..." : "Adjust Stock"}
               </button>
             </div>
           </div>

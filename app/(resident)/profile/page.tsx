@@ -1,8 +1,5 @@
-import ProfileView from '@/components/ProfileView';
-import { getProfileAndWallet } from '@/lib/actions/profile';
+import CityProfile from '@/components/cityos/CityProfile';
 
-export default async function ProfilePage() {
-    const data = await getProfileAndWallet();
-    
-    return <ProfileView initialData={data} />;
+export default function ProfilePage() {
+    return <CityProfile />;
 }

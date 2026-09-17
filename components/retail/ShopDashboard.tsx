@@ -10,6 +10,7 @@ import {
   DollarSign,
   ArrowRightLeft,
   Truck,
+  ChevronDown,
   ChevronRight,
   Globe,
   Lock,
@@ -32,12 +33,31 @@ import {
   MapPin,
   UserPlus,
   Settings as SettingsIcon,
+  AlertTriangle,
+  Circle,
+  BarChart3,
+  Pencil,
+  TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
+import {
+  StatusPill,
+  Avatar,
+  ProgressBar,
+  SectionCard,
+  Modal,
+  Kbd,
+  btnPrimary,
+  btnOutline,
+  inputCls,
+  selectCls,
+} from "./ShopUI";
+import { getProfileAndWallet } from "@/lib/actions/profile";
 import POSTerminal from "./POSTerminal";
 import InventoryManager from "./InventoryManager";
 import Settings from "./Settings";
 import ShopOnboardingWidget from "./ShopOnboardingWidget";
+import GlobalSearch from "./GlobalSearch";
 import {
   getShopDashboardData,
   getProducts,
@@ -66,10 +86,21 @@ import {
   adjustLoyaltyPoints,
   getLocations,
   createLocation,
+  updateLocation,
+  deleteLocation,
   getStaff,
   addStaffMember,
+  updateStaffRole,
+  removeStaffMember,
+  getShopReports,
+  getRetailSettings,
+  getShopNotifications,
+  markShopNotificationsRead,
+  exportShopReport,
 } from "@/lib/actions/retail";
 import { uploadAsset } from "@/lib/actions/microsite";
+import DiscountsTab from "./DiscountsTab";
+import OnlineStoreTab from "./OnlineStoreTab";
 
 interface ShopDashboardProps {
   organizationId: string;
@@ -84,11 +115,52 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
     return "Dashboard";
   });
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [searchOpen, setSearchOpen] = useState(false);
+  const isGroupCollapsed = (label: string) => collapsedGroups.has(label);
+  const toggleGroup = (label: string) =>
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      return next;
+    });
   const [dashboard, setDashboard] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [registers, setRegisters] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [sessionName, setSessionName] = useState("Store User");
+  const [sessionEmail, setSessionEmail] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      const profile = await getProfileAndWallet();
+      if (profile?.user?.name) {
+        setSessionName(profile.user.name);
+        setSessionEmail(profile.user.email ?? "");
+      }
+    })();
+  }, []);
+
+  const loadNotifications = async () => {
+    const rows = await getShopNotifications(organizationId);
+    setNotifications(rows);
+  };
+
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
+
+  const markAllRead = async () => {
+    await markShopNotificationsRead(organizationId);
+    loadNotifications();
+  };
+
+  const markOneRead = async (id: string) => {
+    await markShopNotificationsRead(organizationId, id);
+    loadNotifications();
+  };
 
   const loadAll = async () => {
     const [dash, prods, cats, regs] = await Promise.all([
@@ -102,30 +174,89 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
     setCategories(cats);
     setRegisters(regs);
     setLoading(false);
+    loadNotifications();
   };
 
   useEffect(() => {
     loadAll();
     if (window.matchMedia("(max-width: 767px)").matches) setIsSidebarOpen(false);
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearchOpen((open) => !open);
+      } else if (e.key === "/" && !searchOpen && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const ALL_MENU_ITEMS = [
-    { label: "Dashboard", icon: LayoutDashboard, roles: ["OWNER", "MANAGER"] },
-    { label: "POS Terminal", icon: ShoppingCart, roles: ["OWNER", "MANAGER", "CASHIER"] },
-    { label: "Products & Inventory", icon: Package, roles: ["OWNER", "MANAGER", "INVENTORY_STAFF"] },
-    { label: "Sales & Returns", icon: ArrowRightLeft, roles: ["OWNER", "MANAGER", "CASHIER"] },
-    { label: "Customers", icon: Users, roles: ["OWNER", "MANAGER", "CASHIER"] },
-    { label: "Suppliers & POs", icon: Truck, roles: ["OWNER", "MANAGER", "INVENTORY_STAFF"] },
-    { label: "Cash & Shifts", icon: Store, roles: ["OWNER", "MANAGER", "CASHIER"] },
-    { label: "Expenses", icon: DollarSign, roles: ["OWNER", "MANAGER"] },
-    { label: "Locations", icon: MapPin, roles: ["OWNER", "MANAGER"] },
-    { label: "Staff", icon: UserPlus, roles: ["OWNER", "MANAGER"] },
-    { label: "Settings", icon: SettingsIcon, roles: ["OWNER", "MANAGER"] },
+  const NAV_GROUPS: { label: string; items: { label: string; icon: React.ComponentType<{ size?: number; className?: string }>; roles: string[] }[] }[] = [
+    {
+      label: "Overview",
+      items: [
+        { label: "Dashboard", icon: LayoutDashboard, roles: ["OWNER", "MANAGER"] },
+        { label: "Reports", icon: BarChart3, roles: ["OWNER", "MANAGER"] },
+      ],
+    },
+    {
+      label: "Sell",
+      items: [
+        { label: "POS Terminal", icon: ShoppingCart, roles: ["OWNER", "MANAGER", "CASHIER"] },
+        { label: "Sales & Returns", icon: ArrowRightLeft, roles: ["OWNER", "MANAGER", "CASHIER"] },
+      ],
+    },
+    {
+      label: "Catalog",
+      items: [
+        { label: "Products & Inventory", icon: Package, roles: ["OWNER", "MANAGER", "INVENTORY_STAFF"] },
+      ],
+    },
+    {
+      label: "Customers",
+      items: [
+        { label: "Customers", icon: Users, roles: ["OWNER", "MANAGER", "CASHIER"] },
+        { label: "Discounts", icon: Star, roles: ["OWNER", "MANAGER"] },
+      ],
+    },
+    {
+      label: "Operations",
+      items: [
+        { label: "Cash & Shifts", icon: Store, roles: ["OWNER", "MANAGER", "CASHIER"] },
+        { label: "Suppliers & POs", icon: Truck, roles: ["OWNER", "MANAGER", "INVENTORY_STAFF"] },
+        { label: "Expenses", icon: DollarSign, roles: ["OWNER", "MANAGER"] },
+        { label: "Locations", icon: MapPin, roles: ["OWNER", "MANAGER"] },
+      ],
+    },
+    {
+      label: "Grow",
+      items: [
+        { label: "Online Store", icon: Globe, roles: ["OWNER", "MANAGER"] },
+      ],
+    },
+    {
+      label: "Team",
+      items: [
+        { label: "Staff", icon: UserPlus, roles: ["OWNER", "MANAGER"] },
+      ],
+    },
+    {
+      label: "Admin",
+      items: [
+        { label: "Settings", icon: SettingsIcon, roles: ["OWNER", "MANAGER"] },
+      ],
+    },
   ];
 
-  const MENU_ITEMS = ALL_MENU_ITEMS.filter((item) => item.roles.includes(userRole));
+  const visibleGroups = NAV_GROUPS
+    .map((group) => ({ ...group, items: group.items.filter((item) => item.roles.includes(userRole)) }))
+    .filter((group) => group.items.length > 0);
   const openShiftData = dashboard?.openShift ?? null;
+  const currencySymbol = dashboard?.settings?.currencySymbol ?? "$";
+  const roleLabel = userRole === "OWNER" ? "Store Owner" : userRole === "MANAGER" ? "Store Manager" : userRole === "CASHIER" ? "Cashier" : "Inventory";
 
   return (
     <div className="flex h-screen bg-[#F4F7FC] text-slate-800 font-sans overflow-hidden">
@@ -134,48 +265,81 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
       )}
 
       <aside
-        className={`fixed md:static inset-y-0 left-0 z-40 md:z-20 bg-white text-slate-800 border-r border-slate-200 flex-shrink-0 transition-all duration-300 overflow-y-auto ${
+        className={`fixed md:static inset-y-0 left-0 z-40 md:z-20 bg-white text-slate-800 border-r border-slate-200 flex-shrink-0 transition-all duration-300 overflow-y-auto flex flex-col ${
           isSidebarOpen ? "translate-x-0 w-64" : "-translate-x-full w-64 md:translate-x-0 md:w-0"
         }`}
       >
         <div className="p-5 flex items-center gap-3 border-b border-slate-100 sticky top-0 bg-white z-10">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">S</div>
-          <span className="font-bold text-lg text-slate-800 tracking-tight">ShopOS</span>
+          <div className="w-9 h-9 bg-gradient-to-br from-brand-500 via-brand-600 to-brand-800 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-sm shadow-brand-600/30 flex-shrink-0">S</div>
+          <div className="leading-tight">
+            <span className="font-black text-lg text-ink tracking-tight block">ShopOS</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Retail Suite</span>
+          </div>
         </div>
 
-        <div className="p-4">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4 px-2">Store Management</p>
-          <ul className="space-y-1">
-            {MENU_ITEMS.map((item) => (
-              <li key={item.label}>
-                <button
-                  onClick={() => {
-                    setActiveMenu(item.label);
-                    if (window.matchMedia("(max-width: 767px)").matches) setIsSidebarOpen(false);
-                  }}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                    activeMenu === item.label ? "bg-blue-50 text-blue-600 font-medium" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                  }`}
-                >
-                  <item.icon size={18} className={activeMenu === item.label ? "text-blue-600" : "text-slate-400"} />
-                  {item.label}
-                </button>
-              </li>
-            ))}
-          </ul>
+        <div className="flex-1 p-4">
+          {visibleGroups.map((group) => (
+            <div key={group.label} className="mb-4">
+              <button
+                onClick={() => toggleGroup(group.label)}
+                className="w-full flex items-center justify-between group/edit text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 px-2 hover:text-slate-600"
+              >
+                {group.label}
+                <ChevronDown
+                  size={14}
+                  className={`text-slate-300 transition-transform duration-200 ${isGroupCollapsed(group.label) ? "-rotate-90" : ""}`}
+                />
+              </button>
+              {!isGroupCollapsed(group.label) && (
+                <ul className="space-y-0.5">
+                  {group.items.map((item) => (
+                    <li key={item.label}>
+                      <button
+                        onClick={() => {
+                          setActiveMenu(item.label);
+                          if (window.matchMedia("(max-width: 767px)").matches) setIsSidebarOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          activeMenu === item.label
+                            ? "bg-brand-50 text-brand-800"
+                            : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                        }`}
+                      >
+                        <item.icon size={18} className={activeMenu === item.label ? "text-brand-700" : "text-slate-400"} />
+                        {item.label}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
 
           {["OWNER", "MANAGER"].includes(userRole) && (
             <>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-8 mb-2 px-2 pt-4 border-t border-slate-100">Online Store</p>
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-6 mb-1.5 px-2 pt-4 border-t border-slate-100">Online Store</p>
               <Link
                 href={`/business/website?org=${organizationId}`}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-slate-600 hover:bg-slate-50 hover:text-slate-900"
               >
                 <Globe size={18} className="text-slate-400" />
                 Website Builder
               </Link>
             </>
           )}
+        </div>
+
+        <div className="p-4 border-t border-slate-100 bg-white">
+          <div className="flex items-center gap-3">
+            <Avatar name={sessionName} tone="brand" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-ink truncate">{sessionName}</p>
+              <p className="text-[11px] text-slate-400 truncate">{roleLabel}</p>
+            </div>
+            <StatusPill tone={userRole === "OWNER" ? "brand" : userRole === "MANAGER" ? "amber" : "slate"}>
+              {userRole === "OWNER" ? "Owner" : userRole === "MANAGER" ? "Manager" : "Staff"}
+            </StatusPill>
+          </div>
         </div>
       </aside>
 
@@ -189,13 +353,12 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
               <Menu size={20} />
             </button>
             <h1 className="font-bold text-lg text-slate-800 hidden md:block">{activeMenu}</h1>
-            <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-slate-100 rounded-lg text-sm text-slate-500 w-64 ml-4">
-              <Search size={16} />
-              <input 
-                type="text" 
-                placeholder="Search..." 
-                className="bg-transparent border-none outline-none w-full placeholder:text-slate-400 text-slate-700" 
-              />
+            <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-500 w-72 ml-4 focus-within:border-brand-600 focus-within:ring-2 focus-within:ring-brand-600/20 transition-all">
+              <button onClick={() => setSearchOpen(true)} className="w-full flex items-center gap-2 text-left">
+                <Search size={16} />
+                <span className="flex-1 text-slate-400">Search products, customers, orders...</span>
+                <Kbd>⌘K</Kbd>
+              </button>
             </div>
           </div>
 
@@ -209,15 +372,69 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
               {openShiftData ? `${openShiftData.registerName}: OPEN` : "No Register Open"}
             </div>
             
-            <button className="relative p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors hidden sm:block">
-              <Bell size={20} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+            <button onClick={() => setSearchOpen(true)} className="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors md:hidden">
+              <Search size={20} />
             </button>
 
-            <div className="flex items-center gap-3 pl-4 border-l border-slate-200 cursor-pointer">
-              <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
-                <User size={16} className="text-slate-600" />
+            <div className="relative">
+              <button
+                onClick={() => { setNotifOpen((o) => !o); if (!notifOpen) loadNotifications(); }}
+                className="relative p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors hidden sm:block"
+                title="Notifications"
+              >
+                <Bell size={20} />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-5 h-5 px-1 flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {notifOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
+                  <div className="absolute right-0 mt-2 w-96 bg-white border border-slate-200 rounded-xl shadow-2xl z-50 overflow-hidden">
+                    <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                      <h3 className="font-bold text-slate-800 text-sm">Notifications</h3>
+                      {unreadCount > 0 && (
+                        <button onClick={markAllRead} className="text-xs font-bold text-brand-700 hover:text-brand-800 transition-colors">
+                          Mark all read
+                        </button>
+                      )}
+                    </div>
+                    <div className="max-h-96 overflow-y-auto divide-y divide-slate-50">
+                      {notifications.length === 0 ? (
+                        <p className="px-4 py-8 text-center text-sm text-slate-400">No notifications yet.</p>
+                      ) : (
+                        notifications.slice(0, 30).map((n) => (
+                          <button
+                            key={n.id}
+                            onClick={() => markOneRead(n.id)}
+                            className={`w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors ${n.isRead ? "opacity-60" : ""}`}
+                          >
+                            <div className="flex items-start gap-2">
+                              {!n.isRead && <span className="mt-1.5 w-2 h-2 rounded-full bg-brand-600 flex-shrink-0" />}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-bold text-slate-800 truncate">{n.title}</p>
+                                {n.message && <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{n.message}</p>}
+                                <p className="text-[11px] text-slate-400 mt-1">{new Date(n.createdAt).toLocaleString()}</p>
+                              </div>
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
+              <div className="hidden sm:block text-right leading-tight">
+                <p className="text-sm font-bold text-ink max-w-36 truncate">{sessionName}</p>
+                <p className="text-[11px] text-slate-400 truncate">{roleLabel}</p>
               </div>
+              <Avatar name={sessionName} tone="brand" />
             </div>
           </div>
         </header>
@@ -227,72 +444,272 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
             <div className="p-10 text-center text-slate-400 flex items-center justify-center gap-2"><Loader2 className="animate-spin" size={20} /> Loading...</div>
           ) : (
             <>
-              {activeMenu === "Dashboard" && (
-                <div className="p-8">
-                  {dashboard?.settings && (
-                    <ShopOnboardingWidget 
-                      settings={dashboard.settings} 
-                      organizationId={organizationId} 
-                      onNavigate={(tab) => setActiveMenu(tab)} 
-                    />
-                  )}
-                  <h2 className="text-2xl font-bold text-slate-800 mb-6">Today's Overview</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <StatCard label="Gross Sales" value={`$${dashboard.grossSales.toFixed(2)}`} />
-                    <StatCard label="Transactions" value={String(dashboard.transactions)} />
-                    <StatCard label="Refunds" value={`$${dashboard.refunds.toFixed(2)}`} />
-                    <StatCard label="Net Sales" value={`$${dashboard.netSales.toFixed(2)}`} />
-                  </div>
-                  {dashboard.lowStockCount > 0 && (
-                    <div className="mt-6 bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-lg text-sm">
-                      {dashboard.lowStockCount} product{dashboard.lowStockCount === 1 ? "" : "s"} at or below their low-stock threshold — check Products & Inventory.
-                    </div>
-                  )}
-                </div>
-              )}
+              {activeMenu === "Dashboard" && <DashboardView dashboard={dashboard} organizationId={organizationId} setActiveMenu={setActiveMenu} />}
 
               {activeMenu === "POS Terminal" && (
                 openShiftData ? (
                   <POSTerminal organizationId={organizationId} products={products} shiftId={openShiftData.id} onOrderComplete={loadAll} />
                 ) : (
-                  <OpenShiftPrompt organizationId={organizationId} registers={registers} currentUserId={currentUserId} onOpened={loadAll} />
+                  <OpenShiftPrompt organizationId={organizationId} registers={registers} currentUserId={currentUserId} onOpened={loadAll} symbol={currencySymbol} />
                 )
               )}
 
               {activeMenu === "Products & Inventory" && (
-                <InventoryManager organizationId={organizationId} products={products} categories={categories} onChanged={loadAll} />
+                <InventoryManager organizationId={organizationId} products={products} categories={categories} onChanged={loadAll} symbol={currencySymbol} />
               )}
 
               {activeMenu === "Cash & Shifts" && (
-                <ShiftsTab organizationId={organizationId} registers={registers} openShift={openShiftData} currentUserId={currentUserId} onChanged={loadAll} />
+                <ShiftsTab organizationId={organizationId} registers={registers} openShift={openShiftData} currentUserId={currentUserId} onChanged={loadAll} symbol={currencySymbol} />
               )}
 
-              {activeMenu === "Suppliers & POs" && <SuppliersTab organizationId={organizationId} />}
+              {activeMenu === "Suppliers & POs" && <SuppliersTab organizationId={organizationId} symbol={currencySymbol} />}
 
-              {activeMenu === "Expenses" && <ExpensesTab organizationId={organizationId} currentUserId={currentUserId} />}
+              {activeMenu === "Expenses" && <ExpensesTab organizationId={organizationId} currentUserId={currentUserId} symbol={currencySymbol} />}
 
               {activeMenu === "Settings" && <Settings organizationId={organizationId} />}
 
-              {activeMenu === "Sales & Returns" && <SalesReturnsTab organizationId={organizationId} currentUserId={currentUserId} onChanged={loadAll} />}
+              {activeMenu === "Sales & Returns" && <SalesReturnsTab organizationId={organizationId} currentUserId={currentUserId} onChanged={loadAll} symbol={currencySymbol} />}
 
-              {activeMenu === "Customers" && <CustomersTab organizationId={organizationId} />}
+              {activeMenu === "Customers" && <CustomersTab organizationId={organizationId} symbol={currencySymbol} />}
+
+              {activeMenu === "Discounts" && <DiscountsTab organizationId={organizationId} symbol={currencySymbol} />}
+
+              {activeMenu === "Online Store" && <OnlineStoreTab organizationId={organizationId} onChanged={loadAll} />}
 
               {activeMenu === "Locations" && <LocationsTab organizationId={organizationId} />}
 
-              {activeMenu === "Staff" && <StaffTab organizationId={organizationId} />}
+              {activeMenu === "Staff" && <StaffTab organizationId={organizationId} userRole={userRole} />}
+
+              {activeMenu === "Reports" && <ReportsTab organizationId={organizationId} setActiveMenu={setActiveMenu} />}
             </>
           )}
         </div>
       </main>
+
+      {searchOpen && <GlobalSearch organizationId={organizationId} onClose={() => setSearchOpen(false)} onNavigate={(tab) => setActiveMenu(tab)} />}
     </div>
   );
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function StatCard({ label, value, icon: Icon, tone = "brand", sub }: {
+  label: string;
+  value: string;
+  icon?: React.ComponentType<{ size?: number; className?: string }>;
+  tone?: "brand" | "blue" | "emerald" | "amber" | "purple" | "red" | "slate";
+  sub?: string;
+}) {
+  const TONES: Record<string, string> = {
+    brand: "bg-brand-100 text-brand-800",
+    blue: "bg-blue-100 text-blue-700",
+    emerald: "bg-emerald-100 text-emerald-700",
+    amber: "bg-amber-100 text-amber-700",
+    purple: "bg-purple-100 text-purple-700",
+    red: "bg-red-100 text-red-700",
+    slate: "bg-slate-100 text-slate-600",
+  };
   return (
-    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-      <p className="text-sm font-medium text-slate-500">{label}</p>
-      <p className="text-3xl font-bold text-slate-800 mt-2">{value}</p>
+    <div className="bg-white p-5 rounded-xl border border-slate-200 flex items-center gap-4">
+      {Icon && (
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${TONES[tone]}`}>
+          <Icon size={22} />
+        </div>
+      )}
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-slate-500 truncate">{label}</p>
+        <p className="text-2xl font-black text-ink tracking-tight mt-0.5 truncate">{value}</p>
+        {sub && <p className="text-xs text-slate-400 mt-0.5 truncate">{sub}</p>}
+      </div>
+    </div>
+  );
+}
+
+// =====================================================================
+// Dashboard (today's overview + real, derived activity)
+// =====================================================================
+
+function DashboardView({ dashboard, organizationId, setActiveMenu }: { dashboard: any; organizationId: string; setActiveMenu: (tab: string) => void }) {
+  const symbol = dashboard?.settings?.currencySymbol ?? "$";
+  const money = (v: number) => `${symbol}${(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const orderRef = (id: string) => `#${id.slice(0, 8)}`;
+
+  return (
+    <div className="p-6 lg:p-8">
+      {dashboard?.settings && (
+        <ShopOnboardingWidget
+          settings={dashboard.settings}
+          organizationId={organizationId}
+          onNavigate={(tab) => setActiveMenu(tab)}
+        />
+      )}
+
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6">
+        <div>
+          <h2 className="text-2xl font-black text-ink tracking-tight">Welcome back</h2>
+          <p className="text-sm text-slate-500 mt-0.5">
+            {dashboard.settings?.storeName ?? "Your store"} · Here&apos;s what&apos;s happening today.
+          </p>
+        </div>
+        <button onClick={() => setActiveMenu("POS Terminal")} className={btnPrimary}>
+          <Plus size={16} /> New Sale
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-5">
+        <StatCard label="Gross Sales" value={money(dashboard.grossSales)} icon={DollarSign} tone="brand" sub="Completed today" />
+        <StatCard label="Transactions" value={String(dashboard.transactions)} icon={ShoppingCart} tone="purple" sub="Sales today" />
+        <StatCard label="New Customers" value={String(dashboard.newCustomersToday)} icon={Users} tone="emerald" sub="Added today" />
+        <StatCard label="Net Sales" value={money(dashboard.netSales)} icon={TrendingUp} tone="amber" sub="After refunds" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-5">
+        <SectionCard
+          title={<span className="flex items-center gap-2"><Package size={15} className="text-brand-700" /> Top Products</span>}
+          action={<button onClick={() => setActiveMenu("Products & Inventory")} className="text-xs font-bold text-brand-700 hover:text-brand-800 transition-colors">View all</button>}
+        >
+          {dashboard.topProducts.length === 0 ? (
+            <EmptyState
+              icon={Package}
+              title="No best sellers yet"
+              message="Ring up your first sale at the register and your top products will appear here."
+              cta="Open POS"
+              onCta={() => setActiveMenu("POS Terminal")}
+            />
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {dashboard.topProducts.map((p: any, i: number) => (
+                <li key={p.productId} className="px-5 py-3 flex items-center gap-3 hover:bg-slate-50 transition-colors">
+                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${i === 0 ? "bg-brand-100 text-brand-800" : "bg-slate-100 text-slate-500"}`}>{i + 1}</span>
+                  <span className="flex-1 text-sm font-semibold text-ink truncate">{p.name}</span>
+                  <span className="text-xs text-slate-500">{p.units} {p.units === 1 ? "unit" : "units"}</span>
+                  <span className="text-sm font-bold text-ink w-24 text-right">{money(p.revenue)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </SectionCard>
+
+        <SectionCard
+          title={<span className="flex items-center gap-2"><ShoppingCart size={15} className="text-brand-700" /> Recent Orders</span>}
+          action={<button onClick={() => setActiveMenu("Sales & Returns")} className="text-xs font-bold text-brand-700 hover:text-brand-800 transition-colors">View all</button>}
+        >
+          {dashboard.recentOrders.length === 0 ? (
+            <EmptyState
+              icon={ShoppingCart}
+              title="No orders yet"
+              message="Completed orders show up here so you can see activity at a glance."
+              cta="Open POS"
+              onCta={() => setActiveMenu("POS Terminal")}
+            />
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {dashboard.recentOrders.map((o: any) => (
+                <li key={o.id} className="px-5 py-3 flex items-center gap-3 hover:bg-slate-50 transition-colors">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-ink">{orderRef(o.id)}</p>
+                    <p className="text-xs text-slate-500 truncate">{o.cashierName} · {o.items.length} item{o.items.length === 1 ? "" : "s"}</p>
+                  </div>
+                  <StatusPill tone={o.status === "REFUNDED" ? "red" : "emerald"}>{o.status}</StatusPill>
+                  <span className="text-sm font-bold text-ink w-20 text-right">{money(o.totalAmount)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </SectionCard>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mt-5">
+        <SectionCard
+          title={<span className="flex items-center gap-2"><AlertTriangle size={15} className="text-amber-500" /> Inventory Watch</span>}
+          action={<button onClick={() => setActiveMenu("Products & Inventory")} className="text-xs font-bold text-brand-700 hover:text-brand-800 transition-colors">Manage stock</button>}
+        >
+          {dashboard.lowStockProducts.length === 0 ? (
+            <EmptyState icon={CheckCircle2} title="All stocked up" message="No products are at or below their low-stock threshold." />
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {dashboard.lowStockProducts.map((p: any) => (
+                <li key={p.id} className="px-5 py-3 flex items-center gap-3">
+                  <AlertTriangle size={16} className="text-amber-500 flex-shrink-0" />
+                  <span className="flex-1 text-sm font-semibold text-ink truncate">{p.name}</span>
+                  <span className="text-xs text-slate-500">
+                    {p.stockQuantity} {p.unit} left <span className="text-amber-600 font-semibold">(min {p.lowStockLevel})</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </SectionCard>
+
+        <SectionCard title="Store at a Glance">
+          <dl className="p-5 space-y-3 text-sm">
+            <div className="flex justify-between">
+              <dt className="text-slate-500">Products in catalog</dt>
+              <dd className="font-bold text-ink">{dashboard.totalProducts}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-slate-500">All-time orders</dt>
+              <dd className="font-bold text-ink">{dashboard.totalCompletedOrders} completed</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-slate-500">Refunded orders</dt>
+              <dd className="font-bold text-ink">{dashboard.totalOrders - dashboard.totalCompletedOrders}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-slate-500">Register</dt>
+              <dd className="font-bold">
+                {dashboard.openShift ? (
+                  <span className="inline-flex items-center gap-1.5 text-emerald-700"><span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> {dashboard.openShift.registerName} OPEN</span>
+                ) : (
+                  <span className="text-slate-400">No register open</span>
+                )}
+              </dd>
+            </div>
+          </dl>
+        </SectionCard>
+
+        <SectionCard title="Launch Checklist">
+          <ul className="p-5 space-y-2.5">
+            {[
+              { done: dashboard.settings?.hasProducts, label: "Add products to your store", tab: "Products & Inventory" },
+              { done: dashboard.settings?.hasSetPayment, label: "Set up how you receive payments", tab: "Settings" },
+              { done: dashboard.settings?.hasShippingPrices, label: "Add shipping prices to your website", tab: "Settings" },
+              { done: dashboard.settings?.hasStoreInfo, label: "Complete store information", tab: "Settings" },
+            ].map((step) => (
+              <li key={step.label} className="flex items-center gap-2.5">
+                {step.done ? <CheckCircle2 size={16} className="text-emerald-500 flex-shrink-0" /> : <Circle size={16} className="text-slate-300 flex-shrink-0" />}
+                <span className={`text-sm flex-1 ${step.done ? "text-slate-400 line-through" : "text-slate-700"}`}>{step.label}</span>
+                {!step.done && <button onClick={() => setActiveMenu(step.tab)} className="text-xs font-bold text-brand-700 hover:text-brand-800 transition-colors">Do it</button>}
+              </li>
+            ))}
+          </ul>
+        </SectionCard>
+      </div>
+    </div>
+  );
+}
+
+// =====================================================================
+// Empty state (shared — "never faked" rules: only rendered with no data)
+// =====================================================================
+
+function EmptyState({ icon: Icon, title, message, cta, onCta }: {
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  title: string;
+  message: string;
+  cta?: string;
+  onCta?: () => void;
+}) {
+  return (
+    <div className="p-8 text-center">
+      <div className="w-12 h-12 mx-auto rounded-xl bg-brand-50 flex items-center justify-center mb-3">
+        <Icon size={22} className="text-brand-700" />
+      </div>
+      <p className="font-bold text-ink">{title}</p>
+      <p className="text-sm text-slate-500 mt-1 max-w-xs mx-auto">{message}</p>
+      {cta && onCta && (
+        <button onClick={onCta} className={`${btnPrimary} mt-4`}>
+          {cta} <ChevronRight size={14} />
+        </button>
+      )}
     </div>
   );
 }
@@ -301,8 +718,8 @@ function StatCard({ label, value }: { label: string; value: string }) {
 // Open Shift prompt (POS is gated behind an open register shift)
 // =====================================================================
 
-function OpenShiftPrompt({ organizationId, registers, currentUserId, onOpened }: {
-  organizationId: string; registers: any[]; currentUserId: string; onOpened: () => void;
+function OpenShiftPrompt({ organizationId, registers, currentUserId, onOpened, symbol = "$" }: {
+  organizationId: string; registers: any[]; currentUserId: string; onOpened: () => void; symbol?: string;
 }) {
   const [registerId, setRegisterId] = useState(registers[0]?.id ?? "");
   const [openingFloat, setOpeningFloat] = useState("100");
@@ -338,15 +755,15 @@ function OpenShiftPrompt({ organizationId, registers, currentUserId, onOpened }:
   return (
     <div className="p-8 flex items-center justify-center h-full">
       <div className="bg-white border border-slate-200 rounded-2xl p-8 max-w-md w-full text-center space-y-4 shadow-sm">
-        <div className="w-14 h-14 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto"><Lock size={28} /></div>
-        <h3 className="font-bold text-slate-800 text-lg">No Register Open</h3>
+        <div className="w-14 h-14 bg-brand-50 text-brand-700 rounded-xl flex items-center justify-center mx-auto"><Lock size={28} /></div>
+        <h3 className="font-black text-ink text-lg">No Register Open</h3>
         <p className="text-sm text-slate-500">Open a register shift to start ringing up sales.</p>
         {error && <div className="p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-100 text-left">{error}</div>}
 
         {registers.length > 0 ? (
           <div className="text-left space-y-1">
             <label className="text-xs font-bold text-slate-500 uppercase">Register</label>
-            <select value={registerId} onChange={(e) => setRegisterId(e.target.value)} className="w-full p-2.5 border border-slate-200 rounded-lg bg-white">
+            <select value={registerId} onChange={(e) => setRegisterId(e.target.value)} className={selectCls}>
               {registers.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
             </select>
           </div>
@@ -354,21 +771,21 @@ function OpenShiftPrompt({ organizationId, registers, currentUserId, onOpened }:
           <div className="text-left space-y-1">
             <label className="text-xs font-bold text-slate-500 uppercase">New Register Name</label>
             <div className="flex gap-2">
-              <input value={newRegisterName} onChange={(e) => setNewRegisterName(e.target.value)} placeholder="Register 1" className="flex-1 p-2.5 border border-slate-200 rounded-lg" />
-              <button onClick={addRegister} className="px-3 bg-slate-800 text-white rounded-lg font-semibold text-sm">Add</button>
+              <input value={newRegisterName} onChange={(e) => setNewRegisterName(e.target.value)} placeholder="Register 1" className={`${inputCls} flex-1`} />
+              <button onClick={addRegister} className="px-3 bg-ink text-white rounded-lg font-semibold text-sm">Add</button>
             </div>
           </div>
         )}
 
         <div className="text-left space-y-1">
-          <label className="text-xs font-bold text-slate-500 uppercase">Opening Cash Float ($)</label>
-          <input type="number" step="0.01" value={openingFloat} onChange={(e) => setOpeningFloat(e.target.value)} className="w-full p-2.5 border border-slate-200 rounded-lg" />
+          <label className="text-xs font-bold text-slate-500 uppercase">Opening Cash Float ({symbol})</label>
+          <input type="number" step="0.01" value={openingFloat} onChange={(e) => setOpeningFloat(e.target.value)} className={inputCls} />
         </div>
 
         <button
           onClick={submit}
           disabled={isSaving || !registerId}
-          className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl font-bold transition-colors flex items-center justify-center gap-2"
+          className={`${btnPrimary} w-full py-3 rounded-xl`}
         >
           {isSaving ? <Loader2 size={18} className="animate-spin" /> : <ChevronRight size={18} />}
           Open Shift
@@ -382,8 +799,8 @@ function OpenShiftPrompt({ organizationId, registers, currentUserId, onOpened }:
 // Cash & Shifts
 // =====================================================================
 
-function ShiftsTab({ organizationId, registers, openShift: openShiftData, currentUserId, onChanged }: {
-  organizationId: string; registers: any[]; openShift: any; currentUserId: string; onChanged: () => void;
+function ShiftsTab({ organizationId, registers, openShift: openShiftData, currentUserId, onChanged, symbol = "$" }: {
+  organizationId: string; registers: any[]; openShift: any | null; currentUserId: string; onChanged: () => void; symbol?: string;
 }) {
   const [history, setHistory] = useState<any[]>([]);
   const [actualCash, setActualCash] = useState("");
@@ -420,25 +837,25 @@ function ShiftsTab({ organizationId, registers, openShift: openShiftData, curren
 
   return (
     <div className="p-8 max-w-4xl mx-auto space-y-6">
-      <h2 className="text-2xl font-bold text-slate-800">Cash & Shifts</h2>
+      <h2 className="text-2xl font-black text-ink">Cash & Shifts</h2>
 
       {openShiftData ? (
         <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-bold text-slate-800">{openShiftData.registerName}</h3>
-              <p className="text-sm text-slate-500">Opening float: ${openShiftData.openingFloat.toFixed(2)}</p>
+              <p className="text-sm text-slate-500">Opening float: {symbol}{openShiftData.openingFloat.toFixed(2)}</p>
             </div>
             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">OPEN</span>
           </div>
 
           {result ? (
             <div className="bg-slate-50 rounded-lg p-4 text-sm space-y-1">
-              <div className="flex justify-between"><span className="text-slate-500">Expected Cash</span><span className="font-semibold">${result.expectedCash.toFixed(2)}</span></div>
+              <div className="flex justify-between"><span className="text-slate-500">Expected Cash</span><span className="font-semibold">{symbol}{result.expectedCash.toFixed(2)}</span></div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Discrepancy</span>
                 <span className={`font-semibold ${result.discrepancy === 0 ? "text-slate-700" : result.discrepancy > 0 ? "text-emerald-600" : "text-red-600"}`}>
-                  {result.discrepancy > 0 ? "+" : ""}${result.discrepancy.toFixed(2)}
+                  {result.discrepancy > 0 ? "+" : ""}{symbol}{result.discrepancy.toFixed(2)}
                 </span>
               </div>
               <p className="text-emerald-600 font-medium pt-1 flex items-center gap-1"><CheckCircle2 size={14} /> Shift closed.</p>
@@ -446,7 +863,7 @@ function ShiftsTab({ organizationId, registers, openShift: openShiftData, curren
           ) : (
             <div className="flex items-end gap-3">
               <div className="flex-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Counted Cash in Drawer ($)</label>
+                <label className="text-xs font-bold text-slate-500 uppercase">Counted Cash in Drawer ({symbol})</label>
                 <input type="number" step="0.01" value={actualCash} onChange={(e) => setActualCash(e.target.value)} className="w-full mt-1 p-2.5 border border-slate-200 rounded-lg" />
               </div>
               <button onClick={submitClose} disabled={isSaving} className="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 disabled:opacity-50 text-white rounded-lg font-semibold">
@@ -482,8 +899,8 @@ function ShiftsTab({ organizationId, registers, openShift: openShiftData, curren
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${s.status === "OPEN" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{s.status}</span>
                     </td>
-                    <td className="px-4 py-3 text-right">${s.openingFloat.toFixed(2)}</td>
-                    <td className="px-4 py-3 text-right">{s.discrepancy != null ? `$${s.discrepancy.toFixed(2)}` : "—"}</td>
+                    <td className="px-4 py-3 text-right">{symbol}{s.openingFloat.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-right">{s.discrepancy != null ? `${symbol}${s.discrepancy.toFixed(2)}` : "—"}</td>
                   </tr>
                 ))
               )}
@@ -499,7 +916,7 @@ function ShiftsTab({ organizationId, registers, openShift: openShiftData, curren
 // Suppliers & POs
 // =====================================================================
 
-function SuppliersTab({ organizationId }: { organizationId: string }) {
+function SuppliersTab({ organizationId, symbol = "$" }: { organizationId: string; symbol?: string }) {
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [pos, setPos] = useState<any[]>([]);
   const [view, setView] = useState<"suppliers" | "pos">("suppliers");
@@ -555,7 +972,7 @@ function SuppliersTab({ organizationId }: { organizationId: string }) {
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-800">Suppliers & Purchase Orders</h2>
+        <h2 className="text-2xl font-black text-ink">Suppliers & Purchase Orders</h2>
         <button
           onClick={() => (view === "suppliers" ? setIsAddSupplierOpen(true) : setIsAddPoOpen(true))}
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm"
@@ -610,7 +1027,7 @@ function SuppliersTab({ organizationId }: { organizationId: string }) {
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">{po.status}</span>
                     </td>
-                    <td className="px-4 py-3 text-right">{po.totalAmount != null ? `$${po.totalAmount.toFixed(2)}` : "—"}</td>
+                    <td className="px-4 py-3 text-right">{po.totalAmount != null ? `${symbol}${po.totalAmount.toFixed(2)}` : "—"}</td>
                     <td className="px-4 py-3 text-right">
                       {po.status !== "RECEIVED" && (
                         <button onClick={() => cyclePoStatus(po)} className="text-xs font-semibold text-blue-600 hover:text-blue-800">Mark {po.status === "DRAFT" ? "Sent" : "Received"}</button>
@@ -632,10 +1049,10 @@ function SuppliersTab({ organizationId }: { organizationId: string }) {
               <button onClick={() => setIsAddSupplierOpen(false)} className="text-slate-400 hover:text-slate-600"><X size={22} /></button>
             </div>
             <div className="p-6 space-y-3">
-              <input placeholder="Supplier name" value={supplierForm.name} onChange={(e) => setSupplierForm((f) => ({ ...f, name: e.target.value }))} className="w-full p-2.5 border border-slate-200 rounded-lg" />
-              <input placeholder="Contact name" value={supplierForm.contactName} onChange={(e) => setSupplierForm((f) => ({ ...f, contactName: e.target.value }))} className="w-full p-2.5 border border-slate-200 rounded-lg" />
-              <input placeholder="Email" value={supplierForm.email} onChange={(e) => setSupplierForm((f) => ({ ...f, email: e.target.value }))} className="w-full p-2.5 border border-slate-200 rounded-lg" />
-              <input placeholder="Phone" value={supplierForm.phone} onChange={(e) => setSupplierForm((f) => ({ ...f, phone: e.target.value }))} className="w-full p-2.5 border border-slate-200 rounded-lg" />
+              <input placeholder="Supplier name" value={supplierForm.name} onChange={(e) => setSupplierForm((f) => ({ ...f, name: e.target.value }))} className={inputCls} />
+              <input placeholder="Contact name" value={supplierForm.contactName} onChange={(e) => setSupplierForm((f) => ({ ...f, contactName: e.target.value }))} className={inputCls} />
+              <input placeholder="Email" value={supplierForm.email} onChange={(e) => setSupplierForm((f) => ({ ...f, email: e.target.value }))} className={inputCls} />
+              <input placeholder="Phone" value={supplierForm.phone} onChange={(e) => setSupplierForm((f) => ({ ...f, phone: e.target.value }))} className={inputCls} />
             </div>
             <div className="p-4 border-t border-slate-100 flex justify-end gap-3">
               <button onClick={() => setIsAddSupplierOpen(false)} className="px-4 py-2 font-semibold text-slate-500 hover:bg-slate-100 rounded-lg">Cancel</button>
@@ -653,12 +1070,12 @@ function SuppliersTab({ organizationId }: { organizationId: string }) {
               <button onClick={() => setIsAddPoOpen(false)} className="text-slate-400 hover:text-slate-600"><X size={22} /></button>
             </div>
             <div className="p-6 space-y-3">
-              <select value={poForm.supplierId} onChange={(e) => setPoForm((f) => ({ ...f, supplierId: e.target.value }))} className="w-full p-2.5 border border-slate-200 rounded-lg bg-white">
+              <select value={poForm.supplierId} onChange={(e) => setPoForm((f) => ({ ...f, supplierId: e.target.value }))} className={selectCls}>
                 <option value="">Select supplier...</option>
                 {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
-              <input placeholder="PO Number (e.g. PO-1001)" value={poForm.poNumber} onChange={(e) => setPoForm((f) => ({ ...f, poNumber: e.target.value }))} className="w-full p-2.5 border border-slate-200 rounded-lg" />
-              <input type="number" step="0.01" placeholder="Total amount ($)" value={poForm.totalAmount} onChange={(e) => setPoForm((f) => ({ ...f, totalAmount: e.target.value }))} className="w-full p-2.5 border border-slate-200 rounded-lg" />
+              <input placeholder="PO Number (e.g. PO-1001)" value={poForm.poNumber} onChange={(e) => setPoForm((f) => ({ ...f, poNumber: e.target.value }))} className={inputCls} />
+              <input type="number" step="0.01" placeholder={`Total amount (${symbol})`} value={poForm.totalAmount} onChange={(e) => setPoForm((f) => ({ ...f, totalAmount: e.target.value }))} className={inputCls} />
             </div>
             <div className="p-4 border-t border-slate-100 flex justify-end gap-3">
               <button onClick={() => setIsAddPoOpen(false)} className="px-4 py-2 font-semibold text-slate-500 hover:bg-slate-100 rounded-lg">Cancel</button>
@@ -694,7 +1111,7 @@ function fileToBase64(file: File): Promise<{ base64: string; mimeType: string }>
   });
 }
 
-function ExpensesTab({ organizationId, currentUserId }: { organizationId: string; currentUserId: string }) {
+function ExpensesTab({ organizationId, currentUserId, symbol = "$" }: { organizationId: string; currentUserId: string; symbol?: string }) {
   const [expenses, setExpenses] = useState<any[]>([]);
   const [summary, setSummary] = useState<{ totalThisMonth: number; countThisMonth: number; totalAllTime: number; byCategory: Record<string, number> } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -772,16 +1189,16 @@ function ExpensesTab({ organizationId, currentUserId }: { organizationId: string
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-800">Expenses</h2>
+        <h2 className="text-2xl font-black text-ink">Expenses</h2>
         <button onClick={openAdd} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm">
           <Plus size={16} /> Record Expense
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard label="This Month" value={`$${summary.totalThisMonth.toFixed(2)}`} />
+        <StatCard label="This Month" value={`${symbol}${summary.totalThisMonth.toFixed(2)}`} />
         <StatCard label="Expenses This Month" value={String(summary.countThisMonth)} />
-        <StatCard label="All Time Total" value={`$${summary.totalAllTime.toFixed(2)}`} />
+        <StatCard label="All Time Total" value={`${symbol}${summary.totalAllTime.toFixed(2)}`} />
       </div>
 
       <div className="bg-white border border-slate-200 rounded-xl p-6">
@@ -795,7 +1212,7 @@ function ExpensesTab({ organizationId, currentUserId }: { organizationId: string
                 <div className="flex-1 bg-slate-100 rounded-full h-3 overflow-hidden">
                   <div className="bg-blue-500 h-3 rounded-full transition-all" style={{ width: `${(amount / maxCategoryAmount) * 100}%` }} />
                 </div>
-                <span className="w-20 text-right text-sm font-semibold text-slate-700 flex-shrink-0">${amount.toFixed(2)}</span>
+                <span className="w-20 text-right text-sm font-semibold text-slate-700 flex-shrink-0">{symbol}{amount.toFixed(2)}</span>
               </div>
             );
           })}
@@ -838,7 +1255,7 @@ function ExpensesTab({ organizationId, currentUserId }: { organizationId: string
                       )}
                     </td>
                     <td className="px-4 py-3 text-slate-500">{e.paymentMethod}</td>
-                    <td className="px-4 py-3 text-right font-bold text-slate-800">${e.amount.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-right font-bold text-slate-800">{symbol}{e.amount.toFixed(2)}</td>
                     <td className="px-4 py-3 text-right">
                       <button onClick={() => remove(e.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors">
                         <Trash2 size={14} />
@@ -865,24 +1282,24 @@ function ExpensesTab({ organizationId, currentUserId }: { organizationId: string
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-500 uppercase">Category</label>
-                  <select value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} className="w-full p-2.5 border border-slate-200 rounded-lg bg-white">
+                  <select value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} className={selectCls}>
                     {EXPENSE_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Amount ($)</label>
-                  <input type="number" step="0.01" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} className="w-full p-2.5 border border-slate-200 rounded-lg" placeholder="0.00" />
+                  <label className="text-xs font-bold text-slate-500 uppercase">Amount ({symbol})</label>
+                  <input type="number" step="0.01" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} className={inputCls} placeholder="0.00" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-500 uppercase">Date</label>
-                  <input type="date" value={form.expenseDate} onChange={(e) => setForm((f) => ({ ...f, expenseDate: e.target.value }))} className="w-full p-2.5 border border-slate-200 rounded-lg" />
+                  <input type="date" value={form.expenseDate} onChange={(e) => setForm((f) => ({ ...f, expenseDate: e.target.value }))} className={inputCls} />
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-500 uppercase">Payment Method</label>
-                  <select value={form.paymentMethod} onChange={(e) => setForm((f) => ({ ...f, paymentMethod: e.target.value }))} className="w-full p-2.5 border border-slate-200 rounded-lg bg-white">
+                  <select value={form.paymentMethod} onChange={(e) => setForm((f) => ({ ...f, paymentMethod: e.target.value }))} className={selectCls}>
                     <option value="CASH">Cash</option>
                     <option value="CARD">Card</option>
                     <option value="BANK_TRANSFER">Bank Transfer</option>
@@ -893,12 +1310,12 @@ function ExpensesTab({ organizationId, currentUserId }: { organizationId: string
 
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase">Vendor</label>
-                <input value={form.vendorName} onChange={(e) => setForm((f) => ({ ...f, vendorName: e.target.value }))} className="w-full p-2.5 border border-slate-200 rounded-lg" placeholder="e.g. City Power & Light" />
+                <input value={form.vendorName} onChange={(e) => setForm((f) => ({ ...f, vendorName: e.target.value }))} className={inputCls} placeholder="e.g. City Power & Light" />
               </div>
 
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase">Description</label>
-                <input value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} className="w-full p-2.5 border border-slate-200 rounded-lg" placeholder="Optional note" />
+                <input value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} className={inputCls} placeholder="Optional note" />
               </div>
 
               <div className="space-y-1">
@@ -931,10 +1348,211 @@ function ExpensesTab({ organizationId, currentUserId }: { organizationId: string
 }
 
 // =====================================================================
+// Reports (real derived figures: products, cashiers, customers, stock)
+// =====================================================================
+
+function ReportsTab({ organizationId, setActiveMenu }: { organizationId: string; setActiveMenu: (tab: string) => void }) {
+  const [reports, setReports] = useState<any>(null);
+  const [symbol, setSymbol] = useState("$");
+  const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState<string | null>(null);
+
+  const load = async () => {
+    const r = await getShopReports(organizationId);
+    const s = await getRetailSettings(organizationId);
+    setReports(r);
+    setSymbol(s?.currencySymbol ?? "$");
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [organizationId]);
+
+  if (loading || !reports) {
+    return <div className="p-10 text-center text-slate-400 flex items-center justify-center gap-2"><Loader2 className="animate-spin" size={20} /> Loading...</div>;
+  }
+
+  const money = (v: number) => `${symbol}${(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const { periods, salesByProduct, salesByCashier, topCustomers, lowStock, totals } = reports;
+  const net = totals.gross - totals.refunded;
+
+  const downloadCsv = async (kind: "orders" | "products" | "customers", filename: string) => {
+    const rows = await exportShopReport(organizationId, kind);
+    if (rows.length === 0) { alert("Nothing to export yet."); return; }
+    const headers = Object.keys(rows[0]);
+    const esc = (v: unknown) => {
+      const s = String(v ?? "");
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const csv = [headers.join(","), ...rows.map((r: Record<string, unknown>) => headers.map((h) => esc(r[h])).join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const doExport = async (kind: "orders" | "products" | "customers") => {
+    setExporting(kind);
+    try {
+      await downloadCsv(kind, `shopos-${kind}-${new Date().toISOString().slice(0, 10)}.csv`);
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  return (
+    <div className="p-8 max-w-6xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-black text-ink">Reports</h2>
+          <p className="text-sm text-slate-500 mt-1">Real sales figures from your stores — no estimates.</p>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={() => doExport("orders")} disabled={exporting !== null} className="flex items-center gap-1.5 text-xs font-bold border border-slate-200 bg-white text-slate-600 px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50">
+            {exporting === "orders" ? <Loader2 size={14} className="animate-spin" /> : null} Orders CSV
+          </button>
+          <button onClick={() => doExport("products")} disabled={exporting !== null} className="flex items-center gap-1.5 text-xs font-bold border border-slate-200 bg-white text-slate-600 px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50">
+            {exporting === "products" ? <Loader2 size={14} className="animate-spin" /> : null} Products CSV
+          </button>
+          <button onClick={() => doExport("customers")} disabled={exporting !== null} className="flex items-center gap-1.5 text-xs font-bold border border-slate-200 bg-white text-slate-600 px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50">
+            {exporting === "customers" ? <Loader2 size={14} className="animate-spin" /> : null} Customers CSV
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {[
+          { label: "Today", ...periods.today },
+          { label: "Last 7 Days", ...periods.sevenDays },
+          { label: "Last 30 Days", ...periods.thirtyDays },
+        ].map((p) => (
+          <div key={p.label} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+            <p className="text-sm font-semibold text-slate-500">{p.label}</p>
+            <p className="text-2xl font-black text-ink mt-2">{money(p.sales)}</p>
+            <p className="text-xs text-slate-400 mt-1">{p.transactions} transaction{p.transactions === 1 ? "" : "s"} · {money(p.refunds)} refunded</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard label="Gross Sales" value={money(totals.gross)} />
+        <StatCard label="Net Sales" value={money(net)} />
+        <StatCard label="Orders" value={`${totals.completedCount}`} />
+        <StatCard label="Refunds" value={`${totals.refundedCount}`} />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-slate-100">
+            <h3 className="font-bold text-slate-800">Top Products</h3>
+          </div>
+          {salesByProduct.length === 0 ? (
+            <EmptyState icon={Package} title="No sales yet" message="Products you sell appear here ranked by revenue." cta="Open POS" onCta={() => setActiveMenu("POS Terminal")} />
+          ) : (
+            <table className="w-full text-sm text-left">
+              <thead className="bg-slate-50 text-slate-500 border-b border-slate-200">
+                <tr><th className="px-5 py-2">Product</th><th className="px-5 py-2 text-right">Units</th><th className="px-5 py-2 text-right">Revenue</th></tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {salesByProduct.slice(0, 8).map((p: any, i: number) => (
+                  <tr key={p.productId} className="hover:bg-slate-50">
+                    <td className="px-5 py-2.5">
+                      <span className="inline-flex items-center gap-2">
+                        <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${i === 0 ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-500"}`}>{i + 1}</span>
+                        <span className="font-semibold text-slate-800">{p.name}</span>
+                      </span>
+                    </td>
+                    <td className="px-5 py-2.5 text-right text-slate-500">{p.units} {p.unit}</td>
+                    <td className="px-5 py-2.5 text-right font-bold text-slate-800">{money(p.revenue)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-slate-100">
+            <h3 className="font-bold text-slate-800">Sales by Cashier</h3>
+          </div>
+          {salesByCashier.length === 0 ? (
+            <EmptyState icon={User} title="No sales yet" message="Cashier performance appears once orders are recorded." cta="Open POS" onCta={() => setActiveMenu("POS Terminal")} />
+          ) : (
+            <table className="w-full text-sm text-left">
+              <thead className="bg-slate-50 text-slate-500 border-b border-slate-200">
+                <tr><th className="px-5 py-2">Cashier</th><th className="px-5 py-2 text-right">Orders</th><th className="px-5 py-2 text-right">Revenue</th></tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {salesByCashier.map((c: any) => (
+                  <tr key={c.cashierId} className="hover:bg-slate-50">
+                    <td className="px-5 py-2.5 font-semibold text-slate-800">{c.cashierName}</td>
+                    <td className="px-5 py-2.5 text-right text-slate-500">{c.orders}</td>
+                    <td className="px-5 py-2.5 text-right font-bold text-slate-800">{money(c.revenue)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-slate-100">
+            <h3 className="font-bold text-slate-800">Top Customers</h3>
+          </div>
+          {topCustomers.length === 0 ? (
+            <EmptyState icon={Users} title="No customers yet" message="Your highest-spending customers appear here." cta="Add a customer" onCta={() => setActiveMenu("Customers")} />
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {topCustomers.map((c: any) => (
+                <li key={c.id} className="px-5 py-3 flex items-center gap-3 hover:bg-slate-50">
+                  <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold flex-shrink-0">{c.name.slice(0, 2).toUpperCase()}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-slate-800 truncate">{c.name}</p>
+                    <p className="text-xs text-slate-400">{c.orderCount} order{c.orderCount === 1 ? "" : "s"} · {c.loyaltyPoints} pts</p>
+                  </div>
+                  <span className="text-sm font-bold text-slate-800">{money(c.totalSpent)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+            <h3 className="font-bold text-slate-800">Low Stock</h3>
+            <button onClick={() => setActiveMenu("Products & Inventory")} className="text-xs font-semibold text-blue-600 hover:text-blue-800">Manage</button>
+          </div>
+          {lowStock.length === 0 ? (
+            <EmptyState icon={CheckCircle2} title="All stocked up" message="Nothing is at or below its low-stock threshold." />
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {lowStock.map((p: any) => (
+                <li key={p.id} className="px-5 py-3 flex items-center gap-3">
+                  <AlertTriangle size={16} className="text-amber-500 flex-shrink-0" />
+                  <span className="flex-1 text-sm font-semibold text-slate-800 truncate">{p.name}</span>
+                  <span className="text-xs text-slate-500">{p.stockQuantity} {p.unit} · min {p.lowStockLevel}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =====================================================================
 // Sales & Returns
 // =====================================================================
 
-function SalesReturnsTab({ organizationId, currentUserId, onChanged }: { organizationId: string; currentUserId: string; onChanged: () => void }) {
+function SalesReturnsTab({ organizationId, currentUserId, onChanged, symbol = "$" }: { organizationId: string; currentUserId: string; onChanged: () => void; symbol?: string }) {
   const [orders, setOrders] = useState<any[]>([]);
   const [statusFilter, setStatusFilter] = useState<"ALL" | "COMPLETED" | "REFUNDED">("ALL");
   const [search, setSearch] = useState("");
@@ -987,12 +1605,12 @@ function SalesReturnsTab({ organizationId, currentUserId, onChanged }: { organiz
 
   return (
     <div className="p-8 max-w-6xl mx-auto space-y-6">
-      <h2 className="text-2xl font-bold text-slate-800">Sales & Returns</h2>
+      <h2 className="text-2xl font-black text-ink">Sales & Returns</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard label="Total Orders" value={String(orders.length)} />
-        <StatCard label="Completed Sales" value={`$${totalSales.toFixed(2)}`} />
-        <StatCard label="Refunded" value={`$${totalRefunded.toFixed(2)}`} />
+        <StatCard label="Completed Sales" value={`${symbol}${totalSales.toFixed(2)}`} />
+        <StatCard label="Refunded" value={`${symbol}${totalRefunded.toFixed(2)}`} />
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 sm:items-center justify-between">
@@ -1050,7 +1668,7 @@ function SalesReturnsTab({ organizationId, currentUserId, onChanged }: { organiz
                       {o.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right font-bold text-slate-800">${o.totalAmount.toFixed(2)}</td>
+                  <td className="px-4 py-3 text-right font-bold text-slate-800">{symbol}{o.totalAmount.toFixed(2)}</td>
                   <td className="px-4 py-3 text-right">
                     <button onClick={() => openView(o)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
                       <Eye size={16} />
@@ -1078,14 +1696,14 @@ function SalesReturnsTab({ organizationId, currentUserId, onChanged }: { organiz
                 {viewingOrder.items.map((item: any) => (
                   <div key={item.id} className="flex justify-between text-sm">
                     <span className="text-slate-700">{item.productName} × {item.quantity}</span>
-                    <span className="font-semibold text-slate-800">${item.subtotal.toFixed(2)}</span>
+                    <span className="font-semibold text-slate-800">{symbol}{item.subtotal.toFixed(2)}</span>
                   </div>
                 ))}
               </div>
               <div className="border-t border-slate-100 pt-3 space-y-1 text-sm">
-                <div className="flex justify-between text-slate-500"><span>Tax</span><span>${viewingOrder.taxAmount.toFixed(2)}</span></div>
-                {viewingOrder.discountAmount > 0 && <div className="flex justify-between text-slate-500"><span>Discount</span><span>-${viewingOrder.discountAmount.toFixed(2)}</span></div>}
-                <div className="flex justify-between text-lg font-bold text-slate-900 pt-1"><span>Total</span><span>${viewingOrder.totalAmount.toFixed(2)}</span></div>
+                <div className="flex justify-between text-slate-500"><span>Tax</span><span>{symbol}{viewingOrder.taxAmount.toFixed(2)}</span></div>
+                {viewingOrder.discountAmount > 0 && <div className="flex justify-between text-slate-500"><span>Discount</span><span>-{symbol}{viewingOrder.discountAmount.toFixed(2)}</span></div>}
+                <div className="flex justify-between text-lg font-bold text-slate-900 pt-1"><span>Total</span><span>{symbol}{viewingOrder.totalAmount.toFixed(2)}</span></div>
               </div>
 
               {viewingOrder.status === "REFUNDED" ? (
@@ -1097,7 +1715,7 @@ function SalesReturnsTab({ organizationId, currentUserId, onChanged }: { organiz
                 <div className="border-t border-slate-100 pt-4 space-y-2">
                   {error && <div className="p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-100">{error}</div>}
                   <label className="text-xs font-bold text-slate-500 uppercase">Refund Reason (optional)</label>
-                  <textarea value={refundReason} onChange={(e) => setRefundReason(e.target.value)} rows={2} className="w-full p-2.5 border border-slate-200 rounded-lg text-sm" placeholder="e.g. Customer changed their mind" />
+                  <textarea value={refundReason} onChange={(e) => setRefundReason(e.target.value)} rows={2} className="w-full p-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 transition-all" placeholder="e.g. Customer changed their mind" />
                   <button
                     onClick={submitRefund}
                     disabled={isRefunding}
@@ -1119,7 +1737,7 @@ function SalesReturnsTab({ organizationId, currentUserId, onChanged }: { organiz
 // Customers
 // =====================================================================
 
-function CustomersTab({ organizationId }: { organizationId: string }) {
+function CustomersTab({ organizationId, symbol = "$" }: { organizationId: string; symbol?: string }) {
   const [customers, setCustomers] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -1171,7 +1789,7 @@ function CustomersTab({ organizationId }: { organizationId: string }) {
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-800">Customers</h2>
+        <h2 className="text-2xl font-black text-ink">Customers</h2>
         <button onClick={openAdd} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm">
           <Plus size={16} /> Add Customer
         </button>
@@ -1179,7 +1797,7 @@ function CustomersTab({ organizationId }: { organizationId: string }) {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard label="Total Customers" value={String(totalCustomers)} />
-        <StatCard label="Revenue from Customers" value={`$${totalRevenue.toFixed(2)}`} />
+        <StatCard label="Revenue from Customers" value={`${symbol}${totalRevenue.toFixed(2)}`} />
         <StatCard label="Loyalty Points Issued" value={String(totalPoints)} />
       </div>
 
@@ -1225,7 +1843,7 @@ function CustomersTab({ organizationId }: { organizationId: string }) {
                     {!c.phone && !c.email && "—"}
                   </td>
                   <td className="px-4 py-3 text-right text-slate-600">{c.orderCount}</td>
-                  <td className="px-4 py-3 text-right font-bold text-slate-800">${c.totalSpent.toFixed(2)}</td>
+                  <td className="px-4 py-3 text-right font-bold text-slate-800">{symbol}{c.totalSpent.toFixed(2)}</td>
                   <td className="px-4 py-3 text-right">
                     <span className="inline-flex items-center gap-1 text-amber-600 font-semibold"><Star size={12} fill="currentColor" /> {c.loyaltyPoints}</span>
                   </td>
@@ -1246,10 +1864,10 @@ function CustomersTab({ organizationId }: { organizationId: string }) {
             </div>
             <div className="p-6 space-y-3">
               {error && <div className="p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-100">{error}</div>}
-              <input placeholder="Full name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className="w-full p-2.5 border border-slate-200 rounded-lg" />
-              <input placeholder="Phone" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} className="w-full p-2.5 border border-slate-200 rounded-lg" />
-              <input placeholder="Email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} className="w-full p-2.5 border border-slate-200 rounded-lg" />
-              <textarea placeholder="Notes (optional)" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={2} className="w-full p-2.5 border border-slate-200 rounded-lg" />
+              <input placeholder="Full name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className={inputCls} />
+              <input placeholder="Phone" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} className={inputCls} />
+              <input placeholder="Email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} className={inputCls} />
+              <textarea placeholder="Notes (optional)" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={2} className={inputCls} />
             </div>
             <div className="p-4 border-t border-slate-100 flex justify-end gap-3">
               <button onClick={() => setIsAddOpen(false)} className="px-4 py-2 font-semibold text-slate-500 hover:bg-slate-100 rounded-lg">Cancel</button>
@@ -1262,14 +1880,14 @@ function CustomersTab({ organizationId }: { organizationId: string }) {
       )}
 
       {viewingId && (
-        <CustomerDetailModal organizationId={organizationId} customerDataId={viewingId} onClose={() => setViewingId(null)} onChanged={load} />
+        <CustomerDetailModal organizationId={organizationId} customerDataId={viewingId} onClose={() => setViewingId(null)} onChanged={load} symbol={symbol} />
       )}
     </div>
   );
 }
 
-function CustomerDetailModal({ organizationId, customerDataId, onClose, onChanged }: {
-  organizationId: string; customerDataId: string; onClose: () => void; onChanged: () => void;
+function CustomerDetailModal({ organizationId, customerDataId, onClose, onChanged, symbol = "$" }: {
+  organizationId: string; customerDataId: string; onClose: () => void; onChanged: () => void; symbol?: string;
 }) {
   const [customer, setCustomer] = useState<any>(null);
   const [pointsDelta, setPointsDelta] = useState("");
@@ -1337,7 +1955,7 @@ function CustomerDetailModal({ organizationId, customerDataId, onClose, onChange
             </div>
             <div className="bg-slate-50 rounded-lg p-3 text-center">
               <p className="text-xs text-slate-500">Total Spent</p>
-              <p className="text-lg font-bold text-slate-800">${customer.totalSpent.toFixed(2)}</p>
+              <p className="text-lg font-bold text-slate-800">{symbol}{customer.totalSpent.toFixed(2)}</p>
             </div>
             <div className="bg-amber-50 rounded-lg p-3 text-center">
               <p className="text-xs text-amber-600">Loyalty Points</p>
@@ -1374,7 +1992,7 @@ function CustomerDetailModal({ organizationId, customerDataId, onClose, onChange
                       <p className="text-xs text-slate-400">{o.items.length} item{o.items.length === 1 ? "" : "s"}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-slate-800">${o.totalAmount.toFixed(2)}</p>
+                      <p className="font-bold text-slate-800">{symbol}{o.totalAmount.toFixed(2)}</p>
                       <span className={`text-xs font-medium ${o.status === "REFUNDED" ? "text-red-500" : "text-emerald-600"}`}>{o.status}</span>
                     </div>
                   </div>
@@ -1400,6 +2018,7 @@ function LocationsTab({ organizationId }: { organizationId: string }) {
   const [locations, setLocations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", address: "" });
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -1415,13 +2034,32 @@ function LocationsTab({ organizationId }: { organizationId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [organizationId]);
 
+  const openAdd = () => {
+    setEditId(null);
+    setForm({ name: "", address: "" });
+    setError(null);
+    setIsAddOpen(true);
+  };
+
+  const openEdit = (l: any) => {
+    setEditId(l.id);
+    setForm({ name: l.name, address: l.address ?? "" });
+    setError(null);
+    setIsAddOpen(true);
+  };
+
   const submit = async () => {
     setError(null);
     if (!form.name.trim()) { setError("Location name is required."); return; }
     setIsSaving(true);
     try {
-      const res = await createLocation({ organizationId, name: form.name, address: form.address || undefined });
-      if ((res as any)?.error) { setError((res as any).error); return; }
+      if (editId) {
+        const res = await updateLocation(editId, { name: form.name, address: form.address || null });
+        if ((res as any)?.error) { setError((res as any).error); return; }
+      } else {
+        const res = await createLocation({ organizationId, name: form.name, address: form.address || undefined });
+        if ((res as any)?.error) { setError((res as any).error); return; }
+      }
       setForm({ name: "", address: "" });
       setIsAddOpen(false);
       load();
@@ -1430,11 +2068,18 @@ function LocationsTab({ organizationId }: { organizationId: string }) {
     }
   };
 
+  const remove = async (id: string) => {
+    if (!confirm("Delete this location?")) return;
+    const res = await deleteLocation(id);
+    if ((res as any)?.error) { alert((res as any).error); return; }
+    load();
+  };
+
   return (
     <div className="p-8 max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-800">Locations</h2>
-        <button onClick={() => setIsAddOpen(true)} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm">
+        <h2 className="text-2xl font-black text-ink">Locations</h2>
+        <button onClick={openAdd} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm">
           <Plus size={16} /> Add Location
         </button>
       </div>
@@ -1442,18 +2087,28 @@ function LocationsTab({ organizationId }: { organizationId: string }) {
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
         <table className="w-full text-sm text-left">
           <thead className="bg-slate-50 text-slate-500 border-b border-slate-200">
-            <tr><th className="px-4 py-3">Name</th><th className="px-4 py-3">Address</th></tr>
+            <tr><th className="px-4 py-3">Name</th><th className="px-4 py-3">Address</th><th className="px-4 py-3 text-right">Actions</th></tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {loading ? (
-              <tr><td colSpan={2} className="px-4 py-6 text-center text-slate-400">Loading...</td></tr>
+              <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-400">Loading...</td></tr>
             ) : locations.length === 0 ? (
-              <tr><td colSpan={2} className="px-4 py-6 text-center text-slate-400">No locations yet — add your first branch.</td></tr>
+              <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-400">No locations yet — add your first branch.</td></tr>
             ) : (
               locations.map((l) => (
                 <tr key={l.id} className="hover:bg-slate-50">
                   <td className="px-4 py-3 font-semibold text-slate-800">{l.name}</td>
                   <td className="px-4 py-3 text-slate-500">{l.address ?? "—"}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-2">
+                      <button onClick={() => openEdit(l)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
+                        <Pencil size={15} />
+                      </button>
+                      <button onClick={() => remove(l.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors">
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))
             )}
@@ -1465,13 +2120,13 @@ function LocationsTab({ organizationId }: { organizationId: string }) {
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="font-bold text-lg text-slate-800">Add Location</h3>
+              <h3 className="font-bold text-lg text-slate-800">{editId ? "Edit Location" : "Add Location"}</h3>
               <button onClick={() => setIsAddOpen(false)} className="text-slate-400 hover:text-slate-600"><X size={22} /></button>
             </div>
             <div className="p-6 space-y-3">
               {error && <div className="p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-100">{error}</div>}
-              <input placeholder="Location name (e.g. Main Street)" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className="w-full p-2.5 border border-slate-200 rounded-lg" autoFocus />
-              <textarea placeholder="Address (optional)" value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} rows={2} className="w-full p-2.5 border border-slate-200 rounded-lg" />
+              <input placeholder="Location name (e.g. Main Street)" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className={inputCls} autoFocus />
+              <textarea placeholder="Address (optional)" value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} rows={2} className={inputCls} />
             </div>
             <div className="p-4 border-t border-slate-100 flex justify-end gap-3">
               <button onClick={() => setIsAddOpen(false)} className="px-4 py-2 font-semibold text-slate-500 hover:bg-slate-100 rounded-lg">Cancel</button>
@@ -1492,13 +2147,14 @@ function LocationsTab({ organizationId }: { organizationId: string }) {
 
 const STAFF_ROLE_OPTIONS = ["MANAGER", "CASHIER", "INVENTORY_STAFF"];
 
-function StaffTab({ organizationId }: { organizationId: string }) {
+function StaffTab({ organizationId, userRole }: { organizationId: string; userRole: string }) {
   const [staff, setStaff] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [form, setForm] = useState({ email: "", name: "", role: "CASHIER" });
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [savingId, setSavingId] = useState<string | null>(null);
 
   const load = async () => {
     const rows = await getStaff(organizationId);
@@ -1510,6 +2166,8 @@ function StaffTab({ organizationId }: { organizationId: string }) {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [organizationId]);
+
+  const canManage = ["OWNER", "ADMIN", "MANAGER"].includes(userRole);
 
   const submit = async () => {
     setError(null);
@@ -1526,10 +2184,29 @@ function StaffTab({ organizationId }: { organizationId: string }) {
     }
   };
 
+  const changeRole = async (membershipId: string, role: string) => {
+    setSavingId(membershipId);
+    setError(null);
+    try {
+      const res = await updateStaffRole({ organizationId, membershipId, role });
+      if ((res as any)?.error) { alert((res as any).error); return; }
+      load();
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  const remove = async (membershipId: string, name: string) => {
+    if (!confirm(`Remove ${name} from this store?`)) return;
+    const res = await removeStaffMember({ organizationId, membershipId });
+    if ((res as any)?.error) { alert((res as any).error); return; }
+    load();
+  };
+
   return (
     <div className="p-8 max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-800">Staff</h2>
+        <h2 className="text-2xl font-black text-ink">Staff</h2>
         <button onClick={() => setIsAddOpen(true)} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm">
           <Plus size={16} /> Add Staff
         </button>
@@ -1538,27 +2215,60 @@ function StaffTab({ organizationId }: { organizationId: string }) {
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
         <table className="w-full text-sm text-left">
           <thead className="bg-slate-50 text-slate-500 border-b border-slate-200">
-            <tr><th className="px-4 py-3">Name</th><th className="px-4 py-3">Email</th><th className="px-4 py-3">Roles</th></tr>
+            <tr><th className="px-4 py-3">Name</th><th className="px-4 py-3">Email</th><th className="px-4 py-3">Roles</th>{canManage && <th className="px-4 py-3 text-right">Actions</th>}</tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {loading ? (
-              <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-400">Loading...</td></tr>
+              <tr><td colSpan={canManage ? 4 : 3} className="px-4 py-6 text-center text-slate-400">Loading...</td></tr>
             ) : staff.length === 0 ? (
-              <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-400">No staff yet.</td></tr>
+              <tr><td colSpan={canManage ? 4 : 3} className="px-4 py-6 text-center text-slate-400">No staff yet.</td></tr>
             ) : (
-              staff.map((s) => (
-                <tr key={s.membershipId} className="hover:bg-slate-50">
-                  <td className="px-4 py-3 font-semibold text-slate-800">{s.name}</td>
-                  <td className="px-4 py-3 text-slate-500">{s.email ?? "—"}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      {s.roles.map((r: string) => (
-                        <span key={r} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">{r}</span>
-                      ))}
-                    </div>
-                  </td>
-                </tr>
-              ))
+              staff.map((s) => {
+                const shopRole = STAFF_ROLE_OPTIONS.find((r) => s.roles.includes(r));
+                const isOwner = s.roles.includes("OWNER");
+                return (
+                  <tr key={s.membershipId} className="hover:bg-slate-50">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-xs font-bold flex-shrink-0">{s.name.slice(0, 2).toUpperCase()}</div>
+                        <span className="font-semibold text-slate-800">{s.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-slate-500">{s.email ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-1">
+                        {s.roles.map((r: string) => (
+                          <span key={r} className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${r === "OWNER" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-700"}`}>{r === "INVENTORY_STAFF" ? "Inventory Staff" : r}</span>
+                        ))}
+                      </div>
+                    </td>
+                    {canManage && (
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-2">
+                          {!isOwner && shopRole && (
+                            <select
+                              value={shopRole}
+                              disabled={savingId === s.membershipId}
+                              onChange={(e) => changeRole(s.membershipId, e.target.value)}
+                              className="px-2 py-1.5 border border-slate-200 rounded-lg text-xs bg-white disabled:opacity-50"
+                            >
+                              {STAFF_ROLE_OPTIONS.map((r) => (
+                                <option key={r} value={r}>{r === "INVENTORY_STAFF" ? "Inventory Staff" : r.charAt(0) + r.slice(1).toLowerCase()}</option>
+                              ))}
+                            </select>
+                          )}
+                          {isOwner && <span className="text-xs text-amber-600 font-semibold">Owner</span>}
+                          {!isOwner && (
+                            <button onClick={() => remove(s.membershipId, s.name)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="Remove from store">
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
@@ -1578,9 +2288,9 @@ function StaffTab({ organizationId }: { organizationId: string }) {
             </div>
             <div className="p-6 space-y-3">
               {error && <div className="p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-100">{error}</div>}
-              <input placeholder="Email *" type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} className="w-full p-2.5 border border-slate-200 rounded-lg" autoFocus />
-              <input placeholder="Full name (optional)" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className="w-full p-2.5 border border-slate-200 rounded-lg" />
-              <select value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))} className="w-full p-2.5 border border-slate-200 rounded-lg bg-white">
+              <input placeholder="Email *" type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} className={inputCls} autoFocus />
+              <input placeholder="Full name (optional)" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className={inputCls} />
+              <select value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))} className={selectCls}>
                 {STAFF_ROLE_OPTIONS.map((r) => <option key={r} value={r}>{r === "INVENTORY_STAFF" ? "Inventory Staff" : r.charAt(0) + r.slice(1).toLowerCase()}</option>)}
               </select>
             </div>

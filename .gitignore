@@ -8,3 +8,11 @@ coverage/
 dist/
 .env
 *.tsbuildinfo
+
+# db backups (sensitive)
+scratch/
+
+# session research/report docs (local-only, not for the repo)
+DAASH_RESEARCH.md
+PHASE1_REPORT.md
+SHOPOS_GAP_ANALYSIS.md

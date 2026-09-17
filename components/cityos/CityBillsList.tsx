@@ -1,0 +1,55 @@
+'use client';
+
+import { Receipt, ArrowRight } from 'lucide-react';
+import { DEMO_BILLS, BILL_KIND_ICONS, fmtNaira } from '@/lib/demo/cityos';
+import { CityCard, Pill, DemoBanner } from '@/components/cityos/CityUI';
+
+export default function CityBillsList() {
+  return (
+    <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-xl font-black text-ink">Bills & Airtime</h1>
+        <p className="text-xs text-slate-500 font-medium">
+          Power, water, data and cable — paid through CityPay, credited to your reference instantly.
+        </p>
+      </div>
+
+      <DemoBanner />
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {DEMO_BILLS.map((b) => {
+          const Icon = BILL_KIND_ICONS[b.kind];
+          return (
+            <CityCard key={b.slug} href={`/bills/${b.slug}`} className="p-5 flex items-center gap-4">
+              <span className="w-12 h-12 rounded-2xl bg-teal-50 text-teal-800 flex items-center justify-center shrink-0">
+                <Icon className="w-6 h-6" />
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-[14px] font-black text-ink truncate">{b.name}</p>
+                <p className="text-[11px] font-bold text-slate-400 truncate">{b.note}</p>
+                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                  <Pill tone={b.due.includes('2 days') || b.due.includes('4 days') ? 'orange' : 'teal'}>
+                    {`${fmtNaira(b.balance)} · ${b.due}`}
+                  </Pill>
+                </div>
+              </div>
+              <span className="inline-flex items-center gap-1 text-[11px] font-black text-teal-800 shrink-0">
+                Pay <ArrowRight className="w-3.5 h-3.5" />
+              </span>
+            </CityCard>
+          );
+        })}
+      </div>
+
+      <div className="rounded-2xl bg-gradient-to-br from-teal-900 to-teal-700 text-white p-5 flex items-center gap-4">
+        <span className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+          <Receipt className="w-5 h-5" />
+        </span>
+        <div>
+          <p className="text-sm font-black">No queues. No airtime stress.</p>
+          <p className="text-[12px] text-teal-100/70 font-medium">Reference numbers stay saved in Activity.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
