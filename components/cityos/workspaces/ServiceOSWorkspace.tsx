@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Wrench,
@@ -99,7 +99,7 @@ export default function ServiceOSWorkspace({ slug }: { slug: string }) {
 
       {tab === 'Overview' ? <Overview data={data} /> : null}
       {tab === 'Services' ? <Services data={data} /> : null}
-      {tab === 'Requests' ? <Requests data={data} /> : null}
+      {tab === 'Requests' ? <Requests data={data} orgId={org.id} /> : null}
       {tab === 'Quotes' ? <Quotes data={data} /> : null}
       {tab === 'Bookings' ? <Bookings data={data} /> : null}
       {tab === 'Technicians' ? <Technicians data={data} /> : null}
@@ -240,24 +240,54 @@ function Services({ data }: { data: ServiceOSDataSet }) {
   );
 }
 
-function Requests({ data }: { data: ServiceOSDataSet }) {
+function Requests({ data, orgId }: { data: ServiceOSDataSet, orgId: string }) {
+  const [realRequests, setRealRequests] = useState<any[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    import('@/app/actions/service').then(({ fetchServiceJobs }) => {
+      fetchServiceJobs(orgId)
+        .then(setRealRequests)
+        .catch((err) => setError(err.message));
+    });
+  }, [orgId]);
+
+  if (error) {
+    return (
+      <div className="rounded-2xl border-2 border-red-100 bg-red-50 p-6 text-center">
+        <AlertTriangle className="w-6 h-6 text-red-500 mx-auto mb-2" />
+        <p className="text-[13px] font-black text-red-900">Access Denied</p>
+        <p className="text-[11px] font-medium text-red-700 mt-1">{error}</p>
+      </div>
+    );
+  }
+
+  const requestsToDisplay = realRequests ?? data.requests;
+
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-50">
-      {data.requests.map((r) => {
-        const s = REQ_META[r.status];
-        return (
-          <div key={r.id} className="px-5 py-4">
-            <div className="flex items-center gap-3 flex-wrap">
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-black text-ink truncate">{r.service}</p>
-                <p className="text-[10px] font-bold text-slate-400">{`${r.ref} · ${r.customer} · ${r.area} · ${r.time}`}</p>
+    <div className="space-y-5">
+      {realRequests ? (
+        <div className="mb-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase tracking-widest border border-emerald-100">
+          <CheckCircle2 className="w-3.5 h-3.5" /> Showing live DB requests
+        </div>
+      ) : null}
+      <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-50">
+        {requestsToDisplay.map((r) => {
+          const s = REQ_META[r.status] || { label: r.status, tone: 'blue' };
+          return (
+            <div key={r.id} className="px-5 py-4">
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-black text-ink truncate">{r.service}</p>
+                  <p className="text-[10px] font-bold text-slate-400">{`${r.ref} · ${r.customer} · ${r.area || ''} · ${r.time}`}</p>
+                </div>
+                <Pill tone={s.tone}>{s.label}</Pill>
               </div>
-              <Pill tone={s.tone}>{s.label}</Pill>
+              {r.note && <p className="text-[11px] text-slate-500 font-medium italic mt-1.5 ml-1">“{r.note}”</p>}
             </div>
-            <p className="text-[11px] text-slate-500 font-medium italic mt-1.5 ml-1">“{r.note}”</p>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }

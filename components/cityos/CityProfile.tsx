@@ -9,6 +9,8 @@ import { useWallet } from '@/components/cityos/WalletStore';
 import { useExperience } from '@/components/cityos/ExperienceStore';
 import { useDemoApp } from '@/lib/demo/app/store';
 import { cn } from '@/lib/utils';
+import { fetchMyOrders } from '@/app/actions/commerce';
+import { useEffect } from 'react';
 
 const TABS = ['Orders', 'Payments', 'CityHouse', 'Saved', 'Settings'] as const;
 type Tab = (typeof TABS)[number];
@@ -19,6 +21,12 @@ export default function CityProfile() {
   const { experience } = useExperience();
   const { activeAccount, orders, savedOf } = useDemoApp();
   const [toppedUp, setToppedUp] = useState(false);
+  const [realOrders, setRealOrders] = useState<any[] | null>(null);
+  
+  useEffect(() => {
+    fetchMyOrders().then(setRealOrders).catch(console.error);
+  }, [activeAccount.id]);
+
   const walletPct = Math.min(100, Math.round((balance / 200000) * 100));
 
   const addToWallet = () => {
@@ -124,7 +132,12 @@ export default function CityProfile() {
       {/* Tab content */}
       {tab === 'Orders' ? (
         <div className="space-y-3">
-          {[...orders, ...DEMO_ORDERS].map((o) => (
+          {realOrders && realOrders.length > 0 ? (
+            <div className="mb-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase tracking-widest border border-emerald-100">
+              Showing live DB orders
+            </div>
+          ) : null}
+          {(realOrders && realOrders.length > 0 ? realOrders : [...orders, ...DEMO_ORDERS]).map((o) => (
             <div key={o.id ?? o.ref} className="bg-white rounded-2xl border border-slate-100 p-4 flex items-center gap-4">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">

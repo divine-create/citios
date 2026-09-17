@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   LayoutGrid,
@@ -16,11 +16,13 @@ import {
   Store,
   ChevronRight,
   AlertTriangle,
+  CheckCircle2,
 } from 'lucide-react';
 import { getOrg } from '@/lib/demo/universe/orgs';
 import { getShopOSDataset, type ShopOSDataSet } from '@/lib/demo/universe/shopos';
 import { fmtNaira } from '@/lib/demo/cityos';
 import { StatTile, Pill, SectionHead, DemoBanner } from '@/components/cityos/CityUI';
+import { fetchRetailOrders } from '@/app/actions/commerce';
 import CityOSLive from '@/components/cityos/CityOSLive';
 import { useExperience } from '@/components/cityos/ExperienceStore';
 import { cn } from '@/lib/utils';
@@ -100,7 +102,7 @@ export default function ShopOSWorkspace({ slug }: { slug: string }) {
 
       {tab === 'Overview' ? <Overview data={data} /> : null}
       {tab === 'Products' ? <Products data={data} /> : null}
-      {tab === 'Orders' ? <Orders data={data} /> : null}
+      {tab === 'Orders' ? <Orders data={data} orgId={org.id} /> : null}
       {tab === 'Customers' ? <Customers data={data} /> : null}
       {tab === 'Staff' ? <Staff data={data} /> : null}
       {tab === 'Promotions' ? <Promos data={data} /> : null}
@@ -247,11 +249,32 @@ function Products({ data }: { data: ShopOSDataSet }) {
   );
 }
 
-function Orders({ data }: { data: ShopOSDataSet }) {
+function Orders({ data, orgId }: { data: ShopOSDataSet, orgId: string }) {
+  const [realOrders, setRealOrders] = useState<any[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchRetailOrders(orgId)
+      .then(setRealOrders)
+      .catch((err) => setError(err.message));
+  }, [orgId]);
+
+  if (error) {
+    return (
+      <div className="p-10 text-center bg-rose-50 text-rose-800 rounded-2xl border border-rose-100">
+        <AlertTriangle className="w-8 h-8 mx-auto mb-3" />
+        <p className="font-black">Access Denied</p>
+        <p className="text-xs mt-1">{error}</p>
+      </div>
+    );
+  }
+
+  const ordersToDisplay = realOrders ?? data.orders;
+
   const counts = {
-    total: data.orders.length,
-    picked: data.orders.filter((o) => o.status !== 'cancelled').length,
-    paid: data.orders.filter((o) => o.method === 'CityPay').length,
+    total: ordersToDisplay.length,
+    picked: ordersToDisplay.filter((o) => o.status !== 'cancelled').length,
+    paid: ordersToDisplay.filter((o) => o.method === 'CityPay' || o.method === 'WALLET').length,
   };
   return (
     <div className="space-y-5">
@@ -260,18 +283,23 @@ function Orders({ data }: { data: ShopOSDataSet }) {
         <MiniStat label="Active / picked" value={String(counts.picked)} />
         <MiniStat label="Settled via CityPay" value={String(counts.paid)} />
       </div>
+      {realOrders ? (
+        <div className="mb-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase tracking-widest border border-emerald-100">
+          <CheckCircle2 className="w-3.5 h-3.5" /> Showing live DB orders
+        </div>
+      ) : null}
       <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-50">
-        {data.orders.map((o) => {
-          const s = STATUS_META[o.status];
+        {ordersToDisplay.map((o) => {
+          const s = STATUS_META[o.status] || { label: o.status, tone: 'blue' };
           return (
             <div key={o.id} className="px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-2">
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-black text-ink truncate">{o.items}</p>
-                <p className="text-[10px] font-bold text-slate-400">{`${o.ref} · ${o.time}`}</p>
+                <p className="text-[10px] font-bold text-slate-400">{`${o.ref} · ${o.time || 'Just now'}`}</p>
               </div>
               <div className="flex items-center gap-2 flex-wrap sm:justify-end">
                 <span className="text-[11px] font-bold text-slate-400">{`${o.customer} · ${o.area}`}</span>
-                <Pill tone="slate">{o.method}</Pill>
+                <Pill tone="slate">{o.method || 'Wallet'}</Pill>
                 <span className="text-[13px] font-black text-ink w-24 text-right">{fmtNaira(o.total)}</span>
                 <Pill tone={s.tone}>{s.label}</Pill>
               </div>

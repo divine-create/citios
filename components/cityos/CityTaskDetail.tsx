@@ -9,6 +9,7 @@ import { useWallet } from '@/components/cityos/WalletStore';
 import { useDemoApp } from '@/lib/demo/app/store';
 import { taskOrgId } from '@/lib/demo/app/seed';
 import { cn } from '@/lib/utils';
+import { requestServiceJob } from '@/app/actions/service';
 
 export default function CityTaskDetail({ id }: { id: string }) {
   const t = getTask(id);
@@ -28,7 +29,7 @@ export default function CityTaskDetail({ id }: { id: string }) {
     );
   }
 
-  const book = () => {
+  const book = async () => {
     if (booked) return;
     const ok = spend(t.from, `Deposit · ${t.name} (${t.pro})`);
     if (!ok) {
@@ -36,15 +37,23 @@ export default function CityTaskDetail({ id }: { id: string }) {
       return;
     }
     setState('posted');
-    requestService({
-      orgId: taskOrgId(t.name),
-      taskId: t.id,
-      taskName: t.name,
-      area: t.area,
-      amount: t.from,
-      pro: t.pro,
-      status: 'new',
-    });
+    
+    // Call server action to securely create the job
+    try {
+      await requestServiceJob({ serviceId: t.id });
+    } catch (e) {
+      console.error(e);
+      // Fallback: use demo state if server fails, though we prefer real persistence
+      requestService({
+        orgId: taskOrgId(t.name) || '',
+        taskId: t.id,
+        taskName: t.name,
+        area: t.area,
+        amount: t.from,
+        pro: t.pro,
+        status: 'new',
+      });
+    }
   };
 
   return (

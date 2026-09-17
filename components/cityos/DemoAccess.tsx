@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useSession, signIn } from 'next-auth/react';
 import { ArrowRight, LayoutGrid, Sun, Briefcase, GraduationCap, Repeat, Check, RotateCcw, RefreshCw } from 'lucide-react';
 import { EXPERIENCES, ORGS, getExperience } from '@/lib/demo/universe/orgs';
 import { useExperience, EXPERIENCE_STORAGE_KEY } from '@/components/cityos/ExperienceStore';
@@ -15,6 +16,16 @@ import { cn } from '@/lib/utils';
 
 function AccountPicker() {
   const { activeAccount, setAccount } = useDemoApp();
+  const { data: session } = useSession();
+
+  const handleSetAccount = async (a: typeof RESIDENT_ACCOUNTS[0]) => {
+    setAccount(a.id);
+    
+    // Attempt real NextAuth sign-in
+    const email = `${a.name.split(' ')[0].toLowerCase()}@cityconnect.local`;
+    await signIn('demo', { email, password: '1234', redirect: false });
+  };
+
   return (
     <section>
       <SectionHead
@@ -27,7 +38,7 @@ function AccountPicker() {
           return (
             <button
               key={a.id}
-              onClick={() => setAccount(a.id)}
+              onClick={() => handleSetAccount(a)}
               className={cn(
                 'group text-left bg-white rounded-2xl border p-5 transition-all hover:shadow-md',
                 active ? 'border-teal-400 ring-2 ring-teal-400/30' : 'border-slate-100 hover:border-teal-200',

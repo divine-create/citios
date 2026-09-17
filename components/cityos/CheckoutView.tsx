@@ -10,6 +10,7 @@ import { useDemoApp } from '@/lib/demo/app/store';
 import { bizOrgId, bizOrgName } from '@/lib/demo/app/seed';
 import { Money, Pill } from '@/components/cityos/CityUI';
 import { cn } from '@/lib/utils';
+import { placeRetailOrder } from '@/app/actions/commerce';
 
 const METHODS = [
   { id: 'wallet', label: 'CityPay Wallet', sub: 'Tap to use CityPay', icon: Wallet },
@@ -43,25 +44,13 @@ export default function CheckoutView() {
   const total = subtotal + deliveryFee;
   const walletOk = method === 'wallet' ? balance - total >= 0 : true;
 
-  const pay = () => {
+  const pay = async () => {
     if (processing) return;
     const firstBiz = lines.length ? getProduct(lines[0].productId)?.bizSlug : undefined;
-    const order = {
-      ref: `CC-${2841 + Math.floor(Math.random() * 90)}`,
-      method,
-      items: lines.map((l) => {
-        const p = getProduct(l.productId);
-        return { name: p?.name ?? l.productId, qty: l.qty, price: p?.price ?? 0 };
-      }),
-      subtotal,
-      deliveryFee,
-      total,
-      orgId: firstBiz ? bizOrgId(firstBiz) : '',
-      merchant: firstBiz ? bizOrgName(firstBiz) : 'CityOS Merchant',
-      placedAt: new Date().toISOString(),
-    };
+    const orgId = firstBiz ? bizOrgId(firstBiz) : '';
+    
     if (method === 'wallet') {
-      const ok = spend(total, `CityPay order ${order.ref}`);
+      const ok = spend(total, `CityPay order CC-ORDER`);
       if (!ok) {
         setWalletError(true);
         return;
@@ -69,24 +58,33 @@ export default function CheckoutView() {
     }
     setWalletError(false);
     setProcessing(true);
-    placeOrder({
-      ref: order.ref,
-      orgId: order.orgId,
-      merchant: order.merchant,
-      items: order.items,
-      total: order.total,
-      status: 'paid',
-      method: order.method,
-    });
+    
     try {
-      window.localStorage.setItem('cityos-demo-order', JSON.stringify(order));
-    } catch {
-      /* storage unavailable */
+      const orderItems = lines.map((l) => {
+        const p = getProduct(l.productId);
+        return { 
+          productId: p?.id ?? l.productId, 
+          qty: l.qty, 
+          name: p?.name ?? 'Unknown Item'
+        };
+      });
+
+      // Call the server action
+      const result = await placeRetailOrder({
+        orgId,
+        items: orderItems,
+        method
+      });
+
+      if (result.success) {
+        clear();
+        router.push('/pay/success');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Failed to place order via server action: ' + (err as Error).message);
+      setProcessing(false);
     }
-    window.setTimeout(() => {
-      clear();
-      router.push('/pay/success');
-    }, 1400);
   };
 
   return (
