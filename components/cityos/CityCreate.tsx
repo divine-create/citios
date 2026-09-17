@@ -2,8 +2,10 @@
 
 import Link from 'next/link';
 import { PenSquare, PackagePlus, Wrench, Briefcase, CalendarPlus, HousePlus, Users, ArrowRight, Sparkles } from 'lucide-react';
-import { DEMO_ACTIVITY, DEMO_USER } from '@/lib/demo/cityos';
+import { DEMO_USER } from '@/lib/demo/cityos';
 import { SectionHead, Pill } from '@/components/cityos/CityUI';
+import { fetchResidentActivity } from '@/app/actions/activity';
+import { useEffect, useState } from 'react';
 
 interface CreateAction {
   icon: React.ComponentType<{ className?: string }>;
@@ -26,6 +28,10 @@ const ACTIONS: CreateAction[] = [
 ];
 
 export default function CityCreate() {
+  const [recent, setRecent] = useState<any[]>([]);
+  useEffect(() => {
+    fetchResidentActivity().then(a => setRecent(a.slice(0, 5)));
+  }, []);
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
       <div className="rounded-3xl bg-gradient-to-br from-slate-900 via-teal-950 to-teal-800 text-white p-7 md:p-8 relative overflow-hidden">
@@ -71,13 +77,13 @@ export default function CityCreate() {
       <section>
         <SectionHead title="Your recent activity" sub="Things you created or paid for in the demo" />
         <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-50">
-          {DEMO_ACTIVITY.slice(0, 5).map((a) => (
+          {recent.map((a) => (
             <Link key={a.id} href={a.href ?? '#'} className="flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50/60 transition-colors">
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-black text-ink truncate">{a.title}</p>
-                <p className="text-[11px] font-bold text-slate-400 truncate">{a.body}</p>
+                <p className="text-[11px] font-bold text-slate-400 truncate">{a.desc}</p>
               </div>
-              <span className="text-[10px] font-bold text-slate-400 shrink-0">{a.time}</span>
+              <span className="text-[10px] font-bold text-slate-400 shrink-0">{new Date(a.date).toLocaleDateString()}</span>
             </Link>
           ))}
         </div>

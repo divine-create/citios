@@ -25,7 +25,7 @@ export async function fetchResidentActivity() {
         kind: 'service_booked',
         title: `Service Booked: ${job.description || 'Service'}`,
         desc: `with ${job.organization?.name || 'Organization'}`,
-        date: job.createdAt.toISOString(),
+        date: typeof job.createdAt === 'string' ? new Date(job.createdAt).toISOString() : job.createdAt.toString(),
         href: `/services/${job.id}`,
       });
     }
@@ -37,7 +37,7 @@ export async function fetchResidentActivity() {
         kind: 'shop_order',
         title: `Order Placed`,
         desc: `from ${order.organization?.name || 'Organization'}`,
-        date: order.createdAt.toISOString(),
+        date: typeof order.createdAt === 'string' ? new Date(order.createdAt).toISOString() : order.createdAt.toString(),
         href: `/cart/orders/${order.id}`,
       });
     }
@@ -51,7 +51,7 @@ export async function fetchResidentActivity() {
       kind: 'job_apply',
       title: `Applied for ${app.job?.title || 'Job'}`,
       desc: `Status: ${app.status}`,
-      date: app.createdAt.toISOString(),
+      date: typeof app.createdAt === 'string' ? new Date(app.createdAt).toISOString() : app.createdAt.toString(),
       href: `/jobs/${app.jobId}`,
     });
   }
@@ -64,12 +64,35 @@ export async function fetchResidentActivity() {
       kind: 'event_rsvp',
       title: `Registered for ${reg.event?.title || 'Event'}`,
       desc: `Status: ${reg.status}`,
-      date: reg.createdAt.toISOString(),
+      date: typeof reg.createdAt === 'string' ? new Date(reg.createdAt).toISOString() : reg.createdAt.toString(),
       href: `/events/${reg.eventId}`,
     });
   }
 
+  
+  // 5. Saved Items
+  const savedItems = await db.orm.public.SavedItem.where({ personId }).all();
+  for (const saved of savedItems) {
+    let title = 'Saved Item';
+    let href = '#';
+    if (saved.entityType === 'biz') href = `/org/${saved.entityId}`;
+    if (saved.entityType === 'job') href = `/jobs/${saved.entityId}`;
+    if (saved.entityType === 'event') href = `/events/${saved.entityId}`;
+    if (saved.entityType === 'product') href = `/product/${saved.entityId}`;
+    if (saved.entityType === 'place') href = `/map`;
+
+    activities.push({
+      id: saved.id,
+      kind: 'saved_item',
+      title: `Saved a ${saved.entityType}`,
+      desc: `Saved to your profile`,
+      date: typeof saved.createdAt === 'string' ? new Date(saved.createdAt).toISOString() : saved.createdAt.toString(),
+      href,
+    });
+  }
+
   // Sort by date desc
+
   activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return activities;

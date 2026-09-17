@@ -6,13 +6,14 @@ import { fetchResidentActivity } from '@/app/actions/activity';
 import { cn } from '@/lib/utils';
 import { DemoBanner } from '@/components/cityos/CityUI';
 
-const FILTERS = ['All', 'Orders', 'Service Requests', 'CityJobs', 'Events'];
+const FILTERS = ['All', 'Orders', 'Service Requests', 'CityJobs', 'Events', 'Saved Items'];
 
 function kindGroup(kind: string): string {
   if (kind === 'shop_order') return 'Orders';
   if (kind === 'service_booked') return 'Service Requests';
   if (kind === 'job_apply') return 'CityJobs';
   if (kind === 'event_rsvp') return 'Events';
+  if (kind === 'saved_item') return 'Saved Items';
   return 'All';
 }
 
@@ -43,12 +44,14 @@ export default function CityActivity() {
             a.kind === 'event_rsvp' ? 'bg-indigo-50 text-indigo-600' :
             a.kind === 'job_apply' ? 'bg-sky-50 text-sky-600' :
             a.kind === 'service_booked' ? 'bg-purple-50 text-purple-600' :
+            a.kind === 'saved_item' ? 'bg-pink-50 text-pink-600' :
             'bg-teal-50 text-teal-800'
           )}
         >
           {a.kind === 'event_rsvp' ? '🎟️' :
            a.kind === 'job_apply' ? '💼' :
            a.kind === 'service_booked' ? '🔧' :
+           a.kind === 'saved_item' ? '🔖' :
            '🛍️'}
         </span>
         <div className="flex-1 min-w-0">

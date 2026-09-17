@@ -1260,15 +1260,7 @@ export const ACTIVITY_KIND_META: Record<ActivityKind, { label: string; icon: Luc
   service: { label: 'Service', icon: Wrench },
 };
 
-export const DEMO_ACTIVITY: ActivityItem[] = [
-  { id: 'a01', kind: 'delivery', title: 'Delivery dispatched', body: 'Samuel Edem picked up your Calabar Fresh order. Arriving in 12 min at State Housing Estate.', time: '4 min ago', href: '/drive/delivery' },
-  { id: 'a02', kind: 'payment', title: 'CityPay top-up confirmed', body: '₦50,000 added to your wallet from GTBank. Balance: ₦146,000.', time: '26 min ago', href: '/profile' },
-  { id: 'a03', kind: 'order', title: 'Order CC-2841 confirmed', body: 'Your (2) items from Calabar Fresh Market are being packed. Paid with CityPay.', time: '1h ago', href: '/checkout' },
-  { id: 'a04', kind: 'rent', title: 'Rent payment reminder', body: 'Ekorinim Garden Flat — next rent of ₦66,667 due in 12 days. Pay now to stay covered.', time: '3h ago', href: '/house/h01/pay' },
-  { id: 'a05', kind: 'promo', title: 'New-customer offer', body: '10% off your first Calabar Fresh order over ₦10,000. Applied automatically at checkout.', time: '5h ago', href: '/biz/calabar-fresh' },
-  { id: 'a06', kind: 'ride', title: 'Ride CC-R220 completed', body: 'CitySolo · Uyo Road to Ekorinim — ₦1,900. Thanks for riding with us.', time: '1d ago', href: '/drive/ride' },
-  { id: 'a07', kind: 'security', title: 'New sign-in to CityPay', body: 'We noticed a new device on your account. Tap to confirm it was you.', time: '2d ago', href: '/profile' },
-];
+
 
 export const NOTIFICATIONS = [
   { title: 'Driver nearing', body: 'Samuel Edem is 5 min away with your market order.', time: 'Now', href: '/drive/delivery' },
