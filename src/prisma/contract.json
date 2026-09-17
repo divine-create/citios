@@ -108,6 +108,10 @@
       "model": "FolioCharge",
       "namespace": "public"
     },
+    "follow": {
+      "model": "Follow",
+      "namespace": "public"
+    },
     "gigWorkerProfile": {
       "model": "GigWorkerProfile",
       "namespace": "public"
@@ -4199,6 +4203,88 @@
               "table": "folioCharge"
             }
           },
+          "Follow": {
+            "fields": {
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "organizationId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "personId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "organization": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "organizationId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Organization",
+                  "namespace": "public"
+                }
+              },
+              "person": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "personId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Person",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "organizationId": {
+                  "column": "organizationId"
+                },
+                "personId": {
+                  "column": "personId"
+                }
+              },
+              "namespaceId": "public",
+              "table": "follow"
+            }
+          },
           "GigWorkerProfile": {
             "fields": {
               "createdAt": {
@@ -8243,6 +8329,21 @@
                   "namespace": "public"
                 }
               },
+              "followers": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "organizationId"
+                  ]
+                },
+                "to": {
+                  "model": "Follow",
+                  "namespace": "public"
+                }
+              },
               "hotelRooms": {
                 "cardinality": "1:N",
                 "on": {
@@ -9533,6 +9634,21 @@
                   "namespace": "public"
                 }
               },
+              "follows": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "personId"
+                  ]
+                },
+                "to": {
+                  "model": "Follow",
+                  "namespace": "public"
+                }
+              },
               "gigProfile": {
                 "cardinality": "1:1",
                 "on": {
@@ -9620,6 +9736,21 @@
                 },
                 "to": {
                   "model": "PostLike",
+                  "namespace": "public"
+                }
+              },
+              "posts": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "personId"
+                  ]
+                },
+                "to": {
+                  "model": "Post",
                   "namespace": "public"
                 }
               },
@@ -10236,7 +10367,14 @@
                 }
               },
               "organizationId": {
-                "nullable": false,
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "personId": {
+                "nullable": true,
                 "type": {
                   "codecId": "pg/text@1",
                   "kind": "scalar"
@@ -10322,6 +10460,21 @@
                   "model": "Organization",
                   "namespace": "public"
                 }
+              },
+              "person": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "personId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Person",
+                  "namespace": "public"
+                }
               }
             },
             "storage": {
@@ -10343,6 +10496,9 @@
                 },
                 "organizationId": {
                   "column": "organizationId"
+                },
+                "personId": {
+                  "column": "personId"
                 },
                 "shareCount": {
                   "column": "shareCount"
@@ -22244,6 +22400,101 @@
               },
               "uniques": []
             },
+            "follow": {
+              "columns": {
+                "createdAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "organizationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "personId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "personId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "follow"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "person"
+                  }
+                },
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "organizationId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "follow"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "organization"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "organizationId"
+                  ],
+                  "name": "follow_organizationId_idx_2e17ef41",
+                  "prefix": "follow_organizationId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "personId"
+                  ],
+                  "name": "follow_personId_idx_e5e06b80",
+                  "prefix": "follow_personId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "personId",
+                    "organizationId"
+                  ]
+                }
+              ]
+            },
             "gigWorkerProfile": {
               "columns": {
                 "createdAt": {
@@ -26372,7 +26623,12 @@
                 "organizationId": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
-                  "nullable": false
+                  "nullable": true
+                },
+                "personId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
                 },
                 "shareCount": {
                   "codecId": "pg/int4@1",
@@ -26430,6 +26686,23 @@
                     "namespaceId": "public",
                     "tableName": "organization"
                   }
+                },
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "personId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "post"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "person"
+                  }
                 }
               ],
               "indexes": [
@@ -26439,6 +26712,14 @@
                   ],
                   "name": "post_organizationId_idx_2e17ef41",
                   "prefix": "post_organizationId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "personId"
+                  ],
+                  "name": "post_personId_idx_e5e06b80",
+                  "prefix": "post_personId_idx",
                   "unique": false
                 }
               ],
@@ -34085,10 +34366,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "0f3f245b3d9d3092e6ac9e3a660ddba3d7a5d48acfbb9bdadd72dbbcb611d1e4"
+    "storageHash": "417cc31a526f83e9928daa9a00c250604455431d3c712dfa244968e881471f66"
   },
   "execution": {
-    "executionHash": "8ad497aeabea7fc37ea22d305810da1094e96104f90429c39c5a1b4b8cff80d7",
+    "executionHash": "da677b86aab2653d5a8e657fe865c6cbc9fb7e2a207dd431873ecb6fb67490f6",
     "mutations": {
       "defaults": [
         {
@@ -34375,6 +34656,17 @@
             "column": "id",
             "namespace": "public",
             "table": "folioCharge"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "follow"
           }
         },
         {

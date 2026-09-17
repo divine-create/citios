@@ -1,19 +1,57 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
-import { Heart, MessageSquare, Share2, PenSquare, ChevronRight } from 'lucide-react';
-import { FeedPost, DEMO_POSTS, FEED_FILTERS } from '@/lib/demo/cityos';
-import { CityCard, FallbackImg, Pill, ChipButton, VerifiedBadge, DemoBanner } from '@/components/cityos/CityUI';
-import { useDemoApp } from '@/lib/demo/app/store';
-import { postOrgId } from '@/lib/demo/app/seed';
+import { useState, useEffect, useCallback } from 'react';
+import { Heart, MessageSquare, Share2, PenSquare, ChevronRight, UserPlus, UserCheck, Loader2 } from 'lucide-react';
+import { FEED_FILTERS } from '@/lib/demo/cityos';
+import { CityCard, FallbackImg, Pill, ChipButton, VerifiedBadge } from '@/components/cityos/CityUI';
 import { cn } from '@/lib/utils';
+import { fetchFeed, togglePostLike, toggleFollow, getFollowedOrganizations } from '@/app/actions/newsfeed';
 
-function PostCard({ post }: { post: FeedPost }) {
-  const { isLiked, toggleLike } = useDemoApp();
+export type DBPost = {
+  id: string;
+  author: string;
+  role: string;
+  isOrg: boolean;
+  time: string;
+  category: string;
+  title: string;
+  body: string;
+  likes: number;
+  comments: number;
+  shares: number;
+  isLikedByMe: boolean;
+  orgId: string | null;
+  href?: { url: string; label: string };
+  image?: string;
+  avatarImg?: string;
+};
+
+function PostCard({ post, follows, onFollowToggle }: { post: DBPost, follows: string[], onFollowToggle: (id: string) => void }) {
+  const [liked, setLiked] = useState(post.isLikedByMe);
+  const [likeCount, setLikeCount] = useState(post.likes);
   const [shareCount, setShareCount] = useState(post.shares);
-  const [commentCount, setCommentCount] = useState(post.comments);
-  const liked = isLiked(post.id);
+  const [isFollowing, setIsFollowing] = useState(post.orgId ? follows.includes(post.orgId) : false);
+
+  useEffect(() => {
+    setIsFollowing(post.orgId ? follows.includes(post.orgId) : false);
+  }, [follows, post.orgId]);
+
+  const handleLike = async () => {
+    const newLiked = !liked;
+    setLiked(newLiked);
+    setLikeCount((c) => (newLiked ? c + 1 : c - 1));
+    await togglePostLike(post.id).catch(console.error);
+  };
+
+  const handleFollow = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!post.orgId) return;
+    const newFollowing = !isFollowing;
+    setIsFollowing(newFollowing);
+    onFollowToggle(post.orgId);
+    await toggleFollow(post.orgId).catch(console.error);
+  };
 
   const inner = (
     <CityCard className="flex flex-col">
@@ -29,8 +67,20 @@ function PostCard({ post }: { post: FeedPost }) {
             <p className="text-[13px] font-black text-ink">{post.author}</p>
             {post.isOrg ? <VerifiedBadge /> : null}
             <Pill tone="slate" className="ml-1">{post.category}</Pill>
+            {post.isOrg && post.orgId && (
+              <button 
+                onClick={handleFollow}
+                className={cn(
+                  "ml-auto flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-md transition-colors",
+                  isFollowing ? "bg-slate-100 text-slate-500" : "bg-teal-50 text-teal-700 hover:bg-teal-100"
+                )}
+              >
+                {isFollowing ? <UserCheck className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
+                {isFollowing ? 'Following' : 'Follow'}
+              </button>
+            )}
           </div>
-          <p className="text-[11px] text-slate-400 font-bold mt-0.5 uppercase tracking-wider">{`${post.role} · ${post.time}`}</p>
+          <p className="text-[11px] text-slate-400 font-bold mt-0.5 uppercase tracking-wider">{`${post.role} A ${new Date(post.time).toLocaleDateString()}`}</p>
         </div>
       </div>
 
@@ -53,21 +103,21 @@ function PostCard({ post }: { post: FeedPost }) {
 
       <div className="mt-4 flex items-center gap-1 border-t border-slate-100 px-3 py-2">
         <button
-          onClick={() => toggleLike(post.id)}
+          onClick={handleLike}
           className={cn(
             'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-bold transition-colors',
             liked ? 'text-orange-600 bg-orange-50' : 'text-slate-500 hover:bg-slate-50',
           )}
         >
           <Heart className={cn('w-4 h-4', liked && 'fill-orange-500 text-orange-500')} />
-          {post.likes + (liked ? 1 : 0)}
+          {likeCount}
         </button>
         <button
-          onClick={() => setCommentCount((c) => c + 1)}
           className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-bold text-slate-500 hover:bg-slate-50 transition-colors"
+          title="Comments coming soon"
         >
           <MessageSquare className="w-4 h-4" />
-          {commentCount}
+          {post.comments}
         </button>
         <button
           onClick={() => setShareCount((s) => s + 1)}
@@ -86,18 +136,36 @@ function PostCard({ post }: { post: FeedPost }) {
 
 export default function CityFeed() {
   const [filter, setFilter] = useState(FEED_FILTERS[0]);
-  const { createdPosts, follows } = useDemoApp();
+  const [posts, setPosts] = useState<DBPost[]>([]);
+  const [follows, setFollows] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-  const all = [...createdPosts, ...DEMO_POSTS];
-  const posts = [
-    ...all.filter((p) => {
-      if (filter === 'Following') {
-        const orgId = postOrgId(p.author, p.isOrg);
-        return Boolean(orgId && follows.includes(orgId));
-      }
-      return filter === 'For you' || p.category === filter;
-    }),
-  ];
+  const loadFeed = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(false);
+      const [feedData, followData] = await Promise.all([
+        fetchFeed(filter),
+        getFollowedOrganizations()
+      ]);
+      setPosts(feedData);
+      setFollows(followData);
+    } catch (e) {
+      console.error(e);
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [filter]);
+
+  useEffect(() => {
+    loadFeed();
+  }, [loadFeed]);
+
+  const onFollowToggle = (orgId: string) => {
+    setFollows(prev => prev.includes(orgId) ? prev.filter(id => id !== orgId) : [...prev, orgId]);
+  };
 
   return (
     <div className="max-w-2xl mx-auto space-y-5 animate-in fade-in duration-500">
@@ -115,8 +183,6 @@ export default function CityFeed() {
         </Link>
       </div>
 
-      <DemoBanner />
-
       <div className="flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden -mx-1 px-1">
         {FEED_FILTERS.map((f) => (
           <ChipButton key={f} active={filter === f} onClick={() => setFilter(f)}>
@@ -126,8 +192,17 @@ export default function CityFeed() {
       </div>
 
       <div className="space-y-4 pb-8">
-        {posts.length ? (
-          posts.map((post) => <PostCard key={post.id} post={post} />)
+        {loading ? (
+          <div className="py-12 flex justify-center text-teal-800">
+             <Loader2 className="w-8 h-8 animate-spin opacity-50" />
+          </div>
+        ) : error ? (
+           <div className="rounded-2xl border border-dashed border-red-200 bg-red-50 p-10 text-center">
+            <p className="text-sm font-bold text-red-600">Failed to load feed</p>
+            <button onClick={loadFeed} className="mt-3 text-xs font-bold text-red-700 underline">Try again</button>
+          </div>
+        ) : posts.length ? (
+          posts.map((post) => <PostCard key={post.id} post={post} follows={follows} onFollowToggle={onFollowToggle} />)
         ) : (
           <div className="rounded-2xl border border-dashed border-slate-200 p-10 text-center">
             <p className="text-sm font-bold text-slate-500">Nothing here yet.</p>
