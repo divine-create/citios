@@ -30,18 +30,7 @@ export default function CityActivity() {
   useEffect(() => {
     import('@/app/actions/service')
       .then((m) => m.fetchMyServiceJobs())
-      .then((jobs) => {
-        setRealServices(
-          jobs.map((j) => ({
-            id: j.id,
-            kind: 'service',
-            title: `Service Request: ${j.ref}`,
-            body: `Requested ${j.service} from ${j.merchant}. Status: ${j.status}`,
-            time: j.time,
-            href: `/tasks/${j.id}`,
-          }))
-        );
-      })
+      .then(setRealServices)
       .catch(console.error);
   }, []);
 
