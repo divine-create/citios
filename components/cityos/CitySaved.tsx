@@ -1,90 +1,33 @@
 'use client';
 
-import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import Link from 'next/link';
 import { Bookmark, Heart } from 'lucide-react';
 import { DEMO_BUSINESSES, DEMO_PRODUCTS, DEMO_PROPERTIES, DEMO_EVENTS, getBusiness, fmtNaira } from '@/lib/demo/cityos';
 import { CITY_JOBS } from '@/lib/demo/universe/jobs';
 import { CityCard, FallbackImg, Stars, Pill, LocationRow, DemoBanner, OpenBadge } from '@/components/cityos/CityUI';
-
-const SAVED_KEY = 'cityos-demo-saved';
-const SAVED_PRODUCTS = ['q01', 'q02', 'p16', 'p08', 'p10'];
-const SAVED_JOBS = CITY_JOBS.slice(0, 3).map((j) => j.id);
-const SAVED_EVENTS = DEMO_EVENTS.slice(0, 3).map((e) => e.id);
-const SAVED_PLACES = DEMO_PROPERTIES.filter((p) => p.featured).slice(0, 2).map((p) => p.id);
-const SAVED_BIZ = ['calabar-fresh', 'mamas-kitchen', 'medline-pharmacy'];
+import { useDemoApp } from '@/lib/demo/app/store';
 
 export default function CitySaved() {
-  const [savedBiz, setSavedBiz] = useState<string[]>(SAVED_BIZ);
-  const [savedProducts, setSavedProducts] = useState<string[]>(SAVED_PRODUCTS);
-  const [savedJobs, setSavedJobs] = useState<string[]>(SAVED_JOBS);
-  const [savedEvents, setSavedEvents] = useState<string[]>(SAVED_EVENTS);
-  const [savedPlaces, setSavedPlaces] = useState<string[]>(SAVED_PLACES);
-  const [hydrated, setHydrated] = useState(false);
+  const { savedOf, toggleSave } = useDemoApp();
+  const savedBiz = savedOf('biz');
+  const savedProducts = savedOf('product');
+  const savedJobs = savedOf('job');
+  const savedEvents = savedOf('event');
+  const savedPlaces = savedOf('place');
 
-  useEffect(() => {
-    const t = window.setTimeout(() => {
-      try {
-        const raw = localStorage.getItem(SAVED_KEY);
-        if (raw) {
-          const data = JSON.parse(raw);
-          if (Array.isArray(data.biz)) setSavedBiz(data.biz);
-          if (Array.isArray(data.products)) setSavedProducts(data.products);
-          if (Array.isArray(data.jobs)) setSavedJobs(data.jobs);
-          if (Array.isArray(data.events)) setSavedEvents(data.events);
-          if (Array.isArray(data.places)) setSavedPlaces(data.places);
-        }
-      } catch {
-        // ignore
-      }
-      setHydrated(true);
-    }, 0);
-    return () => window.clearTimeout(t);
-  }, []);
-
-  const persist = (biz: string[], products: string[], jobs: string[], events: string[], places: string[]) => {
-    try {
-      localStorage.setItem(SAVED_KEY, JSON.stringify({ biz, products, jobs, events, places }));
-    } catch {
-      // ignore
-    }
-  };
-
-  const toggle = (bucket: 'biz' | 'products' | 'jobs' | 'events' | 'places', id: string) => {
-    const maps = { biz: savedBiz, products: savedProducts, jobs: savedJobs, events: savedEvents, places: savedPlaces };
-    const setter: Record<typeof bucket, Dispatch<SetStateAction<string[]>>> = {
-      biz: setSavedBiz,
-      products: setSavedProducts,
-      jobs: setSavedJobs,
-      events: setSavedEvents,
-      places: setSavedPlaces,
-    };
-    const list = maps[bucket];
-    const next = list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
-    setter[bucket](next);
-    const nextAll = {
-      biz: bucket === 'biz' ? next : savedBiz,
-      products: bucket === 'products' ? next : savedProducts,
-      jobs: bucket === 'jobs' ? next : savedJobs,
-      events: bucket === 'events' ? next : savedEvents,
-      places: bucket === 'places' ? next : savedPlaces,
-    };
-    persist(nextAll.biz, nextAll.products, nextAll.jobs, nextAll.events, nextAll.places);
-  };
-
-  const holder = (label: string, count: number) =>
+  const holder = (count: number) =>
     count === 0 ? (
       <p className="col-span-full text-sm font-bold text-slate-300 py-2">Nothing saved here yet.</p>
     ) : null;
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col gap-1">
+      <div>
         <h1 className="text-xl font-black text-ink flex items-center gap-2">
           <Bookmark className="w-5 h-5 text-teal-800" /> Saved
         </h1>
         <p className="text-xs text-slate-500 font-medium">
-          Businesses, products, jobs, events and places you have saved across CityOS. Stored on this device — demo only.
+          Businesses, products, jobs, events and places you have saved across CityOS. Stored per demo account — reset clears it.
         </p>
       </div>
 
@@ -97,7 +40,7 @@ export default function CitySaved() {
           <span className="text-[11px] font-bold text-slate-400">{savedBiz.length}</span>
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {DEMO_BUSINESSES.filter((b) => savedBiz.includes(b.slug)).map((b) => (
+          {DEMO_BUSINESSES.filter((b) => savedBiz.some((s) => s.id === b.slug)).map((b) => (
             <CityCard key={b.slug} href={`/biz/${b.slug}`} className="flex flex-col">
               <FallbackImg src={b.cover} alt={b.name} className="h-28 w-full" />
               <div className="p-4 flex-1 flex flex-col gap-2">
@@ -114,7 +57,7 @@ export default function CitySaved() {
                   <button
                     onClick={(e) => {
                       e.preventDefault();
-                      toggle('biz', b.slug);
+                      toggleSave({ kind: 'biz', id: b.slug });
                     }}
                     className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-black hover:bg-rose-50 hover:text-rose-600 transition-colors"
                   >
@@ -124,7 +67,7 @@ export default function CitySaved() {
               </div>
             </CityCard>
           ))}
-          {holder('businesses', savedBiz.length)}
+          {holder(savedBiz.length)}
         </div>
       </section>
 
@@ -135,7 +78,7 @@ export default function CitySaved() {
           <span className="text-[11px] font-bold text-slate-400">{savedProducts.length}</span>
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {DEMO_PRODUCTS.filter((p) => savedProducts.includes(p.id)).map((p) => {
+          {DEMO_PRODUCTS.filter((p) => savedProducts.some((s) => s.id === p.id)).map((p) => {
             const biz = getBusiness(p.bizSlug);
             return (
               <CityCard key={p.id} href={`/product/${p.id}`} className="p-3 flex flex-col gap-1.5">
@@ -147,7 +90,7 @@ export default function CitySaved() {
                   <button
                     onClick={(e) => {
                       e.preventDefault();
-                      toggle('products', p.id);
+                      toggleSave({ kind: 'product', id: p.id });
                     }}
                     className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-black hover:bg-rose-50 hover:text-rose-600 transition-colors"
                   >
@@ -157,7 +100,7 @@ export default function CitySaved() {
               </CityCard>
             );
           })}
-          {holder('products', savedProducts.length)}
+          {holder(savedProducts.length)}
         </div>
       </section>
 
@@ -168,7 +111,7 @@ export default function CitySaved() {
           <span className="text-[11px] font-bold text-slate-400">{savedJobs.length}</span>
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {CITY_JOBS.filter((j) => savedJobs.includes(j.id)).map((j) => (
+          {CITY_JOBS.filter((j) => savedJobs.some((s) => s.id === j.id)).map((j) => (
             <CityCard key={j.id} href={`/jobs/${j.id}`} className="p-4">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
@@ -184,7 +127,7 @@ export default function CitySaved() {
               <button
                 onClick={(e) => {
                   e.preventDefault();
-                  toggle('jobs', j.id);
+                  toggleSave({ kind: 'job', id: j.id });
                 }}
                 className="mt-3 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-black hover:bg-rose-50 hover:text-rose-600 transition-colors"
               >
@@ -192,7 +135,7 @@ export default function CitySaved() {
               </button>
             </CityCard>
           ))}
-          {holder('jobs', savedJobs.length)}
+          {holder(savedJobs.length)}
         </div>
       </section>
 
@@ -203,7 +146,7 @@ export default function CitySaved() {
           <span className="text-[11px] font-bold text-slate-400">{savedEvents.length}</span>
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {DEMO_EVENTS.filter((ev) => savedEvents.includes(ev.id)).map((ev) => (
+          {DEMO_EVENTS.filter((ev) => savedEvents.some((s) => s.id === ev.id)).map((ev) => (
             <CityCard key={ev.id} href={`/events/${ev.id}`} className="p-4">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
@@ -219,7 +162,7 @@ export default function CitySaved() {
               <button
                 onClick={(e) => {
                   e.preventDefault();
-                  toggle('events', ev.id);
+                  toggleSave({ kind: 'event', id: ev.id });
                 }}
                 className="mt-3 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-black hover:bg-rose-50 hover:text-rose-600 transition-colors"
               >
@@ -227,7 +170,7 @@ export default function CitySaved() {
               </button>
             </CityCard>
           ))}
-          {holder('events', savedEvents.length)}
+          {holder(savedEvents.length)}
         </div>
       </section>
 
@@ -238,7 +181,7 @@ export default function CitySaved() {
           <span className="text-[11px] font-bold text-slate-400">{savedPlaces.length}</span>
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {DEMO_PROPERTIES.filter((p) => savedPlaces.includes(p.id)).map((p) => (
+          {DEMO_PROPERTIES.filter((p) => savedPlaces.some((s) => s.id === p.id)).map((p) => (
             <CityCard key={p.id} href={`/house/${p.id}`} className="p-4">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
@@ -254,7 +197,7 @@ export default function CitySaved() {
               <button
                 onClick={(e) => {
                   e.preventDefault();
-                  toggle('places', p.id);
+                  toggleSave({ kind: 'place', id: p.id });
                 }}
                 className="mt-3 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-black hover:bg-rose-50 hover:text-rose-600 transition-colors"
               >
@@ -262,11 +205,11 @@ export default function CitySaved() {
               </button>
             </CityCard>
           ))}
-          {holder('places', savedPlaces.length)}
+          {holder(savedPlaces.length)}
         </div>
       </section>
 
-      {hydrated && savedBiz.length + savedProducts.length + savedJobs.length + savedEvents.length + savedPlaces.length === 0 ? (
+      {savedBiz.length + savedProducts.length + savedJobs.length + savedEvents.length + savedPlaces.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-200 p-10 text-center">
           <p className="text-sm font-bold text-slate-500">Nothing saved yet.</p>
           <p className="text-xs text-slate-400 mt-1">Browse the Market, Food, Jobs, Events or Homes to start collecting.</p>

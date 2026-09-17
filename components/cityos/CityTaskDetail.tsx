@@ -3,16 +3,21 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Wrench, ChevronRight, ShieldCheck, Check, UserCheck, Timer } from 'lucide-react';
-import { getTask, fmtNaira, DEMO_USER } from '@/lib/demo/cityos';
+import { getTask, fmtNaira } from '@/lib/demo/cityos';
 import { FallbackImg, Pill, Stars, DemoBanner, Money } from '@/components/cityos/CityUI';
 import { useWallet } from '@/components/cityos/WalletStore';
+import { useDemoApp } from '@/lib/demo/app/store';
+import { taskOrgId } from '@/lib/demo/app/seed';
 import { cn } from '@/lib/utils';
 
 export default function CityTaskDetail({ id }: { id: string }) {
   const t = getTask(id);
   const { spend, balance } = useWallet();
-  const [state, setState] = useState<'idle' | 'booked' | 'low'>('idle');
+  const { serviceRequests, requestService, activeAccount } = useDemoApp();
+  const [state, setState] = useState<'idle' | 'posted' | 'low'>('idle');
   const [ref] = useState(() => `TASK-${String(Math.floor(1000 + Math.random() * 9000))}`);
+  const requested = serviceRequests.some((r) => r.taskId === id);
+  const booked = requested || state === 'posted';
 
   if (!t) {
     return (
@@ -24,9 +29,22 @@ export default function CityTaskDetail({ id }: { id: string }) {
   }
 
   const book = () => {
-    if (state === 'booked') return;
+    if (booked) return;
     const ok = spend(t.from, `Deposit · ${t.name} (${t.pro})`);
-    setState(ok ? 'booked' : 'low');
+    if (!ok) {
+      setState('low');
+      return;
+    }
+    setState('posted');
+    requestService({
+      orgId: taskOrgId(t.name),
+      taskId: t.id,
+      taskName: t.name,
+      area: t.area,
+      amount: t.from,
+      pro: t.pro,
+      status: 'new',
+    });
   };
 
   return (
@@ -76,20 +94,20 @@ export default function CityTaskDetail({ id }: { id: string }) {
         </p>
         <div className="space-y-2 text-[12px] font-bold mt-3">
           <div className="flex justify-between"><span className="text-slate-500">Pro</span><span className="text-slate-700">{t.pro}</span></div>
-          <div className="flex justify-between"><span className="text-slate-500">Client</span><span className="text-slate-700">{DEMO_USER.name}</span></div>
+          <div className="flex justify-between"><span className="text-slate-500">Client</span><span className="text-slate-700">{activeAccount.name}</span></div>
           <div className="flex justify-between"><span className="text-slate-500">Deposit</span><span className="text-teal-800">CityPay wallet</span></div>
         </div>
         <div className="h-px bg-slate-100 my-3" />
         <Money amount={t.from} className="text-2xl block" />
         <button
           onClick={book}
-          disabled={state === 'booked'}
+          disabled={booked}
           className={cn(
             'w-full mt-3 inline-flex items-center justify-center gap-2 py-3.5 rounded-xl text-xs font-black transition-all',
-            state === 'booked' ? 'bg-emerald-600 text-white' : 'bg-teal-800 hover:bg-teal-900 text-white',
+            booked ? 'bg-emerald-600 text-white' : 'bg-teal-800 hover:bg-teal-900 text-white',
           )}
         >
-          {state === 'booked' ? (<><Check className="w-4 h-4" /> Booked · {ref}</>) : (<><UserCheck className="w-4 h-4" /> {`Book & pay deposit ${fmtNaira(t.from)}`}</>)}
+          {booked ? (<><Check className="w-4 h-4" /> Booked · {ref}</>) : (<><UserCheck className="w-4 h-4" /> {`Book & pay deposit ${fmtNaira(t.from)}`}</>)}
         </button>
         {state === 'low' ? (
           <p className="text-[11px] font-bold text-red-600 mt-2">Wallet balance is too low for this deposit. Top up on your profile.</p>
@@ -102,7 +120,7 @@ export default function CityTaskDetail({ id }: { id: string }) {
         </p>
       </div>
 
-      {state === 'booked' ? (
+      {booked ? (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 space-y-1 animate-in zoom-in-95 duration-300">
           <p className="flex items-center gap-2 text-sm font-black text-emerald-800">
             <Check className="w-4 h-4" /> {t.pro} is assigned · {ref}

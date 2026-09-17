@@ -5,32 +5,15 @@ import { useState } from 'react';
 import { Heart, MessageSquare, Share2, PenSquare, ChevronRight } from 'lucide-react';
 import { FeedPost, DEMO_POSTS, FEED_FILTERS } from '@/lib/demo/cityos';
 import { CityCard, FallbackImg, Pill, ChipButton, VerifiedBadge, DemoBanner } from '@/components/cityos/CityUI';
+import { useDemoApp } from '@/lib/demo/app/store';
+import { postOrgId } from '@/lib/demo/app/seed';
 import { cn } from '@/lib/utils';
 
-const STORE_KEY = 'cityos-demo-created-posts';
-
-function readCreatedPosts(): FeedPost[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = window.localStorage.getItem(STORE_KEY);
-    return raw ? (JSON.parse(raw) as FeedPost[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveCreatedPosts(posts: FeedPost[]) {
-  try {
-    window.localStorage.setItem(STORE_KEY, JSON.stringify(posts));
-  } catch {
-    /* storage unavailable */
-  }
-}
-
 function PostCard({ post }: { post: FeedPost }) {
-  const [liked, setLiked] = useState(false);
+  const { isLiked, toggleLike } = useDemoApp();
   const [shareCount, setShareCount] = useState(post.shares);
   const [commentCount, setCommentCount] = useState(post.comments);
+  const liked = isLiked(post.id);
 
   const inner = (
     <CityCard className="flex flex-col">
@@ -70,7 +53,7 @@ function PostCard({ post }: { post: FeedPost }) {
 
       <div className="mt-4 flex items-center gap-1 border-t border-slate-100 px-3 py-2">
         <button
-          onClick={() => setLiked((l) => !l)}
+          onClick={() => toggleLike(post.id)}
           className={cn(
             'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-bold transition-colors',
             liked ? 'text-orange-600 bg-orange-50' : 'text-slate-500 hover:bg-slate-50',
@@ -101,12 +84,20 @@ function PostCard({ post }: { post: FeedPost }) {
   return post.href ? <Link href={post.href.url}>{inner}</Link> : inner;
 }
 
-export default function CityFeed({ created }: { created: FeedPost[] }) {
+export default function CityFeed() {
   const [filter, setFilter] = useState(FEED_FILTERS[0]);
-  const all = readCreatedPosts().length > 0 ? readCreatedPosts() : created;
-  const posts = [...all, ...DEMO_POSTS].filter(
-    (p) => filter === 'For you' || p.category === filter,
-  );
+  const { createdPosts, follows } = useDemoApp();
+
+  const all = [...createdPosts, ...DEMO_POSTS];
+  const posts = [
+    ...all.filter((p) => {
+      if (filter === 'Following') {
+        const orgId = postOrgId(p.author, p.isOrg);
+        return Boolean(orgId && follows.includes(orgId));
+      }
+      return filter === 'For you' || p.category === filter;
+    }),
+  ];
 
   return (
     <div className="max-w-2xl mx-auto space-y-5 animate-in fade-in duration-500">

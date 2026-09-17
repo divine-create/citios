@@ -3,11 +3,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PenSquare, ImagePlus, Globe, Users, Check } from 'lucide-react';
-import { FeedPost, DEMO_USER } from '@/lib/demo/cityos';
+import { FeedPost } from '@/lib/demo/cityos';
 import { ChipButton } from '@/components/cityos/CityUI';
+import { useDemoApp } from '@/lib/demo/app/store';
 import { cn } from '@/lib/utils';
 
-const STORE_KEY = 'cityos-demo-created-posts';
 const IMAGE_OPTIONS = [
   'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=1000&q=80',
   'https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?auto=format&fit=crop&w=1000&q=80',
@@ -18,6 +18,7 @@ const POST_CATEGORIES = ['Community', 'Ask the city', 'Offer', 'Event', 'Housing
 
 export default function CreatePost() {
   const router = useRouter();
+  const { createPost, activeAccount } = useDemoApp();
   const [category, setCategory] = useState(POST_CATEGORIES[0]);
   const [audience, setAudience] = useState<'public' | 'following'>('public');
   const [title, setTitle] = useState('');
@@ -32,9 +33,9 @@ export default function CreatePost() {
     if (!canPublish) return;
     setPublishing(true);
     const post: FeedPost = {
-      id: `user-${Date.now()}`,
-      author: DEMO_USER.name,
-      role: `Resident · ${DEMO_USER.area}`,
+      id: `user-${activeAccount.id}-${Date.now()}`,
+      author: activeAccount.name,
+      role: `Resident · ${activeAccount.area}`,
       time: 'just now',
       category,
       title: title.trim(),
@@ -45,13 +46,7 @@ export default function CreatePost() {
       shares: 0,
     };
     window.setTimeout(() => {
-      try {
-        const raw = window.localStorage.getItem(STORE_KEY);
-        const prev: FeedPost[] = raw ? JSON.parse(raw) : [];
-        window.localStorage.setItem(STORE_KEY, JSON.stringify([post, ...prev]));
-      } catch {
-        /* storage unavailable */
-      }
+      createPost(post);
       setPublished(true);
       window.setTimeout(() => router.push('/feed'), 700);
     }, 650);
@@ -62,7 +57,7 @@ export default function CreatePost() {
       <div>
         <h1 className="text-xl font-black text-ink">Post to the city</h1>
         <p className="text-xs text-slate-500 font-medium mt-0.5">
-          {`Share an offer, ask, event or notice with ${DEMO_USER.area} and beyond.`}
+          {`Share an offer, ask, event or notice with ${activeAccount.area} and beyond.`}
         </p>
       </div>
 
@@ -70,10 +65,10 @@ export default function CreatePost() {
         <div className="flex-1 bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_rgba(6,95,70,0.06)] p-5 md:p-6 space-y-5">
           <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-700 to-teal-500 text-white flex items-center justify-center text-sm font-black">
-              {DEMO_USER.initials}
+              {activeAccount.initials}
             </div>
             <div>
-              <p className="text-[13px] font-black text-ink">{DEMO_USER.name}</p>
+              <p className="text-[13px] font-black text-ink">{activeAccount.name}</p>
               <div className="flex items-center gap-1 mt-0.5">
                 {audience === 'public' ? <Globe className="w-3 h-3 text-slate-400" /> : <Users className="w-3 h-3 text-slate-400" />}
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">

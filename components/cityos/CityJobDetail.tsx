@@ -1,16 +1,17 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Check, MapPin, Users, Clock, Briefcase, Send } from 'lucide-react';
 import { getJob, getJobsByOrg } from '@/lib/demo/universe/jobs';
 import { SectionHead, Pill, DemoBanner } from '@/components/cityos/CityUI';
 import { getOrg } from '@/lib/demo/universe/orgs';
+import { useDemoApp } from '@/lib/demo/app/store';
 import { cn } from '@/lib/utils';
 
 export default function CityJobDetail({ id }: { id: string }) {
   const job = getJob(id);
-  const [applied, setApplied] = useState(false);
+  const { isApplied, applyJob } = useDemoApp();
+  const applied = isApplied(id);
 
   if (!job) {
     return (
@@ -28,8 +29,7 @@ export default function CityJobDetail({ id }: { id: string }) {
   const related = getJobsByOrg(job.orgId).filter((r) => r.id !== job.id).slice(0, 2);
 
   const apply = () => {
-    setApplied(true);
-    window.setTimeout(() => setApplied(false), 4000);
+    applyJob(id);
   };
 
   return (
@@ -63,7 +63,7 @@ export default function CityJobDetail({ id }: { id: string }) {
               )}
             >
               {applied ? <Check className="w-4 h-4" /> : <Send className="w-4 h-4" />}
-              {applied ? 'Application received (demo)' : 'Apply with CityProfile'}
+              {applied ? 'Application sent' : 'Apply with CityProfile'}
             </button>
             {job.spots ? <span className="text-[11px] font-bold text-teal-100/80">{`${job.spots} ${job.spots === 1 ? 'spot' : 'spots'} open`}</span> : null}
           </div>

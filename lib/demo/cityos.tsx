@@ -24,6 +24,7 @@ import {
   Tv,
   GraduationCap,
   Newspaper,
+  Briefcase,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -1225,7 +1226,17 @@ export const AI_SCRIPTS: AIScript[] = [
   },
 ];
 
-export type ActivityKind = 'order' | 'payment' | 'delivery' | 'rent' | 'promo' | 'security' | 'ride';
+export type ActivityKind =
+  | 'order'
+  | 'payment'
+  | 'delivery'
+  | 'rent'
+  | 'promo'
+  | 'security'
+  | 'ride'
+  | 'event'
+  | 'job'
+  | 'service';
 
 export interface ActivityItem {
   id: string;
@@ -1244,6 +1255,9 @@ export const ACTIVITY_KIND_META: Record<ActivityKind, { label: string; icon: Luc
   promo: { label: 'Promo', icon: Sparkles },
   security: { label: 'Security', icon: ShieldCheck },
   ride: { label: 'Ride', icon: Car },
+  event: { label: 'Event', icon: Calendar },
+  job: { label: 'CityJobs', icon: Briefcase },
+  service: { label: 'Service', icon: Wrench },
 };
 
 export const DEMO_ACTIVITY: ActivityItem[] = [

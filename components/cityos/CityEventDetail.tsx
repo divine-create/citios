@@ -3,16 +3,19 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { ChevronRight, Ticket, Check, Users } from 'lucide-react';
-import { getEvent, fmtNaira, DEMO_USER } from '@/lib/demo/cityos';
+import { getEvent, fmtNaira } from '@/lib/demo/cityos';
 import { FallbackImg, Pill, LocationRow, DemoBanner } from '@/components/cityos/CityUI';
 import { useWallet } from '@/components/cityos/WalletStore';
+import { useDemoApp } from '@/lib/demo/app/store';
+import { eventOrgId } from '@/lib/demo/app/seed';
 import { cn } from '@/lib/utils';
 
 export default function CityEventDetail({ id }: { id: string }) {
   const e = getEvent(id);
   const { spend, balance } = useWallet();
-  const [state, setState] = useState<'idle' | 'booked' | 'low'>('idle');
-  const [ref] = useState(() => `TK-${String(Math.floor(1000 + Math.random() * 9000))}`);
+  const { isRegistered, registerEvent, activeAccount, eventRegs } = useDemoApp();
+  const [low, setLow] = useState(false);
+  const [genRef] = useState(() => `TK-${String(Math.floor(1000 + Math.random() * 9000))}`);
 
   if (!e) {
     return (
@@ -23,16 +26,28 @@ export default function CityEventDetail({ id }: { id: string }) {
     );
   }
 
+  const booked = isRegistered(e.id);
+  const reg = eventRegs.find((r) => r.eventId === e.id);
+  const ref = reg?.ref ?? genRef;
+
   const book = () => {
-    if (state === 'booked') return;
+    if (booked) return;
     if (e.ticket > 0) {
       const ok = spend(e.ticket, `Ticket · ${e.title}`);
       if (!ok) {
-        setState('low');
+        setLow(true);
         return;
       }
     }
-    setState('booked');
+    setLow(false);
+    registerEvent({
+      eventId: e.id,
+      title: e.title,
+      host: e.host,
+      orgId: eventOrgId(e.host),
+      ref,
+      amount: e.ticket,
+    });
   };
 
   return (
@@ -80,22 +95,22 @@ export default function CityEventDetail({ id }: { id: string }) {
           </div>
           <button
             onClick={book}
-            disabled={state === 'booked'}
+            disabled={booked}
             className={cn(
               'inline-flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-black transition-all',
-              state === 'booked' ? 'bg-emerald-600 text-white' : 'bg-teal-800 hover:bg-teal-900 text-white',
+              booked ? 'bg-emerald-600 text-white' : 'bg-teal-800 hover:bg-teal-900 text-white',
             )}
           >
-            {state === 'booked' ? (<><Check className="w-4 h-4" /> Reserved · {ref}</>) : (<><Ticket className="w-4 h-4" /> {e.ticket > 0 ? `Buy ticket ${fmtNaira(e.ticket)}` : 'Reserve free'}</>)}
+            {booked ? (<><Check className="w-4 h-4" /> Reserved · {ref}</>) : (<><Ticket className="w-4 h-4" /> {e.ticket > 0 ? `Buy ticket ${fmtNaira(e.ticket)}` : 'Reserve free'}</>)}
           </button>
         </div>
-        {state === 'low' ? (
+        {low ? (
           <p className="text-[11px] font-bold text-red-600 mt-2">Wallet balance is too low for the ticket. Top up on your profile.</p>
         ) : null}
-        {state === 'booked' ? (
+        {booked ? (
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 mt-4 animate-in zoom-in-95 duration-300">
             <p className="text-[12px] text-emerald-700 font-medium">
-              {`${DEMO_USER.name}, your entry for ${e.title} is saved. Present ${ref} at the gate — keke parking is along the venue fence.`}
+              {`${activeAccount.name}, your entry for ${e.title} is saved. Present ${ref} at the gate — keke parking is along the venue fence.`}
             </p>
             <p className="text-[11px] font-bold text-emerald-600 mt-1">{`Wallet balance: ${fmtNaira(balance)}`}</p>
           </div>

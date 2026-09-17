@@ -21,6 +21,7 @@ import { getOrg } from '@/lib/demo/universe/orgs';
 import { getServiceOSDataset, type ServiceOSDataSet } from '@/lib/demo/universe/serviceos';
 import { fmtNaira } from '@/lib/demo/cityos';
 import { StatTile, Pill, SectionHead, DemoBanner } from '@/components/cityos/CityUI';
+import CityOSLive from '@/components/cityos/CityOSLive';
 import { useExperience } from '@/components/cityos/ExperienceStore';
 import { cn } from '@/lib/utils';
 
@@ -87,6 +88,8 @@ export default function ServiceOSWorkspace({ slug }: { slug: string }) {
           </div>
         </div>
       </div>
+
+      <CityOSLive orgId={org.id} name={org.name} />
 
       <div className="flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">
         {TABS.map((t) => (

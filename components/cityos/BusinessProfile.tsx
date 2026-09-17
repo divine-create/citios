@@ -2,18 +2,23 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Phone, Heart, HeartOff, Truck, MapPin, Clock, ChevronRight, Plus, Check, MessageCircle } from 'lucide-react';
+import { Phone, Heart, HeartOff, Truck, MapPin, Clock, ChevronRight, Plus, Check, MessageCircle, Star, Send } from 'lucide-react';
 import { getBusiness, DEMO_BUSINESSES, DEMO_PRODUCTS, getProduct, type Product } from '@/lib/demo/cityos';
 import { FallbackImg, Stars, Pill, LocationRow, PriceTag, VerifiedBadge, DemoBanner } from '@/components/cityos/CityUI';
 import { useCart } from '@/components/cityos/CartStore';
+import { useDemoApp } from '@/lib/demo/app/store';
+import { bizOrgId } from '@/lib/demo/app/seed';
 import { cn } from '@/lib/utils';
 import { getOrg } from '@/lib/demo/universe/orgs';
 
 export default function BusinessProfile({ slug }: { slug: string }) {
   const biz = getBusiness(slug);
   const { add } = useCart();
-  const [followed, setFollowed] = useState(false);
+  const { isFollowing, toggleFollow, reviewsForOrg, addReview, activeAccount } = useDemoApp();
   const [addedId, setAddedId] = useState<string | null>(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewText, setReviewText] = useState('');
+  const [reviewSent, setReviewSent] = useState(false);
 
   if (!biz) {
     return (
@@ -28,6 +33,10 @@ export default function BusinessProfile({ slug }: { slug: string }) {
     );
   }
 
+  const orgId = bizOrgId(slug);
+  const followed = isFollowing(orgId);
+  const reviews = reviewsForOrg(orgId);
+
   const products: Product[] = (
     biz.featuredProductIds.length
       ? biz.featuredProductIds.map(getProduct)
@@ -38,6 +47,14 @@ export default function BusinessProfile({ slug }: { slug: string }) {
     add(id);
     setAddedId(id);
     window.setTimeout(() => setAddedId(null), 1400);
+  };
+
+  const submitReview = () => {
+    if (reviewText.trim().length < 3) return;
+    addReview({ orgId, rating: reviewRating, text: reviewText.trim() });
+    setReviewText('');
+    setReviewSent(true);
+    window.setTimeout(() => setReviewSent(false), 2000);
   };
 
   const otherBiz = DEMO_BUSINESSES.filter((b) => b.slug !== biz.slug).slice(0, 3);
@@ -67,7 +84,7 @@ export default function BusinessProfile({ slug }: { slug: string }) {
           </div>
           <div className="flex gap-2">
             <button
-              onClick={() => setFollowed((f) => !f)}
+              onClick={() => toggleFollow(orgId)}
               className={cn(
                 'inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black transition-colors backdrop-blur',
                 followed ? 'bg-white text-orange-500' : 'bg-white/15 text-white ring-1 ring-white/25 hover:bg-white/25',
@@ -188,6 +205,65 @@ export default function BusinessProfile({ slug }: { slug: string }) {
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[12px] font-bold text-slate-500">
           <span className="inline-flex items-center gap-2"><OpenDot active={biz.isOpen} /> {biz.hours}</span>
           <span className="inline-flex items-center gap-2"><MapPin className="w-3.5 h-3.5 text-teal-700" /> {biz.address}</span>
+        </div>
+      </section>
+
+      {/* Reviews */}
+      <section className="bg-white rounded-2xl border border-slate-100 p-5 md:p-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-black text-ink">Reviews & ratings</h2>
+          <div className="flex items-center gap-2">
+            <Stars rating={biz.rating} />
+            <span className="text-[11px] font-bold text-slate-400">{`${biz.reviews + reviews.length} reviews`}</span>
+          </div>
+        </div>
+
+        {reviews.length ? (
+          <div className="space-y-3 mb-4">
+            {reviews.map((r) => (
+              <div key={r.id} className="rounded-xl bg-slate-50 p-4 border border-slate-100">
+                <div className="flex items-center gap-2">
+                  <p className="text-[12px] font-black text-ink">{r.author}</p>
+                  <div className="flex gap-0.5">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star key={i} className={cn('w-3 h-3', i < r.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-200')} />
+                    ))}
+                  </div>
+                </div>
+                <p className="text-[12px] text-slate-600 font-medium mt-1 leading-relaxed">{r.text}</p>
+              </div>
+            ))}
+          </div>
+        ) : null}
+
+        <div className="rounded-xl border border-dashed border-slate-200 p-4">
+          <p className="text-[11px] font-black text-slate-500 mb-2">{`Rate ${biz.name} as ${activeAccount.name}`}</p>
+          <div className="flex items-center gap-1 mb-2">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button key={n} onClick={() => setReviewRating(n)} aria-label={`${n} star`}>
+                <Star className={cn('w-5 h-5 transition-colors', n <= reviewRating ? 'fill-amber-400 text-amber-400' : 'text-slate-200')} />
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input
+              value={reviewText}
+              onChange={(e) => setReviewText(e.target.value)}
+              placeholder="How was your visit or order?"
+              className="flex-1 bg-slate-50 rounded-xl px-3.5 py-2.5 text-[12px] font-medium text-slate-700 placeholder:text-slate-400 outline-none focus:ring-2 ring-teal-200"
+            />
+            <button
+              onClick={submitReview}
+              disabled={reviewText.trim().length < 3}
+              className={cn(
+                'inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black transition-all',
+                reviewText.trim().length >= 3 && !reviewSent ? 'bg-teal-800 hover:bg-teal-900 text-white' : 'bg-slate-100 text-slate-300 cursor-not-allowed',
+                reviewSent && 'bg-emerald-600 text-white',
+              )}
+            >
+              {reviewSent ? <><Check className="w-3.5 h-3.5" /> Posted</> : <><Send className="w-3.5 h-3.5" /> Post</>}
+            </button>
+          </div>
         </div>
       </section>
 

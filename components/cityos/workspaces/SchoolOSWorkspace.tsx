@@ -22,6 +22,7 @@ import { getOrg } from '@/lib/demo/universe/orgs';
 import { getSchoolOSDataset, gradeColor, type SchoolOSDataSet } from '@/lib/demo/universe/schoolos';
 import { fmtNaira } from '@/lib/demo/cityos';
 import { StatTile, Pill, SectionHead, DemoBanner } from '@/components/cityos/CityUI';
+import CityOSLive from '@/components/cityos/CityOSLive';
 import { useExperience } from '@/components/cityos/ExperienceStore';
 import { cn } from '@/lib/utils';
 
@@ -80,6 +81,8 @@ export default function SchoolOSWorkspace({ slug }: { slug: string }) {
           </div>
         </div>
       </div>
+
+      <CityOSLive orgId={org.id} name={org.name} />
 
       <div className="flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">
         {TABS.map((t) => (

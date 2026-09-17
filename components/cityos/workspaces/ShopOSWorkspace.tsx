@@ -21,6 +21,7 @@ import { getOrg } from '@/lib/demo/universe/orgs';
 import { getShopOSDataset, type ShopOSDataSet } from '@/lib/demo/universe/shopos';
 import { fmtNaira } from '@/lib/demo/cityos';
 import { StatTile, Pill, SectionHead, DemoBanner } from '@/components/cityos/CityUI';
+import CityOSLive from '@/components/cityos/CityOSLive';
 import { useExperience } from '@/components/cityos/ExperienceStore';
 import { cn } from '@/lib/utils';
 
@@ -87,6 +88,8 @@ export default function ShopOSWorkspace({ slug }: { slug: string }) {
           </div>
         </div>
       </div>
+
+      <CityOSLive orgId={org.id} name={org.name} />
 
       {/* Tabs */}
       <div className="flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">

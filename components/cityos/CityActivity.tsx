@@ -5,23 +5,28 @@ import Link from 'next/link';
 import { CheckCheck } from 'lucide-react';
 import { DEMO_ACTIVITY, ACTIVITY_KIND_META } from '@/lib/demo/cityos';
 import { ChipButton, DemoBanner } from '@/components/cityos/CityUI';
+import { useDemoApp } from '@/lib/demo/app/store';
 import { cn } from '@/lib/utils';
 
-const FILTERS = ['All', 'Orders & Delivery', 'Payments', 'CityHouse', 'Rides', 'Promos & Security'];
+const FILTERS = ['All', 'Orders & Delivery', 'Payments', 'CityHouse', 'Rides', 'Service Requests', 'CityJobs', 'Events', 'Promos & Security'];
 
 function kindGroup(kind: string): string {
   if (kind === 'order' || kind === 'delivery') return 'Orders & Delivery';
   if (kind === 'payment') return 'Payments';
   if (kind === 'rent') return 'CityHouse';
   if (kind === 'ride') return 'Rides';
+  if (kind === 'service') return 'Service Requests';
+  if (kind === 'job') return 'CityJobs';
+  if (kind === 'event') return 'Events';
   return 'Promos & Security';
 }
 
 export default function CityActivity() {
   const [filter, setFilter] = useState('All');
   const [cleared, setCleared] = useState(false);
+  const { activity } = useDemoApp();
 
-  const items = DEMO_ACTIVITY.filter((a) => filter === 'All' || kindGroup(a.kind) === filter);
+  const items = [...activity, ...DEMO_ACTIVITY].filter((a) => filter === 'All' || kindGroup(a.kind) === filter);
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in duration-500">
@@ -66,6 +71,12 @@ export default function CityActivity() {
                     ? 'bg-emerald-50 text-emerald-600'
                     : a.kind === 'security'
                     ? 'bg-orange-50 text-orange-500'
+                    : a.kind === 'event'
+                    ? 'bg-indigo-50 text-indigo-600'
+                    : a.kind === 'job'
+                    ? 'bg-sky-50 text-sky-600'
+                    : a.kind === 'service'
+                    ? 'bg-purple-50 text-purple-600'
                     : 'bg-teal-50 text-teal-800',
                 )}
               >

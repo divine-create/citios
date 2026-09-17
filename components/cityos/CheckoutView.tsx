@@ -3,9 +3,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Wallet, CreditCard, Landmark, ShieldCheck, Loader2, ChevronRight, Truck, Lock, AlertCircle } from 'lucide-react';
-import { getProduct, getBusiness, fmtNaira, DEMO_USER } from '@/lib/demo/cityos';
+import { getProduct, getBusiness, fmtNaira } from '@/lib/demo/cityos';
 import { useCart } from '@/components/cityos/CartStore';
 import { useWallet } from '@/components/cityos/WalletStore';
+import { useDemoApp } from '@/lib/demo/app/store';
+import { bizOrgId, bizOrgName } from '@/lib/demo/app/seed';
 import { Money, Pill } from '@/components/cityos/CityUI';
 import { cn } from '@/lib/utils';
 
@@ -21,6 +23,7 @@ export default function CheckoutView() {
   const router = useRouter();
   const { lines, subtotal, deliveryFee, clear } = useCart();
   const { spend, balance } = useWallet();
+  const { placeOrder, activeAccount } = useDemoApp();
   const [method, setMethod] = useState<MethodId>('wallet');
   const [processing, setProcessing] = useState(false);
   const [walletError, setWalletError] = useState(false);
@@ -42,6 +45,7 @@ export default function CheckoutView() {
 
   const pay = () => {
     if (processing) return;
+    const firstBiz = lines.length ? getProduct(lines[0].productId)?.bizSlug : undefined;
     const order = {
       ref: `CC-${2841 + Math.floor(Math.random() * 90)}`,
       method,
@@ -52,6 +56,8 @@ export default function CheckoutView() {
       subtotal,
       deliveryFee,
       total,
+      orgId: firstBiz ? bizOrgId(firstBiz) : '',
+      merchant: firstBiz ? bizOrgName(firstBiz) : 'CityOS Merchant',
       placedAt: new Date().toISOString(),
     };
     if (method === 'wallet') {
@@ -63,6 +69,15 @@ export default function CheckoutView() {
     }
     setWalletError(false);
     setProcessing(true);
+    placeOrder({
+      ref: order.ref,
+      orgId: order.orgId,
+      merchant: order.merchant,
+      items: order.items,
+      total: order.total,
+      status: 'paid',
+      method: order.method,
+    });
     try {
       window.localStorage.setItem('cityos-demo-order', JSON.stringify(order));
     } catch {
@@ -109,10 +124,10 @@ export default function CheckoutView() {
             </p>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-800 flex items-center justify-center text-sm font-black">
-                {DEMO_USER.initials}
+                {activeAccount.initials}
               </div>
               <div>
-                <p className="text-[13px] font-black text-ink">{`${DEMO_USER.name} · ${DEMO_USER.area}`}</p>
+                <p className="text-[13px] font-black text-ink">{`${activeAccount.name} · ${activeAccount.area}`}</p>
                 <p className="text-[11px] text-slate-400 font-medium">CityDrive will match a rider to {bizArea(lines)} on checkout.</p>
               </div>
             </div>

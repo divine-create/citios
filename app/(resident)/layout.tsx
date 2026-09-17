@@ -35,7 +35,8 @@ import { useState } from 'react';
 import { CartProvider, useCart } from '@/components/cityos/CartStore';
 import { WalletProvider, useWallet } from '@/components/cityos/WalletStore';
 import { ExperienceProvider } from '@/components/cityos/ExperienceStore';
-import { NOTIFICATIONS, DEMO_USER, APP_STATE, fmtNaira } from '@/lib/demo/cityos';
+import { DemoAppProvider, useDemoApp } from '@/lib/demo/app/store';
+import { NOTIFICATIONS, APP_STATE, fmtNaira } from '@/lib/demo/cityos';
 import { cn } from '@/lib/utils';
 
 function CartBell() {
@@ -100,16 +101,17 @@ function NotificationsDropdown() {
 
 function WalletChip() {
   const { balance } = useWallet();
+  const { activeAccount } = useDemoApp();
   return (
     <Link
       href="/profile"
       className="flex items-center gap-3 rounded-2xl bg-gradient-to-br from-teal-900 to-teal-700 p-3.5 text-white hover:opacity-95 transition-opacity"
     >
       <div className="w-9 h-9 rounded-full bg-white/15 border border-white/20 flex items-center justify-center text-sm font-black">
-        {DEMO_USER.initials}
+        {activeAccount.initials}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-[13px] font-bold leading-tight truncate">{DEMO_USER.name}</p>
+        <p className="text-[13px] font-bold leading-tight truncate">{activeAccount.name}</p>
         <p className="text-[10px] text-teal-100/80 font-bold tabular-nums">
           {`CityPay · ${fmtNaira(balance)}`}
         </p>
@@ -225,6 +227,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
     <ExperienceProvider>
       <CartProvider>
       <WalletProvider>
+      <DemoAppProvider>
         <div className="flex h-screen bg-[#F6F7F8] overflow-hidden font-sans text-slate-900 selection:bg-teal-200">
         {/* Desktop Sidebar */}
         <aside className="hidden md:flex flex-col w-[268px] bg-white border-r border-slate-100 z-20 h-full overflow-y-auto">
@@ -504,6 +507,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
           </nav>
         </div>
       </div>
+      </DemoAppProvider>
       </WalletProvider>
       </CartProvider>
       </ExperienceProvider>

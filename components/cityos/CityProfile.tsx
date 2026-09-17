@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { Wallet, Plus, ChevronRight, Package, Car, Banknote, Truck, Building2, Heart, Settings, ArrowUp } from 'lucide-react';
-import { DEMO_USER, DEMO_ORDERS, TOP_UP_AMOUNT, fmtNaira, getProperty } from '@/lib/demo/cityos';
+import { Wallet, Plus, ChevronRight, Package, Car, Banknote, Truck, Building2, Bookmark, Settings, ArrowUp } from 'lucide-react';
+import { DEMO_ORDERS, TOP_UP_AMOUNT, fmtNaira, getProperty, getBusiness } from '@/lib/demo/cityos';
 import { Pill, Money, ChipButton, DemoBanner } from '@/components/cityos/CityUI';
 import { useWallet } from '@/components/cityos/WalletStore';
 import { useExperience } from '@/components/cityos/ExperienceStore';
+import { useDemoApp } from '@/lib/demo/app/store';
 import { cn } from '@/lib/utils';
 
 const TABS = ['Orders', 'Payments', 'CityHouse', 'Saved', 'Settings'] as const;
@@ -16,6 +17,7 @@ export default function CityProfile() {
   const [tab, setTab] = useState<Tab>('Orders');
   const { balance, topUp, transactions } = useWallet();
   const { experience } = useExperience();
+  const { activeAccount, orders, savedOf } = useDemoApp();
   const [toppedUp, setToppedUp] = useState(false);
   const walletPct = Math.min(100, Math.round((balance / 200000) * 100));
 
@@ -40,16 +42,16 @@ export default function CityProfile() {
       <div className="flex flex-col sm:flex-row gap-5 items-start sm:items-center">
         <div className="relative">
           <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-teal-700 to-teal-500 text-white flex items-center justify-center text-2xl font-black shadow-lg shadow-teal-800/20">
-            {DEMO_USER.initials}
+            {activeAccount.initials}
           </div>
           <span className="absolute -right-1 -bottom-1 w-6 h-6 rounded-full bg-emerald-500 ring-4 ring-white" />
         </div>
         <div className="flex-1">
-          <h1 className="text-2xl font-black text-ink">{DEMO_USER.name}</h1>
+          <h1 className="text-2xl font-black text-ink">{activeAccount.name}</h1>
           <p className="text-[13px] text-slate-500 font-medium mt-0.5">
-            {`Resident · ${DEMO_USER.area} · since ${DEMO_USER.memberSince}`}
+            {`${activeAccount.kind === 'org' ? 'Business' : 'Resident'} · ${activeAccount.area} · since ${activeAccount.memberSince}`}
           </p>
-          <p className="text-[12px] text-slate-400 font-medium mt-1">{DEMO_USER.tagline}</p>
+          <p className="text-[12px] text-slate-400 font-medium mt-1">{activeAccount.tagline}</p>
         </div>
         <div className="flex gap-2">
           <button className="px-4 py-2.5 rounded-xl bg-teal-800 text-white text-xs font-black hover:bg-teal-900 transition-colors inline-flex items-center gap-1.5">
@@ -68,7 +70,7 @@ export default function CityProfile() {
             </p>
             <p className="mt-2 text-3xl font-black tracking-tight">{fmtNaira(balance)}</p>
             <div className="flex items-center gap-2 mt-2 text-[11px] font-bold text-teal-200/80">
-              <span>{DEMO_USER.walletId}</span>
+              <span>{activeAccount.walletId}</span>
               <span>·</span>
               <span>{toppedUp ? 'just topped up' : 'all good'}</span>
             </div>
@@ -88,10 +90,10 @@ export default function CityProfile() {
       {/* Quick stats */}
       <div className="grid grid-cols-4 gap-3">
         {[
-          { label: 'Orders', value: DEMO_USER.stats.orders, icon: Package },
-          { label: 'Rides', value: DEMO_USER.stats.rides, icon: Car },
-          { label: 'Payments', value: DEMO_USER.stats.payments, icon: Banknote },
-          { label: 'Deliveries', value: DEMO_USER.stats.deliveries, icon: Truck },
+          { label: 'Orders', value: activeAccount.stats?.orders ?? orders.length, icon: Package },
+          { label: 'Rides', value: activeAccount.stats?.rides ?? 0, icon: Car },
+          { label: 'Payments', value: activeAccount.stats?.payments ?? 0, icon: Banknote },
+          { label: 'Deliveries', value: activeAccount.stats?.deliveries ?? 0, icon: Truck },
         ].map((s) => (
           <div key={s.label} className="bg-white rounded-2xl border border-slate-100 p-4 text-center">
             <s.icon className="w-4 h-4 mx-auto text-teal-700" />
@@ -122,8 +124,8 @@ export default function CityProfile() {
       {/* Tab content */}
       {tab === 'Orders' ? (
         <div className="space-y-3">
-          {DEMO_ORDERS.map((o) => (
-            <div key={o.id} className="bg-white rounded-2xl border border-slate-100 p-4 flex items-center gap-4">
+          {[...orders, ...DEMO_ORDERS].map((o) => (
+            <div key={o.id ?? o.ref} className="bg-white rounded-2xl border border-slate-100 p-4 flex items-center gap-4">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="text-[14px] font-black text-ink truncate">{o.merchant}</p>
@@ -131,13 +133,13 @@ export default function CityProfile() {
                     {o.status === 'enroute' ? 'En route' : o.status === 'packing' ? 'Packing' : o.status === 'paid' ? 'Paid' : 'Delivered'}
                   </Pill>
                 </div>
-                <p className="text-[11px] font-bold text-slate-400 mt-0.5">{`${o.ref} · ${o.items} · ${o.time}`}</p>
+                <p className="text-[11px] font-bold text-slate-400 mt-0.5">{`${o.ref} · ${Array.isArray(o.items) ? o.items.length : o.items} · ${o.time}`}</p>
               </div>
               <div className="text-right shrink-0">
                 <p className="text-[15px] font-black text-ink">{fmtNaira(o.total)}</p>
-                <Link href={o.status === 'enroute' ? '/drive/delivery' : '/'} className="text-[10px] font-bold text-teal-800 hover:underline">
-                  {o.status === 'enroute' ? 'Track ▲' : 'Details'}
-                </Link>
+                {o.status === 'enroute' ? (
+                  <Link href="/drive/delivery" className="text-[10px] font-bold text-teal-800 hover:underline">Track ▲</Link>
+                ) : null}
               </div>
             </div>
           ))}
@@ -215,18 +217,32 @@ export default function CityProfile() {
         </div>
       ) : tab === 'Saved' ? (
         <div className="space-y-3">
-          {['calabar-fresh', 'watt-market-delicacies', 'ekirinim'].map((s) => (
-            <div key={s} className="flex items-center gap-3 bg-white rounded-2xl border border-slate-100 p-4">
-              <span className="w-9 h-9 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center">
-                <Heart className="w-4 h-4 fill-orange-500" />
-              </span>
-              <div className="flex-1">
-                <p className="text-[13px] font-black text-ink capitalize">{s.replace(/-/g, ' ')}</p>
-                <p className="text-[11px] font-bold text-slate-400">Saved to your city list</p>
+          {savedOf('biz').map((s) => {
+            const b = getBusiness(s.id);
+            if (!b) return null;
+            return (
+              <div key={s.id} className="flex items-center gap-3 bg-white rounded-2xl border border-slate-100 p-4">
+                <span className="w-9 h-9 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center text-lg">
+                  <Bookmark className="w-4 h-4" />
+                </span>
+                <div className="flex-1">
+                  <p className="text-[13px] font-black text-ink">{b.name}</p>
+                  <p className="text-[11px] font-bold text-slate-400">Saved to your city list</p>
+                </div>
+                <Link href={`/biz/${b.slug}`} className="text-[11px] font-bold text-teal-800 hover:underline">Open</Link>
               </div>
-              <Link href={`/biz/${s}`} className="text-[11px] font-bold text-teal-800 hover:underline">Open</Link>
-            </div>
-          ))}
+            );
+          })}
+          <div className="flex items-center gap-3 rounded-2xl border border-dashed border-slate-200 bg-white p-4">
+            <span className="w-9 h-9 rounded-xl bg-slate-50 text-slate-500 flex items-center justify-center">
+              <Bookmark className="w-4 h-4" />
+            </span>
+            <p className="text-[12px] font-bold text-slate-500">
+              {`${savedOf('product').length} products · ${savedOf('job').length} jobs · ${savedOf('event').length} events · ${savedOf('place').length} places`}
+              {' '}saved across the city.
+            </p>
+            <Link href="/saved" className="ml-auto text-[11px] font-bold text-teal-800 hover:underline">View all</Link>
+          </div>
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-50">
@@ -234,7 +250,7 @@ export default function CityProfile() {
             { label: 'Notifications', sub: 'Rides, orders & offers', icon: Settings },
             { label: 'Payment methods', sub: 'CityPay wallet · cards · transfer', icon: Wallet },
             { label: 'Privacy', sub: 'Who can see your feed posts', icon: Settings },
-            { label: 'Referral code', sub: DEMO_USER.referralCode, icon: Settings },
+            { label: 'Referral code', sub: activeAccount.referralCode ?? '—', icon: Settings },
             { label: 'Sign out', sub: 'From this device', icon: Settings },
           ].map((s, i) => (
             <div key={s.label} className="px-5 py-4 flex items-center gap-3">
