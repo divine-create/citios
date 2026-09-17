@@ -76,7 +76,7 @@ export default function CityActivity() {
 
       <div className="space-y-2">
         {items.map((a) => {
-          const meta = ACTIVITY_KIND_META[a.kind];
+          const meta = ACTIVITY_KIND_META[a.kind as keyof typeof ACTIVITY_KIND_META];
           return (
             <Link
               key={a.id}
