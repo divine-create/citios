@@ -43,9 +43,9 @@ async function seedServices() {
         categoryId: cat.id,
         name: t.name,
         description: t.desc,
-        basePrice: t.from,
-        duration: 120, // default 2 hrs
-        isBookable: true
+        price: t.from,
+        durationMinutes: 120, // default 2 hrs
+        isActive: true
       });
     }
   }
