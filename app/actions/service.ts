@@ -1,4 +1,4 @@
-﻿'use server';
+'use server';
 
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -180,22 +180,16 @@ export async function acceptAndScheduleServiceJob(input: {
       price: input.price,
     });
   } else {
-    appointment = await db.orm.public.ServiceAppointment.update({
-      where: { id: appointment.id },
-      data: {
-        startTime: input.startTime,
-        endTime: input.endTime,
-        price: input.price,
-      }
+    appointment = await db.orm.public.ServiceAppointment.where({ id: appointment.id }).update({
+      startTime: input.startTime,
+      endTime: input.endTime,
+      price: input.price,
     });
   }
 
-  await db.orm.public.ServiceJob.update({
-    where: { id: job.id },
-    data: {
-      status: 'SCHEDULED',
-      scheduledDate: input.startTime
-    }
+  await db.orm.public.ServiceJob.where({ id: job.id }).update({
+    status: 'SCHEDULED',
+    scheduledDate: input.startTime
   });
 
   revalidatePath('/workspaces/serviceos');
@@ -222,18 +216,12 @@ export async function updateServiceJobLifecycle(input: {
   }
 
   await db.transaction(async (tx) => {
-    await tx.orm.public.ServiceJob.update({
-      where: { id: job.id },
-      data: { status: input.status }
-    });
+    await tx.orm.public.ServiceJob.where({ id: job.id }).update({ status: input.status });
 
     const appointment = await tx.orm.public.ServiceAppointment.where({ jobId: job.id }).all().first();
     if (appointment) {
       const apptStatus = input.status === 'IN_PROGRESS' ? 'IN_PROGRESS' : input.status === 'COMPLETED' ? 'COMPLETED' : 'CANCELLED';
-      await tx.orm.public.ServiceAppointment.update({
-        where: { id: appointment.id },
-        data: { status: apptStatus }
-      });
+      await tx.orm.public.ServiceAppointment.where({ id: appointment.id }).update({ status: apptStatus });
     }
   });
 
