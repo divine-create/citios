@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { CheckCheck } from 'lucide-react';
 import { DEMO_ACTIVITY, ACTIVITY_KIND_META } from '@/lib/demo/cityos';
@@ -24,9 +24,28 @@ function kindGroup(kind: string): string {
 export default function CityActivity() {
   const [filter, setFilter] = useState('All');
   const [cleared, setCleared] = useState(false);
+  const [realServices, setRealServices] = useState<any[]>([]);
   const { activity } = useDemoApp();
 
-  const items = [...activity, ...DEMO_ACTIVITY].filter((a) => filter === 'All' || kindGroup(a.kind) === filter);
+  useEffect(() => {
+    import('@/app/actions/service')
+      .then((m) => m.fetchMyServiceJobs())
+      .then((jobs) => {
+        setRealServices(
+          jobs.map((j) => ({
+            id: j.id,
+            kind: 'service',
+            title: `Service Request: ${j.ref}`,
+            body: `Requested ${j.service} from ${j.merchant}. Status: ${j.status}`,
+            time: j.time,
+            href: `/tasks/${j.id}`,
+          }))
+        );
+      })
+      .catch(console.error);
+  }, []);
+
+  const items = [...realServices, ...activity, ...DEMO_ACTIVITY].filter((a) => filter === 'All' || kindGroup(a.kind) === filter);
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in duration-500">
