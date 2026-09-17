@@ -29,6 +29,11 @@ const TABS = ['Overview', 'Services', 'Requests', 'Quotes', 'Bookings', 'Technic
 type Tab = (typeof TABS)[number];
 
 const REQ_META: Record<string, { label: string; tone: 'orange' | 'green' | 'blue' | 'slate' | 'red' }> = {
+  NEW: { label: 'New', tone: 'blue' },
+  SCHEDULED: { label: 'Scheduled', tone: 'orange' },
+  IN_PROGRESS: { label: 'In Progress', tone: 'green' },
+  COMPLETED: { label: 'Completed', tone: 'slate' },
+  CANCELLED: { label: 'Cancelled', tone: 'red' },
   new: { label: 'New', tone: 'blue' },
   quoted: { label: 'Quoted', tone: 'orange' },
   accepted: { label: 'Accepted', tone: 'green' },
@@ -279,11 +284,54 @@ function Requests({ data, orgId }: { data: ServiceOSDataSet, orgId: string }) {
               <div className="flex items-center gap-3 flex-wrap">
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-black text-ink truncate">{r.service}</p>
-                  <p className="text-[10px] font-bold text-slate-400">{`${r.ref} · ${r.customer} · ${r.area || ''} · ${r.time}`}</p>
+                  <p className="text-[10px] font-bold text-slate-400">{`${r.ref} • ${r.customer} • ${r.area || ''} • ${r.time}`}</p>
                 </div>
                 <Pill tone={s.tone}>{s.label}</Pill>
               </div>
               {r.note && <p className="text-[11px] text-slate-500 font-medium italic mt-1.5 ml-1">“{r.note}”</p>}
+              
+              {realRequests && (
+                <div className="mt-3 flex gap-2">
+                  {r.status === 'NEW' && (
+                    <button
+                      onClick={async () => {
+                        const tmr = new Date(); tmr.setDate(tmr.getDate() + 1); tmr.setHours(10, 0, 0, 0);
+                        const end = new Date(tmr); end.setHours(12, 0, 0, 0);
+                        const m = await import('@/app/actions/service');
+                        await m.acceptAndScheduleServiceJob({ jobId: r.id, startTime: tmr, endTime: end, price: 10000 });
+                        m.fetchServiceJobs(orgId).then(setRealRequests);
+                      }}
+                      className="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-[11px] font-bold rounded-lg transition-colors"
+                    >
+                      Accept & Schedule
+                    </button>
+                  )}
+                  {r.status === 'SCHEDULED' && (
+                    <button
+                      onClick={async () => {
+                        const m = await import('@/app/actions/service');
+                        await m.updateServiceJobLifecycle({ jobId: r.id, status: 'IN_PROGRESS' });
+                        m.fetchServiceJobs(orgId).then(setRealRequests);
+                      }}
+                      className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-[11px] font-bold rounded-lg transition-colors"
+                    >
+                      Start Job
+                    </button>
+                  )}
+                  {r.status === 'IN_PROGRESS' && (
+                    <button
+                      onClick={async () => {
+                        const m = await import('@/app/actions/service');
+                        await m.updateServiceJobLifecycle({ jobId: r.id, status: 'COMPLETED' });
+                        m.fetchServiceJobs(orgId).then(setRealRequests);
+                      }}
+                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-[11px] font-bold rounded-lg transition-colors"
+                    >
+                      Mark Completed
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}

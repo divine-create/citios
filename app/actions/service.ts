@@ -1,9 +1,10 @@
-'use server';
+﻿'use server';
 
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/src/prisma/db';
 import { revalidatePath } from 'next/cache';
+import { ActivityItem } from '@/lib/demo/cityos';
 
 export async function requestServiceJob(input: {
   serviceId: string;
@@ -98,14 +99,14 @@ export async function fetchServiceJobs(orgId: string) {
   }));
 }
 
-export async function fetchMyServiceJobs() {
+export async function fetchMyServiceJobs(): Promise<ActivityItem[]> {
   const session = await getServerSession(authOptions);
   
   if (!session || !session.user || !session.user.personId) {
     return [];
   }
 
-  const personId = session.user.personId;
+  const personId = session.user.personId as string;
 
   const relationships = await db.orm.public.Relationship.where({ personId, type: 'CUSTOMER' }).all();
   const relIds = relationships.map(r => r.id);
@@ -120,17 +121,123 @@ export async function fetchMyServiceJobs() {
   const jobs = await Promise.all(custIds.map(id => db.orm.public.ServiceJob.where({ customerDataId: id }).all()));
   const flatJobs = jobs.flat().sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
-  return Promise.all(flatJobs.map(async (j) => {
+  const activityItems = await Promise.all(flatJobs.map(async (j) => {
     const org = await db.orm.public.Organization.where({ id: j.organizationId }).all().first();
     const service = j.serviceId ? await db.orm.public.ServiceCatalogItem.where({ id: j.serviceId }).all().first() : null;
     
+    const ref = j.id.split('-')[0].toUpperCase();
+    const merchant = org?.name || 'CityOS Service Pro';
+    const srvName = service?.name || j.description || 'Custom Service';
+
     return {
       id: j.id,
-      ref: j.id.split('-')[0].toUpperCase(),
-      merchant: org?.name || 'CityOS Service Pro',
-      service: service?.name || j.description || 'Custom Service',
-      status: j.status,
-      time: j.createdAt.toLocaleTimeString()
+      kind: 'service' as const,
+      title: `Service Request: ${ref}`,
+      body: `Requested ${srvName} from ${merchant}. Status: ${j.status}`,
+      time: j.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      href: `/tasks/${j.id}`
     };
   }));
+
+  return activityItems;
 }
+
+export async function acceptAndScheduleServiceJob(input: {
+  jobId: string;
+  startTime: Date;
+  endTime: Date;
+  price: number;
+}) {
+  const session = await getServerSession(authOptions);
+  
+  if (!session || !session.user || !session.user.personId) {
+    throw new Error('Unauthorized');
+  }
+
+  const job = await db.orm.public.ServiceJob.where({ id: input.jobId }).all().first();
+  if (!job) throw new Error('Job not found');
+
+  const orgId = job.organizationId;
+  const isMember = session.user.memberships?.some((m: any) => m.organizationId === orgId);
+  if (!isMember) {
+    throw new Error('Unauthorized: Not a member of this organization');
+  }
+
+  if (job.status !== 'NEW' && job.status !== 'SCHEDULED') {
+    throw new Error('Job is not in a schedulable state');
+  }
+
+  let appointment = await db.orm.public.ServiceAppointment.where({ jobId: job.id }).all().first();
+  if (!appointment) {
+    appointment = await db.orm.public.ServiceAppointment.create({
+      organizationId: orgId,
+      customerDataId: job.customerDataId,
+      serviceId: job.serviceId!,
+      jobId: job.id,
+      startTime: input.startTime,
+      endTime: input.endTime,
+      status: 'CONFIRMED',
+      price: input.price,
+    });
+  } else {
+    appointment = await db.orm.public.ServiceAppointment.update({
+      where: { id: appointment.id },
+      data: {
+        startTime: input.startTime,
+        endTime: input.endTime,
+        price: input.price,
+      }
+    });
+  }
+
+  await db.orm.public.ServiceJob.update({
+    where: { id: job.id },
+    data: {
+      status: 'SCHEDULED',
+      scheduledDate: input.startTime
+    }
+  });
+
+  revalidatePath('/workspaces/serviceos');
+  return { success: true };
+}
+
+export async function updateServiceJobLifecycle(input: {
+  jobId: string;
+  status: 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+}) {
+  const session = await getServerSession(authOptions);
+  
+  if (!session || !session.user || !session.user.personId) {
+    throw new Error('Unauthorized');
+  }
+
+  const job = await db.orm.public.ServiceJob.where({ id: input.jobId }).all().first();
+  if (!job) throw new Error('Job not found');
+
+  const orgId = job.organizationId;
+  const isMember = session.user.memberships?.some((m: any) => m.organizationId === orgId);
+  if (!isMember) {
+    throw new Error('Unauthorized: Not a member of this organization');
+  }
+
+  await db.transaction(async (tx) => {
+    await tx.orm.public.ServiceJob.update({
+      where: { id: job.id },
+      data: { status: input.status }
+    });
+
+    const appointment = await tx.orm.public.ServiceAppointment.where({ jobId: job.id }).all().first();
+    if (appointment) {
+      const apptStatus = input.status === 'IN_PROGRESS' ? 'IN_PROGRESS' : input.status === 'COMPLETED' ? 'COMPLETED' : 'CANCELLED';
+      await tx.orm.public.ServiceAppointment.update({
+        where: { id: appointment.id },
+        data: { status: apptStatus }
+      });
+    }
+  });
+
+  revalidatePath('/workspaces/serviceos');
+  return { success: true };
+}
+

@@ -14981,6 +14981,13 @@
                   "kind": "scalar"
                 }
               },
+              "jobId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "membershipId": {
                 "nullable": true,
                 "type": {
@@ -15069,6 +15076,21 @@
                   "namespace": "public"
                 }
               },
+              "job": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "jobId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "ServiceJob",
+                  "namespace": "public"
+                }
+              },
               "organization": {
                 "cardinality": "N:1",
                 "on": {
@@ -15131,6 +15153,9 @@
                 },
                 "id": {
                   "column": "id"
+                },
+                "jobId": {
+                  "column": "jobId"
                 },
                 "membershipId": {
                   "column": "membershipId"
@@ -16082,6 +16107,21 @@
                 },
                 "to": {
                   "model": "ServiceJobAddon",
+                  "namespace": "public"
+                }
+              },
+              "appointment": {
+                "cardinality": "1:1",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "jobId"
+                  ]
+                },
+                "to": {
+                  "model": "ServiceAppointment",
                   "namespace": "public"
                 }
               },
@@ -30073,6 +30113,11 @@
                   "nativeType": "text",
                   "nullable": false
                 },
+                "jobId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "membershipId": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -30189,6 +30234,23 @@
                     "namespaceId": "public",
                     "tableName": "membership"
                   }
+                },
+                {
+                  "onDelete": "setNull",
+                  "source": {
+                    "columns": [
+                      "jobId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "serviceAppointment"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "serviceJob"
+                  }
                 }
               ],
               "indexes": [
@@ -30230,7 +30292,13 @@
                   "id"
                 ]
               },
-              "uniques": []
+              "uniques": [
+                {
+                  "columns": [
+                    "jobId"
+                  ]
+                }
+              ]
             },
             "serviceAppointmentAddon": {
               "columns": {
@@ -34017,7 +34085,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "8bad469470ae97ab7c7ab322daab0c8d7f6677e6604568e889f9b11ccf924205"
+    "storageHash": "0f3f245b3d9d3092e6ac9e3a660ddba3d7a5d48acfbb9bdadd72dbbcb611d1e4"
   },
   "execution": {
     "executionHash": "8ad497aeabea7fc37ea22d305810da1094e96104f90429c39c5a1b4b8cff80d7",

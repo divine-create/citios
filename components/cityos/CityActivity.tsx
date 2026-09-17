@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { CheckCheck } from 'lucide-react';
-import { DEMO_ACTIVITY, ACTIVITY_KIND_META } from '@/lib/demo/cityos';
+import { DEMO_ACTIVITY, ACTIVITY_KIND_META, ActivityItem } from '@/lib/demo/cityos';
 import { ChipButton, DemoBanner } from '@/components/cityos/CityUI';
 import { useDemoApp } from '@/lib/demo/app/store';
 import { cn } from '@/lib/utils';
@@ -24,7 +24,7 @@ function kindGroup(kind: string): string {
 export default function CityActivity() {
   const [filter, setFilter] = useState('All');
   const [cleared, setCleared] = useState(false);
-  const [realServices, setRealServices] = useState<any[]>([]);
+  const [realServices, setRealServices] = useState<ActivityItem[]>([]);
   const { activity } = useDemoApp();
 
   useEffect(() => {
@@ -76,7 +76,7 @@ export default function CityActivity() {
 
       <div className="space-y-2">
         {items.map((a) => {
-          const meta = ACTIVITY_KIND_META[a.kind as keyof typeof ACTIVITY_KIND_META];
+          const meta = ACTIVITY_KIND_META[a.kind];
           return (
             <Link
               key={a.id}

@@ -2376,6 +2376,9 @@ model ServiceAppointment {
   deposit        Float        @default(0)
   notes          String?
 
+  jobId          String?      @unique
+  job            ServiceJob?  @relation(fields: [jobId], references: [id], onDelete: SetNull)
+
   addons         ServiceAppointmentAddon[]
 
   createdAt      DateTime @default(now())
@@ -2419,6 +2422,7 @@ model ServiceJob {
 
   addons         ServiceJobAddon[]
   invoice        ServiceInvoice?
+  appointment    ServiceAppointment?
 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @default(now())
