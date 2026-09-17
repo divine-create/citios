@@ -66,7 +66,7 @@ export default function CityHome() {
             {greet}, {DEMO_USER.name.split(' ')[0]}.
           </h1>
           <p className="mt-3 text-teal-50/85 text-sm md:text-base font-medium max-w-xl leading-relaxed">
-            {`One city, one app. ${CITY_NOTES.greeting} Markets, rides, housing, payments and everything your day needs — on Calabar time.`}
+            {`One city, one app. What's happening around you today — markets, rides, housing, payments and everything your day needs, on Calabar time.`}
           </p>
 
           {/* AI search bar */}
@@ -86,6 +86,24 @@ export default function CityHome() {
             </span>
             <span className="sm:hidden px-3 py-1.5 rounded-lg bg-teal-800 text-white text-[11px] font-bold">Ask</span>
           </Link>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            {[
+              { label: 'Explore Market', href: '/market' },
+              { label: 'Find Food', href: '/food' },
+              { label: 'Find Services', href: '/services' },
+              { label: 'Find Jobs', href: '/jobs' },
+            ].map((q) => (
+              <Link
+                key={q.label}
+                href={q.href}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/10 ring-1 ring-white/20 text-white text-[11px] font-black hover:bg-white/20 transition-colors"
+              >
+                <Sparkles className="w-3 h-3" />
+                {q.label}
+              </Link>
+            ))}
+          </div>
 
           <div className="mt-6 flex flex-wrap items-center gap-3 text-[11px] font-bold text-teal-100/70">
             <span className="inline-flex items-center gap-1.5">
@@ -149,7 +167,7 @@ export default function CityHome() {
             </span>
             <div>
               <p className="text-[14px] font-black text-ink">CityJobs</p>
-              <p className="text-[11px] text-slate-400 font-medium mt-0.5 leading-snug">Open roles from every ShopOS, ServiceOS and SchoolOS employer, in one board.</p>
+              <p className="text-[11px] text-slate-400 font-medium mt-0.5 leading-snug">Open roles from every business, school and gig employer in the demo, on one board.</p>
             </div>
           </CityCard>
           <CityCard href="/community" className="p-5 flex flex-col gap-3">

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { UtensilsCrossed, ArrowRight } from 'lucide-react';
 import { DEMO_BUSINESSES, DEMO_PRODUCTS, getBusiness, fmtNaira, type Product } from '@/lib/demo/cityos';
 import { getOrg } from '@/lib/demo/universe/orgs';
-import { CityCard, FallbackImg, Stars, Pill, LocationRow, OpenBadge, ChipButton, DemoBanner } from '@/components/cityos/CityUI';
+import { CityCard, FallbackImg, Stars, LocationRow, OpenBadge, ChipButton, DemoBanner } from '@/components/cityos/CityUI';
 
 const FOOD_CATS = ['All', 'Restaurant', 'Cafe', 'Campus Eats', 'Food & Market'];
 
@@ -51,7 +51,6 @@ export default function CityFood() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {bizs.map((b) => {
-          const org = getOrg(b.slug);
           return (
             <CityCard key={b.slug} href={`/biz/${b.slug}`} className="flex flex-col">
               <FallbackImg src={b.cover} alt={b.name} className="h-32 w-full" />
@@ -66,7 +65,6 @@ export default function CityFood() {
                 <p className="text-[12px] text-slate-500 font-medium leading-snug line-clamp-2">{b.tagline}</p>
                 <div className="mt-auto flex items-center gap-2 pt-2">
                   <OpenBadge open={b.isOpen} />
-                  {org?.os ? <Pill tone={org.os === 'shopos' ? 'orange' : 'blue'}>{org.osLabel}</Pill> : null}
                   <span className="ml-auto text-[10px] font-bold text-slate-400">{b.deliveryEta} min delivery</span>
                 </div>
               </div>
@@ -109,11 +107,11 @@ export default function CityFood() {
             <div className="flex-1">
               <p className="text-sm font-black">Running a kitchen on CityOS?</p>
               <p className="text-[11px] text-orange-50/80 font-medium mt-0.5">
-                {shops.map((b) => b.name).join(', ')} take orders and run their menu on ShopOS.
+                {shops.map((b) => b.name).join(', ')} take orders and run their menus inside CityOS.
               </p>
             </div>
             <Link href="/demo/access" className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white text-orange-700 text-xs font-black hover:bg-orange-50 transition-colors shrink-0">
-              See ShopOS <ArrowRight className="w-3.5 h-3.5" />
+              Business workspace <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         </section>

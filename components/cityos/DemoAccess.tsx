@@ -33,7 +33,7 @@ export default function DemoAccess() {
             One platform. Every door.
           </h1>
           <p className="mt-3 text-teal-50/85 text-sm font-medium max-w-2xl leading-relaxed">
-            {`CityOS is one platform serving the whole city. Residents use the everyday surfaces — Home, Map, Create, Activity, Profile. Organizations run on ShopOS, ServiceOS and SchoolOS underneath. Pick an experience below to see the same city from a different door.`}
+            {`CityOS is one platform serving the whole city. Residents use the everyday surfaces — Home, Map, Create, Activity, Profile. Businesses, schools and services each run their own operational workspace. Pick an experience below to see the same city from a different door.`}
           </p>
 
           {current ? (
@@ -77,9 +77,9 @@ export default function DemoAccess() {
         />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
-            { exp: 'org_freshmart_calabar', icon: Sun, tone: 'from-teal-800 to-emerald-600', tag: 'ShopOS demo' },
-            { exp: 'org_mikes_ac', icon: Briefcase, tone: 'from-sky-700 to-cyan-500', tag: 'ServiceOS demo' },
-            { exp: 'org_hope_academy', icon: GraduationCap, tone: 'from-indigo-700 to-brand-600', tag: 'SchoolOS demo' },
+            { exp: 'org_freshmart_calabar', icon: Sun, tone: 'from-teal-800 to-emerald-600', tag: 'Business workspace' },
+            { exp: 'org_mikes_ac', icon: Briefcase, tone: 'from-sky-700 to-cyan-500', tag: 'Service workspace' },
+            { exp: 'org_hope_academy', icon: GraduationCap, tone: 'from-indigo-700 to-brand-600', tag: 'School workspace' },
           ].map(({ exp, icon: Icon, tone, tag }) => {
             const e = getExperience(exp);
             if (!e) return null;

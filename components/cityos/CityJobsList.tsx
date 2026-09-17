@@ -8,20 +8,6 @@ import { SectionHead, Pill, DemoBanner } from '@/components/cityos/CityUI';
 import { getOrg } from '@/lib/demo/universe/orgs';
 import { cn } from '@/lib/utils';
 
-function osTone(os?: string | null) {
-  if (os === 'shopos') return 'orange' as const;
-  if (os === 'serviceos') return 'blue' as const;
-  if (os === 'schoolos') return 'teal' as const;
-  return 'slate' as const;
-}
-
-function osLabel(os?: string | null) {
-  if (os === 'shopos') return 'ShopOS';
-  if (os === 'serviceos') return 'ServiceOS';
-  if (os === 'schoolos') return 'SchoolOS';
-  return 'City';
-}
-
 export default function CityJobsList() {
   const [cat, setCat] = useState('All');
   const [q, setQ] = useState('');
@@ -46,7 +32,7 @@ export default function CityJobsList() {
           </span>
           <h1 className="mt-3 text-2xl md:text-4xl font-black tracking-tight">Every open role in the city</h1>
           <p className="mt-2 text-teal-50/85 text-[13px] font-medium max-w-2xl leading-relaxed">
-            {`CityJobs aggregates openings from every ShopOS, ServiceOS and SchoolOS employer in the demo — ${CITY_JOBS.length} roles across pickers, riders, technicians, teachers and gigs.`}
+            {`CityJobs aggregates every open role in the demo — ${CITY_JOBS.length} roles across pickers, riders, technicians, teachers and gigs.`}
           </p>
           <div className="mt-5 flex flex-col sm:flex-row gap-2 sm:items-center">
             <div className="flex-1 flex items-center gap-2 bg-white/95 rounded-xl px-3.5 py-2.5 text-slate-500">
@@ -96,7 +82,6 @@ export default function CityJobsList() {
                       <span className="text-xl shrink-0">{org?.emoji ?? '💼'}</span>
                       <p className="text-[13px] font-black text-ink truncate">{j.title}</p>
                     </div>
-                    <Pill tone={osTone(j.os)}>{osLabel(j.os)}</Pill>
                   </div>
                   <p className="text-[11px] font-bold text-slate-400 mt-1">{`${j.orgName} · ${j.area}`}</p>
                   <p className="text-[12px] text-slate-500 font-medium leading-snug mt-2 line-clamp-2">{j.desc}</p>

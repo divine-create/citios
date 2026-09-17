@@ -17,8 +17,8 @@ interface CreateAction {
 
 const ACTIONS: CreateAction[] = [
   { icon: PenSquare, title: 'Post to the feed', desc: 'An offer, an ask, or a city notice for everyone.', href: '/feed/new', tone: 'from-orange-500 to-amber-500', label: 'Compose', demo: false },
-  { icon: PackagePlus, title: 'List a product', desc: 'Add an item to your ShopOS storefront inventory.', href: '/workspaces/shopos/freshmart-calabar', tone: 'from-teal-800 to-emerald-600', label: 'ShopOS', demo: true },
-  { icon: Wrench, title: 'Request a service', desc: 'AC, cleaning, installs — quoted before work starts.', href: '/workspaces/serviceos/mikes-ac-services', tone: 'from-sky-700 to-cyan-500', label: 'ServiceOS', demo: true },
+  { icon: PackagePlus, title: 'List a product', desc: 'Add an item to a demo storefront inventory.', href: '/workspaces/shopos/freshmart-calabar', tone: 'from-teal-800 to-emerald-600', label: 'Store', demo: true },
+  { icon: Wrench, title: 'Request a service', desc: 'AC, cleaning, installs — quoted before work starts.', href: '/workspaces/serviceos/mikes-ac-services', tone: 'from-sky-700 to-cyan-500', label: 'Book', demo: true },
   { icon: Briefcase, title: 'Post a job', desc: 'Open a role on CityJobs — pickers, riders, teachers.', href: '/jobs', tone: 'from-indigo-700 to-brand-600', label: 'CityJobs', demo: true },
   { icon: CalendarPlus, title: 'Create an event', desc: 'A tasting, a fitting night, a sports day.', href: '/events', tone: 'from-fuchsia-700 to-brand-500', label: 'City Events', demo: true },
   { icon: HousePlus, title: 'List a property', desc: 'Put a room or flat on CityHouse with a CityPay deposit.', href: '/house', tone: 'from-amber-700 to-orange-500', label: 'CityHouse', demo: true },

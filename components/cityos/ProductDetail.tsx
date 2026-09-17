@@ -76,7 +76,7 @@ export default function ProductDetail({ id }: { id: string }) {
         {/* Info */}
         <div className="flex flex-col">
           <Link href={`/biz/${p.bizSlug}`} className="flex items-center gap-2 text-[13px] font-bold text-teal-800 hover:underline">
-            {biz?.name} <VerifiedBadge label="ShopOS" /> <ChevronRight className="w-3 h-3" />
+            {biz?.name} <VerifiedBadge label="Verified business" /> <ChevronRight className="w-3 h-3" />
           </Link>
           <h1 className="text-2xl md:text-3xl font-black tracking-tight text-ink mt-1.5">{p.name}</h1>
 

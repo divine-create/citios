@@ -54,7 +54,7 @@ export default function CityServices() {
       <section className="rounded-2xl bg-white border border-slate-100 p-5">
         <h2 className="text-base font-black text-ink mb-3 flex items-center justify-between">
           Service businesses on CityOS
-          <span className="text-[11px] font-bold text-slate-400">{SERVICEOS_ORGS.length} running on ServiceOS</span>
+          <span className="text-[11px] font-bold text-slate-400">{SERVICEOS_ORGS.length} live on CityOS</span>
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {SERVICEOS_ORGS.map((o) => {
@@ -71,7 +71,6 @@ export default function CityServices() {
                   <p className="text-[12px] font-black text-ink truncate">{o.name}</p>
                   <p className="text-[10px] font-bold text-slate-400 truncate">{o.category}</p>
                 </div>
-                <Pill tone="blue">ServiceOS</Pill>
               </Link>
             );
           })}
@@ -87,7 +86,7 @@ export default function CityServices() {
           <p className="text-[11px] text-teal-100/70 font-medium mt-0.5">Deposits hold the slot; the balance settles after the job.</p>
         </div>
         <Link href="/demo/access" className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white text-teal-900 text-xs font-black hover:bg-teal-50 transition-colors shrink-0">
-          ServiceOS demo <ArrowRight className="w-3.5 h-3.5" />
+          Business workspace <ArrowRight className="w-3.5 h-3.5" />
         </Link>
       </div>
     </div>

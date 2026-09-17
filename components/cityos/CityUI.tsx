@@ -228,7 +228,7 @@ export function LocationRow({ text, className }: { text: string; className?: str
   );
 }
 
-export function VerifiedBadge({ label = 'ShopOS verified' }: { label?: string }) {
+export function VerifiedBadge({ label = 'Verified business' }: { label?: string }) {
   return (
     <span className="inline-flex items-center gap-1 text-[10px] font-bold text-brand-800 uppercase tracking-wider">
       <BadgeCheck className="w-3.5 h-3.5" />

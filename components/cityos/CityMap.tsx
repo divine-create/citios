@@ -50,7 +50,7 @@ function entitiesForArea(areaName: string): MapEntity[] {
   for (const o of ORGS) {
     if (o.area !== areaName) continue;
     const href = o.os ? `/workspaces/${o.os}/${o.slug}` : `/biz/${o.slug}`;
-    out.push({ label: o.name, sub: `${o.category} · ${o.osLabel}`, href, kind: 'org' });
+    out.push({ label: o.name, sub: `${o.category} · ${o.area}`, href, kind: 'org' });
   }
   for (const b of DEMO_BUSINESSES) {
     if (b.area !== areaName) continue;

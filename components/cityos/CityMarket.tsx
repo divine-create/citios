@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Store, ArrowRight } from 'lucide-react';
 import { DEMO_BUSINESSES, DEMO_PRODUCTS, getBusiness, fmtNaira, type Product, type Business } from '@/lib/demo/cityos';
 import { getOrg } from '@/lib/demo/universe/orgs';
-import { CityCard, FallbackImg, Stars, Pill, LocationRow, OpenBadge, ChipButton, DemoBanner } from '@/components/cityos/CityUI';
+import { CityCard, FallbackImg, Stars, LocationRow, OpenBadge, ChipButton, DemoBanner } from '@/components/cityos/CityUI';
 
 const MARKET_CATS = ['All', 'Groceries', 'Food & Market', 'Fashion', 'Electronics', 'Books & Prints'];
 
@@ -67,7 +67,6 @@ export default function CityMarket() {
                 <p className="text-[12px] text-slate-500 font-medium leading-snug line-clamp-2">{b.tagline}</p>
                 <div className="mt-auto flex items-center gap-2 pt-2">
                   <OpenBadge open={b.isOpen} />
-                  {org?.os ? <Pill tone={org.os === 'shopos' ? 'orange' : 'blue'}>{org.osLabel}</Pill> : null}
                   <span className="ml-auto text-[10px] font-bold text-slate-400">{b.deliveryEta} min via CityDrive</span>
                 </div>
               </div>
@@ -108,13 +107,13 @@ export default function CityMarket() {
               <Store className="w-5 h-5" />
             </span>
             <div className="flex-1">
-              <p className="text-sm font-black">Powered by ShopOS</p>
+              <p className="text-sm font-black">One city platform for every store</p>
               <p className="text-[11px] text-teal-100/80 font-medium mt-0.5">
-                {shops.map((b) => b.name).join(', ')} run their storefronts on ShopOS inside CityOS.
+                {shops.map((b) => b.name).join(', ')} list and take orders inside CityOS — sell in naira, deliver with CityDrive.
               </p>
             </div>
             <Link href="/demo/access" className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white text-teal-900 text-xs font-black hover:bg-teal-50 transition-colors shrink-0">
-              Step into ShopOS <ArrowRight className="w-3.5 h-3.5" />
+              Business workspace <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         </section>

@@ -158,9 +158,6 @@ export default function CityExplore() {
           <Link href="/tasks" className="px-4 py-2 rounded-xl bg-white/10 ring-1 ring-white/20 text-white text-xs font-black hover:bg-white/20 transition-colors">
             Services
           </Link>
-          <Link href="/bills" className="px-4 py-2 rounded-xl bg-white/10 ring-1 ring-white/20 text-white text-xs font-black hover:bg-white/20 transition-colors">
-            Bills & Airtime
-          </Link>
           <Link href="/stay" className="px-4 py-2 rounded-xl bg-white/10 ring-1 ring-white/20 text-white text-xs font-black hover:bg-white/20 transition-colors">
             Hotels Tonight
           </Link>

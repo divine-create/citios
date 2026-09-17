@@ -57,7 +57,7 @@ export default function BusinessProfile({ slug }: { slug: string }) {
             <div className="text-white">
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-xl md:text-2xl font-black tracking-tight">{biz.name}</h1>
-                <VerifiedBadge label="ShopOS verified" />
+                <VerifiedBadge label="Verified business" />
               </div>
               <div className="flex items-center gap-2 mt-1">
                 <Stars rating={biz.rating} className="text-white" />
@@ -129,7 +129,7 @@ export default function BusinessProfile({ slug }: { slug: string }) {
             {uniOrg.os === 'shopos' ? <Truck className="w-5 h-5" /> : <Phone className="w-5 h-5" />}
           </span>
           <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-black text-ink">{`Operating on ${uniOrg.osLabel ?? (uniOrg.os === 'shopos' ? 'ShopOS' : uniOrg.os === 'serviceos' ? 'ServiceOS' : 'SchoolOS')}`}</p>
+            <p className="text-[13px] font-black text-ink">{`Operating on ${(uniOrg.osLabel ?? 'CityOS').toLowerCase()}`}</p>
             <p className="text-[11px] font-bold text-slate-400">This business runs its operations inside CityOS.</p>
           </div>
           <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-teal-800 text-white text-xs font-black hover:bg-teal-900 transition-colors shrink-0">

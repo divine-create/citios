@@ -31,8 +31,6 @@ export default function OrgProfile({ slug }: { slug: string }) {
   const school = org.os === 'schoolos' ? getSchoolOSDataset(org.slug) : undefined;
   const jobs = getJobsByOrg(org.id);
 
-  const manageLabel = org.os === 'shopos' ? 'ShopOS' : org.os === 'serviceos' ? 'ServiceOS' : 'SchoolOS';
-
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
       {/* Header */}
@@ -46,7 +44,7 @@ export default function OrgProfile({ slug }: { slug: string }) {
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-2xl font-black tracking-tight">{org.name}</h1>
-                <VerifiedBadge label={`${org.osLabel} verified`} />
+                <VerifiedBadge label="Verified" />
               </div>
               <div className="flex items-center gap-2 mt-1">
                 <Stars rating={org.rating} />
@@ -55,7 +53,7 @@ export default function OrgProfile({ slug }: { slug: string }) {
             </div>
           </div>
           <div className="flex gap-2">
-            {org.os ? <Pill tone="blue">{`Operated on ${org.osLabel}`}</Pill> : null}
+            {org.os ? <Pill tone="blue">{org.osLabel}</Pill> : <Pill tone="teal">{org.osLabel}</Pill>}
           </div>
         </div>
       </div>
@@ -65,7 +63,7 @@ export default function OrgProfile({ slug }: { slug: string }) {
         {[
           { label: org.address, sub: `${org.area} · ${org.category}` },
           { label: org.hours.split('·')[0].trim(), sub: org.hours.split('·')[1]?.trim() ?? 'Open' },
-          { label: `${org.staff} staff`, sub: `On the ${org.osLabel ?? 'CityOS'} register` },
+          { label: `${org.staff} staff`, sub: `Operates from ${(org.osLabel ?? 'CityOS').toLowerCase()}` },
           { label: `${org.customers.toLocaleString()} customers served`, sub: `Since ${org.joined}` },
         ].map((cell, i) => (
           <div key={i} className="bg-white rounded-2xl border border-slate-100 p-4">
@@ -85,8 +83,8 @@ export default function OrgProfile({ slug }: { slug: string }) {
             {org.os === 'shopos' ? <ClipboardList className="w-5 h-5" /> : org.os === 'serviceos' ? <Users className="w-5 h-5" /> : <CalendarDays className="w-5 h-5" />}
           </span>
           <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-black text-ink">{`${org.category} — this organization runs on ${org.osLabel}.`}</p>
-            <p className="text-[11px] font-bold text-slate-400">Open the {org.osLabel} workspace to operate it.</p>
+            <p className="text-[13px] font-black text-ink">{`${org.category} — managed from its ${org.osLabel.toLowerCase()}.`}</p>
+            <p className="text-[11px] font-bold text-slate-400">Open the workspace to operate it.</p>
           </div>
           <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-teal-800 text-white text-xs font-black hover:bg-teal-900 transition-colors shrink-0">
             Manage <ArrowRight className="w-3.5 h-3.5" />
@@ -101,7 +99,7 @@ export default function OrgProfile({ slug }: { slug: string }) {
         <div className="mt-4 flex items-center gap-2 flex-wrap">
           <LocationRow text={`${org.address} · ${org.area}`} className="text-[11px]" />
           <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-700">
-            <CheckCircle2 className="w-3.5 h-3.5" /> Verified on {org.osLabel ?? 'CityOS'}
+            <CheckCircle2 className="w-3.5 h-3.5" /> Verified on CityOS
           </span>
         </div>
       </section>
@@ -111,7 +109,7 @@ export default function OrgProfile({ slug }: { slug: string }) {
         <section>
           <h2 className="text-base font-black text-ink mb-3 flex items-center justify-between">
             Services
-            <span className="text-[11px] font-bold text-slate-400">{svc.services.length} live on ServiceOS</span>
+            <span className="text-[11px] font-bold text-slate-400">{svc.services.length} live services</span>
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {svc.services.slice(0, 6).map((s) => (
@@ -135,7 +133,7 @@ export default function OrgProfile({ slug }: { slug: string }) {
         <section>
           <h2 className="text-base font-black text-ink mb-3 flex items-center justify-between">
             School life
-            <span className="text-[11px] font-bold text-slate-400">{school.classes.length} classes on SchoolOS</span>
+            <span className="text-[11px] font-bold text-slate-400">{school.classes.length} classes</span>
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {school.classes.slice(0, 6).map((c) => (
@@ -165,7 +163,7 @@ export default function OrgProfile({ slug }: { slug: string }) {
         <section>
           <h2 className="text-base font-black text-ink mb-3 flex items-center justify-between">
             Products
-            <span className="text-[11px] font-bold text-slate-400">{shop.products.length} live on ShopOS</span>
+            <span className="text-[11px] font-bold text-slate-400">{shop.products.length} items in store</span>
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {shop.products.slice(0, 6).map((p) => (

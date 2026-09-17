@@ -44,7 +44,6 @@ export default function CityJobDetail({ id }: { id: string }) {
         <div className="relative">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-2xl">{org?.emoji ?? '💼'}</span>
-            <Pill tone={osTone(job.os)}>{osLabel(job.os)}</Pill>
             <Pill tone="orange">{job.type}</Pill>
           </div>
           <h1 className="mt-4 text-2xl md:text-3xl font-black tracking-tight">{job.title}</h1>
@@ -108,7 +107,7 @@ export default function CityJobDetail({ id }: { id: string }) {
                 <span className="text-2xl">{org.emoji}</span>
                 <div className="min-w-0">
                   <p className="text-[13px] font-black text-ink truncate">{org.name}</p>
-                  <p className="text-[10px] font-bold text-slate-400">{`${org.area} · ${org.osLabel}`}</p>
+                  <p className="text-[10px] font-bold text-slate-400">{org.area}</p>
                 </div>
               </Link>
             ) : null}
@@ -137,18 +136,4 @@ export default function CityJobDetail({ id }: { id: string }) {
       <DemoBanner />
     </div>
   );
-}
-
-function osTone(os?: string | null) {
-  if (os === 'shopos') return 'orange' as const;
-  if (os === 'serviceos') return 'blue' as const;
-  if (os === 'schoolos') return 'teal' as const;
-  return 'slate' as const;
-}
-
-function osLabel(os?: string | null) {
-  if (os === 'shopos') return 'ShopOS';
-  if (os === 'serviceos') return 'ServiceOS';
-  if (os === 'schoolos') return 'SchoolOS';
-  return 'City';
 }

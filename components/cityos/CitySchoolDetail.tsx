@@ -67,8 +67,8 @@ export default function CitySchoolDetail({ slug }: { slug: string }) {
             <School className="w-5 h-5" />
           </span>
           <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-black text-ink">{`Operated on ${uniOrg.osLabel}`}</p>
-            <p className="text-[11px] font-bold text-slate-400">Open the SchoolOS workspace for this school.</p>
+            <p className="text-[13px] font-black text-ink">{`Managed on ${uniOrg.osLabel.toLowerCase()}`}</p>
+            <p className="text-[11px] font-bold text-slate-400">Open the school workspace to operate it.</p>
           </div>
           <ChevronRight className="w-4 h-4 text-teal-800 shrink-0" />
         </Link>

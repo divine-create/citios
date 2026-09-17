@@ -204,7 +204,7 @@ export default function CityAI() {
           text:
             idx >= 0
               ? AI_SCRIPTS[idx].answer
-              : "I searched Calabar for that and it isn't in my demo brief yet. Try one of the sample prompts below — or ask about a room under ₦10,000 tonight, fresh ogbono, a party tray, a ride to the airport, power bill, or a clinic consult.",
+              : "I searched Calabar for that and it isn't in my demo brief yet. Try one of the sample prompts below — or ask about a room under ₦10,000 tonight, fresh ogbono, a party tray, a ride to the airport, or a clinic consult.",
           scriptId: idx >= 0 ? idx : undefined,
         },
       ]);
@@ -239,7 +239,7 @@ export default function CityAI() {
               </div>
               <p className="text-sm font-black text-ink">What do you need in Calabar right now?</p>
               <p className="text-xs text-slate-400 mt-1 max-w-sm">
-                {`I know the city's places, prices and people — markets, rooms, rides, bills. My answers are scripted demo logic for this prototype.`}
+                {`I know the city's places, prices and people — markets, rooms, rides, lessons. My answers are scripted demo logic for this prototype.`}
               </p>
             </div>
           ) : (

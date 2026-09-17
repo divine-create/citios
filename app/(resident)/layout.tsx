@@ -4,24 +4,21 @@ import { usePathname, useRouter } from 'next/navigation';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import {
   LayoutGrid,
-  Compass,
   Sparkles,
+  MapPin,
   Rss,
   User as UserIcon,
   Bell,
-  Car,
-  Package,
   Building2,
-  LayoutDashboard,
-  FlaskConical,
   ShoppingCart,
   ChevronRight,
-  BedDouble,
   Stethoscope,
   GraduationCap,
   Wrench,
-  Receipt,
   Newspaper,
+  Settings,
+  HelpCircle,
+  ShoppingBag,
   Map as MapIcon,
   PenSquare,
   Briefcase,
@@ -130,50 +127,55 @@ export default function ResidentLayout({ children }: { children: React.ReactNode
 
   type NavItem = { id: string; path: string; label: string; icon: any; secondary?: boolean };
 
+  const PRIMARY_NAV: NavItem[] = [
+    { id: 'home', path: '/', label: 'Home', icon: LayoutGrid },
+    { id: 'map', path: '/map', label: 'Map', icon: MapIcon },
+    { id: 'create', path: '/create', label: 'Create', icon: PenSquare },
+    { id: 'activity', path: '/activity', label: 'Activity', icon: Bell },
+    { id: 'profile', path: '/profile', label: 'Profile', icon: UserIcon },
+  ];
+
 const navGroups: { label: string; items: NavItem[] }[] = [
+    {
+      label: 'Explore',
+      items: [
+        { id: 'market', path: '/market', label: 'CityMart', icon: Store },
+        { id: 'food', path: '/food', label: 'CityFood', icon: UtensilsCrossed },
+        { id: 'services', path: '/services', label: 'CityServices', icon: Wrench },
+        { id: 'schools', path: '/schools', label: 'CitySchools', icon: GraduationCap },
+        { id: 'jobs', path: '/jobs', label: 'CityJobs', icon: Briefcase },
+        { id: 'events', path: '/events', label: 'CityEvents', icon: Calendar },
+        { id: 'house', path: '/house', label: 'CityHomes', icon: Building2 },
+        { id: 'care', path: '/care', label: 'CityHealth', icon: Stethoscope },
+        { id: 'community', path: '/community', label: 'CityCommunity', icon: UsersIcon },
+      ],
+    },
     {
       label: 'Discover',
       items: [
-        { id: 'home', path: '/', label: 'Home', icon: LayoutGrid },
-        { id: 'explore', path: '/explore', label: 'Explore', icon: Compass },
         { id: 'feed', path: '/feed', label: 'Newsfeed', icon: Rss },
+        { id: 'map', path: '/map', label: 'Map', icon: MapIcon },
+        { id: 'nearby', path: '/explore', label: 'Nearby', icon: MapPin },
+        { id: 'saved', path: '/saved', label: 'Saved', icon: Bookmark },
         { id: 'ai', path: '/ai', label: 'Ask CityOS', icon: Sparkles },
         { id: 'news', path: '/news', label: 'News', icon: Newspaper, secondary: true },
       ],
     },
     {
-      label: 'Around You',
+      label: 'Your Activity',
       items: [
-        { id: 'map', path: '/map', label: 'Map', icon: MapIcon },
-        { id: 'market', path: '/market', label: 'Market', icon: Store },
-        { id: 'food', path: '/food', label: 'Food', icon: UtensilsCrossed },
-        { id: 'services', path: '/services', label: 'Services', icon: Wrench },
-        { id: 'schools', path: '/schools', label: 'Schools', icon: GraduationCap },
-        { id: 'jobs', path: '/jobs', label: 'Jobs', icon: Briefcase },
+        { id: 'orders', path: '/profile', label: 'Orders', icon: ShoppingBag },
+        { id: 'requests', path: '/tasks', label: 'Service Requests', icon: Wrench },
+        { id: 'apps', path: '/jobs', label: 'Job Applications', icon: Briefcase },
         { id: 'events', path: '/events', label: 'Events', icon: Calendar },
-        { id: 'house', path: '/house', label: 'Homes', icon: Building2 },
-        { id: 'care', path: '/care', label: 'Health', icon: Stethoscope },
-        { id: 'community', path: '/community', label: 'Communities', icon: UsersIcon },
-        { id: 'ride', path: '/drive/ride', label: 'Ride', icon: Car, secondary: true },
-        { id: 'delivery', path: '/drive/delivery', label: 'Delivery', icon: Package, secondary: true },
-        { id: 'stay', path: '/stay', label: 'Hotels', icon: BedDouble, secondary: true },
-        { id: 'bills', path: '/bills', label: 'Bills & Airtime', icon: Receipt, secondary: true },
+        { id: 'communities', path: '/community', label: 'Communities', icon: UsersIcon },
       ],
     },
     {
-      label: 'Your City',
+      label: 'Settings',
       items: [
-        { id: 'create', path: '/create', label: 'Create', icon: PenSquare },
-        { id: 'activity', path: '/activity', label: 'Activity', icon: Bell },
-        { id: 'saved', path: '/saved', label: 'Saved', icon: Bookmark },
-        { id: 'profile', path: '/profile', label: 'Profile', icon: UserIcon },
-      ],
-    },
-    {
-      label: 'Organization',
-      items: [
-        { id: 'business', path: '/business', label: 'Business Dashboard', icon: LayoutDashboard },
-        { id: 'demo', path: '/demo/access', label: 'Demo Access', icon: FlaskConical },
+        { id: 'settings', path: '/profile', label: 'Settings', icon: Settings },
+        { id: 'help', path: '/ai', label: 'Help', icon: HelpCircle },
       ],
     },
   ];
@@ -183,35 +185,34 @@ const navGroups: { label: string; items: NavItem[] }[] = [
     if (pathname.startsWith('/ai')) return 'Ask CityOS';
     if (pathname.startsWith('/feed')) return 'Newsfeed';
     if (pathname.startsWith('/explore')) return 'Explore Calabar';
-    if (pathname.startsWith('/market')) return 'Market';
-    if (pathname.startsWith('/food')) return 'Food';
-    if (pathname.startsWith('/services')) return 'Services';
+    if (pathname.startsWith('/market')) return 'CityMart';
+    if (pathname.startsWith('/food')) return 'CityFood';
+    if (pathname.startsWith('/services')) return 'CityServices';
     if (pathname.startsWith('/org/')) return 'Business Profile';
     if (pathname.startsWith('/saved')) return 'Saved';
     if (pathname.startsWith('/cart')) return 'Your Cart';
     if (pathname.startsWith('/checkout')) return 'CityPay Checkout';
     if (pathname.startsWith('/pay/')) return 'CityPay';
-    if (pathname.startsWith('/biz/')) return 'ShopOS Marketplace';
+    if (pathname.startsWith('/biz/')) return 'Business Profile';
     if (pathname.startsWith('/product/')) return 'Product';
     if (pathname.startsWith('/drive/ride')) return 'City Ride';
     if (pathname.startsWith('/drive/delivery')) return 'City Delivery';
     if (pathname.startsWith('/drive/')) return 'CityDrive';
-    if (pathname.startsWith('/house')) return 'CityHouse';
+    if (pathname.startsWith('/house')) return 'CityHomes';
     if (pathname.startsWith('/stay')) return 'Hotels Tonight';
-    if (pathname.startsWith('/care')) return 'City Care';
-    if (pathname.startsWith('/schools')) return 'Schools';
+    if (pathname.startsWith('/care')) return 'CityHealth';
+    if (pathname.startsWith('/schools')) return 'CitySchools';
     if (pathname.startsWith('/tasks')) return 'City Tasks';
-    if (pathname.startsWith('/bills')) return 'Bills & Airtime';
     if (pathname.startsWith('/news')) return 'News';
-    if (pathname.startsWith('/events')) return 'Events';
+    if (pathname.startsWith('/events')) return 'CityEvents';
     if (pathname.startsWith('/activity')) return 'Activity';
     if (pathname.startsWith('/business')) return 'Business Dashboard';
     if (pathname.startsWith('/demo/access')) return 'Demo Access';
     if (pathname.startsWith('/demo')) return 'Demo Hub';
     if (pathname.startsWith('/map')) return 'City Map';
     if (pathname.startsWith('/create')) return 'Create';
-    if (pathname.startsWith('/jobs')) return 'Jobs';
-    if (pathname.startsWith('/community')) return 'Communities';
+    if (pathname.startsWith('/jobs')) return 'CityJobs';
+    if (pathname.startsWith('/community')) return 'CityCommunity';
     if (pathname.startsWith('/workspaces')) return 'Workspaces';
     if (pathname.startsWith('/profile')) return 'Profile';
     if (pathname === '/explore') return 'Explore Calabar';
@@ -246,6 +247,30 @@ const navGroups: { label: string; items: NavItem[] }[] = [
           </div>
 
           <nav className="flex-1 px-4 py-5 space-y-7">
+            <div>
+              <div className="space-y-0.5">
+                {PRIMARY_NAV.map((item) => {
+                  const active = isActive(item.path);
+                  return (
+                    <Link
+                      key={item.id}
+                      href={item.path}
+                      className={cn(
+                        'w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-bold transition-all',
+                        active
+                          ? 'bg-teal-50 text-teal-900 ring-1 ring-teal-100'
+                          : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50',
+                      )}
+                    >
+                      <item.icon className={cn('w-4 h-4', active ? 'text-teal-800' : 'text-slate-400')} />
+                      {item.label}
+                      {active ? <span className="ml-auto w-1.5 h-1.5 rounded-full bg-teal-600" /> : null}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="border-t border-slate-100" />
             {navGroups.map((group) => (
               <div key={group.label}>
                 <h3 className="px-3 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
@@ -284,13 +309,6 @@ const navGroups: { label: string; items: NavItem[] }[] = [
 
           <div className="p-5 border-t border-slate-100">
             <WalletChip />
-          </div>
-
-          <div className="px-5 pb-5 border-t border-slate-100">
-            <Link href="/demo" className="flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] font-bold text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-colors">
-              <FlaskConical className="w-3.5 h-3.5" />
-              Demo Hub
-            </Link>
           </div>
         </aside>
 
@@ -390,6 +408,33 @@ const navGroups: { label: string; items: NavItem[] }[] = [
                   </button>
                 </div>
                 <nav className="flex-1 px-4 py-4 space-y-6">
+                  <div>
+                    <h3 className="px-3 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                      CityOS
+                    </h3>
+                    <div>
+                      {PRIMARY_NAV.map((item) => {
+                        const active = isActive(item.path);
+                        return (
+                          <Link
+                            key={item.id}
+                            href={item.path}
+                            onClick={() => setMenuOpen(false)}
+                            className={cn(
+                              'w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-bold transition-colors',
+                              active
+                                ? 'bg-teal-50 text-teal-900'
+                                : 'text-slate-600 hover:bg-slate-50',
+                            )}
+                          >
+                            <item.icon className={cn('w-4 h-4 shrink-0', active ? 'text-teal-800' : 'text-slate-400')} />
+                            {item.label}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="border-t border-slate-100" />
                   {navGroups.map((group) => (
                     <div key={group.label}>
                       <h3 className="px-3 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
@@ -423,16 +468,6 @@ const navGroups: { label: string; items: NavItem[] }[] = [
                     </div>
                   ))}
                 </nav>
-                <div className="px-4 pb-6 border-t border-slate-100 pt-4">
-                  <Link
-                    href="/demo"
-                    onClick={() => setMenuOpen(false)}
-                    className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-slate-50 text-[11px] font-bold text-slate-500 transition-colors"
-                  >
-                    <FlaskConical className="w-3.5 h-3.5" />
-                    Demo Hub
-                  </Link>
-                </div>
               </div>
             </div>
           ) : null}

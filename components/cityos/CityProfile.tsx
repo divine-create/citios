@@ -171,7 +171,7 @@ export default function CityProfile() {
             </span>
             <div className="flex-1 min-w-0">
               <p className="text-[13px] font-black text-ink">Every spend moves the same wallet</p>
-              <p className="text-[11px] font-bold text-slate-400">Holds, consults, bills, deposits and orders land here in real time.</p>
+              <p className="text-[11px] font-bold text-slate-400">Holds, consults, deposits and orders land here in real time.</p>
             </div>
           </div>
         </div>
