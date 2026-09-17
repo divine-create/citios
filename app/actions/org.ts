@@ -58,15 +58,33 @@ export async function applyForJob(jobId: string, coverLetter?: string) {
   return true;
 }
 
-export async function registerForEvent(eventId: string) {
+export async function getCanonicalEvent(id: string) {
+  const event = await db.orm.public.Event.where({ id }).include('organization', o => o.select('name', 'id')).first();
+  return event;
+}
+
+export async function checkEventRegistration(eventId: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.personId) return null;
+  const reg = await db.orm.public.EventRegistration.where({ eventId, personId: session.user.personId }).first();
+  return reg;
+}
+
+export async function toggleEventRegistration(eventId: string) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.personId) throw new Error('Unauthorized');
 
-  await db.orm.public.EventRegistration.create({
-    eventId,
-    personId: session.user.personId,
-  });
-  return true;
+  const existing = await db.orm.public.EventRegistration.where({ eventId, personId: session.user.personId }).first();
+  if (existing) {
+    await db.orm.public.EventRegistration.where({ id: existing.id }).delete();
+    return false;
+  } else {
+    await db.orm.public.EventRegistration.create({
+      eventId,
+      personId: session.user.personId,
+    });
+    return true;
+  }
 }
 
 export async function getCityMapEntities() {

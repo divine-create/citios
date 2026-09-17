@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Calendar, MapPin, Tag } from 'lucide-react';
-import { CityCard, FallbackImg, Pill, DemoBanner } from '@/components/cityos/CityUI';
+import { CityCard, FallbackImg, Pill } from '@/components/cityos/CityUI';
 import { getCityEvents } from '@/app/actions/org';
 
 export default function CityEventsList() {
@@ -25,8 +25,6 @@ export default function CityEventsList() {
           Rehearsals, fairs and neighbourhood derbies — reserve your spot or grab a ticket through CityOS.
         </p>
       </div>
-
-      <DemoBanner />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {events.map((e) => (
