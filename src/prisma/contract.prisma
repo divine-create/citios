@@ -271,6 +271,8 @@ model Location {
   organizationId String
   name           String
   address        String?
+  latitude       Float?
+  longitude      Float?
   
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   memberAccess   MembershipLocation[]

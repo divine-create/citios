@@ -121,7 +121,9 @@ export async function getCityMapEntities() {
       sub: `${org.type} · ${loc.address || 'Calabar'}`,
       href: `/org/${org.id}`,
       kind: org.type.toLowerCase(),
-      address: loc.address || ''
+      address: loc.address || '',
+      latitude: loc.latitude,
+      longitude: loc.longitude
     };
   }).filter(Boolean);
   

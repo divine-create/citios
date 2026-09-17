@@ -6129,6 +6129,20 @@
                   "kind": "scalar"
                 }
               },
+              "latitude": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
+              "longitude": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
               "name": {
                 "nullable": false,
                 "type": {
@@ -6183,6 +6197,12 @@
                 },
                 "id": {
                   "column": "id"
+                },
+                "latitude": {
+                  "column": "latitude"
+                },
+                "longitude": {
+                  "column": "longitude"
                 },
                 "name": {
                   "column": "name"
@@ -24583,6 +24603,16 @@
                   "nativeType": "text",
                   "nullable": false
                 },
+                "latitude": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
+                  "nullable": true
+                },
+                "longitude": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
+                  "nullable": true
+                },
                 "name": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -35396,7 +35426,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "af36f11d54e8a243d6ef572c5c5193c1a5fe851a3864e44ede2a202b118e055b"
+    "storageHash": "552bf7a66c15447995b08f077aa7cff49150f7045530dabb0317341108b3c6bf"
   },
   "execution": {
     "executionHash": "dc966faa34b9e0e7d964f2480ba4f9241147cd24c2f57568d47b6434f9079904",

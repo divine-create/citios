@@ -33,7 +33,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'af36f11d54e8a243d6ef572c5c5193c1a5fe851a3864e44ede2a202b118e055b'>;
+  StorageHashBase<'552bf7a66c15447995b08f077aa7cff49150f7045530dabb0317341108b3c6bf'>;
 export type ExecutionHash =
   ExecutionHashBase<'dc966faa34b9e0e7d964f2480ba4f9241147cd24c2f57568d47b6434f9079904'>;
 export type ProfileHash =
@@ -643,6 +643,8 @@ export type FieldOutputTypes = {
       readonly organizationId: CodecTypes['pg/text@1']['output'];
       readonly name: CodecTypes['pg/text@1']['output'];
       readonly address: CodecTypes['pg/text@1']['output'] | null;
+      readonly latitude: CodecTypes['pg/float8@1']['output'] | null;
+      readonly longitude: CodecTypes['pg/float8@1']['output'] | null;
     };
     readonly MaintenanceTicket: {
       readonly id: CodecTypes['pg/text@1']['output'];
@@ -2028,6 +2030,8 @@ export type FieldInputTypes = {
       readonly organizationId: CodecTypes['pg/text@1']['input'];
       readonly name: CodecTypes['pg/text@1']['input'];
       readonly address: CodecTypes['pg/text@1']['input'] | null;
+      readonly latitude: CodecTypes['pg/float8@1']['input'] | null;
+      readonly longitude: CodecTypes['pg/float8@1']['input'] | null;
     };
     readonly MaintenanceTicket: {
       readonly id: CodecTypes['pg/text@1']['input'];
@@ -3411,6 +3415,8 @@ export type StorageColumnTypes = {
     readonly location: {
       readonly address: CodecTypes['pg/text@1']['output'] | null;
       readonly id: CodecTypes['pg/text@1']['output'];
+      readonly latitude: CodecTypes['pg/float8@1']['output'] | null;
+      readonly longitude: CodecTypes['pg/float8@1']['output'] | null;
       readonly name: CodecTypes['pg/text@1']['output'];
       readonly organizationId: CodecTypes['pg/text@1']['output'];
     };
@@ -4796,6 +4802,8 @@ export type StorageColumnInputTypes = {
     readonly location: {
       readonly address: CodecTypes['pg/text@1']['input'] | null;
       readonly id: CodecTypes['pg/text@1']['input'];
+      readonly latitude: CodecTypes['pg/float8@1']['input'] | null;
+      readonly longitude: CodecTypes['pg/float8@1']['input'] | null;
       readonly name: CodecTypes['pg/text@1']['input'];
       readonly organizationId: CodecTypes['pg/text@1']['input'];
     };
@@ -9237,6 +9245,16 @@ type ContractBase = Omit<
                 readonly address: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly latitude: {
+                  readonly nativeType: 'float8';
+                  readonly codecId: 'pg/float8@1';
+                  readonly nullable: true;
+                };
+                readonly longitude: {
+                  readonly nativeType: 'float8';
+                  readonly codecId: 'pg/float8@1';
                   readonly nullable: true;
                 };
               };
@@ -21470,6 +21488,14 @@ type ContractBase = Omit<
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
+              readonly latitude: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/float8@1' };
+              };
+              readonly longitude: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/float8@1' };
+              };
             };
             readonly relations: {
               readonly memberAccess: {
@@ -21503,6 +21529,8 @@ type ContractBase = Omit<
                 readonly organizationId: { readonly column: 'organizationId' };
                 readonly name: { readonly column: 'name' };
                 readonly address: { readonly column: 'address' };
+                readonly latitude: { readonly column: 'latitude' };
+                readonly longitude: { readonly column: 'longitude' };
               };
             };
           };
