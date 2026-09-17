@@ -7,6 +7,7 @@ import { getBusiness, DEMO_BUSINESSES, DEMO_PRODUCTS, getProduct, type Product }
 import { FallbackImg, Stars, Pill, LocationRow, PriceTag, VerifiedBadge, DemoBanner } from '@/components/cityos/CityUI';
 import { useCart } from '@/components/cityos/CartStore';
 import { cn } from '@/lib/utils';
+import { getOrg } from '@/lib/demo/universe/orgs';
 
 export default function BusinessProfile({ slug }: { slug: string }) {
   const biz = getBusiness(slug);
@@ -40,6 +41,7 @@ export default function BusinessProfile({ slug }: { slug: string }) {
   };
 
   const otherBiz = DEMO_BUSINESSES.filter((b) => b.slug !== biz.slug).slice(0, 3);
+  const uniOrg = getOrg(biz.slug);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -115,6 +117,23 @@ export default function BusinessProfile({ slug }: { slug: string }) {
             </div>
           ))}
         </div>
+      ) : null}
+
+      {/* Workspace link */}
+      {uniOrg?.os ? (
+        <Link
+          href={`/workspaces/${uniOrg.os}/${uniOrg.slug}`}
+          className="flex items-center gap-4 rounded-2xl border border-teal-100 bg-teal-50/60 p-4 hover:shadow-md hover:-translate-y-0.5 transition-all"
+        >
+          <span className="w-11 h-11 rounded-xl bg-teal-800 text-white flex items-center justify-center shrink-0">
+            {uniOrg.os === 'shopos' ? <Truck className="w-5 h-5" /> : <Phone className="w-5 h-5" />}
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-black text-ink">{`Operated on ${uniOrg.os === 'shopos' ? 'ShopOS' : uniOrg.os === 'serviceos' ? 'ServiceOS' : 'SchoolOS'}`}</p>
+            <p className="text-[11px] font-bold text-slate-400">Open the demo operational workspace for this {uniOrg.category}.</p>
+          </div>
+          <ChevronRight className="w-4 h-4 text-teal-800 shrink-0" />
+        </Link>
       ) : null}
 
       {/* Products */}

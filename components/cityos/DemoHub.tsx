@@ -20,6 +20,10 @@ import {
   Stethoscope,
   BedDouble,
   Receipt,
+  Map as MapIcon,
+  Briefcase,
+  Users as UsersIcon,
+  Repeat,
 } from 'lucide-react';
 import { DEMO_USER } from '@/lib/demo/cityos';
 import { SectionHead, Pill } from '@/components/cityos/CityUI';
@@ -101,6 +105,28 @@ const JOURNEYS = [
       { label: 'Wallet top-up', href: '/profile' },
     ],
   },
+  {
+    icon: MapIcon,
+    tone: 'from-emerald-700 to-teal-600',
+    title: 'Map → Anywhere',
+    desc: 'One map of Calabar with every marketplace, clinic, school, home and circle pinned to its real neighbourhood.',
+    steps: [
+      { label: 'City Map', href: '/map' },
+      { label: 'A pinned business', href: '/biz/freshmart-calabar' },
+    ],
+  },
+  {
+    icon: Repeat,
+    tone: 'from-indigo-700 to-brand-600',
+    title: 'Switch experience',
+    desc: 'Jump between Resident, Store owner, Service provider and School roles — the demo dataset stays one city.',
+    steps: [
+      { label: 'Demo access', href: '/demo/access' },
+      { label: 'ShopOS workspace', href: '/workspaces/shopos/freshmart-calabar' },
+      { label: 'ServiceOS workspace', href: '/workspaces/serviceos/mikes-ac-services' },
+      { label: 'SchoolOS workspace', href: '/workspaces/schoolos/hope-academy' },
+    ],
+  },
 ];
 
 const QUICK_LINKS = [
@@ -120,6 +146,11 @@ const QUICK_LINKS = [
   { icon: Receipt, label: 'Bills', href: '/bills' },
   { icon: Compass, label: 'Events', href: '/events' },
   { icon: Rss, label: 'News', href: '/news' },
+  { icon: MapIcon, label: 'City Map', href: '/map' },
+  { icon: PenSquare, label: 'Create', href: '/create' },
+  { icon: Briefcase, label: 'CityJobs', href: '/jobs' },
+  { icon: UsersIcon, label: 'Communities', href: '/community' },
+  { icon: Repeat, label: 'Demo Access', href: '/demo/access' },
   { icon: Bell, label: 'Activity', href: '/activity' },
   { icon: UserIcon, label: 'Profile', href: '/profile' },
 ];
@@ -138,7 +169,7 @@ export default function DemoHub() {
             CityOS in 90 seconds
           </h1>
           <p className="mt-3 text-teal-50/80 text-sm font-medium max-w-2xl leading-relaxed">
-            {`Seven journeys tie the city together — one app, one identity ${`(${DEMO_USER.name}, ${DEMO_USER.area})`}, one wallet. Everything below uses the same demo dataset, so each screen leads to the next.`}
+            {`Nine journeys tie the city together — one app, one identity ${`(${DEMO_USER.name}, ${DEMO_USER.area})`}, one wallet. Everything below uses the same demo dataset, so each screen leads to the next.`}
           </p>
           <div className="mt-5 flex gap-2 flex-wrap text-[11px] font-bold">
             <span className="px-3 py-1.5 rounded-full bg-emerald-400/20 text-emerald-200">47 marketplaces</span>

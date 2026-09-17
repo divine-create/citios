@@ -23,11 +23,16 @@ import {
   Wrench,
   Receipt,
   Newspaper,
+  Map as MapIcon,
+  PenSquare,
+  Briefcase,
+  Users as UsersIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { CartProvider, useCart } from '@/components/cityos/CartStore';
 import { WalletProvider, useWallet } from '@/components/cityos/WalletStore';
+import { ExperienceProvider } from '@/components/cityos/ExperienceStore';
 import { NOTIFICATIONS, DEMO_USER, APP_STATE, fmtNaira } from '@/lib/demo/cityos';
 import { cn } from '@/lib/utils';
 
@@ -158,6 +163,10 @@ export default function ResidentLayout({ children }: { children: React.ReactNode
     {
       label: 'Your City',
       items: [
+        { id: 'map', path: '/map', label: 'City Map', icon: MapIcon },
+        { id: 'create', path: '/create', label: 'Create', icon: PenSquare },
+        { id: 'jobs', path: '/jobs', label: 'CityJobs', icon: Briefcase },
+        { id: 'community', path: '/community', label: 'Communities', icon: UsersIcon },
         { id: 'activity', path: '/activity', label: 'Activity', icon: Bell },
         { id: 'profile', path: '/profile', label: 'Profile', icon: UserIcon },
         { id: 'business', path: '/business', label: 'Business Dashboard', icon: LayoutDashboard },
@@ -193,7 +202,13 @@ export default function ResidentLayout({ children }: { children: React.ReactNode
     if (pathname.startsWith('/events')) return 'Events';
     if (pathname.startsWith('/activity')) return 'Activity';
     if (pathname.startsWith('/business')) return 'Business Dashboard';
+    if (pathname.startsWith('/demo/access')) return 'Demo Access';
     if (pathname.startsWith('/demo')) return 'Demo Hub';
+    if (pathname.startsWith('/map')) return 'City Map';
+    if (pathname.startsWith('/create')) return 'Create';
+    if (pathname.startsWith('/jobs')) return 'CityJobs';
+    if (pathname.startsWith('/community')) return 'Communities';
+    if (pathname.startsWith('/workspaces')) return 'Workspaces';
     if (pathname.startsWith('/profile')) return 'Profile';
     if (pathname === '/explore') return 'Explore Calabar';
     return 'CityOS';
@@ -202,7 +217,8 @@ export default function ResidentLayout({ children }: { children: React.ReactNode
   const isActive = (path: string) => (path === '/' ? pathname === '/' : pathname?.startsWith(path));
 
   return (
-    <CartProvider>
+    <ExperienceProvider>
+      <CartProvider>
       <WalletProvider>
         <div className="flex h-screen bg-[#F6F7F8] overflow-hidden font-sans text-slate-900 selection:bg-teal-200">
         {/* Desktop Sidebar */}
@@ -342,9 +358,9 @@ export default function ResidentLayout({ children }: { children: React.ReactNode
           <nav className="md:hidden absolute bottom-0 left-0 right-0 bg-white border-t border-slate-100 flex items-center justify-between px-2 h-16 z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">
             {[
               { id: 'home', path: '/', label: 'Home', icon: LayoutGrid },
-              { id: 'explore', path: '/explore', label: 'Explore', icon: Compass },
-              { id: 'ai', path: '/ai', label: 'AI', icon: Sparkles },
-              { id: 'ride', path: '/drive/ride', label: 'Ride', icon: Car },
+              { id: 'map', path: '/map', label: 'Map', icon: MapIcon },
+              { id: 'create', path: '/create', label: 'Create', icon: PenSquare },
+              { id: 'activity', path: '/activity', label: 'Activity', icon: Bell },
               { id: 'profile', path: '/profile', label: 'You', icon: UserIcon },
             ].map((item) => {
               const active = isActive(item.path);
@@ -366,6 +382,7 @@ export default function ResidentLayout({ children }: { children: React.ReactNode
         </div>
       </div>
       </WalletProvider>
-    </CartProvider>
+      </CartProvider>
+      </ExperienceProvider>
   );
 }

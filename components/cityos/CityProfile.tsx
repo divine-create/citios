@@ -6,6 +6,7 @@ import { Wallet, Plus, ChevronRight, Package, Car, Banknote, Truck, Building2, H
 import { DEMO_USER, DEMO_ORDERS, TOP_UP_AMOUNT, fmtNaira, getProperty } from '@/lib/demo/cityos';
 import { Pill, Money, ChipButton, DemoBanner } from '@/components/cityos/CityUI';
 import { useWallet } from '@/components/cityos/WalletStore';
+import { useExperience } from '@/components/cityos/ExperienceStore';
 import { cn } from '@/lib/utils';
 
 const TABS = ['Orders', 'Payments', 'CityHouse', 'Saved', 'Settings'] as const;
@@ -14,6 +15,7 @@ type Tab = (typeof TABS)[number];
 export default function CityProfile() {
   const [tab, setTab] = useState<Tab>('Orders');
   const { balance, topUp, transactions } = useWallet();
+  const { experience } = useExperience();
   const [toppedUp, setToppedUp] = useState(false);
   const walletPct = Math.min(100, Math.round((balance / 200000) * 100));
 
@@ -98,6 +100,21 @@ export default function CityProfile() {
           </div>
         ))}
       </div>
+
+      {/* Experience switcher */}
+      <Link href="/demo/access" className="flex items-center gap-4 rounded-2xl bg-white border border-slate-100 p-4 hover:shadow-md hover:-translate-y-0.5 transition-all">
+        <span className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-100 to-teal-100 text-indigo-800 flex items-center justify-center shrink-0">
+          <Settings className="w-5 h-5" />
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="text-[13px] font-black text-ink">Experience: {experience}</p>
+            <Pill tone="teal">demo</Pill>
+          </div>
+          <p className="text-[11px] font-bold text-slate-400">Store owner, service provider, or school — switch roles from Demo Access.</p>
+        </div>
+        <ChevronRight className="w-4 h-4 text-teal-800 shrink-0" />
+      </Link>
 
       <DemoBanner />
       {tabs}

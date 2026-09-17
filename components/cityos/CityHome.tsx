@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Sparkles, MapPin, PartyPopper, Plus, BedDouble, Newspaper, Megaphone } from 'lucide-react';
+import { ArrowRight, Sparkles, MapPin, PartyPopper, Plus, BedDouble, Newspaper, Megaphone, Map as MapIcon, PenSquare, Briefcase, Users } from 'lucide-react';
 import {
   CITY_CATEGORIES,
   DEMO_EVENTS,
@@ -118,6 +118,49 @@ export default function CityHome() {
               </div>
             </CityCard>
           ))}
+        </div>
+      </section>
+
+      {/* Your city */}
+      <section>
+        <SectionHead title="Your city, in one place" sub="Map, create, work and gather" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <CityCard href="/map" className="p-5 flex flex-col gap-3">
+            <span className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-100 ring-1 ring-teal-100/80 text-teal-800 flex items-center justify-center">
+              <MapIcon className="w-5 h-5" />
+            </span>
+            <div>
+              <p className="text-[14px] font-black text-ink">City Map</p>
+              <p className="text-[11px] text-slate-400 font-medium mt-0.5 leading-snug">Every marketplace, clinic, school and circle pinned on one map of Calabar.</p>
+            </div>
+          </CityCard>
+          <CityCard href="/create" className="p-5 flex flex-col gap-3">
+            <span className="w-11 h-11 rounded-xl bg-gradient-to-br from-orange-50 to-amber-100 ring-1 ring-amber-100/80 text-orange-700 flex items-center justify-center">
+              <PenSquare className="w-5 h-5" />
+            </span>
+            <div>
+              <p className="text-[14px] font-black text-ink">Create</p>
+              <p className="text-[11px] text-slate-400 font-medium mt-0.5 leading-snug">Post, list, quote or open a role — one front door for every kind of making.</p>
+            </div>
+          </CityCard>
+          <CityCard href="/jobs" className="p-5 flex flex-col gap-3">
+            <span className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-50 to-blue-100 ring-1 ring-blue-100/80 text-indigo-700 flex items-center justify-center">
+              <Briefcase className="w-5 h-5" />
+            </span>
+            <div>
+              <p className="text-[14px] font-black text-ink">CityJobs</p>
+              <p className="text-[11px] text-slate-400 font-medium mt-0.5 leading-snug">Open roles from every ShopOS, ServiceOS and SchoolOS employer, in one board.</p>
+            </div>
+          </CityCard>
+          <CityCard href="/community" className="p-5 flex flex-col gap-3">
+            <span className="w-11 h-11 rounded-xl bg-gradient-to-br from-teal-50 to-emerald-100 ring-1 ring-emerald-100/80 text-teal-800 flex items-center justify-center">
+              <Users className="w-5 h-5" />
+            </span>
+            <div>
+              <p className="text-[14px] font-black text-ink">Communities</p>
+              <p className="text-[11px] text-slate-400 font-medium mt-0.5 leading-snug">The compound WhatsApps of Calabar, given a place in the city.</p>
+            </div>
+          </CityCard>
         </div>
       </section>
 
