@@ -291,7 +291,7 @@ function bizHref(o: (typeof ORGS)[number]): string {
   if (o.slug === 'shepherds-care-clinic') return '/care/shepherds-care';
   if (o.slug === 'crossriver-homes') return '/house';
   if (o.slug === 'calabar-creative-hub') return '/community/c3';
-  return `/biz/${o.slug}`;
+  return `/org/${o.id}`;
 }
 
 export function ExperienceSwitcher({ className }: { className?: string }) {

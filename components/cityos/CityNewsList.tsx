@@ -18,7 +18,7 @@ export default function CityNewsList() {
 
       <div className="space-y-4">
         {DEMO_NEWS.map((n) => (
-          <CityCard key={n.id} href={`/news/${n.id}`} className="flex flex-col sm:flex-row overflow-hidden">
+          <CityCard key={n.slug} href={`/news/${n.slug}`} className="flex flex-col sm:flex-row overflow-hidden">
             <FallbackImg src={n.image} alt={n.title} className="h-40 sm:h-auto sm:w-64 shrink-0 w-full sm:w-64" />
             <div className="p-5 flex-1 flex flex-col gap-2">
               <div className="flex items-center gap-2">

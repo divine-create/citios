@@ -1,19 +1,12 @@
-'use client';
-
 import Link from 'next/link';
 import { Bookmark, Heart } from 'lucide-react';
-import { DEMO_BUSINESSES, DEMO_PRODUCTS, DEMO_PROPERTIES, DEMO_EVENTS, getBusiness, fmtNaira } from '@/lib/demo/cityos';
-import { CITY_JOBS } from '@/lib/demo/universe/jobs';
+import { getResolvedSavedItems, toggleSavedItem } from '@/app/actions/org';
+import { fmtNaira } from '@/lib/demo/cityos';
 import { CityCard, FallbackImg, Stars, Pill, LocationRow, DemoBanner, OpenBadge } from '@/components/cityos/CityUI';
-import { useDemoApp } from '@/lib/demo/app/store';
+import { revalidatePath } from 'next/cache';
 
-export default function CitySaved() {
-  const { savedOf, toggleSave } = useDemoApp();
-  const savedBiz = savedOf('biz');
-  const savedProducts = savedOf('product');
-  const savedJobs = savedOf('job');
-  const savedEvents = savedOf('event');
-  const savedPlaces = savedOf('place');
+export default async function CitySaved() {
+  const { orgs, products, jobs, events, places } = await getResolvedSavedItems();
 
   const holder = (count: number) =>
     count === 0 ? (
@@ -27,7 +20,7 @@ export default function CitySaved() {
           <Bookmark className="w-5 h-5 text-teal-800" /> Saved
         </h1>
         <p className="text-xs text-slate-500 font-medium">
-          Businesses, products, jobs, events and places you have saved across CityOS. Stored per demo account — reset clears it.
+          Businesses, products, jobs, events and places you have saved across CityOS.
         </p>
       </div>
 
@@ -37,37 +30,40 @@ export default function CitySaved() {
       <section>
         <h2 className="text-base font-black text-ink mb-3 flex items-center justify-between">
           Businesses
-          <span className="text-[11px] font-bold text-slate-400">{savedBiz.length}</span>
+          <span className="text-[11px] font-bold text-slate-400">{orgs.length}</span>
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {DEMO_BUSINESSES.filter((b) => savedBiz.some((s) => s.id === b.slug)).map((b) => (
-            <CityCard key={b.slug} href={`/biz/${b.slug}`} className="flex flex-col">
-              <FallbackImg src={b.cover} alt={b.name} className="h-28 w-full" />
+          {orgs.map((b) => (
+            <CityCard key={b.slug} href={`/org/${b.slug}`} className="flex flex-col">
+              <FallbackImg src="" alt={b.name} className="h-28 w-full" />
               <div className="p-4 flex-1 flex flex-col gap-2">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="text-[13px] font-black text-ink truncate">{b.name}</p>
-                    <LocationRow text={b.area} className="text-[10px]" />
+                    <LocationRow text={b.address || 'Calabar'} className="text-[10px]" />
                   </div>
-                  <Stars rating={b.rating} className="shrink-0" />
+                  <Stars rating={5} className="shrink-0" />
                 </div>
-                <p className="text-[12px] text-slate-500 font-medium leading-snug line-clamp-2">{b.tagline}</p>
+                <p className="text-[12px] text-slate-500 font-medium leading-snug line-clamp-2">{b.description}</p>
                 <div className="mt-auto flex items-center justify-between pt-2">
-                  <OpenBadge open={b.isOpen} />
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      toggleSave({ kind: 'biz', id: b.slug });
-                    }}
-                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-black hover:bg-rose-50 hover:text-rose-600 transition-colors"
-                  >
-                    <Heart className="w-3 h-3 fill-current" /> Unsave
-                  </button>
+                  <OpenBadge open={true} />
+                  <form action={async () => {
+                    'use server';
+                    await toggleSavedItem('biz', b.slug);
+                    revalidatePath('/saved');
+                  }}>
+                    <button
+                      type="submit"
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-black hover:bg-rose-50 hover:text-rose-600 transition-colors"
+                    >
+                      <Heart className="w-3 h-3 fill-current" /> Unsave
+                    </button>
+                  </form>
                 </div>
               </div>
             </CityCard>
           ))}
-          {holder(savedBiz.length)}
+          {holder(orgs.length)}
         </div>
       </section>
 
@@ -75,32 +71,31 @@ export default function CitySaved() {
       <section>
         <h2 className="text-base font-black text-ink mb-3 flex items-center justify-between">
           Products
-          <span className="text-[11px] font-bold text-slate-400">{savedProducts.length}</span>
+          <span className="text-[11px] font-bold text-slate-400">{products.length}</span>
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {DEMO_PRODUCTS.filter((p) => savedProducts.some((s) => s.id === p.id)).map((p) => {
-            const biz = getBusiness(p.bizSlug);
-            return (
-              <CityCard key={p.id} href={`/product/${p.id}`} className="p-3 flex flex-col gap-1.5">
-                <FallbackImg src={p.image} alt={p.name} className="h-20 w-full rounded-xl" icon={<span className="text-sm font-black">{p.name.slice(0, 1)}</span>} />
-                <p className="text-[12px] font-black text-ink leading-snug line-clamp-1">{p.name}</p>
-                <p className="text-[10px] font-bold text-slate-400 truncate">{biz?.name}</p>
-                <div className="flex items-center justify-between mt-auto">
-                  <p className="text-[13px] font-black text-teal-900">{fmtNaira(p.price)}</p>
+          {products.map((p) => (
+            <CityCard key={p.id} href={`/product/${p.id}`} className="p-3 flex flex-col gap-1.5">
+              <FallbackImg src={p.imageAssetId || ''} alt={p.name} className="h-20 w-full rounded-xl" icon={<span className="text-sm font-black">{p.name.slice(0, 1)}</span>} />
+              <p className="text-[12px] font-black text-ink leading-snug line-clamp-1">{p.name}</p>
+              <div className="flex items-center justify-between mt-auto">
+                <p className="text-[13px] font-black text-teal-900">{fmtNaira(p.price)}</p>
+                <form action={async () => {
+                  'use server';
+                  await toggleSavedItem('product', p.id);
+                  revalidatePath('/saved');
+                }}>
                   <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      toggleSave({ kind: 'product', id: p.id });
-                    }}
+                    type="submit"
                     className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-black hover:bg-rose-50 hover:text-rose-600 transition-colors"
                   >
                     <Heart className="w-3 h-3 fill-current" />
                   </button>
-                </div>
-              </CityCard>
-            );
-          })}
-          {holder(savedProducts.length)}
+                </form>
+              </div>
+            </CityCard>
+          ))}
+          {holder(products.length)}
         </div>
       </section>
 
@@ -108,34 +103,35 @@ export default function CitySaved() {
       <section>
         <h2 className="text-base font-black text-ink mb-3 flex items-center justify-between">
           Jobs
-          <span className="text-[11px] font-bold text-slate-400">{savedJobs.length}</span>
+          <span className="text-[11px] font-bold text-slate-400">{jobs.length}</span>
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {CITY_JOBS.filter((j) => savedJobs.some((s) => s.id === j.id)).map((j) => (
+          {jobs.map((j) => (
             <CityCard key={j.id} href={`/jobs/${j.id}`} className="p-4">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="text-[13px] font-black text-ink truncate">{j.title}</p>
-                  <p className="text-[11px] font-bold text-slate-400 truncate">{j.orgName}</p>
                 </div>
-                <Pill tone="blue">{j.type}</Pill>
+                <Pill tone="blue">Job</Pill>
               </div>
               <div className="flex items-center gap-2 mt-3">
-                <span className="text-[11px] font-black text-teal-800">{j.pay}</span>
-                <span className="text-[10px] font-bold text-slate-400">· {j.area}</span>
+                <span className="text-[11px] font-black text-teal-800">{j.pay || 'Competitive'}</span>
               </div>
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  toggleSave({ kind: 'job', id: j.id });
-                }}
-                className="mt-3 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-black hover:bg-rose-50 hover:text-rose-600 transition-colors"
-              >
-                <Heart className="w-3 h-3 fill-current" /> Unsave
-              </button>
+              <form action={async () => {
+                'use server';
+                await toggleSavedItem('job', j.id);
+                revalidatePath('/saved');
+              }}>
+                <button
+                  type="submit"
+                  className="mt-3 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-black hover:bg-rose-50 hover:text-rose-600 transition-colors"
+                >
+                  <Heart className="w-3 h-3 fill-current" /> Unsave
+                </button>
+              </form>
             </CityCard>
           ))}
-          {holder(savedJobs.length)}
+          {holder(jobs.length)}
         </div>
       </section>
 
@@ -143,34 +139,32 @@ export default function CitySaved() {
       <section>
         <h2 className="text-base font-black text-ink mb-3 flex items-center justify-between">
           Events
-          <span className="text-[11px] font-bold text-slate-400">{savedEvents.length}</span>
+          <span className="text-[11px] font-bold text-slate-400">{events.length}</span>
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {DEMO_EVENTS.filter((ev) => savedEvents.some((s) => s.id === ev.id)).map((ev) => (
+          {events.map((ev) => (
             <CityCard key={ev.id} href={`/events/${ev.id}`} className="p-4">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="text-[13px] font-black text-ink truncate">{ev.title}</p>
-                  <p className="text-[11px] font-bold text-slate-400 truncate">{ev.venue}</p>
                 </div>
-                <Pill tone="orange">{ev.date}</Pill>
+                <Pill tone="orange">Event</Pill>
               </div>
-              <div className="flex items-center gap-2 mt-3">
-                <span className="text-[11px] font-black text-teal-800">{ev.time}</span>
-                <span className="text-[10px] font-bold text-slate-400">· {ev.price}</span>
-              </div>
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  toggleSave({ kind: 'event', id: ev.id });
-                }}
-                className="mt-3 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-black hover:bg-rose-50 hover:text-rose-600 transition-colors"
-              >
-                <Heart className="w-3 h-3 fill-current" /> Unsave
-              </button>
+              <form action={async () => {
+                'use server';
+                await toggleSavedItem('event', ev.id);
+                revalidatePath('/saved');
+              }}>
+                <button
+                  type="submit"
+                  className="mt-3 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-black hover:bg-rose-50 hover:text-rose-600 transition-colors"
+                >
+                  <Heart className="w-3 h-3 fill-current" /> Unsave
+                </button>
+              </form>
             </CityCard>
           ))}
-          {holder(savedEvents.length)}
+          {holder(events.length)}
         </div>
       </section>
 
@@ -178,38 +172,37 @@ export default function CitySaved() {
       <section>
         <h2 className="text-base font-black text-ink mb-3 flex items-center justify-between">
           Places & properties
-          <span className="text-[11px] font-bold text-slate-400">{savedPlaces.length}</span>
+          <span className="text-[11px] font-bold text-slate-400">{places.length}</span>
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {DEMO_PROPERTIES.filter((p) => savedPlaces.some((s) => s.id === p.id)).map((p) => (
+          {places.map((p) => (
             <CityCard key={p.id} href={`/house/${p.id}`} className="p-4">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="text-[13px] font-black text-ink truncate">{p.title}</p>
-                  <p className="text-[11px] font-bold text-slate-400 truncate">{p.area}</p>
+                  <p className="text-[13px] font-black text-ink truncate">{p.name}</p>
+                  <p className="text-[11px] font-bold text-slate-400 truncate">{p.address}</p>
                 </div>
-                <Pill tone="teal">{p.type}</Pill>
+                <Pill tone="teal">Place</Pill>
               </div>
-              <div className="flex items-center gap-2 mt-3">
-                <span className="text-[11px] font-black text-teal-800">{fmtNaira(p.pricePerYear)}/yr</span>
-                <span className="text-[10px] font-bold text-slate-400">· {p.bedrooms} bed</span>
-              </div>
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  toggleSave({ kind: 'place', id: p.id });
-                }}
-                className="mt-3 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-black hover:bg-rose-50 hover:text-rose-600 transition-colors"
-              >
-                <Heart className="w-3 h-3 fill-current" /> Unsave
-              </button>
+              <form action={async () => {
+                'use server';
+                await toggleSavedItem('place', p.id);
+                revalidatePath('/saved');
+              }}>
+                <button
+                  type="submit"
+                  className="mt-3 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-black hover:bg-rose-50 hover:text-rose-600 transition-colors"
+                >
+                  <Heart className="w-3 h-3 fill-current" /> Unsave
+                </button>
+              </form>
             </CityCard>
           ))}
-          {holder(savedPlaces.length)}
+          {holder(places.length)}
         </div>
       </section>
 
-      {savedBiz.length + savedProducts.length + savedJobs.length + savedEvents.length + savedPlaces.length === 0 ? (
+      {orgs.length + products.length + jobs.length + events.length + places.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-200 p-10 text-center">
           <p className="text-sm font-bold text-slate-500">Nothing saved yet.</p>
           <p className="text-xs text-slate-400 mt-1">Browse the Market, Food, Jobs, Events or Homes to start collecting.</p>

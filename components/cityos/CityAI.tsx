@@ -51,7 +51,7 @@ function ResultCards({ scriptId }: { scriptId: number }) {
           return (
             <Link
               key={r.id}
-              href={`/biz/${b.slug}`}
+              href={`/org/${b.slug}`}
               className="flex items-center gap-3 p-3 rounded-xl bg-white border border-slate-200 hover:border-teal-300 transition-colors group"
             >
               <FallbackImg src={b.logo} alt={b.name} className="w-12 h-12 rounded-lg" icon={<span className="text-sm font-black">{b.name.slice(0, 1)}</span>} />

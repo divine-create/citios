@@ -742,7 +742,7 @@ function ClassSectionsTab({ organizationId, grades, classSections, teachers, stu
   };
 
   const openEdit = (section: any) => {
-    setEditId(section.id);
+    setEditId(section.slug);
     setForm({ name: section.name, gradeId: section.gradeId, formTeacherStaffId: section.formTeacherId || "" });
     setError(null);
     setIsAddOpen(true);
@@ -809,10 +809,10 @@ function ClassSectionsTab({ organizationId, grades, classSections, teachers, stu
       <div className="grid md:grid-cols-2 gap-4">
         {classSections.length === 0 && grades.length > 0 && <p className="text-sm text-slate-500">No class sections yet.</p>}
         {classSections.map((section) => {
-          const sectionStudents = students.filter((s) => s.classSectionId === section.id);
+          const sectionStudents = students.filter((s) => s.classSectionId === section.slug);
           const unassignedInGrade = students.filter((s) => s.yearLevel === section.gradeLevel && !s.classSectionId);
           return (
-            <div key={section.id} className="bg-white border border-slate-200 rounded-xl p-5">
+            <div key={section.slug} className="bg-white border border-slate-200 rounded-xl p-5">
               <div className="flex items-center justify-between mb-2">
                 <div>
                   <h4 className="font-bold text-slate-800">{section.gradeName} — {section.name}</h4>
@@ -820,12 +820,12 @@ function ClassSectionsTab({ organizationId, grades, classSections, teachers, stu
                 </div>
                 <div className="flex items-center gap-1">
                   <button onClick={() => openEdit(section)} className="p-1.5 text-slate-400 hover:text-blue-600 transition-colors"><Edit2 size={16} /></button>
-                  <button onClick={() => remove(section.id)} className="p-1.5 text-slate-400 hover:text-red-600 transition-colors"><Trash2 size={16} /></button>
+                  <button onClick={() => remove(section.slug)} className="p-1.5 text-slate-400 hover:text-red-600 transition-colors"><Trash2 size={16} /></button>
                 </div>
               </div>
               <p className="text-xs text-slate-400 mb-3">{sectionStudents.length} student(s)</p>
 
-              {managingSectionId === section.id ? (
+              {managingSectionId === section.slug ? (
                 <div className="border-t border-slate-100 pt-3 space-y-2">
                   <div className="space-y-1 max-h-28 overflow-y-auto">
                     {sectionStudents.map((s) => (
@@ -846,14 +846,14 @@ function ClassSectionsTab({ organizationId, grades, classSections, teachers, stu
                         <option key={s.id} value={s.id}>{s.firstName} {s.lastName}</option>
                       ))}
                     </select>
-                    <button onClick={() => assign(section.id)} disabled={!assignStudentId} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold disabled:opacity-50">
+                    <button onClick={() => assign(section.slug)} disabled={!assignStudentId} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold disabled:opacity-50">
                       Add
                     </button>
                   </div>
                   <button onClick={() => setManagingSectionId(null)} className="text-xs font-semibold text-slate-500 hover:text-slate-700">Done</button>
                 </div>
               ) : (
-                <button onClick={() => setManagingSectionId(section.id)} className="text-xs font-semibold text-blue-600 hover:text-blue-800">
+                <button onClick={() => setManagingSectionId(section.slug)} className="text-xs font-semibold text-blue-600 hover:text-blue-800">
                   Manage students
                 </button>
               )}

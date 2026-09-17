@@ -61,7 +61,7 @@ export default function CityServices() {
             return (
               <Link
                 key={o.id}
-                href={`/org/${o.slug}`}
+                href={`/org/${o.id}`}
                 className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-4 hover:shadow-md hover:-translate-y-0.5 transition-all"
               >
                 <span className={`w-11 h-11 rounded-xl bg-gradient-to-br ${o.gradient} text-white flex items-center justify-center text-lg shrink-0`}>

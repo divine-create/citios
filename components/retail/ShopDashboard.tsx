@@ -408,8 +408,8 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
                       ) : (
                         notifications.slice(0, 30).map((n) => (
                           <button
-                            key={n.id}
-                            onClick={() => markOneRead(n.id)}
+                            key={n.slug}
+                            onClick={() => markOneRead(n.slug)}
                             className={`w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors ${n.isRead ? "opacity-60" : ""}`}
                           >
                             <div className="flex items-start gap-2">

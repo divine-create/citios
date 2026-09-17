@@ -136,7 +136,7 @@ export default function MicrositeRenderer({ data }: { data: MicrositeData }) {
         } else if (n.page) {
           resolvedUrl = n.page.isHome ? `/site/${data.slug}` : `/site/${data.slug}/${n.page.slug}`;
         }
-        return { id: n.id, label: n.label, url: resolvedUrl };
+        return { id: n.slug, label: n.label, url: resolvedUrl };
       })
     : data.sections
     .filter((s) => s.visible && s.type !== "hero" && s.type !== "footer" && s.type !== "cta")
@@ -224,7 +224,7 @@ export default function MicrositeRenderer({ data }: { data: MicrositeData }) {
         } catch {
           content = {};
         }
-        return <Section key={section.id} id={section.id} micrositeId={data.id} type={section.type} content={content} theme={theme} products={data.products ?? []} hotelRooms={data.hotelRooms ?? []} currency={data.currencySymbol ?? "$"} />;
+        return <Section key={section.slug} id={section.slug} micrositeId={data.id} type={section.type} content={content} theme={theme} products={data.products ?? []} hotelRooms={data.hotelRooms ?? []} currency={data.currencySymbol ?? "$"} />;
       })}
       <div style={{ textAlign: "center", padding: "1.5rem", fontSize: "0.75rem", color: theme.textMuted, borderTop: `1px solid ${theme.surface}` }}>
         Powered by CityConnect

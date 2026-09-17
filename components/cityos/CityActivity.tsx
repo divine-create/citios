@@ -2,43 +2,35 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { CheckCheck } from 'lucide-react';
-import { DEMO_ACTIVITY, ACTIVITY_KIND_META, ActivityItem } from '@/lib/demo/cityos';
-import { ChipButton, DemoBanner } from '@/components/cityos/CityUI';
-import { useDemoApp } from '@/lib/demo/app/store';
+import { fetchResidentActivity } from '@/app/actions/activity';
 import { cn } from '@/lib/utils';
+import { DemoBanner } from '@/components/cityos/CityUI';
 
-const FILTERS = ['All', 'Orders & Delivery', 'Payments', 'CityHouse', 'Rides', 'Service Requests', 'CityJobs', 'Events', 'Promos & Security'];
+const FILTERS = ['All', 'Orders', 'Service Requests', 'CityJobs', 'Events'];
 
 function kindGroup(kind: string): string {
-  if (kind === 'order' || kind === 'delivery') return 'Orders & Delivery';
-  if (kind === 'payment') return 'Payments';
-  if (kind === 'rent') return 'CityHouse';
-  if (kind === 'ride') return 'Rides';
-  if (kind === 'service') return 'Service Requests';
-  if (kind === 'job') return 'CityJobs';
-  if (kind === 'event') return 'Events';
-  return 'Promos & Security';
+  if (kind === 'shop_order') return 'Orders';
+  if (kind === 'service_booked') return 'Service Requests';
+  if (kind === 'job_apply') return 'CityJobs';
+  if (kind === 'event_rsvp') return 'Events';
+  return 'All';
 }
 
 export default function CityActivity() {
   const [filter, setFilter] = useState('All');
-  const [cleared, setCleared] = useState(false);
-  const [realServices, setRealServices] = useState<ActivityItem[]>([]);
-  const { activity } = useDemoApp();
+  const [activities, setActivities] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    import('@/app/actions/service')
-      .then((m) => m.fetchMyServiceJobs())
-      .then(setRealServices)
-      .catch(console.error);
+    fetchResidentActivity().then(a => {
+      setActivities(a);
+      setLoading(false);
+    });
   }, []);
 
-  const liveItems = [...realServices, ...activity].filter((a) => filter === 'All' || kindGroup(a.kind) === filter);
-  const demoItems = [...DEMO_ACTIVITY].filter((a) => filter === 'All' || kindGroup(a.kind) === filter);
+  const liveItems = activities.filter((a) => filter === 'All' || kindGroup(a.kind) === filter);
 
-  const renderItem = (a: typeof liveItems[0]) => {
-    const meta = ACTIVITY_KIND_META[a.kind];
+  const renderItem = (a: any) => {
     return (
       <Link
         key={a.id}
@@ -47,92 +39,63 @@ export default function CityActivity() {
       >
         <span
           className={cn(
-            'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
-            a.kind === 'payment'
-              ? 'bg-emerald-50 text-emerald-600'
-              : a.kind === 'security'
-              ? 'bg-orange-50 text-orange-500'
-              : a.kind === 'event'
-              ? 'bg-indigo-50 text-indigo-600'
-              : a.kind === 'job'
-              ? 'bg-sky-50 text-sky-600'
-              : a.kind === 'service'
-              ? 'bg-purple-50 text-purple-600'
-              : 'bg-teal-50 text-teal-800',
+            'w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-xl',
+            a.kind === 'event_rsvp' ? 'bg-indigo-50 text-indigo-600' :
+            a.kind === 'job_apply' ? 'bg-sky-50 text-sky-600' :
+            a.kind === 'service_booked' ? 'bg-purple-50 text-purple-600' :
+            'bg-teal-50 text-teal-800'
           )}
         >
-          <meta.icon className="w-4.5 h-4.5" />
+          {a.kind === 'event_rsvp' ? '🎟️' :
+           a.kind === 'job_apply' ? '💼' :
+           a.kind === 'service_booked' ? '🔧' :
+           '🛍️'}
         </span>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-start justify-between gap-2">
             <p className="text-[13px] font-black text-ink">{a.title}</p>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{meta.label}</span>
+            <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap">
+              {new Date(a.date).toLocaleDateString()}
+            </span>
           </div>
-          <p className="text-[12px] text-slate-500 font-medium leading-relaxed mt-0.5">{a.body}</p>
+          <p className="text-[12px] text-slate-500 font-medium mt-0.5">{a.desc}</p>
         </div>
-        <span className="text-[10px] font-bold text-slate-400 shrink-0">{a.time}</span>
       </Link>
     );
   };
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-black text-ink">Activity</h1>
-          <p className="text-xs text-slate-500 font-medium mt-0.5">Every payment, delivery, ride and notice in one place.</p>
-        </div>
-        {!cleared ? (
-          <button
-            onClick={() => setCleared(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white ring-1 ring-slate-200 text-slate-500 text-[11px] font-bold hover:ring-teal-300 transition-all"
-          >
-            <CheckCheck className="w-3.5 h-3.5" /> Mark all read
-          </button>
-        ) : null}
+      <div className="flex flex-col gap-1">
+        <h1 className="text-xl font-black text-ink">Recent Activity</h1>
+        <p className="text-xs text-slate-500 font-medium">Your digital footprint across Calabar.</p>
       </div>
 
-      <DemoBanner />
-
-      <div className="flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
         {FILTERS.map((f) => (
-          <ChipButton key={f} active={filter === f} onClick={() => setFilter(f)}>
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={cn(
+              "px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors",
+              filter === f ? "bg-ink text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+            )}
+          >
             {f}
-          </ChipButton>
+          </button>
         ))}
       </div>
 
-      <div className="space-y-2">
-        {cleared ? (
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-5 text-center">
-            <p className="text-[13px] font-black text-ink">You are all caught up</p>
-            <p className="text-[11px] text-slate-400 font-medium mt-0.5">New activity will land here as the city moves.</p>
-          </div>
-        ) : (
-          <>
-            {liveItems.length === 0 && demoItems.length === 0 && (
-              <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-5 text-center">
-                <p className="text-[13px] font-black text-ink">No recent activity</p>
-              </div>
-            )}
-            
-            {liveItems.map(renderItem)}
-
-            {demoItems.length > 0 && (
-              <div className="pt-6 pb-2">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="h-px flex-1 bg-slate-100"></div>
-                  <span className="text-[10px] uppercase font-black tracking-widest text-slate-400">Simulated City History</span>
-                  <div className="h-px flex-1 bg-slate-100"></div>
-                </div>
-                <div className="space-y-2">
-                  {demoItems.map(renderItem)}
-                </div>
-              </div>
-            )}
-          </>
-        )}
-      </div>
+      
+      {loading ? (
+        <div className="py-12 text-center text-sm font-bold text-slate-400">Loading activity...</div>
+      ) : liveItems.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-sm font-bold text-slate-400">No activity found.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">{liveItems.map(renderItem)}</div>
+      )}
     </div>
   );
 }

@@ -135,10 +135,10 @@ export default function TeacherDashboard({
       <nav className="bg-white border-b border-gray-200 px-6 md:px-10 flex gap-1">
         {tabs.map((tab) => (
           <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            key={tab.slug}
+            onClick={() => setActiveTab(tab.slug)}
             className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
-              activeTab === tab.id ? "border-indigo-600 text-indigo-700" : "border-transparent text-gray-500 hover:text-gray-800"
+              activeTab === tab.slug ? "border-indigo-600 text-indigo-700" : "border-transparent text-gray-500 hover:text-gray-800"
             }`}
           >
             <tab.icon size={16} />

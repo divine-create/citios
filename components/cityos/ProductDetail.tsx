@@ -48,7 +48,7 @@ export default function ProductDetail({ id }: { id: string }) {
       <nav className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400">
         <Link href="/explore" className="hover:text-teal-800">Explore</Link>
         <ChevronRight className="w-3 h-3" />
-        <Link href={`/biz/${p.bizSlug}`} className="hover:text-teal-800 truncate">{biz?.name}</Link>
+        <Link href={`/org/${p.bizSlug}`} className="hover:text-teal-800 truncate">{biz?.name}</Link>
         <ChevronRight className="w-3 h-3" />
         <span className="text-slate-700 truncate">{p.name}</span>
       </nav>
@@ -75,7 +75,7 @@ export default function ProductDetail({ id }: { id: string }) {
 
         {/* Info */}
         <div className="flex flex-col">
-          <Link href={`/biz/${p.bizSlug}`} className="flex items-center gap-2 text-[13px] font-bold text-teal-800 hover:underline">
+          <Link href={`/org/${p.bizSlug}`} className="flex items-center gap-2 text-[13px] font-bold text-teal-800 hover:underline">
             {biz?.name} <VerifiedBadge label="Verified business" /> <ChevronRight className="w-3 h-3" />
           </Link>
           <h1 className="text-2xl md:text-3xl font-black tracking-tight text-ink mt-1.5">{p.name}</h1>

@@ -2542,3 +2542,79 @@ model ServiceExpense {
   updatedAt      DateTime @default(now())
 }
 
+
+model Job {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  title          String
+  description    String?
+  type           String       @default("FULL_TIME")
+  pay            String?
+  area           String?
+  category       String?
+
+  applications   JobApplication[]
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now())
+}
+
+model JobApplication {
+  id             String       @id @default(uuid())
+  jobId          String
+  job            Job          @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  personId       String
+  person         Person       @relation(fields: [personId], references: [id], onDelete: Cascade)
+  
+  status         String       @default("PENDING")
+  coverLetter    String?
+
+  createdAt      DateTime     @default(now())
+  
+  @@unique([personId, jobId])
+}
+
+model EventRegistration {
+  id             String       @id @default(uuid())
+  eventId        String
+  event          Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  personId       String
+  person         Person       @relation(fields: [personId], references: [id], onDelete: Cascade)
+  
+  status         String       @default("REGISTERED")
+
+  createdAt      DateTime     @default(now())
+  
+  @@unique([personId, eventId])
+}
+
+model SavedItem {
+  id             String       @id @default(uuid())
+  personId       String
+  person         Person       @relation(fields: [personId], references: [id], onDelete: Cascade)
+  
+  entityType     String
+  entityId       String
+  
+  createdAt      DateTime     @default(now())
+  
+  @@unique([personId, entityType, entityId])
+}
+
+model Review {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  personId       String
+  person         Person       @relation(fields: [personId], references: [id], onDelete: Cascade)
+  
+  rating         Int
+  body           String?
+  
+  createdAt      DateTime     @default(now())
+
+  @@unique([personId, organizationId])
+}
+

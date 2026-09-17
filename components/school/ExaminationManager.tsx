@@ -188,9 +188,9 @@ function GradingScalesPanel({ organizationId, scales, refresh }: { organizationI
             {scale.boundaries.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-3">
                 {[...scale.boundaries].sort((a: any, b: any) => b.minPercent - a.minPercent).map((b: any) => (
-                  <span key={b.id} className="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-full pl-3 pr-1.5 py-1 text-xs font-medium text-slate-700">
+                  <span key={b.slug} className="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-full pl-3 pr-1.5 py-1 text-xs font-medium text-slate-700">
                     {b.label} ({b.minPercent}-{b.maxPercent}{b.remark ? `, ${b.remark}` : ""})
-                    <button onClick={() => removeBoundary(b.id)} className="text-slate-400 hover:text-red-600"><X size={12} /></button>
+                    <button onClick={() => removeBoundary(b.slug)} className="text-slate-400 hover:text-red-600"><X size={12} /></button>
                   </span>
                 ))}
               </div>

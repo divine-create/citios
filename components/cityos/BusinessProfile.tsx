@@ -288,7 +288,7 @@ export default function BusinessProfile({ slug }: { slug: string }) {
         <h2 className="text-base font-black text-ink mb-3">More on the marketplace</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {otherBiz.map((b) => (
-            <Link key={b.slug} href={`/biz/${b.slug}`} className="flex items-center gap-3 bg-white rounded-2xl border border-slate-100 p-3 hover:shadow-md hover:-translate-y-0.5 transition-all">
+            <Link key={b.slug} href={`/org/${b.slug}`} className="flex items-center gap-3 bg-white rounded-2xl border border-slate-100 p-3 hover:shadow-md hover:-translate-y-0.5 transition-all">
               <FallbackImg src={b.logo} alt={b.name} className="w-11 h-11 rounded-xl shrink-0" icon={<span className="text-sm font-black">{b.name.slice(0, 1)}</span>} />
               <div className="min-w-0">
                 <p className="text-[12px] font-black text-ink truncate">{b.name}</p>

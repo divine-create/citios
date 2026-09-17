@@ -172,7 +172,7 @@ export default function FrontDeskCalendar({ organizationId, initialRooms, initia
     setIsExtendOpen(false);
     setFolioError(null);
     setFolio(null);
-    getFolio(reservation.id).then((f) => setFolio(f));
+    getFolio(reservation.slug).then((f) => setFolio(f));
   };
 
   const closeSidebar = () => {
@@ -196,7 +196,7 @@ export default function FrontDeskCalendar({ organizationId, initialRooms, initia
     setIsSavingCharge(true);
     try {
       const result = await addFolioCharge({
-        reservationId: selectedReservation.id,
+        reservationId: selectedReservation.slug,
         description: chargeForm.description,
         amount: parseFloat(chargeForm.amount) || 0,
         category: chargeForm.category,
@@ -207,7 +207,7 @@ export default function FrontDeskCalendar({ organizationId, initialRooms, initia
       }
       setIsAddChargeOpen(false);
       setChargeForm({ description: '', amount: '', category: 'OTHER' });
-      await refreshFolio(selectedReservation.id);
+      await refreshFolio(selectedReservation.slug);
     } finally {
       setIsSavingCharge(false);
     }
@@ -218,13 +218,13 @@ export default function FrontDeskCalendar({ organizationId, initialRooms, initia
     setFolioError(null);
     setIsSettling(true);
     try {
-      const result = await settleFolio(selectedReservation.id);
+      const result = await settleFolio(selectedReservation.slug);
       if (result?.error) {
         setFolioError(result.error);
         return;
       }
-      await refreshFolio(selectedReservation.id);
-      await refreshData(selectedReservation.id);
+      await refreshFolio(selectedReservation.slug);
+      await refreshData(selectedReservation.slug);
     } finally {
       setIsSettling(false);
     }
@@ -302,7 +302,7 @@ export default function FrontDeskCalendar({ organizationId, initialRooms, initia
     setActionError(null);
     setPendingAction(label);
     try {
-      const result = await updateReservationStatus(selectedReservation.id, action);
+      const result = await updateReservationStatus(selectedReservation.slug, action);
       if (result?.error) {
         setActionError(result.error);
         return;
@@ -312,7 +312,7 @@ export default function FrontDeskCalendar({ organizationId, initialRooms, initia
         closeSidebar();
         await refreshData();
       } else {
-        await refreshData(selectedReservation.id);
+        await refreshData(selectedReservation.slug);
       }
     } finally {
       setPendingAction(null);
@@ -333,13 +333,13 @@ export default function FrontDeskCalendar({ organizationId, initialRooms, initia
     setExtendError(null);
     setIsExtending(true);
     try {
-      const result = await extendReservationStay(selectedReservation.id, extendDate);
+      const result = await extendReservationStay(selectedReservation.slug, extendDate);
       if (result?.error) {
         setExtendError(result.error);
         return;
       }
       setIsExtendOpen(false);
-      await refreshData(selectedReservation.id);
+      await refreshData(selectedReservation.slug);
     } finally {
       setIsExtending(false);
     }
@@ -540,7 +540,7 @@ export default function FrontDeskCalendar({ organizationId, initialRooms, initia
                       <div>
                         <h3 className="font-bold text-gray-900 text-lg">{selectedReservation.guestName}</h3>
                         <p className="text-sm text-gray-500 flex items-center">
-                          <User size={14} className="mr-1" /> ID: {selectedReservation.id.slice(0, 8).toUpperCase()}
+                          <User size={14} className="mr-1" /> ID: {selectedReservation.slug.slice(0, 8).toUpperCase()}
                         </p>
                       </div>
                     </div>

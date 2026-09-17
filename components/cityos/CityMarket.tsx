@@ -52,7 +52,7 @@ export default function CityMarket() {
         {bizs.map((b) => {
           const org = orgBiz(b);
           return (
-            <CityCard key={b.slug} href={`/biz/${b.slug}`} className="flex flex-col">
+            <CityCard key={b.slug} href={`/org/${b.slug}`} className="flex flex-col">
               <FallbackImg src={b.cover} alt={b.name} className="h-32 w-full" />
               <div className="p-4 flex-1 flex flex-col gap-2">
                 <div className="flex items-start justify-between gap-2">

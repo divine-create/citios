@@ -397,7 +397,7 @@ function Bookings({ data }: { data: ServiceOSDataSet }) {
       {data.bookings.map((b) => {
         const m = meta[b.status];
         return (
-          <div key={b.id} className="px-5 py-4 flex items-center gap-3 flex-wrap">
+          <div key={b.slug} className="px-5 py-4 flex items-center gap-3 flex-wrap">
             <div className="flex-1 min-w-0">
               <p className="text-[13px] font-black text-ink truncate">{b.service}</p>
               <p className="text-[10px] font-bold text-slate-400">{`${b.ref} · ${b.customer} · ${b.date}, ${b.time}`}</p>

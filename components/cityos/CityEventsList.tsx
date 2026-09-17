@@ -1,10 +1,22 @@
 'use client';
 
-import { Calendar } from 'lucide-react';
-import { DEMO_EVENTS } from '@/lib/demo/cityos';
-import { CityCard, FallbackImg, Pill, LocationRow, DemoBanner } from '@/components/cityos/CityUI';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { Calendar, MapPin, Tag } from 'lucide-react';
+import { CityCard, FallbackImg, Pill, DemoBanner } from '@/components/cityos/CityUI';
+import { getCityEvents } from '@/app/actions/org';
 
 export default function CityEventsList() {
+  const [events, setEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getCityEvents().then(e => {
+      setEvents(e);
+      setLoading(false);
+    });
+  }, []);
+
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col gap-1">
@@ -17,19 +29,28 @@ export default function CityEventsList() {
       <DemoBanner />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {DEMO_EVENTS.map((e) => (
+        {events.map((e) => (
           <CityCard key={e.id} href={`/events/${e.id}`} className="flex flex-col">
-            <FallbackImg src={e.image} alt={e.title} className="h-32 w-full" />
+            <FallbackImg src={null} alt={e.title} className="h-32 w-full" />
             <div className="p-4 flex-1 flex flex-col gap-2">
               <div className="flex items-center justify-between gap-2">
-                <Pill tone="orange">{e.tag}</Pill>
-                <span className="text-[10px] font-bold text-slate-400">{e.price}</span>
+                <Pill tone="orange">Event</Pill>
+                <span className="text-[10px] font-bold text-slate-400">{e.price === 0 ? 'Free' : e.price}</span>
               </div>
-              <p className="text-[13px] font-black text-ink leading-snug line-clamp-2">{e.title}</p>
-              <LocationRow text={e.venue} className="text-[10px] max-w-[80%] truncate" />
-              <div className="mt-auto pt-1 flex items-center justify-between">
-                <span className="text-[10px] font-black text-teal-800 uppercase">{`${e.date} · ${e.time}`}</span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-black text-ink leading-snug line-clamp-2">{e.title}</p>
+                <p className="text-[11px] font-bold text-slate-400 mt-1 line-clamp-1">{e.organization?.name || 'Organization'}</p>
               </div>
+            </div>
+            <div className="px-4 pb-4 mt-auto pt-3 border-t border-slate-50 flex items-center justify-between gap-2">
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-400">
+                <Calendar className="w-3 h-3 text-slate-300" />
+                {new Date(e.date).toLocaleDateString()}
+              </span>
+              <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+                <MapPin className="w-3 h-3 text-slate-300" />
+                {e.location || 'TBA'}
+              </span>
             </div>
           </CityCard>
         ))}

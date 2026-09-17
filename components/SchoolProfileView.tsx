@@ -22,7 +22,7 @@ export default function SchoolProfileView({ profile }: { profile: SchoolProfile 
         <div className="min-h-screen bg-slate-50 font-sans pb-20">
             {/* Hero Section */}
             <div className="relative h-56 bg-slate-800">
-                <img src={`https://picsum.photos/seed/${organization.id}/1200/600`} alt={organization.name} className="w-full h-full object-cover opacity-60" />
+                <img src={`https://picsum.photos/seed/${organization.slug}/1200/600`} alt={organization.name} className="w-full h-full object-cover opacity-60" />
 
                 <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-start">
                     <button onClick={() => window.history.back()} className="w-10 h-10 bg-black/40 backdrop-blur rounded-full flex items-center justify-center hover:bg-black/60 transition">

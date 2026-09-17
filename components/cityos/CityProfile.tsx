@@ -242,7 +242,7 @@ export default function CityProfile() {
                   <p className="text-[13px] font-black text-ink">{b.name}</p>
                   <p className="text-[11px] font-bold text-slate-400">Saved to your city list</p>
                 </div>
-                <Link href={`/biz/${b.slug}`} className="text-[11px] font-bold text-teal-800 hover:underline">Open</Link>
+                <Link href={`/org/${b.slug}`} className="text-[11px] font-bold text-teal-800 hover:underline">Open</Link>
               </div>
             );
           })}

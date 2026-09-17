@@ -35,7 +35,7 @@ export default function JobsTab({
           <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-blue-500"></div> New</h3>
           <div className="flex-1 overflow-y-auto space-y-3">
             {jobs.filter(j => j.status === 'NEW').map(job => (
-              <div key={job.id} className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 cursor-pointer hover:border-blue-400 transition-colors">
+              <div key={job.slug} className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 cursor-pointer hover:border-blue-400 transition-colors">
                 <div className="font-bold text-slate-800 text-sm">{job.description}</div>
                 <div className="text-xs text-slate-500 mt-2">Customer: {customers.find(c => c.id === job.customerDataId)?.firstName || "Unknown"}</div>
               </div>
@@ -47,7 +47,7 @@ export default function JobsTab({
           <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-orange-500"></div> Assigned</h3>
           <div className="flex-1 overflow-y-auto space-y-3">
              {jobs.filter(j => j.status === 'ASSIGNED').map(job => (
-              <div key={job.id} className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 cursor-pointer hover:border-blue-400 transition-colors">
+              <div key={job.slug} className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 cursor-pointer hover:border-blue-400 transition-colors">
                 <div className="font-bold text-slate-800 text-sm">{job.description}</div>
                 <div className="text-xs text-slate-500 mt-2">Staff: {staff.find(s => s.id === job.staffId)?.name || "Unassigned"}</div>
               </div>
@@ -59,7 +59,7 @@ export default function JobsTab({
           <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-purple-500"></div> In Progress</h3>
           <div className="flex-1 overflow-y-auto space-y-3">
              {jobs.filter(j => j.status === 'IN_PROGRESS').map(job => (
-              <div key={job.id} className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 cursor-pointer hover:border-blue-400 transition-colors">
+              <div key={job.slug} className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 cursor-pointer hover:border-blue-400 transition-colors">
                 <div className="font-bold text-slate-800 text-sm">{job.description}</div>
                 <div className="text-xs text-slate-500 mt-2">Staff: {staff.find(s => s.id === job.staffId)?.name || "Unassigned"}</div>
               </div>
@@ -71,7 +71,7 @@ export default function JobsTab({
           <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-green-500"></div> Completed</h3>
           <div className="flex-1 overflow-y-auto space-y-3">
              {jobs.filter(j => j.status === 'COMPLETED').map(job => (
-              <div key={job.id} className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 cursor-pointer hover:border-blue-400 transition-colors">
+              <div key={job.slug} className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 cursor-pointer hover:border-blue-400 transition-colors">
                 <div className="font-bold text-slate-800 text-sm">{job.description}</div>
               </div>
             ))}

@@ -1,13 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { MapPin, Store, Stethoscope, BedDouble, GraduationCap, Users, Briefcase, Building2 } from 'lucide-react';
-import { NEIGHBORHOODS, ORGS, COMMUNITIES, getNeighborhood } from '@/lib/demo/universe/orgs';
-import { DEMO_BUSINESSES, DEMO_HOTELS, DEMO_CLINICS, DEMO_SCHOOLS, DEMO_PROPERTIES } from '@/lib/demo/cityos';
-import { CITY_JOBS } from '@/lib/demo/universe/jobs';
+import { NEIGHBORHOODS, COMMUNITIES, getNeighborhood } from '@/lib/demo/universe/orgs';
 import { SectionHead, Pill } from '@/components/cityos/CityUI';
 import { cn } from '@/lib/utils';
+import { getCityMapEntities } from '@/app/actions/org';
 
 interface MapEntity {
   label: string;
@@ -45,32 +44,38 @@ const NODES: Record<string, { x: number; y: number }> = {
   'watt-road': { x: 34, y: 34 },
 };
 
-function entitiesForArea(areaName: string): MapEntity[] {
-  const out: MapEntity[] = [];
-  for (const o of ORGS) {
-    if (o.area !== areaName) continue;
-    const href = o.os ? `/workspaces/${o.os}/${o.slug}` : `/biz/${o.slug}`;
-    out.push({ label: o.name, sub: `${o.category} · ${o.area}`, href, kind: 'org' });
-  }
-  for (const b of DEMO_BUSINESSES) {
-    if (b.area !== areaName) continue;
-    if (ORGS.some((o) => o.slug === b.slug)) continue;
-    out.push({ label: b.name, sub: `${b.category} · marketplace`, href: `/biz/${b.slug}`, kind: 'biz' });
-  }
-  for (const c of DEMO_CLINICS) if (c.area === areaName) out.push({ label: c.name, sub: 'clinic · City Care', href: `/care/${c.slug}`, kind: 'care' });
-  for (const h of DEMO_HOTELS) if (h.area === areaName) out.push({ label: h.name, sub: `hotel · from ₦${h.pricePerNight.toLocaleString()}`, href: `/stay/${h.slug}`, kind: 'stay' });
-  for (const s of DEMO_SCHOOLS) if (s.area === areaName) out.push({ label: s.name, sub: s.level, href: `/schools/${s.slug}`, kind: 'school' });
-  for (const cm of COMMUNITIES) if (cm.area === areaName) out.push({ label: cm.name, sub: `${cm.members} members`, href: `/community/${cm.id}`, kind: 'community' });
-  const props = DEMO_PROPERTIES.filter((p) => p.area === areaName);
-  if (props.length) out.push({ label: `${props.length} ${props.length === 1 ? 'property' : 'properties'}`, sub: 'CityHouse listings', href: '/house', kind: 'house' });
-  return out;
-}
-
 export default function CityMap() {
   const [selected, setSelected] = useState('marian-road');
+  const [data, setData] = useState<{ entities: any[], jobs: any[] }>({ entities: [], jobs: [] });
+  
+  useEffect(() => {
+    getCityMapEntities().then(setData);
+  }, []);
+
   const area = getNeighborhood(selected) ?? NEIGHBORHOODS[0];
+  
+  const isMatch = (address: string, areaName: string) => {
+    if (!address) return false;
+    const lower = address.toLowerCase();
+    const areaLower = areaName.toLowerCase();
+    return lower.includes(areaLower) || lower.includes(areaLower.split(' ')[0]) || (areaName === 'Big Qua Town' && lower.includes('qua'));
+  };
+
+  const entitiesForArea = (areaName: string): MapEntity[] => {
+    const out: MapEntity[] = [];
+    for (const e of data.entities) {
+      if (isMatch(e.address, areaName)) {
+        out.push({ label: e.name, sub: e.sub, href: e.href, kind: e.kind });
+      }
+    }
+    for (const cm of COMMUNITIES) {
+       if (cm.area === areaName) out.push({ label: cm.name, sub: `${cm.members} members`, href: `/community/${cm.id}`, kind: 'community' });
+    }
+    return out;
+  };
+  
   const entities = entitiesForArea(area.name);
-  const jobsHere = CITY_JOBS.filter((j) => j.area.toLowerCase().includes(selected.replace('-', ' ')) || j.area === area.name);
+  const jobsHere = data.jobs.filter((j: any) => isMatch(j.area || '', area.name));
 
   const dotSize = (name: string) => {
     const n = entitiesForArea(name).length;
@@ -82,7 +87,7 @@ export default function CityMap() {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div>
-        <SectionHead title="City Map" sub="A stylized demo map of Calabar — real places, fake rendering" />
+        <SectionHead title="City Map" sub="A stylized demo map of Calabar — real places, database driven" />
         <div className="flex flex-wrap gap-2 text-[11px] font-bold text-slate-500">
           <span className="inline-flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-teal-700" /> Tap a neighbourhood</span>
           <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-teal-600" /> Busy area</span>
@@ -106,12 +111,12 @@ export default function CityMap() {
             })}
             {/* nodes */}
             {NEIGHBORHOODS.map((n, i) => {
-              const pos = NODES[n.id] ?? { x: 20 + i * 7, y: 20 + (i % 5) * 9 };
+              const pos = NODES[n.slug] ?? { x: 20 + i * 7, y: 20 + (i % 5) * 9 };
               const count = entitiesForArea(n.name).length;
-              const active = n.id === selected;
+              const active = n.slug === selected;
               const size = active ? 5 : dotSize(n.name);
               return (
-                <g key={n.id} onClick={() => setSelected(n.id)} className="cursor-pointer">
+                <g key={n.slug} onClick={() => setSelected(n.slug)} className="cursor-pointer">
                   <circle
                     cx={pos.x}
                     cy={pos.y}
@@ -179,10 +184,10 @@ export default function CityMap() {
                   <Briefcase className="w-3 h-3" /> {jobsHere.length} jobs nearby
                 </p>
                 <div className="space-y-1.5">
-                  {jobsHere.slice(0, 3).map((j) => (
+                  {jobsHere.slice(0, 3).map((j: any) => (
                     <Link key={j.id} href={`/jobs/${j.id}`} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 hover:bg-teal-50 transition-colors">
                       <span className="text-[11px] font-black text-ink truncate">{j.title}</span>
-                      <span className="text-[10px] font-bold text-teal-800 shrink-0 ml-2">{j.pay}</span>
+                      <span className="text-[10px] font-bold text-teal-800 shrink-0 ml-2">{j.salary || j.pay || 'Competitive'}</span>
                     </Link>
                   ))}
                 </div>
@@ -194,8 +199,8 @@ export default function CityMap() {
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">City totals</p>
             <div className="grid grid-cols-2 gap-2.5">
               {[
-                { label: 'Organizations', value: ORGS.length, icon: Store },
-                { label: 'Open jobs', value: CITY_JOBS.length, icon: Briefcase },
+                { label: 'Organizations', value: new Set(data.entities.map(e => e.id)).size, icon: Store },
+                { label: 'Open jobs', value: data.jobs.length, icon: Briefcase },
                 { label: 'Communities', value: COMMUNITIES.length, icon: Users },
                 { label: 'Neighbourhoods', value: NEIGHBORHOODS.length, icon: MapPin },
               ].map((s) => (
@@ -210,11 +215,6 @@ export default function CityMap() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-dashed border-brand-300 bg-brand-50/70 p-4">
-            <p className="text-[11px] text-brand-900/80 font-medium leading-relaxed">
-              <span className="font-black text-brand-900">Every marker opens the same entity</span> used on Home, Explore and the maps-in-the-head — the demo universe is one dataset.
-            </p>
-          </div>
         </div>
       </div>
     </div>
@@ -224,13 +224,13 @@ export default function CityMap() {
 function KindIcon({ kind }: { kind: string }) {
   const cls = 'w-8 h-8 rounded-lg flex items-center justify-center shrink-0';
   const map: Record<string, [React.ComponentType<{ className?: string }>, string]> = {
-    org: [Store, 'bg-teal-50 text-teal-800'],
-    biz: [Building2, 'bg-emerald-50 text-emerald-700'],
-    care: [Stethoscope, 'bg-rose-50 text-rose-600'],
-    stay: [BedDouble, 'bg-sky-50 text-sky-700'],
+    retail: [Store, 'bg-teal-50 text-teal-800'],
+    restaurant: [Store, 'bg-emerald-50 text-emerald-700'],
+    healthcare: [Stethoscope, 'bg-rose-50 text-rose-600'],
+    hotel: [BedDouble, 'bg-sky-50 text-sky-700'],
     school: [GraduationCap, 'bg-indigo-50 text-indigo-700'],
     community: [Users, 'bg-orange-50 text-orange-600'],
-    house: [Building2, 'bg-amber-50 text-amber-700'],
+    real_estate: [Building2, 'bg-amber-50 text-amber-700'],
   };
   const [Icon, tone] = map[kind] ?? [MapPin, 'bg-slate-100 text-slate-500'];
   return (

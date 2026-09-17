@@ -218,7 +218,7 @@ export default function CityHome() {
         />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {featuredBiz.map((b) => (
-            <CityCard key={b.slug} href={`/biz/${b.slug}`} className="flex flex-col">
+            <CityCard key={b.slug} href={`/org/${b.slug}`} className="flex flex-col">
               <FallbackImg src={b.cover} alt={b.name} className="h-36 w-full" />
               <div className="p-4 flex-1 flex flex-col gap-2">
                 <div className="flex items-start justify-between gap-2">
@@ -389,7 +389,7 @@ export default function CityHome() {
         <SectionHead title="City news" sub="The Journal on Calabar desks today" more="All stories" moreHref="/news" />
         <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden divide-y divide-slate-50">
           {headlines.map((n) => (
-            <CityCard key={n.id} href={`/news/${n.id}`} className="flex gap-4 p-4 items-center rounded-none border-0 hover:bg-slate-50/60">
+            <CityCard key={n.slug} href={`/news/${n.slug}`} className="flex gap-4 p-4 items-center rounded-none border-0 hover:bg-slate-50/60">
               <FallbackImg src={n.image} alt={n.title} className="w-20 h-14 rounded-xl shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-black text-ink leading-snug line-clamp-2">{n.title}</p>

@@ -120,10 +120,10 @@ export default function HotelAdminView({ initialData }: { initialData?: any }) {
                     { id: 'finances', label: 'Night Audit', icon: Activity },
                 ].map((tab) => (
                     <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
+                        key={tab.slug}
+                        onClick={() => setActiveTab(tab.slug)}
                         className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-colors whitespace-nowrap ${
-                            activeTab === tab.id
+                            activeTab === tab.slug
                                 ? 'bg-teal-800 text-white shadow-sm'
                                 : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
                         }`}

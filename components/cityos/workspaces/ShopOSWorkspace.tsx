@@ -76,7 +76,7 @@ export default function ShopOSWorkspace({ slug }: { slug: string }) {
           </div>
           <div className="flex gap-2 flex-wrap">
             <Link
-              href={`/biz/${org.slug}`}
+              href={`/org/${org.id}`}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/10 ring-1 ring-white/15 text-white text-[11px] font-black hover:bg-white/20 transition-colors"
             >
               <Store className="w-3.5 h-3.5" /> Public store
