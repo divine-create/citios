@@ -1,6 +1,7 @@
-'use server';
+﻿'use server';
 
 import { db } from '@/src/prisma/db';
+import { getCurrentCity, getCityBySlug } from '@/lib/city';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
@@ -37,13 +38,22 @@ export async function getCanonicalOrganization(id: string) {
 }
 
 export async function getCityJobs() {
+  // City scope: only jobs whose org operates in the current city.
+  const city = await getCurrentCity();
+  const cityOrgIds = city
+    ? new Set((await db.orm.public.Organization.where({ cityId: city.id }).all()).map(o => o.id))
+    : null;
   const jobs = await db.orm.public.Job.include('organization', o => o.select('name', 'id')).all();
-  return jobs;
+  return cityOrgIds ? jobs.filter(j => cityOrgIds.has(j.organizationId)) : jobs;
 }
 
 export async function getCityEvents() {
+  const city = await getCurrentCity();
+  const cityOrgIds = city
+    ? new Set((await db.orm.public.Organization.where({ cityId: city.id }).all()).map(o => o.id))
+    : null;
   const events = await db.orm.public.Event.include('organization', o => o.select('name', 'id')).all();
-  return events;
+  return cityOrgIds ? events.filter(e => cityOrgIds.has(e.organizationId)) : events;
 }
 
 export async function getCanonicalJob(id: string) {
@@ -104,8 +114,8 @@ export async function toggleEventRegistration(eventId: string) {
   }
 }
 
-export async function getCityMapEntities(citySlug: string = 'calabar') {
-  const city = await db.orm.public.City.where({ slug: citySlug }).first();
+export async function getCityMapEntities(citySlug?: string) {
+  const city = citySlug ? await getCityBySlug(citySlug) : await getCurrentCity();
   if (!city) return { entities: [], jobs: [] };
 
   const orgs = await db.orm.public.Organization.where({ cityId: city.id }).all();
@@ -126,7 +136,7 @@ export async function getCityMapEntities(citySlug: string = 'calabar') {
     return {
       id: org.id,
       name: org.name,
-      sub: `${org.type} · ${loc.address || 'Calabar'}`,
+      sub: `${org.type} Â· ${loc.address || city.name}`,
       href: `/org/${org.id}`,
       kind: org.type.toLowerCase(),
       address: loc.address || '',

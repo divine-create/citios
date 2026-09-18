@@ -1,7 +1,10 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { WALLET_STORAGE_KEY } from '@/lib/demo/cityos';
+
+// Client wallet display state (fictional until the server ledger is wired).
+// Kept here — its only consumer — rather than in lib/demo.
+const WALLET_STORAGE_KEY = 'cityos-wallet-display';
 
 export interface WalletTx {
   ref: string;

@@ -1,14 +1,16 @@
 'use client';
 
 import { Newspaper } from 'lucide-react';
+import { useCity } from '@/components/cityos/CityProvider';
 
 import { CityCard, FallbackImg, Pill, DemoBanner } from '@/components/cityos/CityUI';
 
 export default function CityNewsList() {
+  const cityName = useCity().city?.name ?? 'CityOS';
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col gap-1">
-        <h1 className="text-xl font-black text-ink">News · Calabar City Journal</h1>
+        <h1 className="text-xl font-black text-ink">{`News · ${cityName} City Journal`}</h1>
         <p className="text-xs text-slate-500 font-medium">
           City desks, business and culture — demo articles for the prototype.
         </p>

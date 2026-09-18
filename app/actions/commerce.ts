@@ -3,6 +3,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/src/prisma/db';
+import { getCurrentCity, getCityBySlug } from '@/lib/city';
 import { revalidatePath } from 'next/cache';
 
 /**
@@ -180,8 +181,9 @@ export async function fetchMyOrders() {
   }));
 }
 
-export async function getCityMartProducts(citySlug: string = 'calabar', cat: string = 'All') {
-  const city = await db.orm.public.City.where({ slug: citySlug }).first();
+export async function getCityMartProducts(citySlug?: string, cat: string = 'All') {
+  // Explicit slug wins; otherwise resolve the session's current city.
+  const city = citySlug ? await getCityBySlug(citySlug) : await getCurrentCity();
   if (!city) return [];
 
   const orgs = await db.orm.public.Organization.where({ cityId: city.id, type: 'RETAIL' }).all();
@@ -207,8 +209,8 @@ export async function getCityMartProducts(citySlug: string = 'calabar', cat: str
   });
 }
 
-export async function getCityMartStores(citySlug: string = 'calabar') {
-  const city = await db.orm.public.City.where({ slug: citySlug }).first();
+export async function getCityMartStores(citySlug?: string) {
+  const city = citySlug ? await getCityBySlug(citySlug) : await getCurrentCity();
   if (!city) return [];
 
   const orgs = await db.orm.public.Organization.where({ cityId: city.id, type: 'RETAIL' }).all();

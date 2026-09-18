@@ -3,13 +3,15 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Store, ArrowRight, Loader2 } from 'lucide-react';
-import { fmtNaira } from '@/lib/demo/cityos';
+import { fmtNaira } from '@/lib/format';
 import { CityCard, FallbackImg, Stars, LocationRow, OpenBadge, ChipButton, DemoBanner } from '@/components/cityos/CityUI';
 import { getCityMartProducts, getCityMartStores } from '@/app/actions/commerce';
+import { useCity } from '@/components/cityos/CityProvider';
 
 const MARKET_CATS = ['All', 'Groceries', 'Food & Market', 'Fashion', 'Electronics', 'Books & Prints'];
 
 export default function CityMarket() {
+  const { city } = useCity();
   const [cat, setCat] = useState('All');
   const [products, setProducts] = useState<any[]>([]);
   const [stores, setStores] = useState<any[]>([]);
@@ -19,15 +21,15 @@ export default function CityMarket() {
     async function load() {
       setLoading(true);
       const [fetchedProducts, fetchedStores] = await Promise.all([
-        getCityMartProducts('calabar', cat),
-        getCityMartStores('calabar')
+        getCityMartProducts(city?.slug, cat),
+        getCityMartStores(city?.slug)
       ]);
       setProducts(fetchedProducts);
       setStores(fetchedStores);
       setLoading(false);
     }
     load();
-  }, [cat]);
+  }, [cat, city?.slug]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">

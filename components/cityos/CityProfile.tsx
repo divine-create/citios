@@ -3,7 +3,10 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { Wallet, Plus, ChevronRight, Package, Car, Banknote, Truck, Building2, Bookmark, Settings, ArrowUp } from 'lucide-react';
-import { TOP_UP_AMOUNT, fmtNaira, getProperty } from '@/lib/demo/cityos';
+import { fmtNaira } from '@/lib/format';
+
+// Client wallet display top-up (fictional until the server ledger is wired).
+const TOP_UP_AMOUNT = 50000;
 import { Pill, Money, ChipButton, DemoBanner } from '@/components/cityos/CityUI';
 import { useWallet } from '@/components/cityos/WalletStore';
 import { useExperience } from '@/components/cityos/ExperienceStore';
@@ -216,41 +219,12 @@ export default function CityProfile() {
         </div>
       ) : tab === 'CityHouse' ? (
         <div className="space-y-3">
-          {(() => {
-            const home = getProperty('h01');
-            if (!home) return null;
-            return (
-              <div className="rounded-2xl bg-white border border-slate-100 p-5">
-                <div className="flex items-center justify-between flex-wrap gap-3">
-                  <div className="flex items-center gap-3">
-                    <span className="w-11 h-11 rounded-xl bg-teal-50 text-teal-800 flex items-center justify-center shrink-0">
-                      <Building2 className="w-5 h-5" />
-                    </span>
-                    <div>
-                      <p className="text-[14px] font-black text-ink">{home.title}</p>
-                      <p className="text-[11px] font-bold text-slate-400">{`${home.area} · rent ${fmtNaira(home.pricePerYear / 12)}/mo`}</p>
-                    </div>
-                  </div>
-                  <Link href={`/house/${home.id}/pay`} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-teal-800 text-white text-[11px] font-black">
-                    Pay next rent <ChevronRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-                <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-                  {[
-                    { label: 'Paid', value: '✓ 11 / 12' },
-                    { label: 'Next due', value: 'in 12 days' },
-                    { label: 'Deposit', value: 'Held via CityPay' },
-                  ].map((s) => (
-                    <div key={s.label} className="rounded-xl bg-slate-50 p-2.5">
-                      <p className="text-[12px] font-black text-ink">{s.value}</p>
-                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{s.label}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })()}
-          <DemoBanner />
+          <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center bg-white">
+            <p className="text-[13px] font-black text-ink">No home on file</p>
+            <p className="text-[11px] text-slate-400 font-medium mt-1">
+              Rental listings and tenant accounts aren&apos;t part of the live system yet.
+            </p>
+          </div>
         </div>
       ) : tab === 'Saved' ? (
         <div className="space-y-3">

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Bookmark, Heart } from 'lucide-react';
 import { getResolvedSavedItems, toggleSavedItem } from '@/app/actions/org';
-import { fmtNaira } from '@/lib/demo/cityos';
+import { fmtNaira } from '@/lib/format';
 import { CityCard, FallbackImg, Stars, Pill, LocationRow, DemoBanner, OpenBadge } from '@/components/cityos/CityUI';
 import { revalidatePath } from 'next/cache';
 
@@ -40,7 +40,7 @@ export default async function CitySaved() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="text-[13px] font-black text-ink truncate">{b.name}</p>
-                    <LocationRow text={b.address || 'Calabar'} className="text-[10px]" />
+                    <LocationRow text={b.address || ''} className="text-[10px]" />
                   </div>
                   <Stars rating={5} className="shrink-0" />
                 </div>

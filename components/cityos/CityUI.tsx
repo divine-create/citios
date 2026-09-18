@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { Star, ArrowRight, MapPin, BadgeCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { fmtNaira } from '@/lib/demo/cityos';
+import { fmtNaira } from '@/lib/format';
 
 export function FallbackImg({
   src,

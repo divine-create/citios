@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Banknote, ShoppingBag, Users, TrendingUp, Star, Truck, ChevronRight, BadgeCheck } from 'lucide-react';
-import { fmtNaira, parseNaira } from '@/lib/demo/cityos';
+import { fmtNaira, parseNaira } from '@/lib/format';
 import { StatTile, Pill, DemoBanner, SectionHead } from '@/components/cityos/CityUI';
 
 interface LiveOrder {

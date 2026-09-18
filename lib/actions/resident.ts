@@ -1,20 +1,29 @@
 
 'use server'
 import { db } from '@/src/prisma/db'
+import { getCurrentCity } from '@/lib/city'
+
+// City scope: resident-facing org listings only surface orgs operating in
+// the current city. When no city resolves (unseeded DB), the filter is
+// skipped so existing behavior is preserved.
+async function getOrgsByType(type: string) {
+  const city = await getCurrentCity();
+  const where = city ? { type, cityId: city.id } : { type };
+  // @ts-ignore — the ORM builder narrows `where` per-model; the union here is safe
+  const orgs = await db.orm.public.Organization.where(where).all();
+  return JSON.parse(JSON.stringify(orgs));
+}
 
 export async function getHealthcareOrgs() {
-  const orgs = await db.orm.public.Organization.where({ type: 'HEALTHCARE' }).all();
-  return JSON.parse(JSON.stringify(orgs));
+  return getOrgsByType('HEALTHCARE');
 }
 
 export async function getPharmacyOrgs() {
-  const orgs = await db.orm.public.Organization.where({ type: 'PHARMACY' }).all();
-  return JSON.parse(JSON.stringify(orgs));
+  return getOrgsByType('PHARMACY');
 }
 
 export async function getEducationOrgs() {
-  const orgs = await db.orm.public.Organization.where({ type: 'SCHOOL' }).all();
-  return JSON.parse(JSON.stringify(orgs));
+  return getOrgsByType('SCHOOL');
 }
 
 export async function getSchoolProfile(organizationId: string) {
@@ -45,18 +54,15 @@ export async function getSchoolProfile(organizationId: string) {
 }
 
 export async function getRestaurantOrgs() {
-  const orgs = await db.orm.public.Organization.where({ type: 'RESTAURANT' }).all();
-  return JSON.parse(JSON.stringify(orgs));
+  return getOrgsByType('RESTAURANT');
 }
 
 export async function getEventOrgs() {
-  const orgs = await db.orm.public.Organization.where({ type: 'EVENT_ORGANIZER' }).all();
-  return JSON.parse(JSON.stringify(orgs));
+  return getOrgsByType('EVENT_ORGANIZER');
 }
 
 export async function getLocalServicesOrgs() {
-  const orgs = await db.orm.public.Organization.where({ type: 'LOGISTICS' }).all();
-  return JSON.parse(JSON.stringify(orgs));
+  return getOrgsByType('LOGISTICS');
 }
 
 // And we can fetch specific data like menus or items
@@ -71,13 +77,11 @@ export async function getPharmacyItems(orgId: string) {
 }
 
 export async function getRideOrgs() {
-  const orgs = await db.orm.public.Organization.where({ type: 'LOGISTICS' }).all();
-  return JSON.parse(JSON.stringify(orgs));
+  return getOrgsByType('LOGISTICS');
 }
 
 export async function getHotelOrgs() {
-  const orgs = await db.orm.public.Organization.where({ type: 'HOTEL' }).all();
-  return JSON.parse(JSON.stringify(orgs));
+  return getOrgsByType('HOTEL');
 }
 
 export async function getHotelRooms(orgId: string) {

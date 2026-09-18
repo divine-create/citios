@@ -1,6 +1,5 @@
 import { db } from '../src/prisma/db.js';
-import { DEMO_TASKS } from '../lib/demo/cityos.js';
-import { taskOrgId, orgIdForSlug } from '../lib/demo/app/seed.js';
+import { DEMO_TASKS, taskOrgId, orgIdForSlug } from './seed-helpers.js';
 
 async function seedServices() {
   console.log("Seeding ServiceOS...");

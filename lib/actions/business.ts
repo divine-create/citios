@@ -4,15 +4,17 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/src/prisma/db";
 
-// Default operating city. City is a seeded registry (scripts/seed.ts); the
-// client may reference a city by slug, but the server always validates it
-// against the canonical City table before persisting Organization.cityId.
-const DEFAULT_CITY_SLUG = 'calabar';
-
+// Registration default: when the onboarding form doesn't specify a city, the
+// organization lands in the first active city in the registry. Explicit
+// slugs are always validated against the canonical City table before
+// persisting Organization.cityId.
 async function resolveRegistrationCity(citySlug?: string) {
-  const slug = (citySlug || DEFAULT_CITY_SLUG).trim().toLowerCase();
-  if (!slug) return null;
-  return db.orm.public.City.where({ slug }).all().first();
+  const slug = (citySlug || '').trim().toLowerCase();
+  if (slug) {
+    return db.orm.public.City.where({ slug }).all().first();
+  }
+  const first = await db.orm.public.City.where({ isActive: true }).all().first();
+  return first ?? null;
 }
 
 export async function registerOrganization(data: {

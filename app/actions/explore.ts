@@ -1,9 +1,10 @@
 'use server';
 
 import { db } from '@/src/prisma/db';
+import { getCurrentCity, getCityBySlug } from '@/lib/city';
 
-export async function searchCityExplore(citySlug: string, query: string, cat: string) {
-  const city = await db.orm.public.City.where({ slug: citySlug }).first();
+export async function searchCityExplore(citySlug: string | undefined, query: string, cat: string) {
+  const city = citySlug ? await getCityBySlug(citySlug) : await getCurrentCity();
   if (!city) {
     return { organizations: [], products: [] };
   }
@@ -55,9 +56,9 @@ export async function searchCityExplore(citySlug: string, query: string, cat: st
       name: o.name,
       type: o.type,
       category: o.type || 'Business',
-      area: o.address || 'Calabar',
+      area: o.address || city.name,
       description: o.description,
-      tagline: o.description || 'Local business in Calabar',
+      tagline: o.description || `Local business in ${city.name}`,
       rating: 4.8,
       isOpen: true,
       deliveryEta: 15,

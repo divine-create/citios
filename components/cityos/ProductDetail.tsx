@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Minus, Plus, ShoppingCart, Truck, ShieldCheck, BadgePercent, Check, ChevronRight, Loader2 } from 'lucide-react';
-import { fmtNaira } from '@/lib/demo/cityos';
+import { fmtNaira } from '@/lib/format';
 import { FallbackImg, Stars, Pill, VerifiedBadge, DemoBanner, PriceTag } from '@/components/cityos/CityUI';
 import { useCart } from '@/components/cityos/CartStore';
 import { cn } from '@/lib/utils';

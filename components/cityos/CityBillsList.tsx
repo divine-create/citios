@@ -1,8 +1,7 @@
 'use client';
 
-import { Receipt, ArrowRight } from 'lucide-react';
-import { BILL_KIND_ICONS, fmtNaira } from '@/lib/demo/cityos';
-import { CityCard, Pill, DemoBanner } from '@/components/cityos/CityUI';
+import { Receipt } from 'lucide-react';
+import { DemoBanner } from '@/components/cityos/CityUI';
 
 export default function CityBillsList() {
   return (

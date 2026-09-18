@@ -2,6 +2,7 @@
 'use server'
 
 import { db } from '@/src/prisma/db'
+import { getCurrentCity } from '@/lib/city'
 
 export async function getNewsAdminData() {
   try {
@@ -29,9 +30,17 @@ export async function getNewsAdminData() {
 
 export async function getPublishedNews() {
   try {
-    const posts = await db.orm.public.Post.where({ status: 'PUBLISHED' }).all();
+    let posts = await db.orm.public.Post.where({ status: 'PUBLISHED' }).all();
     const orgs = await db.orm.public.Organization.all();
     const comments = await db.orm.public.Comment.all();
+
+    // City scope: news is authored by PUBLISHER orgs; only publishers
+    // operating in the current city are shown. No city -> no filter.
+    const city = await getCurrentCity();
+    if (city) {
+      const cityOrgIds = new Set(orgs.filter(o => o.cityId === city.id).map(o => o.id));
+      posts = posts.filter(p => cityOrgIds.has(p.organizationId ?? ''));
+    }
 
     // Sort by emergency first, then by date descending
     const enrichedPosts = posts.map(p => ({

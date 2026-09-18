@@ -1,7 +1,7 @@
 'use client';
 
 import { Wrench } from 'lucide-react';
-import { fmtNaira } from '@/lib/demo/cityos';
+import { fmtNaira } from '@/lib/format';
 import { CityCard, FallbackImg, Stars, Pill, DemoBanner } from '@/components/cityos/CityUI';
 
 export default function CityTasksList() {

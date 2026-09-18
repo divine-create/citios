@@ -3,12 +3,14 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { BedDouble, ArrowRight, Clock } from 'lucide-react';
-import { fmtNaira } from '@/lib/demo/cityos';
+import { fmtNaira } from '@/lib/format';
 import { CityCard, FallbackImg, Stars, Pill, LocationRow, ChipButton, DemoBanner } from '@/components/cityos/CityUI';
+import { useCity } from '@/components/cityos/CityProvider';
 
 const FILTERS = ['All', 'Under ₦10,000', 'Near stadium', 'Open 24h'];
 
 export default function CityStayList() {
+  const cityName = useCity().city?.name ?? 'CityOS';
   const [filter, setFilter] = useState('All');
 
   const hotels: any[] = [];
@@ -18,7 +20,7 @@ export default function CityStayList() {
       <div className="flex flex-col gap-1">
         <h1 className="text-xl font-black text-ink">Hotels Tonight</h1>
         <p className="text-xs text-slate-500 font-medium">
-          Rooms held with a CityPay deposit, refunded at the front desk. All in Calabar metro.
+          Rooms held with a CityPay deposit, refunded at the front desk. All in {cityName} metro.
         </p>
       </div>
 

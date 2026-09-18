@@ -3,12 +3,14 @@
 import { GraduationCap } from 'lucide-react';
 
 import { CityCard, FallbackImg, Stars, Pill, LocationRow, DemoBanner } from '@/components/cityos/CityUI';
+import { useCity } from '@/components/cityos/CityProvider';
 
 export default function CitySchoolsList() {
+  const cityName = useCity().city?.name ?? 'CityOS';
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col gap-1">
-        <h1 className="text-xl font-black text-ink">Schools in Calabar</h1>
+        <h1 className="text-xl font-black text-ink">{`Schools in ${cityName}`}</h1>
         <p className="text-xs text-slate-500 font-medium">
           Admissions desks, registrars and intake offices across the city — request info in-app.
         </p>

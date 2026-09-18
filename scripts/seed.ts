@@ -1,6 +1,5 @@
 import { db } from '../src/prisma/db.js';
-import { RESIDENT_ACCOUNTS, bizOrgId, bizOrgName } from '../lib/demo/app/seed.js';
-import { getBusiness, DEMO_PRODUCTS } from '../lib/demo/cityos.js';
+import { RESIDENT_ACCOUNTS, bizOrgId, DEMO_PRODUCTS } from './seed-helpers.js';
 // @ts-ignore
 import { v4 as uuidv4 } from 'uuid';
 
@@ -40,7 +39,7 @@ async function seed() {
   }
 
   // Create Products
-  const freshmartProducts = DEMO_PRODUCTS.filter(p => p.bizSlug === "freshmart");
+  const freshmartProducts = DEMO_PRODUCTS.filter((p: { bizSlug: string }) => p.bizSlug === "freshmart");
   for (const p of freshmartProducts) {
     let prod = await db.orm.public.RetailProduct.where({ id: p.id }).all().first();
     if (!prod) {

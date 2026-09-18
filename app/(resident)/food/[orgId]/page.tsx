@@ -2,8 +2,9 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { UtensilsCrossed, ChefHat, Clock, MapPin, ArrowLeft, ShoppingBag } from 'lucide-react';
 import { getCityFoodRestaurant } from '@/app/actions/food';
+import { getCurrentCity } from '@/lib/city';
 import { CityCard, FallbackImg, Stars, LocationRow, OpenBadge } from '@/components/cityos/CityUI';
-import { fmtNaira } from '@/lib/demo/cityos';
+import { fmtNaira } from '@/lib/format';
 
 interface Props {
   params: Promise<{ orgId: string }>;
@@ -12,6 +13,8 @@ interface Props {
 export default async function CityFoodRestaurantPage({ params }: Props) {
   const { orgId } = await params;
   const data = await getCityFoodRestaurant(orgId);
+  const city = await getCurrentCity();
+  const cityName = city?.name ?? 'CityOS';
 
   if (data) {
     const { location, menuItems, ...restaurant } = data;
@@ -51,15 +54,15 @@ export default async function CityFoodRestaurantPage({ params }: Props) {
             ) : null}
 
             {location ? (
-              <LocationRow text={`${location.name ?? ''} · ${location.address ?? 'Calabar'}`} className="text-[11px]" />
+              <LocationRow text={`${location.name ?? ''} · ${location.address ?? cityName}`} className="text-[11px]" />
             ) : (
-              <LocationRow text="Central Calabar" className="text-[11px]" />
+              <LocationRow text={`Central ${cityName}`} className="text-[11px]" />
             )}
 
             <div className="flex items-center gap-2 pt-1">
               <span className="inline-flex items-center gap-1.5 rounded-xl bg-slate-50 px-3 py-2 text-[10px] font-black text-slate-600">
                 <MapPin className="w-3 h-3 text-orange-500" />
-                {restaurant.area ?? 'Calabar'}
+                {restaurant.area || cityName}
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-xl bg-slate-50 px-3 py-2 text-[10px] font-black text-slate-600">
                 <Clock className="w-3 h-3 text-orange-500" />
@@ -115,7 +118,7 @@ export default async function CityFoodRestaurantPage({ params }: Props) {
                 <ShoppingBag className="w-5 h-5" />
               </span>
               <div className="flex-1">
-                <p className="text-sm font-black">Our kitchen at {location.name ?? 'Calabar'}</p>
+                <p className="text-sm font-black">Our kitchen at {location.name ?? cityName}</p>
                 <p className="text-[11px] text-orange-50/80 font-medium mt-0.5">{location.address}</p>
               </div>
               <Link href="/cart" className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white text-orange-700 text-xs font-black hover:bg-orange-50 transition-colors">

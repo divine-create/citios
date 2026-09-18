@@ -4,7 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/src/prisma/db';
 import { revalidatePath } from 'next/cache';
-import { ActivityItem } from '@/lib/demo/cityos';
+import { ActivityItem } from '@/lib/activity';
 
 export async function requestServiceJob(input: {
   serviceId: string;

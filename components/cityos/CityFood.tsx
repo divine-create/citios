@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { UtensilsCrossed, ArrowRight } from 'lucide-react';
 import { useCart } from '@/components/cityos/CartStore';
 import { getCityFood } from '@/app/actions/food';
+import { useCity } from '@/components/cityos/CityProvider';
 import { CityCard, FallbackImg, Stars, LocationRow, OpenBadge, ChipButton, DemoBanner } from '@/components/cityos/CityUI';
-import { fmtNaira } from '@/lib/demo/cityos';
+import { fmtNaira } from '@/lib/format';
 
 const FOOD_CATS = ['All', 'Restaurant', 'Cafe', 'Campus Eats', 'Food & Market'];
 
@@ -42,12 +43,14 @@ export default function CityFood() {
   const [menuItems, setMenuItems] = useState<MenuItemView[]>([]);
   const [loading, setLoading] = useState(true);
   const { add } = useCart();
+  const { city } = useCity();
+  const cityName = city?.name ?? 'CityOS';
 
   useEffect(() => {
     let active = true;
     async function load() {
       setLoading(true);
-      const data = await getCityFood('calabar');
+      const data = await getCityFood(city?.slug);
       if (!active) return;
       setRestaurants(data.restaurants as unknown as RestaurantView[]);
       setMenuItems(data.menuItems as MenuItemView[]);
@@ -57,7 +60,7 @@ export default function CityFood() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [city?.slug]);
 
   const cats = [...new Set(['All', ...restaurants.map((r) => r.category ?? 'Restaurant')])];
 
@@ -70,7 +73,7 @@ export default function CityFood() {
       <div className="flex flex-col gap-1">
         <h1 className="text-xl font-black text-ink">Food</h1>
         <p className="text-xs text-slate-500 font-medium">
-          Kitchens, cafés and stalls cooking Calabar today — order through CityOS.
+          Kitchens, cafés and stalls cooking {cityName} today — order through CityOS.
         </p>
       </div>
 
@@ -79,7 +82,7 @@ export default function CityFood() {
       <div className="flex flex-col gap-1">
         <h2 className="text-[13px] font-black text-ink">CityFood is live</h2>
         <p className="text-[11px] text-slate-500 font-medium">
-          Discover and order from real restaurants and their menus across {'Calabar'}.
+          Discover and order from real restaurants and their menus across {cityName}.
         </p>
       </div>
 
@@ -110,7 +113,7 @@ export default function CityFood() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="text-[13px] font-black text-ink truncate">{r.name}</p>
-                    <LocationRow text={`${r.area ?? 'Calabar'} · ${r.category ?? 'Restaurant'}`} className="text-[10px]" />
+                    <LocationRow text={`${r.area || cityName} · ${r.category ?? 'Restaurant'}`} className="text-[10px]" />
                   </div>
                   {r.rating ? <Stars rating={r.rating} className="shrink-0" /> : null}
                 </div>
@@ -167,7 +170,7 @@ export default function CityFood() {
           <div className="flex-1">
             <p className="text-sm font-black">Running a kitchen on CityOS?</p>
             <p className="text-[11px] text-orange-50/80 font-medium mt-0.5">
-              Restaurants in Calabar take orders and run their menus inside CityOS — CityFood brings them to residents.
+              Restaurants in {cityName} take orders and run their menus inside CityOS — CityFood brings them to residents.
             </p>
           </div>
           <Link href="/demo/access" className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white text-orange-700 text-xs font-black hover:bg-orange-50 transition-colors shrink-0">

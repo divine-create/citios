@@ -3,7 +3,9 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Search, MapPin, Store, Utensils, Wrench, Briefcase, Home, Calendar, Grip } from 'lucide-react';
-import { CITY_NOTES } from '@/lib/demo/cityos';
+import { CITY_NOTES } from '@/lib/city-content';
+import { useCity } from '@/components/cityos/CityProvider';
+import CityPicker from '@/components/cityos/CityPicker';
 import CityFeed from '@/components/cityos/CityFeed';
 
 function greeting() {
@@ -14,6 +16,8 @@ function greeting() {
 }
 
 export default function CityHome({ firstName }: { firstName?: string }) {
+  const { city } = useCity();
+  const cityName = city?.name ?? 'CityOS';
   const [greet, setGreet] = useState('Good day');
   useEffect(() => {
     setGreet(greeting());
@@ -26,7 +30,8 @@ export default function CityHome({ firstName }: { firstName?: string }) {
       <section className="pt-4 px-1">
         <div className="flex items-center gap-1.5 text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3">
           <MapPin className="w-3 h-3" />
-          {`Calabar · ${CITY_NOTES.weather.temp} ${CITY_NOTES.weather.label}`}
+          <CityPicker className="text-[11px] font-black text-slate-500 uppercase tracking-widest" />
+          {` · ${CITY_NOTES.weather.temp} ${CITY_NOTES.weather.label}`}
         </div>
         <h1 className="text-3xl md:text-4xl font-black tracking-tight text-ink">
           {greet}{firstName ? `, ${firstName}.` : '.'}
@@ -75,7 +80,7 @@ export default function CityHome({ firstName }: { firstName?: string }) {
 
       {/* Newsfeed Section */}
       <section className="space-y-6">
-        <h2 className="text-xl font-black text-ink px-1">What's happening in Calabar</h2>
+        <h2 className="text-xl font-black text-ink px-1">{`What's happening in ${cityName}`}</h2>
         <CityFeed hideHeader />
       </section>
     </div>

@@ -6,6 +6,7 @@ import { Globe, Users, PenSquare, Check, ImagePlus } from 'lucide-react';
 import { ChipButton } from '@/components/cityos/CityUI';
 import { cn } from '@/lib/utils';
 import { createPost } from '@/app/actions/newsfeed';
+import { useCity } from '@/components/cityos/CityProvider';
 import { useSession } from 'next-auth/react';
 
 const POST_CATEGORIES = ['Community', 'Ask the city', 'Offer', 'Event', 'Housing', 'Update'];
@@ -13,6 +14,7 @@ const POST_CATEGORIES = ['Community', 'Ask the city', 'Offer', 'Event', 'Housing
 export default function CreatePost() {
   const router = useRouter();
   const { data: session } = useSession();
+  const cityName = useCity().city?.name ?? 'CityOS';
   
   const [category, setCategory] = useState(POST_CATEGORIES[0]);
   const [audience, setAudience] = useState<'public' | 'following'>('public');
@@ -60,7 +62,7 @@ export default function CreatePost() {
       <div>
         <h1 className="text-xl font-black text-ink">Post to the city</h1>
         <p className="text-xs text-slate-500 font-medium mt-0.5">
-          Share an offer, ask, event or notice with Calabar and beyond.
+          Share an offer, ask, event or notice with {cityName} and beyond.
         </p>
       </div>
 
@@ -77,7 +79,7 @@ export default function CreatePost() {
                 <div className="flex items-center gap-1 mt-0.5">
                   {audience === 'public' ? <Globe className="w-3 h-3 text-slate-400" /> : <Users className="w-3 h-3 text-slate-400" />}
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    {audience === 'public' ? 'Public A everyone in Calabar' : 'Following only'}
+                    {audience === 'public' ? `Public — everyone in ${cityName}` : 'Following only'}
                   </span>
                 </div>
               </div>

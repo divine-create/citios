@@ -1,13 +1,49 @@
 'use client';
 
 import { useState } from 'react';
+import type { ComponentType } from 'react';
 import Link from 'next/link';
 import { MapPin, Navigation, Phone, Share2, Car, Clock, Loader2, Waves, Check } from 'lucide-react';
-import { RIDE_AREAS, RIDE_CLASSES,  fmtNaira } from '@/lib/demo/cityos';
+import { fmtNaira } from '@/lib/format';
 import { Pill, DemoBanner } from '@/components/cityos/CityUI';
+import { useCity } from '@/components/cityos/CityProvider';
 import { cn } from '@/lib/utils';
 
 const HOME = 'State Housing Estate';
+
+// CityDrive ride product config (fare estimates only — never persisted).
+// Owned by the Ride surface; no canonical transport entity exists yet.
+interface RideArea {
+  name: string;
+  near: string;
+}
+
+const RIDE_AREAS: RideArea[] = [
+  { name: 'Marian Road', near: 'City centre · market line' },
+  { name: 'Watt Market', near: 'Busy all morning' },
+  { name: 'Ekorinim', near: 'Quiet residential' },
+  { name: 'Bogobiri', near: 'Restaurants & stadium' },
+  { name: 'State Housing Estate', near: 'Home base' },
+  { name: 'University of Calabar', near: 'Campus gate' },
+  { name: 'Margaret Ekpo Airport', near: 'Airport road' },
+  { name: 'Eight Miles', near: 'Outskirts' },
+];
+
+interface RideClass {
+  id: string;
+  name: string;
+  tagline: string;
+  baseFare: number;
+  perKm: number;
+  eta: string;
+  pax: number;
+  icon: ComponentType<{ className?: string }>;
+}
+const RIDE_CLASSES: RideClass[] = [
+  { id: 'keke', name: 'CityKeke', tagline: 'Quick trips, city fares', baseFare: 800, perKm: 250, eta: '3 min', pax: 3, icon: Car },
+  { id: 'solo', name: 'CitySolo', tagline: 'Sedan for the everyday', baseFare: 1200, perKm: 400, eta: '5 min', pax: 4, icon: Car },
+  { id: 'go', name: 'CityGo', tagline: 'SUV comfort, family-sized', baseFare: 1800, perKm: 650, eta: '8 min', pax: 6, icon: Car },
+];
 
 function estimateDistance(from: string, to: string): number {
   const a = RIDE_AREAS.findIndex((r) => r.name === from);
@@ -17,6 +53,7 @@ function estimateDistance(from: string, to: string): number {
 }
 
 export default function RideView() {
+  const cityName = useCity().city?.name ?? 'CityOS';
   const [pickup, setPickup] = useState(HOME);
   const [dest, setDest] = useState('Marian Road');
   const [klass, setKlass] = useState(RIDE_CLASSES[1]);
@@ -40,7 +77,7 @@ export default function RideView() {
           <h1 className="text-xl font-black text-ink flex items-center gap-2">
             <Navigation className="w-5 h-5 text-teal-800" /> City Ride
           </h1>
-          <p className="text-xs text-slate-500 font-medium mt-0.5">Keke, solo or SUV — moving Calabar with fair naira fares.</p>
+          <p className="text-xs text-slate-500 font-medium mt-0.5">{`Keke, solo or SUV — moving ${cityName} with fair naira fares.`}</p>
         </div>
         <Pill tone="blue">CityDrive mobility</Pill>
       </div>

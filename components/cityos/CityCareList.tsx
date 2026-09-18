@@ -3,12 +3,14 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Stethoscope, ArrowRight } from 'lucide-react';
-import { fmtNaira } from '@/lib/demo/cityos';
+import { fmtNaira } from '@/lib/format';
 import { CityCard, FallbackImg, Stars, Pill, LocationRow, ChipButton, DemoBanner, OpenBadge } from '@/components/cityos/CityUI';
+import { useCity } from '@/components/cityos/CityProvider';
 
 const FILTERS = ['All', 'Open now', 'Free consult', 'Hospital'];
 
 export default function CityCareList() {
+  const cityName = useCity().city?.name ?? 'CityOS';
   const [filter, setFilter] = useState('All');
 
   const clinics: any[] = [];
@@ -18,7 +20,7 @@ export default function CityCareList() {
       <div className="flex flex-col gap-1">
         <h1 className="text-xl font-black text-ink">City Care</h1>
         <p className="text-xs text-slate-500 font-medium">
-          Clinics, hospitals and pharmacy-led care around Calabar — book a slot in-app.
+          Clinics, hospitals and pharmacy-led care around {cityName} — book a slot in-app.
         </p>
       </div>
 

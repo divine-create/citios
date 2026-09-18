@@ -3,13 +3,16 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Search, SlidersHorizontal, Compass, Sparkles } from 'lucide-react';
-import { fmtNaira } from '@/lib/demo/cityos';
+import { fmtNaira } from '@/lib/format';
 import { CityCard, FallbackImg, Stars, Pill, LocationRow, OpenBadge, ChipButton } from '@/components/cityos/CityUI';
 import { searchCityExplore } from '@/app/actions/explore';
+import { useCity } from '@/components/cityos/CityProvider';
 
 const CATS = ['All', 'Retail', 'Service', 'School', 'Healthcare', 'Hotel'];
 
 export default function CityExplore() {
+  const { city } = useCity();
+  const cityName = city?.name ?? 'CityOS';
   const [query, setQuery] = useState('');
   const [cat, setCat] = useState('All');
   
@@ -32,7 +35,7 @@ export default function CityExplore() {
       setLoading(true);
       setError(false);
       
-      searchCityExplore('calabar', query, cat)
+      searchCityExplore(city?.slug, query, cat)
         .then(data => {
           setResults(data.organizations);
           setMarketProducts(data.products);
@@ -46,12 +49,12 @@ export default function CityExplore() {
     }, 300);
     
     return () => clearTimeout(timer);
-  }, [query, cat]);
+  }, [query, cat, city?.slug]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col gap-1">
-        <h1 className="text-xl font-black text-ink">Explore Calabar</h1>
+        <h1 className="text-xl font-black text-ink">{`Explore ${cityName}`}</h1>
         <p className="text-xs text-slate-500 font-medium">
           Marketplaces, stalls and services across the city — one CityOS search.
         </p>

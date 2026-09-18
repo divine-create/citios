@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Minus, Plus, Trash2, ShoppingCart, ChevronRight, ArrowLeft } from 'lucide-react';
-import { fmtNaira } from '@/lib/demo/cityos';
+import { fmtNaira } from '@/lib/format';
 import { useCart } from '@/components/cityos/CartStore';
 import { FallbackImg, Money } from '@/components/cityos/CityUI';
 

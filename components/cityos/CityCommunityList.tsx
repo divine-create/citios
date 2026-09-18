@@ -1,10 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { Users, MapPin, ArrowRight, Plus } from 'lucide-react';
-import { COMMUNITIES } from '@/lib/demo/universe/orgs';
-import { SectionHead, Pill, DemoBanner } from '@/components/cityos/CityUI';
+import { Users } from 'lucide-react';
 
+/**
+ * Community circles list. There is no canonical community/circle model yet
+ * (see the canonical architecture audit) — the demo circles were removed with
+ * the demo purge. Honest "not connected" state until that architecture exists.
+ */
 export default function CityCommunityList() {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -16,54 +19,24 @@ export default function CityCommunityList() {
           </span>
           <h1 className="mt-3 text-2xl md:text-4xl font-black tracking-tight">Neighbourhoods, on the record</h1>
           <p className="mt-2 text-teal-50/85 text-[13px] font-medium max-w-2xl leading-relaxed">
-            The compound WhatsApps and garden circles of Calabar, given a place in the city. Join a circle, follow the board, or start your own.
+            The compound WhatsApps and garden circles of the city, given a place in CityOS.
           </p>
         </div>
       </div>
 
-      <section>
-        <SectionHead title="Circles in the demo" sub="Every community shares one map, one identity, one dataset" />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {COMMUNITIES.map((c) => (
-            <Link
-              key={c.id}
-              href={`/community/${c.id}`}
-              className="bg-white rounded-2xl border border-slate-100 p-6 hover:shadow-lg hover:-translate-y-0.5 transition-all flex flex-col"
-            >
-              <div className="flex items-start justify-between">
-                <span className="w-12 h-12 rounded-2xl bg-gradient-to-br from-teal-800 to-teal-500 text-white flex items-center justify-center text-xl shadow-md">
-                  {c.id === 'c1' ? '🏠' : c.id === 'c2' ? '🌿' : '🎨'}
-                </span>
-                <Pill tone="teal">{`${c.members.toLocaleString()} members`}</Pill>
-              </div>
-              <p className="mt-4 text-[15px] font-black text-ink leading-snug">{c.name}</p>
-              <p className="text-[11px] font-bold text-slate-400 mt-0.5 flex items-center gap-1">
-                <MapPin className="w-3 h-3 text-teal-700" /> {c.area}
-              </p>
-              <p className="text-[12px] text-slate-500 font-medium leading-relaxed mt-2 line-clamp-3">{c.about}</p>
-              <div className="mt-auto pt-4 flex items-center justify-between">
-                <span className="text-[10px] font-bold text-slate-400">{`Admin · ${c.admin}`}</span>
-                <span className="inline-flex items-center gap-1 text-[11px] font-black text-teal-800">
-                  Open board <ArrowRight className="w-3 h-3" />
-                </span>
-              </div>
-            </Link>
-          ))}
-
-          <Link
-            href="/create"
-            className="rounded-2xl border-2 border-dashed border-teal-200 bg-teal-50/40 hover:bg-teal-50/70 p-6 flex flex-col items-center justify-center gap-2 text-center min-h-[220px]"
-          >
-            <span className="w-12 h-12 rounded-2xl bg-teal-800 text-white flex items-center justify-center">
-              <Plus className="w-5 h-5" />
-            </span>
-            <p className="text-[13px] font-black text-teal-900">Start a community</p>
-            <p className="text-[11px] text-teal-700/70 font-medium max-w-[200px]">From the Create hub — a new circle gets its own board.</p>
-          </Link>
+      <div className="max-w-lg mx-auto text-center py-12 space-y-4">
+        <div className="w-16 h-16 mx-auto rounded-3xl bg-slate-100 text-slate-500 flex items-center justify-center">
+          <Users className="w-7 h-7" />
         </div>
-      </section>
-
-      <DemoBanner />
+        <h2 className="text-lg font-black text-ink">Community circles aren&apos;t connected yet</h2>
+        <p className="text-sm text-slate-500">
+          Community groups aren&apos;t part of the live system yet. Follow organizations you care
+          about in the feed to keep up with your area.
+        </p>
+        <Link href="/feed" className="inline-block px-5 py-2.5 rounded-xl bg-teal-800 text-white text-xs font-black hover:bg-teal-900 transition-colors">
+          Open the feed
+        </Link>
+      </div>
     </div>
   );
 }

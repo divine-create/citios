@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { fetchResidentActivity } from '@/app/actions/activity';
 import { cn } from '@/lib/utils';
 import { DemoBanner } from '@/components/cityos/CityUI';
+import { useCity } from '@/components/cityos/CityProvider';
 
 const FILTERS = ['All', 'Orders', 'Service Requests', 'CityJobs', 'Events', 'Saved Items'];
 
@@ -18,6 +19,7 @@ function kindGroup(kind: string): string {
 }
 
 export default function CityActivity() {
+  const cityName = useCity().city?.name ?? 'CityOS';
   const [filter, setFilter] = useState('All');
   const [activities, setActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,7 +73,7 @@ export default function CityActivity() {
     <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col gap-1">
         <h1 className="text-xl font-black text-ink">Recent Activity</h1>
-        <p className="text-xs text-slate-500 font-medium">Your digital footprint across Calabar.</p>
+        <p className="text-xs text-slate-500 font-medium">Your digital footprint across {cityName}.</p>
       </div>
 
       <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">

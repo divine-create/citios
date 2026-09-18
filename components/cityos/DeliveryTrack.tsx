@@ -3,11 +3,21 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Phone, Truck, Share2, MessageCircle, MapPin, PackageCheck, Navigation } from 'lucide-react';
-import { DELIVERY_ROUTE_STOPS, fmtNaira } from '@/lib/demo/cityos';
+import { fmtNaira } from '@/lib/format';
 import { Pill, DemoBanner } from '@/components/cityos/CityUI';
 import { cn } from '@/lib/utils';
 
 const DRIVER = { name: 'Samuel Edem', car: 'Toyota Corolla', plate: 'TL-941-CR', phone: '0803 456 7890', rating: 4.9, trips: 2140 };
+
+// Prototype tracking narrative — this surface has no canonical delivery
+// entity yet (see architecture audit); it renders under DemoBanner.
+const DELIVERY_ROUTE_STOPS = [
+  { label: 'Calabar Fresh Market', area: 'Marian Road', x: 22, y: 66, state: 'done' as const },
+  { label: 'Marian Road junction', area: 'City centre', x: 34, y: 52, state: 'done' as const },
+  { label: 'Watt Market turn', area: 'Market line', x: 47, y: 40, state: 'done' as const },
+  { label: 'Ekorinim close', area: 'Residential', x: 62, y: 30, state: 'current' as const },
+  { label: 'State Housing Estate', area: 'Delivery address', x: 82, y: 18, state: 'next' as const },
+];
 
 interface StoredOrder {
   ref: string;

@@ -3,10 +3,12 @@
 import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
 import { Heart, MessageSquare, Share2, PenSquare, ChevronRight, UserPlus, UserCheck, Loader2 } from 'lucide-react';
-import { FEED_FILTERS } from '@/lib/demo/cityos';
+// Feed tab chrome (UI filters only, not content).
+const FEED_FILTERS = ['For you', 'Following', 'Marketplace', 'Events', 'Housing', 'Community'];
 import { CityCard, FallbackImg, Pill, ChipButton, VerifiedBadge } from '@/components/cityos/CityUI';
 import { cn } from '@/lib/utils';
 import { fetchFeed, togglePostLike, toggleFollow, getFollowedOrganizations } from '@/app/actions/newsfeed';
+import { useCity } from '@/components/cityos/CityProvider';
 
 export type DBPost = {
   id: string;
@@ -135,6 +137,7 @@ function PostCard({ post, follows, onFollowToggle }: { post: DBPost, follows: st
 }
 
 export default function CityFeed({ hideHeader = false }: { hideHeader?: boolean }) {
+  const cityName = useCity().city?.name ?? 'CityOS';
   const [filter, setFilter] = useState(FEED_FILTERS[0]);
   const [posts, setPosts] = useState<DBPost[]>([]);
   const [follows, setFollows] = useState<string[]>([]);
@@ -173,7 +176,7 @@ export default function CityFeed({ hideHeader = false }: { hideHeader?: boolean 
         <div className="flex items-center justify-between gap-3">
           <div>
             <h1 className="text-xl font-black text-ink">City Feed</h1>
-            <p className="text-xs text-slate-500 font-medium mt-0.5">Offers, asks and notices from around Calabar</p>
+            <p className="text-xs text-slate-500 font-medium mt-0.5">{`Offers, asks and notices from around ${cityName}`}</p>
           </div>
           <Link
             href="/feed/new"

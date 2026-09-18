@@ -3,11 +3,16 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Search, BedDouble, Bath, MapPin, Wifi } from 'lucide-react';
-import { PROPERTY_TAGS, fmtNaira } from '@/lib/demo/cityos';
+import { fmtNaira } from '@/lib/format';
+import { useCity } from '@/components/cityos/CityProvider';
 import { CityCard, FallbackImg, Pill, LocationRow, ChipButton, PriceTag, DemoBanner } from '@/components/cityos/CityUI';
+
+// Property filter chrome (UI tags only, not content).
+const PROPERTY_TAGS = ['All', 'Available', 'Furnished', 'Affordable', 'New'];
 import { cn } from '@/lib/utils';
 
 export default function CityHouse() {
+  const cityName = useCity().city?.name ?? 'CityOS';
   const [tag, setTag] = useState('All');
   const [query, setQuery] = useState('');
 
@@ -18,7 +23,7 @@ export default function CityHouse() {
       <div className="flex flex-col gap-1">
         <h1 className="text-xl font-black text-ink">CityHouse</h1>
         <p className="text-xs text-slate-500 font-medium">
-          Find flats and rooms around Calabar — deposit and rent flow through CityPay.
+          Find flats and rooms around {cityName} — deposit and rent flow through CityPay.
         </p>
       </div>
 

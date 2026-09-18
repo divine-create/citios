@@ -5,8 +5,11 @@ import Link from 'next/link';
 import { Calendar, MapPin, Tag } from 'lucide-react';
 import { CityCard, FallbackImg, Pill } from '@/components/cityos/CityUI';
 import { getCityEvents } from '@/app/actions/org';
+import { useCity } from '@/components/cityos/CityProvider';
 
 export default function CityEventsList() {
+  const { city } = useCity();
+  const cityName = city?.name ?? 'CityOS';
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -15,12 +18,12 @@ export default function CityEventsList() {
       setEvents(e);
       setLoading(false);
     });
-  }, []);
+  }, [city?.slug]);
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col gap-1">
-        <h1 className="text-xl font-black text-ink">Events in Calabar</h1>
+        <h1 className="text-xl font-black text-ink">{`Events in ${cityName}`}</h1>
         <p className="text-xs text-slate-500 font-medium">
           Rehearsals, fairs and neighbourhood derbies — reserve your spot or grab a ticket through CityOS.
         </p>

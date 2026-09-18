@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { ArrowRight, Briefcase, BadgeCheck, Users, CalendarDays, ClipboardList, CheckCircle2 } from 'lucide-react';
 import { getCanonicalOrganization } from '@/app/actions/org';
-import { fmtNaira } from '@/lib/demo/cityos';
+import { fmtNaira } from '@/lib/format';
 import { Pill, Stars, LocationRow, DemoBanner, VerifiedBadge } from '@/components/cityos/CityUI';
 
 export default async function OrgProfile({ id }: { id: string }) {
@@ -29,7 +29,7 @@ export default async function OrgProfile({ id }: { id: string }) {
   
   const gradient = 'from-teal-600 to-teal-800';
   const emoji = '🏢';
-  const addressStr = org.address || locations?.[0]?.address || 'Calabar';
+  const addressStr = org.address || locations?.[0]?.address || '';
   const hours = '8:00 AM · 6:00 PM';
   const category = org.type || 'Business';
   const osLabel = capabilities.retail ? 'ShopOS' : capabilities.school ? 'SchoolOS' : capabilities.services ? 'ServiceOS' : 'CityOS';

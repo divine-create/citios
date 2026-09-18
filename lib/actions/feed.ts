@@ -2,11 +2,19 @@
 'use server'
 
 import { db } from '@/src/prisma/db'
+import { getCurrentCity } from '@/lib/city'
 
 export async function getCommunityFeed() {
   try {
-    const posts = await db.orm.public.Post.all();
+    // City scope: organization-authored posts must belong to orgs operating
+    // in the current city. Personal (resident-authored) posts have no city
+    // semantics yet, so they stay. No city resolved -> no filter (old behavior).
+    const city = await getCurrentCity();
     const orgs = await db.orm.public.Organization.all();
+    const cityOrgIds = city ? new Set(orgs.filter(o => o.cityId === city.id).map(o => o.id)) : null;
+    const posts = (await db.orm.public.Post.all()).filter(p =>
+      !cityOrgIds || !p.organizationId || cityOrgIds.has(p.organizationId)
+    );
     const comments = await db.orm.public.Comment.all();
     const likes = await db.orm.public.PostLike.all();
     const users = await db.orm.public.Person.all();

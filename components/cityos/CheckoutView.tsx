@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Wallet, CreditCard, Landmark, ShieldCheck, Loader2, ChevronRight, Truck, Lock, AlertCircle } from 'lucide-react';
-import { fmtNaira } from '@/lib/demo/cityos';
+import { fmtNaira } from '@/lib/format';
 import { useCart } from '@/components/cityos/CartStore';
 import { useWallet } from '@/components/cityos/WalletStore';
 import { Money, Pill } from '@/components/cityos/CityUI';

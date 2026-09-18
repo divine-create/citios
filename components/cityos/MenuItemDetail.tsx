@@ -6,7 +6,7 @@ import { ArrowLeft, Star, Clock, Plus, Minus, ShoppingBag } from 'lucide-react';
 import { CityCard, FallbackImg, Stars, ChipButton } from '@/components/cityos/CityUI';
 import { useCart } from '@/components/cityos/CartStore';
 import { getCityFoodMenuItem } from '@/app/actions/food';
-import { fmtNaira } from '@/lib/demo/cityos';
+import { fmtNaira } from '@/lib/format';
 
 interface MenuItemDetailProps {
   menuItemId: string;

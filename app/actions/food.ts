@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { revalidatePath } from 'next/cache';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/src/prisma/db';
+import { getCurrentCity, getCityBySlug } from '@/lib/city';
 
 const FOOD_CATS = ['All', 'Restaurant', 'Cafe', 'Campus Eats', 'Food & Market'];
 
@@ -32,14 +33,14 @@ function mapRestaurant(o: any, menuItems: any[]) {
     imageUrl: undefined,
     rating: null,
     isOpen: true,
-    area: 'Calabar',
+    area: '',
     category: 'Restaurant',
     deliveryEta: '30-45 min',
   };
 }
 
-export async function getCityFood(citySlug: string = 'calabar') {
-  const city = await db.orm.public.City.where({ slug: citySlug }).all().first();
+export async function getCityFood(citySlug?: string) {
+  const city = citySlug ? await getCityBySlug(citySlug) : await getCurrentCity();
   if (!city) return { restaurants: [], menuItems: [] };
 
   const orgs = await db.orm.public.Organization.where({ cityId: city.id, type: 'RESTAURANT' }).all();

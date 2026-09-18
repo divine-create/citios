@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Map, { Marker, NavigationControl } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { getCityMapEntities } from '@/app/actions/org';
+import { useCity } from '@/components/cityos/CityProvider';
 import { SectionHead, Pill } from '@/components/cityos/CityUI';
 import { MapPin } from 'lucide-react';
 
@@ -20,16 +21,18 @@ interface MapEntity {
 }
 
 export default function CityMap() {
+  const { city } = useCity();
+  const cityName = city?.name ?? 'CityOS';
   const [entities, setEntities] = useState<MapEntity[]>([]);
   const [loading, setLoading] = useState(true);
   const [bounds, setBounds] = useState<{ n: number, s: number, e: number, w: number } | null>(null);
 
   useEffect(() => {
-    getCityMapEntities().then((data) => {
+    getCityMapEntities(city?.slug).then((data) => {
       setEntities(data.entities as MapEntity[]);
       setLoading(false);
     });
-  }, []);
+  }, [city?.slug]);
 
   const validEntities = useMemo(() => {
     return entities.filter(e => {
@@ -53,7 +56,7 @@ export default function CityMap() {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div>
-        <SectionHead title="City Map" sub="Calabar Geographic Context — V1 implementation using open tiles." />
+        <SectionHead title="City Map" sub={`${cityName} Geographic Context — V1 implementation using open tiles.`} />
         <div className="flex flex-wrap gap-2 text-[11px] font-bold text-slate-500">
           <span className="inline-flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-teal-700" /> OpenStreetMap standard tiles</span>
         </div>
@@ -136,7 +139,7 @@ export default function CityMap() {
           <div className="bg-white rounded-2xl border border-slate-100 p-5 sticky top-0 z-10 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-lg font-black text-ink">Calabar</p>
+                <p className="text-lg font-black text-ink">{cityName}</p>
                 <p className="text-[11px] font-bold text-slate-400">Cross River State</p>
               </div>
               <Pill tone="teal">{`${validEntities.length} places`}</Pill>
