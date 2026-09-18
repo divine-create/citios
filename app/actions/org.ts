@@ -104,11 +104,19 @@ export async function toggleEventRegistration(eventId: string) {
   }
 }
 
-export async function getCityMapEntities() {
-  // Fetch all orgs, locs, jobs to assemble map data
-  const orgs = await db.orm.public.Organization.all();
-  const locs = await db.orm.public.Location.all();
-  const jobs = await db.orm.public.Job.all();
+export async function getCityMapEntities(citySlug: string = 'calabar') {
+  const city = await db.orm.public.City.where({ slug: citySlug }).first();
+  if (!city) return { entities: [], jobs: [] };
+
+  const orgs = await db.orm.public.Organization.where({ cityId: city.id }).all();
+  const orgIds = orgs.map(o => o.id);
+  
+  if (orgIds.length === 0) return { entities: [], jobs: [] };
+
+  // @ts-ignore
+  const locs = await db.orm.public.Location.where({ organizationId: { in: orgIds } }).all();
+  // @ts-ignore
+  const jobs = await db.orm.public.Job.where({ organizationId: { in: orgIds } }).all();
   
   const orgMap = new Map(orgs.map(o => [o.id, o]));
   

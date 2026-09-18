@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import Map, { Marker, NavigationControl } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -22,6 +22,7 @@ interface MapEntity {
 export default function CityMap() {
   const [entities, setEntities] = useState<MapEntity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [bounds, setBounds] = useState<{ n: number, s: number, e: number, w: number } | null>(null);
 
   useEffect(() => {
     getCityMapEntities().then((data) => {
@@ -30,9 +31,16 @@ export default function CityMap() {
     });
   }, []);
 
-  const validEntities = useMemo(() => 
-    entities.filter(e => e.latitude !== null && e.longitude !== null),
-  [entities]);
+  const validEntities = useMemo(() => {
+    return entities.filter(e => {
+      if (e.latitude === null || e.longitude === null) return false;
+      if (bounds) {
+        return e.latitude <= bounds.n && e.latitude >= bounds.s &&
+               e.longitude <= bounds.e && e.longitude >= bounds.w;
+      }
+      return true;
+    });
+  }, [entities, bounds]);
 
   if (loading) {
     return (
@@ -59,7 +67,44 @@ export default function CityMap() {
               latitude: 4.975,
               zoom: 13,
             }}
-            mapStyle="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
+            mapStyle={{
+              version: 8,
+              sources: {
+                osm: {
+                  type: 'raster',
+                  tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                  tileSize: 256,
+                  attribution: '&copy; OpenStreetMap Contributors'
+                }
+              },
+              layers: [
+                {
+                  id: 'osm',
+                  type: 'raster',
+                  source: 'osm',
+                  minzoom: 0,
+                  maxzoom: 19
+                }
+              ]
+            }}
+            onMove={(e) => {
+              const b = e.target.getBounds();
+              setBounds({
+                n: b.getNorth(),
+                s: b.getSouth(),
+                e: b.getEast(),
+                w: b.getWest()
+              });
+            }}
+            onLoad={(e) => {
+              const b = e.target.getBounds();
+              setBounds({
+                n: b.getNorth(),
+                s: b.getSouth(),
+                e: b.getEast(),
+                w: b.getWest()
+              });
+            }}
           >
             <NavigationControl position="top-right" />
             
