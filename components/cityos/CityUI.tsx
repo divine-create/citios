@@ -232,25 +232,6 @@ export function VerifiedBadge({ label = 'Verified business' }: { label?: string 
   );
 }
 
-export function ({ className }: { className?: string }) {
-  return (
-    <div
-      className={cn(
-        'rounded-2xl border border-dashed border-brand-300 bg-brand-50/70 px-4 py-3 flex items-start gap-3',
-        className,
-      )}
-    >
-      <div className="w-6 h-6 rounded-full bg-brand-700 text-white flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">
-        D
-      </div>
-      <p className="text-xs text-brand-900/80 leading-relaxed font-medium">
-        <span className="font-bold text-brand-900">Prototype demo data.</span>{' '}
-        {`This screen uses simulated Calabar content (naira prices, sample names) and does not process real orders or payments.`}
-      </p>
-    </div>
-  );
-}
-
 export function StatTile({
   label,
   value,
