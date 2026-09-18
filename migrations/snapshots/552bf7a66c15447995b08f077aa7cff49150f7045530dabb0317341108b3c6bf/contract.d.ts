@@ -33,7 +33,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'9c874693c9e4e26f19b6f8e54f1db50e22cae13d465cf32f716fe40179eeb363'>;
+  StorageHashBase<'552bf7a66c15447995b08f077aa7cff49150f7045530dabb0317341108b3c6bf'>;
 export type ExecutionHash =
   ExecutionHashBase<'dc966faa34b9e0e7d964f2480ba4f9241147cd24c2f57568d47b6434f9079904'>;
 export type ProfileHash =
@@ -826,7 +826,6 @@ export type FieldOutputTypes = {
         | 'EVENT_ORGANIZER'
         | 'PUBLISHER'
         | 'PHARMACY';
-      readonly storeCategory: CodecTypes['pg/text@1']['output'] | null;
       readonly description: CodecTypes['pg/text@1']['output'] | null;
       readonly address: CodecTypes['pg/text@1']['output'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
@@ -1097,7 +1096,6 @@ export type FieldOutputTypes = {
       readonly isWeighed: CodecTypes['pg/bool@1']['output'];
       readonly unit: CodecTypes['pg/text@1']['output'];
       readonly imageAssetId: CodecTypes['pg/text@1']['output'] | null;
-      readonly globalCategory: CodecTypes['pg/text@1']['output'] | null;
       readonly categoryId: CodecTypes['pg/text@1']['output'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
@@ -2215,7 +2213,6 @@ export type FieldInputTypes = {
         | 'EVENT_ORGANIZER'
         | 'PUBLISHER'
         | 'PHARMACY';
-      readonly storeCategory: CodecTypes['pg/text@1']['input'] | null;
       readonly description: CodecTypes['pg/text@1']['input'] | null;
       readonly address: CodecTypes['pg/text@1']['input'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
@@ -2486,7 +2483,6 @@ export type FieldInputTypes = {
       readonly isWeighed: CodecTypes['pg/bool@1']['input'];
       readonly unit: CodecTypes['pg/text@1']['input'];
       readonly imageAssetId: CodecTypes['pg/text@1']['input'] | null;
-      readonly globalCategory: CodecTypes['pg/text@1']['input'] | null;
       readonly categoryId: CodecTypes['pg/text@1']['input'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
@@ -3595,7 +3591,6 @@ export type StorageColumnTypes = {
       readonly description: CodecTypes['pg/text@1']['output'] | null;
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly name: CodecTypes['pg/text@1']['output'];
-      readonly storeCategory: CodecTypes['pg/text@1']['output'] | null;
       readonly type:
         | 'GOVERNMENT'
         | 'SCHOOL'
@@ -3867,7 +3862,6 @@ export type StorageColumnTypes = {
       readonly cost: CodecTypes['pg/float8@1']['output'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly description: CodecTypes['pg/text@1']['output'] | null;
-      readonly globalCategory: CodecTypes['pg/text@1']['output'] | null;
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly imageAssetId: CodecTypes['pg/text@1']['output'] | null;
       readonly isWeighed: CodecTypes['pg/bool@1']['output'];
@@ -4984,7 +4978,6 @@ export type StorageColumnInputTypes = {
       readonly description: CodecTypes['pg/text@1']['input'] | null;
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly name: CodecTypes['pg/text@1']['input'];
-      readonly storeCategory: CodecTypes['pg/text@1']['input'] | null;
       readonly type:
         | 'GOVERNMENT'
         | 'SCHOOL'
@@ -5256,7 +5249,6 @@ export type StorageColumnInputTypes = {
       readonly cost: CodecTypes['pg/float8@1']['input'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly description: CodecTypes['pg/text@1']['input'] | null;
-      readonly globalCategory: CodecTypes['pg/text@1']['input'] | null;
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly imageAssetId: CodecTypes['pg/text@1']['input'] | null;
       readonly isWeighed: CodecTypes['pg/bool@1']['input'];
@@ -10749,11 +10741,6 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/text@1';
                   readonly nullable: false;
                 };
-                readonly storeCategory: {
-                  readonly nativeType: 'text';
-                  readonly codecId: 'pg/text@1';
-                  readonly nullable: true;
-                };
                 readonly description: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
@@ -13050,11 +13037,6 @@ type ContractBase = Omit<
                   };
                 };
                 readonly imageAssetId: {
-                  readonly nativeType: 'text';
-                  readonly codecId: 'pg/text@1';
-                  readonly nullable: true;
-                };
-                readonly globalCategory: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
                   readonly nullable: true;
@@ -23097,10 +23079,6 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
-              readonly storeCategory: {
-                readonly nullable: true;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
-              };
               readonly description: {
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
@@ -23612,7 +23590,6 @@ type ContractBase = Omit<
                 readonly id: { readonly column: 'id' };
                 readonly name: { readonly column: 'name' };
                 readonly type: { readonly column: 'type' };
-                readonly storeCategory: { readonly column: 'storeCategory' };
                 readonly description: { readonly column: 'description' };
                 readonly address: { readonly column: 'address' };
                 readonly createdAt: { readonly column: 'createdAt' };
@@ -26038,10 +26015,6 @@ type ContractBase = Omit<
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
-              readonly globalCategory: {
-                readonly nullable: true;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
-              };
               readonly categoryId: {
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
@@ -26124,7 +26097,6 @@ type ContractBase = Omit<
                 readonly isWeighed: { readonly column: 'isWeighed' };
                 readonly unit: { readonly column: 'unit' };
                 readonly imageAssetId: { readonly column: 'imageAssetId' };
-                readonly globalCategory: { readonly column: 'globalCategory' };
                 readonly categoryId: { readonly column: 'categoryId' };
                 readonly createdAt: { readonly column: 'createdAt' };
                 readonly updatedAt: { readonly column: 'updatedAt' };

@@ -3,19 +3,17 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Wallet, CreditCard, Landmark, ShieldCheck, Loader2, ChevronRight, Truck, Lock, AlertCircle } from 'lucide-react';
-import { getProduct, getBusiness, fmtNaira } from '@/lib/demo/cityos';
+import { fmtNaira } from '@/lib/demo/cityos';
 import { useCart } from '@/components/cityos/CartStore';
 import { useWallet } from '@/components/cityos/WalletStore';
-import { useDemoApp } from '@/lib/demo/app/store';
-import { bizOrgId, bizOrgName } from '@/lib/demo/app/seed';
 import { Money, Pill } from '@/components/cityos/CityUI';
 import { cn } from '@/lib/utils';
 import { placeRetailOrder } from '@/app/actions/commerce';
 
 const METHODS = [
   { id: 'wallet', label: 'CityPay Wallet', sub: 'Tap to use CityPay', icon: Wallet },
-  { id: 'card', label: 'Bank card', sub: 'Visa / Mastercard · saved', icon: CreditCard },
-  { id: 'transfer', label: 'Bank transfer', sub: 'GTBank · reference shown', icon: Landmark },
+  { id: 'card', label: 'Bank card', sub: 'Visa / Mastercard – saved', icon: CreditCard },
+  { id: 'transfer', label: 'Bank transfer', sub: 'GTBank – reference shown', icon: Landmark },
 ] as const;
 
 type MethodId = 'wallet' | 'card' | 'transfer';
@@ -24,7 +22,6 @@ export default function CheckoutView() {
   const router = useRouter();
   const { lines, subtotal, deliveryFee, clear } = useCart();
   const { spend, balance } = useWallet();
-  const { placeOrder, activeAccount } = useDemoApp();
   const [method, setMethod] = useState<MethodId>('wallet');
   const [processing, setProcessing] = useState(false);
   const [walletError, setWalletError] = useState(false);
@@ -46,8 +43,7 @@ export default function CheckoutView() {
 
   const pay = async () => {
     if (processing) return;
-    const firstBiz = lines.length ? getProduct(lines[0].productId)?.bizSlug : undefined;
-    const orgId = firstBiz ? bizOrgId(firstBiz) : '';
+    const orgId = lines.length ? lines[0].orgId : '';
     
     if (method === 'wallet') {
       const ok = spend(total, `CityPay order CC-ORDER`);
@@ -61,11 +57,10 @@ export default function CheckoutView() {
     
     try {
       const orderItems = lines.map((l) => {
-        const p = getProduct(l.productId);
         return { 
-          productId: p?.id ?? l.productId, 
+          productId: l.productId, 
           qty: l.qty, 
-          name: p?.name ?? 'Unknown Item'
+          name: l.name
         };
       });
 
@@ -88,139 +83,141 @@ export default function CheckoutView() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-500">
-      <div>
-        <h1 className="text-xl font-black text-ink">CityPay checkout</h1>
-        <p className="text-xs text-slate-500 font-medium mt-0.5">One payment, instant settlement, full trail.</p>
+    <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-black text-ink">Checkout</h1>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-10 items-start">
         <div className="lg:col-span-3 space-y-4">
-          {/* Items */}
           <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-3">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Your items</p>
             {lines.map((l) => {
-              const p = getProduct(l.productId);
-              if (!p) return null;
-              const biz = getBusiness(p.bizSlug);
               return (
                 <div key={l.productId} className="flex items-center gap-3 py-1.5">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-black text-ink truncate">{p.name}</p>
-                    <p className="text-[11px] font-bold text-slate-400">{`${biz?.name} · ${l.qty} × ${p.unit}`}</p>
+                    <div className="text-xs font-black text-ink line-clamp-1">{l.name}</div>
+                    <div className="text-[10px] font-medium text-slate-500">{l.orgName} • {l.qty}x</div>
                   </div>
-                  <span className="text-[13px] font-black text-slate-700 tabular-nums">{fmtNaira(p.price * l.qty)}</span>
+                  <div className="text-xs font-bold text-ink whitespace-nowrap">
+                    {fmtNaira(l.price * l.qty)}
+                  </div>
                 </div>
               );
             })}
           </div>
 
-          {/* Delivery address */}
-          <div className="bg-white rounded-2xl border border-slate-100 p-5">
-            <p className="inline-flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
-              <Truck className="w-3.5 h-3.5" /> Deliver to
-            </p>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-800 flex items-center justify-center text-sm font-black">
-                {activeAccount.initials}
+          <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+            <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+              <h2 className="text-xs font-black text-slate-700 uppercase tracking-widest">Delivery Details</h2>
+              <Pill className="bg-emerald-50 text-emerald-800 text-[10px] border-0"><Truck className="w-3 h-3 mr-1" /> Today</Pill>
+            </div>
+            <div className="p-5 flex items-start gap-4">
+              <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+                <Truck className="w-4 h-4 text-slate-400" />
               </div>
               <div>
-                <p className="text-[13px] font-black text-ink">{`${activeAccount.name} · ${activeAccount.area}`}</p>
-                <p className="text-[11px] text-slate-400 font-medium">CityDrive will match a rider to {bizArea(lines)} on checkout.</p>
+                <h3 className="font-bold text-sm text-ink leading-tight">Home address</h3>
+                <p className="text-xs text-slate-500 mt-0.5">14 Marian Road, Calabar</p>
+                <div className="mt-2 text-[10px] font-bold text-teal-700 bg-teal-50 px-2 py-1 rounded inline-block">Default address used for Calabar</div>
               </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+            <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              <h2 className="text-xs font-black text-slate-700 uppercase tracking-widest">Payment Method</h2>
+            </div>
+            <div className="p-2 space-y-1">
+              {METHODS.map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => setMethod(m.id)}
+                  className={cn(
+                    "w-full flex items-center justify-between p-3 rounded-xl transition-all text-left",
+                    method === m.id ? "bg-teal-50 ring-1 ring-teal-200" : "hover:bg-slate-50"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={cn(
+                      "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
+                      method === m.id ? "bg-teal-800 text-white" : "bg-slate-100 text-slate-400"
+                    )}>
+                      <m.icon className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className={cn("font-bold text-sm leading-tight", method === m.id ? "text-teal-900" : "text-slate-700")}>
+                        {m.label}
+                      </div>
+                      <div className={cn("text-xs", method === m.id ? "text-teal-700" : "text-slate-500")}>
+                        {m.id === 'wallet' ? `${fmtNaira(balance)} available` : m.sub}
+                      </div>
+                    </div>
+                  </div>
+                  <div className={cn(
+                    "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors",
+                    method === m.id ? "border-teal-600" : "border-slate-200"
+                  )}>
+                    {method === m.id && <div className="w-2.5 h-2.5 rounded-full bg-teal-600" />}
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Payment */}
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-3">
-            <p className="text-xs font-black text-ink uppercase tracking-widest">Pay with</p>
-            {METHODS.map((m) => (
-              <button
-                key={m.id}
-                onClick={() => setMethod(m.id)}
-                className={cn(
-                  'w-full flex items-center gap-3 p-3.5 rounded-xl ring-1 transition-all text-left',
-                  method === m.id ? 'bg-teal-50 ring-teal-600' : 'bg-slate-50/50 ring-slate-200 hover:ring-teal-300',
-                )}
-              >
-                <m.icon className={cn('w-5 h-5', method === m.id ? 'text-teal-800' : 'text-slate-400')} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-black text-ink">{m.label}</p>
-                  <p className="text-[11px] font-bold text-slate-400">{m.id === 'wallet' ? `Balance ${fmtNaira(balance)}` : m.sub}</p>
-                </div>
-                <span
-                  className={cn(
-                    'w-4 h-4 rounded-full ring-2 flex items-center justify-center',
-                    method === m.id ? 'ring-teal-700' : 'ring-slate-200',
-                  )}
-                >
-                  {method === m.id ? <span className="w-2 h-2 rounded-full bg-teal-700" /> : null}
-                </span>
-              </button>
-            ))}
-
-            {method === 'wallet' ? (
-              <div className="rounded-xl bg-slate-50 p-3.5 flex items-center justify-between">
-                <span className="text-[11px] font-bold text-slate-500">Wallet balance</span>
-                <span className={cn('text-sm font-black', walletOk ? 'text-emerald-700' : 'text-red-600')}>{fmtNaira(balance)}</span>
+          <div className="bg-slate-50 rounded-3xl p-6 space-y-6 sticky top-24">
+            <h2 className="text-sm font-black text-ink flex items-center gap-2">
+              Order summary
+            </h2>
+            
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between text-slate-600 font-medium">
+                <span>Subtotal</span>
+                <span className="font-bold text-ink"><Money amount={subtotal} /></span>
               </div>
-            ) : null}
-            {walletError ? (
-              <p className="inline-flex items-center gap-1.5 text-[11px] font-bold text-red-600">
-                <AlertCircle className="w-3.5 h-3.5" /> Wallet balance is too low — top up on your profile.
-              </p>
-            ) : null}
+              <div className="flex justify-between text-slate-600 font-medium">
+                <span>Delivery</span>
+                <span className="font-bold text-ink"><Money amount={deliveryFee} /></span>
+              </div>
+            </div>
+            
+            <div className="pt-4 border-t border-slate-200 space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="font-black text-ink">Total</span>
+                <span className="text-2xl font-black text-teal-900"><Money amount={total} /></span>
+              </div>
 
-            <div className="flex justify-between text-[13px] font-medium text-slate-600 pt-1">
-              <span>Subtotal</span>
-              <span className="font-black text-ink tabular-nums">{fmtNaira(subtotal)}</span>
-            </div>
-            <div className="flex justify-between text-[13px] font-medium text-slate-600">
-              <span>Delivery</span>
-              <span className="font-black text-ink tabular-nums">{fmtNaira(deliveryFee)}</span>
-            </div>
-            <div className="h-px bg-slate-100" />
-            <div className="flex justify-between items-baseline">
-              <span className="text-sm font-black text-ink">Total</span>
-              <Money amount={total} className="text-xl" />
-            </div>
-
-            <button
-              onClick={pay}
-              disabled={processing}
-              className="w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-xl bg-teal-800 hover:bg-teal-900 disabled:opacity-60 text-white text-xs font-black transition-all"
-            >
-              {processing ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" /> Processing payment…
-                </>
-              ) : (
-                <>
-                  <Lock className="w-4 h-4" />
-                  {`Pay ${fmtNaira(total)} · CityPay`}
-                  <ChevronRight className="w-4 h-4" />
-                </>
+              {!walletOk && (
+                <div className="p-3 bg-rose-50 text-rose-800 text-xs font-medium rounded-xl flex gap-2 items-start leading-relaxed">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 opacity-70" />
+                  <div>Insufficient wallet balance. Please add funds or switch payment method.</div>
+                </div>
               )}
-            </button>
-            <p className="flex items-center justify-center gap-1.5 text-[10px] text-slate-400 font-medium">
-              <ShieldCheck className="w-3.5 h-3.5" /> Demo payment — no real money moves.
-            </p>
+
+              {walletError && (
+                <div className="text-rose-600 text-xs font-bold text-center">
+                  Payment declined.
+                </div>
+              )}
+
+              <button 
+                onClick={pay}
+                disabled={processing || !walletOk}
+                className="w-full h-14 flex items-center justify-center gap-2 bg-teal-800 text-white rounded-xl text-sm font-black hover:bg-teal-900 transition-all disabled:opacity-50 disabled:active:scale-100 active:scale-[0.98] shadow-sm"
+              >
+                {processing ? <Loader2 className="w-5 h-5 animate-spin opacity-50" /> : <Lock className="w-4 h-4 opacity-70" />}
+                {processing ? 'Processing securely...' : `Pay ${fmtNaira(total)}`}
+              </button>
+              <div className="text-center">
+                <p className="text-[10px] text-slate-400 font-medium px-4">Payments are secured by CityPay infrastructure.</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
   );
-}
-
-function bizArea(lines: { productId: string }[]): string {
-  for (const l of lines) {
-    const p = getProduct(l.productId);
-    if (p) {
-      const biz = getBusiness(p.bizSlug);
-      if (biz) return biz.area;
-    }
-  }
-  return 'Marian Road';
 }

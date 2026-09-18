@@ -1,16 +1,20 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
-import { getProduct } from '@/lib/demo/cityos';
 
 export interface CartLine {
   productId: string;
   qty: number;
+  name: string;
+  price: number;
+  image?: string | null;
+  orgId: string;
+  orgName: string;
 }
 
 interface CartCtx {
   lines: CartLine[];
-  add: (productId: string, qty?: number) => void;
+  add: (item: CartLine) => void;
   remove: (productId: string) => void;
   setQty: (productId: string, qty: number) => void;
   clear: () => void;
@@ -20,7 +24,7 @@ interface CartCtx {
   lastAddedId: string | null;
 }
 
-const KEY = 'cityos-demo-cart';
+const KEY = 'cityos-cart-v2';
 
 const CartContext = createContext<CartCtx | null>(null);
 
@@ -31,53 +35,45 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     try {
-      const raw = window.localStorage.getItem(KEY);
-      if (raw) setLines(JSON.parse(raw));
-    } catch {
-      /* empty cart on storage error */
-    }
+      const saved = localStorage.getItem(KEY);
+      if (saved) setLines(JSON.parse(saved));
+    } catch {}
     setHydrated(true);
   }, []);
 
   useEffect(() => {
-    if (!hydrated) return;
-    try {
-      window.localStorage.setItem(KEY, JSON.stringify(lines));
-    } catch {
-      /* storage unavailable */
+    if (hydrated) {
+      localStorage.setItem(KEY, JSON.stringify(lines));
     }
   }, [lines, hydrated]);
 
-  const add = useCallback((productId: string, qty = 1) => {
+  const add = useCallback((item: CartLine) => {
     setLines((prev) => {
-      const existing = prev.find((l) => l.productId === productId);
-      if (existing) {
-        return prev.map((l) => (l.productId === productId ? { ...l, qty: l.qty + qty } : l));
+      const ex = prev.find((x) => x.productId === item.productId);
+      if (ex) {
+        return prev.map((x) => (x.productId === item.productId ? { ...x, qty: x.qty + item.qty } : x));
       }
-      return [...prev, { productId, qty }];
+      return [...prev, item];
     });
-    setLastAddedId(productId);
+    setLastAddedId(item.productId);
   }, []);
 
-  const remove = useCallback((productId: string) => {
-    setLines((prev) => prev.filter((l) => l.productId !== productId));
+  const remove = useCallback((id: string) => {
+    setLines((prev) => prev.filter((x) => x.productId !== id));
   }, []);
 
-  const setQty = useCallback((productId: string, qty: number) => {
-    setLines((prev) =>
-      qty <= 0
-        ? prev.filter((l) => l.productId !== productId)
-        : prev.map((l) => (l.productId === productId ? { ...l, qty } : l)),
-    );
-  }, []);
+  const setQty = useCallback((id: string, qty: number) => {
+    if (qty <= 0) {
+      remove(id);
+      return;
+    }
+    setLines((prev) => prev.map((x) => (x.productId === id ? { ...x, qty } : x)));
+  }, [remove]);
 
   const clear = useCallback(() => setLines([]), []);
 
   const value = useMemo<CartCtx>(() => {
-    const subtotal = lines.reduce((sum, l) => {
-      const p = getProduct(l.productId);
-      return p ? sum + p.price * l.qty : sum;
-    }, 0);
+    const subtotal = lines.reduce((sum, l) => sum + (l.price * l.qty), 0);
     const count = lines.reduce((s, l) => s + l.qty, 0);
     const deliveryFee = subtotal > 0 ? 1200 : 0;
     return { lines, add, remove, setQty, clear, count, subtotal, deliveryFee, lastAddedId };
@@ -86,7 +82,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
 
-export function useCart(): CartCtx {
+export function useCart() {
   const ctx = useContext(CartContext);
   if (!ctx) throw new Error('useCart must be used within CartProvider');
   return ctx;

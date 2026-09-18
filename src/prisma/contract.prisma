@@ -379,6 +379,7 @@ model Organization {
   id          String   @id @default(uuid())
   name        String
   type        OrgType
+  storeCategory String?
   description String?
   address     String?
   createdAt   DateTime @default(now())
@@ -2062,6 +2063,7 @@ model RetailProduct {
   isWeighed      Boolean      @default(false) // e.g. price per kg/lb
   unit           String       @default("ea")  // ea, kg, lb, pack
   imageAssetId   String?      // loose ref to Asset.id — see components/microsite's Asset model
+  globalCategory String?
 
   categoryId     String?
   category       RetailCategory? @relation(fields: [categoryId], references: [id])

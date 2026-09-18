@@ -1,180 +1,124 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Minus, Plus, ShoppingCart, Truck, ShieldCheck, BadgePercent, Check, ChevronRight } from 'lucide-react';
-import { getProduct, getBusiness, DEMO_PRODUCTS, fmtNaira } from '@/lib/demo/cityos';
+import { Minus, Plus, ShoppingCart, Truck, ShieldCheck, BadgePercent, Check, ChevronRight, Loader2 } from 'lucide-react';
+import { fmtNaira } from '@/lib/demo/cityos';
 import { FallbackImg, Stars, Pill, VerifiedBadge, DemoBanner, PriceTag } from '@/components/cityos/CityUI';
 import { useCart } from '@/components/cityos/CartStore';
 import { cn } from '@/lib/utils';
+import { getCityMartProduct } from '@/app/actions/commerce';
 
 export default function ProductDetail({ id }: { id: string }) {
   const router = useRouter();
-  const p = getProduct(id);
+  const [p, setP] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  
   const { add, count } = useCart();
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
 
+  useEffect(() => {
+    async function load() {
+      const prod = await getCityMartProduct(id);
+      setP(prod);
+      setLoading(false);
+    }
+    load();
+  }, [id]);
+
+  if (loading) {
+    return <div className="py-20 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-teal-600" /></div>;
+  }
+
   if (!p) {
     return (
-      <div className="max-w-lg mx-auto text-center py-20 space-y-4">
-        <p className="text-5xl">🛍️</p>
-        <h1 className="text-lg font-black text-ink">That product is not in the demo city.</h1>
-        <p className="text-sm text-slate-500">It may have sold out or left the demo dataset.</p>
-        <Link href="/explore" className="inline-block px-5 py-2.5 rounded-xl bg-teal-800 text-white text-xs font-black hover:bg-teal-900 transition-colors">
-          Keep exploring
-        </Link>
+      <div className="max-w-lg mx-auto text-center py-20 space-y-3">
+        <h1 className="text-lg font-black text-ink">Item unavailable</h1>
+        <p className="text-sm text-slate-500">This item might be out of stock or removed by the seller.</p>
+        <button onClick={() => router.back()} className="text-xs font-bold text-teal-700">Go back</button>
       </div>
     );
   }
 
-  const biz = getBusiness(p.bizSlug);
-  const similar = DEMO_PRODUCTS.filter((x) => x.id !== p.id && x.category === p.category).slice(0, 3);
-
-  const addToBag = () => {
-    add(p.id, qty);
+  const handleAdd = () => {
+    add({
+      productId: p.id,
+      name: p.name,
+      price: p.price,
+      qty,
+      image: p.imageAssetId,
+      orgId: p.organizationId,
+      orgName: p.storeName
+    });
     setAdded(true);
-    window.setTimeout(() => setAdded(false), 1600);
-  };
-
-  const buyNow = () => {
-    add(p.id, qty);
-    router.push('/checkout');
+    setTimeout(() => setAdded(false), 2000);
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <nav className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400">
-        <Link href="/explore" className="hover:text-teal-800">Explore</Link>
-        <ChevronRight className="w-3 h-3" />
-        <Link href={`/org/${p.bizSlug}`} className="hover:text-teal-800 truncate">{biz?.name}</Link>
-        <ChevronRight className="w-3 h-3" />
-        <span className="text-slate-700 truncate">{p.name}</span>
-      </nav>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Gallery */}
-        <div className="space-y-3">
-          <div className="relative rounded-3xl overflow-hidden">
-            <FallbackImg src={p.image} alt={p.name} className="h-72 md:h-96 w-full" gradient="from-teal-800 to-teal-600" />
-            {p.tag ? (
-              <span className="absolute top-3 left-3">
-                <Pill tone={p.tag === 'promo' ? 'orange' : p.tag === 'local' ? 'green' : 'teal'}>
-                  {p.tag === 'best' ? 'Best seller' : p.tag === 'promo' ? 'On promo' : p.tag === 'local' ? 'Made local' : 'New arrival'}
-                </Pill>
-              </span>
-            ) : null}
+    <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 animate-in fade-in duration-500">
+      <div className="space-y-4">
+        <div className="aspect-square w-full rounded-3xl overflow-hidden bg-slate-100 ring-1 ring-slate-200/50 relative">
+          {p.imageAssetId ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={`/api/assets/${p.imageAssetId}`} alt={p.name} className="w-full h-full object-cover" />
+          ) : (
+            <FallbackImg alt={p.name} />
+          )}
+          <div className="absolute top-4 right-4">
+            <Pill className="bg-white/90 backdrop-blur text-ink border-0 shadow-sm">
+              <Stars rating={4.5} />
+            </Pill>
           </div>
-          <div className="grid grid-cols-4 gap-2">
-            {[p.image].map((src, i) => (
-              <FallbackImg key={i} src={src} alt={p.name} className="h-16 rounded-xl ring-1 ring-slate-200" />
-            ))}
-          </div>
-        </div>
-
-        {/* Info */}
-        <div className="flex flex-col">
-          <Link href={`/org/${p.bizSlug}`} className="flex items-center gap-2 text-[13px] font-bold text-teal-800 hover:underline">
-            {biz?.name} <VerifiedBadge label="Verified business" /> <ChevronRight className="w-3 h-3" />
-          </Link>
-          <h1 className="text-2xl md:text-3xl font-black tracking-tight text-ink mt-1.5">{p.name}</h1>
-
-          <div className="flex items-center gap-3 mt-2 flex-wrap">
-            <Stars rating={p.rating} className="scale-110 origin-left" />
-            <span className="text-[11px] font-bold text-slate-400">{`${p.reviews} verified reviews`}</span>
-            <span className="text-[11px] font-bold text-emerald-600">{`${p.stock} in stock`}</span>
-          </div>
-
-          <div className="mt-5 flex items-baseline gap-3">
-            <PriceTag amount={p.price} old={p.oldPrice} className="text-[28px]" />
-            <span className="text-[12px] font-bold text-slate-400">per {p.unit}</span>
-          </div>
-
-          <p className="mt-4 text-[13px] text-slate-600 leading-relaxed">{p.desc}</p>
-
-          {/* qty + actions */}
-          <div className="mt-6 flex items-center gap-3">
-            <div className="inline-flex items-center rounded-xl border border-slate-200 bg-white">
-              <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="p-2.5 text-slate-500 hover:text-teal-800">
-                <Minus className="w-4 h-4" />
-              </button>
-              <span className="w-10 text-center text-sm font-black text-ink tabular-nums">{qty}</span>
-              <button onClick={() => setQty((q) => q + 1)} className="p-2.5 text-slate-500 hover:text-teal-800">
-                <Plus className="w-4 h-4" />
-              </button>
-            </div>
-            <span className="text-[11px] font-bold text-slate-400">{`${p.unit} · ${fmtNaira(p.price * qty)} total`}</span>
-          </div>
-
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <button
-              onClick={addToBag}
-              className={cn(
-                'inline-flex items-center justify-center gap-2 py-3.5 rounded-xl text-xs font-black transition-all ring-1',
-                added
-                  ? 'bg-emerald-600 text-white ring-emerald-600'
-                  : 'bg-white text-teal-900 ring-teal-800 hover:bg-teal-50',
-              )}
-            >
-              {added ? <Check className="w-4 h-4" /> : <ShoppingCart className="w-4 h-4" />}
-              {added ? 'Added to bag' : 'Add to bag'}
-            </button>
-            <button
-              onClick={buyNow}
-              className="inline-flex items-center justify-center gap-2 py-3.5 rounded-xl bg-teal-800 hover:bg-teal-900 text-white text-xs font-black transition-all shadow-sm shadow-teal-800/20"
-            >
-              <BadgePercent className="w-4 h-4" />
-              Buy now · CityPay
-            </button>
-          </div>
-
-          {/* trust row */}
-          <div className="mt-5 grid grid-cols-3 gap-2">
-            {[
-              { icon: Truck, label: `Arrives in ${biz?.deliveryEta ?? 30} min`, sub: 'with CityDrive' },
-              { icon: ShieldCheck, label: 'CityPay protected', sub: 'instant settlement' },
-              { icon: BadgePercent, label: biz?.offers[0]?.title ?? 'Daily offers', sub: biz?.offers[0]?.note ?? 'check the store' },
-            ].map((t, i) => (
-              <div key={i} className="rounded-xl bg-white border border-slate-100 p-3 text-center">
-                <t.icon className="w-4.5 h-4.5 mx-auto text-teal-800" />
-                <p className="text-[11px] font-black text-ink mt-1.5 leading-tight">{t.label}</p>
-                <p className="text-[10px] text-slate-400 font-medium mt-0.5">{t.sub}</p>
-              </div>
-            ))}
-          </div>
-
-          {count > 0 ? (
-            <Link href="/cart" className="mt-4 inline-flex items-center gap-2 text-xs font-black text-teal-800 hover:text-teal-900">
-              <ShoppingCart className="w-4 h-4" />
-              {`View bag (${count} item${count > 1 ? 's' : ''})`} <ChevronRight className="w-3.5 h-3.5" />
-            </Link>
-          ) : null}
         </div>
       </div>
 
-      {similar.length ? (
-        <section>
-          <h2 className="text-base font-black text-ink mb-3">More from {p.category}</h2>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {similar.map((s) => {
-              const sbiz = getBusiness(s.bizSlug);
-              return (
-                <Link key={s.id} href={`/product/${s.id}`} className="bg-white rounded-2xl border border-slate-100 overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all">
-                  <FallbackImg src={s.image} alt={s.name} className="h-28 w-full" icon={<span className="text-base font-black">{s.name.slice(0, 1)}</span>} />
-                  <div className="p-3">
-                    <p className="text-[10px] font-bold text-slate-400 truncate">{sbiz?.name}</p>
-                    <p className="text-[12px] font-black text-ink leading-snug line-clamp-2 mt-0.5">{s.name}</p>
-                    <PriceTag amount={s.price} old={s.oldPrice} className="text-[13px] mt-1" />
-                  </div>
-                </Link>
-              );
-            })}
+      <div className="space-y-8">
+        <div className="space-y-2">
+          <Link href={`/org/${p.orgSlug}`} className="inline-flex items-center gap-1.5 opacity-80 hover:opacity-100 transition-opacity">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{p.storeName}</span>
+            <VerifiedBadge />
+          </Link>
+          <h1 className="text-2xl md:text-3xl font-black text-ink leading-tight">{p.name}</h1>
+          <div className="flex items-center gap-3 pt-1">
+            <div className="text-2xl font-black text-teal-900">{fmtNaira(p.price)}</div>
+            <Pill className="bg-emerald-50 text-emerald-800 border-0 text-[10px]">In Stock</Pill>
           </div>
-        </section>
-      ) : null}
+        </div>
 
-      <DemoBanner />
+        <div className="space-y-3">
+          <h3 className="text-sm font-black text-slate-700">Quantity</h3>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center bg-slate-100 rounded-xl p-1 shrink-0">
+              <button 
+                onClick={() => setQty(Math.max(1, qty - 1))}
+                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white hover:shadow-sm transition-all text-slate-600 disabled:opacity-50"
+                disabled={qty <= 1}
+              >
+                <Minus className="w-4 h-4" />
+              </button>
+              <span className="w-12 text-center font-bold text-ink">{qty}</span>
+              <button 
+                onClick={() => setQty(qty + 1)}
+                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white hover:shadow-sm transition-all text-slate-600"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+            <button 
+              onClick={handleAdd}
+              className={cn(
+                "flex-1 h-12 rounded-xl flex items-center justify-center gap-2 text-sm font-black transition-all",
+                added ? "bg-emerald-500 text-white" : "bg-teal-800 text-white hover:bg-teal-900"
+              )}
+            >
+              {added ? <Check className="w-4 h-4" /> : <ShoppingCart className="w-4 h-4" />}
+              {added ? "Added to bag" : `Add ${qty} to bag`}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

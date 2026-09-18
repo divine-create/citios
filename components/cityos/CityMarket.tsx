@@ -1,30 +1,33 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Store, ArrowRight } from 'lucide-react';
-import { DEMO_BUSINESSES, DEMO_PRODUCTS, getBusiness, fmtNaira, type Product, type Business } from '@/lib/demo/cityos';
-import { getOrg } from '@/lib/demo/universe/orgs';
+import { Store, ArrowRight, Loader2 } from 'lucide-react';
+import { fmtNaira } from '@/lib/demo/cityos';
 import { CityCard, FallbackImg, Stars, LocationRow, OpenBadge, ChipButton, DemoBanner } from '@/components/cityos/CityUI';
+import { getCityMartProducts, getCityMartStores } from '@/app/actions/commerce';
 
 const MARKET_CATS = ['All', 'Groceries', 'Food & Market', 'Fashion', 'Electronics', 'Books & Prints'];
 
-const MARKET_BIZ = DEMO_BUSINESSES.filter((b) => MARKET_CATS.includes(b.category));
-
 export default function CityMarket() {
   const [cat, setCat] = useState('All');
+  const [products, setProducts] = useState<any[]>([]);
+  const [stores, setStores] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const bizs = MARKET_BIZ.filter((b) => cat === 'All' || b.category === cat);
-
-  const products: Product[] = DEMO_PRODUCTS.filter((p) => {
-    const biz = getBusiness(p.bizSlug);
-    if (!biz) return false;
-    if (cat !== 'All' && biz.category !== cat) return false;
-    return MARKET_CATS.includes(biz.category);
-  }).slice(0, 8);
-
-  const shops = bizs.filter((b) => getOrg(b.slug)?.os === 'shopos');
-  const orgBiz = (b: Business) => (getOrg(b.slug)?.os ? getOrg(b.slug) : undefined);
+  useEffect(() => {
+    async function load() {
+      setLoading(true);
+      const [fetchedProducts, fetchedStores] = await Promise.all([
+        getCityMartProducts('calabar', cat),
+        getCityMartStores('calabar')
+      ]);
+      setProducts(fetchedProducts);
+      setStores(fetchedStores);
+      setLoading(false);
+    }
+    load();
+  }, [cat]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -35,89 +38,82 @@ export default function CityMarket() {
         </p>
       </div>
 
-      <DemoBanner />
-
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 [&::-webkit-scrollbar]:hidden">
         {MARKET_CATS.map((c) => (
           <ChipButton key={c} active={cat === c} onClick={() => setCat(c)}>
             {c}
-            <span className="ml-1.5 opacity-60">
-              {c === 'All' ? MARKET_BIZ.length : MARKET_BIZ.filter((b) => b.category === c).length}
-            </span>
           </ChipButton>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {bizs.map((b) => {
-          const org = orgBiz(b);
-          return (
-            <CityCard key={b.slug} href={`/org/${b.slug}`} className="flex flex-col">
-              <FallbackImg src={b.cover} alt={b.name} className="h-32 w-full" />
-              <div className="p-4 flex-1 flex flex-col gap-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-[13px] font-black text-ink truncate">
-                      {org?.emoji ? `${org.emoji} ` : ''}{b.name}
-                    </p>
-                    <LocationRow text={`${b.area} · ${b.category}`} className="text-[10px]" />
-                  </div>
-                  <Stars rating={b.rating} className="shrink-0" />
-                </div>
-                <p className="text-[12px] text-slate-500 font-medium leading-snug line-clamp-2">{b.tagline}</p>
-                <div className="mt-auto flex items-center gap-2 pt-2">
-                  <OpenBadge open={b.isOpen} />
-                  <span className="ml-auto text-[10px] font-bold text-slate-400">{b.deliveryEta} min via CityDrive</span>
-                </div>
-              </div>
-            </CityCard>
-          );
-        })}
-        {bizs.length === 0 ? (
-          <div className="col-span-full rounded-2xl border border-dashed border-slate-200 p-10 text-center">
-            <p className="text-sm font-bold text-slate-500">Nothing in this section right now.</p>
-            <p className="text-xs text-slate-400 mt-1">Try another category, or browse the full city.</p>
-          </div>
-        ) : null}
-      </div>
-
-      {products.length ? (
-        <section className="pt-2">
-          <h2 className="text-base font-black text-ink mb-3">Popular right now</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {products.map((p) => {
-              const biz = getBusiness(p.bizSlug);
-              return (
-                <CityCard key={p.id} href={`/product/${p.id}`} className="p-3 flex flex-col gap-1.5">
-                  <FallbackImg src={p.image} alt={p.name} className="h-20 w-full rounded-xl" icon={<span className="text-sm font-black">{p.name.slice(0, 1)}</span>} />
-                  <p className="text-[12px] font-black text-ink leading-snug line-clamp-1">{p.name}</p>
-                  <p className="text-[10px] font-bold text-slate-400 truncate">{biz?.name}</p>
-                  <p className="text-[13px] font-black text-teal-900">{fmtNaira(p.price)}</p>
-                </CityCard>
-              );
-            })}
-          </div>
-        </section>
-      ) : null}
-
-      {shops.length ? (
-        <section className="rounded-2xl bg-gradient-to-br from-teal-900 to-teal-700 p-5 text-white">
-          <div className="flex items-center gap-3">
-            <span className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
-              <Store className="w-5 h-5" />
-            </span>
-            <div className="flex-1">
-              <p className="text-sm font-black">One city platform for every store</p>
-              <p className="text-[11px] text-teal-100/80 font-medium mt-0.5">
-                {shops.map((b) => b.name).join(', ')} list and take orders inside CityOS — sell in naira, deliver with CityDrive.
-              </p>
+      {loading ? (
+        <div className="py-20 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-teal-600" /></div>
+      ) : (
+        <>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-black text-slate-700 uppercase tracking-widest">Featured Products</h2>
             </div>
-            <Link href="/demo/access" className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white text-teal-900 text-xs font-black hover:bg-teal-50 transition-colors shrink-0">
-              Business workspace <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+            
+            {products.length === 0 ? (
+              <div className="py-10 text-center text-sm text-slate-500">No products found for this category.</div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {products.map((p) => (
+                  <Link key={p.id} href={`/product/${p.id}`} className="group flex flex-col gap-2 relative">
+                    <div className="aspect-[4/5] w-full rounded-2xl overflow-hidden bg-slate-100 ring-1 ring-slate-200/50">
+                      {p.imageAssetId ? (
+                         // eslint-disable-next-line @next/next/no-img-element
+                        <img src={`/api/assets/${p.imageAssetId}`} alt={p.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <FallbackImg alt={p.name} />
+                      )}
+                    </div>
+                    <div className="space-y-0.5 px-1">
+                      <div className="flex items-center gap-1.5 opacity-80">
+                        <Store className="w-3 h-3 text-slate-500" />
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider line-clamp-1">{p.storeName}</span>
+                      </div>
+                      <h3 className="text-xs font-bold text-ink leading-tight line-clamp-2">{p.name}</h3>
+                      <div className="text-sm font-black text-teal-900 pt-0.5">{fmtNaira(p.price)}</div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
-        </section>
-      ) : null}
+
+          <div className="space-y-3 pt-4 border-t border-slate-100">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-black text-slate-700 uppercase tracking-widest">Participating Stores</h2>
+              <Link href="/explore" className="text-xs font-bold text-teal-700 flex items-center gap-1">
+                View all <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+            <div className="flex overflow-x-auto gap-3 pb-4 -mx-1 px-1 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden">
+              {stores.map((s) => (
+                <Link key={s.id} href={`/org/${s.id}`} className="snap-start shrink-0 w-64 block">
+                  <CityCard>
+                    <div className="flex items-start gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-slate-100 shrink-0 ring-1 ring-slate-200/50 flex items-center justify-center">
+                        <Store className="w-5 h-5 text-slate-400" />
+                      </div>
+                      <div className="space-y-1">
+                        <h3 className="font-bold text-ink text-sm leading-tight line-clamp-1">{s.name}</h3>
+                        <p className="text-xs text-slate-500 font-medium line-clamp-1">{s.storeCategory || 'Store'}</p>
+                        <div className="flex items-center gap-2 pt-1">
+                          <Stars rating={4} />
+                          <span className="text-[10px] font-bold text-slate-400">4.0</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CityCard>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

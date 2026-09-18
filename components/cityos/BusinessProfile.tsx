@@ -43,9 +43,9 @@ export default function BusinessProfile({ slug }: { slug: string }) {
       : DEMO_PRODUCTS.filter((p) => p.bizSlug === biz.slug)
   ).filter((p): p is Product => Boolean(p));
 
-  const addToBag = (id: string) => {
-    add(id);
-    setAddedId(id);
+  const addToBag = (p: any) => {
+    add({ productId: p.id, name: p.name, price: p.price, qty: 1, orgId: p.bizSlug, orgName: p.bizSlug });
+    setAddedId(p.id);
     window.setTimeout(() => setAddedId(null), 1400);
   };
 
@@ -186,7 +186,7 @@ export default function BusinessProfile({ slug }: { slug: string }) {
               </Link>
               <div className="px-3 pb-3">
                 <button
-                  onClick={() => addToBag(p.id)}
+                  onClick={() => addToBag(p)}
                   className="w-full inline-flex items-center justify-center gap-1.5 py-2 rounded-lg bg-teal-800 hover:bg-teal-900 text-white text-[11px] font-bold transition-colors"
                 >
                   {addedId === p.id ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}

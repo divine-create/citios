@@ -269,7 +269,7 @@ export default function CityHome() {
                     onClick={(ev) => {
                       ev.preventDefault();
                       ev.stopPropagation();
-                      add(p.id);
+                      add({ productId: p.id, name: p.name, price: p.price, qty: 1, orgId: p.bizSlug, orgName: p.bizSlug });
                     }}
                     className="mt-1 inline-flex items-center justify-center gap-1.5 w-full py-2 rounded-lg bg-teal-800 hover:bg-teal-900 text-white text-[11px] font-bold transition-colors"
                   >
