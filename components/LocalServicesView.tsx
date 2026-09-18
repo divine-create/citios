@@ -34,48 +34,7 @@ const CATEGORIES = [
   { id: 'tech', name: 'Tech Help', icon: Monitor, color: 'bg-gray-100 text-gray-600' },
 ];
 
-const MOCK_PROS: Pro[] = [
-  {
-    id: '1',
-    name: 'Michael T.',
-    category: 'plumbing',
-    hourlyRate: 65,
-    rating: 4.9,
-    jobsCompleted: 142,
-    avatar: 'https://i.pravatar.cc/150?u=michael',
-    bio: 'Licensed plumber with 10 years of experience. Quick and reliable.'
-  },
-  {
-    id: '2',
-    name: 'Sarah J.',
-    category: 'cleaning',
-    hourlyRate: 40,
-    rating: 4.8,
-    jobsCompleted: 89,
-    avatar: 'https://i.pravatar.cc/150?u=sarah',
-    bio: 'Detail-oriented cleaner. I bring all my own eco-friendly supplies.'
-  },
-  {
-    id: '3',
-    name: 'David W.',
-    category: 'assembly',
-    hourlyRate: 45,
-    rating: 5.0,
-    jobsCompleted: 310,
-    avatar: 'https://i.pravatar.cc/150?u=david',
-    bio: 'IKEA master. I can build anything without looking at the instructions.'
-  },
-  {
-    id: '4',
-    name: 'Jessica R.',
-    category: 'moving',
-    hourlyRate: 55,
-    rating: 4.7,
-    jobsCompleted: 56,
-    avatar: 'https://i.pravatar.cc/150?u=jessica',
-    bio: 'Strong and careful. I have a large van and moving blankets.'
-  }
-];
+
 
 export default function LocalServicesView({ initialOrgs }: { initialOrgs?: any[] }) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -86,8 +45,8 @@ export default function LocalServicesView({ initialOrgs }: { initialOrgs?: any[]
   const [jobSize, setJobSize] = useState('medium');
 
   const filteredPros = selectedCategory 
-    ? MOCK_PROS.filter(p => p.category === selectedCategory)
-    : MOCK_PROS;
+    ? (initialOrgs || []).filter(p => p.category === selectedCategory)
+    : (initialOrgs || []);
 
   const handleBook = (pro: Pro) => {
     setSelectedPro(pro);
