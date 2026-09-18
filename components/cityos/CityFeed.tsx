@@ -134,7 +134,7 @@ function PostCard({ post, follows, onFollowToggle }: { post: DBPost, follows: st
   return post.href ? <Link href={post.href.url}>{inner}</Link> : inner;
 }
 
-export default function CityFeed() {
+export default function CityFeed({ hideHeader = false }: { hideHeader?: boolean }) {
   const [filter, setFilter] = useState(FEED_FILTERS[0]);
   const [posts, setPosts] = useState<DBPost[]>([]);
   const [follows, setFollows] = useState<string[]>([]);
@@ -168,20 +168,22 @@ export default function CityFeed() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-5 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-black text-ink">City Feed</h1>
-          <p className="text-xs text-slate-500 font-medium mt-0.5">Offers, asks and notices from around Calabar</p>
+    <div className="max-w-2xl mx-auto space-y-5 animate-in fade-in duration-500 w-full">
+      {!hideHeader && (
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-black text-ink">City Feed</h1>
+            <p className="text-xs text-slate-500 font-medium mt-0.5">Offers, asks and notices from around Calabar</p>
+          </div>
+          <Link
+            href="/feed/new"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-teal-800 hover:bg-teal-900 text-white text-xs font-black transition-colors"
+          >
+            <PenSquare className="w-4 h-4" />
+            Post
+          </Link>
         </div>
-        <Link
-          href="/feed/new"
-          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-teal-800 hover:bg-teal-900 text-white text-xs font-black transition-colors"
-        >
-          <PenSquare className="w-4 h-4" />
-          Post
-        </Link>
-      </div>
+      )}
 
       <div className="flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden -mx-1 px-1">
         {FEED_FILTERS.map((f) => (
