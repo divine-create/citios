@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Store, ArrowRight, Loader2 } from 'lucide-react';
 import { useMoney } from '@/components/cityos/CityProvider';
-import { CityCard, FallbackImg, Stars, LocationRow, OpenBadge, ChipButton, DemoBanner } from '@/components/cityos/CityUI';
+import { CityCard, FallbackImg, Stars, LocationRow, OpenBadge, ChipButton } from '@/components/cityos/CityUI';
 import { getCityMartProducts, getCityMartStores } from '@/app/actions/commerce';
 import { useCity } from '@/components/cityos/CityProvider';
 

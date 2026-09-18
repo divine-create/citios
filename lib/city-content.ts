@@ -6,7 +6,7 @@ export const CITY_NOTES = {
   topPickTitle: 'Popular around you',
   aiPlaceholder: 'Ask CityOS — e.g. “best room under ₦10,000 tonight”',
   demoDisclaimer:
-    'This is a CityOS prototype with simulated demo data (naira prices, sample places and sample names). Nothing here is real or billable — it exists to show how the city experience would feel.',
+    'Welcome to CityOS, the digital operating system for your city.',
 };
 
 /** City-specific banner line shown above the feed on the home screen. */

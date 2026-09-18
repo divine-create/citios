@@ -6,7 +6,7 @@ import { UtensilsCrossed, ArrowRight } from 'lucide-react';
 import { useCart } from '@/components/cityos/CartStore';
 import { getCityFood } from '@/app/actions/food';
 import { useCity } from '@/components/cityos/CityProvider';
-import { CityCard, FallbackImg, Stars, LocationRow, OpenBadge, ChipButton, DemoBanner } from '@/components/cityos/CityUI';
+import { CityCard, FallbackImg, Stars, LocationRow, OpenBadge, ChipButton } from '@/components/cityos/CityUI';
 import { useMoney } from '@/components/cityos/CityProvider';
 
 const FOOD_CATS = ['All', 'Restaurant', 'Cafe', 'Campus Eats', 'Food & Market'];
@@ -77,8 +77,6 @@ export default function CityFood() {
           Kitchens, cafÃ©s and stalls cooking {cityName} today â€” order through CityOS.
         </p>
       </div>
-
-      <DemoBanner />
 
       <div className="flex flex-col gap-1">
         <h2 className="text-[13px] font-black text-ink">CityFood is live</h2>

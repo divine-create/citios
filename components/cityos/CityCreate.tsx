@@ -62,7 +62,7 @@ export default function CityCreate() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="text-[14px] font-black text-ink">{a.title}</p>
-                  {a.demo ? <Pill tone="blue">demo</Pill> : null}
+                  
                 </div>
                 <p className="text-[12px] text-slate-500 font-medium mt-0.5 leading-snug">{a.desc}</p>
                 <span className="mt-3 inline-flex items-center gap-1 text-[11px] font-black text-teal-800">

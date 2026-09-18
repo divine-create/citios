@@ -3,7 +3,7 @@ import { Bookmark, Heart } from 'lucide-react';
 import { getResolvedSavedItems, toggleSavedItem } from '@/app/actions/org';
 import { formatMoney } from '@/lib/format';
 import { getCurrentCity } from '@/lib/city';
-import { CityCard, FallbackImg, Stars, Pill, LocationRow, DemoBanner, OpenBadge } from '@/components/cityos/CityUI';
+import { CityCard, FallbackImg, Stars, Pill, LocationRow,  OpenBadge } from '@/components/cityos/CityUI';
 import { revalidatePath } from 'next/cache';
 
 export default async function CitySaved() {
@@ -26,8 +26,6 @@ export default async function CitySaved() {
           Businesses, products, jobs, events and places you have saved across CityOS.
         </p>
       </div>
-
-      <DemoBanner />
 
       {/* Businesses */}
       <section>

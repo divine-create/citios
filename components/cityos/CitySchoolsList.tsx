@@ -2,7 +2,7 @@
 
 import { GraduationCap } from 'lucide-react';
 
-import { CityCard, FallbackImg, Stars, Pill, LocationRow, DemoBanner } from '@/components/cityos/CityUI';
+import { CityCard, FallbackImg, Stars, Pill, LocationRow } from '@/components/cityos/CityUI';
 import { useCity } from '@/components/cityos/CityProvider';
 
 export default function CitySchoolsList() {
@@ -15,8 +15,6 @@ export default function CitySchoolsList() {
           Admissions desks, registrars and intake offices across the city — request info in-app.
         </p>
       </div>
-
-      <DemoBanner />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="col-span-full rounded-2xl border border-dashed border-slate-200 p-8 text-center bg-white">

@@ -7,7 +7,7 @@ import { useMoney } from '@/components/cityos/CityProvider';
 
 // Client wallet display top-up (fictional until the server ledger is wired).
 const TOP_UP_AMOUNT = 50000;
-import { Pill, Money, ChipButton, DemoBanner } from '@/components/cityos/CityUI';
+import { Pill, Money, ChipButton } from '@/components/cityos/CityUI';
 import { useWallet } from '@/components/cityos/WalletStore';
 import { useExperience } from '@/components/cityos/ExperienceStore';
 
@@ -133,12 +133,11 @@ export default function CityProfile() {
             <p className="text-[13px] font-black text-ink">Experience: {experience}</p>
             <Pill tone="teal">demo</Pill>
           </div>
-          <p className="text-[11px] font-bold text-slate-400">Store owner, service provider, or school â€” switch roles from Demo Access.</p>
+          <p className="text-[11px] font-bold text-slate-400">Store owner, service provider, or school â€” manage your business profiles via Workspaces.</p>
         </div>
         <ChevronRight className="w-4 h-4 text-teal-800 shrink-0" />
       </Link>
 
-      <DemoBanner />
       {tabs}
 
       {/* Tab content */}

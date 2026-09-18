@@ -5,7 +5,7 @@ import type { ComponentType } from 'react';
 import Link from 'next/link';
 import { MapPin, Navigation, Phone, Share2, Car, Clock, Loader2, Waves, Check } from 'lucide-react';
 import { useMoney } from '@/components/cityos/CityProvider';
-import { Pill, DemoBanner } from '@/components/cityos/CityUI';
+import { Pill } from '@/components/cityos/CityUI';
 import { useCity } from '@/components/cityos/CityProvider';
 import { cn } from '@/lib/utils';
 
@@ -262,7 +262,7 @@ export default function RideView() {
               </div>
             )}
             <p className="flex items-center justify-center gap-1.5 text-[10px] text-slate-400 font-medium">
-              <Waves className="w-3 h-3" /> Demo ride flow â€” driver matching is simulated.
+              <Waves className="w-3 h-3" /> Ride matching flow â€” driver matching is simulated.
             </p>
           </div>
 
@@ -275,7 +275,6 @@ export default function RideView() {
         </div>
       </div>
 
-      <DemoBanner />
-    </div>
+      </div>
   );
 }

@@ -3,7 +3,7 @@ import { ArrowRight, Briefcase, BadgeCheck, Users, CalendarDays, ClipboardList, 
 import { getCanonicalOrganization } from '@/app/actions/org';
 import { formatMoney } from '@/lib/format';
 import { getCurrentCity } from '@/lib/city';
-import { Pill, Stars, LocationRow, DemoBanner, VerifiedBadge } from '@/components/cityos/CityUI';
+import { Pill, Stars, LocationRow,  VerifiedBadge } from '@/components/cityos/CityUI';
 import CityMismatchChip from '@/components/cityos/CityMismatchChip';
 
 export default async function OrgProfile({ id }: { id: string }) {
@@ -186,7 +186,6 @@ export default async function OrgProfile({ id }: { id: string }) {
         </section>
       ) : null}
 
-      <DemoBanner />
-    </div>
+      </div>
   );
 }

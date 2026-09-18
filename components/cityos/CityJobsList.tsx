@@ -4,7 +4,7 @@ import { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Briefcase, MapPin, Users, Search, ArrowRight } from 'lucide-react';
 const JOB_CATEGORIES = ['All', 'Retail', 'Service', 'Education', 'Hospitality'];
-import { SectionHead, Pill, DemoBanner } from '@/components/cityos/CityUI';
+import { SectionHead, Pill } from '@/components/cityos/CityUI';
 import { getCityJobs } from '@/app/actions/org';
 import { cn } from '@/lib/utils';
 
@@ -41,7 +41,7 @@ export default function CityJobsList() {
           </span>
           <h1 className="mt-3 text-2xl md:text-4xl font-black tracking-tight">Every open role in the city</h1>
           <p className="mt-2 text-teal-50/85 text-[13px] font-medium max-w-2xl leading-relaxed">
-            {`CityJobs aggregates every open role in the demo — ${jobs.length} roles across pickers, riders, technicians, teachers and gigs.`}
+            {`CityJobs aggregates every open role in the city — ${jobs.length} roles across pickers, riders, technicians, teachers and gigs.`}
           </p>
           <div className="mt-5 flex flex-col sm:flex-row gap-2 sm:items-center">
             <div className="flex-1 flex items-center gap-2 bg-white/95 rounded-xl px-3.5 py-2.5 text-slate-500">
@@ -115,7 +115,7 @@ export default function CityJobsList() {
           <div className="rounded-2xl bg-white border border-dashed border-slate-200 p-12 text-center">
             <p className="text-4xl mb-3">🔎</p>
             <p className="text-[14px] font-black text-ink">No roles match that filter</p>
-            <p className="text-[12px] text-slate-400 font-medium mt-1">Clear the search to see the full demo board.</p>
+            <p className="text-[12px] text-slate-400 font-medium mt-1">Clear the search to see the full job board.</p>
           </div>
         )}
       </section>

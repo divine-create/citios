@@ -2,7 +2,7 @@
 
 import { Wrench } from 'lucide-react';
 import { fmtNaira } from '@/lib/format';
-import { CityCard, FallbackImg, Stars, Pill, DemoBanner } from '@/components/cityos/CityUI';
+import { CityCard, FallbackImg, Stars, Pill } from '@/components/cityos/CityUI';
 
 export default function CityTasksList() {
   return (
@@ -13,8 +13,6 @@ export default function CityTasksList() {
           Vetted trades from the Paradise Home Services network — book with a deposit, pay by CityPay.
         </p>
       </div>
-
-      <DemoBanner />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="col-span-full rounded-2xl border border-dashed border-slate-200 p-8 text-center bg-white">

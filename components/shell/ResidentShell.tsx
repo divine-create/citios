@@ -241,13 +241,13 @@ const navGroups: { label: string; items: NavItem[] }[] = [
               <div>
                 <h1 className="text-xl font-black tracking-tight text-ink leading-none">CityOS</h1>
                 <p className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-0.5">
-                  {`${cityName} Â· Prototype`}
+                  {cityName}
                 </p>
               </div>
             </Link>
             <div className="mt-3 inline-flex items-center gap-1.5 self-start px-2 py-1 rounded-full bg-orange-50 ring-1 ring-orange-100">
               <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
-              <span className="text-[9px] font-black text-orange-600 uppercase tracking-widest">Prototype</span>
+              
             </div>
           </div>
 
@@ -402,7 +402,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
                 <div className="px-5 py-4 flex items-center justify-between border-b border-slate-100 sticky top-0 bg-white z-10">
                   <div>
                     <p className="text-sm font-black text-ink leading-none">CityOS Menu</p>
-                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1">{`${cityName} Â· Prototype`}</p>
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1">{cityName}</p>
                   </div>
                   <button
                     onClick={() => setMenuOpen(false)}

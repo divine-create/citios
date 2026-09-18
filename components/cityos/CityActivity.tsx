@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { fetchResidentActivity } from '@/app/actions/activity';
 import { cn } from '@/lib/utils';
-import { DemoBanner } from '@/components/cityos/CityUI';
+import {  } from '@/components/cityos/CityUI';
 import { useCity } from '@/components/cityos/CityProvider';
 
 const FILTERS = ['All', 'Orders', 'Service Requests', 'CityJobs', 'Events', 'Saved Items'];

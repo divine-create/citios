@@ -4,13 +4,13 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Phone, Truck, Share2, MessageCircle, MapPin, PackageCheck, Navigation } from 'lucide-react';
 import { fmtNaira } from '@/lib/format';
-import { Pill, DemoBanner } from '@/components/cityos/CityUI';
+import { Pill } from '@/components/cityos/CityUI';
 import { cn } from '@/lib/utils';
 
 const DRIVER = { name: 'Samuel Edem', car: 'Toyota Corolla', plate: 'TL-941-CR', phone: '0803 456 7890', rating: 4.9, trips: 2140 };
 
 // Prototype tracking narrative — this surface has no canonical delivery
-// entity yet (see architecture audit); it renders under DemoBanner.
+// entity yet (see architecture audit); it renders under .
 const DELIVERY_ROUTE_STOPS = [
   { label: 'Calabar Fresh Market', area: 'Marian Road', x: 22, y: 66, state: 'done' as const },
   { label: 'Marian Road junction', area: 'City centre', x: 34, y: 52, state: 'done' as const },
@@ -112,7 +112,7 @@ export default function DeliveryTrack() {
             </div>
 
             <div className="absolute bottom-3 left-3 rounded-xl bg-white/90 backdrop-blur px-3 py-2 shadow text-[10px] font-bold text-slate-600 inline-flex items-center gap-1.5">
-              <Navigation className="w-3 h-3 text-teal-700" /> Live demo track · Calabar metro
+              <Navigation className="w-3 h-3 text-teal-700" /> Live tracking · Calabar metro
             </div>
           </div>
 
@@ -201,7 +201,6 @@ export default function DeliveryTrack() {
         </div>
       </div>
 
-      <DemoBanner />
-    </div>
+      </div>
   );
 }

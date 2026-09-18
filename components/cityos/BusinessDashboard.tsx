@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Banknote, ShoppingBag, Users, TrendingUp, Star, Truck, ChevronRight, BadgeCheck } from 'lucide-react';
 import { fmtNaira, parseNaira } from '@/lib/format';
-import { StatTile, Pill, DemoBanner, SectionHead } from '@/components/cityos/CityUI';
+import { StatTile, Pill,  SectionHead } from '@/components/cityos/CityUI';
 
 interface LiveOrder {
   ref: string;
@@ -27,8 +27,7 @@ const EMPTY_DASHBOARD = {
   payments: [] as { ref: string; method: string; amount: string; settled: string }[],
   recentOrders: [] as { ref: string; name: string; area: string; amount: string; status: string; time: string }[],
   topProducts: [] as { name: string; revenue: string; sold: number }[],
-  reviews: [] as { name: string; rating: number; text: string }[],
-};
+  reviews: [] as { name: string; rating: number; text: string }[] };
 
 export default function BusinessDashboard() {
   const d = EMPTY_DASHBOARD;
@@ -59,8 +58,6 @@ export default function BusinessDashboard() {
           Full ShopOS admin <ChevronRight className="w-3.5 h-3.5" />
         </Link>
       </div>
-
-      <DemoBanner />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

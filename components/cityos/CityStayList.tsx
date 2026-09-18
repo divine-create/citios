@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { BedDouble, ArrowRight, Clock } from 'lucide-react';
 import { useMoney } from '@/components/cityos/CityProvider';
-import { CityCard, FallbackImg, Stars, Pill, LocationRow, ChipButton, DemoBanner } from '@/components/cityos/CityUI';
+import { CityCard, FallbackImg, Stars, Pill, LocationRow, ChipButton } from '@/components/cityos/CityUI';
 import { useCity } from '@/components/cityos/CityProvider';
 
 const FILTERS = ['All', 'Under â‚¦10,000', 'Near stadium', 'Open 24h'];
@@ -24,8 +24,6 @@ export default function CityStayList() {
           Rooms held with a CityPay deposit, refunded at the front desk. All in {cityName} metro.
         </p>
       </div>
-
-      <DemoBanner />
 
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 [&::-webkit-scrollbar]:hidden">
         {FILTERS.map((f) => (

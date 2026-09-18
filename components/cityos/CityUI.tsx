@@ -11,8 +11,7 @@ export function FallbackImg({
   alt,
   className,
   icon,
-  gradient = 'from-teal-900 to-teal-700',
-}: {
+  gradient = 'from-teal-900 to-teal-700' }: {
   src?: string;
   alt: string;
   className?: string;
@@ -69,8 +68,7 @@ export function PriceTag({ amount, old, className }: { amount: number; old?: num
 export function Pill({
   children,
   tone = 'teal',
-  className,
-}: {
+  className }: {
   children: React.ReactNode;
   tone?: 'teal' | 'orange' | 'blue' | 'slate' | 'green' | 'red';
   className?: string;
@@ -81,8 +79,7 @@ export function Pill({
     blue: 'bg-brand-50 text-brand-800 ring-brand-100',
     slate: 'bg-slate-100 text-slate-600 ring-slate-200',
     green: 'bg-emerald-50 text-emerald-700 ring-emerald-100',
-    red: 'bg-red-50 text-red-600 ring-red-100',
-  };
+    red: 'bg-red-50 text-red-600 ring-red-100' };
   return (
     <span
       className={cn(
@@ -116,8 +113,7 @@ export function SectionHead({
   sub,
   more,
   moreHref,
-  onMore,
-}: {
+  onMore }: {
   title: string;
   sub?: string;
   more?: string;
@@ -159,8 +155,7 @@ export function CityCard({
   children,
   className,
   href,
-  onClick,
-}: {
+  onClick }: {
   children: React.ReactNode;
   className?: string;
   href?: string;
@@ -196,8 +191,7 @@ export function CityCard({
 export function Avatar({
   name,
   img,
-  className,
-}: {
+  className }: {
   name: string;
   img?: string;
   className?: string;
@@ -238,7 +232,7 @@ export function VerifiedBadge({ label = 'Verified business' }: { label?: string 
   );
 }
 
-export function DemoBanner({ className }: { className?: string }) {
+export function ({ className }: { className?: string }) {
   return (
     <div
       className={cn(
@@ -262,8 +256,7 @@ export function StatTile({
   value,
   delta,
   icon,
-  tone = 'teal',
-}: {
+  tone = 'teal' }: {
   label: string;
   value: string;
   delta?: string;
@@ -274,8 +267,7 @@ export function StatTile({
     teal: 'text-teal-700',
     orange: 'text-orange-600',
     blue: 'text-brand-700',
-    emerald: 'text-emerald-700',
-  };
+    emerald: 'text-emerald-700' };
   return (
     <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-[0_1px_2px_rgba(6,95,70,0.06)]">
       <div className="flex items-center justify-between mb-3">
@@ -296,8 +288,7 @@ export function Money({ amount, className }: { amount: number; className?: strin
 export function ChipButton({
   children,
   active,
-  onClick,
-}: {
+  onClick }: {
   children: React.ReactNode;
   active?: boolean;
   onClick?: () => void;

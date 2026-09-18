@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Minus, Plus, ShoppingCart, Truck, ShieldCheck, BadgePercent, Check, ChevronRight, Loader2 } from 'lucide-react';
 import { useMoney } from '@/components/cityos/CityProvider';
-import { FallbackImg, Stars, Pill, VerifiedBadge, DemoBanner, PriceTag } from '@/components/cityos/CityUI';
+import { FallbackImg, Stars, Pill, VerifiedBadge,  PriceTag } from '@/components/cityos/CityUI';
 import { useCart } from '@/components/cityos/CartStore';
 import CityMismatchChip from '@/components/cityos/CityMismatchChip';
 import { cn } from '@/lib/utils';

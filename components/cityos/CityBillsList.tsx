@@ -1,7 +1,7 @@
 'use client';
 
 import { Receipt } from 'lucide-react';
-import { DemoBanner } from '@/components/cityos/CityUI';
+import {  } from '@/components/cityos/CityUI';
 
 export default function CityBillsList() {
   return (
@@ -12,8 +12,6 @@ export default function CityBillsList() {
           Power, water, data and cable — paid through CityPay, credited to your reference instantly.
         </p>
       </div>
-
-      <DemoBanner />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="col-span-full rounded-2xl border border-dashed border-slate-200 p-8 text-center bg-white">

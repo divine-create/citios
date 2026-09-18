@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Search, BedDouble, Bath, MapPin, Wifi } from 'lucide-react';
 import { useMoney } from '@/components/cityos/CityProvider';
 import { useCity } from '@/components/cityos/CityProvider';
-import { CityCard, FallbackImg, Pill, LocationRow, ChipButton, PriceTag, DemoBanner } from '@/components/cityos/CityUI';
+import { CityCard, FallbackImg, Pill, LocationRow, ChipButton, PriceTag } from '@/components/cityos/CityUI';
 
 // Property filter chrome (UI tags only, not content).
 const PROPERTY_TAGS = ['All', 'Available', 'Furnished', 'Affordable', 'New'];
@@ -27,8 +27,6 @@ export default function CityHouse() {
           Find flats and rooms around {cityName} â€” deposit and rent flow through CityPay.
         </p>
       </div>
-
-      <DemoBanner />
 
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex-1 relative">

@@ -3,7 +3,7 @@
 import { Newspaper } from 'lucide-react';
 import { useCity } from '@/components/cityos/CityProvider';
 
-import { CityCard, FallbackImg, Pill, DemoBanner } from '@/components/cityos/CityUI';
+import { CityCard, FallbackImg, Pill } from '@/components/cityos/CityUI';
 
 export default function CityNewsList() {
   const cityName = useCity().city?.name ?? 'CityOS';
@@ -12,11 +12,9 @@ export default function CityNewsList() {
       <div className="flex flex-col gap-1">
         <h1 className="text-xl font-black text-ink">{`News · ${cityName} City Journal`}</h1>
         <p className="text-xs text-slate-500 font-medium">
-          City desks, business and culture — demo articles for the prototype.
+          City desks, business and culture — articles and updates for your city.
         </p>
       </div>
-
-      <DemoBanner />
 
       <div className="space-y-4">
         <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center bg-white">

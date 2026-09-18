@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Stethoscope, ArrowRight } from 'lucide-react';
 import { useMoney } from '@/components/cityos/CityProvider';
-import { CityCard, FallbackImg, Stars, Pill, LocationRow, ChipButton, DemoBanner, OpenBadge } from '@/components/cityos/CityUI';
+import { CityCard, FallbackImg, Stars, Pill, LocationRow, ChipButton,  OpenBadge } from '@/components/cityos/CityUI';
 import { useCity } from '@/components/cityos/CityProvider';
 
 const FILTERS = ['All', 'Open now', 'Free consult', 'Hospital'];
@@ -24,8 +24,6 @@ export default function CityCareList() {
           Clinics, hospitals and pharmacy-led care around {cityName} â€” book a slot in-app.
         </p>
       </div>
-
-      <DemoBanner />
 
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 [&::-webkit-scrollbar]:hidden">
         {FILTERS.map((f) => (
