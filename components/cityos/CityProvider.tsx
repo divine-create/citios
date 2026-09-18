@@ -1,6 +1,7 @@
 'use client';
 
-import { createContext, useContext } from 'react';
+import { createContext, useCallback, useContext } from 'react';
+import { formatMoney } from '@/lib/format';
 
 // Server-resolved city info, injected once per request by the (resident)
 // server layout and shared with every client component through context.
@@ -41,4 +42,16 @@ export function useCity() {
 /** Convenience: city display name with a neutral fallback. */
 export function useCityName(fallback = 'CityOS') {
   return useContext(CityContext).city?.name ?? fallback;
+}
+
+/**
+ * Currency-aware money formatter driven by the active City's `currency`.
+ * Every resident-facing price display goes through this, so a city with a
+ * different currency renders correctly with zero per-callsite logic.
+ */
+export function useMoney() {
+  const { city } = useCity();
+  const currency = city?.currency ?? 'NGN';
+  const fmt = useCallback((amount: number) => formatMoney(amount, currency), [currency]);
+  return { fmt, currency };
 }

@@ -19,12 +19,12 @@ interface CreateAction {
 
 const ACTIONS: CreateAction[] = [
   { icon: PenSquare, title: 'Post to the feed', desc: 'An offer, an ask, or a city notice for everyone.', href: '/feed/new', tone: 'from-orange-500 to-amber-500', label: 'Compose', demo: false },
-  { icon: PackagePlus, title: 'List a product', desc: 'Add an item to a demo storefront inventory.', href: '/workspaces/shopos/freshmart-calabar', tone: 'from-teal-800 to-emerald-600', label: 'Store', demo: true },
-  { icon: Wrench, title: 'Request a service', desc: 'AC, cleaning, installs — quoted before work starts.', href: '/workspaces/serviceos/mikes-ac-services', tone: 'from-sky-700 to-cyan-500', label: 'Book', demo: true },
-  { icon: Briefcase, title: 'Post a job', desc: 'Open a role on CityJobs — pickers, riders, teachers.', href: '/jobs', tone: 'from-indigo-700 to-brand-600', label: 'CityJobs', demo: true },
-  { icon: CalendarPlus, title: 'Create an event', desc: 'A tasting, a fitting night, a sports day.', href: '/events', tone: 'from-fuchsia-700 to-brand-500', label: 'City Events', demo: true },
-  { icon: HousePlus, title: 'List a property', desc: 'Put a room or flat on CityHouse with a CityPay deposit.', href: '/house', tone: 'from-amber-700 to-orange-500', label: 'CityHouse', demo: true },
-  { icon: Users, title: 'Start a community', desc: 'A neighbourhood circle with its own notice board.', href: '/community', tone: 'from-emerald-700 to-teal-500', label: 'Community', demo: true },
+  { icon: PackagePlus, title: 'List a product', desc: 'Manage your retail inventory via ShopOS.', href: '/business', tone: 'from-teal-800 to-emerald-600', label: 'Business', demo: false },
+  { icon: Wrench, title: 'Request a service', desc: 'AC, cleaning, installs — quoted before work starts.', href: '/services', tone: 'from-sky-700 to-cyan-500', label: 'Services', demo: false },
+  { icon: Briefcase, title: 'Post a job', desc: 'Manage your organization roles and openings.', href: '/business', tone: 'from-indigo-700 to-brand-600', label: 'Business', demo: false },
+  { icon: CalendarPlus, title: 'Create an event', desc: 'Host a tasting, a fitting night, a sports day.', href: '/business', tone: 'from-fuchsia-700 to-brand-500', label: 'Business', demo: false },
+  { icon: HousePlus, title: 'List a property', desc: 'Manage your properties and rentals.', href: '/business', tone: 'from-amber-700 to-orange-500', label: 'Business', demo: false },
+  { icon: Users, title: 'Start a community', desc: 'A neighbourhood circle with its own notice board.', href: '/community', tone: 'from-emerald-700 to-teal-500', label: 'Community', demo: false },
 ];
 
 export default function CityCreate() {
@@ -42,13 +42,13 @@ export default function CityCreate() {
           </span>
           <h1 className="mt-3 text-2xl md:text-3xl font-black tracking-tight">Put something in your city.</h1>
           <p className="mt-2 text-teal-50/80 text-[13px] font-medium max-w-xl leading-relaxed">
-            Create is the same front door for every role — resident posts, merchant inventory, service quotes, school notices. In the demo each action lands on the surface that owns it.
+            Create is the front door for participating in the city ecosystem — resident posts, merchant inventory, service quotes, and more. Select an action to navigate to the relevant management dashboard.
           </p>
         </div>
       </div>
 
       <section>
-        <SectionHead title="What would you like to do?" sub="Pick an action — demo flows are wired, not live" />
+        <SectionHead title="What would you like to do?" sub="Pick an action to start building in CityOS" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {ACTIONS.map((a) => (
             <Link
@@ -75,7 +75,7 @@ export default function CityCreate() {
       </section>
 
       <section>
-        <SectionHead title="Your recent activity" sub="Things you created or paid for in the demo" />
+        <SectionHead title="Your recent activity" sub="Your recent activity in the city ecosystem" />
         <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-50">
           {recent.map((a) => (
             <Link key={a.id} href={a.href ?? '#'} className="flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50/60 transition-colors">

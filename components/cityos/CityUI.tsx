@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { Star, ArrowRight, MapPin, BadgeCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { fmtNaira } from '@/lib/format';
+import { useMoney } from '@/components/cityos/CityProvider';
 
 export function FallbackImg({
   src,
@@ -57,10 +57,11 @@ export function Stars({ rating, className }: { rating: number; className?: strin
 }
 
 export function PriceTag({ amount, old, className }: { amount: number; old?: number; className?: string }) {
+  const { fmt } = useMoney();
   return (
     <span className={cn('inline-flex items-baseline gap-2', className)}>
-      <span className="font-black tracking-tight text-slate-900">{fmtNaira(amount)}</span>
-      {old ? <span className="text-xs text-slate-400 line-through">{fmtNaira(old)}</span> : null}
+      <span className="font-black tracking-tight text-slate-900">{fmt(amount)}</span>
+      {old ? <span className="text-xs text-slate-400 line-through">{fmt(old)}</span> : null}
     </span>
   );
 }
@@ -288,7 +289,8 @@ export function StatTile({
 }
 
 export function Money({ amount, className }: { amount: number; className?: string }) {
-  return <span className={cn('font-black tracking-tight text-ink tabular-nums', className)}>{fmtNaira(amount)}</span>;
+  const { fmt } = useMoney();
+  return <span className={cn('font-black tracking-tight text-ink tabular-nums', className)}>{fmt(amount)}</span>;
 }
 
 export function ChipButton({
