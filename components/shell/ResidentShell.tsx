@@ -37,6 +37,7 @@ import { WalletProvider, useWallet } from '@/components/cityos/WalletStore';
 import { ExperienceProvider } from '@/components/cityos/ExperienceStore';
 import { CityProvider, type CityInfo } from '@/components/cityos/CityProvider';
 import CityPicker from '@/components/cityos/CityPicker';
+import GeoCitySuggestion from '@/components/cityos/GeoCitySuggestion';
 import { fmtNaira } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
@@ -478,6 +479,9 @@ const navGroups: { label: string; items: NavItem[] }[] = [
           <main className="flex-1 overflow-y-auto px-4 md:px-8 py-5 md:py-8 relative scroll-smooth pb-28 md:pb-8">
             <div className="mx-auto max-w-6xl h-full">{children}</div>
           </main>
+
+          {/* One-time geolocation suggestion: offers a switch, never performs one. */}
+          <GeoCitySuggestion />
 
           {/* Mobile Bottom Navigation */}
           <nav className="md:hidden absolute bottom-0 left-0 right-0 bg-white border-t border-slate-100 flex items-center justify-between px-2 h-16 z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">

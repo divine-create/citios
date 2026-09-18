@@ -2,9 +2,10 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, ChevronDown, MapPin } from 'lucide-react';
+import { Check, ChevronDown, Loader2, MapPin, Navigation } from 'lucide-react';
 import { useCity } from '@/components/cityos/CityProvider';
 import { switchCity } from '@/app/actions/city';
+import { detectNearestCity } from '@/lib/geo';
 import { cn } from '@/lib/utils';
 
 /**
@@ -17,6 +18,8 @@ export default function CityPicker({ className }: { className?: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
+  const [detecting, setDetecting] = useState(false);
+  const [geoNote, setGeoNote] = useState<string | null>(null);
 
   // Single (or zero) active cities: nothing to choose — render read-only.
   if (!city || cities.length <= 1) {
@@ -41,11 +44,35 @@ export default function CityPicker({ className }: { className?: string }) {
     startTransition(() => router.refresh());
   }
 
+  /**
+   * Explicit, user-initiated detection. Unlike the passive banner this always
+   * runs when asked (the user is actively requesting it) and reports failure
+   * instead of staying silent.
+   */
+  async function useMyLocation() {
+    setDetecting(true);
+    setGeoNote(null);
+    const found = await detectNearestCity();
+    setDetecting(false);
+
+    if (!found) {
+      setGeoNote('No supported city near you — pick one below.');
+      return;
+    }
+
+    if (found.slug === city?.slug) {
+      setGeoNote(`You're already browsing ${found.name}.`);
+      return;
+    }
+
+    await pick(found.slug);
+  }
+
   return (
     <div className="relative">
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => { setOpen((o) => !o); setGeoNote(null); }}
         disabled={pending}
         className={cn(
           'inline-flex items-center gap-1 font-bold uppercase tracking-widest text-slate-500 hover:text-slate-700 transition-colors',
@@ -81,6 +108,25 @@ export default function CityPicker({ className }: { className?: string }) {
                 {c.slug === city.slug ? <Check className="w-4 h-4 text-teal-700" /> : null}
               </button>
             ))}
+
+            <div className="border-t border-slate-100 mt-1.5 pt-1.5">
+              <button
+                type="button"
+                onClick={useMyLocation}
+                disabled={detecting}
+                className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors disabled:opacity-60"
+              >
+                {detecting ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-700" />
+                ) : (
+                  <Navigation className="w-3.5 h-3.5 text-teal-700" />
+                )}
+                {detecting ? 'Detecting…' : 'Use my location'}
+              </button>
+              {geoNote ? (
+                <p className="px-3 pb-1 text-[10px] font-bold text-slate-400">{geoNote}</p>
+              ) : null}
+            </div>
           </div>
         </>
       ) : null}
