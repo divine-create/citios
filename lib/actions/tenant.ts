@@ -3,17 +3,26 @@
 import { db } from '@/src/prisma/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { findPersonByEmail } from '@/lib/identity';
 
 export async function requireAuthenticatedAccount() {
   const session = await getServerSession(authOptions);
-  
+
   if (!session?.user?.personId) {
     throw new Error('UNAUTHORIZED: No active session or unlinked person');
   }
 
-  const person = await db.orm.public.Person.where({ id: session.user.personId }).all().first();
+  // Canonical Person resolution: derive identity from the session email via
+  // PersonIdentifier instead of trusting the JWT personId claim alone. The
+  // personId is still cross-checked below as an integrity guard.
+  const person = session.user.email
+    ? await findPersonByEmail(session.user.email)
+    : null;
   if (!person) {
     throw new Error('UNAUTHORIZED: Person record not found');
+  }
+  if (session.user.personId !== person.id) {
+    throw new Error('UNAUTHORIZED: Session identity mismatch');
   }
 
   const account = await db.orm.public.Account.where({ personId: person.id }).all().first();

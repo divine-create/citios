@@ -2,6 +2,7 @@ import { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { db } from "@/src/prisma/db";
+import { resolvePersonByEmail, findPersonByEmail } from "@/lib/identity";
 import type { OrgMembership } from "@/types/next-auth";
 
 // Dev-only demo login so the prototype can be exercised across every
@@ -27,13 +28,9 @@ export const authOptions: NextAuthOptions = {
             async authorize(credentials) {
               if (credentials?.password === "1234" && credentials?.email) {
                 // In dev, accept password '1234' for any email and fetch their actual DB person
-                const lookupEmail = credentials.email.toLowerCase();
-                const identifier = await db.orm.public.PersonIdentifier.where({ type: "EMAIL", normalizedValue: lookupEmail }).all().first();
-                if (identifier) {
-                  const dbPerson = await db.orm.public.Person.where({ id: identifier.personId }).all().first();
-                  if (dbPerson) {
-                    return { id: dbPerson.id, email: lookupEmail, name: `${dbPerson.firstName} ${dbPerson.lastName}` };
-                  }
+                const dbPerson = await findPersonByEmail(credentials.email);
+                if (dbPerson) {
+                  return { id: dbPerson.id, email: (credentials.email as string).toLowerCase(), name: `${dbPerson.firstName} ${dbPerson.lastName}` };
                 }
               }
               return null;
@@ -50,28 +47,13 @@ export const authOptions: NextAuthOptions = {
       const lookupEmail = user?.email || token?.email;
       if (lookupEmail && (user || trigger === "update")) {
         try {
-          const emailValue = (lookupEmail as string).toLowerCase();
-          let identifier = await db.orm.public.PersonIdentifier.where({ type: "EMAIL", normalizedValue: emailValue }).all().first();
-          let dbPerson;
-
-          if (!identifier) {
-            const firstName = user?.name?.split(' ')[0] ?? 'Unknown';
-            const lastName = user?.name?.split(' ').slice(1).join(' ') || 'User';
-            
-            dbPerson = await db.orm.public.Person.create({
-              firstName,
-              lastName
-            });
-
-            identifier = await db.orm.public.PersonIdentifier.create({
-              personId: dbPerson.id,
-              type: "EMAIL",
-              normalizedValue: emailValue,
-              isVerified: true
-            });
-          } else {
-            dbPerson = await db.orm.public.Person.where({ id: identifier.personId }).all().first();
-          }
+          // Canonical Person resolution (provisions Person + PersonIdentifier
+          // on first sign-in). The email comes from the server session, never
+          // from client input.
+          const dbPerson = await resolvePersonByEmail(
+            lookupEmail as string,
+            user?.name ?? (token?.name as string | undefined) ?? null,
+          );
 
           if (dbPerson) {
             let account = await db.orm.public.Account.where({ personId: dbPerson.id }).all().first();

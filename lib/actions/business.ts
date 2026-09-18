@@ -4,10 +4,22 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/src/prisma/db";
 
+// Default operating city. City is a seeded registry (scripts/seed.ts); the
+// client may reference a city by slug, but the server always validates it
+// against the canonical City table before persisting Organization.cityId.
+const DEFAULT_CITY_SLUG = 'calabar';
+
+async function resolveRegistrationCity(citySlug?: string) {
+  const slug = (citySlug || DEFAULT_CITY_SLUG).trim().toLowerCase();
+  if (!slug) return null;
+  return db.orm.public.City.where({ slug }).all().first();
+}
+
 export async function registerOrganization(data: {
   name: string;
   type: string;
   description?: string;
+  citySlug?: string;
 }) {
   const session = await getServerSession(authOptions);
   
@@ -22,11 +34,19 @@ export async function registerOrganization(data: {
   }
 
   try {
+    // Require a legitimate city association: resolve + validate against the
+    // canonical City registry. Never persist an unvalidated client value.
+    const city = await resolveRegistrationCity(data.citySlug);
+    if (!city) {
+      return { error: "Unknown city. Organizations must be registered in a supported city." };
+    }
+
     // session.user.personId is a personId in the V1 model
     const org = await db.orm.public.Organization.create({
       name: data.name,
       type: data.type as any,
       description: data.description || "",
+      cityId: city.id,
     });
 
     const membership = await db.orm.public.Membership.create({
@@ -62,10 +82,18 @@ export async function registerSchool(data: {
   }
 
   try {
+    // Schools follow the same canonical city relationship (SchoolSettings
+    // state/lga remain descriptive fields on the school's own record).
+    const city = await resolveRegistrationCity();
+    if (!city) {
+      return { error: "Unknown city. Schools must be registered in a supported city." };
+    }
+
     const org = await db.orm.public.Organization.create({
       name: data.name,
       type: 'SCHOOL' as any,
       address: `${data.address}, ${data.lga}, ${data.state}`,
+      cityId: city.id,
     });
 
     const membership = await db.orm.public.Membership.create({

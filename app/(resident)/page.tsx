@@ -1,14 +1,14 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { db } from '@/src/prisma/db';
+import { findPersonByEmail } from '@/lib/identity';
 import CityHome from '@/components/cityos/CityHome';
 
 export default async function HomePage() {
   const session = await getServerSession(authOptions);
   let firstName = '';
 
-  if (session?.user?.personId) {
-    const person = await db.orm.public.Person.where({ id: session.user.personId as string }).all().first();
+  if (session?.user?.email) {
+    const person = await findPersonByEmail(session.user.email);
     if (person && person.firstName) {
       firstName = person.firstName;
     }
