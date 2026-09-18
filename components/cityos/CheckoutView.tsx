@@ -9,6 +9,7 @@ import { useWallet } from '@/components/cityos/WalletStore';
 import { Money, Pill } from '@/components/cityos/CityUI';
 import { cn } from '@/lib/utils';
 import { placeRetailOrder } from '@/app/actions/commerce';
+import { placeRestaurantOrder } from '@/app/actions/food';
 
 const METHODS = [
   { id: 'wallet', label: 'CityPay Wallet', sub: 'Tap to use CityPay', icon: Wallet },
@@ -26,6 +27,15 @@ export default function CheckoutView() {
   const [processing, setProcessing] = useState(false);
   const [walletError, setWalletError] = useState(false);
 
+  // Split the shared cart by line kind. Retail and food are different
+  // canonical order pipelines (RetailOrder vs RestaurantOrder), so a mixed
+  // cart cannot be checked out in one pass — the resident resolves it by
+  // checking out each kind separately.
+  const retailLines = lines.filter((l) => l.kind === 'retail');
+  const foodLines = lines.filter((l) => l.kind === 'food');
+  const foodOnly = foodLines.length > 0 && retailLines.length === 0;
+  const hasMixed = retailLines.length > 0 && foodLines.length > 0;
+
   if (lines.length === 0 && !processing) {
     return (
       <div className="max-w-lg mx-auto text-center py-20 space-y-4">
@@ -42,11 +52,10 @@ export default function CheckoutView() {
   const walletOk = method === 'wallet' ? balance - total >= 0 : true;
 
   const pay = async () => {
-    if (processing) return;
-    const orgId = lines.length ? lines[0].orgId : '';
-    
+    if (processing || hasMixed) return;
+
     if (method === 'wallet') {
-      const ok = spend(total, `CityPay order CC-ORDER`);
+      const ok = spend(total, foodOnly ? 'CityPay food order' : 'CityPay order');
       if (!ok) {
         setWalletError(true);
         return;
@@ -54,21 +63,36 @@ export default function CheckoutView() {
     }
     setWalletError(false);
     setProcessing(true);
-    
-    try {
-      const orderItems = lines.map((l) => {
-        return { 
-          productId: l.productId, 
-          qty: l.qty, 
-          name: l.name
-        };
-      });
 
-      // Call the server action
+    try {
+      if (foodOnly) {
+        // Food pipeline: RestaurantOrder + OrderItem per restaurant.
+        // Org and prices are derived server-side from MenuItem records.
+        const result = await placeRestaurantOrder({
+          items: foodLines.map((l) => ({
+            menuItemId: l.productId,
+            qty: l.qty,
+            name: l.name,
+          })),
+          type: 'TAKEOUT',
+        });
+
+        if (result.success) {
+          clear();
+          router.push('/pay/success');
+        }
+        return;
+      }
+
+      // Retail pipeline: RetailOrder + RetailOrderItem per organization.
+      // Org and prices are derived server-side from RetailProduct records.
       const result = await placeRetailOrder({
-        orgId,
-        items: orderItems,
-        method
+        items: retailLines.map((l) => ({
+          productId: l.productId,
+          qty: l.qty,
+          name: l.name,
+        })),
+        method,
       });
 
       if (result.success) {
@@ -92,6 +116,12 @@ export default function CheckoutView() {
         <div className="lg:col-span-3 space-y-4">
           <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-3">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Your items</p>
+            {hasMixed && (
+              <div className="mb-3 p-3 bg-amber-50 text-amber-900 text-xs font-medium rounded-xl flex gap-2 items-start leading-relaxed">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 opacity-70" />
+                <div>This cart mixes market items and food orders. They are placed with different merchants — check out each separately. Remove one type of item, or complete this checkout and come back.</div>
+              </div>
+            )}
             {lines.map((l) => {
               return (
                 <div key={l.productId} className="flex items-center gap-3 py-1.5">
@@ -179,8 +209,12 @@ export default function CheckoutView() {
                 <span className="font-bold text-ink"><Money amount={subtotal} /></span>
               </div>
               <div className="flex justify-between text-slate-600 font-medium">
-                <span>Delivery</span>
-                <span className="font-bold text-ink"><Money amount={deliveryFee} /></span>
+                <span>{foodOnly ? 'Pickup' : 'Delivery'}</span>
+                <span className="font-bold text-ink">
+                  {foodOnly
+                    ? <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">No delivery fee</span>
+                    : <Money amount={deliveryFee} />}
+                </span>
               </div>
             </div>
             
@@ -205,7 +239,7 @@ export default function CheckoutView() {
 
               <button 
                 onClick={pay}
-                disabled={processing || !walletOk}
+                disabled={processing || !walletOk || hasMixed}
                 className="w-full h-14 flex items-center justify-center gap-2 bg-teal-800 text-white rounded-xl text-sm font-black hover:bg-teal-900 transition-all disabled:opacity-50 disabled:active:scale-100 active:scale-[0.98] shadow-sm"
               >
                 {processing ? <Loader2 className="w-5 h-5 animate-spin opacity-50" /> : <Lock className="w-4 h-4 opacity-70" />}
