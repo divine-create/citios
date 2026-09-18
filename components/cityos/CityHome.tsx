@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Search, MapPin, Store, Utensils, Wrench, Briefcase, Home, Calendar, Grip } from 'lucide-react';
-import { CITY_NOTES, DEMO_USER } from '@/lib/demo/cityos';
+import { CITY_NOTES } from '@/lib/demo/cityos';
 import CityFeed from '@/components/cityos/CityFeed';
 
 function greeting() {
@@ -13,7 +13,7 @@ function greeting() {
   return 'Good evening';
 }
 
-export default function CityHome() {
+export default function CityHome({ firstName }: { firstName?: string }) {
   const [greet, setGreet] = useState('Good day');
   useEffect(() => {
     setGreet(greeting());
@@ -26,10 +26,10 @@ export default function CityHome() {
       <section className="pt-4 px-1">
         <div className="flex items-center gap-1.5 text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3">
           <MapPin className="w-3 h-3" />
-          {`${DEMO_USER.area} · ${CITY_NOTES.weather.temp} ${CITY_NOTES.weather.label}`}
+          {`Calabar · ${CITY_NOTES.weather.temp} ${CITY_NOTES.weather.label}`}
         </div>
         <h1 className="text-3xl md:text-4xl font-black tracking-tight text-ink">
-          {greet}, {DEMO_USER.name.split(' ')[0]}.
+          {greet}{firstName ? `, ${firstName}.` : '.'}
         </h1>
       </section>
 

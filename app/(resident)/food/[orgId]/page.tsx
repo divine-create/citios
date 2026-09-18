@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { UtensilsCrossed, ChefHat, Clock, MapPin, ArrowLeft, ShoppingBag } from 'lucide-react';
 import { getCityFoodRestaurant } from '@/app/actions/food';
-import { CityCard, FallbackImg, Stars, LocationRow, OpenBadge } from '@/lib/cityos/arcassidy';
+import { CityCard, FallbackImg, Stars, LocationRow, OpenBadge } from '@/components/cityos/CityUI';
 
 interface Props {
   params: Promise<{ orgId: string }>;

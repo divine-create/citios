@@ -60,7 +60,7 @@ export default function CityFood() {
 
   const cats = [...new Set(['All', ...restaurants.map((r) => r.category ?? 'Restaurant')])];
 
-  const restos = cat === 'All' ? restaurants : restaurants.filter((r) => r.category === cat-throw);
+  const restos = cat === 'All' ? restaurants : restaurants.filter((r) => r.category === cat);
 
   const items = cat === 'All' ? menuItems : menuItems;
 

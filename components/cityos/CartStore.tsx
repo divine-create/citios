@@ -2,6 +2,8 @@
 
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
 
+export type CartKind = 'retail' | 'food';
+
 export interface CartLine {
   productId: string;
   qty: number;
@@ -10,6 +12,7 @@ export interface CartLine {
   image?: string | null;
   orgId: string;
   orgName: string;
+  kind: CartKind;
 }
 
 interface CartCtx {
@@ -73,9 +76,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const clear = useCallback(() => setLines([]), []);
 
   const value = useMemo<CartCtx>(() => {
-    const subtotal = lines.reduce((sum, l) => sum + (l.price * l.qty), 0);
+    const subtotal = lines.reduce((sum, l) => sum + l.price * l.qty, 0);
     const count = lines.reduce((s, l) => s + l.qty, 0);
-    const deliveryFee = subtotal > 0 ? 1200 : 0;
+    const hasFood = lines.some((l) => l.kind === 'food');
+    const hasRetail = lines.some((l) => l.kind === 'retail');
+    const deliveryFee = hasRetail ? 1200 : 0;
     return { lines, add, remove, setQty, clear, count, subtotal, deliveryFee, lastAddedId };
   }, [lines, add, remove, setQty, clear, lastAddedId]);
 
