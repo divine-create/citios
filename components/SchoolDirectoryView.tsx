@@ -9,12 +9,26 @@ export default function SchoolDirectoryView({ organizations = [] }: { organizati
     const [search, setSearch] = useState('');
     const [filter, setFilter] = useState('All');
 
-    // Mock data for visual completeness if DB is empty
-    const displaySchools = organizations.length > 0 ? organizations : [
-        { id: '1', name: 'Lincoln High School', address: '800 Education Way', rating: 4.8, type: 'Public', grades: '9-12', students: 1200, tags: ['STEM', 'Athletics'], img: '22' },
-        { id: '2', name: 'St. Jude Primary', address: '120 Saint Jude St', rating: 4.9, type: 'Private', grades: 'K-5', students: 450, tags: ['Arts', 'Languages'], img: '24' },
-        { id: '3', name: 'City Middle Academy', address: '45 Center Ave', rating: 4.6, type: 'Charter', grades: '6-8', students: 800, tags: ['Technology', 'Music'], img: '20' }
-    ];
+    const displaySchools = organizations;
+    
+    if (!displaySchools || displaySchools.length === 0) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+                <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-sm border border-slate-100">
+                    <div className="w-16 h-16 bg-slate-100 rounded-2xl mx-auto flex items-center justify-center mb-4">
+                        <MapPin className="w-8 h-8 text-slate-400" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-900 mb-2">No Schools Found</h2>
+                    <p className="text-sm text-slate-500 mb-6">
+                        There are currently no schools registered in the city network.
+                    </p>
+                    <button onClick={() => window.history.back()} className="w-full py-3 bg-blue-800 text-white rounded-xl font-medium">
+                        Go Back
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-slate-50 font-sans pb-20">

@@ -4,42 +4,47 @@ import React, { useState } from 'react';
 import { GraduationCap, CalendarCheck, BookOpen, Bell, ArrowLeft, CheckCircle2, XCircle, Clock } from 'lucide-react';
 
 export default function ParentPortalView({ students = [] }: { students?: any[] }) {
-    // If no students in DB, mock them for the prototype
-    const displayStudents = students.length > 0 ? students : [
-        { id: '1', firstName: 'Emma', lastName: 'Johnson', gradeLevel: '8th Grade', organization: { name: 'Lincoln High School' } },
-        { id: '2', firstName: 'Lucas', lastName: 'Johnson', gradeLevel: '5th Grade', organization: { name: 'St. Jude Primary' } }
-    ];
+    if (!students || students.length === 0) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+                <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-sm border border-slate-100">
+                    <div className="w-16 h-16 bg-slate-100 rounded-2xl mx-auto flex items-center justify-center mb-4">
+                        <GraduationCap className="w-8 h-8 text-slate-400" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-900 mb-2">No Students Linked</h2>
+                    <p className="text-sm text-slate-500 mb-6">
+                        Your account is not linked to any student records. Contact your school administrator to receive an invitation code.
+                    </p>
+                    <button onClick={() => window.history.back()} className="w-full py-3 bg-teal-700 text-white rounded-xl font-medium">
+                        Go Back
+                    </button>
+                </div>
+            </div>
+        );
+    }
+    
+    // Use actual students
+    const displayStudents = students;
 
     const [activeStudent, setActiveStudent] = useState(displayStudents[0]);
 
-    // Mock rich data for the active student
-    const mockData = {
-        '1': { // Emma
-            attendance: { status: 'PRESENT', time: '8:15 AM' },
-            courses: [
-                { name: 'Algebra II', grade: 94, teacher: 'Mr. Davis' },
-                { name: 'Biology', grade: 88, teacher: 'Ms. Smith' },
-                { name: 'World History', grade: 91, teacher: 'Mrs. Allen' }
-            ],
-            posts: [
-                { id: 1, title: 'Science Fair Next Week', date: '2 hours ago', content: 'Don\'t forget to submit your projects by Friday!' },
-                { id: 2, title: 'PTA Meeting', date: 'Yesterday', content: 'Join us in the cafeteria at 7PM.' }
-            ]
-        },
-        '2': { // Lucas
-            attendance: { status: 'ABSENT', time: 'Not Checked In' },
-            courses: [
-                { name: 'Math 5', grade: 82, teacher: 'Mr. Roberts' },
-                { name: 'Reading', grade: 95, teacher: 'Ms. Lee' },
-                { name: 'Art', grade: 100, teacher: 'Mrs. White' }
-            ],
-            posts: [
-                { id: 3, title: 'Field Trip Permission Slips', date: '1 day ago', content: 'Please sign and return the zoo permission slips.' }
-            ]
-        }
+    
+    // currentData is derived directly from the canonical activeStudent
+    const currentData = {
+        attendance: activeStudent.attendance?.length > 0 ? { status: activeStudent.attendance[0].status, time: new Date(activeStudent.attendance[0].date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) } : { status: 'UNKNOWN', time: '-' },
+        courses: activeStudent.classes?.map((c: any) => {
+            const courseGrades = activeStudent.grades?.filter((g: any) => g.classId === c.id) || [];
+            const avgGrade = courseGrades.length > 0 ? Math.round(courseGrades.reduce((acc: number, g: any) => acc + g.score, 0) / courseGrades.length) : '-';
+            return { name: c.name, grade: avgGrade, teacher: 'Assigned Teacher' };
+        }) || [],
+        posts: activeStudent.notices?.map((n: any) => ({
+            id: n.id,
+            title: n.title,
+            date: new Date(n.createdAt).toLocaleDateString(),
+            content: n.content
+        })) || []
     };
 
-    const currentData = mockData[activeStudent.id as keyof typeof mockData] || mockData['1'];
 
     return (
         <div className="min-h-screen bg-slate-50 font-sans pb-20">
