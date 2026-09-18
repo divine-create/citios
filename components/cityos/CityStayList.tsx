@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { BedDouble, ArrowRight, Clock } from 'lucide-react';
-import { DEMO_HOTELS, fmtNaira } from '@/lib/demo/cityos';
+import { fmtNaira } from '@/lib/demo/cityos';
 import { CityCard, FallbackImg, Stars, Pill, LocationRow, ChipButton, DemoBanner } from '@/components/cityos/CityUI';
 
 const FILTERS = ['All', 'Under ₦10,000', 'Near stadium', 'Open 24h'];
@@ -11,12 +11,7 @@ const FILTERS = ['All', 'Under ₦10,000', 'Near stadium', 'Open 24h'];
 export default function CityStayList() {
   const [filter, setFilter] = useState('All');
 
-  const hotels = DEMO_HOTELS.filter((h) => {
-    if (filter === 'Under ₦10,000') return h.pricePerNight < 10000;
-    if (filter === 'Near stadium') return h.nearStadium;
-    if (filter === 'Open 24h') return h.open24;
-    return true;
-  });
+  const hotels: any[] = [];
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
@@ -77,8 +72,8 @@ export default function CityStayList() {
         ))}
         {hotels.length === 0 ? (
           <div className="col-span-full rounded-2xl border border-dashed border-slate-200 p-10 text-center">
-            <p className="text-sm font-bold text-slate-500">No rooms match that filter.</p>
-            <p className="text-xs text-slate-400 mt-1">Try “All” to see every hotel in the demo city.</p>
+            <p className="text-sm font-bold text-slate-500">No hotels listed yet.</p>
+            <p className="text-xs text-slate-400 mt-1">Hotel directory data has not been added yet.</p>
           </div>
         ) : null}
       </div>

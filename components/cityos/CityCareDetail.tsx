@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { ChevronRight, Check, CalendarCheck } from 'lucide-react';
-import { getClinic, fmtNaira, DEMO_USER } from '@/lib/demo/cityos';
+import { getClinic, fmtNaira } from '@/lib/demo/cityos';
 import { FallbackImg, Pill, Stars, LocationRow, DemoBanner } from '@/components/cityos/CityUI';
 import { useWallet } from '@/components/cityos/WalletStore';
 import { cn } from '@/lib/utils';
@@ -17,7 +17,7 @@ export default function CityCareDetail({ slug }: { slug: string }) {
   if (!c) {
     return (
       <div className="max-w-lg mx-auto text-center py-20 space-y-4">
-        <h1 className="text-lg font-black text-ink">That clinic is not in the demo city.</h1>
+        <h1 className="text-lg font-black text-ink">That clinic is not available.</h1>
         <Link href="/care" className="inline-block px-5 py-2.5 rounded-xl bg-teal-800 text-white text-xs font-black hover:bg-teal-900">Back to City Care</Link>
       </div>
     );
@@ -64,7 +64,7 @@ export default function CityCareDetail({ slug }: { slug: string }) {
         </div>
         <p className="text-[13px] text-slate-600 leading-relaxed mt-3">{c.desc}</p>
         <div className="flex flex-wrap gap-2 mt-4">
-          {c.services.map((s) => <Pill key={s} tone="blue">{s}</Pill>)}
+          {c.services.map((s: any) => <Pill key={s} tone="blue">{s}</Pill>)}
         </div>
       </div>
 
@@ -73,12 +73,12 @@ export default function CityCareDetail({ slug }: { slug: string }) {
           <CalendarCheck className="w-4 h-4 text-teal-700" /> Doctors & appointments
         </p>
         <div className="space-y-3">
-          {c.doctors.map((d) => {
+          {c.doctors.map((d: any) => {
             const done = booked === d.name;
             return (
               <div key={d.name} className="rounded-xl border border-slate-100 p-4 flex items-center gap-4">
                 <div className="w-11 h-11 rounded-full bg-gradient-to-br from-teal-700 to-teal-500 text-white flex items-center justify-center text-sm font-black shrink-0">
-                  {d.name.split(' ').slice(0, 2).map((n) => n[0]).join('')}
+                  {d.name.split(' ').slice(0, 2).map((n: string) => n[0]).join('')}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-black text-ink">{d.name}</p>
@@ -106,7 +106,7 @@ export default function CityCareDetail({ slug }: { slug: string }) {
               <Check className="w-4 h-4" /> Appointment confirmed
             </p>
             <p className="text-[12px] text-emerald-700 font-medium mt-1">
-              {`${DEMO_USER.name} · ${booked} · ${c.name}. You will get a reminder 30 minutes before your slot.`}
+              {`You will get a reminder 30 minutes before your slot.`}
             </p>
             <p className="text-[11px] font-bold text-emerald-600">{`Wallet balance: ${fmtNaira(balance)}`}</p>
           </div>

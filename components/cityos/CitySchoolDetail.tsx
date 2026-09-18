@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { GraduationCap, ChevronRight, Check, Mail, School } from 'lucide-react';
-import { getSchool, DEMO_USER } from '@/lib/demo/cityos';
+
+import { getSchool } from '@/lib/demo/cityos';
 import { getOrg } from '@/lib/demo/universe/orgs';
 import { FallbackImg, Pill, Stars, LocationRow, DemoBanner } from '@/components/cityos/CityUI';
 
@@ -54,7 +55,7 @@ export default function CitySchoolDetail({ slug }: { slug: string }) {
           <GraduationCap className="w-4 h-4 text-teal-700" /> Programmes & desks
         </p>
         <div className="flex flex-wrap gap-2">
-          {s.programs.map((p) => <Pill key={p} tone="blue">{p}</Pill>)}
+          {s.programs.map((p: any) => <Pill key={p} tone="blue">{p}</Pill>)}
         </div>
       </div>
 
@@ -81,7 +82,7 @@ export default function CitySchoolDetail({ slug }: { slug: string }) {
               <Check className="w-4 h-4" /> Request logged
             </p>
             <p className="text-[12px] text-emerald-700 font-medium mt-1">
-              {`The ${s.name} desk will reach ${DEMO_USER.name} within one working day on ${s.contact}.`}
+              {`The school desk will reach you within one working day.`}
             </p>
           </div>
         ) : (

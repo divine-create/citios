@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Stethoscope, ArrowRight } from 'lucide-react';
-import { DEMO_CLINICS, fmtNaira } from '@/lib/demo/cityos';
+import { fmtNaira } from '@/lib/demo/cityos';
 import { CityCard, FallbackImg, Stars, Pill, LocationRow, ChipButton, DemoBanner, OpenBadge } from '@/components/cityos/CityUI';
 
 const FILTERS = ['All', 'Open now', 'Free consult', 'Hospital'];
@@ -11,12 +11,7 @@ const FILTERS = ['All', 'Open now', 'Free consult', 'Hospital'];
 export default function CityCareList() {
   const [filter, setFilter] = useState('All');
 
-  const clinics = DEMO_CLINICS.filter((c) => {
-    if (filter === 'Open now') return c.open;
-    if (filter === 'Free consult') return c.slug === 'medline-care';
-    if (filter === 'Hospital') return c.type === 'Hospital';
-    return true;
-  });
+  const clinics: any[] = [];
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
@@ -52,11 +47,17 @@ export default function CityCareList() {
               <p className="text-[12px] text-slate-500 font-medium leading-snug line-clamp-2">{c.tagline}</p>
               <div className="mt-auto flex items-center justify-between pt-2">
                 <OpenBadge open={c.open} />
-                <Pill tone="blue">{`from ${fmtNaira(Math.min(...c.doctors.map((d) => d.fee)))} consult`}</Pill>
+                <Pill tone="blue">{`from ${fmtNaira(Math.min(...c.doctors.map((d: any) => d.fee)))} consult`}</Pill>
               </div>
             </div>
           </CityCard>
         ))}
+        {clinics.length === 0 ? (
+          <div className="col-span-full rounded-2xl border border-dashed border-slate-200 p-8 text-center bg-white">
+            <p className="text-[13px] font-black text-ink">No clinics match</p>
+            <p className="text-[11px] text-slate-400 font-medium mt-1">Try a different filter.</p>
+          </div>
+        ) : null}
       </div>
 
       <div className="rounded-2xl bg-gradient-to-br from-teal-900 to-teal-700 text-white p-5 flex flex-col sm:flex-row sm:items-center gap-4">

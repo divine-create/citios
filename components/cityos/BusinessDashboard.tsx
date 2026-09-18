@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Banknote, ShoppingBag, Users, TrendingUp, Star, Truck, ChevronRight, BadgeCheck } from 'lucide-react';
-import { DEMO_BIZ_DASHBOARD, fmtNaira, parseNaira } from '@/lib/demo/cityos';
+import { fmtNaira, parseNaira } from '@/lib/demo/cityos';
 import { StatTile, Pill, DemoBanner, SectionHead } from '@/components/cityos/CityUI';
 
 interface LiveOrder {
@@ -15,38 +15,25 @@ interface LiveOrder {
   time: string;
 }
 
+// Zero-state dataset: the canonical merchant-analytics source is not wired yet,
+// so the dashboard renders honest zeros instead of fabricated metrics.
+const EMPTY_DASHBOARD = {
+  merchant: 'Your Business',
+  currency: 'NGN',
+  week: [0, 0, 0, 0, 0, 0, 0],
+  labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+  today: { revenue: '0', orders: 0, customers: 0, gmv: '₦0' },
+  delivery: { eta: 'N/A', activeRiders: 0, onTime: 0 },
+  payments: [] as { ref: string; method: string; amount: string; settled: string }[],
+  recentOrders: [] as { ref: string; name: string; area: string; amount: string; status: string; time: string }[],
+  topProducts: [] as { name: string; revenue: string; sold: number }[],
+  reviews: [] as { name: string; rating: number; text: string }[],
+};
+
 export default function BusinessDashboard() {
-  const d = DEMO_BIZ_DASHBOARD;
+  const d = EMPTY_DASHBOARD;
   const maxWeek = Math.max(...d.week);
   const [live, setLive] = useState<LiveOrder[]>([]);
-
-  useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem('cityos-demo-order');
-      if (raw) {
-        const o = JSON.parse(raw);
-        const total = typeof o.total === 'number' ? o.total : parseNaira(o.total ?? '0');
-        const itemsText = Array.isArray(o.items) && o.items.length > 0
-          ? o.items.map((i: { qty?: number; name?: string }) => `${i.qty ?? 1}× ${i.name ?? 'item'}`).join(', ')
-          : 'market order';
-        window.setTimeout(() => {
-          setLive([
-            {
-              ref: o.ref ?? 'CC-WEB',
-              name: 'Ada Ani (you)',
-              area: `Calabar · ${itemsText.slice(0, 22)}`,
-              amount: total,
-              status: 'Paid now',
-              time: (o.placedAt ? new Date(o.placedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'now') + ' · CityPay',
-            },
-          ]);
-        }, 0);
-      }
-    } catch {
-      /* no live order */
-    }
-  }, []);
-
   const liveTotal = live.reduce((s, o) => s + o.amount, 0);
   const todayRevenue = parseNaira(d.today.revenue) + liveTotal;
   const todayOrders = d.today.orders + live.length;
@@ -77,10 +64,10 @@ export default function BusinessDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatTile label="Revenue today" value={fmtNaira(todayRevenue)} delta={live.length > 0 ? 'incl. your live order' : '+12% vs yesterday'} icon={<Banknote className="w-4 h-4" />} tone="teal" />
-        <StatTile label="Orders today" value={todayOrders.toString()} delta="6 riders active" icon={<ShoppingBag className="w-4 h-4" />} tone="orange" />
-        <StatTile label="New customers" value={d.today.customers.toString()} delta="+9 this week" icon={<Users className="w-4 h-4" />} tone="blue" />
-        <StatTile label="Gross merchandise" value={d.today.gmv} delta="includes fresh daily" icon={<TrendingUp className="w-4 h-4" />} tone="emerald" />
+        <StatTile label="Revenue today" value={fmtNaira(todayRevenue)} delta={live.length > 0 ? 'incl. live orders' : 'no sales recorded yet'} icon={<Banknote className="w-4 h-4" />} tone="teal" />
+        <StatTile label="Orders today" value={todayOrders.toString()} delta="no sales recorded yet" icon={<ShoppingBag className="w-4 h-4" />} tone="orange" />
+        <StatTile label="New customers" value={d.today.customers.toString()} delta="no data yet" icon={<Users className="w-4 h-4" />} tone="blue" />
+        <StatTile label="Gross merchandise" value={d.today.gmv} delta="no data yet" icon={<TrendingUp className="w-4 h-4" />} tone="emerald" />
       </div>
 
       {/* Week chart + delivery */}
@@ -91,11 +78,11 @@ export default function BusinessDashboard() {
             <Pill tone="teal">NGN thousands</Pill>
           </div>
           <div className="flex items-end gap-2 h-36">
-            {d.week.map((v, i) => (
+            {d.week.map((v: number, i: number) => (
               <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
                 <div
                   className="w-full rounded-t-lg bg-gradient-to-t from-teal-800 to-teal-400 hover:from-teal-900 transition-all"
-                  style={{ height: `${Math.max(12, (v / maxWeek) * 120)}px` }}
+                  style={{ height: `${maxWeek > 0 ? Math.max(12, (v / maxWeek) * 120) : 0}px` }}
                 />
                 <span className="text-[9px] font-black text-slate-400 uppercase">{d.labels[i]}</span>
               </div>
@@ -125,7 +112,9 @@ export default function BusinessDashboard() {
               <Truck className="w-4 h-4 text-teal-700" /> CityPay settlements
             </p>
             <div className="space-y-2.5">
-              {d.payments.map((p) => (
+              {d.payments.length === 0 ? (
+                <p className="text-[12px] text-slate-400 font-medium">No settlements recorded yet.</p>
+              ) : d.payments.map((p) => (
                 <div key={p.ref} className="flex items-center justify-between text-[12px]">
                   <div>
                     <p className="font-black text-ink">{p.ref}</p>
@@ -165,7 +154,7 @@ export default function BusinessDashboard() {
               <span className="hidden md:block col-span-1 text-right text-[10px] font-bold text-slate-400">{o.time}</span>
             </div>
           ))}
-          {d.recentOrders.map((o) => (
+          {d.recentOrders.map((o: any) => (
             <div key={o.ref} className="grid grid-cols-2 md:grid-cols-12 gap-2 md:gap-3 px-5 py-3.5 border-b border-slate-50 text-[12px] items-center">
               <span className="col-span-1 font-black text-teal-800">{o.ref}</span>
               <span className="col-span-3 font-black text-ink truncate">{o.name}</span>
@@ -179,15 +168,22 @@ export default function BusinessDashboard() {
               <span className="hidden md:block col-span-1 text-right text-[10px] font-bold text-slate-400">{o.time}</span>
             </div>
           ))}
+          {live.length === 0 && d.recentOrders.length === 0 ? (
+            <div className="px-5 py-8 text-center">
+              <p className="text-[13px] font-black text-ink">No orders yet</p>
+              <p className="text-[11px] text-slate-400 font-medium mt-1">Orders from your storefront will appear here.</p>
+            </div>
+          ) : null}
         </div>
       </section>
 
       {/* Top products + reviews */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-white rounded-2xl border border-slate-100 p-5">
-          <SectionHead title="Top products" sub="By sold units, 7 days" />
-          <div className="space-y-3">
-            {d.topProducts.map((tp, i) => (
+          <SectionHead title="Top products" sub="By sold units, 7 days" />            <div className="space-y-3">
+              {d.topProducts.length === 0 ? (
+                <p className="text-[12px] text-slate-400 font-medium">No product sales recorded yet.</p>
+              ) : d.topProducts.map((tp, i) => (
               <div key={tp.name} className="flex items-center gap-3">
                 <span className="w-6 h-6 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-black flex items-center justify-center shrink-0">
                   {i + 1}
@@ -213,9 +209,10 @@ export default function BusinessDashboard() {
         <div className="bg-white rounded-2xl border border-slate-100 p-5">
           <p className="flex items-center gap-1.5 text-xs font-black text-ink uppercase tracking-widest mb-4">
             <Star className="w-4 h-4 text-amber-400 fill-amber-400" /> Customer reviews
-          </p>
-          <div className="space-y-3">
-            {d.reviews.map((r) => (
+          </p>            <div className="space-y-3">
+              {d.reviews.length === 0 ? (
+                <p className="text-[12px] text-slate-400 font-medium">No reviews yet.</p>
+              ) : d.reviews.map((r) => (
               <div key={r.name} className="rounded-xl bg-slate-50 p-3.5">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-[12px] font-black text-ink">{r.name}</p>

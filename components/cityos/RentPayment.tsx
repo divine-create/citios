@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Wallet, Check, ShieldCheck, ChevronRight, Building2, Download, AlertCircle } from 'lucide-react';
-import { getProperty, fmtNaira, DEMO_USER } from '@/lib/demo/cityos';
+import { getProperty, fmtNaira } from '@/lib/demo/cityos';
 import { FallbackImg, Pill, Money, DemoBanner } from '@/components/cityos/CityUI';
 import { useWallet } from '@/components/cityos/WalletStore';
 import { cn } from '@/lib/utils';
@@ -37,22 +37,6 @@ export default function RentPayment({ id }: { id: string }) {
     setLow(false);
     setPaid(true);
     window.setTimeout(() => router.push('/pay/success'), 1300);
-    try {
-      window.localStorage.setItem(
-        'cityos-demo-order',
-        JSON.stringify({
-          ref: 'CC-RENT-0187',
-          method: 'rent',
-          items: [{ name: p.title, qty: 1, price: rent }],
-          subtotal: rent,
-          deliveryFee: 0,
-          total: rent,
-          placedAt: new Date().toISOString(),
-        }),
-      );
-    } catch {
-      /* ignore */
-    }
   };
 
   return (
@@ -74,7 +58,7 @@ export default function RentPayment({ id }: { id: string }) {
               <Building2 className="w-3.5 h-3.5" /> CityHouse rent · est. {p.area}
             </p>
             <h1 className="text-xl font-black mt-1">{p.title}</h1>
-            <p className="text-[12px] text-teal-100/80 font-medium mt-0.5">{`Tenant: ${DEMO_USER.name} · Invoice ${p.id.toUpperCase()}-2026`}</p>
+            <p className="text-[12px] text-teal-100/80 font-medium mt-0.5">CityHouse rent · Invoice {p.id.toUpperCase()}-2026</p>
           </div>
         </div>
       </div>
@@ -108,7 +92,7 @@ export default function RentPayment({ id }: { id: string }) {
             <div className="flex items-center justify-between rounded-xl bg-slate-50 p-4">
               <div>
                 <p className="text-[13px] font-black text-ink">CityPay Wallet</p>
-                <p className="text-[11px] font-bold text-slate-400">{`${DEMO_USER.walletId} · available ${fmtNaira(balance)}`}</p>
+                <p className="text-[11px] font-bold text-slate-400">{`Available balance ${fmtNaira(balance)}`}</p>
               </div>
               <Pill tone="blue">Instant</Pill>
             </div>

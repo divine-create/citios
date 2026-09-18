@@ -1,7 +1,7 @@
 'use client';
 
 import { Newspaper } from 'lucide-react';
-import { DEMO_NEWS } from '@/lib/demo/cityos';
+
 import { CityCard, FallbackImg, Pill, DemoBanner } from '@/components/cityos/CityUI';
 
 export default function CityNewsList() {
@@ -17,19 +17,9 @@ export default function CityNewsList() {
       <DemoBanner />
 
       <div className="space-y-4">
-        {DEMO_NEWS.map((n) => (
-          <CityCard key={n.id} href={`/news/${n.id}`} className="flex flex-col sm:flex-row overflow-hidden">
-            <FallbackImg src={n.image} alt={n.title} className="h-40 sm:h-auto sm:w-64 shrink-0 w-full sm:w-64" />
-            <div className="p-5 flex-1 flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <Pill tone="teal">{n.category}</Pill>
-                <span className="text-[10px] font-bold text-slate-400">{`${n.author} · ${n.time}`}</span>
-              </div>
-              <h2 className="text-[16px] font-black text-ink leading-snug">{n.title}</h2>
-              <p className="text-[13px] text-slate-500 font-medium leading-relaxed">{n.excerpt}</p>
-            </div>
-          </CityCard>
-        ))}
+        <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center bg-white">
+          <p className="text-[13px] font-black text-ink">No news</p>
+        </div>
       </div>
 
       <div className="rounded-2xl bg-gradient-to-br from-slate-900 to-teal-900 text-white p-5 flex items-center gap-4">

@@ -12,7 +12,6 @@ import {
   getClinic,
   fmtNaira,
   CITY_NOTES,
-  DEMO_ROUTE_FARES,
 } from '@/lib/demo/cityos';
 import { FallbackImg, Pill, Stars, LocationRow, VerifiedBadge } from '@/components/cityos/CityUI';
 import { cn } from '@/lib/utils';
@@ -107,7 +106,6 @@ function ResultCards({ scriptId }: { scriptId: number }) {
           );
         }
         if (r.type === 'route') {
-          const fare = DEMO_ROUTE_FARES.find((f) => f.to.toLowerCase().includes('airport'));
           return (
             <Link
               key={r.id}
@@ -119,7 +117,7 @@ function ResultCards({ scriptId }: { scriptId: number }) {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-[13px] font-black text-ink truncate group-hover:text-teal-900">CitySolo · to the airport</p>
-                <p className="text-[10px] font-bold text-slate-400">{`${fare ? fare.km : 13.6} km · ${fare ? fare.fare : 2800} naira fare`}</p>
+                <p className="text-[10px] font-bold text-slate-400">Estimated ride fare · tap to price your route</p>
               </div>
               <Pill tone="teal">Book ride ▲</Pill>
             </Link>

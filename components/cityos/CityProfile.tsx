@@ -3,11 +3,11 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { Wallet, Plus, ChevronRight, Package, Car, Banknote, Truck, Building2, Bookmark, Settings, ArrowUp } from 'lucide-react';
-import { TOP_UP_AMOUNT, fmtNaira, getProperty, getBusiness } from '@/lib/demo/cityos';
+import { TOP_UP_AMOUNT, fmtNaira, getProperty } from '@/lib/demo/cityos';
 import { Pill, Money, ChipButton, DemoBanner } from '@/components/cityos/CityUI';
 import { useWallet } from '@/components/cityos/WalletStore';
 import { useExperience } from '@/components/cityos/ExperienceStore';
-import { useDemoApp } from '@/lib/demo/app/store';
+
 import { cn } from '@/lib/utils';
 import { fetchMyOrders } from '@/app/actions/commerce';
 import { getProfileAndWallet } from '@/lib/actions/profile';
@@ -19,7 +19,6 @@ export default function CityProfile() {
   const [tab, setTab] = useState<Tab>('Orders');
   const { balance, topUp, transactions } = useWallet();
   const { experience } = useExperience();
-  const { savedOf } = useDemoApp();
   const [toppedUp, setToppedUp] = useState(false);
   
   const [realOrders, setRealOrders] = useState<any[] | null>(null);
@@ -255,31 +254,15 @@ export default function CityProfile() {
         </div>
       ) : tab === 'Saved' ? (
         <div className="space-y-3">
-          {savedOf('biz').map((s) => {
-            const b = getBusiness(s.id);
-            if (!b) return null;
-            return (
-              <div key={s.id} className="flex items-center gap-3 bg-white rounded-2xl border border-slate-100 p-4">
-                <span className="w-9 h-9 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center text-lg">
-                  <Bookmark className="w-4 h-4" />
-                </span>
-                <div className="flex-1">
-                  <p className="text-[13px] font-black text-ink">{b.name}</p>
-                  <p className="text-[11px] font-bold text-slate-400">Saved to your city list</p>
-                </div>
-                <Link href={`/org/${b.slug}`} className="text-[11px] font-bold text-teal-800 hover:underline">Open</Link>
-              </div>
-            );
-          })}
           <div className="flex items-center gap-3 rounded-2xl border border-dashed border-slate-200 bg-white p-4">
             <span className="w-9 h-9 rounded-xl bg-slate-50 text-slate-500 flex items-center justify-center">
               <Bookmark className="w-4 h-4" />
             </span>
             <p className="text-[12px] font-bold text-slate-500">
-              {`${savedOf('product').length} products · ${savedOf('job').length} jobs · ${savedOf('event').length} events · ${savedOf('place').length} places`}
-              {' '}saved across the city.
+              Saved businesses, products, jobs, events and places appear here.{' '}
+              <Link href="/saved" className="text-teal-800">View all</Link>
             </p>
-            <Link href="/saved" className="ml-auto text-[11px] font-bold text-teal-800 hover:underline">View all</Link>
+            <Link href="/saved" className="ml-auto text-[11px] font-bold text-teal-800 hover:underline shrink-0">Open Saved</Link>
           </div>
         </div>
       ) : (

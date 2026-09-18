@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { DEMO_WALLET_INITIAL, WALLET_STORAGE_KEY, DEMO_PAYMENTS } from '@/lib/demo/cityos';
+import { WALLET_STORAGE_KEY } from '@/lib/demo/cityos';
 
 export interface WalletTx {
   ref: string;
@@ -21,13 +21,13 @@ interface WalletCtx {
 
 const WalletContext = createContext<WalletCtx | null>(null);
 
-const DEFAULT_TXS: WalletTx[] = DEMO_PAYMENTS.map((p) => ({ ref: p.ref, note: p.note, amount: p.amount, at: p.at }));
+const DEFAULT_TXS: WalletTx[] = [];
 
 export function WalletProvider({ children }: { children: React.ReactNode }) {
-  const [balance, setBalance] = useState(DEMO_WALLET_INITIAL);
+  const [balance, setBalance] = useState(0);
   const [transactions, setTransactions] = useState<WalletTx[]>(DEFAULT_TXS);
   const [hydrated, setHydrated] = useState(false);
-  const balanceRef = useRef(DEMO_WALLET_INITIAL);
+  const balanceRef = useRef(0);
 
   useEffect(() => {
     balanceRef.current = balance;
@@ -89,8 +89,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const reset = useCallback(() => {
-    balanceRef.current = DEMO_WALLET_INITIAL;
-    setBalance(DEMO_WALLET_INITIAL);
+    balanceRef.current = 0;
+    setBalance(0);
     setTransactions(DEFAULT_TXS);
   }, []);
 

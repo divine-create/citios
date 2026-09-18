@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Search, BedDouble, Bath, MapPin, Wifi } from 'lucide-react';
-import { DEMO_PROPERTIES, PROPERTY_TAGS, fmtNaira } from '@/lib/demo/cityos';
+import { PROPERTY_TAGS, fmtNaira } from '@/lib/demo/cityos';
 import { CityCard, FallbackImg, Pill, LocationRow, ChipButton, PriceTag, DemoBanner } from '@/components/cityos/CityUI';
 import { cn } from '@/lib/utils';
 
@@ -11,13 +11,7 @@ export default function CityHouse() {
   const [tag, setTag] = useState('All');
   const [query, setQuery] = useState('');
 
-  const results = DEMO_PROPERTIES.filter((p) => {
-    const q = query.trim().toLowerCase();
-    return (
-      (tag === 'All' || p.tags.includes(tag)) &&
-      (!q || p.title.toLowerCase().includes(q) || p.area.toLowerCase().includes(q))
-    );
-  });
+  const results: any[] = [];
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -78,6 +72,12 @@ export default function CityHouse() {
             </div>
           </CityCard>
         ))}
+        {results.length === 0 ? (
+          <div className="col-span-full rounded-2xl border border-dashed border-slate-200 p-8 text-center bg-white">
+            <p className="text-[13px] font-black text-ink">No listings match</p>
+            <p className="text-[11px] text-slate-400 font-medium mt-1">Try a different area or filter.</p>
+          </div>
+        ) : null}
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 'use client';
 
 import { Receipt, ArrowRight } from 'lucide-react';
-import { DEMO_BILLS, BILL_KIND_ICONS, fmtNaira } from '@/lib/demo/cityos';
+import { BILL_KIND_ICONS, fmtNaira } from '@/lib/demo/cityos';
 import { CityCard, Pill, DemoBanner } from '@/components/cityos/CityUI';
 
 export default function CityBillsList() {
@@ -17,28 +17,10 @@ export default function CityBillsList() {
       <DemoBanner />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {DEMO_BILLS.map((b) => {
-          const Icon = BILL_KIND_ICONS[b.kind];
-          return (
-            <CityCard key={b.slug} href={`/bills/${b.slug}`} className="p-5 flex items-center gap-4">
-              <span className="w-12 h-12 rounded-2xl bg-teal-50 text-teal-800 flex items-center justify-center shrink-0">
-                <Icon className="w-6 h-6" />
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-[14px] font-black text-ink truncate">{b.name}</p>
-                <p className="text-[11px] font-bold text-slate-400 truncate">{b.note}</p>
-                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                  <Pill tone={b.due.includes('2 days') || b.due.includes('4 days') ? 'orange' : 'teal'}>
-                    {`${fmtNaira(b.balance)} · ${b.due}`}
-                  </Pill>
-                </div>
-              </div>
-              <span className="inline-flex items-center gap-1 text-[11px] font-black text-teal-800 shrink-0">
-                Pay <ArrowRight className="w-3.5 h-3.5" />
-              </span>
-            </CityCard>
-          );
-        })}
+        <div className="col-span-full rounded-2xl border border-dashed border-slate-200 p-8 text-center bg-white">
+          <p className="text-[13px] font-black text-ink">No bills due</p>
+          <p className="text-[11px] text-slate-400 font-medium mt-1">You have no pending bills at this time.</p>
+        </div>
       </div>
 
       <div className="rounded-2xl bg-gradient-to-br from-teal-900 to-teal-700 text-white p-5 flex items-center gap-4">

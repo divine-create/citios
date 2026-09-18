@@ -35,8 +35,8 @@ import { useState } from 'react';
 import { CartProvider, useCart } from '@/components/cityos/CartStore';
 import { WalletProvider, useWallet } from '@/components/cityos/WalletStore';
 import { ExperienceProvider } from '@/components/cityos/ExperienceStore';
-import { DemoAppProvider, useDemoApp } from '@/lib/demo/app/store';
-import { NOTIFICATIONS, APP_STATE, fmtNaira } from '@/lib/demo/cityos';
+import { DemoAppProvider } from '@/lib/demo/app/store';
+import { fmtNaira } from '@/lib/demo/cityos';
 import { cn } from '@/lib/utils';
 
 function CartBell() {
@@ -74,23 +74,12 @@ function NotificationsDropdown() {
           <div className="absolute right-0 top-12 z-40 w-80 bg-white rounded-2xl border border-slate-100 shadow-2xl p-2 overflow-hidden">
             <div className="px-3 py-2.5 flex items-center justify-between border-b border-slate-100">
               <p className="text-xs font-black text-ink uppercase tracking-wider">Notifications</p>
-              <span className="text-[10px] font-bold text-slate-400">3 new</span>
+              <span className="text-[10px] font-bold text-slate-400">0</span>
             </div>
             <div className="py-1">
-              {NOTIFICATIONS.map((n) => (
-                <Link
-                  key={n.title}
-                  href={n.href}
-                  onClick={() => setOpen(false)}
-                  className="block px-3 py-3 rounded-xl hover:bg-slate-50 transition-colors"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="text-xs font-bold text-slate-800 leading-snug">{n.title}</p>
-                    <span className="text-[10px] font-bold text-slate-400 shrink-0">{n.time}</span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">{n.body}</p>
-                </Link>
-              ))}
+              <div className="p-4 text-center">
+                <p className="text-[12px] font-bold text-slate-400">No new notifications</p>
+              </div>
             </div>
           </div>
         </>
@@ -101,17 +90,19 @@ function NotificationsDropdown() {
 
 function WalletChip() {
   const { balance } = useWallet();
-  const { activeAccount } = useDemoApp();
+  const { data: session } = useSession();
+  const name = session?.user?.name || 'Resident';
+  const initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
   return (
     <Link
       href="/profile"
       className="flex items-center gap-3 rounded-2xl bg-gradient-to-br from-teal-900 to-teal-700 p-3.5 text-white hover:opacity-95 transition-opacity"
     >
       <div className="w-9 h-9 rounded-full bg-white/15 border border-white/20 flex items-center justify-center text-sm font-black">
-        {activeAccount.initials}
+        {initials}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-[13px] font-bold leading-tight truncate">{activeAccount.name}</p>
+        <p className="text-[13px] font-bold leading-tight truncate">{name}</p>
         <p className="text-[10px] text-teal-100/80 font-bold tabular-nums">
           {`CityPay · ${fmtNaira(balance)}`}
         </p>
@@ -239,7 +230,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
               <div>
                 <h1 className="text-xl font-black tracking-tight text-ink leading-none">CityOS</h1>
                 <p className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-0.5">
-                  {`Calabar · ${APP_STATE}`}
+                  {`Calabar · Prototype`}
                 </p>
               </div>
             </Link>

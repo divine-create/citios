@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { MapPin, Navigation, Phone, Share2, Car, Clock, Loader2, Waves, Check } from 'lucide-react';
-import { RIDE_AREAS, RIDE_CLASSES, DEMO_ROUTE_FARES, fmtNaira } from '@/lib/demo/cityos';
+import { RIDE_AREAS, RIDE_CLASSES,  fmtNaira } from '@/lib/demo/cityos';
 import { Pill, DemoBanner } from '@/components/cityos/CityUI';
 import { cn } from '@/lib/utils';
 
@@ -24,9 +24,8 @@ export default function RideView() {
 
   const from = RIDE_AREAS.find((r) => r.name === pickup);
   const to = RIDE_AREAS.find((r) => r.name === dest);
-  const known = DEMO_ROUTE_FARES.find((f) => f.from === pickup && f.to === dest);
-  const dist = known?.km ?? estimateDistance(pickup, dest);
-  const fare = known?.fare ?? Math.round(klass.baseFare + klass.perKm * dist);
+  const dist = estimateDistance(pickup, dest);
+  const fare = Math.round(klass.baseFare + klass.perKm * dist);
   const eta = `${klass.eta} for rider, ~${Math.max(6, Math.round(dist * 3.2))} min trip`;
 
   const request = () => {
@@ -112,7 +111,7 @@ export default function RideView() {
           <div className="space-y-2.5">
             <p className="text-xs font-black text-ink uppercase tracking-widest px-1">Pick a ride</p>
             {RIDE_CLASSES.map((r) => {
-              const rFare = known?.fare ?? Math.round(r.baseFare + r.perKm * dist);
+              const rFare = Math.round(r.baseFare + r.perKm * dist);
               const active = klass.id === r.id;
               return (
                 <button
@@ -231,12 +230,9 @@ export default function RideView() {
 
           <div className="hidden lg:block mt-4 rounded-2xl bg-slate-50 border border-slate-100 p-4 text-[11px] text-slate-500 font-medium leading-relaxed">
             <p className="font-black text-ink mb-1.5">Popular route fares</p>
-            {DEMO_ROUTE_FARES.map((f) => (
-              <div key={f.from + f.to} className="flex justify-between py-0.5">
-                <span className="truncate">{`${f.from} → ${f.to}`}</span>
-                <span className="font-black text-slate-700 ml-2 tabular-nums">{fmtNaira(f.fare)}</span>
-              </div>
-            ))}
+            <p className="text-[12px] text-slate-500 font-medium leading-relaxed">
+              Fares are estimated from your pickup and destination selection — choose your route above to see the price.
+            </p>
           </div>
         </div>
       </div>

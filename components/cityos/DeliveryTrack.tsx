@@ -20,12 +20,6 @@ export default function DeliveryTrack() {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem('cityos-demo-order');
-      if (raw) setOrder(JSON.parse(raw));
-    } catch {
-      /* no saved order */
-    }
     const t = window.setInterval(() => setProgress((p) => (p < 62 ? p + 1 : p)), 2000);
     const clear = window.setTimeout(() => window.clearInterval(t), 62000);
     return () => {
@@ -48,7 +42,7 @@ export default function DeliveryTrack() {
         <div>
           <h1 className="text-xl font-black text-ink flex items-center gap-2">
             <PackageCheck className="w-5 h-5 text-teal-800" />
-            {`Delivery ${order?.ref ?? 'CC-2841'} · on the way`}
+            {order ? `Delivery ${order.ref} · on the way` : 'Delivery tracking'}
           </h1>
           <p className="text-xs text-slate-500 font-medium mt-0.5">{`${eta} min to ${stops[stops.length - 1].area}`}</p>
         </div>
@@ -179,7 +173,7 @@ export default function DeliveryTrack() {
               </div>
             ) : (
               <p className="text-[13px] text-slate-500 font-medium">
-                Palm oil 1L, wild ogbono, crayfish — from your latest demo order.
+                Order contents will appear here once an order is placed.
               </p>
             )}
           </div>

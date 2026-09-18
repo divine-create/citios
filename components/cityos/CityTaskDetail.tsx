@@ -6,19 +6,16 @@ import { Wrench, ChevronRight, ShieldCheck, Check, UserCheck, Timer } from 'luci
 import { getTask, fmtNaira } from '@/lib/demo/cityos';
 import { FallbackImg, Pill, Stars, DemoBanner, Money } from '@/components/cityos/CityUI';
 import { useWallet } from '@/components/cityos/WalletStore';
-import { useDemoApp } from '@/lib/demo/app/store';
-import { taskOrgId } from '@/lib/demo/app/seed';
+
 import { cn } from '@/lib/utils';
 import { requestServiceJob } from '@/app/actions/service';
 
 export default function CityTaskDetail({ id }: { id: string }) {
   const t = getTask(id);
   const { spend, balance } = useWallet();
-  const { serviceRequests, requestService, activeAccount } = useDemoApp();
   const [state, setState] = useState<'idle' | 'posted' | 'low'>('idle');
   const [ref] = useState(() => `TASK-${String(Math.floor(1000 + Math.random() * 9000))}`);
-  const requested = serviceRequests.some((r) => r.taskId === id);
-  const booked = requested || state === 'posted';
+  const booked = state === 'posted';
 
   if (!t) {
     return (
@@ -43,16 +40,6 @@ export default function CityTaskDetail({ id }: { id: string }) {
       await requestServiceJob({ serviceId: t.id });
     } catch (e) {
       console.error(e);
-      // Fallback: use demo state if server fails, though we prefer real persistence
-      requestService({
-        orgId: taskOrgId(t.name) || '',
-        taskId: t.id,
-        taskName: t.name,
-        area: t.area,
-        amount: t.from,
-        pro: t.pro,
-        status: 'new',
-      });
     }
   };
 
@@ -103,7 +90,7 @@ export default function CityTaskDetail({ id }: { id: string }) {
         </p>
         <div className="space-y-2 text-[12px] font-bold mt-3">
           <div className="flex justify-between"><span className="text-slate-500">Pro</span><span className="text-slate-700">{t.pro}</span></div>
-          <div className="flex justify-between"><span className="text-slate-500">Client</span><span className="text-slate-700">{activeAccount.name}</span></div>
+          <div className="flex justify-between"><span className="text-slate-500">Client</span><span className="text-slate-700">Your booking</span></div>
           <div className="flex justify-between"><span className="text-slate-500">Deposit</span><span className="text-teal-800">CityPay wallet</span></div>
         </div>
         <div className="h-px bg-slate-100 my-3" />

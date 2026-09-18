@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { PenSquare, PackagePlus, Wrench, Briefcase, CalendarPlus, HousePlus, Users, ArrowRight, Sparkles } from 'lucide-react';
-import { DEMO_USER } from '@/lib/demo/cityos';
+
 import { SectionHead, Pill } from '@/components/cityos/CityUI';
 import { fetchResidentActivity } from '@/app/actions/activity';
 import { useEffect, useState } from 'react';
@@ -40,7 +40,7 @@ export default function CityCreate() {
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 ring-1 ring-white/15 text-[10px] font-black uppercase tracking-widest">
             <Sparkles className="w-3 h-3" /> Create
           </span>
-          <h1 className="mt-3 text-2xl md:text-3xl font-black tracking-tight">{`Put something in your city, ${DEMO_USER.name.split(' ')[0]}.`}</h1>
+          <h1 className="mt-3 text-2xl md:text-3xl font-black tracking-tight">Put something in your city.</h1>
           <p className="mt-2 text-teal-50/80 text-[13px] font-medium max-w-xl leading-relaxed">
             Create is the same front door for every role — resident posts, merchant inventory, service quotes, school notices. In the demo each action lands on the surface that owns it.
           </p>

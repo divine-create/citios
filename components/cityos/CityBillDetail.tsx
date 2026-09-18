@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { ChevronRight, ShieldCheck, Check, Receipt } from 'lucide-react';
-import { getBill, BILL_KIND_ICONS, fmtNaira, DEMO_USER } from '@/lib/demo/cityos';
+import { getBill, BILL_KIND_ICONS, fmtNaira } from '@/lib/demo/cityos';
 import { Pill, DemoBanner, Money } from '@/components/cityos/CityUI';
 import { useWallet } from '@/components/cityos/WalletStore';
 import { cn } from '@/lib/utils';
@@ -18,13 +18,13 @@ export default function CityBillDetail({ slug }: { slug: string }) {
   if (!b) {
     return (
       <div className="max-w-lg mx-auto text-center py-20 space-y-4">
-        <h1 className="text-lg font-black text-ink">That biller is not in the demo city.</h1>
+        <h1 className="text-lg font-black text-ink">That biller is not available.</h1>
         <Link href="/bills" className="inline-block px-5 py-2.5 rounded-xl bg-teal-800 text-white text-xs font-black hover:bg-teal-900">Back to Bills</Link>
       </div>
     );
   }
 
-  const Icon = BILL_KIND_ICONS[b.kind];
+  const Icon = BILL_KIND_ICONS[b.kind as keyof typeof BILL_KIND_ICONS];
   const presets = Array.from(
     new Set([b.balance, Math.min(b.balance, 10000), Math.min(b.balance, 2500)]),
   ).filter((v) => v > 0);
@@ -89,7 +89,7 @@ export default function CityBillDetail({ slug }: { slug: string }) {
 
         <div className="flex items-center justify-between text-[13px] font-medium text-slate-600">
           <span>Charged to</span>
-          <span className="font-black text-ink">{`${DEMO_USER.name} · ${DEMO_USER.walletId}`}</span>
+          <span className="font-black text-ink">Resident · CityPay wallet</span>
         </div>
         <div className="flex items-center justify-between text-[13px] font-medium text-slate-600">
           <span>Wallet balance</span>

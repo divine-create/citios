@@ -24,7 +24,6 @@ import {
   Users as UsersIcon,
   Repeat,
 } from 'lucide-react';
-import { DEMO_USER } from '@/lib/demo/cityos';
 import { SectionHead, Pill } from '@/components/cityos/CityUI';
 
 const JOURNEYS = [
@@ -156,7 +155,7 @@ export default function DemoHub() {
             CityOS in 90 seconds
           </h1>
           <p className="mt-3 text-teal-50/80 text-sm font-medium max-w-2xl leading-relaxed">
-            {`Eight journeys tie the city together — one app, one identity ${`(${DEMO_USER.name}, ${DEMO_USER.area})`}, one wallet. Everything below uses the same demo dataset, so each screen leads to the next.`}
+            {`Eight journeys tie the city together — one app, one identity, one wallet.`}
           </p>
           <div className="mt-5 flex gap-2 flex-wrap text-[11px] font-bold">
             <span className="px-3 py-1.5 rounded-full bg-emerald-400/20 text-emerald-200">47 marketplaces</span>

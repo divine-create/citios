@@ -3,10 +3,10 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Phone, Heart, HeartOff, Truck, MapPin, Clock, ChevronRight, Plus, Check, MessageCircle, Star, Send } from 'lucide-react';
-import { getBusiness, DEMO_BUSINESSES, DEMO_PRODUCTS, getProduct, type Product } from '@/lib/demo/cityos';
+import { getBusiness, getProduct, type Product } from '@/lib/demo/cityos';
 import { FallbackImg, Stars, Pill, LocationRow, PriceTag, VerifiedBadge, DemoBanner } from '@/components/cityos/CityUI';
 import { useCart } from '@/components/cityos/CartStore';
-import { useDemoApp } from '@/lib/demo/app/store';
+
 import { bizOrgId } from '@/lib/demo/app/seed';
 import { cn } from '@/lib/utils';
 import { getOrg } from '@/lib/demo/universe/orgs';
@@ -14,7 +14,7 @@ import { getOrg } from '@/lib/demo/universe/orgs';
 export default function BusinessProfile({ slug }: { slug: string }) {
   const biz = getBusiness(slug);
   const { add } = useCart();
-  const { isFollowing, toggleFollow, reviewsForOrg, addReview, activeAccount } = useDemoApp();
+  const isFollowing: any = () => false; const toggleFollow: any = () => {}; const reviewsForOrg: any = () => []; const addReview: any = () => {};
   const [addedId, setAddedId] = useState<string | null>(null);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewText, setReviewText] = useState('');
@@ -40,7 +40,7 @@ export default function BusinessProfile({ slug }: { slug: string }) {
   const products: Product[] = (
     biz.featuredProductIds.length
       ? biz.featuredProductIds.map(getProduct)
-      : DEMO_PRODUCTS.filter((p) => p.bizSlug === biz.slug)
+      : []
   ).filter((p): p is Product => Boolean(p));
 
   const addToBag = (p: any) => {
@@ -57,7 +57,7 @@ export default function BusinessProfile({ slug }: { slug: string }) {
     window.setTimeout(() => setReviewSent(false), 2000);
   };
 
-  const otherBiz = DEMO_BUSINESSES.filter((b) => b.slug !== biz.slug).slice(0, 3);
+  const otherBiz: any[] = [];
   const uniOrg = getOrg(biz.slug);
 
   return (
@@ -195,6 +195,12 @@ export default function BusinessProfile({ slug }: { slug: string }) {
               </div>
             </div>
           ))}
+          {products.length === 0 ? (
+            <div className="col-span-full rounded-2xl border border-dashed border-slate-200 p-8 text-center bg-white">
+              <p className="text-[13px] font-black text-ink">No products listed</p>
+              <p className="text-[11px] text-slate-400 font-medium mt-1">This store has not published its inventory yet.</p>
+            </div>
+          ) : null}
         </div>
       </section>
 
@@ -220,7 +226,7 @@ export default function BusinessProfile({ slug }: { slug: string }) {
 
         {reviews.length ? (
           <div className="space-y-3 mb-4">
-            {reviews.map((r) => (
+            {reviews.map((r: any) => (
               <div key={r.id} className="rounded-xl bg-slate-50 p-4 border border-slate-100">
                 <div className="flex items-center gap-2">
                   <p className="text-[12px] font-black text-ink">{r.author}</p>
@@ -237,7 +243,7 @@ export default function BusinessProfile({ slug }: { slug: string }) {
         ) : null}
 
         <div className="rounded-xl border border-dashed border-slate-200 p-4">
-          <p className="text-[11px] font-black text-slate-500 mb-2">{`Rate ${biz.name} as ${activeAccount.name}`}</p>
+          <p className="text-[11px] font-black text-slate-500 mb-2">{`Rate ${biz.name}`}</p>
           <div className="flex items-center gap-1 mb-2">
             {[1, 2, 3, 4, 5].map((n) => (
               <button key={n} onClick={() => setReviewRating(n)} aria-label={`${n} star`}>
@@ -284,20 +290,22 @@ export default function BusinessProfile({ slug }: { slug: string }) {
       </div>
 
       {/* More stores */}
-      <section>
-        <h2 className="text-base font-black text-ink mb-3">More on the marketplace</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {otherBiz.map((b) => (
-            <Link key={b.slug} href={`/org/${b.slug}`} className="flex items-center gap-3 bg-white rounded-2xl border border-slate-100 p-3 hover:shadow-md hover:-translate-y-0.5 transition-all">
-              <FallbackImg src={b.logo} alt={b.name} className="w-11 h-11 rounded-xl shrink-0" icon={<span className="text-sm font-black">{b.name.slice(0, 1)}</span>} />
-              <div className="min-w-0">
-                <p className="text-[12px] font-black text-ink truncate">{b.name}</p>
-                <LocationRow text={`${b.area} · ${b.category}`} className="text-[10px]" />
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
+      {otherBiz.length ? (
+        <section>
+          <h2 className="text-base font-black text-ink mb-3">More on the marketplace</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {otherBiz.map((b) => (
+              <Link key={b.slug} href={`/org/${b.slug}`} className="flex items-center gap-3 bg-white rounded-2xl border border-slate-100 p-3 hover:shadow-md hover:-translate-y-0.5 transition-all">
+                <FallbackImg src={b.logo} alt={b.name} className="w-11 h-11 rounded-xl shrink-0" icon={<span className="text-sm font-black">{b.name.slice(0, 1)}</span>} />
+                <div className="min-w-0">
+                  <p className="text-[12px] font-black text-ink truncate">{b.name}</p>
+                  <LocationRow text={`${b.area} · ${b.category}`} className="text-[10px]" />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <DemoBanner />
     </div>

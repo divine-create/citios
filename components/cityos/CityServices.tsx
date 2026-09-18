@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Wrench, ArrowRight } from 'lucide-react';
-import { DEMO_TASKS, fmtNaira } from '@/lib/demo/cityos';
+import { fmtNaira } from '@/lib/demo/cityos';
 import { SERVICEOS_ORGS } from '@/lib/demo/universe/orgs';
 import { CityCard, FallbackImg, Stars, Pill, DemoBanner } from '@/components/cityos/CityUI';
 
@@ -24,30 +24,9 @@ export default function CityServices() {
           <Link href="/tasks" className="text-[11px] font-bold text-teal-800 hover:underline">All City Tasks →</Link>
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {DEMO_TASKS.slice(0, 6).map((t) => (
-            <CityCard key={t.id} href={`/tasks/${t.id}`} className="flex flex-col">
-              <FallbackImg src={t.image} alt={t.name} className="h-28 w-full" gradient="from-slate-900 to-teal-800" />
-              <div className="p-4 flex-1 flex flex-col gap-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-[13px] font-black text-ink truncate">{t.name}</p>
-                    <p className="text-[10px] font-bold text-teal-800">{t.category}</p>
-                  </div>
-                  <Pill tone="blue">{`from ${fmtNaira(t.from)}`}</Pill>
-                </div>
-                <p className="text-[12px] text-slate-500 font-medium leading-snug line-clamp-2">{t.desc}</p>
-                <div className="mt-auto pt-2 flex items-center justify-between">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="w-6 h-6 rounded-full bg-teal-50 text-teal-800 flex items-center justify-center text-[10px] font-black shrink-0">
-                      {t.pro.slice(0, 1)}
-                    </span>
-                    <p className="text-[11px] font-black text-ink truncate">{t.pro}</p>
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-400 shrink-0">{t.eta}</span>
-                </div>
-              </div>
-            </CityCard>
-          ))}
+          <div className="col-span-full rounded-2xl border border-dashed border-slate-200 p-8 text-center bg-white">
+            <p className="text-[13px] font-black text-ink">No tasks available</p>
+          </div>
         </div>
       </section>
 

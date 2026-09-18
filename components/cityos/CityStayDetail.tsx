@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { BedDouble, ChevronRight, ShieldCheck, Check, BadgeCheck } from 'lucide-react';
-import { getHotel, fmtNaira, DEMO_USER } from '@/lib/demo/cityos';
+import { getHotel, fmtNaira } from '@/lib/demo/cityos';
 import { FallbackImg, Pill, Stars, LocationRow, DemoBanner, Money } from '@/components/cityos/CityUI';
 import { useWallet } from '@/components/cityos/WalletStore';
 import { cn } from '@/lib/utils';
@@ -17,7 +17,7 @@ export default function CityStayDetail({ slug }: { slug: string }) {
   if (!h) {
     return (
       <div className="max-w-lg mx-auto text-center py-20 space-y-4">
-        <h1 className="text-lg font-black text-ink">That hotel is not in the demo city.</h1>
+        <h1 className="text-lg font-black text-ink">That hotel is not available.</h1>
         <Link href="/stay" className="inline-block px-5 py-2.5 rounded-xl bg-teal-800 text-white text-xs font-black hover:bg-teal-900">Back to hotels</Link>
       </div>
     );
@@ -40,7 +40,7 @@ export default function CityStayDetail({ slug }: { slug: string }) {
       <div className="relative rounded-3xl overflow-hidden">
         <FallbackImg src={h.image} alt={h.name} className="h-56 md:h-80 w-full" gradient="from-teal-900 to-teal-700" />
         <div className="absolute bottom-3 left-3 right-3 flex gap-2 flex-wrap">
-          {h.tags.map((t) => <Pill key={t} tone="teal">{t}</Pill>)}
+          {h.tags.map((t: any) => <Pill key={t} tone="teal">{t}</Pill>)}
           {h.nearStadium ? <Pill tone="orange">Near stadium</Pill> : null}
         </div>
       </div>
@@ -75,7 +75,7 @@ export default function CityStayDetail({ slug }: { slug: string }) {
           <div className="bg-white rounded-2xl border border-slate-100 p-6">
             <h2 className="text-base font-black text-ink mb-3">Amenities</h2>
             <div className="flex flex-wrap gap-2">
-              {h.amenities.map((a) => <Pill key={a} tone="teal">{a}</Pill>)}
+              {h.amenities.map((a: any) => <Pill key={a} tone="teal">{a}</Pill>)}
             </div>
           </div>
 
@@ -104,7 +104,7 @@ export default function CityStayDetail({ slug }: { slug: string }) {
               <div className="flex justify-between"><span className="text-slate-500">Booking</span><span className="text-slate-700">{h.name}</span></div>
               <div className="flex justify-between"><span className="text-slate-500">Night of</span><span className="text-slate-700">{new Date().toLocaleDateString('en-NG', { weekday: 'long', day: 'numeric' })}</span></div>
               <div className="flex justify-between"><span className="text-slate-500">Guests</span><span className="text-slate-700">{h.guests}</span></div>
-              <div className="flex justify-between"><span className="text-slate-500">Guest</span><span className="text-slate-700">{DEMO_USER.name}</span></div>
+              <div className="flex justify-between"><span className="text-slate-500">Guest</span><span className="text-slate-700">Resident</span></div>
             </div>
             <div className="h-px bg-slate-100" />
             <Money amount={h.pricePerNight} className="text-2xl block" />
