@@ -4,6 +4,7 @@ import { UtensilsCrossed, ChefHat, Clock, MapPin, ArrowLeft, ShoppingBag } from 
 import { getCityFoodRestaurant } from '@/app/actions/food';
 import { getCurrentCity } from '@/lib/city';
 import { CityCard, FallbackImg, Stars, LocationRow, OpenBadge } from '@/components/cityos/CityUI';
+import CityMismatchChip from '@/components/cityos/CityMismatchChip';
 import { fmtNaira } from '@/lib/format';
 
 interface Props {
@@ -48,6 +49,8 @@ export default async function CityFoodRestaurantPage({ params }: Props) {
               </div>
               <OpenBadge open={restaurant.isOpen ?? true} />
             </div>
+
+            <CityMismatchChip citySlug={restaurant.citySlug} label="This kitchen is in" />
 
             {restaurant.description ? (
               <p className="text-[12px] text-slate-600 font-medium leading-snug">{restaurant.description}</p>

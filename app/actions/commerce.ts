@@ -221,9 +221,13 @@ export async function getCityMartProduct(productId: string) {
   const p = await db.orm.public.RetailProduct.where({ id: productId }).first();
   if (!p) return null;
   const org = await db.orm.public.Organization.where({ id: p.organizationId }).first();
+  const orgCity = org?.cityId
+    ? await db.orm.public.City.where({ id: org.cityId }).first()
+    : null;
   return {
     ...p,
     storeName: org?.name || 'Unknown Store',
     orgSlug: org?.id,
+    citySlug: orgCity?.slug ?? null,
   };
 }

@@ -3,6 +3,7 @@ import { ArrowRight, Briefcase, BadgeCheck, Users, CalendarDays, ClipboardList, 
 import { getCanonicalOrganization } from '@/app/actions/org';
 import { fmtNaira } from '@/lib/format';
 import { Pill, Stars, LocationRow, DemoBanner, VerifiedBadge } from '@/components/cityos/CityUI';
+import CityMismatchChip from '@/components/cityos/CityMismatchChip';
 
 export default async function OrgProfile({ id }: { id: string }) {
   const org = await getCanonicalOrganization(id);
@@ -61,6 +62,10 @@ export default async function OrgProfile({ id }: { id: string }) {
           </div>
         </div>
       </div>
+
+      {/* City mismatch: this business may sit in a different city than the one
+          being browsed — always labelled, never silently mixed. */}
+      <CityMismatchChip citySlug={org.citySlug} />
 
       {/* Fact bar */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

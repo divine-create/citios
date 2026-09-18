@@ -10,6 +10,9 @@ export async function getCanonicalOrganization(id: string) {
   if (!org) return null;
   
   const locations = await db.orm.public.Location.where({ organizationId: org.id }).all();
+  const orgCity = org.cityId
+    ? await db.orm.public.City.where({ id: org.cityId }).first()
+    : null;
   const jobs = await db.orm.public.Job.where({ organizationId: org.id }).all();
   const events = await db.orm.public.Event.where({ organizationId: org.id }).all();
   const services = await db.orm.public.ServiceCatalogItem.where({ organizationId: org.id }).all();
@@ -21,6 +24,7 @@ export async function getCanonicalOrganization(id: string) {
     type: org.type,
     description: org.description,
     cityId: org.cityId,
+    citySlug: orgCity?.slug ?? null,
     address: org.address,
     locations,
     capabilities: {

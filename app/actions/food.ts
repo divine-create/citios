@@ -21,7 +21,7 @@ function mapMenuItem(m: any) {
   };
 }
 
-function mapRestaurant(o: any, menuItems: any[]) {
+function mapRestaurant(o: any, menuItems: any[], citySlug: string | null = null) {
   return {
     id: o.id,
     name: o.name,
@@ -29,6 +29,7 @@ function mapRestaurant(o: any, menuItems: any[]) {
     description: o.description,
     address: o.address,
     cityId: o.cityId,
+    citySlug,
     menuItems,
     imageUrl: undefined,
     rating: null,
@@ -51,7 +52,7 @@ export async function getCityFood(citySlug?: string) {
   const menus = await db.orm.public.MenuItem.where({ organizationId: { in: orgIds } }).all();
 
   return {
-    restaurants: orgs.map((o) => mapRestaurant(o, menus.filter((m) => m.organizationId === o.id).map(mapMenuItem))),
+    restaurants: orgs.map((o) => mapRestaurant(o, menus.filter((m) => m.organizationId === o.id).map(mapMenuItem), city.slug)),
     menuItems: menus.map(mapMenuItem),
   };
 }
@@ -65,8 +66,12 @@ export async function getCityFoodRestaurant(orgId: string) {
     db.orm.public.MenuItem.where({ organizationId: org.id }).all(),
   ]);
 
+  const orgCity = org.cityId
+    ? await db.orm.public.City.where({ id: org.cityId }).first()
+    : null;
+
   return {
-    ...mapRestaurant(org, menus.map(mapMenuItem)),
+    ...mapRestaurant(org, menus.map(mapMenuItem), orgCity?.slug ?? null),
     location: locs[0] ?? null,
     menuItems: menus.map(mapMenuItem),
   };

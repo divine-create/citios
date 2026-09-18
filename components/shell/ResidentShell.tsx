@@ -38,6 +38,7 @@ import { ExperienceProvider } from '@/components/cityos/ExperienceStore';
 import { CityProvider, type CityInfo } from '@/components/cityos/CityProvider';
 import CityPicker from '@/components/cityos/CityPicker';
 import GeoCitySuggestion from '@/components/cityos/GeoCitySuggestion';
+import CartCityGuard from '@/components/cityos/CartCityGuard';
 import { fmtNaira } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
@@ -482,6 +483,9 @@ const navGroups: { label: string; items: NavItem[] }[] = [
 
           {/* One-time geolocation suggestion: offers a switch, never performs one. */}
           <GeoCitySuggestion />
+
+          {/* Cart/city trust layer: cross-city bag prompt + foreign-bag notice. */}
+          <CartCityGuard />
 
           {/* Mobile Bottom Navigation */}
           <nav className="md:hidden absolute bottom-0 left-0 right-0 bg-white border-t border-slate-100 flex items-center justify-between px-2 h-16 z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">

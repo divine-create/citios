@@ -4,10 +4,13 @@ import Link from 'next/link';
 import { Minus, Plus, Trash2, ShoppingCart, ChevronRight, ArrowLeft } from 'lucide-react';
 import { fmtNaira } from '@/lib/format';
 import { useCart } from '@/components/cityos/CartStore';
+import { useCity } from '@/components/cityos/CityProvider';
 import { FallbackImg, Money } from '@/components/cityos/CityUI';
 
 export default function CartView() {
-  const { lines, setQty, remove, subtotal, deliveryFee, count } = useCart();
+  const { lines, setQty, remove, subtotal, deliveryFee, count, cartCitySlug, isForeignCart } = useCart();
+  const { city, cities } = useCity();
+  const bagCityName = cities.find((c) => c.slug === cartCitySlug)?.name ?? null;
 
   if (lines.length === 0) {
     return (
@@ -35,7 +38,15 @@ export default function CartView() {
       </Link>
 
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-black text-ink">Your Bag ({count})</h1>
+        <div>
+          <h1 className="text-2xl font-black text-ink">Your Bag ({count})</h1>
+          {bagCityName ? (
+            <p className="text-[11px] font-bold text-slate-500 mt-1">
+              {`Bag city: ${bagCityName}`}
+              {isForeignCart && city ? ` — you're browsing ${city.name}` : ''}
+            </p>
+          ) : null}
+        </div>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6">
