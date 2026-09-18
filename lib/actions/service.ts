@@ -179,10 +179,36 @@ export async function createServiceCatalogItem(input: {
   price: number;
   durationMinutes: number;
   description?: string;
+  showOnFeed?: boolean;
 }) {
   try {
     await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
-    const item = await db.orm.public.ServiceCatalogItem.create(input);
+    
+    const showOnFeed = input.showOnFeed ?? true;
+    
+    const item = await db.transaction(async (tx) => {
+      const createdItem = await tx.orm.public.ServiceCatalogItem.create({
+        organizationId: input.organizationId,
+        name: input.name,
+        price: input.price,
+        durationMinutes: input.durationMinutes,
+        description: input.description,
+      });
+
+      if (showOnFeed) {
+        await tx.orm.public.Post.create({
+          organizationId: input.organizationId,
+          title: `New service available: ${createdItem.name}`,
+          content: `New service available: ${createdItem.name}`,
+          category: 'SERVICE',
+          linkedEntityType: 'SERVICE',
+          linkedEntityId: createdItem.id,
+        });
+      }
+
+      return createdItem;
+    });
+
     return { success: true, item };
   } catch (error) {
     console.error('Error creating catalog item:', error);

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { UtensilsCrossed, ChefHat, Clock, MapPin, ArrowLeft, ShoppingBag } from 'lucide-react';
 import { getCityFoodRestaurant } from '@/app/actions/food';
 import { CityCard, FallbackImg, Stars, LocationRow, OpenBadge } from '@/components/cityos/CityUI';
+import { fmtNaira } from '@/lib/demo/cityos';
 
 interface Props {
   params: Promise<{ orgId: string }>;
@@ -13,7 +14,7 @@ export default async function CityFoodRestaurantPage({ params }: Props) {
   const data = await getCityFoodRestaurant(orgId);
 
   if (data) {
-    const { restaurant, location, menuItems } = data;
+    const { location, menuItems, ...restaurant } = data;
 
     return (
       <div className="space-y-6 animate-in fade-in duration-500">

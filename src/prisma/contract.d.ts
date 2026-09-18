@@ -33,7 +33,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'9c874693c9e4e26f19b6f8e54f1db50e22cae13d465cf32f716fe40179eeb363'>;
+  StorageHashBase<'ff69ae6c10e8327bcf419def7f877cdd9eddcf94715a97839d7981a358d2270a'>;
 export type ExecutionHash =
   ExecutionHashBase<'dc966faa34b9e0e7d964f2480ba4f9241147cd24c2f57568d47b6434f9079904'>;
 export type ProfileHash =
@@ -922,6 +922,8 @@ export type FieldOutputTypes = {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly organizationId: CodecTypes['pg/text@1']['output'] | null;
       readonly personId: CodecTypes['pg/text@1']['output'] | null;
+      readonly linkedEntityType: CodecTypes['pg/text@1']['output'] | null;
+      readonly linkedEntityId: CodecTypes['pg/text@1']['output'] | null;
     };
     readonly PostLike: {
       readonly id: CodecTypes['pg/text@1']['output'];
@@ -2311,6 +2313,8 @@ export type FieldInputTypes = {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly organizationId: CodecTypes['pg/text@1']['input'] | null;
       readonly personId: CodecTypes['pg/text@1']['input'] | null;
+      readonly linkedEntityType: CodecTypes['pg/text@1']['input'] | null;
+      readonly linkedEntityId: CodecTypes['pg/text@1']['input'] | null;
     };
     readonly PostLike: {
       readonly id: CodecTypes['pg/text@1']['input'];
@@ -3694,6 +3698,8 @@ export type StorageColumnTypes = {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly isEmergency: CodecTypes['pg/bool@1']['output'];
+      readonly linkedEntityId: CodecTypes['pg/text@1']['output'] | null;
+      readonly linkedEntityType: CodecTypes['pg/text@1']['output'] | null;
       readonly organizationId: CodecTypes['pg/text@1']['output'] | null;
       readonly personId: CodecTypes['pg/text@1']['output'] | null;
       readonly shareCount: CodecTypes['pg/int4@1']['output'];
@@ -5083,6 +5089,8 @@ export type StorageColumnInputTypes = {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly isEmergency: CodecTypes['pg/bool@1']['input'];
+      readonly linkedEntityId: CodecTypes['pg/text@1']['input'] | null;
+      readonly linkedEntityType: CodecTypes['pg/text@1']['input'] | null;
       readonly organizationId: CodecTypes['pg/text@1']['input'] | null;
       readonly personId: CodecTypes['pg/text@1']['input'] | null;
       readonly shareCount: CodecTypes['pg/int4@1']['input'];
@@ -11557,9 +11565,21 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/text@1';
                   readonly nullable: true;
                 };
+                readonly linkedEntityType: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly linkedEntityId: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
               };
               primaryKey: { readonly columns: readonly ['id'] };
-              uniques: readonly [];
+              uniques: readonly [
+                { readonly columns: readonly ['linkedEntityType', 'linkedEntityId'] },
+              ];
               indexes: readonly [
                 {
                   readonly name: 'post_organizationId_idx_2e17ef41';
@@ -24577,6 +24597,14 @@ type ContractBase = Omit<
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
+              readonly linkedEntityType: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly linkedEntityId: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
             };
             readonly relations: {
               readonly comments: {
@@ -24639,6 +24667,8 @@ type ContractBase = Omit<
                 readonly createdAt: { readonly column: 'createdAt' };
                 readonly organizationId: { readonly column: 'organizationId' };
                 readonly personId: { readonly column: 'personId' };
+                readonly linkedEntityType: { readonly column: 'linkedEntityType' };
+                readonly linkedEntityId: { readonly column: 'linkedEntityId' };
               };
             };
           };

@@ -29,6 +29,12 @@ function mapRestaurant(o: any, menuItems: any[]) {
     address: o.address,
     cityId: o.cityId,
     menuItems,
+    imageUrl: undefined,
+    rating: null,
+    isOpen: true,
+    area: 'Calabar',
+    category: 'Restaurant',
+    deliveryEta: '30-45 min',
   };
 }
 

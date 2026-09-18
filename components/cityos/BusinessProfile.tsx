@@ -44,7 +44,7 @@ export default function BusinessProfile({ slug }: { slug: string }) {
   ).filter((p): p is Product => Boolean(p));
 
   const addToBag = (p: any) => {
-    add({ productId: p.id, name: p.name, price: p.price, qty: 1, orgId: p.bizSlug, orgName: p.bizSlug });
+    add({ kind: 'retail', productId: p.id, name: p.name, price: p.price, qty: 1, orgId: p.bizSlug, orgName: p.bizSlug });
     setAddedId(p.id);
     window.setTimeout(() => setAddedId(null), 1400);
   };

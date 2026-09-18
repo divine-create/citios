@@ -708,8 +708,13 @@ model Post {
   personId       String?
   person         Person?       @relation("ResidentPosts", fields: [personId], references: [id], onDelete: Cascade)
   
+  linkedEntityType String?
+  linkedEntityId   String?
+
   comments       Comment[]
   likes          PostLike[]
+
+  @@unique([linkedEntityType, linkedEntityId])
 }
 
 model Follow {

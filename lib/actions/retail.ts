@@ -134,26 +134,45 @@ export async function createProduct(input: {
   unit?: string;
   categoryId?: string;
   imageAssetId?: string;
+  showOnFeed?: boolean;
 }) {
   try {
     await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     if (!input.name.trim()) return { error: 'Product name is required.' };
     if (input.price == null || input.price < 0) return { error: 'A valid price is required.' };
-    const product = await db.orm.public.RetailProduct.create({
-      organizationId: input.organizationId,
-      name: input.name,
-      description: input.description,
-      barcode: input.barcode,
-      sku: input.sku,
-      price: input.price,
-      cost: input.cost,
-      stockQuantity: input.stockQuantity ?? 0,
-      lowStockLevel: input.lowStockLevel,
-      isWeighed: input.isWeighed ?? false,
-      unit: input.unit ?? 'ea',
-      categoryId: input.categoryId,
-      imageAssetId: input.imageAssetId,
+    const showOnFeed = input.showOnFeed ?? true;
+    
+    const product = await db.transaction(async (tx) => {
+      const createdProduct = await tx.orm.public.RetailProduct.create({
+        organizationId: input.organizationId,
+        name: input.name,
+        description: input.description,
+        barcode: input.barcode,
+        sku: input.sku,
+        price: input.price,
+        cost: input.cost,
+        stockQuantity: input.stockQuantity ?? 0,
+        lowStockLevel: input.lowStockLevel,
+        isWeighed: input.isWeighed ?? false,
+        unit: input.unit ?? 'ea',
+        categoryId: input.categoryId,
+        imageAssetId: input.imageAssetId,
+      });
+
+      if (showOnFeed) {
+        await tx.orm.public.Post.create({
+          organizationId: input.organizationId,
+          title: `New product available: ${createdProduct.name}`,
+          content: `New product available: ${createdProduct.name}`,
+          category: 'RETAIL',
+          linkedEntityType: 'RETAIL_PRODUCT',
+          linkedEntityId: createdProduct.id,
+        });
+      }
+
+      return createdProduct;
     });
+
     return { success: true, product: JSON.parse(JSON.stringify(product)) };
   } catch (error) {
     console.error('Error creating product:', error);

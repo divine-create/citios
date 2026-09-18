@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Star, Clock, Plus, Minus, ShoppingBag } from 'lucide-react';
 import { CityCard, FallbackImg, Stars, ChipButton } from '@/components/cityos/CityUI';
@@ -62,7 +62,7 @@ export default function MenuItemDetail({ menuItemId }: MenuItemDetailProps) {
         <ArrowLeft className="w-3.5 h-3.5" /> Back to CityFood
       </Link>
 
-      <CityCard as="div" className="overflow-hidden">
+      <CityCard className="overflow-hidden">
         <FallbackImg
           src={mi.imageUrl}
           alt={mi.name}
@@ -98,11 +98,11 @@ export default function MenuItemDetail({ menuItemId }: MenuItemDetailProps) {
 
           <div className="flex items-center gap-2 pt-1">
             <div className="flex items-center gap-2 rounded-xl bg-slate-50 p-1">
-              <ChipButton active={false} onClick={() => setQty((q) => Math.max(1, q - 1))} className="px-2.5 py-1.5">
+              <ChipButton active={false} onClick={() => setQty((q) => Math.max(1, q - 1))}>
                 <Minus className="w-3.5 h-3.5" />
               </ChipButton>
               <span className="text-sm font-black text-ink w-6 text-center">{qty}</span>
-              <ChipButton active={false} onClick={() => setQty((q) => q + 1)} className="px-2.5 py-1.5">
+              <ChipButton active={false} onClick={() => setQty((q) => q + 1)}>
                 <Plus className="w-3.5 h-3.5" />
               </ChipButton>
             </div>

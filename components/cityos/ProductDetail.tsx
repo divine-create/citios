@@ -44,6 +44,7 @@ export default function ProductDetail({ id }: { id: string }) {
 
   const handleAdd = () => {
     add({
+      kind: 'retail',
       productId: p.id,
       name: p.name,
       price: p.price,

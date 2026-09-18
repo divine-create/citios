@@ -10752,6 +10752,20 @@
                   "kind": "scalar"
                 }
               },
+              "linkedEntityId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "linkedEntityType": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "organizationId": {
                 "nullable": true,
                 "type": {
@@ -10879,6 +10893,12 @@
                 },
                 "isEmergency": {
                   "column": "isEmergency"
+                },
+                "linkedEntityId": {
+                  "column": "linkedEntityId"
+                },
+                "linkedEntityType": {
+                  "column": "linkedEntityType"
                 },
                 "organizationId": {
                   "column": "organizationId"
@@ -27524,6 +27544,16 @@
                   "nativeType": "bool",
                   "nullable": false
                 },
+                "linkedEntityId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "linkedEntityType": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "organizationId": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -27632,7 +27662,14 @@
                   "id"
                 ]
               },
-              "uniques": []
+              "uniques": [
+                {
+                  "columns": [
+                    "linkedEntityType",
+                    "linkedEntityId"
+                  ]
+                }
+              ]
             },
             "postLike": {
               "columns": {
@@ -35456,7 +35493,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "9c874693c9e4e26f19b6f8e54f1db50e22cae13d465cf32f716fe40179eeb363"
+    "storageHash": "ff69ae6c10e8327bcf419def7f877cdd9eddcf94715a97839d7981a358d2270a"
   },
   "execution": {
     "executionHash": "dc966faa34b9e0e7d964f2480ba4f9241147cd24c2f57568d47b6434f9079904",

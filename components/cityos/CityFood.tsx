@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { UtensilsCrossed, ArrowRight } from 'lucide-react';
 import { useCart } from '@/components/cityos/CartStore';
 import { getCityFood } from '@/app/actions/food';
-import { CityCard, FallbackImg, Stars, LocationRow, OpenBadge, ChipButton, DemoBanner, fmtNaira } from '@/components/cityos/CityUI';
+import { CityCard, FallbackImg, Stars, LocationRow, OpenBadge, ChipButton, DemoBanner } from '@/components/cityos/CityUI';
+import { fmtNaira } from '@/lib/demo/cityos';
 
 const FOOD_CATS = ['All', 'Restaurant', 'Cafe', 'Campus Eats', 'Food & Market'];
 
@@ -48,7 +49,7 @@ export default function CityFood() {
       setLoading(true);
       const data = await getCityFood('calabar');
       if (!active) return;
-      setRestaurants(data.restaurants as RestaurantView[]);
+      setRestaurants(data.restaurants as unknown as RestaurantView[]);
       setMenuItems(data.menuItems as MenuItemView[]);
       setLoading(false);
     }
@@ -78,7 +79,7 @@ export default function CityFood() {
       <div className="flex flex-col gap-1">
         <h2 className="text-[13px] font-black text-ink">CityFood is live</h2>
         <p className="text-[11px] text-slate-500 font-medium">
-          Discover and order from real restaurants and their menus across {APP_CITY}.
+          Discover and order from real restaurants and their menus across {'Calabar'}.
         </p>
       </div>
 
