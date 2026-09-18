@@ -2302,6 +2302,20 @@
                   "kind": "scalar"
                 }
               },
+              "latitude": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
+              "longitude": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
               "name": {
                 "nullable": false,
                 "type": {
@@ -2339,6 +2353,21 @@
                   "model": "Organization",
                   "namespace": "public"
                 }
+              },
+              "residents": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "homeCityId"
+                  ]
+                },
+                "to": {
+                  "model": "Person",
+                  "namespace": "public"
+                }
               }
             },
             "storage": {
@@ -2357,6 +2386,12 @@
                 },
                 "isActive": {
                   "column": "isActive"
+                },
+                "latitude": {
+                  "column": "latitude"
+                },
+                "longitude": {
+                  "column": "longitude"
                 },
                 "name": {
                   "column": "name"
@@ -9937,6 +9972,13 @@
                   "kind": "scalar"
                 }
               },
+              "homeCityId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "id": {
                 "nullable": false,
                 "type": {
@@ -10062,6 +10104,21 @@
                 },
                 "to": {
                   "model": "FamilyLink",
+                  "namespace": "public"
+                }
+              },
+              "homeCity": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "homeCityId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "City",
                   "namespace": "public"
                 }
               },
@@ -10271,6 +10328,9 @@
                 },
                 "firstName": {
                   "column": "firstName"
+                },
+                "homeCityId": {
+                  "column": "homeCityId"
                 },
                 "id": {
                   "column": "id"
@@ -21361,6 +21421,16 @@
                   "nativeType": "bool",
                   "nullable": false
                 },
+                "latitude": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
+                  "nullable": true
+                },
+                "longitude": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
+                  "nullable": true
+                },
                 "name": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -27095,6 +27165,11 @@
                   "nativeType": "text",
                   "nullable": false
                 },
+                "homeCityId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "id": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -27115,8 +27190,34 @@
                   "nullable": false
                 }
               },
-              "foreignKeys": [],
-              "indexes": [],
+              "foreignKeys": [
+                {
+                  "source": {
+                    "columns": [
+                      "homeCityId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "person"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "city"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "homeCityId"
+                  ],
+                  "name": "person_homeCityId_idx_761cd09c",
+                  "prefix": "person_homeCityId_idx",
+                  "unique": false
+                }
+              ],
               "primaryKey": {
                 "columns": [
                   "id"
@@ -35493,7 +35594,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "ff69ae6c10e8327bcf419def7f877cdd9eddcf94715a97839d7981a358d2270a"
+    "storageHash": "a80bde53952f496d7e4d288f6a6cde7d6a0612604fdba463ca826934d14ba2e5"
   },
   "execution": {
     "executionHash": "dc966faa34b9e0e7d964f2480ba4f9241147cd24c2f57568d47b6434f9079904",

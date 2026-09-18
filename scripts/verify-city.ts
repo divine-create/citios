@@ -3,13 +3,18 @@ import { db } from '../src/prisma/db.js';
 
 async function verify() {
   const cities = await db.orm.public.City.all();
+  const persons = await db.orm.public.Person.all();
   for (const c of cities) {
     console.log(`CITY: ${c.name} slug=${c.slug} currency=${c.currency} tz=${c.timezone} active=${c.isActive}`);
+    console.log(`  COORDS: ${c.latitude ?? 'null'}, ${c.longitude ?? 'null'}`);
+    console.log(`  RESIDENTS (homeCityId): ${persons.filter((p) => p.homeCityId === c.id).length}`);
     const orgs = await db.orm.public.Organization.where({ cityId: c.id }).all();
     for (const o of orgs) {
       console.log(`  ORG: ${o.name} type=${o.type}`);
     }
   }
+  const unhomed = persons.filter((p) => !p.homeCityId).length;
+  console.log(`PERSONS WITHOUT HOME CITY: ${unhomed} / ${persons.length}`);
 
   // Cross-city leak check for the commerce surface:
   const lagos = cities.find((c) => c.slug === 'lagos');

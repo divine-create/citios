@@ -4,17 +4,18 @@
 // Single source of truth for "which city is the current session browsing".
 // Resolution order:
 //   1. The `cc_city` cookie (explicit selection, persists across sessions)
-//   2. If exactly one city is active, that city (single-city deployments
-//      never show a picker)
-//   3. First active city (stable fallback — the seed's only city)
+//   2. The signed-in Person's homeCityId (zero-prompt default for residents)
+//   3. The first active city (single-city deployments never show a picker)
 //
-// The city is NEVER taken from client input: only from the cookie, which is
-// written exclusively by the `switchCity` server action after validating the
-// slug against the canonical City table.
+// The city is NEVER taken from client input: the cookie is written only by the
+// `switchCity` server action after validating the slug against the canonical
+// City table, and the home city is read straight from the Person row.
 // ============================================================================
 
 import { cookies } from 'next/headers';
+import { getServerSession } from 'next-auth';
 import { db } from '@/src/prisma/db';
+import { authOptions } from '@/lib/auth';
 
 export const CITY_COOKIE = 'cc_city';
 
@@ -25,6 +26,9 @@ export interface CityRecord {
   country: string;
   currency: string;
   timezone: string;
+  // Geographic center — consumed by the nearest-city geolocation suggestion.
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export async function getActiveCities(): Promise<CityRecord[]> {
@@ -42,6 +46,26 @@ export async function getCityBySlug(slug: string): Promise<CityRecord | null> {
 }
 
 /**
+ * The signed-in person's home city, if they have one and it's an active city.
+ * Returns null for anonymous sessions (falls through the ladder).
+ */
+async function getHomeCity(cities: CityRecord[]): Promise<CityRecord | null> {
+  try {
+    const session = await getServerSession(authOptions);
+    const personId = session?.user?.personId;
+    if (!personId) return null;
+
+    const person = await db.orm.public.Person.where({ id: personId }).first();
+    if (!person?.homeCityId) return null;
+
+    return cities.find((c) => c.id === person.homeCityId) ?? null;
+  } catch {
+    // Any session/DB hiccup must never break rendering — skip this rung.
+    return null;
+  }
+}
+
+/**
  * The current session's city. Returns null only when no active city exists
  * at all (unseeded database) — callers should degrade gracefully.
  */
@@ -49,6 +73,7 @@ export async function getCurrentCity(): Promise<CityRecord | null> {
   const cities = await getActiveCities();
   if (cities.length === 0) return null;
 
+  // 1. Explicit selection (cookie)
   const cookieStore = await cookies();
   const slug = cookieStore.get(CITY_COOKIE)?.value;
   if (slug) {
@@ -56,6 +81,10 @@ export async function getCurrentCity(): Promise<CityRecord | null> {
     if (selected) return selected;
   }
 
-  if (cities.length === 1) return cities[0];
+  // 2. Resident's home city
+  const homeCity = await getHomeCity(cities);
+  if (homeCity) return homeCity;
+
+  // 3. Single active city, else the first active city as a stable fallback.
   return cities[0];
 }

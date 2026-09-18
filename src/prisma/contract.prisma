@@ -11,7 +11,11 @@ model Person {
   
   memberships    Membership[]
   relationships  Relationship[]
-  
+
+  // Home city — the resolution-ladder fallback when no city cookie exists.
+  homeCityId     String?
+  homeCity       City?      @relation("PersonHomeCity", fields: [homeCityId], references: [id])
+
   guardianLinks  FamilyLink[]       @relation("GuardianToWard")
   wardLinks      FamilyLink[]       @relation("WardToGuardian")
   wallets        Wallet[]
@@ -353,7 +357,12 @@ model City {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
 
+  // Geographic center — used by geolocation to suggest the nearest city.
+  latitude  Float?
+  longitude Float?
+
   organizations Organization[] @relation("CityOrganizations")
+  residents     Person[]       @relation("PersonHomeCity")
 }
 
 // ----------------------------------------------------------------------------
