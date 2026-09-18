@@ -1,16 +1,22 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Search, SlidersHorizontal, Compass, Sparkles } from 'lucide-react';
-import { DEMO_BUSINESSES, DEMO_PRODUCTS, fmtNaira } from '@/lib/demo/cityos';
-import { CityCard, FallbackImg, Stars, Pill, LocationRow, OpenBadge, ChipButton, DemoBanner } from '@/components/cityos/CityUI';
+import { fmtNaira } from '@/lib/demo/cityos';
+import { CityCard, FallbackImg, Stars, Pill, LocationRow, OpenBadge, ChipButton } from '@/components/cityos/CityUI';
+import { searchCityExplore } from '@/app/actions/explore';
 
-const CATS = ['All', ...Array.from(new Set(DEMO_BUSINESSES.map((b) => b.category)))];
+const CATS = ['All', 'Retail', 'Service', 'School', 'Healthcare', 'Hotel'];
 
 export default function CityExplore() {
   const [query, setQuery] = useState('');
   const [cat, setCat] = useState('All');
+  
+  const [results, setResults] = useState<any[]>([]);
+  const [marketProducts, setMarketProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     const c = new URLSearchParams(window.location.search).get('cat');
@@ -20,33 +26,27 @@ export default function CityExplore() {
     }
   }, []);
 
-  const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return DEMO_BUSINESSES.filter((b) => {
-      const inCat = cat === 'All' || b.category === cat;
-      const inQ =
-        !q ||
-        b.name.toLowerCase().includes(q) ||
-        b.area.toLowerCase().includes(q) ||
-        b.category.toLowerCase().includes(q) ||
-        b.tagline.toLowerCase().includes(q);
-      return inCat && inQ;
-    });
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(true);
+      setError(false);
+      
+      searchCityExplore('calabar', query, cat)
+        .then(data => {
+          setResults(data.organizations);
+          setMarketProducts(data.products);
+          setLoading(false);
+        })
+        .catch(err => {
+          console.error(err);
+          setError(true);
+          setLoading(false);
+        });
+    }, 300);
+    
+    return () => clearTimeout(timer);
   }, [query, cat]);
-
-  const marketProducts = useMemo(
-    () =>
-      DEMO_PRODUCTS.filter((p) => {
-        const biz = DEMO_BUSINESSES.find((b) => b.slug === p.bizSlug);
-        if (!biz) return false;
-        const q = query.trim().toLowerCase();
-        return (
-          (cat === 'All' || biz.category === cat) &&
-          (!q || p.name.toLowerCase().includes(q) || biz.name.toLowerCase().includes(q))
-        );
-      }).slice(0, 6),
-    [query, cat],
-  );
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -56,8 +56,6 @@ export default function CityExplore() {
           Marketplaces, stalls and services across the city — one CityOS search.
         </p>
       </div>
-
-      <DemoBanner />
 
       <div className="flex gap-2">
         <div className="flex-1 relative">
@@ -79,65 +77,72 @@ export default function CityExplore() {
         {CATS.map((c) => (
           <ChipButton key={c} active={cat === c} onClick={() => setCat(c)}>
             {c}
-            <span className="ml-1.5 opacity-60">
-              {c === 'All'
-                ? DEMO_BUSINESSES.length
-                : DEMO_BUSINESSES.filter((b) => b.category === c).length}
-            </span>
           </ChipButton>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {results.map((b) => (
-          <CityCard key={b.slug} href={`/org/${b.slug}`} className="flex flex-col">
-            <FallbackImg src={b.cover} alt={b.name} className="h-32 w-full" />
-            <div className="p-4 flex-1 flex flex-col gap-2">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-[14px] font-black text-ink truncate">{b.name}</p>
-                  <LocationRow text={`${b.area} · ${b.category}`} className="text-[10px]" />
-                </div>
-                <Stars rating={b.rating} className="shrink-0" />
-              </div>
-              <p className="text-[12px] text-slate-500 font-medium leading-snug line-clamp-2">{b.tagline}</p>
-              <div className="mt-auto flex items-center justify-between pt-2">
-                <OpenBadge open={b.isOpen} />
-                <Pill tone="blue">{`${b.deliveryEta} min via CityDrive`}</Pill>
-              </div>
-            </div>
-          </CityCard>
-        ))}
-        {results.length === 0 ? (
-          <div className="col-span-full rounded-2xl border border-dashed border-slate-200 p-10 text-center">
-            <p className="text-sm font-bold text-slate-500">No business matched {query ? `“${query}”` : 'these filters'}.</p>
-            <p className="text-xs text-slate-400 mt-1">Try Watt Market, pharmacy, fashion, or clear the filters.</p>
-          </div>
-        ) : null}
-      </div>
-
-      {marketProducts.length ? (
-        <section className="pt-2">
-          <h2 className="text-base font-black text-ink mb-3">
-            {`Products matching "…${query || cat}"`}
-          </h2>
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-            {marketProducts.map((p) => {
-              const biz = DEMO_BUSINESSES.find((b) => b.slug === p.bizSlug);
-              return (
-                <CityCard key={p.id} href={`/product/${p.id}`} className="flex items-center gap-3 p-3">
-                  <FallbackImg src={p.image} alt={p.name} className="w-14 h-14 rounded-xl shrink-0" icon={<span className="text-xs font-black">{p.name.slice(0, 1)}</span>} />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[12px] font-black text-ink truncate">{p.name}</p>
-                    <p className="text-[10px] font-bold text-slate-400 truncate">{biz?.name}</p>
-                    <p className="text-[13px] font-black text-teal-900 mt-0.5">{fmtNaira(p.price)}</p>
+      {error ? (
+        <div className="col-span-full rounded-2xl border border-dashed border-red-200 p-10 text-center">
+          <p className="text-sm font-bold text-red-500">Search failed.</p>
+          <p className="text-xs text-red-400 mt-1">We couldn't reach the database right now. Please try again.</p>
+        </div>
+      ) : loading ? (
+        <div className="col-span-full rounded-2xl border border-dashed border-slate-200 p-10 text-center">
+          <p className="text-sm font-bold text-slate-500 animate-pulse">Searching...</p>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {results.map((b) => (
+              <CityCard key={b.slug} href={`/org/${b.slug}`} className="flex flex-col">
+                <FallbackImg src={b.cover} alt={b.name} className="h-32 w-full" />
+                <div className="p-4 flex-1 flex flex-col gap-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-[14px] font-black text-ink truncate">{b.name}</p>
+                      <LocationRow text={`${b.area} · ${b.category}`} className="text-[10px]" />
+                    </div>
+                    <Stars rating={b.rating} className="shrink-0" />
                   </div>
-                </CityCard>
-              );
-            })}
+                  <p className="text-[12px] text-slate-500 font-medium leading-snug line-clamp-2">{b.tagline}</p>
+                  <div className="mt-auto flex items-center justify-between pt-2">
+                    <OpenBadge open={b.isOpen} />
+                    <Pill tone="blue">{`${b.deliveryEta} min via CityDrive`}</Pill>
+                  </div>
+                </div>
+              </CityCard>
+            ))}
+            {results.length === 0 ? (
+              <div className="col-span-full rounded-2xl border border-dashed border-slate-200 p-10 text-center">
+                <p className="text-sm font-bold text-slate-500">No business matched {query ? `"${query}"` : 'these filters'}.</p>
+                <p className="text-xs text-slate-400 mt-1">Try Watt Market, pharmacy, fashion, or clear the filters.</p>
+              </div>
+            ) : null}
           </div>
-        </section>
-      ) : null}
+
+          {marketProducts.length > 0 && (
+            <section className="pt-2">
+              <h2 className="text-base font-black text-ink mb-3">
+                {`Products matching "${query || cat}"`}
+              </h2>
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                {marketProducts.map((p) => {
+                  return (
+                    <CityCard key={p.id} href={`/product/${p.id}`} className="flex items-center gap-3 p-3">
+                      <FallbackImg src={p.image} alt={p.name} className="w-14 h-14 rounded-xl shrink-0" icon={<span className="text-xs font-black">{p.name.slice(0, 1)}</span>} />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[12px] font-black text-ink truncate">{p.name}</p>
+                        <p className="text-[10px] font-bold text-slate-400 truncate">{p.bizName}</p>
+                        <p className="text-[13px] font-black text-teal-900 mt-0.5">{fmtNaira(p.price)}</p>
+                      </div>
+                    </CityCard>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+        </>
+      )}
 
       <div className="rounded-2xl bg-gradient-to-br from-teal-900 to-teal-700 p-5 text-white flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="flex-1">
