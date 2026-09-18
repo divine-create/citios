@@ -1,16 +1,16 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Wallet, Plus, ChevronRight, Package, Car, Banknote, Truck, Building2, Bookmark, Settings, ArrowUp } from 'lucide-react';
-import { DEMO_ORDERS, TOP_UP_AMOUNT, fmtNaira, getProperty, getBusiness } from '@/lib/demo/cityos';
+import { TOP_UP_AMOUNT, fmtNaira, getProperty, getBusiness } from '@/lib/demo/cityos';
 import { Pill, Money, ChipButton, DemoBanner } from '@/components/cityos/CityUI';
 import { useWallet } from '@/components/cityos/WalletStore';
 import { useExperience } from '@/components/cityos/ExperienceStore';
 import { useDemoApp } from '@/lib/demo/app/store';
 import { cn } from '@/lib/utils';
 import { fetchMyOrders } from '@/app/actions/commerce';
-import { useEffect } from 'react';
+import { getProfileAndWallet } from '@/lib/actions/profile';
 
 const TABS = ['Orders', 'Payments', 'CityHouse', 'Saved', 'Settings'] as const;
 type Tab = (typeof TABS)[number];
@@ -19,13 +19,22 @@ export default function CityProfile() {
   const [tab, setTab] = useState<Tab>('Orders');
   const { balance, topUp, transactions } = useWallet();
   const { experience } = useExperience();
-  const { activeAccount, orders, savedOf } = useDemoApp();
+  const { savedOf } = useDemoApp();
   const [toppedUp, setToppedUp] = useState(false);
-  const [realOrders, setRealOrders] = useState<any[] | null>(null);
   
+  const [realOrders, setRealOrders] = useState<any[] | null>(null);
+  const [ordersError, setOrdersError] = useState(false);
+  const [userProfile, setUserProfile] = useState<any | null>(null);
+
   useEffect(() => {
-    fetchMyOrders().then(setRealOrders).catch(console.error);
-  }, [activeAccount.id]);
+    getProfileAndWallet()
+      .then(data => { if (data && data.user) setUserProfile(data.user); })
+      .catch(console.error);
+
+    fetchMyOrders()
+      .then(orders => { setRealOrders(orders); setOrdersError(false); })
+      .catch(err => { console.error(err); setOrdersError(true); });
+  }, []);
 
   const walletPct = Math.min(100, Math.round((balance / 200000) * 100));
 
@@ -50,16 +59,16 @@ export default function CityProfile() {
       <div className="flex flex-col sm:flex-row gap-5 items-start sm:items-center">
         <div className="relative">
           <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-teal-700 to-teal-500 text-white flex items-center justify-center text-2xl font-black shadow-lg shadow-teal-800/20">
-            {activeAccount.initials}
+            {userProfile?.firstName ? `${userProfile.firstName.charAt(0)}${userProfile.lastName?.charAt(0) || ''}`.toUpperCase() : 'ME'}
           </div>
           <span className="absolute -right-1 -bottom-1 w-6 h-6 rounded-full bg-emerald-500 ring-4 ring-white" />
         </div>
         <div className="flex-1">
-          <h1 className="text-2xl font-black text-ink">{activeAccount.name}</h1>
+          <h1 className="text-2xl font-black text-ink">{userProfile?.name || 'Resident'}</h1>
           <p className="text-[13px] text-slate-500 font-medium mt-0.5">
-            {`${activeAccount.kind === 'org' ? 'Business' : 'Resident'} · ${activeAccount.area} · since ${activeAccount.memberSince}`}
+            Resident · Calabar
           </p>
-          <p className="text-[12px] text-slate-400 font-medium mt-1">{activeAccount.tagline}</p>
+          <p className="text-[12px] text-slate-400 font-medium mt-1">Verified CityOS User</p>
         </div>
         <div className="flex gap-2">
           <button className="px-4 py-2.5 rounded-xl bg-teal-800 text-white text-xs font-black hover:bg-teal-900 transition-colors inline-flex items-center gap-1.5">
@@ -78,7 +87,7 @@ export default function CityProfile() {
             </p>
             <p className="mt-2 text-3xl font-black tracking-tight">{fmtNaira(balance)}</p>
             <div className="flex items-center gap-2 mt-2 text-[11px] font-bold text-teal-200/80">
-              <span>{activeAccount.walletId}</span>
+              <span>{userProfile?.id ? `ID-${userProfile.id.slice(0,6).toUpperCase()}` : 'WALLET'}</span>
               <span>·</span>
               <span>{toppedUp ? 'just topped up' : 'all good'}</span>
             </div>
@@ -98,10 +107,10 @@ export default function CityProfile() {
       {/* Quick stats */}
       <div className="grid grid-cols-4 gap-3">
         {[
-          { label: 'Orders', value: activeAccount.stats?.orders ?? orders.length, icon: Package },
-          { label: 'Rides', value: activeAccount.stats?.rides ?? 0, icon: Car },
-          { label: 'Payments', value: activeAccount.stats?.payments ?? 0, icon: Banknote },
-          { label: 'Deliveries', value: activeAccount.stats?.deliveries ?? 0, icon: Truck },
+          { label: 'Orders', value: realOrders?.length || 0, icon: Package },
+          { label: 'Rides', value: 0, icon: Car },
+          { label: 'Payments', value: 0, icon: Banknote },
+          { label: 'Deliveries', value: 0, icon: Truck },
         ].map((s) => (
           <div key={s.label} className="bg-white rounded-2xl border border-slate-100 p-4 text-center">
             <s.icon className="w-4 h-4 mx-auto text-teal-700" />
@@ -132,37 +141,53 @@ export default function CityProfile() {
       {/* Tab content */}
       {tab === 'Orders' ? (
         <div className="space-y-3">
-          {realOrders && realOrders.length > 0 ? (
-            <div className="mb-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase tracking-widest border border-emerald-100">
-              Showing live DB orders
+          {ordersError ? (
+            <div className="rounded-2xl border border-dashed border-red-200 bg-white p-6 text-center">
+              <p className="text-[13px] font-black text-red-600">Failed to load orders</p>
+              <p className="text-[11px] text-red-400 font-medium mt-1">There was a problem communicating with the database.</p>
             </div>
-          ) : null}
-          {(realOrders && realOrders.length > 0 ? realOrders : [...orders, ...DEMO_ORDERS]).map((o) => (
-            <div key={o.id ?? o.ref} className="bg-white rounded-2xl border border-slate-100 p-4 flex items-center gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="text-[14px] font-black text-ink truncate">{o.merchant}</p>
-                  <Pill tone={o.status === 'enroute' ? 'orange' : 'green'} className="shrink-0">
-                    {o.status === 'enroute' ? 'En route' : o.status === 'packing' ? 'Packing' : o.status === 'paid' ? 'Paid' : 'Delivered'}
-                  </Pill>
+          ) : !realOrders ? (
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center">
+              <p className="text-[13px] font-black text-slate-500 animate-pulse">Loading orders...</p>
+            </div>
+          ) : realOrders.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center">
+              <p className="text-[13px] font-black text-ink">No orders yet</p>
+              <p className="text-[11px] text-slate-400 font-medium mt-1 mb-3">Fresh from the market, paid with CityPay.</p>
+              <Link href="/biz/calabar-fresh" className="inline-flex items-center gap-1 px-4 py-2 rounded-xl bg-teal-800 text-white text-[11px] font-black">
+                Shop Calabar Fresh <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          ) : (
+            <>
+              {realOrders.map((o) => (
+                <div key={o.id ?? o.ref} className="bg-white rounded-2xl border border-slate-100 p-4 flex items-center gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-[14px] font-black text-ink truncate">{o.merchant}</p>
+                      <Pill tone={o.status === 'enroute' ? 'orange' : 'green'} className="shrink-0">
+                        {o.status === 'enroute' ? 'En route' : o.status === 'packing' ? 'Packing' : o.status === 'paid' ? 'Paid' : 'Delivered'}
+                      </Pill>
+                    </div>
+                    <p className="text-[11px] font-bold text-slate-400 mt-0.5">{`${o.ref} · ${Array.isArray(o.items) ? o.items.length : o.items} · ${o.time}`}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-[15px] font-black text-ink">{fmtNaira(o.total)}</p>
+                    {o.status === 'enroute' ? (
+                      <Link href="/drive/delivery" className="text-[10px] font-bold text-teal-800 hover:underline">Track ▲</Link>
+                    ) : null}
+                  </div>
                 </div>
-                <p className="text-[11px] font-bold text-slate-400 mt-0.5">{`${o.ref} · ${Array.isArray(o.items) ? o.items.length : o.items} · ${o.time}`}</p>
+              ))}
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center">
+                <p className="text-[13px] font-black text-ink">Start another order</p>
+                <p className="text-[11px] text-slate-400 font-medium mt-1 mb-3">Fresh from the market, paid with CityPay.</p>
+                <Link href="/biz/calabar-fresh" className="inline-flex items-center gap-1 px-4 py-2 rounded-xl bg-teal-800 text-white text-[11px] font-black">
+                  Shop Calabar Fresh <ChevronRight className="w-3.5 h-3.5" />
+                </Link>
               </div>
-              <div className="text-right shrink-0">
-                <p className="text-[15px] font-black text-ink">{fmtNaira(o.total)}</p>
-                {o.status === 'enroute' ? (
-                  <Link href="/drive/delivery" className="text-[10px] font-bold text-teal-800 hover:underline">Track ▲</Link>
-                ) : null}
-              </div>
-            </div>
-          ))}
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center">
-            <p className="text-[13px] font-black text-ink">Start another order</p>
-            <p className="text-[11px] text-slate-400 font-medium mt-1 mb-3">Fresh from the market, paid with CityPay.</p>
-            <Link href="/biz/calabar-fresh" className="inline-flex items-center gap-1 px-4 py-2 rounded-xl bg-teal-800 text-white text-[11px] font-black">
-              Shop Calabar Fresh <ChevronRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
+            </>
+          )}
         </div>
       ) : tab === 'Payments' ? (
         <div className="space-y-3">
@@ -263,7 +288,7 @@ export default function CityProfile() {
             { label: 'Notifications', sub: 'Rides, orders & offers', icon: Settings },
             { label: 'Payment methods', sub: 'CityPay wallet · cards · transfer', icon: Wallet },
             { label: 'Privacy', sub: 'Who can see your feed posts', icon: Settings },
-            { label: 'Referral code', sub: activeAccount.referralCode ?? '—', icon: Settings },
+            { label: 'Referral code', sub: userProfile?.id ? `REF-${userProfile.id.slice(0, 4).toUpperCase()}` : '—', icon: Settings },
             { label: 'Sign out', sub: 'From this device', icon: Settings },
           ].map((s, i) => (
             <div key={s.label} className="px-5 py-4 flex items-center gap-3">
