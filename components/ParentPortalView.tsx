@@ -113,7 +113,7 @@ export default function ParentPortalView({ students = [] }: { students?: any[] }
                     </h2>
                     
                     <div className="space-y-4">
-                        {currentData.courses.map((course, idx) => (
+                        {currentData.courses.map((course: any, idx: number) => (
                             <div key={idx} className="flex justify-between items-center border-b border-slate-50 last:border-0 pb-4 last:pb-0">
                                 <div>
                                     <p className="font-bold text-slate-900">{course.name}</p>
@@ -134,7 +134,7 @@ export default function ParentPortalView({ students = [] }: { students?: any[] }
                     </h2>
                     
                     <div className="space-y-4">
-                        {currentData.posts.map((post) => (
+                        {currentData.posts.map((post: any) => (
                             <div key={post.id} className="bg-slate-50 rounded-2xl p-4">
                                 <div className="flex justify-between items-start mb-2">
                                     <p className="font-bold text-slate-900">{post.title}</p>
