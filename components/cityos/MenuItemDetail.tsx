@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -6,13 +6,14 @@ import { ArrowLeft, Star, Clock, Plus, Minus, ShoppingBag } from 'lucide-react';
 import { CityCard, FallbackImg, Stars, ChipButton } from '@/components/cityos/CityUI';
 import { useCart } from '@/components/cityos/CartStore';
 import { getCityFoodMenuItem } from '@/app/actions/food';
-import { fmtNaira } from '@/lib/format';
+import { useMoney } from '@/components/cityos/CityProvider';
 
 interface MenuItemDetailProps {
   menuItemId: string;
 }
 
 export default function MenuItemDetail({ menuItemId }: MenuItemDetailProps) {
+  const { fmt } = useMoney();
   const [qty, setQty] = useState(1);
   const [item, setItem] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -79,12 +80,12 @@ export default function MenuItemDetail({ menuItemId }: MenuItemDetailProps) {
                 </Link>
               ) : null}
             </div>
-            <p className="text-lg font-black text-orange-700 shrink-0">{fmtNaira(mi.price ?? 0)}</p>
+            <p className="text-lg font-black text-orange-700 shrink-0">{fmt(mi.price ?? 0)}</p>
           </div>
 
           {loc ? (
             <p className="text-[11px] font-bold text-slate-500 line-clamp-2">
-              {[loc.name, loc.address].filter(Boolean).join(' · ')}
+              {[loc.name, loc.address].filter(Boolean).join(' Â· ')}
             </p>
           ) : null}
 
@@ -121,7 +122,7 @@ export default function MenuItemDetail({ menuItemId }: MenuItemDetailProps) {
               }
               className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-orange-600 text-white text-xs font-black hover:bg-orange-700 transition-colors"
             >
-              <ShoppingBag className="w-4 h-4" /> Add {qty} to cart · {fmtNaira((mi.price ?? 0) * qty)}
+              <ShoppingBag className="w-4 h-4" /> Add {qty} to cart Â· {fmt((mi.price ?? 0) * qty)}
             </button>
           </div>
         </div>

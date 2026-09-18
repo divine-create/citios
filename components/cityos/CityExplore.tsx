@@ -1,9 +1,9 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Search, SlidersHorizontal, Compass, Sparkles } from 'lucide-react';
-import { fmtNaira } from '@/lib/format';
+import { useMoney } from '@/components/cityos/CityProvider';
 import { CityCard, FallbackImg, Stars, Pill, LocationRow, OpenBadge, ChipButton } from '@/components/cityos/CityUI';
 import { searchCityExplore } from '@/app/actions/explore';
 import { useCity } from '@/components/cityos/CityProvider';
@@ -12,6 +12,7 @@ const CATS = ['All', 'Retail', 'Service', 'School', 'Healthcare', 'Hotel'];
 
 export default function CityExplore() {
   const { city } = useCity();
+  const { fmt } = useMoney();
   const cityName = city?.name ?? 'CityOS';
   const [query, setQuery] = useState('');
   const [cat, setCat] = useState('All');
@@ -56,7 +57,7 @@ export default function CityExplore() {
       <div className="flex flex-col gap-1">
         <h1 className="text-xl font-black text-ink">{`Explore ${cityName}`}</h1>
         <p className="text-xs text-slate-500 font-medium">
-          Marketplaces, stalls and services across the city — one CityOS search.
+          Marketplaces, stalls and services across the city â€” one CityOS search.
         </p>
       </div>
 
@@ -66,7 +67,7 @@ export default function CityExplore() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search markets, stalls, areas… e.g. ogbono, Watt Market"
+            placeholder="Search markets, stalls, areasâ€¦ e.g. ogbono, Watt Market"
             className="w-full bg-white rounded-xl py-3 pl-11 pr-4 text-[13px] font-medium text-slate-700 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-600/40 focus:border-teal-600/40 placeholder:text-slate-400 transition-all"
           />
         </div>
@@ -103,7 +104,7 @@ export default function CityExplore() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="text-[14px] font-black text-ink truncate">{b.name}</p>
-                      <LocationRow text={`${b.area} · ${b.category}`} className="text-[10px]" />
+                      <LocationRow text={`${b.area} Â· ${b.category}`} className="text-[10px]" />
                     </div>
                     <Stars rating={b.rating} className="shrink-0" />
                   </div>
@@ -136,7 +137,7 @@ export default function CityExplore() {
                       <div className="min-w-0 flex-1">
                         <p className="text-[12px] font-black text-ink truncate">{p.name}</p>
                         <p className="text-[10px] font-bold text-slate-400 truncate">{p.bizName}</p>
-                        <p className="text-[13px] font-black text-teal-900 mt-0.5">{fmtNaira(p.price)}</p>
+                        <p className="text-[13px] font-black text-teal-900 mt-0.5">{fmt(p.price)}</p>
                       </div>
                     </CityCard>
                   );

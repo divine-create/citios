@@ -1,17 +1,17 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import type { ComponentType } from 'react';
 import Link from 'next/link';
 import { MapPin, Navigation, Phone, Share2, Car, Clock, Loader2, Waves, Check } from 'lucide-react';
-import { fmtNaira } from '@/lib/format';
+import { useMoney } from '@/components/cityos/CityProvider';
 import { Pill, DemoBanner } from '@/components/cityos/CityUI';
 import { useCity } from '@/components/cityos/CityProvider';
 import { cn } from '@/lib/utils';
 
 const HOME = 'State Housing Estate';
 
-// CityDrive ride product config (fare estimates only — never persisted).
+// CityDrive ride product config (fare estimates only â€” never persisted).
 // Owned by the Ride surface; no canonical transport entity exists yet.
 interface RideArea {
   name: string;
@@ -19,7 +19,7 @@ interface RideArea {
 }
 
 const RIDE_AREAS: RideArea[] = [
-  { name: 'Marian Road', near: 'City centre · market line' },
+  { name: 'Marian Road', near: 'City centre Â· market line' },
   { name: 'Watt Market', near: 'Busy all morning' },
   { name: 'Ekorinim', near: 'Quiet residential' },
   { name: 'Bogobiri', near: 'Restaurants & stadium' },
@@ -54,6 +54,7 @@ function estimateDistance(from: string, to: string): number {
 
 export default function RideView() {
   const cityName = useCity().city?.name ?? 'CityOS';
+  const { fmt } = useMoney();
   const [pickup, setPickup] = useState(HOME);
   const [dest, setDest] = useState('Marian Road');
   const [klass, setKlass] = useState(RIDE_CLASSES[1]);
@@ -77,7 +78,7 @@ export default function RideView() {
           <h1 className="text-xl font-black text-ink flex items-center gap-2">
             <Navigation className="w-5 h-5 text-teal-800" /> City Ride
           </h1>
-          <p className="text-xs text-slate-500 font-medium mt-0.5">{`Keke, solo or SUV — moving ${cityName} with fair naira fares.`}</p>
+          <p className="text-xs text-slate-500 font-medium mt-0.5">{`Keke, solo or SUV â€” moving ${cityName} with fair naira fares.`}</p>
         </div>
         <Pill tone="blue">CityDrive mobility</Pill>
       </div>
@@ -169,7 +170,7 @@ export default function RideView() {
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="text-right">
-                      <p className="text-[14px] font-black text-ink tabular-nums">{fmtNaira(rFare)}</p>
+                      <p className="text-[14px] font-black text-ink tabular-nums">{fmt(rFare)}</p>
                       <p className="text-[10px] text-slate-400 font-bold">{`~${Math.round(dist * 3.2)} min`}</p>
                     </div>
                     <span
@@ -200,7 +201,7 @@ export default function RideView() {
                   <div className="h-px bg-slate-100" />
                   <div className="flex justify-between items-baseline">
                     <span className="text-sm font-black text-ink">Estimated fare</span>
-                    <span className="text-2xl font-black text-ink tabular-nums">{fmtNaira(fare)}</span>
+                    <span className="text-2xl font-black text-ink tabular-nums">{fmt(fare)}</span>
                   </div>
                 </div>
                 <div className="rounded-xl bg-slate-50 p-3 text-[11px] text-slate-500 font-medium flex items-center gap-2">
@@ -219,8 +220,8 @@ export default function RideView() {
                 <div className="mx-auto w-14 h-14 rounded-2xl bg-teal-50 text-teal-800 flex items-center justify-center animate-pulse">
                   <Loader2 className="w-6 h-6 animate-spin" />
                 </div>
-                <p className="text-sm font-black text-ink">Finding your rider…</p>
-                <p className="text-xs text-slate-400">Holding your {klass.name} fare of {fmtNaira(fare)} at CityDrive’s city rate.</p>
+                <p className="text-sm font-black text-ink">Finding your riderâ€¦</p>
+                <p className="text-xs text-slate-400">Holding your {klass.name} fare of {fmt(fare)} at CityDriveâ€™s city rate.</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -230,7 +231,7 @@ export default function RideView() {
                   </div>
                   <div>
                     <p className="text-[13px] font-black text-emerald-800">Rider matched</p>
-                    <p className="text-[11px] font-bold text-emerald-600">Nsi Okon · Toyota Corolla · 3 min away</p>
+                    <p className="text-[11px] font-bold text-emerald-600">Nsi Okon Â· Toyota Corolla Â· 3 min away</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 bg-white ring-1 ring-slate-100 rounded-2xl p-4">
@@ -239,13 +240,13 @@ export default function RideView() {
                   </div>
                   <div className="flex-1">
                     <p className="text-[14px] font-black text-ink">Nsi Okon</p>
-                    <p className="text-[11px] font-bold text-slate-400">Toyota Corolla · AB-772-CR</p>
+                    <p className="text-[11px] font-bold text-slate-400">Toyota Corolla Â· AB-772-CR</p>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[11px] font-black text-amber-500">★ 4.8</span>
+                      <span className="text-[11px] font-black text-amber-500">â˜… 4.8</span>
                       <span className="text-[11px] text-slate-400 font-bold">3,860 trips</span>
                     </div>
                   </div>
-                  <span className="text-[11px] font-black text-teal-800 tabular-nums">{fmtNaira(fare)}</span>
+                  <span className="text-[11px] font-black text-teal-800 tabular-nums">{fmt(fare)}</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <button className="inline-flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-teal-800 text-white text-[11px] font-bold">
@@ -261,14 +262,14 @@ export default function RideView() {
               </div>
             )}
             <p className="flex items-center justify-center gap-1.5 text-[10px] text-slate-400 font-medium">
-              <Waves className="w-3 h-3" /> Demo ride flow — driver matching is simulated.
+              <Waves className="w-3 h-3" /> Demo ride flow â€” driver matching is simulated.
             </p>
           </div>
 
           <div className="hidden lg:block mt-4 rounded-2xl bg-slate-50 border border-slate-100 p-4 text-[11px] text-slate-500 font-medium leading-relaxed">
             <p className="font-black text-ink mb-1.5">Popular route fares</p>
             <p className="text-[12px] text-slate-500 font-medium leading-relaxed">
-              Fares are estimated from your pickup and destination selection — choose your route above to see the price.
+              Fares are estimated from your pickup and destination selection â€” choose your route above to see the price.
             </p>
           </div>
         </div>

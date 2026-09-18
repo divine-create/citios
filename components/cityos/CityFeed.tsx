@@ -34,6 +34,7 @@ function PostCard({ post, follows, onFollowToggle }: { post: DBPost, follows: st
   const [likeCount, setLikeCount] = useState(post.likes);
   const [shareCount, setShareCount] = useState(post.shares);
   const [isFollowing, setIsFollowing] = useState(post.orgId ? follows.includes(post.orgId) : false);
+  const cityTimezone = useCity().city?.timezone ?? undefined;
 
   useEffect(() => {
     setIsFollowing(post.orgId ? follows.includes(post.orgId) : false);
@@ -82,7 +83,7 @@ function PostCard({ post, follows, onFollowToggle }: { post: DBPost, follows: st
               </button>
             )}
           </div>
-          <p className="text-[11px] text-slate-400 font-bold mt-0.5 uppercase tracking-wider">{`${post.role} A ${new Date(post.time).toLocaleDateString()}`}</p>
+          <p className="text-[11px] text-slate-400 font-bold mt-0.5 uppercase tracking-wider">{`${post.role} A ${new Date(post.time).toLocaleDateString(undefined, { timeZone: cityTimezone })}`}</p>
         </div>
       </div>
 
@@ -137,7 +138,9 @@ function PostCard({ post, follows, onFollowToggle }: { post: DBPost, follows: st
 }
 
 export default function CityFeed({ hideHeader = false }: { hideHeader?: boolean }) {
-  const cityName = useCity().city?.name ?? 'CityOS';
+  const { city } = useCity();
+  const cityName = city?.name ?? 'CityOS';
+  const cityTimezone = city?.timezone ?? undefined;
   const [filter, setFilter] = useState(FEED_FILTERS[0]);
   const [posts, setPosts] = useState<DBPost[]>([]);
   const [follows, setFollows] = useState<string[]>([]);

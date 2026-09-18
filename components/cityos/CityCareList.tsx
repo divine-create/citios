@@ -1,9 +1,9 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
 import { Stethoscope, ArrowRight } from 'lucide-react';
-import { fmtNaira } from '@/lib/format';
+import { useMoney } from '@/components/cityos/CityProvider';
 import { CityCard, FallbackImg, Stars, Pill, LocationRow, ChipButton, DemoBanner, OpenBadge } from '@/components/cityos/CityUI';
 import { useCity } from '@/components/cityos/CityProvider';
 
@@ -11,6 +11,7 @@ const FILTERS = ['All', 'Open now', 'Free consult', 'Hospital'];
 
 export default function CityCareList() {
   const cityName = useCity().city?.name ?? 'CityOS';
+  const { fmt } = useMoney();
   const [filter, setFilter] = useState('All');
 
   const clinics: any[] = [];
@@ -20,7 +21,7 @@ export default function CityCareList() {
       <div className="flex flex-col gap-1">
         <h1 className="text-xl font-black text-ink">City Care</h1>
         <p className="text-xs text-slate-500 font-medium">
-          Clinics, hospitals and pharmacy-led care around {cityName} — book a slot in-app.
+          Clinics, hospitals and pharmacy-led care around {cityName} â€” book a slot in-app.
         </p>
       </div>
 
@@ -42,14 +43,14 @@ export default function CityCareList() {
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="text-[14px] font-black text-ink truncate">{c.name}</p>
-                  <LocationRow text={`${c.area} · ${c.type}`} className="text-[10px]" />
+                  <LocationRow text={`${c.area} Â· ${c.type}`} className="text-[10px]" />
                 </div>
                 <Stars rating={c.rating} className="shrink-0" />
               </div>
               <p className="text-[12px] text-slate-500 font-medium leading-snug line-clamp-2">{c.tagline}</p>
               <div className="mt-auto flex items-center justify-between pt-2">
                 <OpenBadge open={c.open} />
-                <Pill tone="blue">{`from ${fmtNaira(Math.min(...c.doctors.map((d: any) => d.fee)))} consult`}</Pill>
+                <Pill tone="blue">{`from ${fmt(Math.min(...c.doctors.map((d: any) => d.fee)))} consult`}</Pill>
               </div>
             </div>
           </CityCard>

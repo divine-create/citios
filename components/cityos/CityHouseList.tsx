@@ -1,9 +1,9 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
 import { Search, BedDouble, Bath, MapPin, Wifi } from 'lucide-react';
-import { fmtNaira } from '@/lib/format';
+import { useMoney } from '@/components/cityos/CityProvider';
 import { useCity } from '@/components/cityos/CityProvider';
 import { CityCard, FallbackImg, Pill, LocationRow, ChipButton, PriceTag, DemoBanner } from '@/components/cityos/CityUI';
 
@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 
 export default function CityHouse() {
   const cityName = useCity().city?.name ?? 'CityOS';
+  const { fmt } = useMoney();
   const [tag, setTag] = useState('All');
   const [query, setQuery] = useState('');
 
@@ -23,7 +24,7 @@ export default function CityHouse() {
       <div className="flex flex-col gap-1">
         <h1 className="text-xl font-black text-ink">CityHouse</h1>
         <p className="text-xs text-slate-500 font-medium">
-          Find flats and rooms around {cityName} — deposit and rent flow through CityPay.
+          Find flats and rooms around {cityName} â€” deposit and rent flow through CityPay.
         </p>
       </div>
 
@@ -35,7 +36,7 @@ export default function CityHouse() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search area or address… e.g. Ekorinim, Goldie, garden"
+            placeholder="Search area or addressâ€¦ e.g. Ekorinim, Goldie, garden"
             className="w-full bg-white rounded-xl py-3 pl-11 pr-4 text-[13px] font-medium text-slate-700 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-600/40 placeholder:text-slate-400 transition-all"
           />
         </div>
@@ -59,7 +60,7 @@ export default function CityHouse() {
             </div>
             <div className="p-4 flex-1 flex flex-col gap-1.5">
               <p className="text-[14px] font-black text-ink leading-snug">{p.title}</p>
-              <LocationRow text={`${p.area} · ${p.address}`} className="text-[11px]" />
+              <LocationRow text={`${p.area} Â· ${p.address}`} className="text-[11px]" />
               <div className="flex items-center gap-3 text-[11px] font-bold text-slate-500">
                 <span className="inline-flex items-center gap-1"><BedDouble className="w-3.5 h-3.5 text-teal-700" /> {p.bedrooms} bed</span>
                 <span className="inline-flex items-center gap-1"><Bath className="w-3.5 h-3.5 text-teal-700" /> {p.bathrooms} bath</span>
@@ -69,8 +70,8 @@ export default function CityHouse() {
               <div className="mt-auto pt-3 flex items-end justify-between border-t border-slate-100">
                 <div>
                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">per year</p>
-                  <p className="text-lg font-black text-ink">{fmtNaira(p.pricePerYear)}</p>
-                  <p className="text-[10px] font-bold text-slate-400">{`≈ ${fmtNaira(p.pricePerYear / 12)} / month`}</p>
+                  <p className="text-lg font-black text-ink">{fmt(p.pricePerYear)}</p>
+                  <p className="text-[10px] font-bold text-slate-400">{`â‰ˆ ${fmt(p.pricePerYear / 12)} / month`}</p>
                 </div>
                 {p.available ? <Pill tone="green">Available</Pill> : <Pill tone="red">Occupied</Pill>}
               </div>

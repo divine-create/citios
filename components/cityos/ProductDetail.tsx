@@ -1,10 +1,10 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Minus, Plus, ShoppingCart, Truck, ShieldCheck, BadgePercent, Check, ChevronRight, Loader2 } from 'lucide-react';
-import { fmtNaira } from '@/lib/format';
+import { useMoney } from '@/components/cityos/CityProvider';
 import { FallbackImg, Stars, Pill, VerifiedBadge, DemoBanner, PriceTag } from '@/components/cityos/CityUI';
 import { useCart } from '@/components/cityos/CartStore';
 import CityMismatchChip from '@/components/cityos/CityMismatchChip';
@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { getCityMartProduct } from '@/app/actions/commerce';
 
 export default function ProductDetail({ id }: { id: string }) {
+  const { fmt } = useMoney();
   const router = useRouter();
   const [p, setP] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -85,7 +86,7 @@ export default function ProductDetail({ id }: { id: string }) {
           <h1 className="text-2xl md:text-3xl font-black text-ink leading-tight">{p.name}</h1>
           <CityMismatchChip citySlug={p.citySlug} className="mt-1.5" />
           <div className="flex items-center gap-3 pt-1">
-            <div className="text-2xl font-black text-teal-900">{fmtNaira(p.price)}</div>
+            <div className="text-2xl font-black text-teal-900">{fmt(p.price)}</div>
             <Pill className="bg-emerald-50 text-emerald-800 border-0 text-[10px]">In Stock</Pill>
           </div>
         </div>

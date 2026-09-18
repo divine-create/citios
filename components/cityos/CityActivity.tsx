@@ -20,6 +20,7 @@ function kindGroup(kind: string): string {
 
 export default function CityActivity() {
   const cityName = useCity().city?.name ?? 'CityOS';
+  const cityTimezone = useCity().city?.timezone ?? undefined;
   const [filter, setFilter] = useState('All');
   const [activities, setActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,7 +61,7 @@ export default function CityActivity() {
           <div className="flex items-start justify-between gap-2">
             <p className="text-[13px] font-black text-ink">{a.title}</p>
             <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap">
-              {new Date(a.date).toLocaleDateString()}
+              {new Date(a.date).toLocaleDateString(undefined, { timeZone: cityTimezone })}
             </span>
           </div>
           <p className="text-[12px] text-slate-500 font-medium mt-0.5">{a.desc}</p>

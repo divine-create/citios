@@ -1,8 +1,8 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import { Minus, Plus, Trash2, ShoppingCart, ChevronRight, ArrowLeft } from 'lucide-react';
-import { fmtNaira } from '@/lib/format';
+import { useMoney } from '@/components/cityos/CityProvider';
 import { useCart } from '@/components/cityos/CartStore';
 import { useCity } from '@/components/cityos/CityProvider';
 import { FallbackImg, Money } from '@/components/cityos/CityUI';
@@ -10,6 +10,7 @@ import { FallbackImg, Money } from '@/components/cityos/CityUI';
 export default function CartView() {
   const { lines, setQty, remove, subtotal, deliveryFee, count, cartCitySlug, isForeignCart } = useCart();
   const { city, cities } = useCity();
+  const { fmt } = useMoney();
   const bagCityName = cities.find((c) => c.slug === cartCitySlug)?.name ?? null;
 
   if (lines.length === 0) {
@@ -43,7 +44,7 @@ export default function CartView() {
           {bagCityName ? (
             <p className="text-[11px] font-bold text-slate-500 mt-1">
               {`Bag city: ${bagCityName}`}
-              {isForeignCart && city ? ` — you're browsing ${city.name}` : ''}
+              {isForeignCart && city ? ` â€” you're browsing ${city.name}` : ''}
             </p>
           ) : null}
         </div>
@@ -68,7 +69,7 @@ export default function CartView() {
                 <div>
                   <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{l.orgName}</div>
                   <Link href={`/product/${l.productId}`} className="text-sm font-black text-ink hover:text-teal-700 transition-colors">{l.name}</Link>
-                  <div className="text-xs font-bold text-teal-800 pt-0.5">{fmtNaira(l.price)}</div>
+                  <div className="text-xs font-bold text-teal-800 pt-0.5">{fmt(l.price)}</div>
                 </div>
                 
                 <div className="flex items-center gap-3">
@@ -93,7 +94,7 @@ export default function CartView() {
                 </div>
               </div>
               <div className="font-black text-sm text-ink text-right min-w-[80px]">
-                {fmtNaira(l.price * l.qty)}
+                {fmt(l.price * l.qty)}
               </div>
             </div>
           ))}

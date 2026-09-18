@@ -1,12 +1,15 @@
 import Link from 'next/link';
 import { Bookmark, Heart } from 'lucide-react';
 import { getResolvedSavedItems, toggleSavedItem } from '@/app/actions/org';
-import { fmtNaira } from '@/lib/format';
+import { formatMoney } from '@/lib/format';
+import { getCurrentCity } from '@/lib/city';
 import { CityCard, FallbackImg, Stars, Pill, LocationRow, DemoBanner, OpenBadge } from '@/components/cityos/CityUI';
 import { revalidatePath } from 'next/cache';
 
 export default async function CitySaved() {
   const { orgs, products, jobs, events, places } = await getResolvedSavedItems();
+  const city = await getCurrentCity();
+  const fmt = (a: number) => formatMoney(a, city?.currency ?? 'NGN');
 
   const holder = (count: number) =>
     count === 0 ? (
@@ -79,7 +82,7 @@ export default async function CitySaved() {
               <FallbackImg src={p.imageAssetId || ''} alt={p.name} className="h-20 w-full rounded-xl" icon={<span className="text-sm font-black">{p.name.slice(0, 1)}</span>} />
               <p className="text-[12px] font-black text-ink leading-snug line-clamp-1">{p.name}</p>
               <div className="flex items-center justify-between mt-auto">
-                <p className="text-[13px] font-black text-teal-900">{fmtNaira(p.price)}</p>
+                <p className="text-[13px] font-black text-teal-900">{fmt(p.price)}</p>
                 <form action={async () => {
                   'use server';
                   await toggleSavedItem('product', p.id);

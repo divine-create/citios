@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { ArrowRight, Briefcase, BadgeCheck, Users, CalendarDays, ClipboardList, CheckCircle2 } from 'lucide-react';
 import { getCanonicalOrganization } from '@/app/actions/org';
-import { fmtNaira } from '@/lib/format';
+import { formatMoney } from '@/lib/format';
+import { getCurrentCity } from '@/lib/city';
 import { Pill, Stars, LocationRow, DemoBanner, VerifiedBadge } from '@/components/cityos/CityUI';
 import CityMismatchChip from '@/components/cityos/CityMismatchChip';
 
@@ -30,6 +31,8 @@ export default async function OrgProfile({ id }: { id: string }) {
   
   const gradient = 'from-teal-600 to-teal-800';
   const emoji = '🏢';
+  const city = await getCurrentCity();
+  const fmt = (a: number) => formatMoney(a, city?.currency ?? 'NGN');
   const addressStr = org.address || locations?.[0]?.address || '';
   const hours = '8:00 AM · 6:00 PM';
   const category = org.type || 'Business';
@@ -110,7 +113,7 @@ export default async function OrgProfile({ id }: { id: string }) {
                 </div>
                 <p className="text-[12px] text-slate-500 font-medium mt-1 line-clamp-2">{s.description || 'Service offered by this org.'}</p>
                 <div className="flex items-center justify-between mt-3">
-                  <span className="text-[12px] font-black text-teal-900">{`from ${fmtNaira(s.basePrice || 0)}`}</span>
+                  <span className="text-[12px] font-black text-teal-900">{`from ${fmt(s.basePrice || 0)}`}</span>
                   <Stars rating={5} />
                 </div>
               </div>
@@ -145,7 +148,7 @@ export default async function OrgProfile({ id }: { id: string }) {
                   <Pill tone="blue">Product</Pill>
                 </div>
                 <div className="flex items-center justify-between mt-3">
-                  <span className="text-[12px] font-black text-teal-900">{fmtNaira(p.price || 0)}</span>
+                  <span className="text-[12px] font-black text-teal-900">{fmt(p.price || 0)}</span>
                   <span className="text-[11px] font-bold text-slate-400">{p.stockQuantity || 0} left</span>
                 </div>
               </div>

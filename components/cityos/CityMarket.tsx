@@ -1,9 +1,9 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Store, ArrowRight, Loader2 } from 'lucide-react';
-import { fmtNaira } from '@/lib/format';
+import { useMoney } from '@/components/cityos/CityProvider';
 import { CityCard, FallbackImg, Stars, LocationRow, OpenBadge, ChipButton, DemoBanner } from '@/components/cityos/CityUI';
 import { getCityMartProducts, getCityMartStores } from '@/app/actions/commerce';
 import { useCity } from '@/components/cityos/CityProvider';
@@ -12,6 +12,8 @@ const MARKET_CATS = ['All', 'Groceries', 'Food & Market', 'Fashion', 'Electronic
 
 export default function CityMarket() {
   const { city } = useCity();
+  const cityName = city?.name ?? 'CityOS';
+  const { fmt } = useMoney();
   const [cat, setCat] = useState('All');
   const [products, setProducts] = useState<any[]>([]);
   const [stores, setStores] = useState<any[]>([]);
@@ -36,7 +38,7 @@ export default function CityMarket() {
       <div className="flex flex-col gap-1">
         <h1 className="text-xl font-black text-ink">Market</h1>
         <p className="text-xs text-slate-500 font-medium">
-          Shop the city — marketplaces, stalls and stores sold through CityOS.
+          Shop the city â€” marketplaces, stalls and stores sold through CityOS.
         </p>
       </div>
 
@@ -58,7 +60,7 @@ export default function CityMarket() {
             </div>
             
             {products.length === 0 ? (
-              <div className="py-10 text-center text-sm text-slate-500">No products found for this category.</div>
+              <div className="py-10 text-center text-sm text-slate-500">{`Nothing here yet in ${cityName} for this category.`}</div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                 {products.map((p) => (
@@ -77,7 +79,7 @@ export default function CityMarket() {
                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider line-clamp-1">{p.storeName}</span>
                       </div>
                       <h3 className="text-xs font-bold text-ink leading-tight line-clamp-2">{p.name}</h3>
-                      <div className="text-sm font-black text-teal-900 pt-0.5">{fmtNaira(p.price)}</div>
+                      <div className="text-sm font-black text-teal-900 pt-0.5">{fmt(p.price)}</div>
                     </div>
                   </Link>
                 ))}

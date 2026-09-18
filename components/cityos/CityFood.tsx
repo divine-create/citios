@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -7,7 +7,7 @@ import { useCart } from '@/components/cityos/CartStore';
 import { getCityFood } from '@/app/actions/food';
 import { useCity } from '@/components/cityos/CityProvider';
 import { CityCard, FallbackImg, Stars, LocationRow, OpenBadge, ChipButton, DemoBanner } from '@/components/cityos/CityUI';
-import { fmtNaira } from '@/lib/format';
+import { useMoney } from '@/components/cityos/CityProvider';
 
 const FOOD_CATS = ['All', 'Restaurant', 'Cafe', 'Campus Eats', 'Food & Market'];
 
@@ -45,6 +45,7 @@ export default function CityFood() {
   const { add } = useCart();
   const { city } = useCity();
   const cityName = city?.name ?? 'CityOS';
+  const { fmt } = useMoney();
 
   useEffect(() => {
     let active = true;
@@ -73,7 +74,7 @@ export default function CityFood() {
       <div className="flex flex-col gap-1">
         <h1 className="text-xl font-black text-ink">Food</h1>
         <p className="text-xs text-slate-500 font-medium">
-          Kitchens, cafés and stalls cooking {cityName} today — order through CityOS.
+          Kitchens, cafÃ©s and stalls cooking {cityName} today â€” order through CityOS.
         </p>
       </div>
 
@@ -113,7 +114,7 @@ export default function CityFood() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="text-[13px] font-black text-ink truncate">{r.name}</p>
-                    <LocationRow text={`${r.area || cityName} · ${r.category ?? 'Restaurant'}`} className="text-[10px]" />
+                    <LocationRow text={`${r.area || cityName} Â· ${r.category ?? 'Restaurant'}`} className="text-[10px]" />
                   </div>
                   {r.rating ? <Stars rating={r.rating} className="shrink-0" /> : null}
                 </div>
@@ -132,7 +133,7 @@ export default function CityFood() {
         })}
         {restos.length === 0 ? (
           <div className="col-span-full rounded-2xl border border-dashed border-slate-200 p-10 text-center">
-            <p className="text-sm font-bold text-slate-500">Nothing cooking in this section right now.</p>
+            <p className="text-sm font-bold text-slate-500">{`Nothing cooking in ${cityName} right now.`}</p>
             <p className="text-xs text-slate-400 mt-1">Try another category, or register a restaurant on CityOS to open a kitchen.</p>
           </div>
         ) : null}
@@ -154,7 +155,7 @@ export default function CityFood() {
                   />
                   <p className="text-[12px] font-black text-ink leading-snug line-clamp-1">{p.name}</p>
                   <p className="text-[10px] font-bold text-slate-400 truncate">{biz?.name}</p>
-                  <p className="text-[13px] font-black text-teal-900">{p.price != null ? fmtNaira(p.price) : '—'}</p>
+                  <p className="text-[13px] font-black text-teal-900">{p.price != null ? fmt(p.price) : 'â€”'}</p>
                 </CityCard>
               );
             })}
@@ -170,7 +171,7 @@ export default function CityFood() {
           <div className="flex-1">
             <p className="text-sm font-black">Running a kitchen on CityOS?</p>
             <p className="text-[11px] text-orange-50/80 font-medium mt-0.5">
-              Restaurants in {cityName} take orders and run their menus inside CityOS — CityFood brings them to residents.
+              Restaurants in {cityName} take orders and run their menus inside CityOS â€” CityFood brings them to residents.
             </p>
           </div>
           <Link href="/demo/access" className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white text-orange-700 text-xs font-black hover:bg-orange-50 transition-colors shrink-0">

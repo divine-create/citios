@@ -1,9 +1,9 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Wallet, CreditCard, Landmark, ShieldCheck, Loader2, ChevronRight, Truck, Lock, AlertCircle } from 'lucide-react';
-import { fmtNaira } from '@/lib/format';
+import { useMoney } from '@/components/cityos/CityProvider';
 import { useCart } from '@/components/cityos/CartStore';
 import { useWallet } from '@/components/cityos/WalletStore';
 import { Money, Pill } from '@/components/cityos/CityUI';
@@ -13,13 +13,14 @@ import { placeRestaurantOrder } from '@/app/actions/food';
 
 const METHODS = [
   { id: 'wallet', label: 'CityPay Wallet', sub: 'Tap to use CityPay', icon: Wallet },
-  { id: 'card', label: 'Bank card', sub: 'Visa / Mastercard – saved', icon: CreditCard },
-  { id: 'transfer', label: 'Bank transfer', sub: 'GTBank – reference shown', icon: Landmark },
+  { id: 'card', label: 'Bank card', sub: 'Visa / Mastercard â€“ saved', icon: CreditCard },
+  { id: 'transfer', label: 'Bank transfer', sub: 'GTBank â€“ reference shown', icon: Landmark },
 ] as const;
 
 type MethodId = 'wallet' | 'card' | 'transfer';
 
 export default function CheckoutView() {
+  const { fmt } = useMoney();
   const router = useRouter();
   const { lines, subtotal, deliveryFee, clear } = useCart();
   const { spend, balance } = useWallet();
@@ -29,7 +30,7 @@ export default function CheckoutView() {
 
   // Split the shared cart by line kind. Retail and food are different
   // canonical order pipelines (RetailOrder vs RestaurantOrder), so a mixed
-  // cart cannot be checked out in one pass — the resident resolves it by
+  // cart cannot be checked out in one pass â€” the resident resolves it by
   // checking out each kind separately.
   const retailLines = lines.filter((l) => l.kind === 'retail');
   const foodLines = lines.filter((l) => l.kind === 'food');
@@ -119,7 +120,7 @@ export default function CheckoutView() {
             {hasMixed && (
               <div className="mb-3 p-3 bg-amber-50 text-amber-900 text-xs font-medium rounded-xl flex gap-2 items-start leading-relaxed">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 opacity-70" />
-                <div>This cart mixes market items and food orders. They are placed with different merchants — check out each separately. Remove one type of item, or complete this checkout and come back.</div>
+                <div>This cart mixes market items and food orders. They are placed with different merchants â€” check out each separately. Remove one type of item, or complete this checkout and come back.</div>
               </div>
             )}
             {lines.map((l) => {
@@ -127,10 +128,10 @@ export default function CheckoutView() {
                 <div key={l.productId} className="flex items-center gap-3 py-1.5">
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-black text-ink line-clamp-1">{l.name}</div>
-                    <div className="text-[10px] font-medium text-slate-500">{l.orgName} • {l.qty}x</div>
+                    <div className="text-[10px] font-medium text-slate-500">{l.orgName} â€¢ {l.qty}x</div>
                   </div>
                   <div className="text-xs font-bold text-ink whitespace-nowrap">
-                    {fmtNaira(l.price * l.qty)}
+                    {fmt(l.price * l.qty)}
                   </div>
                 </div>
               );
@@ -181,7 +182,7 @@ export default function CheckoutView() {
                         {m.label}
                       </div>
                       <div className={cn("text-xs", method === m.id ? "text-teal-700" : "text-slate-500")}>
-                        {m.id === 'wallet' ? `${fmtNaira(balance)} available` : m.sub}
+                        {m.id === 'wallet' ? `${fmt(balance)} available` : m.sub}
                       </div>
                     </div>
                   </div>
@@ -243,7 +244,7 @@ export default function CheckoutView() {
                 className="w-full h-14 flex items-center justify-center gap-2 bg-teal-800 text-white rounded-xl text-sm font-black hover:bg-teal-900 transition-all disabled:opacity-50 disabled:active:scale-100 active:scale-[0.98] shadow-sm"
               >
                 {processing ? <Loader2 className="w-5 h-5 animate-spin opacity-50" /> : <Lock className="w-4 h-4 opacity-70" />}
-                {processing ? 'Processing securely...' : `Pay ${fmtNaira(total)}`}
+                {processing ? 'Processing securely...' : `Pay ${fmt(total)}`}
               </button>
               <div className="text-center">
                 <p className="text-[10px] text-slate-400 font-medium px-4">Payments are secured by CityPay infrastructure.</p>

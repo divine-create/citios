@@ -5,7 +5,7 @@ import { getCityFoodRestaurant } from '@/app/actions/food';
 import { getCurrentCity } from '@/lib/city';
 import { CityCard, FallbackImg, Stars, LocationRow, OpenBadge } from '@/components/cityos/CityUI';
 import CityMismatchChip from '@/components/cityos/CityMismatchChip';
-import { fmtNaira } from '@/lib/format';
+import { formatMoney } from '@/lib/format';
 
 interface Props {
   params: Promise<{ orgId: string }>;
@@ -16,6 +16,7 @@ export default async function CityFoodRestaurantPage({ params }: Props) {
   const data = await getCityFoodRestaurant(orgId);
   const city = await getCurrentCity();
   const cityName = city?.name ?? 'CityOS';
+  const fmt = (a: number) => formatMoney(a, city?.currency ?? 'NGN');
 
   if (data) {
     const { location, menuItems, ...restaurant } = data;
@@ -106,7 +107,7 @@ export default async function CityFoodRestaurantPage({ params }: Props) {
                   </div>
                   <div className="flex items-center justify-between gap-2 pt-1">
                     <span className="text-[10px] font-bold text-slate-400 truncate">{mi.category ?? 'Dish'}</span>
-                    <span className="text-[13px] font-black text-orange-700">{fmtNaira(mi.price ?? 0)}</span>
+                    <span className="text-[13px] font-black text-orange-700">{fmt(mi.price ?? 0)}</span>
                   </div>
                 </CityCard>
               ))}

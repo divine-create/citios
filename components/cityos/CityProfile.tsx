@@ -1,9 +1,9 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { Wallet, Plus, ChevronRight, Package, Car, Banknote, Truck, Building2, Bookmark, Settings, ArrowUp } from 'lucide-react';
-import { fmtNaira } from '@/lib/format';
+import { useMoney } from '@/components/cityos/CityProvider';
 
 // Client wallet display top-up (fictional until the server ledger is wired).
 const TOP_UP_AMOUNT = 50000;
@@ -19,6 +19,7 @@ const TABS = ['Orders', 'Payments', 'CityHouse', 'Saved', 'Settings'] as const;
 type Tab = (typeof TABS)[number];
 
 export default function CityProfile() {
+  const { fmt } = useMoney();
   const [tab, setTab] = useState<Tab>('Orders');
   const { balance, topUp, transactions } = useWallet();
   const { experience } = useExperience();
@@ -68,7 +69,7 @@ export default function CityProfile() {
         <div className="flex-1">
           <h1 className="text-2xl font-black text-ink">{userProfile?.name || 'Resident'}</h1>
           <p className="text-[13px] text-slate-500 font-medium mt-0.5">
-            Resident · Calabar
+            Resident Â· Calabar
           </p>
           <p className="text-[12px] text-slate-400 font-medium mt-1">Verified CityOS User</p>
         </div>
@@ -87,10 +88,10 @@ export default function CityProfile() {
             <p className="inline-flex items-center gap-1.5 text-[10px] font-black text-teal-200 uppercase tracking-widest">
               <Wallet className="w-3.5 h-3.5" /> CityPay wallet
             </p>
-            <p className="mt-2 text-3xl font-black tracking-tight">{fmtNaira(balance)}</p>
+            <p className="mt-2 text-3xl font-black tracking-tight">{fmt(balance)}</p>
             <div className="flex items-center gap-2 mt-2 text-[11px] font-bold text-teal-200/80">
               <span>{userProfile?.id ? `ID-${userProfile.id.slice(0,6).toUpperCase()}` : 'WALLET'}</span>
-              <span>·</span>
+              <span>Â·</span>
               <span>{toppedUp ? 'just topped up' : 'all good'}</span>
             </div>
             <div className="mt-3 h-1.5 w-40 rounded-full bg-white/10 overflow-hidden">
@@ -101,7 +102,7 @@ export default function CityProfile() {
             onClick={addToWallet}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-teal-950 text-xs font-black hover:bg-teal-50 transition-colors shadow-lg shrink-0"
           >
-            <ArrowUp className="w-4 h-4" /> {`Top up ${fmtNaira(TOP_UP_AMOUNT)}`}
+            <ArrowUp className="w-4 h-4" /> {`Top up ${fmt(TOP_UP_AMOUNT)}`}
           </button>
         </div>
       </div>
@@ -132,7 +133,7 @@ export default function CityProfile() {
             <p className="text-[13px] font-black text-ink">Experience: {experience}</p>
             <Pill tone="teal">demo</Pill>
           </div>
-          <p className="text-[11px] font-bold text-slate-400">Store owner, service provider, or school — switch roles from Demo Access.</p>
+          <p className="text-[11px] font-bold text-slate-400">Store owner, service provider, or school â€” switch roles from Demo Access.</p>
         </div>
         <ChevronRight className="w-4 h-4 text-teal-800 shrink-0" />
       </Link>
@@ -171,12 +172,12 @@ export default function CityProfile() {
                         {o.status === 'enroute' ? 'En route' : o.status === 'packing' ? 'Packing' : o.status === 'paid' ? 'Paid' : 'Delivered'}
                       </Pill>
                     </div>
-                    <p className="text-[11px] font-bold text-slate-400 mt-0.5">{`${o.ref} · ${Array.isArray(o.items) ? o.items.length : o.items} · ${o.time}`}</p>
+                    <p className="text-[11px] font-bold text-slate-400 mt-0.5">{`${o.ref} Â· ${Array.isArray(o.items) ? o.items.length : o.items} Â· ${o.time}`}</p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-[15px] font-black text-ink">{fmtNaira(o.total)}</p>
+                    <p className="text-[15px] font-black text-ink">{fmt(o.total)}</p>
                     {o.status === 'enroute' ? (
-                      <Link href="/drive/delivery" className="text-[10px] font-bold text-teal-800 hover:underline">Track ▲</Link>
+                      <Link href="/drive/delivery" className="text-[10px] font-bold text-teal-800 hover:underline">Track â–²</Link>
                     ) : null}
                   </div>
                 </div>
@@ -197,11 +198,11 @@ export default function CityProfile() {
             {transactions.map((t) => (
               <div key={t.ref} className="px-5 py-3.5 flex items-center gap-3">
                 <span className={cn('w-9 h-9 rounded-xl flex items-center justify-center shrink-0', t.amount < 0 ? 'bg-orange-50 text-orange-500' : 'bg-emerald-50 text-emerald-600')}>
-                  {t.amount < 0 ? '−' : '+'}
+                  {t.amount < 0 ? 'âˆ’' : '+'}
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-black text-ink truncate">{t.note}</p>
-                  <p className="text-[11px] font-bold text-slate-400">{`${t.ref} · ${t.at}`}</p>
+                  <p className="text-[11px] font-bold text-slate-400">{`${t.ref} Â· ${t.at}`}</p>
                 </div>
                 <Money amount={t.amount} className={cn('text-[15px]', t.amount < 0 && 'text-red-600')} />
               </div>
@@ -243,9 +244,9 @@ export default function CityProfile() {
         <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-50">
           {[
             { label: 'Notifications', sub: 'Rides, orders & offers', icon: Settings },
-            { label: 'Payment methods', sub: 'CityPay wallet · cards · transfer', icon: Wallet },
+            { label: 'Payment methods', sub: 'CityPay wallet Â· cards Â· transfer', icon: Wallet },
             { label: 'Privacy', sub: 'Who can see your feed posts', icon: Settings },
-            { label: 'Referral code', sub: userProfile?.id ? `REF-${userProfile.id.slice(0, 4).toUpperCase()}` : '—', icon: Settings },
+            { label: 'Referral code', sub: userProfile?.id ? `REF-${userProfile.id.slice(0, 4).toUpperCase()}` : 'â€”', icon: Settings },
             { label: 'Sign out', sub: 'From this device', icon: Settings },
           ].map((s, i) => (
             <div key={s.label} className="px-5 py-4 flex items-center gap-3">

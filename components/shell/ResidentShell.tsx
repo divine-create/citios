@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
 import { signIn, signOut, useSession } from 'next-auth/react';
@@ -39,7 +39,7 @@ import { CityProvider, type CityInfo } from '@/components/cityos/CityProvider';
 import CityPicker from '@/components/cityos/CityPicker';
 import GeoCitySuggestion from '@/components/cityos/GeoCitySuggestion';
 import CartCityGuard from '@/components/cityos/CartCityGuard';
-import { fmtNaira } from '@/lib/format';
+import { useMoney } from '@/components/cityos/CityProvider';
 import { cn } from '@/lib/utils';
 
 function CartBell() {
@@ -94,6 +94,7 @@ function NotificationsDropdown() {
 function WalletChip() {
   const { balance } = useWallet();
   const { data: session } = useSession();
+  const { fmt } = useMoney();
   const name = session?.user?.name || 'Resident';
   const initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
   return (
@@ -107,7 +108,7 @@ function WalletChip() {
       <div className="min-w-0 flex-1">
         <p className="text-[13px] font-bold leading-tight truncate">{name}</p>
         <p className="text-[10px] text-teal-100/80 font-bold tabular-nums">
-          {`CityPay · ${fmtNaira(balance)}`}
+          {`CityPay Â· ${fmt(balance)}`}
         </p>
       </div>
       <ChevronRight className="w-4 h-4 text-teal-100/70" />
@@ -240,7 +241,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
               <div>
                 <h1 className="text-xl font-black tracking-tight text-ink leading-none">CityOS</h1>
                 <p className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-0.5">
-                  {`${cityName} · Prototype`}
+                  {`${cityName} Â· Prototype`}
                 </p>
               </div>
             </Link>
@@ -401,7 +402,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
                 <div className="px-5 py-4 flex items-center justify-between border-b border-slate-100 sticky top-0 bg-white z-10">
                   <div>
                     <p className="text-sm font-black text-ink leading-none">CityOS Menu</p>
-                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1">{`${cityName} · Prototype`}</p>
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1">{`${cityName} Â· Prototype`}</p>
                   </div>
                   <button
                     onClick={() => setMenuOpen(false)}

@@ -1,16 +1,17 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
 import { BedDouble, ArrowRight, Clock } from 'lucide-react';
-import { fmtNaira } from '@/lib/format';
+import { useMoney } from '@/components/cityos/CityProvider';
 import { CityCard, FallbackImg, Stars, Pill, LocationRow, ChipButton, DemoBanner } from '@/components/cityos/CityUI';
 import { useCity } from '@/components/cityos/CityProvider';
 
-const FILTERS = ['All', 'Under ₦10,000', 'Near stadium', 'Open 24h'];
+const FILTERS = ['All', 'Under â‚¦10,000', 'Near stadium', 'Open 24h'];
 
 export default function CityStayList() {
   const cityName = useCity().city?.name ?? 'CityOS';
+  const { fmt } = useMoney();
   const [filter, setFilter] = useState('All');
 
   const hotels: any[] = [];
@@ -62,7 +63,7 @@ export default function CityStayList() {
               <div className="mt-auto pt-2 flex items-end justify-between">
                 <div>
                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">per night</p>
-                  <p className="text-[15px] font-black text-ink">{fmtNaira(h.pricePerNight)}</p>
+                  <p className="text-[15px] font-black text-ink">{fmt(h.pricePerNight)}</p>
                 </div>
                 <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
                   <Clock className="w-3 h-3" />

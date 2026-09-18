@@ -10,6 +10,7 @@ import { useCity } from '@/components/cityos/CityProvider';
 export default function CityEventsList() {
   const { city } = useCity();
   const cityName = city?.name ?? 'CityOS';
+  const cityTimezone = city?.timezone ?? undefined;
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -30,6 +31,12 @@ export default function CityEventsList() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {events.length === 0 ? (
+          <div className="col-span-full rounded-2xl border border-dashed border-slate-200 p-10 text-center">
+            <p className="text-sm font-bold text-slate-500">{`Nothing scheduled in ${cityName} yet.`}</p>
+            <p className="text-xs text-slate-400 mt-1">Check back soon — or organize the first one.</p>
+          </div>
+        ) : null}
         {events.map((e) => (
           <CityCard key={e.id} href={`/events/${e.id}`} className="flex flex-col">
             <FallbackImg src={undefined} alt={e.title} className="h-32 w-full" />
@@ -46,7 +53,7 @@ export default function CityEventsList() {
             <div className="px-4 pb-4 mt-auto pt-3 border-t border-slate-50 flex items-center justify-between gap-2">
               <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-400">
                 <Calendar className="w-3 h-3 text-slate-300" />
-                {new Date(e.date).toLocaleDateString()}
+                {new Date(e.date).toLocaleDateString(undefined, { timeZone: cityTimezone })}
               </span>
               <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
                 <MapPin className="w-3 h-3 text-slate-300" />
