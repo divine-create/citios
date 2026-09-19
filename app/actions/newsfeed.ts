@@ -4,7 +4,7 @@ import { db } from '@/src/prisma/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
-export async function fetchFeed(filter: string) {
+export async function fetchFeed(feedType: 'For You' | 'Following', topic: string = 'All') {
   const session = await getServerSession(authOptions);
   if (!session?.user?.personId) {
     throw new Error('Unauthorized');
@@ -12,20 +12,26 @@ export async function fetchFeed(filter: string) {
 
   const personId = session.user.personId;
 
-  // Map filters
   let postsClause: any = {};
 
-  if (filter === 'Following') {
+  if (feedType === 'Following') {
     const follows = await db.orm.public.Follow.where({ personId }).select('organizationId').all();
     const followedOrgIds = follows.map((f: any) => f.organizationId);
 
     if (followedOrgIds.length === 0) {
       return [];
     }
-    // Prisma 8 `.in()` syntax
-    postsClause = { organizationId: { in: followedOrgIds } };
-  } else if (filter !== 'For you' && filter !== 'All') {
-    postsClause = { category: filter };
+    postsClause.organizationId = { in: followedOrgIds };
+  }
+
+  if (topic !== 'All') {
+    // If it's marketplace, we might map it to 'Offer' or 'Marketplace', etc.
+    // Ensure we handle 'Marketplace' if it's stored as 'Offer' in the DB.
+    if (topic === 'Marketplace') {
+      postsClause.category = { in: ['Offer', 'Marketplace'] };
+    } else {
+      postsClause.category = topic;
+    }
   }
 
   const rawPosts = await db.orm.public.Post.where(postsClause)

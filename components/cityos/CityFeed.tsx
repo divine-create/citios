@@ -5,7 +5,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Heart, MessageSquare, Share2, PenSquare, ChevronRight, UserPlus, UserCheck, Loader2 } from 'lucide-react';
 // Feed tab chrome (UI filters only, not content).
-const FEED_FILTERS = ['For you', 'Following', 'Marketplace', 'Events', 'Housing', 'Community'];
+const TABS = ['For You', 'Following'] as const;
+const TOPICS = ['All', 'Marketplace', 'Events', 'Housing', 'Community'];
 import { CityCard, FallbackImg, Pill, ChipButton, VerifiedBadge } from '@/components/cityos/CityUI';
 import InlineComments from '@/components/InlineComments';
 import { cn } from '@/lib/utils';
@@ -223,7 +224,8 @@ export default function CityFeed({ hideHeader = false }: { hideHeader?: boolean 
   const { city } = useCity();
   const cityName = city?.name ?? 'CityOS';
   const cityTimezone = city?.timezone ?? undefined;
-  const [filter, setFilter] = useState(FEED_FILTERS[0]);
+  const [activeTab, setActiveTab] = useState<typeof TABS[number]>('For You');
+  const [activeTopic, setActiveTopic] = useState('All');
   const [posts, setPosts] = useState<DBPost[]>([]);
   const [follows, setFollows] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -234,7 +236,7 @@ export default function CityFeed({ hideHeader = false }: { hideHeader?: boolean 
       setLoading(true);
       setError(false);
       const [feedData, followData] = await Promise.all([
-        fetchFeed(filter),
+        fetchFeed(activeTab, activeTopic),
         getFollowedOrganizations()
       ]);
       setPosts(feedData);
@@ -245,7 +247,7 @@ export default function CityFeed({ hideHeader = false }: { hideHeader?: boolean 
     } finally {
       setLoading(false);
     }
-  }, [filter]);
+  }, [activeTab, activeTopic]);
 
   useEffect(() => {
     loadFeed();
@@ -256,32 +258,46 @@ export default function CityFeed({ hideHeader = false }: { hideHeader?: boolean 
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-5 animate-in fade-in duration-500 w-full">
-      {!hideHeader && (
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-black text-ink">City Feed</h1>
-            <p className="text-xs text-slate-500 font-medium mt-0.5">{`Offers, asks and notices from around ${cityName}`}</p>
-          </div>
-          <Link
-            href="/feed/new"
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-teal-800 hover:bg-teal-900 text-white text-xs font-black transition-colors"
-          >
-            <PenSquare className="w-4 h-4" />
-            Post
-          </Link>
+    <div className="max-w-2xl mx-auto w-full animate-in fade-in duration-500">
+    {!hideHeader && (
+      <div className="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-slate-100 pt-3 px-4 sm:px-0 mb-4">
+        {/* Top Tabs */}
+        <div className="flex items-center gap-6 px-2">
+           {TABS.map(tab => (
+             <button 
+               key={tab} 
+               onClick={() => setActiveTab(tab)}
+               className={cn("pb-3 text-[15px] font-black transition-colors relative", activeTab === tab ? "text-ink" : "text-slate-400 hover:text-slate-600")}
+             >
+               {tab}
+               {activeTab === tab && <div className="absolute bottom-0 left-0 right-0 h-1 bg-teal-600 rounded-t-full" />}
+             </button>
+           ))}
         </div>
-      )}
+        
+        {/* Topic Filter & Compose Input */}
+        <div className="py-3 flex items-center justify-between gap-3 px-2 border-t border-slate-100/50">
+            {/* Quick Compose Fake Input */}
+            <Link href="/feed/new" className="flex-1 bg-slate-100 hover:bg-slate-200 transition-colors rounded-full px-4 py-2 flex items-center gap-2 cursor-text group">
+               <div className="w-7 h-7 rounded-full bg-slate-300 flex items-center justify-center text-white shrink-0 group-hover:bg-teal-500 transition-colors">
+                  <span className="text-xs font-black">U</span>
+               </div>
+               <span className="text-[13px] text-slate-500 font-medium">What's going on in {cityName}?</span>
+            </Link>
 
-      <div className="flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden -mx-1 px-1">
-        {FEED_FILTERS.map((f) => (
-          <ChipButton key={f} active={filter === f} onClick={() => setFilter(f)}>
-            {f}
-          </ChipButton>
-        ))}
+            {/* Filter Dropdown */}
+            <select 
+               value={activeTopic} 
+               onChange={(e) => setActiveTopic(e.target.value)}
+               className="bg-transparent text-[13px] font-bold text-slate-600 outline-none cursor-pointer py-2 pl-2"
+            >
+               {TOPICS.map(t => <option key={t} value={t}>{t === 'All' ? 'All Topics' : t}</option>)}
+            </select>
+        </div>
       </div>
+    )}
 
-      <div className="space-y-4 pb-8">
+    <div className="space-y-0 pb-8">
         {loading ? (
           <div className="py-12 flex justify-center text-teal-800">
              <Loader2 className="w-8 h-8 animate-spin opacity-50" />
