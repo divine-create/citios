@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { PenSquare, PackagePlus, Wrench, Briefcase, CalendarPlus, HousePlus, Users, ArrowRight, Sparkles } from 'lucide-react';
+import { PenSquare, PackagePlus, Wrench, Briefcase, CalendarPlus, HousePlus, Users, ArrowRight, Sparkles, GraduationCap } from 'lucide-react';
 
 import { SectionHead, Pill } from '@/components/cityos/CityUI';
 import { fetchResidentActivity } from '@/app/actions/activity';
@@ -25,6 +25,7 @@ const ACTIONS: CreateAction[] = [
   { icon: CalendarPlus, title: 'Create an event', desc: 'Host a tasting, a fitting night, a sports day.', href: '/business', tone: 'from-fuchsia-700 to-brand-500', label: 'Business', demo: false },
   { icon: HousePlus, title: 'List a property', desc: 'Manage your properties and rentals.', href: '/business', tone: 'from-amber-700 to-orange-500', label: 'Business', demo: false },
   { icon: Users, title: 'Start a community', desc: 'A neighbourhood circle with its own notice board.', href: '/community', tone: 'from-emerald-700 to-teal-500', label: 'Community', demo: false },
+  { icon: GraduationCap, title: 'Register a school', desc: 'Create your digital campus on EduOS.', href: '/school/onboarding', tone: 'from-blue-700 to-indigo-500', label: 'Education', demo: false },
 ];
 
 export default function CityCreate() {

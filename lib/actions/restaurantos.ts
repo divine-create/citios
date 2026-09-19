@@ -632,4 +632,263 @@ export async function updateOrderStatus(
   }
 }
 
-// __APPEND__
+// ---------------------------------------------------------------------------
+// Inventory (all styles)
+// ---------------------------------------------------------------------------
+
+export async function getInventoryItems(organizationId: string) {
+  try {
+    await requireMembership(organizationId);
+    const items = await db.orm.public.RestaurantInventoryItem.where({ organizationId }).all();
+    return JSON.parse(JSON.stringify(items));
+  } catch (error) {
+    console.error('Error fetching inventory items:', error);
+    return [];
+  }
+}
+
+export async function createInventoryItem(input: {
+  organizationId: string;
+  name: string;
+  unit: string;
+  quantity: number;
+  lowStockLevel: number;
+  cost?: number;
+}) {
+  try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'INVENTORY_STAFF']);
+    if (!input.name.trim()) return { error: 'Item name is required.' };
+
+    const item = await db.orm.public.RestaurantInventoryItem.create({
+      organizationId: input.organizationId,
+      name: input.name.trim(),
+      unit: input.unit.trim() || 'unit',
+      quantity: input.quantity >= 0 ? input.quantity : 0,
+      lowStockLevel: input.lowStockLevel >= 0 ? input.lowStockLevel : 5,
+      cost: input.cost ?? null,
+    });
+    if (item.quantity > 0) {
+      await db.orm.public.RestaurantStockMovement.create({
+        organizationId: input.organizationId,
+        itemId: item.id,
+        delta: item.quantity,
+        note: 'Initial stock',
+      });
+    }
+    revalidatePath('/admin/restaurantos');
+    return JSON.parse(JSON.stringify(item));
+  } catch (error) {
+    console.error('Error creating inventory item:', error);
+    return { error: error instanceof Error ? error.message : 'Failed to create inventory item.' };
+  }
+}
+
+export async function updateInventoryItem(
+  itemId: string,
+  input: Partial<{ name: string; unit: string; lowStockLevel: number; cost: number }>,
+) {
+  try {
+    const item = await db.orm.public.RestaurantInventoryItem.where({ id: itemId }).all().first();
+    if (!item) return { error: 'Inventory item not found.' };
+    await requireMembership(item.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'INVENTORY_STAFF']);
+
+    await db.orm.public.RestaurantInventoryItem.where({ id: itemId }).update(input);
+    const updated = await db.orm.public.RestaurantInventoryItem.where({ id: itemId }).all().first();
+    revalidatePath('/admin/restaurantos');
+    return JSON.parse(JSON.stringify(updated));
+  } catch (error) {
+    console.error('Error updating inventory item:', error);
+    return { error: error instanceof Error ? error.message : 'Failed to update inventory item.' };
+  }
+}
+
+export async function deleteInventoryItem(itemId: string) {
+  try {
+    const item = await db.orm.public.RestaurantInventoryItem.where({ id: itemId }).all().first();
+    if (!item) return { error: 'Inventory item not found.' };
+    await requireMembership(item.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
+
+    await db.orm.public.RestaurantInventoryItem.where({ id: itemId }).delete();
+    revalidatePath('/admin/restaurantos');
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting inventory item:', error);
+    return { error: error instanceof Error ? error.message : 'Failed to delete inventory item.' };
+  }
+}
+
+/** Restock or record usage — every change lands in the movement audit trail. */
+export async function adjustStock(itemId: string, delta: number, note?: string) {
+  try {
+    const item = await db.orm.public.RestaurantInventoryItem.where({ id: itemId }).all().first();
+    if (!item) return { error: 'Inventory item not found.' };
+    const { membership } = await requireMembership(item.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'INVENTORY_STAFF', 'KITCHEN']);
+    if (!(delta !== 0)) return { error: 'Adjustment must be non-zero.' };
+
+    const next = Math.max(0, item.quantity + delta);
+    await db.orm.public.RestaurantInventoryItem.where({ id: itemId }).update({ quantity: next });
+    await db.orm.public.RestaurantStockMovement.create({
+      organizationId: item.organizationId,
+      itemId,
+      delta,
+      note: note ?? (delta > 0 ? 'Restock' : 'Usage'),
+    });
+    revalidatePath('/admin/restaurantos');
+    return { success: true, quantity: next, lowStock: next <= item.lowStockLevel };
+  } catch (error) {
+    console.error('Error adjusting stock:', error);
+    return { error: error instanceof Error ? error.message : 'Failed to adjust stock.' };
+  }
+}
+
+export async function getStockMovements(organizationId: string, itemId?: string) {
+  try {
+    await requireMembership(organizationId);
+    const all = await db.orm.public.RestaurantStockMovement.where({ organizationId }).all();
+    const filtered = itemId ? all.filter((m: any) => m.itemId === itemId) : all;
+    const items = await db.orm.public.RestaurantInventoryItem.where({ organizationId }).all();
+    const sorted = [...filtered].sort((a: any, b: any) =>
+      new Date(b.createdAt.toString()).getTime() - new Date(a.createdAt.toString()).getTime());
+    return JSON.parse(JSON.stringify(
+      sorted.map((m: any) => ({ ...m, itemName: items.find((i) => i.id === m.itemId)?.name ?? 'Unknown' })),
+    ));
+  } catch (error) {
+    console.error('Error fetching stock movements:', error);
+    return [];
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Financial Manager (all styles)
+// ---------------------------------------------------------------------------
+
+export async function addExpense(input: {
+  organizationId: string;
+  category: string;
+  amount: number;
+  note?: string;
+}) {
+  try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'FINANCE']);
+    if (!(input.amount > 0)) return { error: 'Expense amount must be greater than zero.' };
+
+    const expense = await db.orm.public.RestaurantExpense.create({
+      organizationId: input.organizationId,
+      category: input.category.trim() || 'other',
+      amount: input.amount,
+      note: input.note ?? null,
+    });
+    revalidatePath('/admin/restaurantos');
+    return JSON.parse(JSON.stringify(expense));
+  } catch (error) {
+    console.error('Error adding expense:', error);
+    return { error: error instanceof Error ? error.message : 'Failed to add expense.' };
+  }
+}
+
+export async function getExpenses(organizationId: string) {
+  try {
+    await requireMembership(organizationId);
+    const expenses = await db.orm.public.RestaurantExpense.where({ organizationId }).all();
+    const sorted = [...expenses].sort((a: any, b: any) =>
+      new Date(b.spentAt.toString()).getTime() - new Date(a.spentAt.toString()).getTime());
+    return JSON.parse(JSON.stringify(sorted));
+  } catch (error) {
+    console.error('Error fetching expenses:', error);
+    return [];
+  }
+}
+
+/**
+ * Sales + expenses summary for the financial manager: today's revenue by
+ * payment method, order count, average ticket, expense totals.
+ */
+export async function getFinancialSummary(organizationId: string) {
+  try {
+    await requireMembership(organizationId);
+
+    const orders = await db.orm.public.RestaurantOrder.where({ organizationId }).all();
+    const expenses = await db.orm.public.RestaurantExpense.where({ organizationId }).all();
+
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const startOfWeek = new Date(startOfToday);
+    startOfWeek.setDate(startOfWeek.getDate() - 6);
+
+    const paidOrders = orders.filter((o: any) => o.status === 'COMPLETED');
+    const todaysOrders = paidOrders.filter((o: any) =>
+      new Date(o.createdAt.toString()).getTime() >= startOfToday.getTime());
+    const weeksOrders = paidOrders.filter((o: any) =>
+      new Date(o.createdAt.toString()).getTime() >= startOfWeek.getTime());
+
+    const revenueByMethod = { WALLET: 0, CASH: 0, POS: 0 };
+    for (const o of todaysOrders) {
+      const method = (o.paymentMethod ?? 'CASH') as keyof typeof revenueByMethod;
+      if (method in revenueByMethod) revenueByMethod[method] += o.totalAmount;
+    }
+
+    const todaysExpenses = expenses.filter((e: any) =>
+      new Date(e.spentAt.toString()).getTime() >= startOfToday.getTime());
+    const weeksExpenses = expenses.filter((e: any) =>
+      new Date(e.spentAt.toString()).getTime() >= startOfWeek.getTime());
+
+    const todayRevenue = todaysOrders.reduce((s: number, o: any) => s + o.totalAmount, 0);
+    const weekRevenue = weeksOrders.reduce((s: number, o: any) => s + o.totalAmount, 0);
+
+    return JSON.parse(JSON.stringify({
+      today: {
+        revenue: todayRevenue,
+        orders: todaysOrders.length,
+        averageTicket: todaysOrders.length > 0 ? Math.round(todayRevenue / todaysOrders.length) : 0,
+        revenueByMethod,
+      },
+      week: {
+        revenue: weekRevenue,
+        orders: weeksOrders.length,
+        expenses: weeksExpenses.reduce((s: number, e: any) => s + e.amount, 0),
+        net: weekRevenue - weeksExpenses.reduce((s: number, e: any) => s + e.amount, 0),
+      },
+      openTickets: orders.filter((o: any) =>
+        ['PENDING', 'PREPARING', 'READY', 'DELIVERING'].includes(o.status)).length,
+      expensesToday: todaysExpenses.reduce((s: number, e: any) => s + e.amount, 0),
+    }));
+  } catch (error) {
+    console.error('Error fetching financial summary:', error);
+    return null;
+  }
+}
+
+/**
+ * Portal data fetcher: everything the RestaurantOS workspace needs in one
+ * call (settings, menu, tables, reservations, tickets, orders, inventory,
+ * expenses). Gated by membership like every read here.
+ */
+export async function getRestaurantOSData(organizationId: string) {
+  try {
+    await requireMembership(organizationId);
+    const [settings, menu, tables, reservations, tickets, orders, inventory, expenses] =
+      await Promise.all([
+        getRestaurantOSSettings(organizationId),
+        getMenuItems(organizationId),
+        getTables(organizationId),
+        getReservations(organizationId),
+        getKitchenTickets(organizationId),
+        getOrders(organizationId, { limit: 50 }),
+        getInventoryItems(organizationId),
+        getExpenses(organizationId),
+      ]);
+    return JSON.parse(JSON.stringify({
+      settings,
+      menu,
+      tables,
+      reservations,
+      tickets,
+      orders,
+      inventory,
+      expenses,
+    }));
+  } catch (error) {
+    console.error('Error fetching RestaurantOS data:', error);
+    return null;
+  }
+}
