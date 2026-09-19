@@ -307,6 +307,7 @@ model Transaction {
   
   entries        LedgerEntry[]
   
+  payment        Payment?
   createdAt      DateTime     @default(now())
 }
 
@@ -1831,6 +1832,8 @@ model RestaurantOrder {
   
   items          OrderItem[]
   
+  payment        Payment?
+  delivery       DeliveryJob?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @default(now())
 }
@@ -2650,3 +2653,49 @@ model Review {
   @@unique([personId, organizationId])
 }
 
+
+
+// ============================================================================
+// COMMERCE & PAYMENTS (V2 Additions)
+// ============================================================================
+
+model Payment {
+  id                String       @id @default(uuid())
+  amount            Float
+  currency          String       @default("USD")
+  method            String       // "WALLET", "CARD", "TRANSFER"
+  status            String       @default("PENDING") // "PENDING", "COMPLETED", "FAILED"
+  
+  transactionId     String?      @unique
+  transaction       Transaction? @relation(fields: [transactionId], references: [id])
+  
+  restaurantOrderId String?      @unique
+  restaurantOrder   RestaurantOrder? @relation(fields: [restaurantOrderId], references: [id])
+  
+  retailOrderId     String?      @unique
+  retailOrder       RetailOrder? @relation(fields: [retailOrderId], references: [id])
+  
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @default(now())
+}
+
+model DeliveryJob {
+  id                String       @id @default(uuid())
+  status            String       @default("PENDING") // PENDING, ASSIGNED, PICKED_UP, DELIVERED
+  
+  // Who is delivering?
+  driverId          String?
+  driver            Person?      @relation(fields: [driverId], references: [id])
+  
+  // Delivery coordinates / address
+  dropoffAddress    String
+  dropoffLat        Float?
+  dropoffLng        Float?
+  
+  // Link to order
+  restaurantOrderId String?      @unique
+  restaurantOrder   RestaurantOrder? @relation(fields: [restaurantOrderId], references: [id])
+  
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @default(now())
+}

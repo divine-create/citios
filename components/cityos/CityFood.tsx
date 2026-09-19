@@ -1,12 +1,13 @@
-﻿'use client';
+'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { UtensilsCrossed, ArrowRight } from 'lucide-react';
-import { useCart } from '@/components/cityos/CartStore';
+import { ArrowRight, UtensilsCrossed } from 'lucide-react';
+
+import { CityCard, ChipButton, FallbackImg, LocationRow, Stars, OpenBadge } from '@/components/cityos/CityUI';
 import { getCityFood } from '@/app/actions/food';
+import { useCart } from '@/components/cityos/CartStore';
 import { useCity } from '@/components/cityos/CityProvider';
-import { CityCard, FallbackImg, Stars, LocationRow, OpenBadge, ChipButton } from '@/components/cityos/CityUI';
 import { useMoney } from '@/components/cityos/CityProvider';
 
 const FOOD_CATS = ['All', 'Restaurant', 'Cafe', 'Campus Eats', 'Food & Market'];
@@ -80,7 +81,7 @@ export default function CityFood() {
 
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 [&::-webkit-scrollbar]:hidden">
         {FOOD_CATS.map((c) => (
-          <ChipButton className="rounded-full px-5 py-2 font-bold text-[13px]"  key={c} active={cat === c} onClick={() => setCat(c)}>
+          <ChipButton className="rounded-full px-5 py-2 font-bold text-[13px]" key={c} active={cat === c} onClick={() => setCat(c)}>
             {c}
             <span className="ml-1.5 opacity-60">
               {c === 'All'
@@ -121,28 +122,6 @@ export default function CityFood() {
         {restos.length === 0 ? (
           <div className="col-span-full rounded-3xl bg-slate-50 p-12 text-center">
             <p className="text-sm font-bold text-slate-500">{`No kitchens open in ${cityName} right now.`}</p>
-          </div>
-        ) : null}
-      </div>
-                  {r.rating ? <Stars rating={r.rating} className="shrink-0" /> : null}
-                </div>
-                {r.description ? (
-                  <p className="text-[12px] text-slate-500 font-medium leading-snug line-clamp-2">{r.description}</p>
-                ) : null}
-                <div className="flex items-center gap-2 pt-1">
-                  <OpenBadge open={r.isOpen ?? true} />
-                  <span className="ml-auto text-[10px] font-bold text-slate-400">
-                    {r.menuItems.length} dishes on the menu
-                  </span>
-                </div>
-              </div>
-            </CityCard>
-          );
-        })}
-        {restos.length === 0 ? (
-          <div className="col-span-full rounded-2xl border border-dashed border-slate-200 p-10 text-center">
-            <p className="text-sm font-bold text-slate-500">{`Nothing cooking in ${cityName} right now.`}</p>
-            <p className="text-xs text-slate-400 mt-1">Try another category, or register a restaurant on CityOS to open a kitchen.</p>
           </div>
         ) : null}
       </div>

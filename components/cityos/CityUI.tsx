@@ -269,15 +269,17 @@ export function Money({ amount, className }: { amount: number; className?: strin
 export function ChipButton({
   children,
   active,
+  className,
   onClick }: {
   children: React.ReactNode;
   active?: boolean;
+  className?: string;
   onClick?: () => void;
 }) {
   return (
     <button
       onClick={onClick}
-      className={cn(
+      className={cn(className, 
         'px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all ring-1',
         active
           ? 'bg-teal-800 text-white ring-teal-800 shadow-sm'

@@ -86,7 +86,16 @@ export async function placeRetailOrder(input: {
         paymentMethod: input.method === 'wallet' ? 'WALLET' : input.method === 'card' ? 'CARD' : 'BANK_TRANSFER',
         status: 'COMPLETED',
       });
-      for (const verifiedItem of group.items) {
+        
+        await tx.orm.public.Payment.create({
+          amount: group.total,
+          currency: 'USD',
+          method: input.method === 'wallet' ? 'WALLET' : input.method === 'card' ? 'CARD' : 'BANK_TRANSFER',
+          status: 'COMPLETED',
+          retailOrderId: createdOrder.id
+        });
+        
+        for (const verifiedItem of group.items) {
         await tx.orm.public.RetailOrderItem.create({ orderId: createdOrder.id, ...verifiedItem });
       }
       return createdOrder;

@@ -176,6 +176,15 @@ export async function placeRestaurantOrder(input: {
           type: orderType,
           tableNumber,
         });
+        
+        await tx.orm.public.Payment.create({
+          amount: group.total,
+          currency: 'USD',
+          method: 'WALLET', // Assuming wallet for now
+          status: 'COMPLETED', // Mocking successful payment
+          restaurantOrderId: created.id
+        });
+        
         for (const it of group.items) {
           await tx.orm.public.OrderItem.create({
             orderId: created.id,
