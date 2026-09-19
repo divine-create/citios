@@ -31,8 +31,8 @@ export async function fetchFeed(filter: string) {
   const rawPosts = await db.orm.public.Post.where(postsClause)
     .orderBy((p: any) => p.createdAt.desc())
     .limit(50)
-    .include('person', (p: any) => p.select('firstName', 'lastName'))
-    .include('organization', (o: any) => o.select('name'))
+    .include('person', (p: any) => p.select('firstName', 'lastName', 'id').include('profile', (prof: any) => prof.select('avatarUrl')))
+    .include('organization', (o: any) => o.select('name', 'id'))
     .include('likes', (likes: any) => likes.count())
     .include('comments', (comments: any) => comments.count())
     .all();
@@ -60,6 +60,8 @@ export async function fetchFeed(filter: string) {
       author,
       role,
       isOrg,
+      authorId: isOrg ? post.organizationId : post.personId,
+      avatarImg: isOrg ? undefined : post.person?.profile?.avatarUrl,
       time: typeof post.createdAt === 'string' ? new Date(post.createdAt).toISOString() : post.createdAt.toString(),
       category: post.category,
       title: post.title,

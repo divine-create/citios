@@ -76,7 +76,10 @@ export default function PostView({ post }: { post: any }) {
 
     const feedPostProps = {
         id: post.id,
-        author: post.organization?.name || 'Unknown',
+        author: post.organization?.name || (post.person ? `${post.person.firstName} ${post.person.lastName}` : 'Unknown'),
+        authorId: post.organizationId || post.personId,
+        isOrg: !!post.organizationId,
+        avatarImg: post.person?.profile?.avatarUrl,
         time: new Date(post.createdAt).toLocaleDateString(),
         category: post.category,
         content: post.title + '\n\n' + post.content,

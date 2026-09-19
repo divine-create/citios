@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Heart, MessageSquare, Share2, PenSquare, ChevronRight, UserPlus, UserCheck, Loader2 } from 'lucide-react';
 // Feed tab chrome (UI filters only, not content).
 const FEED_FILTERS = ['For you', 'Following', 'Marketplace', 'Events', 'Housing', 'Community'];
@@ -12,6 +13,8 @@ import { fetchFeed, togglePostLike, toggleFollow, getFollowedOrganizations } fro
 import { useCity } from '@/components/cityos/CityProvider';
 
 export type DBPost = {
+  authorId?: string;
+  avatarImg?: string;
   id: string;
   author: string;
   role: string;
@@ -27,7 +30,6 @@ export type DBPost = {
   orgId: string | null;
   href?: { url: string; label: string };
   image?: string;
-  avatarImg?: string;
   videoUrl?: string;
   eventDate?: string;
   location?: string;
@@ -35,7 +37,15 @@ export type DBPost = {
   postMetadata?: string;
 };
 
-function PostCard({ post, follows, onFollowToggle }: { post: DBPost, follows: string[], onFollowToggle: (id: string) => void }) {
+function PostCard({ post, follows, onFollowToggle }: { post: DBPost & { href?: { url: string; label?: string } }, follows: string[], onFollowToggle: (id: string) => void }) {
+  const router = useRouter();
+  const handleProfileClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (post.authorId) {
+      router.push(post.isOrg ? `/org/${post.authorId}` : `/profile/${post.authorId}`);
+    }
+  };
   const [liked, setLiked] = useState(post.isLikedByMe);
   const [likeCount, setLikeCount] = useState(post.likes);
   const [shareCount, setShareCount] = useState(post.shares);
@@ -67,15 +77,17 @@ function PostCard({ post, follows, onFollowToggle }: { post: DBPost, follows: st
   const inner = (
     <CityCard className="flex flex-col">
       <div className="p-5 pb-4 flex items-start gap-3">
-        <FallbackImg
-          src={post.avatarImg}
-          alt={post.author}
-          className="w-11 h-11 rounded-full shrink-0"
-          icon={<span className="text-xs font-black">{post.author.slice(0, 1)}</span>}
-        />
+        <div onClick={handleProfileClick} className="cursor-pointer hover:opacity-80 transition-opacity">
+          <FallbackImg
+            src={post.avatarImg}
+            alt={post.author}
+            className="w-11 h-11 rounded-full shrink-0 border border-slate-100"
+            icon={<span className="text-xs font-black">{post.author.slice(0, 1)}</span>}
+          />
+        </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-[13px] font-black text-ink">{post.author}</p>
+            <p onClick={handleProfileClick} className="text-[13px] font-black text-ink cursor-pointer hover:underline">{post.author}</p>
             {post.isOrg ? <VerifiedBadge /> : null}
             <Pill tone="slate" className="ml-1">{post.category}</Pill>
             {post.isOrg && post.orgId && (

@@ -3,7 +3,11 @@ import { Card, Button } from './Shared';
 import Image from 'next/image';
 import React from 'react';
 
+import Link from 'next/link';
 export interface FeedItemProps {
+    authorId?: string;
+    isOrg?: boolean;
+    avatarImg?: string;
     author: string;
     avatarInitials?: string;
     avatarIcon?: React.ReactNode;
@@ -31,7 +35,7 @@ export interface FeedItemProps {
 
 export default function FeedItem({
     author, avatarInitials, avatarIcon, avatarColor = "bg-slate-100 text-slate-600",
-    time, category, content, imageUrl, videoUrl, eventDate, location, price, widget, actionLabel, onAction, onComment, onLike, onShare, likes, comments, hasLiked, variant = 'default', commentsSection
+    time, category, content, imageUrl, videoUrl, eventDate, location, price, widget, actionLabel, onAction, onComment, onLike, onShare, likes, comments, hasLiked, variant = 'default', commentsSection, authorId, isOrg, avatarImg
 }: FeedItemProps) {
     let cardStyle = "p-4 md:p-5";
     if (imageUrl) cardStyle = "p-0 overflow-hidden";

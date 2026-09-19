@@ -8,7 +8,7 @@ import { authOptions } from '@/lib/auth'
 
 export async function getPostDetails(postId: string) {
     try {
-        const post = await db.orm.public.Post.where({ id: postId }).all().first();
+        const post = await db.orm.public.Post.where({ id: postId }).include('person', (p: any) => p.select('firstName', 'lastName', 'id').include('profile', (prof: any) => prof.select('avatarUrl'))).all().first();
         if (!post) return null;
 
         const org = await db.orm.public.Organization.where({ id: post.organizationId }).all().first();
