@@ -170,7 +170,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
     {
       label: 'Your Activity',
       items: [
-        { id: 'orders', path: '/profile', label: 'Orders', icon: ShoppingBag },
+        { id: 'orders', path: '/orders', label: 'Orders', icon: ShoppingBag },
         { id: 'requests', path: '/tasks', label: 'Service Requests', icon: Wrench },
         { id: 'apps', path: '/jobs', label: 'Job Applications', icon: Briefcase },
         { id: 'events', path: '/events', label: 'Events', icon: Calendar },

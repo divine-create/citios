@@ -1850,6 +1850,77 @@ model OrderItem {
   menuItem       MenuItem        @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
 }
 
+// ----------------------------------------------------------------------------
+// RESTAURANTOS (Restaurants, Eateries & Fast Food)
+// ----------------------------------------------------------------------------
+// One OS, three operating styles configured via RestaurantSettings.serviceStyle:
+//   FULL_SERVICE (restaurants — tables, reservations, courses)
+//   COUNTER      (fast food — POS-first, order numbers, combos)
+//   HYBRID       (eateries — walk-in heavy, optional tables)
+// Every style gets POS, Inventory and the Financial Manager.
+
+model RestaurantSettings {
+  id             String       @id @default(uuid())
+  organizationId String       @unique
+  organization   Organization @relation("OrgRestaurantSettings", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  serviceStyle   String  @default("HYBRID") // FULL_SERVICE | COUNTER | HYBRID
+  taxRate        Float   @default(0)
+  serviceCharge  Float   @default(0) // full-service service charge (%)
+  openingHours   String? // e.g. "8:00 AM - 10:00 PM" or JSON
+  acceptsWalkIns Boolean @default(true)
+  nextOrderNumber Int    @default(1) // sequential call-out number (fast food)
+
+  // Payment configuration
+  paymentGateway String?
+  bankDetails    String?      // JSON: { bankName, accountNumber, accountName }
+  walletSettlementEnabled Boolean @default(false)
+
+  // Onboarding progress flags
+  hasSetPayment  Boolean @default(false)
+  hasMenu        Boolean @default(false)
+  hasTables      Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+}
+
+model RestaurantTable {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("RestaurantTables", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name           String       // "T1", "Window 2", "Booth 3"
+  seats          Int          @default(4)
+  status         String       @default("available") // available | occupied | reserved
+
+  orders         RestaurantOrder[] @relation("TableOrders")
+  reservations   RestaurantReservation[] @relation("TableReservations")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+}
+
+model RestaurantReservation {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("OrgRestaurantReservations", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  tableId        String?
+  table          RestaurantTable? @relation("TableReservations", fields: [tableId], references: [id])
+  customerDataId String?
+  customer       CustomerData?    @relation("RestaurantReservationCustomer", fields: [customerDataId], references: [id])
+  customerName   String?      // walk-in bookings without a customer record
+  customerPhone  String?
+  partySize      Int          @default(2)
+  scheduledAt    DateTime
+  status         String       @default("pending") // pending | confirmed | seated | completed | cancelled
+  notes          String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+}
+
 
 // ----------------------------------------------------------------------------
 // EVENTS & RENTALS
