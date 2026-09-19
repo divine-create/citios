@@ -41,24 +41,30 @@ export default function InlineComments({ postId, onCommentAdded }: { postId: str
         // If we are replying to a reply, attach it to the same parent to keep it 1-level deep
         const actualParentId = replyingTo ? (replyingTo.parentId || replyingTo.id) : undefined;
         
-        const res = await addComment(postId, commentText, actualParentId);
-        if (res.error) {
-            if (res.error === 'Not logged in') {
-                setIsLoginModalOpen(true);
+        try {
+            const res = await addComment(postId, commentText, actualParentId);
+            if (res.error) {
+                if (res.error === 'Not logged in') {
+                    setIsLoginModalOpen(true);
+                } else {
+                    alert(res.error);
+                }
             } else {
-                alert(res.error);
+                setCommentText('');
+                setReplyingTo(null);
+                // Reload comments
+                const data = await getPostDetails(postId);
+                if (data && data.comments) {
+                    setComments(data.comments);
+                }
+                if (onCommentAdded) onCommentAdded();
             }
-        } else {
-            setCommentText('');
-            setReplyingTo(null);
-            // Reload comments
-            const data = await getPostDetails(postId);
-            if (data && data.comments) {
-                setComments(data.comments);
-            }
-            if (onCommentAdded) onCommentAdded();
+        } catch (e: any) {
+            console.error("Failed to add comment:", e);
+            alert(e.message || "Something went wrong.");
+        } finally {
+            setIsSubmitting(false);
         }
-        setIsSubmitting(false);
     };
 
     const renderComment = (comment: any, isReply = false) => (

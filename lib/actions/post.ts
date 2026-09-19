@@ -73,22 +73,34 @@ export async function getPostDetails(postId: string) {
     }
 }
 
+import { revalidatePath } from 'next/cache';
+
 export async function addComment(postId: string, content: string, parentId?: string) {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) return JSON.parse(JSON.stringify({ error: 'Not logged in' }));
-
-    const { person } = await requireAuthenticatedAccount();
-
-    const data: any = {
-        content,
-        postId,
-        personId: person.id
-    };
-    if (parentId) data.parentId = parentId;
-
-    await db.orm.public.Comment.create(data);
-
-    return JSON.parse(JSON.stringify({ success: true }));
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session?.user?.email) return JSON.parse(JSON.stringify({ error: 'Not logged in' }));
+    
+        const { person } = await requireAuthenticatedAccount();
+    
+        const data: any = {
+            content,
+            postId,
+            personId: person.id
+        };
+        if (parentId) data.parentId = parentId;
+    
+        await db.orm.public.Comment.create(data);
+        
+        try {
+            revalidatePath(`/post/${postId}`);
+            revalidatePath(`/feed`);
+        } catch(e) {}
+    
+        return JSON.parse(JSON.stringify({ success: true }));
+    } catch (error: any) {
+        console.error("addComment error:", error);
+        return JSON.parse(JSON.stringify({ error: error.message || 'Failed to add comment' }));
+    }
 }
 
 export async function toggleLike(postId: string) {
