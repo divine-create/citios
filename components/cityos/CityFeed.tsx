@@ -53,6 +53,7 @@ function PostCard({ post, follows, onFollowToggle }: { post: DBPost & { href?: {
   const [isFollowing, setIsFollowing] = useState(post.orgId ? follows.includes(post.orgId) : false);
   const [showComments, setShowComments] = useState(false);
   const [commentCount, setCommentCount] = useState(post.comments);
+  const [isExpanded, setIsExpanded] = useState(false);
   const cityTimezone = useCity().city?.timezone ?? undefined;
 
   useEffect(() => {
@@ -76,7 +77,7 @@ function PostCard({ post, follows, onFollowToggle }: { post: DBPost & { href?: {
   };
 
   const inner = (
-    <CityCard className="flex flex-col">
+    <div className="flex flex-col bg-white border-b border-slate-100 last:border-b-0 pb-2 mb-2 transition-colors hover:bg-slate-50/30">
       <div className="p-5 pb-4 flex items-start gap-3">
         <div onClick={handleProfileClick} className="cursor-pointer hover:opacity-80 transition-opacity">
           <FallbackImg
@@ -104,15 +105,24 @@ function PostCard({ post, follows, onFollowToggle }: { post: DBPost & { href?: {
               </button>
             )}
           </div>
-          <p className="text-[11px] text-slate-400 font-bold mt-0.5 uppercase tracking-wider">{`${post.role} A ${new Date(post.time).toLocaleDateString(undefined, { timeZone: cityTimezone })}`}</p>
+          <p className="text-[11px] text-slate-400 font-bold mt-0.5 uppercase tracking-wider">{`${post.role} • ${timeAgo(post.time)}`}</p>
         </div>
       </div>
 
       <div className="px-5">
-        <h3 className="text-[15px] md:text-base font-black text-ink leading-snug">{post.title}</h3>
-        <p className="mt-2 text-[13px] text-slate-600 leading-relaxed whitespace-pre-line">{post.body}</p>
+        
+          {post.title && post.title !== 'Post' && !post.body.startsWith(post.title) && (
+            <h3 className="text-[15px] font-black text-ink leading-snug mb-1">{post.title}</h3>
+          )}
+          <p className={cn("text-[14px] text-slate-800 leading-relaxed whitespace-pre-line", !isExpanded && post.body.length > 250 && "line-clamp-4")}>
+            {post.body}
+          </p>
+          {!isExpanded && post.body.length > 250 && (
+            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsExpanded(true); }} className="text-teal-600 text-sm font-bold mt-1 hover:underline">Read more</button>
+          )}
+
         {post.image ? (
-          <FallbackImg src={post.image} alt={post.title} className="mt-3 h-44 md:h-56 w-full rounded-xl" />
+          <FallbackImg src={post.image} alt={post.title} className="mt-3 aspect-square max-h-[400px] w-full rounded-xl object-cover border border-slate-100" />
         ) : null}
         {post.videoUrl ? (
           <div className="mt-3 text-[13px] font-bold text-teal-700 bg-teal-50 px-3 py-2 rounded-lg inline-flex items-center gap-2">
@@ -152,13 +162,13 @@ function PostCard({ post, follows, onFollowToggle }: { post: DBPost & { href?: {
         ) : null}
       </div>
 
-      <div className="mt-4 flex flex-col border-t border-slate-100">
-        <div className="flex items-center gap-1 px-3 py-2">
+      <div className="mt-2 flex flex-col">
+        <div className="flex items-center gap-4 px-3 py-1">
         <button
           onClick={handleLike}
           className={cn(
             'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-bold transition-colors',
-            liked ? 'text-orange-600 bg-orange-50' : 'text-slate-500 hover:bg-slate-50',
+            liked ? 'text-orange-600 bg-orange-50' : 'text-slate-500 hover:text-orange-500 active:scale-90 transition-transform',
           )}
         >
           <Heart className={cn('w-4 h-4', liked && 'fill-orange-500 text-orange-500')} />
@@ -170,7 +180,7 @@ function PostCard({ post, follows, onFollowToggle }: { post: DBPost & { href?: {
               e.stopPropagation();
               setShowComments(!showComments);
             }}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-bold text-slate-500 hover:bg-slate-50 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-bold text-slate-500 hover:text-teal-600 active:scale-90 transition-transform transition-colors"
             title="View or add comments"
           >
             <MessageSquare className="w-4 h-4" />
@@ -178,12 +188,11 @@ function PostCard({ post, follows, onFollowToggle }: { post: DBPost & { href?: {
           </button>
         <button
           onClick={() => setShareCount((s) => s + 1)}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-bold text-slate-500 hover:bg-slate-50 transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-bold text-slate-500 hover:text-teal-600 active:scale-90 transition-transform transition-colors"
         >
           <Share2 className="w-4 h-4" />
           {shareCount}
         </button>
-        <span className="ml-auto text-[10px] font-bold text-slate-300 uppercase tracking-wider">City Feed</span>
         </div>
         {showComments && (
           <div onClick={(e) => { e.stopPropagation(); e.preventDefault(); }} className="cursor-default">
@@ -191,10 +200,23 @@ function PostCard({ post, follows, onFollowToggle }: { post: DBPost & { href?: {
           </div>
         )}
       </div>
-    </CityCard>
+    </div>
   );
 
   return post.href ? <Link href={post.href.url}>{inner}</Link> : inner;
+}
+
+function timeAgo(dateString: string) {
+  const date = new Date(dateString);
+  const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+  if (seconds < 60) return 'Just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d`;
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
 export default function CityFeed({ hideHeader = false }: { hideHeader?: boolean }) {

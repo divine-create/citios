@@ -96,7 +96,7 @@ export default function PostView({ post }: { post: any }) {
         avatarImg: post.person?.profile?.avatarUrl,
         time: new Date(post.createdAt).toLocaleDateString(),
         category: post.category,
-        content: post.title + '\n\n' + post.content,
+        content: (post.title && post.title !== 'Post' && !post.content.startsWith(post.title)) ? post.title + '\n\n' + post.content : post.content,
         likes: likesCount,
         hasLiked: hasLiked,
         onLike: handleLike,

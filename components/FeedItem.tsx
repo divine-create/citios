@@ -37,8 +37,8 @@ export default function FeedItem({
     author, avatarInitials, avatarIcon, avatarColor = "bg-slate-100 text-slate-600",
     time, category, content, imageUrl, videoUrl, eventDate, location, price, widget, actionLabel, onAction, onComment, onLike, onShare, likes, comments, hasLiked, variant = 'default', commentsSection, authorId, isOrg, avatarImg
 }: FeedItemProps) {
-    let cardStyle = "p-4 md:p-5";
-    if (imageUrl) cardStyle = "p-0 overflow-hidden";
+    let cardStyle = "p-4 md:p-5 border-none shadow-none bg-transparent";
+    if (imageUrl) cardStyle = "p-0 overflow-hidden border-none shadow-none bg-transparent";
     if (variant === 'emergency') cardStyle += " border-2 border-red-500 bg-red-50";
     else if (variant === 'event') cardStyle += " border-2 border-orange-200 bg-orange-50/50";
 
@@ -64,7 +64,7 @@ export default function FeedItem({
                 
                 {/* Media */}
                 {imageUrl && (
-                    <div className="relative h-48 sm:h-64 rounded-xl overflow-hidden mb-4">
+                    <div className="relative aspect-square max-h-[500px] w-full rounded-xl overflow-hidden mb-4 border border-slate-100">
                         <Image src={imageUrl} alt="Post media" fill className="object-cover" referrerPolicy="no-referrer" />
                     </div>
                 )}

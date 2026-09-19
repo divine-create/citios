@@ -33,7 +33,8 @@ export default function CreatePost() {
   const [publishing, setPublishing] = useState(false);
   const [published, setPublished] = useState(false);
 
-  const canPublish = title.trim().length > 2 && body.trim().length > 2 && !publishing;
+  const needsTitle = category !== 'Community' && category !== 'Update';
+  const canPublish = body.trim().length > 2 && (!needsTitle || title.trim().length > 2) && !publishing;
 
   const publish = async () => {
     if (!canPublish) return;
@@ -41,7 +42,7 @@ export default function CreatePost() {
     
     try {
       await createPost({
-        title: title.trim(),
+        title: needsTitle ? title.trim() : (body.trim().length > 50 ? body.trim().slice(0, 50) + '...' : body.trim()),
         body: body.trim(),
         category,
         imageUrl: imageUrl.trim() || undefined,
@@ -103,17 +104,21 @@ export default function CreatePost() {
             ))}
           </div>
 
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Headline — what is this about?"
-            className="w-full bg-transparent text-lg font-black text-ink placeholder:text-slate-300 outline-none border-b border-slate-200 focus:border-teal-600 pb-3 transition-colors"
-          />
+          
+            {needsTitle && (
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder={`${category} Title ✍️`}
+                className="w-full bg-transparent text-lg font-black text-ink placeholder:text-slate-300 outline-none border-b border-slate-200 focus:border-teal-600 pb-3 transition-colors"
+              />
+            )}
+
 
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            placeholder="Add the details — location, time, links, what happens next..."
+            placeholder={needsTitle ? "Add the details ✨ location, time, links, what happens next..." : "What's on your mind? ✍️"}
             rows={5}
             className="w-full bg-slate-50 rounded-xl p-4 text-[13px] text-slate-700 font-medium placeholder:text-slate-400 outline-none focus:ring-2 ring-teal-200 resize-none leading-relaxed"
           />

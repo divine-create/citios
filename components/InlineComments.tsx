@@ -16,6 +16,9 @@ export default function InlineComments({ postId, onCommentAdded }: { postId: str
     const inputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
+        if (inputRef.current) {
+            inputRef.current.focus();
+        }
         let mounted = true;
         getPostDetails(postId).then(data => {
             if (mounted && data && data.comments) {
