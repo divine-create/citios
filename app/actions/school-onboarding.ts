@@ -34,7 +34,7 @@ export async function createSchool(data: {
   // 2. Perform everything in a transaction
   await db.transaction(async (tx) => {
     // A. Create Organization
-    const org = await tx.public.Organization.create({
+    const org = await tx.orm.public.Organization.create({
       name: data.name,
       // @ts-ignore
       type: 'SCHOOL',
@@ -42,7 +42,7 @@ export async function createSchool(data: {
     });
 
     // B. Create Microsite
-    await tx.public.Microsite.create({
+    await tx.orm.public.Microsite.create({
       organizationId: org.id,
       slug: data.slug,
       title: data.name,
@@ -52,7 +52,7 @@ export async function createSchool(data: {
     });
 
     // C. Create SchoolSettings
-    await tx.public.SchoolSettings.create({
+    await tx.orm.public.SchoolSettings.create({
       organizationId: org.id,
       name: data.name,
       shortName: data.shortName,
@@ -61,22 +61,23 @@ export async function createSchool(data: {
       lga: data.lga,
       phone: data.phone,
       email: data.email,
+      currentYear: data.academicYear,
     });
 
     // D. Membership & Role
-    const membership = await tx.public.Membership.create({
+    const membership = await tx.orm.public.Membership.create({
       organizationId: org.id,
       personId: session.user.personId as string,
     });
 
-    await tx.public.MembershipRole.create({
+    await tx.orm.public.MembershipRole.create({
       membershipId: membership.id,
       role: 'OWNER',
     });
 
     // E. Academic Year & Terms
     const startYear = data.academicYear;
-    const academicYear = await tx.public.AcademicYear.create({
+    const academicYear = await tx.orm.public.AcademicYear.create({
       organizationId: org.id,
       year: startYear,
       startDate: new Date(`${startYear}-09-01`),
@@ -101,7 +102,7 @@ export async function createSchool(data: {
         if (i === 2) { tStart = new Date(`${startYear + 1}-01-20`); tEnd = new Date(`${startYear + 1}-06-15`); }
       }
 
-      await tx.public.Term.create({
+      await tx.orm.public.Term.create({
         organizationId: org.id,
         academicYearId: academicYear.id,
         termNumber: i,
@@ -112,7 +113,7 @@ export async function createSchool(data: {
     }
 
     // F. Grading Scale
-    const scale = await tx.public.GradingScale.create({
+    const scale = await tx.orm.public.GradingScale.create({
       organizationId: org.id,
       name: data.gradingScale === 'LETTER' ? 'Standard A-F' : 'Percentage',
       isDefault: true,
@@ -127,28 +128,25 @@ export async function createSchool(data: {
         { label: 'F', min: 0, max: 59, gpa: 0.0 },
       ];
       for (const l of letters) {
-        await tx.public.GradeBoundary.create({
+        await tx.orm.public.GradeBoundary.create({
           gradingScaleId: scale.id,
           label: l.label,
-          minScore: l.min,
-          maxScore: l.max,
-          gpaValue: l.gpa,
+          minPercent: l.min,
+          maxPercent: l.max,
         });
       }
     } else {
-      await tx.public.GradeBoundary.create({
+      await tx.orm.public.GradeBoundary.create({
         gradingScaleId: scale.id,
         label: 'Pass',
-        minScore: 50,
-        maxScore: 100,
-        gpaValue: 4.0,
+        minPercent: 50,
+        maxPercent: 100,
       });
-      await tx.public.GradeBoundary.create({
+      await tx.orm.public.GradeBoundary.create({
         gradingScaleId: scale.id,
         label: 'Fail',
-        minScore: 0,
-        maxScore: 49,
-        gpaValue: 0.0,
+        minPercent: 0,
+        maxPercent: 49,
       });
     }
   });
