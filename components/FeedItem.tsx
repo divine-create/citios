@@ -12,6 +12,10 @@ export interface FeedItemProps {
     category: string;
     content: string;
     imageUrl?: string;
+    videoUrl?: string;
+    eventDate?: string;
+    location?: string;
+    price?: number;
     widget?: React.ReactNode;
     actionLabel?: string;
     onAction?: () => void;
@@ -27,7 +31,7 @@ export interface FeedItemProps {
 
 export default function FeedItem({
     author, avatarInitials, avatarIcon, avatarColor = "bg-slate-100 text-slate-600",
-    time, category, content, imageUrl, widget, actionLabel, onAction, onComment, onLike, onShare, likes, comments, hasLiked, variant = 'default', commentsSection
+    time, category, content, imageUrl, videoUrl, eventDate, location, price, widget, actionLabel, onAction, onComment, onLike, onShare, likes, comments, hasLiked, variant = 'default', commentsSection
 }: FeedItemProps) {
     let cardStyle = "p-4 md:p-5";
     if (imageUrl) cardStyle = "p-0 overflow-hidden";
@@ -62,6 +66,33 @@ export default function FeedItem({
                 )}
                 
                 {/* Custom Widget */}
+                {videoUrl && (
+                    <div className="mb-4 text-[13px] font-bold text-teal-700 bg-teal-50 px-3 py-2 rounded-lg inline-flex items-center gap-2">
+                        🔗 <a href={videoUrl} target="_blank" rel="noreferrer" className="hover:underline">Watch Video</a>
+                    </div>
+                )}
+                
+                {(eventDate || location || price !== undefined) && (
+                    <div className="mb-4 bg-slate-50 rounded-xl p-3 flex flex-wrap gap-x-4 gap-y-2 text-[12px] text-slate-600 font-medium border border-slate-100">
+                        {eventDate && (
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-slate-400">📅</span> 
+                                {new Date(eventDate).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                            </div>
+                        )}
+                        {location && (
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-slate-400">📍</span> {location}
+                            </div>
+                        )}
+                        {price !== undefined && (
+                            <div className="flex items-center gap-1.5 font-bold text-emerald-700">
+                                <span className="text-emerald-500/70">💲</span> $\{price.toFixed(2)}
+                            </div>
+                        )}
+                    </div>
+                )}
+                
                 {widget && <div className="mb-4">{widget}</div>}
 
                 {/* Action Button */}

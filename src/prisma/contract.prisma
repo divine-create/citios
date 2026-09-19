@@ -714,8 +714,15 @@ model Post {
   viewCount      Int          @default(0)
   shareCount     Int          @default(0)
   createdAt      DateTime     @default(now())
-  
-  organizationId String?
+    
+    imageUrl       String?
+    videoUrl       String?
+    eventDate      DateTime?
+    location       String?
+    price          Float?
+    postMetadata   String?
+    
+    organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   personId       String?
   person         Person?       @relation("ResidentPosts", fields: [personId], references: [id], onDelete: Cascade)

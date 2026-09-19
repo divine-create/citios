@@ -1,8 +1,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
-import { Globe, Users, PenSquare, Check, ImagePlus } from 'lucide-react';
+import { useState } from 'react';
+import { Globe, Users, PenSquare, Check, Image as ImageIcon, Video, Calendar, MapPin, DollarSign } from 'lucide-react';
 import { ChipButton } from '@/components/cityos/CityUI';
 import { cn } from '@/lib/utils';
 import { createPost } from '@/app/actions/newsfeed';
@@ -20,10 +20,18 @@ export default function CreatePost() {
   const [audience, setAudience] = useState<'public' | 'following'>('public');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
+  
+  // Media fields
+  const [imageUrl, setImageUrl] = useState('');
+  const [videoUrl, setVideoUrl] = useState('');
+  
+  // Specific fields
+  const [eventDate, setEventDate] = useState('');
+  const [location, setLocation] = useState('');
+  const [price, setPrice] = useState('');
+
   const [publishing, setPublishing] = useState(false);
   const [published, setPublished] = useState(false);
-  
-  const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
 
   const canPublish = title.trim().length > 2 && body.trim().length > 2 && !publishing;
 
@@ -36,7 +44,11 @@ export default function CreatePost() {
         title: title.trim(),
         body: body.trim(),
         category,
-        organizationId: selectedOrgId || undefined,
+        imageUrl: imageUrl.trim() || undefined,
+        videoUrl: videoUrl.trim() || undefined,
+        eventDate: eventDate || undefined,
+        location: location.trim() || undefined,
+        price: price ? parseFloat(price) : undefined,
       });
       setPublished(true);
       window.setTimeout(() => router.push('/feed'), 700);
@@ -51,10 +63,7 @@ export default function CreatePost() {
     return <div className="p-10 text-center text-slate-500">Sign in to post to the city.</div>;
   }
 
-  const myOrgs = session.user.memberships || [];
-  const activeName = selectedOrgId 
-    ? (myOrgs.find((m: any) => m.organizationId === selectedOrgId) as any)?.organization?.name || 'Your Organization'
-    : session.user.name || 'Resident';
+  const activeName = session.user.name || 'Resident';
   const activeInitials = activeName?.slice(0, 1) || 'U';
 
   return (
@@ -84,20 +93,6 @@ export default function CreatePost() {
                 </div>
               </div>
             </div>
-            {myOrgs.length > 0 && (
-              <select 
-                value={selectedOrgId || ''} 
-                onChange={(e) => setSelectedOrgId(e.target.value || null)}
-                className="text-xs font-medium border border-slate-200 rounded-lg p-2 text-slate-600 bg-slate-50 outline-none"
-              >
-                <option value="">Post as myself</option>
-                {myOrgs.map((m: any) => (
-                  <option key={m.organizationId} value={m.organizationId}>
-                    Post as {m.organization?.name || 'Organization'}
-                  </option>
-                ))}
-              </select>
-            )}
           </div>
 
           <div className="flex gap-2 flex-wrap">
@@ -111,17 +106,81 @@ export default function CreatePost() {
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Headline  what is this about?"
+            placeholder="Headline — what is this about?"
             className="w-full bg-transparent text-lg font-black text-ink placeholder:text-slate-300 outline-none border-b border-slate-200 focus:border-teal-600 pb-3 transition-colors"
           />
 
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            placeholder="Add the details  location, time, links, what happens next..."
+            placeholder="Add the details — location, time, links, what happens next..."
             rows={5}
             className="w-full bg-slate-50 rounded-xl p-4 text-[13px] text-slate-700 font-medium placeholder:text-slate-400 outline-none focus:ring-2 ring-teal-200 resize-none leading-relaxed"
           />
+
+          {/* Dynamic Fields Based on Category */}
+          <div className="space-y-3 pt-2 border-t border-slate-100">
+            {category === 'Event' && (
+              <div className="flex gap-4">
+                <div className="flex-1 flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200 focus-within:border-teal-600 transition-colors">
+                  <Calendar className="w-4 h-4 text-slate-400" />
+                  <input 
+                    type="datetime-local" 
+                    value={eventDate}
+                    onChange={(e) => setEventDate(e.target.value)}
+                    className="w-full bg-transparent text-[13px] outline-none text-slate-700" 
+                  />
+                </div>
+                <div className="flex-1 flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200 focus-within:border-teal-600 transition-colors">
+                  <MapPin className="w-4 h-4 text-slate-400" />
+                  <input 
+                    type="text" 
+                    placeholder="Location"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    className="w-full bg-transparent text-[13px] outline-none text-slate-700 placeholder:text-slate-400" 
+                  />
+                </div>
+              </div>
+            )}
+
+            {category === 'Offer' && (
+              <div className="flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200 focus-within:border-teal-600 transition-colors max-w-[200px]">
+                <DollarSign className="w-4 h-4 text-slate-400" />
+                <input 
+                  type="number" 
+                  placeholder="Price"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  className="w-full bg-transparent text-[13px] outline-none text-slate-700 placeholder:text-slate-400" 
+                />
+              </div>
+            )}
+            
+            {/* Universal Media Links */}
+            <div className="flex gap-4">
+              <div className="flex-1 flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200 focus-within:border-teal-600 transition-colors">
+                <ImageIcon className="w-4 h-4 text-slate-400" />
+                <input 
+                  type="url" 
+                  placeholder="Image URL"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  className="w-full bg-transparent text-[13px] outline-none text-slate-700 placeholder:text-slate-400" 
+                />
+              </div>
+              <div className="flex-1 flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200 focus-within:border-teal-600 transition-colors">
+                <Video className="w-4 h-4 text-slate-400" />
+                <input 
+                  type="url" 
+                  placeholder="Video URL"
+                  value={videoUrl}
+                  onChange={(e) => setVideoUrl(e.target.value)}
+                  className="w-full bg-transparent text-[13px] outline-none text-slate-700 placeholder:text-slate-400" 
+                />
+              </div>
+            </div>
+          </div>
 
           <div className="flex items-center justify-between pt-2 border-t border-slate-100">
             <div className="flex gap-2">

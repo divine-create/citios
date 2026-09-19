@@ -28,6 +28,11 @@ export type DBPost = {
   href?: { url: string; label: string };
   image?: string;
   avatarImg?: string;
+  videoUrl?: string;
+  eventDate?: string;
+  location?: string;
+  price?: number;
+  postMetadata?: string;
 };
 
 function PostCard({ post, follows, onFollowToggle }: { post: DBPost, follows: string[], onFollowToggle: (id: string) => void }) {
@@ -96,6 +101,33 @@ function PostCard({ post, follows, onFollowToggle }: { post: DBPost, follows: st
         {post.image ? (
           <FallbackImg src={post.image} alt={post.title} className="mt-3 h-44 md:h-56 w-full rounded-xl" />
         ) : null}
+        {post.videoUrl ? (
+          <div className="mt-3 text-[13px] font-bold text-teal-700 bg-teal-50 px-3 py-2 rounded-lg inline-flex items-center gap-2">
+            🔗 <a href={post.videoUrl} target="_blank" rel="noreferrer" className="hover:underline">Watch Video</a>
+          </div>
+        ) : null}
+        
+        {/* Specific Metadata */}
+        {(post.eventDate || post.location || post.price !== undefined) && (
+          <div className="mt-3 bg-slate-50 rounded-xl p-3 flex flex-wrap gap-x-4 gap-y-2 text-[12px] text-slate-600 font-medium border border-slate-100">
+            {post.eventDate && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-slate-400">📅</span> 
+                {new Date(post.eventDate).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+              </div>
+            )}
+            {post.location && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-slate-400">📍</span> {post.location}
+              </div>
+            )}
+            {post.price !== undefined && (
+              <div className="flex items-center gap-1.5 font-bold text-emerald-700">
+                <span className="text-emerald-500/70">💲</span> $\{post.price.toFixed(2)}
+              </div>
+            )}
+          </div>
+        )}
         {post.href ? (
           <Link
             href={post.href.url}

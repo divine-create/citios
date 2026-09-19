@@ -73,7 +73,17 @@ export async function fetchFeed(filter: string) {
   });
 }
 
-export async function createPost(data: { category: string; title: string; body: string; organizationId?: string }) {
+export async function createPost(data: { 
+  category: string; 
+  title: string; 
+  body: string; 
+  imageUrl?: string;
+  videoUrl?: string;
+  eventDate?: string;
+  location?: string;
+  price?: number;
+  postMetadata?: string;
+}) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.personId) {
     throw new Error('Unauthorized');
@@ -81,35 +91,20 @@ export async function createPost(data: { category: string; title: string; body: 
 
   const personId = session.user.personId;
 
-  if (data.organizationId) {
-    // Verify membership
-    const memberships = session.user.memberships || [];
-    const isMember = memberships.some((m: any) => m.organizationId === data.organizationId);
-    if (!isMember) {
-      throw new Error('Unauthorized organization post');
-    }
-
-    await db.orm.public.Post.create({
-      title: data.title,
-      content: data.body,
-      category: data.category,
-      organizationId: data.organizationId,
-      personId: null,
-      status: 'PUBLISHED',
-      isEmergency: false,
-    });
-  } else {
-    // Resident post
-    await db.orm.public.Post.create({
-      title: data.title,
-      content: data.body,
-      category: data.category,
-      organizationId: null,
-      personId: personId,
-      status: 'PUBLISHED',
-      isEmergency: false,
-    });
-  }
+  await db.orm.public.Post.create({
+    title: data.title,
+    content: data.body,
+    category: data.category,
+    personId: personId,
+    status: 'PUBLISHED',
+    isEmergency: false,
+    imageUrl: data.imageUrl,
+    videoUrl: data.videoUrl,
+    eventDate: data.eventDate ? new Date(data.eventDate) : undefined,
+    location: data.location,
+    price: data.price,
+    postMetadata: data.postMetadata,
+  });
 }
 
 export async function togglePostLike(postId: string) {

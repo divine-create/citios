@@ -85,6 +85,11 @@ export default function PostView({ post }: { post: any }) {
         onLike: handleLike,
         onShare: handleShare,
         comments: post.comments?.length || 0,
+        imageUrl: post.imageUrl,
+        videoUrl: post.videoUrl,
+        eventDate: post.eventDate,
+        location: post.location,
+        price: post.price,
         variant: post.isEmergency ? 'emergency' as const : 'default' as const
     };
 

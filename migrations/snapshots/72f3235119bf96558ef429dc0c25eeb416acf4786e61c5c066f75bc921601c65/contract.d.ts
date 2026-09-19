@@ -33,7 +33,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'1ff1ef001c8dacf6e56d26730e00363b669866e5d285fc4c774e99d8c055b68f'>;
+  StorageHashBase<'72f3235119bf96558ef429dc0c25eeb416acf4786e61c5c066f75bc921601c65'>;
 export type ExecutionHash =
   ExecutionHashBase<'dc966faa34b9e0e7d964f2480ba4f9241147cd24c2f57568d47b6434f9079904'>;
 export type ProfileHash =
@@ -925,12 +925,6 @@ export type FieldOutputTypes = {
       readonly viewCount: CodecTypes['pg/int4@1']['output'];
       readonly shareCount: CodecTypes['pg/int4@1']['output'];
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
-      readonly imageUrl: CodecTypes['pg/text@1']['output'] | null;
-      readonly videoUrl: CodecTypes['pg/text@1']['output'] | null;
-      readonly eventDate: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
-      readonly location: CodecTypes['pg/text@1']['output'] | null;
-      readonly price: CodecTypes['pg/float8@1']['output'] | null;
-      readonly postMetadata: CodecTypes['pg/text@1']['output'] | null;
       readonly organizationId: CodecTypes['pg/text@1']['output'] | null;
       readonly personId: CodecTypes['pg/text@1']['output'] | null;
       readonly linkedEntityType: CodecTypes['pg/text@1']['output'] | null;
@@ -2327,12 +2321,6 @@ export type FieldInputTypes = {
       readonly viewCount: CodecTypes['pg/int4@1']['input'];
       readonly shareCount: CodecTypes['pg/int4@1']['input'];
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
-      readonly imageUrl: CodecTypes['pg/text@1']['input'] | null;
-      readonly videoUrl: CodecTypes['pg/text@1']['input'] | null;
-      readonly eventDate: CodecTypes['pg/timestamptz-temporal@1']['input'] | null;
-      readonly location: CodecTypes['pg/text@1']['input'] | null;
-      readonly price: CodecTypes['pg/float8@1']['input'] | null;
-      readonly postMetadata: CodecTypes['pg/text@1']['input'] | null;
       readonly organizationId: CodecTypes['pg/text@1']['input'] | null;
       readonly personId: CodecTypes['pg/text@1']['input'] | null;
       readonly linkedEntityType: CodecTypes['pg/text@1']['input'] | null;
@@ -3723,21 +3711,15 @@ export type StorageColumnTypes = {
       readonly category: CodecTypes['pg/text@1']['output'];
       readonly content: CodecTypes['pg/text@1']['output'];
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
-      readonly eventDate: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
       readonly id: CodecTypes['pg/text@1']['output'];
-      readonly imageUrl: CodecTypes['pg/text@1']['output'] | null;
       readonly isEmergency: CodecTypes['pg/bool@1']['output'];
       readonly linkedEntityId: CodecTypes['pg/text@1']['output'] | null;
       readonly linkedEntityType: CodecTypes['pg/text@1']['output'] | null;
-      readonly location: CodecTypes['pg/text@1']['output'] | null;
       readonly organizationId: CodecTypes['pg/text@1']['output'] | null;
       readonly personId: CodecTypes['pg/text@1']['output'] | null;
-      readonly postMetadata: CodecTypes['pg/text@1']['output'] | null;
-      readonly price: CodecTypes['pg/float8@1']['output'] | null;
       readonly shareCount: CodecTypes['pg/int4@1']['output'];
       readonly status: 'DRAFT' | 'REVIEW' | 'PUBLISHED';
       readonly title: CodecTypes['pg/text@1']['output'];
-      readonly videoUrl: CodecTypes['pg/text@1']['output'] | null;
       readonly viewCount: CodecTypes['pg/int4@1']['output'];
     };
     readonly postLike: {
@@ -5125,21 +5107,15 @@ export type StorageColumnInputTypes = {
       readonly category: CodecTypes['pg/text@1']['input'];
       readonly content: CodecTypes['pg/text@1']['input'];
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
-      readonly eventDate: CodecTypes['pg/timestamptz-temporal@1']['input'] | null;
       readonly id: CodecTypes['pg/text@1']['input'];
-      readonly imageUrl: CodecTypes['pg/text@1']['input'] | null;
       readonly isEmergency: CodecTypes['pg/bool@1']['input'];
       readonly linkedEntityId: CodecTypes['pg/text@1']['input'] | null;
       readonly linkedEntityType: CodecTypes['pg/text@1']['input'] | null;
-      readonly location: CodecTypes['pg/text@1']['input'] | null;
       readonly organizationId: CodecTypes['pg/text@1']['input'] | null;
       readonly personId: CodecTypes['pg/text@1']['input'] | null;
-      readonly postMetadata: CodecTypes['pg/text@1']['input'] | null;
-      readonly price: CodecTypes['pg/float8@1']['input'] | null;
       readonly shareCount: CodecTypes['pg/int4@1']['input'];
       readonly status: 'DRAFT' | 'REVIEW' | 'PUBLISHED';
       readonly title: CodecTypes['pg/text@1']['input'];
-      readonly videoUrl: CodecTypes['pg/text@1']['input'] | null;
       readonly viewCount: CodecTypes['pg/int4@1']['input'];
     };
     readonly postLike: {
@@ -11661,36 +11637,6 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/timestamptz-temporal@1';
                   readonly nullable: false;
                   readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
-                };
-                readonly imageUrl: {
-                  readonly nativeType: 'text';
-                  readonly codecId: 'pg/text@1';
-                  readonly nullable: true;
-                };
-                readonly videoUrl: {
-                  readonly nativeType: 'text';
-                  readonly codecId: 'pg/text@1';
-                  readonly nullable: true;
-                };
-                readonly eventDate: {
-                  readonly nativeType: 'timestamptz';
-                  readonly codecId: 'pg/timestamptz-temporal@1';
-                  readonly nullable: true;
-                };
-                readonly location: {
-                  readonly nativeType: 'text';
-                  readonly codecId: 'pg/text@1';
-                  readonly nullable: true;
-                };
-                readonly price: {
-                  readonly nativeType: 'float8';
-                  readonly codecId: 'pg/float8@1';
-                  readonly nullable: true;
-                };
-                readonly postMetadata: {
-                  readonly nativeType: 'text';
-                  readonly codecId: 'pg/text@1';
-                  readonly nullable: true;
                 };
                 readonly organizationId: {
                   readonly nativeType: 'text';
@@ -24792,33 +24738,6 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/timestamptz-temporal@1';
                 };
               };
-              readonly imageUrl: {
-                readonly nullable: true;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
-              };
-              readonly videoUrl: {
-                readonly nullable: true;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
-              };
-              readonly eventDate: {
-                readonly nullable: true;
-                readonly type: {
-                  readonly kind: 'scalar';
-                  readonly codecId: 'pg/timestamptz-temporal@1';
-                };
-              };
-              readonly location: {
-                readonly nullable: true;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
-              };
-              readonly price: {
-                readonly nullable: true;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/float8@1' };
-              };
-              readonly postMetadata: {
-                readonly nullable: true;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
-              };
               readonly organizationId: {
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
@@ -24895,12 +24814,6 @@ type ContractBase = Omit<
                 readonly viewCount: { readonly column: 'viewCount' };
                 readonly shareCount: { readonly column: 'shareCount' };
                 readonly createdAt: { readonly column: 'createdAt' };
-                readonly imageUrl: { readonly column: 'imageUrl' };
-                readonly videoUrl: { readonly column: 'videoUrl' };
-                readonly eventDate: { readonly column: 'eventDate' };
-                readonly location: { readonly column: 'location' };
-                readonly price: { readonly column: 'price' };
-                readonly postMetadata: { readonly column: 'postMetadata' };
                 readonly organizationId: { readonly column: 'organizationId' };
                 readonly personId: { readonly column: 'personId' };
                 readonly linkedEntityType: { readonly column: 'linkedEntityType' };

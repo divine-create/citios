@@ -2786,6 +2786,13 @@
                   "kind": "scalar"
                 }
               },
+              "parentId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "personId": {
                 "nullable": false,
                 "type": {
@@ -2802,6 +2809,21 @@
               }
             },
             "relations": {
+              "parent": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "parentId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Comment",
+                  "namespace": "public"
+                }
+              },
               "person": {
                 "cardinality": "N:1",
                 "on": {
@@ -2831,6 +2853,21 @@
                   "model": "Post",
                   "namespace": "public"
                 }
+              },
+              "replies": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "parentId"
+                  ]
+                },
+                "to": {
+                  "model": "Comment",
+                  "namespace": "public"
+                }
               }
             },
             "storage": {
@@ -2843,6 +2880,9 @@
                 },
                 "id": {
                   "column": "id"
+                },
+                "parentId": {
+                  "column": "parentId"
                 },
                 "personId": {
                   "column": "personId"
@@ -10808,8 +10848,22 @@
                   "kind": "scalar"
                 }
               },
+              "eventDate": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
               "id": {
                 "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "imageUrl": {
+                "nullable": true,
                 "type": {
                   "codecId": "pg/text@1",
                   "kind": "scalar"
@@ -10836,6 +10890,13 @@
                   "kind": "scalar"
                 }
               },
+              "location": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "organizationId": {
                 "nullable": true,
                 "type": {
@@ -10847,6 +10908,20 @@
                 "nullable": true,
                 "type": {
                   "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "postMetadata": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "price": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/float8@1",
                   "kind": "scalar"
                 }
               },
@@ -10872,6 +10947,13 @@
               },
               "title": {
                 "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "videoUrl": {
+                "nullable": true,
                 "type": {
                   "codecId": "pg/text@1",
                   "kind": "scalar"
@@ -10958,8 +11040,14 @@
                 "createdAt": {
                   "column": "createdAt"
                 },
+                "eventDate": {
+                  "column": "eventDate"
+                },
                 "id": {
                   "column": "id"
+                },
+                "imageUrl": {
+                  "column": "imageUrl"
                 },
                 "isEmergency": {
                   "column": "isEmergency"
@@ -10970,11 +11058,20 @@
                 "linkedEntityType": {
                   "column": "linkedEntityType"
                 },
+                "location": {
+                  "column": "location"
+                },
                 "organizationId": {
                   "column": "organizationId"
                 },
                 "personId": {
                   "column": "personId"
+                },
+                "postMetadata": {
+                  "column": "postMetadata"
+                },
+                "price": {
+                  "column": "price"
                 },
                 "shareCount": {
                   "column": "shareCount"
@@ -10984,6 +11081,9 @@
                 },
                 "title": {
                   "column": "title"
+                },
+                "videoUrl": {
+                  "column": "videoUrl"
                 },
                 "viewCount": {
                   "column": "viewCount"
@@ -21859,6 +21959,11 @@
                   "nativeType": "text",
                   "nullable": false
                 },
+                "parentId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "personId": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -21904,9 +22009,33 @@
                     "namespaceId": "public",
                     "tableName": "person"
                   }
+                },
+                {
+                  "source": {
+                    "columns": [
+                      "parentId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "comment"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "comment"
+                  }
                 }
               ],
               "indexes": [
+                {
+                  "columns": [
+                    "parentId"
+                  ],
+                  "name": "comment_parentId_idx_6a68f597",
+                  "prefix": "comment_parentId_idx",
+                  "unique": false
+                },
                 {
                   "columns": [
                     "personId"
@@ -27646,10 +27775,20 @@
                   "nativeType": "timestamptz",
                   "nullable": false
                 },
+                "eventDate": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": true
+                },
                 "id": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": false
+                },
+                "imageUrl": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
                 },
                 "isEmergency": {
                   "codecId": "pg/bool@1",
@@ -27670,6 +27809,11 @@
                   "nativeType": "text",
                   "nullable": true
                 },
+                "location": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "organizationId": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -27678,6 +27822,16 @@
                 "personId": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
+                  "nullable": true
+                },
+                "postMetadata": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "price": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
                   "nullable": true
                 },
                 "shareCount": {
@@ -27708,6 +27862,11 @@
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": false
+                },
+                "videoUrl": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
                 },
                 "viewCount": {
                   "codecId": "pg/int4@1",
@@ -35609,7 +35768,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "9ed470cc974a711b7a2e4e2ed79abba62fec13a6e6792c81002923be586fd29c"
+    "storageHash": "1ff1ef001c8dacf6e56d26730e00363b669866e5d285fc4c774e99d8c055b68f"
   },
   "execution": {
     "executionHash": "dc966faa34b9e0e7d964f2480ba4f9241147cd24c2f57568d47b6434f9079904",
