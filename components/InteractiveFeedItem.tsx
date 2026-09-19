@@ -4,6 +4,7 @@ import { useState } from 'react';
 import FeedItem, { FeedItemProps } from './FeedItem';
 import { toggleLike, sharePost } from '@/lib/actions/post';
 import LoginModal from './LoginModal';
+import InlineComments from './InlineComments';
 
 interface InteractiveFeedItemProps extends Omit<FeedItemProps, 'onLike' | 'onShare' | 'onComment' | 'likes' | 'hasLiked'> {
     onComment?: () => void;
@@ -23,6 +24,8 @@ export default function InteractiveFeedItem({
     const [hasLiked, setHasLiked] = useState(initialHasLiked);
     const [likesCount, setLikesCount] = useState(initialLikes);
     const [shareCount, setShareCount] = useState(initialShareCount);
+    const [showComments, setShowComments] = useState(false);
+    const [localCommentsCount, setLocalCommentsCount] = useState(props.comments || 0);
     
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
@@ -67,7 +70,9 @@ export default function InteractiveFeedItem({
                 hasLiked={hasLiked}
                 onLike={handleLike}
                 onShare={handleShare}
-                onComment={props.onComment}
+                onComment={() => setShowComments(!showComments)}
+                comments={localCommentsCount}
+                commentsSection={showComments ? <div onClick={(e) => { e.stopPropagation(); e.preventDefault(); }} className="cursor-default"><InlineComments postId={postId} onCommentAdded={() => setLocalCommentsCount(c => c + 1)} /></div> : null}
             />
             <LoginModal 
                 isOpen={isLoginModalOpen} 

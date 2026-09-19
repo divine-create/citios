@@ -22,11 +22,12 @@ export interface FeedItemProps {
     comments: number;
     hasLiked?: boolean;
     variant?: 'default' | 'emergency' | 'event';
+    commentsSection?: React.ReactNode;
 }
 
 export default function FeedItem({
     author, avatarInitials, avatarIcon, avatarColor = "bg-slate-100 text-slate-600",
-    time, category, content, imageUrl, widget, actionLabel, onAction, onComment, onLike, onShare, likes, comments, hasLiked, variant = 'default'
+    time, category, content, imageUrl, widget, actionLabel, onAction, onComment, onLike, onShare, likes, comments, hasLiked, variant = 'default', commentsSection
 }: FeedItemProps) {
     let cardStyle = "p-4 md:p-5";
     if (imageUrl) cardStyle = "p-0 overflow-hidden";
@@ -82,6 +83,7 @@ export default function FeedItem({
                         <Share2 className="w-4 h-4" /> Share
                     </button>
                 </div>
+                {commentsSection}
             </div>
         </Card>
     );

@@ -6,6 +6,7 @@ import { Heart, MessageSquare, Share2, PenSquare, ChevronRight, UserPlus, UserCh
 // Feed tab chrome (UI filters only, not content).
 const FEED_FILTERS = ['For you', 'Following', 'Marketplace', 'Events', 'Housing', 'Community'];
 import { CityCard, FallbackImg, Pill, ChipButton, VerifiedBadge } from '@/components/cityos/CityUI';
+import InlineComments from '@/components/InlineComments';
 import { cn } from '@/lib/utils';
 import { fetchFeed, togglePostLike, toggleFollow, getFollowedOrganizations } from '@/app/actions/newsfeed';
 import { useCity } from '@/components/cityos/CityProvider';
@@ -34,6 +35,8 @@ function PostCard({ post, follows, onFollowToggle }: { post: DBPost, follows: st
   const [likeCount, setLikeCount] = useState(post.likes);
   const [shareCount, setShareCount] = useState(post.shares);
   const [isFollowing, setIsFollowing] = useState(post.orgId ? follows.includes(post.orgId) : false);
+  const [showComments, setShowComments] = useState(false);
+  const [commentCount, setCommentCount] = useState(post.comments);
   const cityTimezone = useCity().city?.timezone ?? undefined;
 
   useEffect(() => {
@@ -104,7 +107,8 @@ function PostCard({ post, follows, onFollowToggle }: { post: DBPost, follows: st
         ) : null}
       </div>
 
-      <div className="mt-4 flex items-center gap-1 border-t border-slate-100 px-3 py-2">
+      <div className="mt-4 flex flex-col border-t border-slate-100">
+        <div className="flex items-center gap-1 px-3 py-2">
         <button
           onClick={handleLike}
           className={cn(
@@ -116,17 +120,17 @@ function PostCard({ post, follows, onFollowToggle }: { post: DBPost, follows: st
           {likeCount}
         </button>
         <button
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            window.location.href = `/post/${post.id}`;
-          }}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-bold text-slate-500 hover:bg-slate-50 transition-colors"
-          title="View or add comments"
-        >
-          <MessageSquare className="w-4 h-4" />
-          {post.comments}
-        </button>
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setShowComments(!showComments);
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-bold text-slate-500 hover:bg-slate-50 transition-colors"
+            title="View or add comments"
+          >
+            <MessageSquare className="w-4 h-4" />
+            {commentCount}
+          </button>
         <button
           onClick={() => setShareCount((s) => s + 1)}
           className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-bold text-slate-500 hover:bg-slate-50 transition-colors"
@@ -135,6 +139,12 @@ function PostCard({ post, follows, onFollowToggle }: { post: DBPost, follows: st
           {shareCount}
         </button>
         <span className="ml-auto text-[10px] font-bold text-slate-300 uppercase tracking-wider">City Feed</span>
+        </div>
+        {showComments && (
+          <div onClick={(e) => { e.stopPropagation(); e.preventDefault(); }} className="cursor-default">
+            <InlineComments postId={post.id} onCommentAdded={() => setCommentCount(c => c + 1)} />
+          </div>
+        )}
       </div>
     </CityCard>
   );
