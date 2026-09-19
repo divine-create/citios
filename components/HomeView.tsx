@@ -147,7 +147,8 @@ export default function HomeView({ initialPosts }: { initialPosts: any[] }) {
                     <InteractiveFeedItem 
                         key={post.id} 
                         {...post} 
-                        onAction={() => router.push(`/post/${post.id}`)} 
+                        onAction={() => router.push(`/post/${post.id}`)}
+                          onComment={() => router.push(`/post/${post.id}`)} 
                     />
                 ))}
             </div>

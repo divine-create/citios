@@ -5,7 +5,8 @@ import FeedItem, { FeedItemProps } from './FeedItem';
 import { toggleLike, sharePost } from '@/lib/actions/post';
 import LoginModal from './LoginModal';
 
-interface InteractiveFeedItemProps extends Omit<FeedItemProps, 'onLike' | 'onShare' | 'likes' | 'hasLiked'> {
+interface InteractiveFeedItemProps extends Omit<FeedItemProps, 'onLike' | 'onShare' | 'onComment' | 'likes' | 'hasLiked'> {
+    onComment?: () => void;
     postId: string;
     initialLikes: number;
     initialHasLiked: boolean;
@@ -66,6 +67,7 @@ export default function InteractiveFeedItem({
                 hasLiked={hasLiked}
                 onLike={handleLike}
                 onShare={handleShare}
+                onComment={props.onComment}
             />
             <LoginModal 
                 isOpen={isLoginModalOpen} 

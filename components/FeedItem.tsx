@@ -16,6 +16,7 @@ export interface FeedItemProps {
     actionLabel?: string;
     onAction?: () => void;
     onLike?: () => void;
+    onComment?: () => void;
     onShare?: () => void;
     likes: number;
     comments: number;
@@ -25,7 +26,7 @@ export interface FeedItemProps {
 
 export default function FeedItem({
     author, avatarInitials, avatarIcon, avatarColor = "bg-slate-100 text-slate-600",
-    time, category, content, imageUrl, widget, actionLabel, onAction, onLike, onShare, likes, comments, hasLiked, variant = 'default'
+    time, category, content, imageUrl, widget, actionLabel, onAction, onComment, onLike, onShare, likes, comments, hasLiked, variant = 'default'
 }: FeedItemProps) {
     let cardStyle = "p-4 md:p-5";
     if (imageUrl) cardStyle = "p-0 overflow-hidden";
@@ -74,7 +75,7 @@ export default function FeedItem({
                     <button onClick={onLike} className={`flex items-center gap-1.5 text-xs font-bold transition-colors ${hasLiked ? 'text-orange-500' : 'hover:text-orange-500'}`}>
                         <Heart className={`w-4 h-4 ${hasLiked ? 'fill-orange-500 text-orange-500' : ''}`} /> {likes}
                     </button>
-                    <button className="flex items-center gap-1.5 text-xs font-bold hover:text-teal-600 transition-colors">
+                    <button onClick={onComment} className="flex items-center gap-1.5 text-xs font-bold hover:text-teal-600 transition-colors">
                         <MessageCircle className="w-4 h-4" /> {comments}
                     </button>
                     <button onClick={onShare} className="flex items-center gap-1.5 text-xs font-bold hover:text-teal-600 transition-colors">
