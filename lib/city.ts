@@ -24,16 +24,25 @@ export interface CityRecord {
   slug: string;
   name: string;
   country: string;
+  /** State/region (e.g. a Nigerian LGA's state) — null for legacy records. */
+  state: string | null;
   currency: string;
   timezone: string;
   // Geographic center — consumed by the nearest-city geolocation suggestion.
   latitude: number | null;
   longitude: number | null;
+  /** ISO timestamp — used to order the registry (oldest first). */
+  createdAt: string;
 }
 
 export async function getActiveCities(): Promise<CityRecord[]> {
   const cities = await db.orm.public.City.where({ isActive: true }).all();
-  return JSON.parse(JSON.stringify(cities)) as CityRecord[];
+  const parsed = JSON.parse(JSON.stringify(cities)) as CityRecord[];
+  // Oldest first: the first city ever created (the seed's home city) is the
+  // stable fallback at the bottom of the resolution ladder, even with
+  // hundreds of cities in the registry.
+  parsed.sort((a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : 0));
+  return parsed;
 }
 
 /** Resolve a city by slug, or null when the slug is unknown/inactive. */

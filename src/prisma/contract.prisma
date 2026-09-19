@@ -352,6 +352,9 @@ model City {
   name      String
   slug      String   @unique
   country   String
+  // State/region the city belongs to (e.g. a Nigerian LGA's state). Lets the
+  // city picker group and disambiguate entries that share a name.
+  state     String?
   timezone  String   @default("UTC")
   currency  String   @default("USD")
   isActive  Boolean  @default(true)

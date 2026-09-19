@@ -2330,6 +2330,13 @@
                   "kind": "scalar"
                 }
               },
+              "state": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "timezone": {
                 "nullable": false,
                 "type": {
@@ -2398,6 +2405,9 @@
                 },
                 "slug": {
                   "column": "slug"
+                },
+                "state": {
+                  "column": "state"
                 },
                 "timezone": {
                   "column": "timezone"
@@ -21441,6 +21451,11 @@
                   "nativeType": "text",
                   "nullable": false
                 },
+                "state": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "timezone": {
                   "codecId": "pg/text@1",
                   "default": {
@@ -35594,7 +35609,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "a80bde53952f496d7e4d288f6a6cde7d6a0612604fdba463ca826934d14ba2e5"
+    "storageHash": "9ed470cc974a711b7a2e4e2ed79abba62fec13a6e6792c81002923be586fd29c"
   },
   "execution": {
     "executionHash": "dc966faa34b9e0e7d964f2480ba4f9241147cd24c2f57568d47b6434f9079904",
