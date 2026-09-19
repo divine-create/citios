@@ -71,57 +71,18 @@ function PostCard({ post, follows, onFollowToggle }: { post: DBPost, follows: st
             {post.isOrg ? <VerifiedBadge /> : null}
             <Pill tone="slate" className="ml-1">{post.category}</Pill>
             {post.isOrg && post.orgId && (
-              <button 
-                onClick={handleFollow}
-                className={cn(
-                  "ml-auto flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-md transition-colors",
-                  isFollowing ? "bg-slate-100 text-slate-500" : "bg-teal-50 text-teal-700 hover:bg-teal-100"
-                )}
-              >
-                {isFollowing ? <UserCheck className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
-                {isFollowing ? 'Following' : 'Follow'}
-              </button>
-            )}
-          </div>
-          <p className="text-[11px] text-slate-400 font-bold mt-0.5 uppercase tracking-wider">{`${post.role} A ${new Date(post.time).toLocaleDateString(undefined, { timeZone: cityTimezone })}`}</p>
-        </div>
-      </div>
-
-      <div className="px-5">
-        <h3 className="text-[15px] md:text-base font-black text-ink leading-snug">{post.title}</h3>
-        <p className="mt-2 text-[13px] text-slate-600 leading-relaxed whitespace-pre-line">{post.body}</p>
-        {post.image ? (
-          <FallbackImg src={post.image} alt={post.title} className="mt-3 h-44 md:h-56 w-full rounded-xl" />
-        ) : null}
-        {post.href ? (
-          <Link
-            href={post.href.url}
-            className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-teal-800 hover:bg-teal-900 text-white text-[11px] font-bold transition-colors"
+              <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              window.location.href = `/post/${post.id}`;
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-bold text-slate-500 hover:bg-slate-50 transition-colors"
+            title="View or add comments"
           >
-            {post.href.label}
-            <ChevronRight className="w-3.5 h-3.5" />
-          </Link>
-        ) : null}
-      </div>
-
-      <div className="mt-4 flex items-center gap-1 border-t border-slate-100 px-3 py-2">
-        <button
-          onClick={handleLike}
-          className={cn(
-            'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-bold transition-colors',
-            liked ? 'text-orange-600 bg-orange-50' : 'text-slate-500 hover:bg-slate-50',
-          )}
-        >
-          <Heart className={cn('w-4 h-4', liked && 'fill-orange-500 text-orange-500')} />
-          {likeCount}
-        </button>
-        <button
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-bold text-slate-500 hover:bg-slate-50 transition-colors"
-          title="Comments coming soon"
-        >
-          <MessageSquare className="w-4 h-4" />
-          {post.comments}
-        </button>
+            <MessageSquare className="w-4 h-4" />
+            {post.comments}
+          </button>
         <button
           onClick={() => setShareCount((s) => s + 1)}
           className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-bold text-slate-500 hover:bg-slate-50 transition-colors"
