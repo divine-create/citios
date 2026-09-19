@@ -119,7 +119,7 @@ export default function InlineComments({ postId, onCommentAdded }: { postId: str
             )}
 
             {/* Input */}
-            <form onSubmit={handleSubmit} className={`flex gap-2 items-center ${replyingTo ? 'border border-slate-100 p-2 rounded-b-xl rounded-tr-xl bg-white shadow-sm' : ''}`}>
+            <div className={`flex gap-2 items-center ${replyingTo ? 'border border-slate-100 p-2 rounded-b-xl rounded-tr-xl bg-white shadow-sm' : ''}`}>
                 {!replyingTo && (
                     <div className="w-8 h-8 rounded-full bg-slate-200 shrink-0 flex items-center justify-center font-bold text-[11px] text-slate-600">
                         Me
@@ -132,18 +132,25 @@ export default function InlineComments({ postId, onCommentAdded }: { postId: str
                         placeholder={replyingTo ? "Write a reply..." : "Write a comment..."}
                         value={commentText}
                         onChange={(e) => setCommentText(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleSubmit(e as any);
+                            }
+                        }}
                         className="w-full bg-slate-100 border border-slate-200 rounded-full pl-4 pr-10 py-2 text-[13px] focus:outline-none focus:ring-1 focus:ring-slate-300 transition-all"
                         disabled={isSubmitting}
                     />
                     <button 
-                        type="submit"
+                        onClick={handleSubmit as any}
+                        type="button"
                         disabled={!commentText.trim() || isSubmitting}
                         className="absolute right-2 top-1/2 -translate-y-1/2 text-teal-600 hover:text-teal-700 disabled:text-slate-300 p-1"
                     >
                         <Send className="w-4 h-4" />
                     </button>
                 </div>
-            </form>
+            </div>
             
             <LoginModal 
                 isOpen={isLoginModalOpen} 
