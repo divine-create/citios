@@ -19,14 +19,32 @@ export async function getPostDetails(postId: string) {
         // V1 identity path: Comment.personId -> Person. `user` key + composed
         // `name` preserved for PostView.tsx compatibility (Person has
         // firstName/lastName, not the legacy User.name column).
-        const commentsWithUsers = comments.map(c => {
+        const commentsWithUsersMap = new Map();
+        comments.forEach(c => {
             const author = users.find(u => u.id === c.personId);
-            return {
+            commentsWithUsersMap.set(c.id, {
                 ...c,
                 createdAt: c.createdAt.toString(),
-                user: author ? { ...author, name: `${author.firstName} ${author.lastName}`.trim() } : null
-            };
+                user: author ? { ...author, name: `${author.firstName} ${author.lastName}`.trim() } : null,
+                replies: []
+            });
         });
+
+        const rootComments: any[] = [];
+        commentsWithUsersMap.forEach(c => {
+            if (c.parentId) {
+                const parent = commentsWithUsersMap.get(c.parentId);
+                if (parent) {
+                    parent.replies.push(c);
+                } else {
+                    rootComments.push(c); // fallback if parent missing
+                }
+            } else {
+                rootComments.push(c);
+            }
+        });
+        
+        const commentsWithUsers = rootComments;
 
         let hasLiked = false;
         const session = await getServerSession(authOptions);
@@ -55,17 +73,20 @@ export async function getPostDetails(postId: string) {
     }
 }
 
-export async function addComment(postId: string, content: string) {
+export async function addComment(postId: string, content: string, parentId?: string) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) return JSON.parse(JSON.stringify({ error: 'Not logged in' }));
 
     const { person } = await requireAuthenticatedAccount();
 
-    await db.orm.public.Comment.create({
+    const data: any = {
         content,
         postId,
         personId: person.id
-    });
+    };
+    if (parentId) data.parentId = parentId;
+
+    await db.orm.public.Comment.create(data);
 
     return JSON.parse(JSON.stringify({ success: true }));
 }

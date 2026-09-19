@@ -763,6 +763,10 @@ model Comment {
   post           Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
   person           Person         @relation("UserComments", fields: [personId], references: [id], onDelete: Cascade)
   
+  parentId       String?
+  parent         Comment?       @relation("CommentReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  replies        Comment[]      @relation("CommentReplies")
+  
   createdAt      DateTime     @default(now())
 }
 
