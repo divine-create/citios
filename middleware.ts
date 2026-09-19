@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { withAuth } from "next-auth/middleware";
+import { NextResponse } from "next/server";
+import { withAuth, NextRequestWithAuth } from "next-auth/middleware";
 
 // Coarse gate: must be signed in to reach any admin/provider/courier surface.
 // Fine-grained checks (which vertical, which org) run per-page via
@@ -25,13 +25,13 @@ function isProtectedPath(pathname: string) {
 
 // Microsite subdomain routing (e.g. `your-school.localhost:3001` in dev,
 // `your-school.<APEX>` in production) rewrites to the public renderer at
-// `/site/<slug>` — no auth involved, this is a public page. The apex domain
+// `/site/<slug>` ?" no auth involved, this is a public page. The apex domain
 // is configurable since it differs between local dev and production; unset
 // falls back to `localhost` so subdomains work out of the box in dev (modern
 // browsers resolve `*.localhost` to 127.0.0.1 automatically).
 const APEX_DOMAIN = process.env.NEXT_PUBLIC_APEX_DOMAIN || "localhost";
 
-function microsite_rewrite(req: NextRequest): NextResponse | null {
+function microsite_rewrite(req: NextRequestWithAuth): NextResponse | null {
   const hostname = (req.headers.get("host") || "").split(":")[0];
   const pathname = req.nextUrl.pathname;
 
@@ -46,21 +46,41 @@ function microsite_rewrite(req: NextRequest): NextResponse | null {
   return NextResponse.rewrite(url);
 }
 
-export default async function middleware(req: NextRequest) {
-  const rewrite = microsite_rewrite(req);
-  if (rewrite) return rewrite;
+export default withAuth(
+  function middleware(req: NextRequestWithAuth) {
+    const rewrite = microsite_rewrite(req);
+    if (rewrite) return rewrite;
 
-  if (isProtectedPath(req.nextUrl.pathname)) {
-    // Delegates to next-auth's own default redirect-to-signin behavior —
-    // reused as-is rather than reimplemented, so this preserves exactly
-    // what `export { default } from "next-auth/middleware"` did before.
-    const authResult = await withAuth(req as any);
-    if (authResult) return authResult;
+    const isProtected = isProtectedPath(req.nextUrl.pathname);
+    const token = req.nextauth.token;
+
+    if (isProtected && !token) {
+      const url = req.nextUrl.clone();
+      
+      // Dynamic sign-in page routing per vertical
+      if (req.nextUrl.pathname.startsWith("/school")) {
+        url.pathname = "/school/login";
+      } else {
+        // Default to NextAuth built-in generic login
+        url.pathname = "/api/auth/signin";
+      }
+      
+      url.searchParams.set("callbackUrl", req.nextUrl.href);
+      return NextResponse.redirect(url);
+    }
+
+    return NextResponse.next();
+  },
+  {
+    callbacks: {
+      // By returning true here, we bypass NextAuth's default redirect logic
+      // and let our middleware function above handle the redirect dynamically
+      // based on the requested URL.
+      authorized: () => true,
+    },
   }
-
-  return NextResponse.next();
-}
+);
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|school/login).*)"],
 };

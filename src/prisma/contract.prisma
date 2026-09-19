@@ -449,6 +449,17 @@ model Organization {
   serviceQuotes       ServiceJobQuote[]       @relation("OrgServiceQuotes")
   serviceInvoices     ServiceInvoice[]     @relation("OrgServiceInvoices")
   serviceExpenses     ServiceExpense[]     @relation("OrgServiceExpenses")
+
+  // RestaurantOS (Restaurants, Eateries & Fast Food)
+  restaurantSettings     RestaurantSettings?       @relation("OrgRestaurantSettings")
+  restaurantTables       RestaurantTable[]         @relation("RestaurantTables")
+  restaurantReservations RestaurantReservation[]    @relation("OrgRestaurantReservations")
+  restaurantInventory    RestaurantInventoryItem[] @relation("RestaurantInventory")
+  restaurantStockMovements RestaurantStockMovement[] @relation("RestaurantStockMovements")
+  restaurantExpenses     RestaurantExpense[]       @relation("OrgRestaurantExpenses")
+  menuItemAddons         MenuItemAddon[]           @relation("OrgMenuItemAddons")
+  menuItemVariants       MenuItemVariant[]         @relation("OrgMenuItemVariants")
+  menuItemCombos         MenuItemCombo[]           @relation("OrgMenuItemCombos")
 }
 
 enum OrgRole {
@@ -468,6 +479,9 @@ enum OrgRole {
   HOTEL_HOUSEKEEPER
   CASHIER
   INVENTORY_STAFF
+  // RestaurantOS
+  WAITER
+  KITCHEN
 }
 
 // ----------------------------------------------------------------------------
@@ -1800,6 +1814,67 @@ model MenuItem {
   organization   Organization @relation("RestaurantMenuItems", fields: [organizationId], references: [id], onDelete: Cascade)
   
   orderItems     OrderItem[]
+
+  // RestaurantOS menu enhancements
+  addons         MenuItemAddon[]
+  variants       MenuItemVariant[]
+  combos         MenuItemComboItem[]
+}
+
+model MenuItemAddon {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("OrgMenuItemAddons", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  menuItemId     String
+  menuItem       MenuItem     @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+
+  name           String       // "Extra chicken", "Plantain side"
+  price          Float        @default(0)
+  isAvailable    Boolean      @default(true)
+
+  createdAt DateTime @default(now())
+}
+
+model MenuItemVariant {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("OrgMenuItemVariants", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  menuItemId     String
+  menuItem       MenuItem     @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+
+  name           String       // "Small plate" | "Regular" | "Large"
+  price          Float
+  isAvailable    Boolean      @default(true)
+
+  createdAt DateTime @default(now())
+}
+
+model MenuItemCombo {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("OrgMenuItemCombos", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name           String       // "Jollof + Chicken + Drink"
+  description    String?
+  price          Float
+  isAvailable    Boolean      @default(true)
+
+  items          MenuItemComboItem[]
+
+  createdAt DateTime @default(now())
+}
+
+model MenuItemComboItem {
+  id             String       @id @default(uuid())
+  comboId        String
+  combo          MenuItemCombo @relation(fields: [comboId], references: [id], onDelete: Cascade)
+
+  menuItemId     String?
+  menuItem       MenuItem?     @relation("ComboItems", fields: [menuItemId], references: [id])
+  name           String
+  quantity       Int          @default(1)
 }
 
 enum OrderStatus {
@@ -1822,7 +1897,15 @@ model RestaurantOrder {
   totalAmount    Float
   status         OrderStatus  @default(PENDING)
   type           OrderType    @default(DINE_IN)
-  tableNumber    String?      // If DINE_IN
+  tableNumber    String?      // If DINE_IN (legacy free-text; prefer tableId)
+  
+  // RestaurantOS: POS / KDS / call-out
+  orderNumber    Int?         // sequential, called out at the counter
+  tableId        String?
+  table          RestaurantTable? @relation("TableOrders", fields: [tableId], references: [id])
+  paymentMethod  String?      // WALLET | CASH | POS
+  paidAt         DateTime?
+  servedByMembershipId String?
   
   organizationId String
   customerDataId     String?      // The user who placed the order
@@ -1921,6 +2004,50 @@ model RestaurantReservation {
   updatedAt DateTime @default(now())
 }
 
+
+model RestaurantInventoryItem {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("RestaurantInventory", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name           String       // "Rice (bag)", "Groundnut Oil (litre)", "Chicken (crate)"
+  unit           String       @default("unit") // kg, crate, litre, bag, carton
+  quantity       Float        @default(0)
+  lowStockLevel  Float        @default(5)
+  cost           Float?       // per-unit cost, for expense accounting
+
+  movements      RestaurantStockMovement[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+}
+
+model RestaurantStockMovement {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("RestaurantStockMovements", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  itemId         String
+  item           RestaurantInventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  delta          Float        // positive = restock, negative = usage
+  note           String?
+
+  createdAt DateTime @default(now())
+}
+
+model RestaurantExpense {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("OrgRestaurantExpenses", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  category       String       @default("ingredients") // ingredients | gas | staff | rent | utilities | other
+  amount         Float
+  note           String?
+  spentAt        DateTime     @default(now())
+
+  createdAt DateTime @default(now())
+}
 
 // ----------------------------------------------------------------------------
 // EVENTS & RENTALS
