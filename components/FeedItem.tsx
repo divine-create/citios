@@ -25,7 +25,7 @@ export interface FeedItemProps {
     onAction?: () => void;
     onLike?: () => void;
     onComment?: () => void;
-    onShare?: () => void;
+    onShare?: (e: React.MouseEvent) => void;
     likes: number;
     comments: number;
     hasLiked?: boolean;

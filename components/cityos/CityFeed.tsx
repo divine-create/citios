@@ -9,6 +9,7 @@ const FEED_FILTERS = ['For you', 'Following', 'Marketplace', 'Events', 'Housing'
 import { CityCard, FallbackImg, Pill, ChipButton, VerifiedBadge } from '@/components/cityos/CityUI';
 import InlineComments from '@/components/InlineComments';
 import { cn } from '@/lib/utils';
+import { sharePost } from '@/lib/actions/post';
 import { fetchFeed, togglePostLike, toggleFollow, getFollowedOrganizations } from '@/app/actions/newsfeed';
 import { useCity } from '@/components/cityos/CityProvider';
 

@@ -55,8 +55,24 @@ export default function PostView({ post }: { post: any }) {
         }
     };
 
-    const handleShare = async () => {
+    const handleShare = async (e?: React.MouseEvent) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
         setShareCount(shareCount + 1);
+        try {
+            const shareUrl = `${window.location.origin}/post/${post.id}`;
+            if (navigator.share) {
+                await navigator.share({ title: post.title, url: shareUrl });
+            } else {
+                await navigator.clipboard.writeText(shareUrl);
+                alert("Link copied to clipboard!");
+            }
+        } catch (err) {
+            console.error(err);
+        }
+        
         const res = await sharePost(post.id);
         if (res.error) {
             setShareCount(shareCount);
@@ -65,8 +81,6 @@ export default function PostView({ post }: { post: any }) {
             } else {
                 alert(res.error);
             }
-        } else {
-            alert("Thanks for sharing!");
         }
     };
 
