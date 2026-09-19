@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/src/prisma/db';
 import { getCurrentCity, getCityBySlug } from '@/lib/city';
+import { notifyPerson } from '@/lib/notify';
 
 const FOOD_CATS = ['All', 'Restaurant', 'Cafe', 'Campus Eats', 'Food & Market'];
 
@@ -197,6 +198,14 @@ export async function placeRestaurantOrder(input: {
       });
       orderIds.push(order.id);
       grandTotal += group.total;
+
+      // Real event → resident notification (fire-and-forget, never blocks the order).
+      await notifyPerson(personId, {
+        type: 'FOOD_ORDER_CONFIRMED',
+        title: `Food order placed at ${org.name}`,
+        body: `${group.items.length} item${group.items.length === 1 ? '' : 's'} · total ₦${group.total.toLocaleString()}`,
+        href: '/orders',
+      });
     } catch (e: any) {
       throw new Error(`Failed to place restaurant order: ${e?.message || 'unknown'}`);
     }

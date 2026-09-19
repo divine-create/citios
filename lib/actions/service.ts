@@ -3,6 +3,7 @@
 import '@js-temporal/polyfill'
 import { db } from '@/src/prisma/db'
 import { requireMembership } from '@/lib/actions/tenant'
+import { notifyPerson, personIdForCustomerData } from '@/lib/notify'
 
 function toInstant(date: Date) {
   return (globalThis as any).Temporal.Instant.fromEpochMilliseconds(date.getTime());
@@ -330,6 +331,20 @@ export async function updateServiceAppointmentStatus(id: string, status: string)
     const apt = await db.orm.public.ServiceAppointment.where({ id }).all().first();
     if (apt) await requireMembership(apt.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     await db.orm.public.ServiceAppointment.where({ id }).update({ status });
+
+    // Real org event → notify the resident customer (fire-and-forget).
+    if (apt) {
+      const personId = await personIdForCustomerData(apt.customerDataId);
+      if (personId) {
+        const label = status.charAt(0) + status.slice(1).toLowerCase().replace('_', ' ');
+        await notifyPerson(personId, {
+          type: 'SERVICE_STATUS',
+          title: `Appointment ${label}`,
+          href: '/tasks',
+        });
+      }
+    }
+
     return { success: true };
   } catch (error) {
     console.error('Error updating appointment status:', error);

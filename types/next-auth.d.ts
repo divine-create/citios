@@ -29,6 +29,7 @@ declare module 'next-auth' {
       role?: 'RESIDENT' | 'PROVIDER' | 'COURIER';
       memberships?: OrgMembership[];
       isCourier?: boolean;
+      onboardingComplete?: boolean;
     };
   }
 }
@@ -39,5 +40,6 @@ declare module 'next-auth/jwt' {
     role?: 'RESIDENT' | 'PROVIDER' | 'COURIER';
     memberships?: OrgMembership[];
     isCourier?: boolean;
+    onboardingComplete?: boolean;
   }
 }

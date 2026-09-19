@@ -61,6 +61,15 @@ export const authOptions: NextAuthOptions = {
               account = await db.orm.public.Account.create({ personId: dbPerson.id, isActive: true });
             }
 
+            // Ensure ResidentProfile exists; create one on first sign-in
+            let residentProfile = await db.orm.public.ResidentProfile
+              .where({ personId: dbPerson.id }).all().first();
+            if (!residentProfile) {
+              residentProfile = await db.orm.public.ResidentProfile.create({
+                personId: dbPerson.id,
+              });
+            }
+
             const [orgMembers, gigProfile] = await Promise.all([
               db.orm.public.Membership.where({ personId: dbPerson.id }).all(),
               db.orm.public.GigWorkerProfile.where({ personId: dbPerson.id }).all().first(),
@@ -88,6 +97,7 @@ export const authOptions: NextAuthOptions = {
             token.memberships = memberships;
             token.isCourier = !!gigProfile;
             token.role = memberships.length > 0 ? "PROVIDER" : gigProfile ? "COURIER" : "RESIDENT";
+            token.onboardingComplete = residentProfile.onboardingComplete ?? false;
           }
         } catch (error) {
           console.error("Error resolving RBAC roles:", error);
@@ -104,6 +114,7 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role;
         session.user.memberships = token.memberships ?? [];
         session.user.isCourier = !!token.isCourier;
+        session.user.onboardingComplete = (token.onboardingComplete as boolean | undefined) ?? false;
       }
       return session;
     },

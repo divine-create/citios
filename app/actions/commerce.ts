@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { db } from '@/src/prisma/db';
 import { getCurrentCity, getCityBySlug } from '@/lib/city';
 import { revalidatePath } from 'next/cache';
+import { notifyPerson } from '@/lib/notify';
 
 /**
  * Place a retail order.
@@ -103,6 +104,14 @@ export async function placeRetailOrder(input: {
 
     orderIds.push(order.id);
     grandTotal += group.total;
+
+    // Real event → resident notification (fire-and-forget, never blocks the order).
+    await notifyPerson(personId, {
+      type: 'ORDER_CONFIRMED',
+      title: `Order placed at ${org.name}`,
+      body: `${group.items.length} item${group.items.length === 1 ? '' : 's'} · total ₦${group.total.toLocaleString()}`,
+      href: '/orders',
+    });
   }
 
   revalidatePath('/workspaces/shopos');

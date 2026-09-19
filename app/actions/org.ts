@@ -4,6 +4,7 @@ import { db } from '@/src/prisma/db';
 import { getCurrentCity, getCityBySlug } from '@/lib/city';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { notifyPerson } from '@/lib/notify';
 
 export async function getCanonicalOrganization(id: string) {
   let org = await db.orm.public.Organization.where({ id }).first();
@@ -81,10 +82,20 @@ export async function toggleJobApplication(jobId: string) {
     await db.orm.public.JobApplication.where({ id: existing.id }).delete();
     return false;
   } else {
-    await db.orm.public.JobApplication.create({
+    const app = await db.orm.public.JobApplication.create({
       jobId,
       personId: session.user.personId,
     });
+
+    // Real event → resident notification (fire-and-forget).
+    const job = await db.orm.public.Job.where({ id: jobId }).all().first();
+    await notifyPerson(session.user.personId, {
+      type: 'JOB_APPLICATION',
+      title: 'Application submitted',
+      body: job?.title ? `You applied for "${job.title}".` : undefined,
+      href: `/jobs/${jobId}`,
+    });
+
     return true;
   }
 }
@@ -114,6 +125,16 @@ export async function toggleEventRegistration(eventId: string) {
       eventId,
       personId: session.user.personId,
     });
+
+    // Real event → resident notification (fire-and-forget).
+    const ev = await db.orm.public.Event.where({ id: eventId }).all().first();
+    await notifyPerson(session.user.personId, {
+      type: 'SYSTEM',
+      title: 'Registration confirmed',
+      body: ev?.title ? `You're registered for "${ev.title}".` : undefined,
+      href: `/events/${eventId}`,
+    });
+
     return true;
   }
 }

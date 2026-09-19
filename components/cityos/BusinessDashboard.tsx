@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import { Banknote, ShoppingBag, Users, TrendingUp, Star, Truck, ChevronRight, BadgeCheck } from 'lucide-react';
 import { fmtNaira, parseNaira } from '@/lib/format';
 import { StatTile, Pill,  SectionHead } from '@/components/cityos/CityUI';
@@ -33,6 +34,20 @@ export default function BusinessDashboard() {
   const d = EMPTY_DASHBOARD;
   const maxWeek = Math.max(...d.week);
   const [live, setLive] = useState<LiveOrder[]>([]);
+  const { data: session } = useSession();
+
+  // Route each business to ITS OWN OS by org type — a restaurant owner must
+  // land in RestaurantOS, not ShopOS.
+  const orgType = session?.user?.memberships?.[0]?.organizationType;
+  const OS_ROUTES: Record<string, { href: string; label: string }> = {
+    RESTAURANT: { href: '/admin/restaurantos', label: 'Full RestaurantOS admin' },
+    RETAIL: { href: '/admin/grocery', label: 'Full ShopOS admin' },
+    SERVICES: { href: '/admin/service', label: 'Full ServiceOS admin' },
+    SCHOOL: { href: '/admin/school', label: 'Full EduOS admin' },
+    HOTEL: { href: '/admin/hotel', label: 'Full HotelOS admin' },
+    EVENT_ORGANIZER: { href: '/admin/events', label: 'Full EventsOS admin' },
+  };
+  const os = OS_ROUTES[orgType ?? ''] ?? { href: '/admin/grocery', label: 'Full ShopOS admin' };
   const liveTotal = live.reduce((s, o) => s + o.amount, 0);
   const todayRevenue = parseNaira(d.today.revenue) + liveTotal;
   const todayOrders = d.today.orders + live.length;
@@ -54,8 +69,8 @@ export default function BusinessDashboard() {
             </p>
           </div>
         </div>
-        <Link href="/admin/grocery" className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white ring-1 ring-slate-200 text-slate-700 text-xs font-black hover:ring-teal-300 transition-all">
-          Full ShopOS admin <ChevronRight className="w-3.5 h-3.5" />
+        <Link href={os.href} className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white ring-1 ring-slate-200 text-slate-700 text-xs font-black hover:ring-teal-300 transition-all">
+          {os.label} <ChevronRight className="w-3.5 h-3.5" />
         </Link>
       </div>
 

@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { db } from '@/src/prisma/db';
 import { revalidatePath } from 'next/cache';
 import { ActivityItem } from '@/lib/activity';
+import { notifyPerson } from '@/lib/notify';
 
 export async function requestServiceJob(input: {
   serviceId: string;
@@ -52,6 +53,14 @@ export async function requestServiceJob(input: {
     notes: input.notes || '',
     status: 'NEW',
     priority: 'NORMAL'
+  });
+
+  // Real event → resident notification (fire-and-forget, never blocks the request).
+  await notifyPerson(personId, {
+    type: 'SERVICE_REQUESTED',
+    title: 'Service request sent',
+    body: `Your request for "${service.name}" was received.`,
+    href: '/tasks',
   });
 
   revalidatePath('/workspaces/serviceos');

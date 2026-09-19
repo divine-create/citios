@@ -31,7 +31,7 @@ import {
   X,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CartProvider, useCart } from '@/components/cityos/CartStore';
 import { WalletProvider, useWallet } from '@/components/cityos/WalletStore';
 import { ExperienceProvider } from '@/components/cityos/ExperienceStore';
@@ -40,6 +40,7 @@ import CityPicker from '@/components/cityos/CityPicker';
 import GeoCitySuggestion from '@/components/cityos/GeoCitySuggestion';
 import CartCityGuard from '@/components/cityos/CartCityGuard';
 import { useMoney } from '@/components/cityos/CityProvider';
+import { getMyNotifications, markNotificationRead, markAllNotificationsRead } from '@/app/actions/notifications';
 import { cn } from '@/lib/utils';
 
 function CartBell() {
@@ -60,8 +61,67 @@ function CartBell() {
   );
 }
 
+const NOTIF_EMOJI: Record<string, string> = {
+  ORDER_CONFIRMED: '🛍️',
+  FOOD_ORDER_CONFIRMED: '🍽️',
+  SERVICE_REQUESTED: '🔧',
+  SERVICE_STATUS: '🔧',
+  JOB_APPLICATION: '💼',
+  SYSTEM: '📅',
+};
+
+function timeAgo(iso: string): string {
+  const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+  if (s < 60) return 'now';
+  if (s < 3600) return `${Math.floor(s / 60)}m`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h`;
+  return `${Math.floor(s / 86400)}d`;
+}
+
 function NotificationsDropdown() {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
+  const { data: session } = useSession();
+  const [items, setItems] = useState<any[]>([]);
+  const [unread, setUnread] = useState(0);
+  const [loading, setLoading] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await getMyNotifications();
+      setItems(res.notifications);
+      setUnread(res.unreadCount);
+    } catch {
+      // Fail closed to the empty state — never fabricate rows.
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load on open + light polling while open (session-gated; no anonymous fetching).
+  useEffect(() => {
+    if (!open || !session) return;
+    load();
+    const t = setInterval(load, 30_000);
+    return () => clearInterval(t);
+  }, [open, session]);
+
+  const openItem = async (n: any) => {
+    setOpen(false);
+    if (!n.isRead) {
+      // Optimistic read-state, reconciled by the next load.
+      setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, isRead: true } : x)));
+      setUnread((u) => Math.max(0, u - 1));
+      try {
+        await markNotificationRead(n.id);
+      } catch {
+        // Non-fatal — read-state reconciles on next open.
+      }
+    }
+    if (n.href) router.push(n.href);
+  };
+
   return (
     <div className="relative">
       <button
@@ -69,20 +129,74 @@ function NotificationsDropdown() {
         className="relative p-2.5 text-slate-600 hover:bg-slate-200/60 rounded-xl transition-colors flex items-center justify-center"
       >
         <Bell className="w-5 h-5" />
-        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-orange-500 rounded-full border-2 border-white" />
+        {unread > 0 ? (
+          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-orange-500 text-white text-[10px] font-black flex items-center justify-center">
+            {unread > 9 ? '9+' : unread}
+          </span>
+        ) : null}
       </button>
       {open ? (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-12 z-40 w-80 bg-white rounded-2xl border border-slate-100 shadow-2xl p-2 overflow-hidden">
+          <div className="absolute right-0 top-12 z-40 w-80 bg-white rounded-2xl border border-slate-100 shadow-2xl overflow-hidden">
             <div className="px-3 py-2.5 flex items-center justify-between border-b border-slate-100">
               <p className="text-xs font-black text-ink uppercase tracking-wider">Notifications</p>
-              <span className="text-[10px] font-bold text-slate-400">0</span>
+              {unread > 0 ? (
+                <button
+                  onClick={async () => {
+                    setItems((prev) => prev.map((x) => ({ ...x, isRead: true })));
+                    setUnread(0);
+                    try {
+                      await markAllNotificationsRead();
+                    } catch {
+                      // Reconciles on next open.
+                    }
+                  }}
+                  className="text-[10px] font-bold text-teal-700 hover:text-teal-900 uppercase tracking-wider"
+                >
+                  Mark all read
+                </button>
+              ) : null}
             </div>
-            <div className="py-1">
-              <div className="p-4 text-center">
-                <p className="text-[12px] font-bold text-slate-400">No new notifications</p>
-              </div>
+            <div className="max-h-[420px] overflow-y-auto">
+              {loading && items.length === 0 ? (
+                <div className="p-4 space-y-2">
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className="h-12 rounded-xl bg-slate-50 animate-pulse" />
+                  ))}
+                </div>
+              ) : items.length === 0 ? (
+                <div className="p-4 text-center">
+                  <p className="text-[12px] font-bold text-slate-400">No new notifications</p>
+                </div>
+              ) : (
+                <div className="py-1">
+                  {items.map((n) => (
+                    <button
+                      key={n.id}
+                      onClick={() => openItem(n)}
+                      className={cn(
+                        'w-full text-left px-3 py-2.5 flex items-start gap-3 hover:bg-slate-50 transition-colors',
+                        !n.isRead && 'bg-teal-50/60',
+                      )}
+                    >
+                      <span className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-sm shrink-0">
+                        {NOTIF_EMOJI[n.type] ?? '🔔'}
+                      </span>
+                      <span className="flex-1 min-w-0">
+                        <span className="flex items-baseline justify-between gap-2">
+                          <span className="text-[12px] font-bold text-ink truncate">{n.title}</span>
+                          <span className="text-[10px] font-bold text-slate-400 shrink-0">{timeAgo(n.createdAt)}</span>
+                        </span>
+                        {n.body ? (
+                          <span className="block text-[11px] text-slate-500 truncate">{n.body}</span>
+                        ) : null}
+                      </span>
+                      {!n.isRead ? <span className="w-2 h-2 rounded-full bg-teal-500 shrink-0 mt-1.5" /> : null}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </>

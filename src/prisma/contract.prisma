@@ -32,6 +32,7 @@ model Person {
   enrolmentRequests EnrolmentRequest[] @relation("RequestedBy")
   posts          Post[]             @relation("ResidentPosts")
   follows        Follow[]           @relation("UserFollows")
+  notifications  Notification[]     @relation("PersonNotifications")
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @default(now())
 }
@@ -81,6 +82,11 @@ model ResidentProfile {
   personId  String  @unique
   avatarUrl String?
   timezone  String  @default("UTC")
+
+  // Onboarding
+  onboardingComplete Boolean @default(false)
+  phone              String?
+  interests          String? // JSON array of interest tags e.g. ["Foodie","Gaming"]
   
   person    Person  @relation(fields: [personId], references: [id], onDelete: Cascade)
 }
@@ -2896,4 +2902,29 @@ model DeliveryJob {
   
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @default(now())
+}
+
+// ============================================================================
+// RESIDENT NOTIFICATIONS
+// ============================================================================
+
+// In-app notifications for the resident. The mirror of RetailNotification
+// (which is org/staff-facing): rows are created ONLY by real server-side
+// events — order placed, service status changed, application submitted —
+// never fabricated. Emitter: lib/notify.ts (fire-and-forget).
+model Notification {
+  id         String    @id @default(uuid())
+  personId   String
+  person     Person    @relation("PersonNotifications", fields: [personId], references: [id], onDelete: Cascade)
+
+  type       String    // ORDER_CONFIRMED | FOOD_ORDER_CONFIRMED | SERVICE_REQUESTED | SERVICE_STATUS | JOB_APPLICATION | SYSTEM
+  title      String
+  body       String?
+  href       String?   // deep link, e.g. /orders/<id>, /tasks
+  isRead     Boolean   @default(false)
+  readAt     DateTime?
+
+  createdAt  DateTime  @default(now())
+
+  @@index([personId, isRead, createdAt])
 }

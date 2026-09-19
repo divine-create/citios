@@ -54,6 +54,18 @@ export default withAuth(
     const isProtected = isProtectedPath(req.nextUrl.pathname);
     const token = req.nextauth.token;
 
+    // New users: if logged in but haven't finished onboarding, send to /welcome
+    const skipOnboarding =
+      req.nextUrl.pathname.startsWith('/welcome') ||
+      req.nextUrl.pathname.startsWith('/api/') ||
+      req.nextUrl.pathname.startsWith('/school/login') ||
+      req.nextUrl.pathname === '/';
+    if (token && token.onboardingComplete === false && !skipOnboarding) {
+      const url = req.nextUrl.clone();
+      url.pathname = '/welcome';
+      return NextResponse.redirect(url);
+    }
+
     if (isProtected && !token) {
       const url = req.nextUrl.clone();
       

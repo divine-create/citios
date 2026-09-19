@@ -1,10 +1,11 @@
 import ShopOSWorkspace from '@/components/cityos/workspaces/ShopOSWorkspace';
 import ServiceOSWorkspace from '@/components/cityos/workspaces/ServiceOSWorkspace';
 import SchoolOSWorkspace from '@/components/cityos/workspaces/SchoolOSWorkspace';
+import RestaurantOSWorkspace from '@/components/cityos/workspaces/RestaurantOSWorkspace';
 
 // Workspace OS kinds. The slug is an organization id; access is governed
 // server-side by membership inside each workspace's data actions.
-const VALID_OS = new Set(['shopos', 'serviceos', 'schoolos']);
+const VALID_OS = new Set(['shopos', 'serviceos', 'schoolos', 'restaurantos']);
 
 export default async function WorkspacePage({ params }: { params: Promise<{ os: string; slug: string }> }) {
   const { os, slug } = await params;
@@ -21,5 +22,6 @@ export default async function WorkspacePage({ params }: { params: Promise<{ os: 
 
   if (os === 'shopos') return <ShopOSWorkspace slug={slug} />;
   if (os === 'serviceos') return <ServiceOSWorkspace slug={slug} />;
+  if (os === 'restaurantos') return <RestaurantOSWorkspace slug={slug} />;
   return <SchoolOSWorkspace slug={slug} />;
 }

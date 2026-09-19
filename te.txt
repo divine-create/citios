@@ -1,0 +1,4 @@
+app/(resident)/workspaces/[os]/[slug]/page.tsx(24,38): error TS2304: Cannot find name 'RestaurantOSWorkspace'.
+components/cityos/workspaces/RestaurantOSWorkspace.tsx(29,43): error TS2304: Cannot find name 'getOrders'.
+components/cityos/workspaces/RestaurantOSWorkspace.tsx(31,45): error TS2304: Cannot find name 'getExpenses'.
+components/cityos/workspaces/RestaurantOSWorkspace.tsx(428,94): error TS2304: Cannot find name 'deleteMenuItem'.

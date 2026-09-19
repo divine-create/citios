@@ -3,6 +3,7 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/src/prisma/db";
+import { provisionRestaurantOS } from "@/lib/actions/restaurantos";
 
 // Registration default: when the onboarding form doesn't specify a city, the
 // organization lands in the first active city in the registry. Explicit
@@ -60,6 +61,12 @@ export async function registerOrganization(data: {
       membershipId: membership.id,
       role: 'OWNER',
     });
+
+    // Restaurants/eateries/fast-food get their own OS provisioned at
+    // registration (serviceStyle defaults to HYBRID until onboarding sets it).
+    if (data.type === 'RESTAURANT') {
+      await provisionRestaurantOS(org.id);
+    }
 
     return { success: true, organizationId: org.id };
   } catch (err: any) {

@@ -33,7 +33,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'9d398bada4722de3c2cb500315294ea00e5e5e1dd33656083dea515af15333a8'>;
+  StorageHashBase<'03c13c69f5363bcb3e4a902d55a5b29e6c325d7e7e796431978e44a665b75855'>;
 export type ExecutionHash =
   ExecutionHashBase<'20dd76bf54bd2e6d0fff8643326b0cf4a5118b472670df2652e792538e8eccaf'>;
 export type ProfileHash =
@@ -1078,9 +1078,6 @@ export type FieldOutputTypes = {
       readonly personId: CodecTypes['pg/text@1']['output'];
       readonly avatarUrl: CodecTypes['pg/text@1']['output'] | null;
       readonly timezone: CodecTypes['pg/text@1']['output'];
-      readonly onboardingComplete: CodecTypes['pg/bool@1']['output'];
-      readonly phone: CodecTypes['pg/text@1']['output'] | null;
-      readonly interests: CodecTypes['pg/text@1']['output'] | null;
     };
     readonly RestaurantExpense: {
       readonly id: CodecTypes['pg/text@1']['output'];
@@ -2625,9 +2622,6 @@ export type FieldInputTypes = {
       readonly personId: CodecTypes['pg/text@1']['input'];
       readonly avatarUrl: CodecTypes['pg/text@1']['input'] | null;
       readonly timezone: CodecTypes['pg/text@1']['input'];
-      readonly onboardingComplete: CodecTypes['pg/bool@1']['input'];
-      readonly phone: CodecTypes['pg/text@1']['input'] | null;
-      readonly interests: CodecTypes['pg/text@1']['input'] | null;
     };
     readonly RestaurantExpense: {
       readonly id: CodecTypes['pg/text@1']['input'];
@@ -4170,10 +4164,7 @@ export type StorageColumnTypes = {
     readonly residentProfile: {
       readonly avatarUrl: CodecTypes['pg/text@1']['output'] | null;
       readonly id: CodecTypes['pg/text@1']['output'];
-      readonly interests: CodecTypes['pg/text@1']['output'] | null;
-      readonly onboardingComplete: CodecTypes['pg/bool@1']['output'];
       readonly personId: CodecTypes['pg/text@1']['output'];
-      readonly phone: CodecTypes['pg/text@1']['output'] | null;
       readonly timezone: CodecTypes['pg/text@1']['output'];
     };
     readonly restaurantExpense: {
@@ -5717,10 +5708,7 @@ export type StorageColumnInputTypes = {
     readonly residentProfile: {
       readonly avatarUrl: CodecTypes['pg/text@1']['input'] | null;
       readonly id: CodecTypes['pg/text@1']['input'];
-      readonly interests: CodecTypes['pg/text@1']['input'] | null;
-      readonly onboardingComplete: CodecTypes['pg/bool@1']['input'];
       readonly personId: CodecTypes['pg/text@1']['input'];
-      readonly phone: CodecTypes['pg/text@1']['input'] | null;
       readonly timezone: CodecTypes['pg/text@1']['input'];
     };
     readonly restaurantExpense: {
@@ -13575,25 +13563,6 @@ type ContractBase = Omit<
                     readonly kind: 'literal';
                     readonly value: DefaultLiteralValue<'pg/text@1', 'UTC'>;
                   };
-                };
-                readonly onboardingComplete: {
-                  readonly nativeType: 'bool';
-                  readonly codecId: 'pg/bool@1';
-                  readonly nullable: false;
-                  readonly default: {
-                    readonly kind: 'literal';
-                    readonly value: DefaultLiteralValue<'pg/bool@1', false>;
-                  };
-                };
-                readonly phone: {
-                  readonly nativeType: 'text';
-                  readonly codecId: 'pg/text@1';
-                  readonly nullable: true;
-                };
-                readonly interests: {
-                  readonly nativeType: 'text';
-                  readonly codecId: 'pg/text@1';
-                  readonly nullable: true;
                 };
               };
               primaryKey: { readonly columns: readonly ['id'] };
@@ -28099,18 +28068,6 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
-              readonly onboardingComplete: {
-                readonly nullable: false;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/bool@1' };
-              };
-              readonly phone: {
-                readonly nullable: true;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
-              };
-              readonly interests: {
-                readonly nullable: true;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
-              };
             };
             readonly relations: {
               readonly person: {
@@ -28133,9 +28090,6 @@ type ContractBase = Omit<
                 readonly personId: { readonly column: 'personId' };
                 readonly avatarUrl: { readonly column: 'avatarUrl' };
                 readonly timezone: { readonly column: 'timezone' };
-                readonly onboardingComplete: { readonly column: 'onboardingComplete' };
-                readonly phone: { readonly column: 'phone' };
-                readonly interests: { readonly column: 'interests' };
               };
             };
           };
