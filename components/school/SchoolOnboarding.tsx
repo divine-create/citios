@@ -66,7 +66,7 @@ export default function SchoolOnboarding() {
 
           <div className="flex gap-2 mt-8">
             {[1, 2, 3].map((i) => (
-              <div key={i} className={\`h-1.5 rounded-full flex-1 transition-colors duration-500 \${step >= i ? 'bg-blue-400' : 'bg-white/10'}\`} />
+              <div key={i} className={`h-1.5 rounded-full flex-1 transition-colors duration-500 ${step >= i ? 'bg-blue-400' : 'bg-white/10'}`} />
             ))}
           </div>
         </div>
@@ -198,14 +198,14 @@ export default function SchoolOnboarding() {
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-2">Term Structure</label>
                   <div className="space-y-2">
-                    <label className={\`flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition-colors \${data.termStructure === 'TRIMESTER' ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:bg-slate-50'}\`}>
+                    <label className={`flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition-colors ${data.termStructure === 'TRIMESTER' ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:bg-slate-50'}`}>
                       <input type="radio" name="term" checked={data.termStructure === 'TRIMESTER'} onChange={() => update('termStructure', 'TRIMESTER')} className="w-4 h-4 text-blue-600 focus:ring-blue-500" />
                       <div>
                         <p className="text-sm font-bold text-slate-900">Trimester</p>
                         <p className="text-xs text-slate-500">3 terms per year</p>
                       </div>
                     </label>
-                    <label className={\`flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition-colors \${data.termStructure === 'SEMESTER' ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:bg-slate-50'}\`}>
+                    <label className={`flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition-colors ${data.termStructure === 'SEMESTER' ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:bg-slate-50'}`}>
                       <input type="radio" name="term" checked={data.termStructure === 'SEMESTER'} onChange={() => update('termStructure', 'SEMESTER')} className="w-4 h-4 text-blue-600 focus:ring-blue-500" />
                       <div>
                         <p className="text-sm font-bold text-slate-900">Semester</p>
@@ -218,14 +218,14 @@ export default function SchoolOnboarding() {
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-2">Grading Scale</label>
                   <div className="space-y-2">
-                    <label className={\`flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition-colors \${data.gradingScale === 'LETTER' ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:bg-slate-50'}\`}>
+                    <label className={`flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition-colors ${data.gradingScale === 'LETTER' ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:bg-slate-50'}`}>
                       <input type="radio" name="grading" checked={data.gradingScale === 'LETTER'} onChange={() => update('gradingScale', 'LETTER')} className="w-4 h-4 text-blue-600 focus:ring-blue-500" />
                       <div>
                         <p className="text-sm font-bold text-slate-900">Letter Grades</p>
                         <p className="text-xs text-slate-500">Standard A, B, C, D, F</p>
                       </div>
                     </label>
-                    <label className={\`flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition-colors \${data.gradingScale === 'PERCENTAGE' ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:bg-slate-50'}\`}>
+                    <label className={`flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition-colors ${data.gradingScale === 'PERCENTAGE' ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:bg-slate-50'}`}>
                       <input type="radio" name="grading" checked={data.gradingScale === 'PERCENTAGE'} onChange={() => update('gradingScale', 'PERCENTAGE')} className="w-4 h-4 text-blue-600 focus:ring-blue-500" />
                       <div>
                         <p className="text-sm font-bold text-slate-900">Percentages</p>
