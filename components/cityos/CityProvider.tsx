@@ -11,6 +11,8 @@ export interface CityInfo {
   slug: string;
   name: string;
   country: string;
+  /** State/region (e.g. a Nigerian LGA's state) — null for legacy records. */
+  state: string | null;
   currency: string;
   timezone: string;
 }
