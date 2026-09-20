@@ -57,6 +57,7 @@ export default withAuth(
     // New users: if logged in but haven't finished onboarding, send to /welcome
     const skipOnboarding =
       req.nextUrl.pathname.startsWith('/welcome') ||
+      req.nextUrl.pathname.startsWith('/profile') ||
       req.nextUrl.pathname.startsWith('/api/') ||
       req.nextUrl.pathname.startsWith('/school/login') ||
       req.nextUrl.pathname === '/';

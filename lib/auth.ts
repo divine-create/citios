@@ -139,6 +139,21 @@ export const authOptions: NextAuthOptions = {
           token.isCourier = token.isCourier ?? false;
         }
       }
+
+      // Refresh this flag for existing sessions as onboarding can be completed
+      // after the JWT was issued. Middleware relies on it before rendering a
+      // protected page such as /profile.
+      if (!user && token.personId) {
+        try {
+          const residentProfile = await db.orm.public.ResidentProfile
+            .where({ personId: token.personId as string })
+            .all()
+            .first();
+          token.onboardingComplete = residentProfile?.onboardingComplete ?? false;
+        } catch (error) {
+          console.error("Error refreshing onboarding status:", error);
+        }
+      }
       return token;
     },
     async session({ session, token }) {
