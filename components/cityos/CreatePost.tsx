@@ -6,6 +6,7 @@ import { Globe, Users, PenSquare, Check, Image as ImageIcon, Video, Calendar, Ma
 import { ChipButton } from '@/components/cityos/CityUI';
 import { cn } from '@/lib/utils';
 import { createPost } from '@/app/actions/newsfeed';
+import { getPresignedUploadUrl } from '@/app/actions/upload';
 import { useCity } from '@/components/cityos/CityProvider';
 import { useSession } from 'next-auth/react';
 
@@ -23,6 +24,8 @@ export default function CreatePost() {
   
   // Media fields
   const [imageUrl, setImageUrl] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
   const [videoUrl, setVideoUrl] = useState('');
   
   // Specific fields
@@ -37,6 +40,7 @@ export default function CreatePost() {
   const canPublish = body.trim().length > 2 && (!needsTitle || title.trim().length > 2) && !publishing;
 
   
+  
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -46,13 +50,8 @@ export default function CreatePost() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        setImageUrl(event.target.result as string);
-      }
-    };
-    reader.readAsDataURL(file);
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
   };
 
   const publish = async () => {
@@ -143,9 +142,9 @@ export default function CreatePost() {
           />
 
           
-          {imageUrl && (
+          {(imagePreview || imageUrl) && (
             <div className="relative rounded-xl overflow-hidden border border-slate-100 max-h-48 flex justify-center bg-slate-900 mt-2">
-              <img src={imageUrl} alt="Upload preview" className="object-contain max-h-48" />
+              <img src={imagePreview || imageUrl} alt="Upload preview" className="object-contain max-h-48" />
             </div>
           )}
           {/* Dynamic Fields Based on Category */}
@@ -199,12 +198,12 @@ export default function CreatePost() {
                   title="Upload an image"
                 />
                 <span className="text-[13px] text-slate-700 truncate select-none pointer-events-none">
-                  {imageUrl ? 'Image Selected (Click to change)' : 'Upload Image'}
+                  {(imagePreview || imageUrl) ? 'Image Selected (Click to change)' : 'Upload Image'}
                 </span>
-                {imageUrl && (
+                {(imagePreview || imageUrl) && (
                   <button 
                     type="button" 
-                    onClick={(e) => { e.preventDefault(); setImageUrl(''); }} 
+                    onClick={(e) => { e.preventDefault(); setImageUrl(''); setImageFile(null); setImagePreview(''); }} 
                     className="absolute right-3 z-10 text-[10px] font-bold text-red-500 hover:text-red-700"
                   >
                     Clear
