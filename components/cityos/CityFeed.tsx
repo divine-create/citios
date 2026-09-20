@@ -205,7 +205,7 @@ function PostCard({ post, follows, onFollowToggle }: { post: DBPost & { href?: {
         ) : null}
         
         {/* Specific Metadata */}
-        {(post.eventDate || post.location || post.price !== undefined) && (
+        {(post.eventDate || post.location || post.price != null) && (
           <div className="mt-3 bg-slate-50 rounded-xl p-3 flex flex-wrap gap-x-4 gap-y-2 text-[12px] text-slate-600 font-medium border border-slate-100">
             {post.eventDate && (
               <div className="flex items-center gap-1.5">
@@ -218,7 +218,7 @@ function PostCard({ post, follows, onFollowToggle }: { post: DBPost & { href?: {
                 <span className="text-slate-400">📍</span> {post.location}
               </div>
             )}
-            {post.price !== undefined && (
+            {post.price != null && (
               <div className="flex items-center gap-1.5 font-bold text-emerald-700">
                 <span className="text-emerald-500/70">💲</span> $\{post.price.toFixed(2)}
               </div>
