@@ -94,7 +94,7 @@ export default function CreatePost() {
     } catch (e) {
       console.error(e);
       setPublishing(false);
-      alert('Failed to publish post');
+      alert('Failed to publish post: ' + (e instanceof Error ? e.message : JSON.stringify(e)));
     }
   };
 
