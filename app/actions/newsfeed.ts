@@ -62,22 +62,27 @@ export async function fetchFeed(feedType: 'For You' | 'Following', topic: string
     }
 
     return {
-      id: post.id,
-      author,
-      role,
-      isOrg,
-      authorId: isOrg ? post.organizationId : post.personId,
-      avatarImg: isOrg ? undefined : post.person?.profile?.avatarUrl,
-      time: typeof post.createdAt === 'string' ? new Date(post.createdAt).toISOString() : post.createdAt.toString(),
-      category: post.category,
-      title: post.title,
-      body: post.content,
-      likes: post.likes || 0,
-      comments: post.comments || 0,
-      shares: post.shareCount || 0,
-      isLikedByMe: myLikedPostIds.has(post.id),
-      orgId: post.organizationId,
-    };
+        id: post.id,
+        author,
+        role,
+        isOrg,
+        authorId: isOrg ? post.organizationId : post.personId,
+        avatarImg: isOrg ? undefined : post.person?.profile?.avatarUrl,
+        time: typeof post.createdAt === 'string' ? new Date(post.createdAt).toISOString() : post.createdAt.toString(),
+        category: post.category,
+        title: post.title,
+        body: post.content,
+        image: post.imageUrl,
+        videoUrl: post.videoUrl,
+        eventDate: post.eventDate ? new Date(post.eventDate).toISOString() : undefined,
+        location: post.location,
+        price: post.price,
+        likes: post.likes || 0,
+        comments: post.comments || 0,
+        shares: post.shareCount || 0,
+        isLikedByMe: myLikedPostIds.has(post.id),
+        orgId: post.organizationId,
+      };
   });
 }
 
