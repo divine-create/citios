@@ -7,12 +7,16 @@ export default async function HomePage() {
   const session = await getServerSession(authOptions);
   let firstName = '';
 
-  if (session?.user?.email) {
-    const person = await findPersonByEmail(session.user.email);
-    if (person && person.firstName) {
-      firstName = person.firstName;
+  try {
+    if (session?.user?.email) {
+      const person = await findPersonByEmail(session.user.email);
+      if (person?.firstName) {
+        firstName = person.firstName;
+      }
     }
+  } catch {
+    // Non-fatal — render home without personalized greeting
   }
 
   return <CityHome firstName={firstName} />;
-}
+}
