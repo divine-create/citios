@@ -74,9 +74,7 @@ export default function CityProfile() {
           <p className="text-[12px] text-slate-400 font-medium mt-1">Verified CityOS User</p>
         </div>
         <div className="flex gap-2">
-          <button className="px-4 py-2.5 rounded-xl bg-teal-800 text-white text-xs font-black hover:bg-teal-900 transition-colors inline-flex items-center gap-1.5">
-            <Plus className="w-3.5 h-3.5" /> Edit profile
-          </button>
+          <Link href="/profile/edit" className="px-4 py-2.5 rounded-xl bg-teal-800 text-white text-xs font-black hover:bg-teal-900 transition-colors inline-flex items-center gap-1.5"><Plus className="w-3.5 h-3.5" /> Edit profile</Link>
         </div>
       </div>
 
