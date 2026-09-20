@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Heart, MessageSquare, Share2, Eye, MoreHorizontal, Edit3, Trash2, X, Loader2 } from 'lucide-react';
+import { ArrowLeft, Heart, MessageSquare, Share2, MoreHorizontal, Edit3, Trash2, X, Loader2 } from 'lucide-react';
 import { VerifiedBadge, Pill } from '@/components/cityos/CityUI';
 import InlineComments from '@/components/InlineComments';
 import { cn } from '@/lib/utils';
@@ -258,9 +258,6 @@ export default function PostDetailClient({ post }: { post: DBPost }) {
             <span className="text-[13px] text-slate-500 font-bold">{likeCount} reaction{likeCount !== 1 ? 's' : ''}</span>
             <span className="text-[13px] text-slate-500 font-bold">{commentCount} comment{commentCount !== 1 ? 's' : ''}</span>
           </div>
-          {(post.viewCount ?? 0) > 0 && (
-            <span className="flex items-center gap-1 text-[12px] text-slate-400"><Eye className="w-3.5 h-3.5" /> {post.viewCount} views</span>
-          )}
         </div>
 
         {/* Action bar */}

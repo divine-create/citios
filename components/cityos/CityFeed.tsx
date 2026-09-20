@@ -420,11 +420,10 @@ function PostCard({ post, follows, onFollowToggle, onDelete }: { post: DBPost; f
         )}
       </div>
 
-      {/* Reaction summary + view count */}
-      {(post.likes > 0 || (post.viewCount ?? 0) > 0) && (
+      {/* Reaction summary */}
+      {post.likes > 0 && (
         <div className="px-5 mt-2 flex items-center justify-between">
-          {post.likes > 0 && <span className="text-[11px] text-slate-400">{post.likes} reaction{post.likes !== 1 ? 's' : ''}</span>}
-          {(post.viewCount ?? 0) > 0 && <span className="text-[11px] text-slate-400">👁 {post.viewCount} views</span>}
+          <span className="text-[11px] text-slate-400 font-medium">{post.likes} reaction{post.likes !== 1 ? 's' : ''}</span>
         </div>
       )}
 

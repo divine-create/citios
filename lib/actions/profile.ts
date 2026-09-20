@@ -34,8 +34,18 @@ export async function getProfileAndWallet() {
       });
     }
 
+    const residentProfile = await db.orm.public.ResidentProfile.where({ personId: person.id }).all().first();
+    const avatarUrl = residentProfile?.avatarUrl || image || null;
+
     return JSON.parse(JSON.stringify({
-      user: { ...person, email, image, name: `${person.firstName} ${person.lastName}` },
+      user: {
+        ...person,
+        email,
+        image: avatarUrl,
+        avatarUrl,
+        name: `${person.firstName} ${person.lastName}`,
+        residentProfile,
+      },
       wallet
     }));
   } catch (error) {
@@ -90,6 +100,7 @@ export async function updateProfile(input: { name?: string; image?: string }) {
 export async function updateFullProfile(input: {
   firstName: string;
   lastName: string;
+  avatarUrl?: string;
   dateOfBirth?: string;
   homeCityId?: string;
   phone?: string;
@@ -117,10 +128,12 @@ export async function updateFullProfile(input: {
       await tx.orm.public.ResidentProfile.where({ personId }).update({
         phone: input.phone || null,
         interests: input.interests ? JSON.stringify(input.interests) : null,
+        ...(input.avatarUrl !== undefined && { avatarUrl: input.avatarUrl || null }),
       });
     } else {
       await tx.orm.public.ResidentProfile.create({
         personId,
+        avatarUrl: input.avatarUrl || null,
         phone: input.phone || null,
         interests: input.interests ? JSON.stringify(input.interests) : null,
       });
@@ -128,4 +141,26 @@ export async function updateFullProfile(input: {
   });
 
   return { success: true };
+}
+
+export async function updateProfileAvatar(avatarUrl: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.personId) {
+    throw new Error('Not authenticated');
+  }
+
+  const personId = session.user.personId;
+  const existing = await db.orm.public.ResidentProfile.where({ personId }).all().first();
+  if (existing) {
+    await db.orm.public.ResidentProfile.where({ personId }).update({
+      avatarUrl,
+    });
+  } else {
+    await db.orm.public.ResidentProfile.create({
+      personId,
+      avatarUrl,
+    });
+  }
+
+  return { success: true, avatarUrl };
 }

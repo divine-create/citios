@@ -1,8 +1,8 @@
-﻿'use client';
+'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
-import { Wallet, Plus, ChevronRight, Package, Car, Banknote, Truck, Building2, Bookmark, Settings, ArrowUp } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Wallet, Plus, ChevronRight, Package, Car, Banknote, Truck, Building2, Bookmark, Settings, ArrowUp, Camera, Loader2 } from 'lucide-react';
 import { useMoney } from '@/components/cityos/CityProvider';
 
 // Client wallet display top-up (fictional until the server ledger is wired).
@@ -13,7 +13,8 @@ import { useExperience } from '@/components/cityos/ExperienceStore';
 
 import { cn } from '@/lib/utils';
 import { fetchMyOrders } from '@/app/actions/commerce';
-import { getProfileAndWallet } from '@/lib/actions/profile';
+import { getProfileAndWallet, updateProfileAvatar } from '@/lib/actions/profile';
+import { getPresignedUploadUrl } from '@/app/actions/upload';
 
 const TABS = ['Orders', 'Payments', 'CityHouse', 'Saved', 'Settings'] as const;
 type Tab = (typeof TABS)[number];
@@ -28,6 +29,8 @@ export default function CityProfile() {
   const [realOrders, setRealOrders] = useState<any[] | null>(null);
   const [ordersError, setOrdersError] = useState(false);
   const [userProfile, setUserProfile] = useState<any | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     getProfileAndWallet()
@@ -38,6 +41,36 @@ export default function CityProfile() {
       .then(orders => { setRealOrders(orders); setOrdersError(false); })
       .catch(err => { console.error(err); setOrdersError(true); });
   }, []);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Photo must be less than 5MB');
+      return;
+    }
+    setUploadingAvatar(true);
+    try {
+      const ext = file.name.split('.').pop() || 'png';
+      const type = file.type || 'image/png';
+      const { signedUrl, publicUrl } = await getPresignedUploadUrl(type, ext);
+
+      const res = await fetch(signedUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': type },
+        body: file,
+      });
+
+      if (!res.ok) throw new Error('Failed to upload image');
+      await updateProfileAvatar(publicUrl);
+      setUserProfile((prev: any) => ({ ...prev, avatarUrl: publicUrl, image: publicUrl }));
+    } catch (err) {
+      console.error(err);
+      alert('Failed to upload profile photo');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const walletPct = Math.min(100, Math.round((balance / 200000) * 100));
 
@@ -56,20 +89,48 @@ export default function CityProfile() {
     </div>
   );
 
+  const displayAvatar = userProfile?.avatarUrl || userProfile?.image;
+  const initials = userProfile?.firstName
+    ? `${userProfile.firstName.charAt(0)}${userProfile.lastName?.charAt(0) || ''}`.toUpperCase()
+    : 'ME';
+
   return (
     <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-500">
       {/* Header */}
       <div className="flex flex-col sm:flex-row gap-5 items-start sm:items-center">
-        <div className="relative">
-          <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-teal-700 to-teal-500 text-white flex items-center justify-center text-2xl font-black shadow-lg shadow-teal-800/20">
-            {userProfile?.firstName ? `${userProfile.firstName.charAt(0)}${userProfile.lastName?.charAt(0) || ''}`.toUpperCase() : 'ME'}
-          </div>
-          <span className="absolute -right-1 -bottom-1 w-6 h-6 rounded-full bg-emerald-500 ring-4 ring-white" />
+        <div className="relative group">
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleAvatarUpload}
+            className="hidden"
+          />
+          {displayAvatar ? (
+            <img
+              src={displayAvatar}
+              alt="Profile"
+              className="w-20 h-20 rounded-3xl object-cover shadow-lg border border-slate-100"
+            />
+          ) : (
+            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-teal-700 to-teal-500 text-white flex items-center justify-center text-2xl font-black shadow-lg shadow-teal-800/20">
+              {initials}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => avatarInputRef.current?.click()}
+            disabled={uploadingAvatar}
+            title="Upload profile picture"
+            className="absolute -right-1 -bottom-1 w-7 h-7 rounded-full bg-teal-800 hover:bg-teal-900 text-white flex items-center justify-center ring-2 ring-white shadow transition-transform group-hover:scale-110 disabled:opacity-50"
+          >
+            {uploadingAvatar ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
+          </button>
         </div>
         <div className="flex-1">
           <h1 className="text-2xl font-black text-ink">{userProfile?.name || 'Resident'}</h1>
           <p className="text-[13px] text-slate-500 font-medium mt-0.5">
-            Resident Â· Calabar
+            Resident • Calabar
           </p>
           <p className="text-[12px] text-slate-400 font-medium mt-1">Verified CityOS User</p>
         </div>
