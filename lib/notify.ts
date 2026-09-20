@@ -1,4 +1,5 @@
 import { db } from '@/src/prisma/db';
+import { pusherServer } from '@/lib/pusher';
 
 /**
  * Canonical emitter for resident notifications.
@@ -32,6 +33,8 @@ export async function notifyPerson(
       href: input.href,
       isRead: false,
     });
+    // Trigger real-time push
+    pusherServer.trigger(`private-user-${personId}`, 'new-notification', input).catch((e) => console.error('Pusher Error:', e));
   } catch (error) {
     // Non-fatal by design — see docblock.
     console.error('Error creating resident notification:', error);

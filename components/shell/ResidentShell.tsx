@@ -41,6 +41,7 @@ import GeoCitySuggestion from '@/components/cityos/GeoCitySuggestion';
 import CartCityGuard from '@/components/cityos/CartCityGuard';
 import { useMoney } from '@/components/cityos/CityProvider';
 import { getMyNotifications, markNotificationRead, markAllNotificationsRead } from '@/app/actions/notifications';
+import { getPusherClient } from '@/lib/pusherClient';
 import { cn } from '@/lib/utils';
 
 function CartBell() {
