@@ -2,6 +2,7 @@
 
 import { db } from '@/src/prisma/db';
 import { getServerSession } from 'next-auth';
+import { notifyPerson } from '@/lib/notify';
 import { authOptions } from '@/lib/auth';
 
 export async function fetchFeed(feedType: 'For You' | 'Following', topic: string = 'All') {
@@ -137,6 +138,15 @@ export async function togglePostLike(postId: string) {
       postId,
       personId,
     });
+    // Notify post author
+    const post = await db.orm.public.Post.where({ id: postId }).first();
+    if (post?.personId && post.personId !== personId) {
+      await notifyPerson(post.personId, {
+        type: 'SYSTEM',
+        title: 'New Like',
+        body: 'Someone liked your post',
+      });
+    }
   }
 }
 
