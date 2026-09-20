@@ -1,10 +1,11 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
-  UtensilsCrossed, Plus, Minus, Check, Loader2, Trash2,
+  UtensilsCrossed, Plus, Minus, Check, Loader2, Trash2, ArrowLeftRight,
 } from 'lucide-react';
+import { useAccountSwitcher } from '@/components/cityos/AccountSwitcherContext';
 import { useMoney } from '@/components/cityos/CityProvider';
 import { StatTile, Pill, SectionHead } from '@/components/cityos/CityUI';
 import { getCanonicalOrganization } from '@/app/actions/org';
@@ -40,6 +41,7 @@ const STATUS_TONE: Record<string, 'orange' | 'green' | 'blue' | 'red'> = {
 
 export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
   const { fmt } = useMoney();
+  const { switchToPersonal } = useAccountSwitcher();
   const [tab, setTab] = useState<Tab>('POS');
   const [org, setOrg] = useState<Org | null>(null);
   const [notFound, setNotFound] = useState(false);
@@ -199,7 +201,23 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
             </p>
           </div>
         </div>
-        <Pill tone="orange">{tickets.length} open ticket{tickets.length === 1 ? '' : 's'}</Pill>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={switchToPersonal}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white ring-1 ring-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 hover:text-ink transition-colors shadow-xs"
+            title="Switch back to your personal citizen profile"
+          >
+            <ArrowLeftRight className="w-3.5 h-3.5 text-slate-500" /> Personal Account
+          </button>
+          <Link
+            href={`/org/${org.id}`}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white ring-1 ring-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 transition-colors shadow-xs"
+          >
+            <UtensilsCrossed className="w-3.5 h-3.5 text-amber-600" /> Public page
+          </Link>
+          <Pill tone="orange">{tickets.length} open ticket{tickets.length === 1 ? '' : 's'}</Pill>
+        </div>
       </div>
 
       {/* Tab bar â€” style-irrelevant tabs are hidden */}

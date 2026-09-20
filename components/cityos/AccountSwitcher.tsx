@@ -20,6 +20,7 @@ import {
   LogOut,
   ArrowLeftRight,
   Sparkles,
+  Search,
 } from 'lucide-react';
 import { useAccountSwitcher, type BusinessAccount } from '@/components/cityos/AccountSwitcherContext';
 import { cn } from '@/lib/utils';
@@ -66,6 +67,7 @@ export default function AccountSwitcher({ className }: { className?: string }) {
   } = useAccountSwitcher();
 
   const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown on outside click
@@ -75,11 +77,18 @@ export default function AccountSwitcher({ className }: { className?: string }) {
         setIsOpen(false);
       }
     }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setIsOpen(false);
+      }
+    }
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
+      window.addEventListener('keydown', handleKeyDown);
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen]);
 
@@ -198,6 +207,22 @@ export default function AccountSwitcher({ className }: { className?: string }) {
             </div>
           </div>
 
+          {/* Search filter if user has multiple businesses */}
+          {myBusinesses.length > 3 && (
+            <div className="px-3 pt-2 pb-1">
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Filter pages..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-teal-700 font-medium"
+                />
+              </div>
+            </div>
+          )}
+
           {/* Profiles and Pages List */}
           <div className="py-2 max-h-[300px] overflow-y-auto">
             <p className="px-4 py-1 text-[10px] font-black uppercase tracking-wider text-slate-400">
@@ -237,7 +262,13 @@ export default function AccountSwitcher({ className }: { className?: string }) {
             </button>
 
             {/* 2. Business Pages List */}
-            {myBusinesses.map((biz) => {
+            {myBusinesses
+              .filter((biz) =>
+                !searchQuery.trim() ||
+                biz.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                biz.type.toLowerCase().includes(searchQuery.toLowerCase())
+              )
+              .map((biz) => {
               const BizIcon = VERTICAL_ICONS[biz.type] || Building;
               const isSelected = activeBusiness?.id === biz.id;
 

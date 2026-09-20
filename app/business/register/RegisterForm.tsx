@@ -36,17 +36,25 @@ export default function RegisterForm({ initialType, isLoggedIn }: { initialType:
       setError(result.error);
       setLoading(false);
     } else if (result.success) {
-      await update();
-      // Redirect based on type
-      if (formData.type === 'SCHOOL') {
-        router.push('/school/admin');
-      } else if (formData.type === 'SERVICES') {
-        router.push('/service');
-      } else if (formData.type === 'RETAIL') {
-        router.push('/grocery');
-      } else {
-        router.push('/');
+      try {
+        if (update) await update();
+      } catch {}
+
+      const orgId = result.organizationId;
+      let destination = '/';
+      if (orgId) {
+        if (formData.type === 'RESTAURANT') destination = `/workspaces/restaurantos/${orgId}`;
+        else if (formData.type === 'RETAIL') destination = `/workspaces/shopos/${orgId}`;
+        else if (formData.type === 'SERVICES') destination = `/workspaces/serviceos/${orgId}`;
+        else if (formData.type === 'SCHOOL') destination = `/workspaces/schoolos/${orgId}`;
+        else if (formData.type === 'HOTEL') destination = '/admin/hotel';
+        else if (formData.type === 'HEALTHCARE') destination = '/admin/healthcare';
+        else destination = `/org/${orgId}`;
+        try {
+          localStorage.setItem('cityconnect_active_business_id', orgId);
+        } catch {}
       }
+      window.location.href = destination;
     }
   };
 

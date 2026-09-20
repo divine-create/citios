@@ -17,6 +17,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useAccountSwitcher } from '@/components/cityos/AccountSwitcherContext';
+import { useSession } from 'next-auth/react';
 import { quickCreateBusiness } from '@/lib/actions/business';
 import { useCity } from '@/components/cityos/CityProvider';
 import { cn } from '@/lib/utils';
@@ -124,6 +125,7 @@ export const VERTICAL_OPTIONS: VerticalOption[] = [
 export default function CreateBusinessModal() {
   const { isCreateModalOpen, closeCreateModal, preselectedType, refreshBusinesses, switchToBusiness } = useAccountSwitcher();
   const { city } = useCity();
+  const { update } = useSession();
 
   const [selectedType, setSelectedType] = useState<string>('RETAIL');
   const [name, setName] = useState('');
@@ -138,6 +140,17 @@ export default function CreateBusinessModal() {
       setSelectedType(preselectedType);
     }
   }, [preselectedType]);
+
+  // Escape key listener to close modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isCreateModalOpen && !isSubmitting) {
+        closeCreateModal();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isCreateModalOpen, isSubmitting, closeCreateModal]);
 
   // Reset form when modal opens
   useEffect(() => {
@@ -181,11 +194,24 @@ export default function CreateBusinessModal() {
       }
 
       if (res.success && res.business) {
+        // Sync the newly minted OWNER membership into the active session
+        try {
+          if (update) await update();
+        } catch {}
+
+        // Persist active business id locally for immediate pickup
+        try {
+          localStorage.setItem('cityconnect_active_business_id', res.business.id);
+        } catch {}
+
         // Refresh businesses list
         await refreshBusinesses();
-        // Switch to the newly created business and navigate to its workspace
+        // Switch to the newly created business
         switchToBusiness(res.business as any);
         closeCreateModal();
+
+        // Direct browser to the newly created workspace
+        window.location.href = res.business.workspaceUrl;
       }
     } catch (err: any) {
       setError(err?.message || 'Failed to create business page. Please try again.');

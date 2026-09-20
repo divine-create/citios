@@ -9,7 +9,9 @@ import {
   ChevronRight,
   Store,
   CalendarCheck,
+  ArrowLeftRight,
 } from 'lucide-react';
+import { useAccountSwitcher } from '@/components/cityos/AccountSwitcherContext';
 import { fmtNaira } from '@/lib/format';
 import { StatTile, Pill, SectionHead } from '@/components/cityos/CityUI';
 import { fetchServiceJobs } from '@/app/actions/service';
@@ -37,6 +39,7 @@ type OrgCustomer = Awaited<ReturnType<typeof getOrgCustomers>>[number];
 
 export default function ServiceOSWorkspace({ slug }: { slug: string }) {
   const { setExperience } = useExperience();
+  const { switchToPersonal } = useAccountSwitcher();
   const [tab, setTab] = useState<Tab>('Overview');
   const [org, setOrg] = useState<ServiceOrg | null>(null);
   const [notFound, setNotFound] = useState(false);
@@ -142,10 +145,12 @@ export default function ServiceOSWorkspace({ slug }: { slug: string }) {
               <Store className="w-3.5 h-3.5" /> Public page
             </Link>
             <button
-              onClick={() => setExperience('resident')}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white text-teal-900 text-[11px] font-black hover:bg-teal-50 transition-colors"
+              type="button"
+              onClick={switchToPersonal}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white text-teal-900 text-[11px] font-black hover:bg-teal-50 transition-colors shadow-sm"
+              title="Switch back to your personal citizen profile"
             >
-              Switch experience <ChevronRight className="w-3.5 h-3.5" />
+              <ArrowLeftRight className="w-3.5 h-3.5 text-teal-700" /> Personal Account
             </button>
           </div>
         </div>

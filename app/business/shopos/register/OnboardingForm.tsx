@@ -51,9 +51,18 @@ export default function OnboardingForm() {
     } else if (result.success) {
       // Refresh the JWT so the new OWNER membership is in the session
       // before the dashboard gate checks it, then send them in.
-      await update();
-      if (result.slug) setStoreUrl(result.slug);
-      router.push('/grocery');
+      try {
+        if (update) await update();
+      } catch {}
+
+      const orgId = result.organizationId;
+      const destination = orgId ? `/workspaces/shopos/${orgId}` : '/business';
+      try {
+        if (orgId) {
+          localStorage.setItem('cityconnect_active_business_id', orgId);
+        }
+      } catch {}
+      window.location.href = destination;
     }
   };
 

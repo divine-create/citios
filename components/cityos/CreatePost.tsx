@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Loader2, Globe, Users, PenSquare, Check, Image as ImageIcon, Video, X, Calendar, MapPin, DollarSign, Tag } from 'lucide-react';
+import { Loader2, Globe, Users, PenSquare, Check, Image as ImageIcon, Video, X, Calendar, MapPin, DollarSign, Tag, ChevronDown, Store, UtensilsCrossed, Wrench, GraduationCap, Building2, Ticket, Stethoscope, Building } from 'lucide-react';
 import { ChipButton } from '@/components/cityos/CityUI';
 import { cn } from '@/lib/utils';
 import { createPost } from '@/app/actions/newsfeed';
@@ -10,6 +10,7 @@ import { getPresignedUploadUrl } from '@/app/actions/upload';
 import { useCity } from '@/components/cityos/CityProvider';
 import { useSession } from 'next-auth/react';
 import { POST_BACKGROUNDS, type PostBackgroundId } from '@/lib/post-background';
+import { useAccountSwitcher } from '@/components/cityos/AccountSwitcherContext';
 
 const POST_CATEGORIES = ['Community', 'Ask the city', 'Offer', 'Event', 'Housing', 'Update'];
 
@@ -38,11 +39,21 @@ export default function CreatePost() {
   const [publishing, setPublishing] = useState(false);
   const [published, setPublished] = useState(false);
 
+  const { myBusinesses, activeBusiness } = useAccountSwitcher();
+  const [selectedOrgId, setSelectedOrgId] = useState<string | null>(activeBusiness?.id ?? null);
+  const [showAuthorMenu, setShowAuthorMenu] = useState(false);
+
+  const selectedBusiness = myBusinesses.find((b) => b.id === selectedOrgId);
+  const isBusinessAuthor = Boolean(selectedBusiness);
+
+  const authorName = selectedBusiness ? selectedBusiness.name : (session?.user?.name || 'Resident');
+  const authorSubtitle = selectedBusiness
+    ? `${selectedBusiness.type} Page · Public`
+    : `Personal Resident · Public`;
+
   const needsTitle = category !== 'Community' && category !== 'Update';
   const canPublish = body.trim().length > 2 && (!needsTitle || title.trim().length > 2) && !publishing;
 
-  
-  
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -91,6 +102,7 @@ export default function CreatePost() {
         location: location.trim() || undefined,
         price: price ? parseFloat(price) : undefined,
         postBackground,
+        organizationId: selectedOrgId || undefined,
       });
       setPublished(true);
       window.setTimeout(() => router.push('/feed'), 700);
@@ -120,19 +132,102 @@ export default function CreatePost() {
       <div className="flex flex-col lg:flex-row gap-6">
         <div className="flex-1 bg-white rounded-2xl border border-slate-100 shadow-[0_1px_2px_rgba(6,95,70,0.06)] p-5 md:p-6 space-y-5">
           
-          <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+          <div className="flex items-center justify-between pb-4 border-b border-slate-100 relative">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-700 to-teal-500 text-white flex items-center justify-center text-sm font-black">
-                {activeInitials}
+              <div
+                className={cn(
+                  'w-10 h-10 rounded-full text-white flex items-center justify-center text-sm font-black shadow-sm bg-gradient-to-br',
+                  isBusinessAuthor ? 'from-amber-600 to-teal-700' : 'from-teal-700 to-teal-500'
+                )}
+              >
+                {isBusinessAuthor ? <Store className="w-5 h-5" /> : activeInitials}
               </div>
-              <div>
-                <p className="text-[13px] font-black text-ink">{activeName}</p>
-                <div className="flex items-center gap-1 mt-0.5">
-                  {audience === 'public' ? <Globe className="w-3 h-3 text-slate-400" /> : <Users className="w-3 h-3 text-slate-400" />}
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    {audience === 'public' ? `Public — everyone in ${cityName}` : 'Following only'}
-                  </span>
-                </div>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowAuthorMenu((o) => !o)}
+                  className="flex items-center gap-1.5 px-2 py-1 -ml-2 rounded-xl hover:bg-slate-100 transition-colors text-left group"
+                >
+                  <div>
+                    <div className="flex items-center gap-1">
+                      <p className="text-[13px] font-black text-ink">{authorName}</p>
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 transition-transform" />
+                    </div>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <Globe className="w-3 h-3 text-slate-400" />
+                      <span className="text-[10px] font-bold text-teal-800 uppercase tracking-wider">
+                        {authorSubtitle}
+                      </span>
+                    </div>
+                  </div>
+                </button>
+
+                {showAuthorMenu && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowAuthorMenu(false)} />
+                    <div className="absolute left-0 top-full mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                      <p className="px-4 py-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                        Post as
+                      </p>
+
+                      {/* Personal Account */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedOrgId(null);
+                          setShowAuthorMenu(false);
+                        }}
+                        className={cn(
+                          'w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-slate-50 transition-colors',
+                          !selectedOrgId && 'bg-teal-50/70 text-teal-900'
+                        )}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-7 h-7 rounded-full bg-teal-800 text-white flex items-center justify-center text-xs font-bold shrink-0">
+                            {activeInitials}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-black text-ink truncate">{session?.user?.name || 'Resident'}</p>
+                            <p className="text-[10px] text-slate-400 font-medium">Personal Account</p>
+                          </div>
+                        </div>
+                        {!selectedOrgId && <Check className="w-4 h-4 text-teal-700 shrink-0" />}
+                      </button>
+
+                      {/* Business Pages */}
+                      {myBusinesses.map((biz) => {
+                        const isSelected = selectedOrgId === biz.id;
+                        return (
+                          <button
+                            key={biz.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedOrgId(biz.id);
+                              setShowAuthorMenu(false);
+                            }}
+                            className={cn(
+                              'w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-slate-50 transition-colors',
+                              isSelected && 'bg-teal-50/70 text-teal-900'
+                            )}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="w-7 h-7 rounded-lg bg-teal-700 text-white flex items-center justify-center text-xs font-bold shrink-0">
+                                <Store className="w-3.5 h-3.5" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs font-black text-ink truncate">{biz.name}</p>
+                                <p className="text-[10px] text-slate-400 font-medium truncate">
+                                  {biz.type} Page
+                                </p>
+                              </div>
+                            </div>
+                            {isSelected && <Check className="w-4 h-4 text-teal-700 shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>

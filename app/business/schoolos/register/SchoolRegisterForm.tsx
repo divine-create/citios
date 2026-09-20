@@ -49,8 +49,18 @@ export default function SchoolRegisterForm({ isLoggedIn }: { isLoggedIn: boolean
       setError(result.error);
       setLoading(false);
     } else if (result.success) {
-      await update();
-      router.push('/school/admin');
+      try {
+        if (update) await update();
+      } catch {}
+
+      const orgId = result.organizationId;
+      const destination = orgId ? `/workspaces/schoolos/${orgId}` : '/school/admin';
+      try {
+        if (orgId) {
+          localStorage.setItem('cityconnect_active_business_id', orgId);
+        }
+      } catch {}
+      window.location.href = destination;
     }
   };
 

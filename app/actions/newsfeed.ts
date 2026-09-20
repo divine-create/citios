@@ -9,18 +9,23 @@ import { getPostBackground, parsePostMetadata, serializePostMetadata, type PostB
 // Reaction types
 export type ReactionType = 'LIKE' | 'LOVE' | 'HAHA' | 'WOW' | 'SAD' | 'ANGRY';
 
-function mapPost(post: any, myLikedPostIds: Set<string>, myReactions: Map<string, ReactionType>, currentPersonId?: string) {
+function mapPost(post: any, myLikedPostIds: Set<string>, myReactions: Map<string, ReactionType>, currentPersonId?: string, myOrgIds?: Set<string>) {
   let author = 'Unknown';
   let role = 'Resident';
   let isOrg = false;
 
   if (post.organization) {
     author = post.organization.name;
-    role = 'Organization';
+    role = post.organization.type ? `${post.organization.type.charAt(0)}${post.organization.type.slice(1).toLowerCase()}` : 'Organization';
     isOrg = true;
   } else if (post.person) {
     author = `${post.person.firstName} ${post.person.lastName}`;
   }
+
+  const isMyPost = Boolean(
+    currentPersonId &&
+      (post.personId === currentPersonId || (post.organizationId && myOrgIds?.has(post.organizationId)))
+  );
 
   return {
     id: post.id,
@@ -45,7 +50,7 @@ function mapPost(post: any, myLikedPostIds: Set<string>, myReactions: Map<string
     viewCount: post.viewCount || 0,
     isLikedByMe: myLikedPostIds.has(post.id),
     myReaction: myReactions.get(post.id) ?? null,
-    isMyPost: Boolean(currentPersonId && post.personId === currentPersonId),
+    isMyPost,
     orgId: post.organizationId,
   };
 }
@@ -112,7 +117,11 @@ export async function fetchFeed(
     }
   }
 
-  const posts = rawPosts.map((post: any) => mapPost(post, myLikedPostIds, myReactions, personId));
+  // Fetch user memberships to determine organization post ownership
+  const memberships = await db.orm.public.Membership.where({ personId }).all();
+  const myOrgIds = new Set(memberships.map((m: any) => m.organizationId));
+
+  const posts = rawPosts.map((post: any) => mapPost(post, myLikedPostIds, myReactions, personId, myOrgIds));
   const nextCursor = rawPosts.length === limit
     ? rawPosts[rawPosts.length - 1].createdAt instanceof Date
       ? rawPosts[rawPosts.length - 1].createdAt.toISOString()
@@ -128,7 +137,7 @@ export async function fetchSinglePost(postId: string) {
 
   const post = await db.orm.public.Post.where({ id: postId })
     .include('person', (p: any) => p.select('firstName', 'lastName', 'id').include('profile', (prof: any) => prof.select('avatarUrl')))
-    .include('organization', (o: any) => o.select('name', 'id'))
+    .include('organization', (o: any) => o.select('name', 'id', 'type'))
     .include('likes', (likes: any) => likes.count())
     .include('comments', (comments: any) => comments.count())
     .first();
@@ -137,6 +146,7 @@ export async function fetchSinglePost(postId: string) {
 
   const myLikedPostIds = new Set<string>();
   const myReactions = new Map<string, ReactionType>();
+  let myOrgIds: Set<string> | undefined;
 
   if (personId) {
     const myLike = await db.orm.public.PostLike.where({ personId, postId }).first();
@@ -146,6 +156,9 @@ export async function fetchSinglePost(postId: string) {
       const reaction = await (db.orm.public as any).PostReaction?.where({ personId, postId }).first();
       if (reaction) myReactions.set(postId, reaction.type as ReactionType);
     } catch { /* graceful */ }
+
+    const memberships = await db.orm.public.Membership.where({ personId }).all();
+    myOrgIds = new Set(memberships.map((m: any) => m.organizationId));
   }
 
   // Increment view count
@@ -153,7 +166,7 @@ export async function fetchSinglePost(postId: string) {
     await db.orm.public.Post.where({ id: postId }).update({ viewCount: (post.viewCount || 0) + 1 });
   } catch { /* non-fatal */ }
 
-  return mapPost(post, myLikedPostIds, myReactions, personId);
+  return mapPost(post, myLikedPostIds, myReactions, personId, myOrgIds);
 }
 
 export async function createPost(data: { 
@@ -167,6 +180,7 @@ export async function createPost(data: {
   price?: number;
   postMetadata?: string;
   postBackground?: PostBackgroundId;
+  organizationId?: string;
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.personId) {
@@ -175,11 +189,24 @@ export async function createPost(data: {
 
   const personId = session.user.personId;
 
+  // If posting as an organization, verify the user belongs to it
+  let verifiedOrgId: string | undefined;
+  if (data.organizationId) {
+    const membership = await db.orm.public.Membership.where({
+      personId,
+      organizationId: data.organizationId,
+    }).all().first();
+    if (membership) {
+      verifiedOrgId = data.organizationId;
+    }
+  }
+
   await db.orm.public.Post.create({
     title: data.title,
     content: data.body,
     category: data.category,
-    personId: personId,
+    personId: verifiedOrgId ? undefined : personId,
+    organizationId: verifiedOrgId ?? undefined,
     status: 'PUBLISHED',
     isEmergency: false,
     imageUrl: data.imageUrl,

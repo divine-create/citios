@@ -1,10 +1,14 @@
 import Link from 'next/link';
-import { ArrowRight, Briefcase, BadgeCheck, Users, CalendarDays, ClipboardList, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, Briefcase, BadgeCheck, Users, CalendarDays, ClipboardList, CheckCircle2, ShieldCheck, ArrowUpRight } from 'lucide-react';
 import { getCanonicalOrganization } from '@/app/actions/org';
 import { formatMoney } from '@/lib/format';
 import { getCurrentCity } from '@/lib/city';
 import { Pill, Stars, LocationRow,  VerifiedBadge } from '@/components/cityos/CityUI';
 import CityMismatchChip from '@/components/cityos/CityMismatchChip';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { db } from '@/src/prisma/db';
+import { getWorkspaceUrlForOrg } from '@/lib/actions/business';
 
 export default async function OrgProfile({ id }: { id: string }) {
   const org = await getCanonicalOrganization(id);
@@ -21,6 +25,26 @@ export default async function OrgProfile({ id }: { id: string }) {
       </div>
     );
   }
+
+  // Check if current user is an owner/member of this organization
+  const session = await getServerSession(authOptions);
+  let isManager = false;
+  let userRole = 'Member';
+
+  if (session?.user?.personId) {
+    const membership = await db.orm.public.Membership.where({
+      organizationId: org.id,
+      personId: session.user.personId,
+    }).all().first();
+
+    if (membership) {
+      const roles = await db.orm.public.MembershipRole.where({ membershipId: membership.id }).all();
+      userRole = roles[0]?.role || 'Member';
+      isManager = true;
+    }
+  }
+
+  const workspaceUrl = await getWorkspaceUrlForOrg(org.id, org.type);
 
   const { capabilities, jobsData, eventsData, servicesData, productsData, locations } = org;
   
@@ -41,6 +65,32 @@ export default async function OrgProfile({ id }: { id: string }) {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
+      {/* Management bar if acting as or managing this organization */}
+      {isManager && (
+        <div className="bg-slate-900 text-white rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 shadow-lg border border-slate-800 animate-in fade-in duration-200">
+          <div className="flex items-center gap-3">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+            <div>
+              <p className="text-xs font-black text-white flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-teal-400" />
+                You manage this page as <span className="text-teal-300 uppercase tracking-wide">{userRole}</span>
+              </p>
+              <p className="text-[11px] text-slate-400 font-medium">
+                Manage your catalog, orders, and configuration in the dedicated workspace.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link
+              href={workspaceUrl}
+              className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-black transition-colors shadow-sm flex items-center gap-1.5"
+            >
+              Open {osLabel} Workspace <ArrowUpRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${gradient} text-white p-7 md:p-9`}>
         <div className="absolute -right-14 -top-14 w-60 h-60 rounded-full bg-white/10 blur-3xl" />

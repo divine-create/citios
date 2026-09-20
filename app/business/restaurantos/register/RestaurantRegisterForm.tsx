@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -79,8 +79,18 @@ export default function RestaurantRegisterForm() {
 
     // Refresh the JWT so the new OWNER membership is in the session
     // before the dashboard gate checks it, then send them in.
-    await update();
-    router.push('/admin/restaurantos');
+    try {
+      if (update) await update();
+    } catch {}
+
+    const orgId = result.organizationId;
+    const destination = orgId ? `/workspaces/restaurantos/${orgId}` : '/restaurantos';
+    try {
+      if (orgId) {
+        localStorage.setItem('cityconnect_active_business_id', orgId);
+      }
+    } catch {}
+    window.location.href = destination;
   };
 
   return (
