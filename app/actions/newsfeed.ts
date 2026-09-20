@@ -9,7 +9,7 @@ import { getPostBackground, parsePostMetadata, serializePostMetadata, type PostB
 // Reaction types
 export type ReactionType = 'LIKE' | 'LOVE' | 'HAHA' | 'WOW' | 'SAD' | 'ANGRY';
 
-function mapPost(post: any, myLikedPostIds: Set<string>, myReactions: Map<string, ReactionType>) {
+function mapPost(post: any, myLikedPostIds: Set<string>, myReactions: Map<string, ReactionType>, currentPersonId?: string) {
   let author = 'Unknown';
   let role = 'Resident';
   let isOrg = false;
@@ -45,6 +45,7 @@ function mapPost(post: any, myLikedPostIds: Set<string>, myReactions: Map<string
     viewCount: post.viewCount || 0,
     isLikedByMe: myLikedPostIds.has(post.id),
     myReaction: myReactions.get(post.id) ?? null,
+    isMyPost: Boolean(currentPersonId && post.personId === currentPersonId),
     orgId: post.organizationId,
   };
 }
@@ -111,7 +112,7 @@ export async function fetchFeed(
     }
   }
 
-  const posts = rawPosts.map((post: any) => mapPost(post, myLikedPostIds, myReactions));
+  const posts = rawPosts.map((post: any) => mapPost(post, myLikedPostIds, myReactions, personId));
   const nextCursor = rawPosts.length === limit
     ? rawPosts[rawPosts.length - 1].createdAt instanceof Date
       ? rawPosts[rawPosts.length - 1].createdAt.toISOString()
@@ -152,7 +153,7 @@ export async function fetchSinglePost(postId: string) {
     await db.orm.public.Post.where({ id: postId }).update({ viewCount: (post.viewCount || 0) + 1 });
   } catch { /* non-fatal */ }
 
-  return mapPost(post, myLikedPostIds, myReactions);
+  return mapPost(post, myLikedPostIds, myReactions, personId);
 }
 
 export async function createPost(data: { 
@@ -298,4 +299,90 @@ export async function toggleFollow(organizationId: string) {
       organizationId,
     });
   }
+}
+
+export async function deletePost(postId: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.personId) {
+    throw new Error('Unauthorized');
+  }
+
+  const personId = session.user.personId;
+  const post = await db.orm.public.Post.where({ id: postId }).first();
+  if (!post) {
+    throw new Error('Post not found');
+  }
+
+  let canDelete = post.personId === personId;
+
+  if (!canDelete && post.organizationId) {
+    const membership = await db.orm.public.Membership.where({
+      organizationId: post.organizationId,
+      personId,
+    }).first();
+    if (membership) {
+      canDelete = true;
+    }
+  }
+
+  if (!canDelete) {
+    throw new Error('Forbidden: You can only delete your own posts');
+  }
+
+  await db.orm.public.Post.where({ id: postId }).delete();
+  return { success: true };
+}
+
+export async function updatePost(
+  postId: string,
+  data: {
+    title?: string;
+    body: string;
+    category?: string;
+    location?: string;
+    price?: number;
+    postBackground?: PostBackgroundId;
+  }
+) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.personId) {
+    throw new Error('Unauthorized');
+  }
+
+  const personId = session.user.personId;
+  const post = await db.orm.public.Post.where({ id: postId }).first();
+  if (!post) {
+    throw new Error('Post not found');
+  }
+
+  let canEdit = post.personId === personId;
+
+  if (!canEdit && post.organizationId) {
+    const membership = await db.orm.public.Membership.where({
+      organizationId: post.organizationId,
+      personId,
+    }).first();
+    if (membership) {
+      canEdit = true;
+    }
+  }
+
+  if (!canEdit) {
+    throw new Error('Forbidden: You can only edit your own posts');
+  }
+
+  const updatePayload: any = {
+    content: data.body,
+  };
+
+  if (data.title !== undefined) updatePayload.title = data.title;
+  if (data.category !== undefined) updatePayload.category = data.category;
+  if (data.location !== undefined) updatePayload.location = data.location;
+  if (data.price !== undefined) updatePayload.price = data.price;
+  if (data.postBackground !== undefined) {
+    updatePayload.postMetadata = serializePostMetadata(getPostBackground(data.postBackground).id);
+  }
+
+  await db.orm.public.Post.where({ id: postId }).update(updatePayload);
+  return { success: true };
 }

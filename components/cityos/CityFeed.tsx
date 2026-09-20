@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Heart, MessageSquare, Share2, ChevronRight, UserPlus, UserCheck, Loader2, X } from 'lucide-react';
+import { Heart, MessageSquare, Share2, ChevronRight, UserPlus, UserCheck, Loader2, X, MoreHorizontal, Edit3, Trash2 } from 'lucide-react';
 
 const TABS = ['For You', 'Following'] as const;
 const TOPICS = ['All', 'Marketplace', 'Events', 'Housing', 'Community'];
@@ -12,9 +12,9 @@ import { FallbackImg, Pill, VerifiedBadge } from '@/components/cityos/CityUI';
 import InlineComments from '@/components/InlineComments';
 import { cn } from '@/lib/utils';
 import { sharePost } from '@/lib/actions/post';
-import { fetchFeed, togglePostLike, toggleFollow, getFollowedOrganizations, reactToPost, type ReactionType } from '@/app/actions/newsfeed';
+import { fetchFeed, togglePostLike, toggleFollow, getFollowedOrganizations, reactToPost, deletePost, updatePost, type ReactionType } from '@/app/actions/newsfeed';
 import { useCity } from '@/components/cityos/CityProvider';
-import { getPostBackground, type PostBackgroundId } from '@/lib/post-background';
+import { POST_BACKGROUNDS, getPostBackground, type PostBackgroundId } from '@/lib/post-background';
 
 export type DBPost = {
   authorId?: string;
@@ -42,6 +42,7 @@ export type DBPost = {
   price?: number;
   postMetadata?: string;
   postBackground?: PostBackgroundId;
+  isMyPost?: boolean;
 };
 
 // ─── Reaction config ────────────────────────────────────────────────────────
@@ -169,7 +170,7 @@ function ReactionButton({ post, liked, likeCount, onReact }: { post: DBPost; lik
 }
 
 // ─── PostCard ─────────────────────────────────────────────────────────────────
-function PostCard({ post, follows, onFollowToggle }: { post: DBPost; follows: string[]; onFollowToggle: (id: string) => void }) {
+function PostCard({ post, follows, onFollowToggle, onDelete }: { post: DBPost; follows: string[]; onFollowToggle: (id: string) => void; onDelete?: (id: string) => void }) {
   const router = useRouter();
   const [liked, setLiked] = useState(post.isLikedByMe);
   const [likeCount, setLikeCount] = useState(post.likes);
@@ -180,6 +181,37 @@ function PostCard({ post, follows, onFollowToggle }: { post: DBPost; follows: st
   const [isExpanded, setIsExpanded] = useState(false);
   const [fullImage, setFullImage] = useState<string | null>(null);
   const [myReaction, setMyReaction] = useState<ReactionType | null>(post.myReaction ?? null);
+
+  // Edit / Delete state
+  const [currentTitle, setCurrentTitle] = useState(post.title);
+  const [currentBody, setCurrentBody] = useState(post.body);
+  const [currentCategory, setCurrentCategory] = useState(post.category);
+  const [currentBackground, setCurrentBackground] = useState<PostBackgroundId>(post.postBackground || 'auto');
+
+  const [showMenu, setShowMenu] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const [editTitle, setEditTitle] = useState(post.title);
+  const [editBody, setEditBody] = useState(post.body);
+  const [editCategory, setEditCategory] = useState(post.category);
+  const [editBackground, setEditBackground] = useState<PostBackgroundId>(post.postBackground || 'auto');
+
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showMenu]);
 
   useEffect(() => { setIsFollowing(post.orgId ? follows.includes(post.orgId) : false); }, [follows, post.orgId]);
 
@@ -199,7 +231,6 @@ function PostCard({ post, follows, onFollowToggle }: { post: DBPost; follows: st
   const handleReact = async (reaction: ReactionType | null) => {
     const wasLiked = liked;
     const prevReaction = myReaction;
-    // Optimistic update
     if (reaction === null) {
       setLiked(false);
       setMyReaction(null);
@@ -212,21 +243,57 @@ function PostCard({ post, follows, onFollowToggle }: { post: DBPost; follows: st
     try {
       await reactToPost(post.id, reaction);
     } catch {
-      // rollback
       setLiked(wasLiked);
       setMyReaction(prevReaction);
       setLikeCount(c => wasLiked === liked ? c : wasLiked ? c + 1 : c - 1);
     }
   };
 
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await deletePost(post.id);
+      setShowDeleteConfirm(false);
+      onDelete?.(post.id);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to delete post');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleEditSave = async () => {
+    if (!editBody.trim()) return;
+    setIsUpdating(true);
+    try {
+      await updatePost(post.id, {
+        title: editTitle.trim() || undefined,
+        body: editBody.trim(),
+        category: editCategory,
+        postBackground: editBackground,
+      });
+      setCurrentTitle(editTitle.trim());
+      setCurrentBody(editBody.trim());
+      setCurrentCategory(editCategory);
+      setCurrentBackground(editBackground);
+      setShowEditModal(false);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to update post');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const autoBackgrounds = ['auto', 'sunset', 'citrus', 'meadow', 'ocean', 'violet'] as const;
   const autoBackground = autoBackgrounds[(post.id.charCodeAt(post.id.length - 1) || 0) % autoBackgrounds.length];
-  const selectedBackground = post.postBackground && post.postBackground !== 'auto'
-    ? getPostBackground(post.postBackground)
+  const selectedBackground = currentBackground && currentBackground !== 'auto'
+    ? getPostBackground(currentBackground)
     : getPostBackground(autoBackground);
-  const isShortText = !post.image && !post.videoUrl && post.body.length < 130;
+  const isShortText = !post.image && !post.videoUrl && currentBody.length < 130;
   const isTextOnly = !post.image && !post.videoUrl;
-  const hasCustomBackground = post.postBackground && post.postBackground !== 'auto';
+  const hasCustomBackground = currentBackground && currentBackground !== 'auto';
 
   const inner = (
     <div className="flex flex-col bg-white border-b border-slate-100 last:border-b-0 pb-2 mb-2 hover:bg-slate-50/30 transition-colors">
@@ -245,7 +312,7 @@ function PostCard({ post, follows, onFollowToggle }: { post: DBPost; follows: st
           <div className="flex items-center gap-2 flex-wrap">
             <p onClick={handleProfileClick} className="text-[13px] font-black text-ink cursor-pointer hover:underline">{post.author}</p>
             {post.isOrg ? <VerifiedBadge /> : null}
-            <Pill tone="slate" className="ml-1">{post.category}</Pill>
+            <Pill tone="slate" className="ml-1">{currentCategory}</Pill>
             {post.isOrg && post.orgId && (
               <button onClick={handleFollow}
                 className={cn('ml-auto flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-md transition-colors',
@@ -253,6 +320,51 @@ function PostCard({ post, follows, onFollowToggle }: { post: DBPost; follows: st
                 {isFollowing ? <UserCheck className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
                 {isFollowing ? 'Following' : 'Follow'}
               </button>
+            )}
+            {post.isMyPost && (
+              <div ref={menuRef} className="relative ml-auto">
+                <button
+                  type="button"
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowMenu(m => !m); }}
+                  className="p-1 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+                  title="Options"
+                >
+                  <MoreHorizontal className="w-4 h-4" />
+                </button>
+                {showMenu && (
+                  <div
+                    className="absolute right-0 top-full mt-1 w-32 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-30 animate-in fade-in zoom-in-95 duration-100"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowMenu(false);
+                        setEditTitle(currentTitle);
+                        setEditBody(currentBody);
+                        setEditCategory(currentCategory);
+                        setEditBackground(currentBackground);
+                        setShowEditModal(true);
+                      }}
+                      className="w-full px-3 py-1.5 text-left text-[12px] font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors"
+                    >
+                      <Edit3 className="w-3.5 h-3.5 text-slate-500" />
+                      Edit post
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowMenu(false);
+                        setShowDeleteConfirm(true);
+                      }}
+                      className="w-full px-3 py-1.5 text-left text-[12px] font-bold text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                      Delete post
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
           <p className="text-[11px] text-slate-400 font-bold mt-0.5 uppercase tracking-wider">{`${post.role} • ${timeAgo(post.time)}`}</p>
@@ -263,27 +375,27 @@ function PostCard({ post, follows, onFollowToggle }: { post: DBPost; follows: st
       <div className="px-5">
         {isShortText || (isTextOnly && hasCustomBackground) ? (
           <div className={cn('mt-1 -mx-5 px-8 py-10 text-white flex flex-col justify-center items-center text-center min-h-[180px]', selectedBackground.className)}>
-            {post.title && post.title !== 'Post' && !post.body.startsWith(post.title) && (
-              <h3 className="text-[16px] font-black leading-snug mb-2 drop-shadow">{post.title}</h3>
+            {currentTitle && currentTitle !== 'Post' && !currentBody.startsWith(currentTitle) && (
+              <h3 className="text-[16px] font-black leading-snug mb-2 drop-shadow">{currentTitle}</h3>
             )}
-            <p className="text-[22px] font-bold leading-snug drop-shadow whitespace-pre-line">{post.body}</p>
+            <p className="text-[22px] font-bold leading-snug drop-shadow whitespace-pre-line">{currentBody}</p>
           </div>
         ) : (
           <>
-            {post.title && post.title !== 'Post' && !post.body.startsWith(post.title) && (
-              <h3 className="text-[15px] font-black text-ink leading-snug mb-1">{post.title}</h3>
+            {currentTitle && currentTitle !== 'Post' && !currentBody.startsWith(currentTitle) && (
+              <h3 className="text-[15px] font-black text-ink leading-snug mb-1">{currentTitle}</h3>
             )}
-            <p className={cn('text-[14px] text-slate-800 leading-relaxed whitespace-pre-line', !isExpanded && post.body.length > 250 && 'line-clamp-4')}>
-              {post.body}
+            <p className={cn('text-[14px] text-slate-800 leading-relaxed whitespace-pre-line', !isExpanded && currentBody.length > 250 && 'line-clamp-4')}>
+              {currentBody}
             </p>
-            {!isExpanded && post.body.length > 250 && (
+            {!isExpanded && currentBody.length > 250 && (
               <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsExpanded(true); }} className="text-teal-600 text-sm font-bold mt-1 hover:underline">Read more</button>
             )}
           </>
         )}
 
         {post.image && (
-          <img src={post.image} alt={post.title}
+          <img src={post.image} alt={currentTitle}
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFullImage(post.image!); }}
             className="mt-3 w-full max-h-[480px] rounded-xl object-cover border border-slate-100 cursor-pointer hover:opacity-95 active:scale-[0.99] transition-all" />
         )}
@@ -353,6 +465,131 @@ function PostCard({ post, follows, onFollowToggle }: { post: DBPost; follows: st
           </button>
           <img src={fullImage} alt="Full size" className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl"
             onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-150"
+          onClick={() => setShowEditModal(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-black text-slate-800 text-[16px]">Edit post</h3>
+              <button onClick={() => setShowEditModal(false)}
+                className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4 max-h-[80vh] overflow-y-auto">
+              <div>
+                <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider block mb-1">Category</label>
+                <select
+                  value={editCategory}
+                  onChange={(e) => setEditCategory(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-[13px] font-bold text-slate-700 outline-none focus:ring-2 focus:ring-teal-600 cursor-pointer"
+                >
+                  {['Community', 'Ask the city', 'Offer', 'Event', 'Housing', 'Update'].map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider block mb-1">Title (Optional)</label>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  placeholder="Post headline..."
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-[14px] font-bold text-slate-800 outline-none focus:ring-2 focus:ring-teal-600 placeholder:text-slate-400"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider block mb-1">Content</label>
+                <textarea
+                  rows={4}
+                  value={editBody}
+                  onChange={(e) => setEditBody(e.target.value)}
+                  placeholder="What's on your mind?"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-[14px] text-slate-800 outline-none focus:ring-2 focus:ring-teal-600 resize-none leading-relaxed placeholder:text-slate-400 font-medium"
+                />
+              </div>
+
+              {!post.image && !post.videoUrl && (
+                <div>
+                  <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider block mb-2">Background gradient</label>
+                  <div className="flex items-center gap-2">
+                    {POST_BACKGROUNDS.map((bg) => (
+                      <button
+                        key={bg.id}
+                        type="button"
+                        title={bg.label}
+                        onClick={() => setEditBackground(bg.id)}
+                        className={cn(
+                          'w-7 h-7 rounded-full bg-gradient-to-br ring-offset-2 transition-transform hover:scale-110',
+                          bg.className,
+                          editBackground === bg.id ? 'ring-2 ring-teal-700 scale-110' : 'ring-1 ring-slate-200'
+                        )}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="px-5 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2.5">
+              <button
+                onClick={() => setShowEditModal(false)}
+                disabled={isUpdating}
+                className="px-4 py-2 rounded-xl text-[13px] font-bold text-slate-600 hover:bg-slate-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEditSave}
+                disabled={isUpdating || !editBody.trim()}
+                className="px-5 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-xl text-[13px] font-bold transition-colors flex items-center gap-2 disabled:opacity-50"
+              >
+                {isUpdating && <Loader2 className="w-4 h-4 animate-spin" />}
+                Save changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-150"
+          onClick={() => setShowDeleteConfirm(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl border border-slate-100 p-6 space-y-4 animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}>
+            <div className="w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center mx-auto">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <div className="text-center space-y-1">
+              <h4 className="font-black text-slate-800 text-[16px]">Delete post?</h4>
+              <p className="text-[13px] text-slate-500">Are you sure you want to delete this post? This action cannot be undone.</p>
+            </div>
+            <div className="flex items-center gap-2.5 pt-2">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+                className="flex-1 py-2.5 rounded-xl text-[13px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="flex-1 py-2.5 rounded-xl text-[13px] font-bold text-white bg-red-600 hover:bg-red-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isDeleting && <Loader2 className="w-4 h-4 animate-spin" />}
+                Delete
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </>
@@ -475,7 +712,15 @@ export default function CityFeed({ hideHeader = false }: { hideHeader?: boolean 
           </div>
         ) : posts.length ? (
           <>
-            {posts.map(post => <PostCard key={post.id} post={post} follows={follows} onFollowToggle={onFollowToggle} />)}
+            {posts.map(post => (
+              <PostCard
+                key={post.id}
+                post={post}
+                follows={follows}
+                onFollowToggle={onFollowToggle}
+                onDelete={(id) => setPosts(prev => prev.filter(p => p.id !== id))}
+              />
+            ))}
             {/* Infinite scroll sentinel */}
             <div ref={sentinelRef} className="h-4" />
             {loadingMore && (
