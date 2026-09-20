@@ -20,6 +20,11 @@ const nextConfig: NextConfig = {
     ],
   },
   output: 'standalone',
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
+  },
   transpilePackages: ['motion'],
   webpack: (config, {dev}) => {
     // HMR is disabled in AI Studio via DISABLE_HMR env var.

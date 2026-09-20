@@ -36,6 +36,25 @@ export default function CreatePost() {
   const needsTitle = category !== 'Community' && category !== 'Update';
   const canPublish = body.trim().length > 2 && (!needsTitle || title.trim().length > 2) && !publishing;
 
+  
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (file.size > 4 * 1024 * 1024) {
+      alert("Image is too large. Please select an image under 4MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setImageUrl(event.target.result as string);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const publish = async () => {
     if (!canPublish) return;
     setPublishing(true);
@@ -123,6 +142,12 @@ export default function CreatePost() {
             className="w-full bg-slate-50 rounded-xl p-4 text-[13px] text-slate-700 font-medium placeholder:text-slate-400 outline-none focus:ring-2 ring-teal-200 resize-none leading-relaxed"
           />
 
+          
+          {imageUrl && (
+            <div className="relative rounded-xl overflow-hidden border border-slate-100 max-h-48 flex justify-center bg-slate-900 mt-2">
+              <img src={imageUrl} alt="Upload preview" className="object-contain max-h-48" />
+            </div>
+          )}
           {/* Dynamic Fields Based on Category */}
           <div className="space-y-3 pt-2 border-t border-slate-100">
             {category === 'Event' && (
@@ -164,15 +189,27 @@ export default function CreatePost() {
             
             {/* Universal Media Links */}
             <div className="flex gap-4">
-              <div className="flex-1 flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200 focus-within:border-teal-600 transition-colors">
-                <ImageIcon className="w-4 h-4 text-slate-400" />
+              <div className="flex-1 flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200 hover:border-teal-600 transition-colors relative overflow-hidden group">
+                <ImageIcon className="w-4 h-4 text-slate-400 group-hover:text-teal-600" />
                 <input 
-                  type="url" 
-                  placeholder="Image URL"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  className="w-full bg-transparent text-[13px] outline-none text-slate-700 placeholder:text-slate-400" 
+                  type="file" 
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                  title="Upload an image"
                 />
+                <span className="text-[13px] text-slate-700 truncate select-none pointer-events-none">
+                  {imageUrl ? 'Image Selected (Click to change)' : 'Upload Image'}
+                </span>
+                {imageUrl && (
+                  <button 
+                    type="button" 
+                    onClick={(e) => { e.preventDefault(); setImageUrl(''); }} 
+                    className="absolute right-3 z-10 text-[10px] font-bold text-red-500 hover:text-red-700"
+                  >
+                    Clear
+                  </button>
+                )}
               </div>
               <div className="flex-1 flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200 focus-within:border-teal-600 transition-colors">
                 <Video className="w-4 h-4 text-slate-400" />
