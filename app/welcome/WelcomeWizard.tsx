@@ -38,7 +38,7 @@ export default function WelcomeWizard({
     homeCityId: initialData?.homeCityId || '',
     dateOfBirth: initialData?.dateOfBirth || '',
     phone: initialData?.phone || '',
-    interests: initialData?.interests || ([] as string[]),
+    interests: Array.isArray(initialData?.interests) ? initialData.interests : [],
   });
 
   const toggleInterest = (tag: string) => {

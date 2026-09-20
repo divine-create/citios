@@ -56,7 +56,10 @@ export default async function WelcomePage() {
         alreadyCompleted = !!resident.onboardingComplete;
         if (resident.interests) {
           try {
-            initialData.interests = JSON.parse(resident.interests);
+            const parsedInterests = JSON.parse(resident.interests);
+            initialData.interests = Array.isArray(parsedInterests)
+              ? parsedInterests.filter((interest): interest is string => typeof interest === 'string')
+              : [];
           } catch {
             initialData.interests = [];
           }
