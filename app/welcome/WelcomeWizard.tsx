@@ -181,7 +181,7 @@ export default function WelcomeWizard({
               />
             </div>
 
-            {/* Modern Interactive Date of Birth Picker */}
+            {/* Date of Birth */}
             <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-100">
               <DateOfBirthPicker
                 value={form.dateOfBirth}
@@ -189,9 +189,6 @@ export default function WelcomeWizard({
                 label="Date of Birth"
                 required
               />
-              <p className="text-[11px] text-slate-400 mt-2">
-                Click to open the interactive calendar with 1-click age presets, decade jumping, and leap year checks.
-              </p>
             </div>
 
             {/* Phone Number (Mandatory) */}
