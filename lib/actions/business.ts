@@ -133,3 +133,168 @@ export async function registerSchool(data: {
     return { error: err.message || "Failed to register school." };
   }
 }
+
+function resolveWorkspaceUrl(orgId: string, type: string): string {
+  switch (type) {
+    case 'RETAIL':
+      return `/workspaces/shopos/${orgId}`;
+    case 'RESTAURANT':
+      return `/workspaces/restaurantos/${orgId}`;
+    case 'SERVICES':
+      return `/workspaces/serviceos/${orgId}`;
+    case 'SCHOOL':
+      return `/workspaces/schoolos/${orgId}`;
+    case 'HOTEL':
+      return `/admin/hotel`;
+    case 'EVENT_ORGANIZER':
+      return `/admin/events`;
+    case 'HEALTHCARE':
+      return `/admin/healthcare`;
+    default:
+      return `/org/${orgId}`;
+  }
+}
+
+export async function getWorkspaceUrlForOrg(orgId: string, type: string): Promise<string> {
+  return resolveWorkspaceUrl(orgId, type);
+}
+
+export async function getMyBusinesses() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.personId) {
+    return [];
+  }
+
+  try {
+    const memberships = await db.orm.public.Membership.where({ personId: session.user.personId }).all();
+    if (!memberships || memberships.length === 0) {
+      return [];
+    }
+
+    const businesses = [];
+    for (const m of memberships) {
+      const org = await db.orm.public.Organization.where({ id: m.organizationId }).all().first();
+      if (!org) continue;
+
+      const roles = await db.orm.public.MembershipRole.where({ membershipId: m.id }).all();
+      const city = org.cityId ? await db.orm.public.City.where({ id: org.cityId }).all().first() : null;
+
+      businesses.push({
+        id: org.id,
+        name: org.name,
+        type: org.type,
+        description: org.description,
+        address: org.address,
+        cityId: org.cityId,
+        citySlug: city?.slug ?? null,
+        cityName: city?.name ?? null,
+        role: roles[0]?.role || 'MEMBER',
+        workspaceUrl: resolveWorkspaceUrl(org.id, org.type),
+      });
+    }
+
+    return businesses;
+  } catch (error) {
+    console.error("Error fetching my businesses:", error);
+    return [];
+  }
+}
+
+export async function quickCreateBusiness(data: {
+  name: string;
+  type: string;
+  description?: string;
+  citySlug?: string;
+  address?: string;
+}) {
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user?.personId) {
+    return { error: "You must be logged in to create a business page." };
+  }
+
+  const name = (data.name || '').trim();
+  if (!name) {
+    return { error: "Business name is required." };
+  }
+
+  const validTypes = ['RETAIL', 'RESTAURANT', 'SERVICES', 'SCHOOL', 'HOTEL', 'EVENT_ORGANIZER', 'HEALTHCARE'];
+  if (!validTypes.includes(data.type)) {
+    return { error: "Invalid business category." };
+  }
+
+  try {
+    const city = await resolveRegistrationCity(data.citySlug);
+    if (!city) {
+      return { error: "Unable to resolve active city. Please ensure at least one city is configured." };
+    }
+
+    const org = await db.orm.public.Organization.create({
+      name,
+      type: data.type as any,
+      description: (data.description || '').trim(),
+      address: (data.address || '').trim() || city.name,
+      cityId: city.id,
+    });
+
+    const membership = await db.orm.public.Membership.create({
+      personId: session.user.personId,
+      organizationId: org.id,
+    });
+
+    await db.orm.public.MembershipRole.create({
+      membershipId: membership.id,
+      role: 'OWNER',
+    });
+
+    // Auto-provision vertical configurations
+    if (data.type === 'RESTAURANT') {
+      await provisionRestaurantOS(org.id);
+    } else if (data.type === 'RETAIL') {
+      try {
+        await db.orm.public.RetailSettings.create({
+          organizationId: org.id,
+          storeName: name,
+          currencySymbol: '₦',
+        });
+      } catch (err) {
+        console.warn('RetailSettings creation warning:', err);
+      }
+    } else if (data.type === 'SCHOOL') {
+      try {
+        await db.orm.public.SchoolSettings.create({
+          organizationId: org.id,
+          name,
+          shortName: name.slice(0, 10).toUpperCase(),
+          currentYear: new Date().getFullYear(),
+          currencySymbol: '₦',
+        });
+      } catch (err) {
+        console.warn('SchoolSettings creation warning:', err);
+      }
+    }
+
+    const workspaceUrl = resolveWorkspaceUrl(org.id, data.type);
+
+    return {
+      success: true,
+      business: {
+        id: org.id,
+        name: org.name,
+        type: org.type,
+        description: org.description,
+        address: org.address,
+        cityId: org.cityId,
+        citySlug: city.slug,
+        cityName: city.name,
+        role: 'OWNER',
+        workspaceUrl,
+      },
+      workspaceUrl,
+    };
+  } catch (err: any) {
+    console.error("Error quick-creating business:", err);
+    return { error: err.message || "Failed to create business page." };
+  }
+}
+

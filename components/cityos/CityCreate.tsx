@@ -1,11 +1,28 @@
 'use client';
 
 import Link from 'next/link';
-import { PenSquare, PackagePlus, Wrench, Briefcase, CalendarPlus, HousePlus, Users, ArrowRight, Sparkles, GraduationCap } from 'lucide-react';
+import {
+  PenSquare,
+  PackagePlus,
+  Wrench,
+  Briefcase,
+  CalendarPlus,
+  HousePlus,
+  Users,
+  ArrowRight,
+  Sparkles,
+  GraduationCap,
+  Store,
+  UtensilsCrossed,
+  Building2,
+  Ticket,
+  Plus,
+} from 'lucide-react';
 
-import { SectionHead, Pill } from '@/components/cityos/CityUI';
+import { SectionHead } from '@/components/cityos/CityUI';
 import { fetchResidentActivity } from '@/app/actions/activity';
 import { useEffect, useState } from 'react';
+import { useAccountSwitcher } from '@/components/cityos/AccountSwitcherContext';
 
 interface CreateAction {
   icon: React.ComponentType<{ className?: string }>;
@@ -30,11 +47,15 @@ const ACTIONS: CreateAction[] = [
 
 export default function CityCreate() {
   const [recent, setRecent] = useState<any[]>([]);
+  const { openCreateModal } = useAccountSwitcher();
+
   useEffect(() => {
-    fetchResidentActivity().then(a => setRecent(a.slice(0, 5)));
+    fetchResidentActivity().then((a) => setRecent(a.slice(0, 5)));
   }, []);
+
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
+      {/* Header Banner */}
       <div className="rounded-3xl bg-gradient-to-br from-slate-900 via-teal-950 to-teal-800 text-white p-7 md:p-8 relative overflow-hidden">
         <div className="absolute -right-12 -top-12 w-52 h-52 rounded-full bg-brand-500/20 blur-3xl" />
         <div className="relative">
@@ -43,9 +64,68 @@ export default function CityCreate() {
           </span>
           <h1 className="mt-3 text-2xl md:text-3xl font-black tracking-tight">Put something in your city.</h1>
           <p className="mt-2 text-teal-50/80 text-[13px] font-medium max-w-xl leading-relaxed">
-            Create is the front door for participating in the city ecosystem — resident posts, merchant inventory, service quotes, and more. Select an action to navigate to the relevant management dashboard.
+            Create is the front door for participating in the city ecosystem — resident posts, business pages, service quotes, and more.
           </p>
         </div>
+      </div>
+
+      {/* Facebook-style Business Page Creator Callout */}
+      <div className="bg-gradient-to-r from-teal-900 via-teal-800 to-slate-900 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border border-teal-700/50">
+        <div className="space-y-2 max-w-lg">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-400/20 border border-amber-300/30 text-amber-300 text-[10px] font-black uppercase tracking-wider">
+            ⭐ Instant Setup
+          </div>
+          <h2 className="text-xl font-black tracking-tight">Create a Business Page</h2>
+          <p className="text-xs text-teal-100/80 font-medium leading-relaxed">
+            Start selling or providing services across CityConnect. Create a dedicated page for your retail store, restaurant, service trade, school, hotel, or event brand with 1-click account switching.
+          </p>
+          <div className="flex flex-wrap gap-2 pt-1">
+            <button
+              onClick={() => openCreateModal('RETAIL')}
+              className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold transition-colors flex items-center gap-1"
+            >
+              <Store className="w-3 h-3 text-emerald-400" /> Retail Store
+            </button>
+            <button
+              onClick={() => openCreateModal('RESTAURANT')}
+              className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold transition-colors flex items-center gap-1"
+            >
+              <UtensilsCrossed className="w-3 h-3 text-amber-400" /> Restaurant
+            </button>
+            <button
+              onClick={() => openCreateModal('SERVICES')}
+              className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold transition-colors flex items-center gap-1"
+            >
+              <Wrench className="w-3 h-3 text-cyan-400" /> Services
+            </button>
+            <button
+              onClick={() => openCreateModal('SCHOOL')}
+              className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold transition-colors flex items-center gap-1"
+            >
+              <GraduationCap className="w-3 h-3 text-indigo-400" /> School
+            </button>
+            <button
+              onClick={() => openCreateModal('HOTEL')}
+              className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold transition-colors flex items-center gap-1"
+            >
+              <Building2 className="w-3 h-3 text-purple-400" /> Hotel
+            </button>
+            <button
+              onClick={() => openCreateModal('EVENT_ORGANIZER')}
+              className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold transition-colors flex items-center gap-1"
+            >
+              <Ticket className="w-3 h-3 text-rose-400" /> Events
+            </button>
+          </div>
+        </div>
+
+        <button
+          onClick={() => openCreateModal()}
+          className="px-5 py-3 rounded-2xl bg-white text-teal-950 hover:bg-teal-50 font-black text-xs shadow-lg transition-all flex items-center gap-2 shrink-0 hover:scale-105 active:scale-95"
+        >
+          <Plus className="w-4 h-4" />
+          Create New Page
+        </button>
       </div>
 
       <section>
@@ -63,7 +143,6 @@ export default function CityCreate() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="text-[14px] font-black text-ink">{a.title}</p>
-                  
                 </div>
                 <p className="text-[12px] text-slate-500 font-medium mt-0.5 leading-snug">{a.desc}</p>
                 <span className="mt-3 inline-flex items-center gap-1 text-[11px] font-black text-teal-800">

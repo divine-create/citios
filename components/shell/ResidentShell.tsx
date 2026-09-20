@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
 import { signIn, signOut, useSession } from 'next-auth/react';
@@ -43,6 +43,9 @@ import { useMoney } from '@/components/cityos/CityProvider';
 import { getMyNotifications, markNotificationRead, markAllNotificationsRead } from '@/app/actions/notifications';
 import { getPusherClient } from '@/lib/pusherClient';
 import { cn } from '@/lib/utils';
+import { AccountSwitcherProvider } from '@/components/cityos/AccountSwitcherContext';
+import AccountSwitcher, { ActiveBusinessBanner } from '@/components/cityos/AccountSwitcher';
+import CreateBusinessModal from '@/components/cityos/CreateBusinessModal';
 
 function CartBell() {
   const { count } = useCart();
@@ -345,7 +348,9 @@ const navGroups: { label: string; items: NavItem[] }[] = [
     <ExperienceProvider>
       <CartProvider>
       <WalletProvider>
-        <div className="flex h-screen bg-[#F6F7F8] overflow-hidden font-sans text-slate-900 selection:bg-teal-200">
+        <AccountSwitcherProvider>
+          <CreateBusinessModal />
+          <div className="flex h-screen bg-[#F6F7F8] overflow-hidden font-sans text-slate-900 selection:bg-teal-200">
         {/* Desktop Sidebar */}
         <aside className="hidden md:flex flex-col w-[268px] bg-white border-r border-slate-100 z-20 h-full overflow-y-auto">
           <div className="p-6 pb-4 flex flex-col gap-1 sticky top-0 bg-white z-10 border-b border-slate-100/60">
@@ -427,7 +432,13 @@ const navGroups: { label: string; items: NavItem[] }[] = [
             ))}
           </nav>
 
-          <div className="p-5 border-t border-slate-100">
+          <div className="p-4 border-t border-slate-100 space-y-3">
+            {session ? (
+              <div className="flex items-center justify-between px-1">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Account</span>
+                <AccountSwitcher />
+              </div>
+            ) : null}
             <WalletChip />
           </div>
         </aside>
@@ -449,29 +460,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
               <NotificationsDropdown />
               <div className="h-6 w-px bg-slate-100 mx-1" />
               {session ? (
-                <div className="flex items-center gap-3">
-                  <Link
-                    href="/profile"
-                    className="flex items-center justify-center w-9 h-9 rounded-full border border-slate-200 bg-white overflow-hidden shadow-sm"
-                  >
-                    {session.user?.image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={session.user.image}
-                        alt="Profile"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <UserIcon className="w-4 h-4 text-slate-700" />
-                    )}
-                  </Link>
-                  <button
-                    onClick={() => signOut()}
-                    className="text-[10px] font-bold text-slate-500 hover:text-slate-800 uppercase tracking-wider"
-                  >
-                    Sign Out
-                  </button>
-                </div>
+                <AccountSwitcher />
               ) : (
                 <button
                   onClick={() => signIn('google')}
@@ -498,6 +487,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
               <div className="flex items-center gap-2">
                 <CartBell />
                 <NotificationsDropdown />
+                {session ? <AccountSwitcher className="sm:hidden" /> : null}
                 <button
                   onClick={() => setMenuOpen((o) => !o)}
                   aria-label="Menu"
@@ -527,6 +517,12 @@ const navGroups: { label: string; items: NavItem[] }[] = [
                     <X className="w-4 h-4" />
                   </button>
                 </div>
+                {session ? (
+                  <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Account / Page</p>
+                    <AccountSwitcher />
+                  </div>
+                ) : null}
                 <nav className="flex-1 px-4 py-4 space-y-6">
                   <div>
                     <h3 className="px-3 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
@@ -594,7 +590,10 @@ const navGroups: { label: string; items: NavItem[] }[] = [
 
           {/* Scrollable View Area */}
           <main className="flex-1 overflow-y-auto px-4 md:px-8 py-5 md:py-8 relative scroll-smooth pb-28 md:pb-8">
-            <div className="mx-auto max-w-6xl h-full">{children}</div>
+            <div className="mx-auto max-w-6xl h-full">
+              <ActiveBusinessBanner />
+              {children}
+            </div>
           </main>
 
           {/* One-time geolocation suggestion: offers a switch, never performs one. */}
@@ -630,6 +629,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
           </nav>
         </div>
       </div>
+        </AccountSwitcherProvider>
       </WalletProvider>
       </CartProvider>
       </ExperienceProvider>

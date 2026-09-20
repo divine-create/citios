@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { Banknote, ShoppingBag, Users, TrendingUp, Star, Truck, ChevronRight, BadgeCheck } from 'lucide-react';
+import { Banknote, ShoppingBag, Users, TrendingUp, Star, Truck, ChevronRight, BadgeCheck, Plus } from 'lucide-react';
 import { fmtNaira, parseNaira } from '@/lib/format';
 import { StatTile, Pill,  SectionHead } from '@/components/cityos/CityUI';
+import { useAccountSwitcher } from '@/components/cityos/AccountSwitcherContext';
+import { cn } from '@/lib/utils';
 
 interface LiveOrder {
   ref: string;
@@ -35,25 +37,30 @@ export default function BusinessDashboard() {
   const maxWeek = Math.max(...d.week);
   const [live, setLive] = useState<LiveOrder[]>([]);
   const { data: session } = useSession();
+  const { myBusinesses, activeBusiness, switchToBusiness, openCreateModal } = useAccountSwitcher();
+
+  const currentBusiness = activeBusiness || myBusinesses[0] || null;
+  const currentMerchant = currentBusiness?.name || d.merchant;
 
   // Route each business to ITS OWN OS by org type — a restaurant owner must
   // land in RestaurantOS, not ShopOS.
-  const orgType = session?.user?.memberships?.[0]?.organizationType;
+  const effectiveOrgType = currentBusiness?.type || session?.user?.memberships?.[0]?.organizationType;
   const OS_ROUTES: Record<string, { href: string; label: string }> = {
-    RESTAURANT: { href: '/admin/restaurantos', label: 'Full RestaurantOS admin' },
-    RETAIL: { href: '/admin/grocery', label: 'Full ShopOS admin' },
-    SERVICES: { href: '/admin/service', label: 'Full ServiceOS admin' },
-    SCHOOL: { href: '/admin/school', label: 'Full EduOS admin' },
+    RESTAURANT: { href: currentBusiness ? `/workspaces/restaurantos/${currentBusiness.id}` : '/admin/restaurantos', label: 'Full RestaurantOS' },
+    RETAIL: { href: currentBusiness ? `/workspaces/shopos/${currentBusiness.id}` : '/admin/grocery', label: 'Full ShopOS' },
+    SERVICES: { href: currentBusiness ? `/workspaces/serviceos/${currentBusiness.id}` : '/admin/service', label: 'Full ServiceOS' },
+    SCHOOL: { href: currentBusiness ? `/workspaces/schoolos/${currentBusiness.id}` : '/admin/school', label: 'Full EduOS' },
     HOTEL: { href: '/admin/hotel', label: 'Full HotelOS admin' },
     EVENT_ORGANIZER: { href: '/admin/events', label: 'Full EventsOS admin' },
   };
-  const os = OS_ROUTES[orgType ?? ''] ?? { href: '/admin/grocery', label: 'Full ShopOS admin' };
+  const os = OS_ROUTES[effectiveOrgType ?? ''] ?? { href: currentBusiness?.workspaceUrl || '/admin/grocery', label: 'Open Workspace' };
   const liveTotal = live.reduce((s, o) => s + o.amount, 0);
   const todayRevenue = parseNaira(d.today.revenue) + liveTotal;
   const todayOrders = d.today.orders + live.length;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Header bar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-teal-700 to-teal-500 text-white flex items-center justify-center">
@@ -61,7 +68,7 @@ export default function BusinessDashboard() {
           </div>
           <div>
             <h1 className="text-xl font-black text-ink flex items-center gap-2">
-              {d.merchant} <BadgeCheck className="w-4 h-4 text-brand-700" />
+              {currentMerchant} <BadgeCheck className="w-4 h-4 text-brand-700" />
             </h1>
             <p className="text-xs text-slate-500 font-medium mt-0.5 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -69,9 +76,75 @@ export default function BusinessDashboard() {
             </p>
           </div>
         </div>
-        <Link href={os.href} className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white ring-1 ring-slate-200 text-slate-700 text-xs font-black hover:ring-teal-300 transition-all">
+        <Link href={currentBusiness?.workspaceUrl || os.href} className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white ring-1 ring-slate-200 text-slate-700 text-xs font-black hover:ring-teal-300 transition-all">
           {os.label} <ChevronRight className="w-3.5 h-3.5" />
         </Link>
+      </div>
+
+      {/* Pages Switcher Bar */}
+      <div className="bg-white rounded-2xl border border-slate-100 p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-black text-ink uppercase tracking-wider">Your Business Pages & Workspaces ({myBusinesses.length})</p>
+          <button
+            onClick={() => openCreateModal()}
+            className="inline-flex items-center gap-1 text-xs font-black text-teal-800 hover:text-teal-900"
+          >
+            <Plus className="w-3.5 h-3.5" /> Create Business Page
+          </button>
+        </div>
+
+        {myBusinesses.length === 0 ? (
+          <div className="text-center py-6 px-4 bg-slate-50/60 rounded-xl border border-dashed border-slate-200">
+            <p className="text-xs font-bold text-slate-700">You don&apos;t manage any business pages yet.</p>
+            <p className="text-[11px] text-slate-400 mt-1 mb-3">Launch a retail shop, restaurant, service trade, school, hotel, or event brand in 30 seconds.</p>
+            <button
+              onClick={() => openCreateModal()}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-teal-800 text-white text-xs font-black shadow-sm hover:bg-teal-900"
+            >
+              <Plus className="w-3.5 h-3.5" /> Create a Business Page
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+            {myBusinesses.map((biz) => {
+              const isCurrent = (activeBusiness?.id || myBusinesses[0]?.id) === biz.id;
+              return (
+                <div
+                  key={biz.id}
+                  className={cn(
+                    'p-3 rounded-xl border transition-all flex items-center justify-between gap-3',
+                    isCurrent ? 'border-teal-700 bg-teal-50/40 ring-1 ring-teal-600/20' : 'border-slate-100 bg-slate-50/40 hover:border-slate-200'
+                  )}
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-black text-ink truncate">{biz.name}</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">{biz.type} · {biz.role}</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={() => switchToBusiness(biz)}
+                      className={cn(
+                        'px-2.5 py-1 rounded-lg text-xs font-black transition-all',
+                        isCurrent
+                          ? 'bg-teal-800 text-white shadow-xs'
+                          : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
+                      )}
+                    >
+                      {isCurrent ? 'Active' : 'Switch'}
+                    </button>
+                    <Link
+                      href={biz.workspaceUrl}
+                      className="px-2 py-1 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                      title="Open Workspace"
+                    >
+                      Workspace →
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* KPIs */}
