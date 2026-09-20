@@ -15,6 +15,8 @@ import { sharePost } from '@/lib/actions/post';
 import { fetchFeed, togglePostLike, toggleFollow, getFollowedOrganizations, reactToPost, deletePost, updatePost, type ReactionType } from '@/app/actions/newsfeed';
 import { useCity } from '@/components/cityos/CityProvider';
 import { POST_BACKGROUNDS, getPostBackground, type PostBackgroundId } from '@/lib/post-background';
+import { useSession } from 'next-auth/react';
+import LoginModal from '@/components/LoginModal';
 
 export type DBPost = {
   authorId?: string;
@@ -86,7 +88,7 @@ function PostSkeleton() {
 }
 
 // ─── Share button ────────────────────────────────────────────────────────────
-function ShareButton({ post, shareCount, setShareCount }: { post: DBPost; shareCount: number; setShareCount: React.Dispatch<React.SetStateAction<number>> }) {
+function ShareButton({ post, shareCount, setShareCount, isGuest }: { post: DBPost; shareCount: number; setShareCount: React.Dispatch<React.SetStateAction<number>>; isGuest: boolean }) {
   const [copied, setCopied] = useState(false);
   const [sharing, setSharing] = useState(false);
   const postUrl = typeof window !== 'undefined' ? `${window.location.origin}/feed/${post.id}` : `/feed/${post.id}`;
@@ -95,8 +97,10 @@ function ShareButton({ post, shareCount, setShareCount }: { post: DBPost; shareC
     e.preventDefault(); e.stopPropagation();
     if (sharing) return;
     setSharing(true);
-    setShareCount(s => s + 1);
-    sharePost(post.id).catch(console.error);
+    if (!isGuest) {
+      setShareCount(s => s + 1);
+      sharePost(post.id).catch(console.error);
+    }
     if (typeof navigator !== 'undefined' && navigator.share) {
       try { await navigator.share({ title: post.title || 'CityConnect post', text: post.body.slice(0, 120), url: postUrl }); }
       catch { setShareCount(s => s - 1); }
@@ -170,7 +174,7 @@ function ReactionButton({ post, liked, likeCount, onReact }: { post: DBPost; lik
 }
 
 // ─── PostCard ─────────────────────────────────────────────────────────────────
-function PostCard({ post, follows, onFollowToggle, onDelete }: { post: DBPost; follows: string[]; onFollowToggle: (id: string) => void; onDelete?: (id: string) => void }) {
+function PostCard({ post, follows, onFollowToggle, onDelete, isGuest, onRequireAuth }: { post: DBPost; follows: string[]; onFollowToggle: (id: string) => void; onDelete?: (id: string) => void; isGuest: boolean; onRequireAuth: () => void }) {
   const router = useRouter();
   const [liked, setLiked] = useState(post.isLikedByMe);
   const [likeCount, setLikeCount] = useState(post.likes);
@@ -222,6 +226,10 @@ function PostCard({ post, follows, onFollowToggle, onDelete }: { post: DBPost; f
 
   const handleFollow = async (e: React.MouseEvent) => {
     e.preventDefault();
+    if (isGuest) {
+      onRequireAuth();
+      return;
+    }
     if (!post.orgId) return;
     setIsFollowing(f => !f);
     onFollowToggle(post.orgId!);
@@ -229,6 +237,10 @@ function PostCard({ post, follows, onFollowToggle, onDelete }: { post: DBPost; f
   };
 
   const handleReact = async (reaction: ReactionType | null) => {
+    if (isGuest) {
+      onRequireAuth();
+      return;
+    }
     const wasLiked = liked;
     const prevReaction = myReaction;
     if (reaction === null) {
@@ -433,11 +445,11 @@ function PostCard({ post, follows, onFollowToggle, onDelete }: { post: DBPost; f
       {/* Action buttons */}
       <div className="flex items-center gap-1 px-2 py-1">
         <ReactionButton post={{ ...post, myReaction }} liked={liked} likeCount={likeCount} onReact={handleReact} />
-        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowComments(v => !v); }}
+        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (isGuest) onRequireAuth(); else setShowComments(v => !v); }}
           className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-bold text-slate-500 hover:text-teal-600 active:scale-90 transition-all" title="Comments">
           <MessageSquare className="w-4 h-4" />{commentCount}
         </button>
-        <ShareButton post={post} shareCount={shareCount} setShareCount={setShareCount} />
+        <ShareButton post={post} shareCount={shareCount} setShareCount={setShareCount} isGuest={isGuest} />
         <Link href={`/feed/${post.id}`} onClick={(e) => e.stopPropagation()}
           className="ml-auto text-[11px] font-bold text-slate-400 hover:text-teal-600 px-3 py-2 transition-colors">
           View post →
@@ -610,6 +622,7 @@ function timeAgo(dateString: string) {
 
 // ─── Main Feed ────────────────────────────────────────────────────────────────
 export default function CityFeed({ hideHeader = false }: { hideHeader?: boolean }) {
+  const { status } = useSession();
   const { city } = useCity();
   const cityName = city?.name ?? 'CityOS';
   const [activeTab, setActiveTab] = useState<typeof TABS[number]>('For You');
@@ -620,7 +633,9 @@ export default function CityFeed({ hideHeader = false }: { hideHeader?: boolean 
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [showLogin, setShowLogin] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const isGuest = status === 'unauthenticated';
 
   const loadFeed = useCallback(async () => {
     try {
@@ -702,7 +717,12 @@ export default function CityFeed({ hideHeader = false }: { hideHeader?: boolean 
       )}
 
       <div className="space-y-0 pb-8">
-        {loading ? (
+        {isGuest && activeTab === 'Following' ? (
+          <div className="rounded-2xl border border-dashed border-teal-200 bg-teal-50 p-10 text-center mx-4">
+            <p className="text-sm font-bold text-teal-800">Follow local organizations to build your own feed.</p>
+            <button onClick={() => setShowLogin(true)} className="mt-3 rounded-lg bg-teal-700 px-4 py-2 text-xs font-bold text-white hover:bg-teal-800">Sign in to continue</button>
+          </div>
+        ) : loading ? (
           <>{[...Array(4)].map((_, i) => <PostSkeleton key={i} />)}</>
         ) : error ? (
           <div className="rounded-2xl border border-dashed border-red-200 bg-red-50 p-10 text-center">
@@ -718,6 +738,8 @@ export default function CityFeed({ hideHeader = false }: { hideHeader?: boolean 
                 follows={follows}
                 onFollowToggle={onFollowToggle}
                 onDelete={(id) => setPosts(prev => prev.filter(p => p.id !== id))}
+                isGuest={isGuest}
+                onRequireAuth={() => setShowLogin(true)}
               />
             ))}
             {/* Infinite scroll sentinel */}
@@ -742,6 +764,7 @@ export default function CityFeed({ hideHeader = false }: { hideHeader?: boolean 
           </div>
         )}
       </div>
+      <LoginModal isOpen={showLogin} onClose={() => setShowLogin(false)} title="Join the conversation" message="Sign in to follow organizations, react to posts, and join local discussions." />
     </div>
   );
 }

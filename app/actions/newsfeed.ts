@@ -62,15 +62,12 @@ export async function fetchFeed(
   limit = 15
 ) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.personId) {
-    throw new Error('Unauthorized');
-  }
-
-  const personId = session.user.personId;
+  const personId = session?.user?.personId;
 
   let postsClause: any = {};
 
   if (feedType === 'Following') {
+    if (!personId) return { posts: [], nextCursor: null };
     const follows = await db.orm.public.Follow.where({ personId }).select('organizationId').all();
     const followedOrgIds = follows.map((f: any) => f.organizationId);
     if (followedOrgIds.length === 0) return { posts: [], nextCursor: null };
@@ -99,13 +96,15 @@ export async function fetchFeed(
     .include('comments', (comments: any) => comments.count())
     .all();
 
-  const myLikes = await db.orm.public.PostLike.where({ personId }).select('postId').all();
+  const myLikes = personId
+    ? await db.orm.public.PostLike.where({ personId }).select('postId').all()
+    : [];
   const myLikedPostIds = new Set(myLikes.map((l: any) => l.postId));
 
   // Fetch reactions
   const postIds = rawPosts.map((p: any) => p.id);
   let myReactions = new Map<string, ReactionType>();
-  if (postIds.length > 0) {
+  if (personId && postIds.length > 0) {
     try {
       const reactions = await (db.orm.public as any).PostReaction
         ?.where({ personId, postId: { in: postIds } })
@@ -118,7 +117,9 @@ export async function fetchFeed(
   }
 
   // Fetch user memberships to determine organization post ownership
-  const memberships = await db.orm.public.Membership.where({ personId }).all();
+  const memberships = personId
+    ? await db.orm.public.Membership.where({ personId }).all()
+    : [];
   const myOrgIds = new Set(memberships.map((m: any) => m.organizationId));
 
   const posts = rawPosts.map((post: any) => mapPost(post, myLikedPostIds, myReactions, personId, myOrgIds));
