@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Heart, MessageSquare, Share2, PenSquare, ChevronRight, UserPlus, UserCheck, Loader2 } from 'lucide-react';
+import { Heart, MessageSquare, Share2, PenSquare, ChevronRight, UserPlus, UserCheck, Loader2, X } from 'lucide-react';
 // Feed tab chrome (UI filters only, not content).
 const TABS = ['For You', 'Following'] as const;
 const TOPICS = ['All', 'Marketplace', 'Events', 'Housing', 'Community'];
@@ -128,6 +128,7 @@ function PostCard({ post, follows, onFollowToggle }: { post: DBPost & { href?: {
   const [showComments, setShowComments] = useState(false);
   const [commentCount, setCommentCount] = useState(post.comments);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [fullImage, setFullImage] = useState<string | null>(null);
   const cityTimezone = useCity().city?.timezone ?? undefined;
 
   useEffect(() => {
@@ -184,19 +185,51 @@ function PostCard({ post, follows, onFollowToggle }: { post: DBPost & { href?: {
       </div>
 
       <div className="px-5">
-        
-          {post.title && post.title !== 'Post' && !post.body.startsWith(post.title) && (
-            <h3 className="text-[15px] font-black text-ink leading-snug mb-1">{post.title}</h3>
-          )}
-          <p className={cn("text-[14px] text-slate-800 leading-relaxed whitespace-pre-line", !isExpanded && post.body.length > 250 && "line-clamp-4")}>
-            {post.body}
-          </p>
-          {!isExpanded && post.body.length > 250 && (
-            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsExpanded(true); }} className="text-teal-600 text-sm font-bold mt-1 hover:underline">Read more</button>
-          )}
+        {(() => {
+          const isShortText = !post.image && !post.videoUrl && post.body.length < 130;
+          const gradients = [
+            'from-purple-600 to-indigo-600',
+            'from-pink-500 to-rose-600',
+            'from-amber-400 to-orange-500',
+            'from-emerald-500 to-teal-600',
+            'from-cyan-500 to-blue-600',
+            'from-violet-500 to-purple-600',
+          ];
+          const grad = gradients[(post.id.charCodeAt(post.id.length - 1) || 0) % gradients.length];
+
+          if (isShortText) {
+            return (
+              <div className={cn('mt-1 -mx-5 px-8 py-10 bg-gradient-to-br text-white flex flex-col justify-center items-center text-center min-h-[180px]', grad)}>
+                {post.title && post.title !== 'Post' && !post.body.startsWith(post.title) && (
+                  <h3 className="text-[16px] font-black leading-snug mb-2 drop-shadow">{post.title}</h3>
+                )}
+                <p className="text-[22px] font-bold leading-snug drop-shadow whitespace-pre-line">{post.body}</p>
+              </div>
+            );
+          }
+
+          return (
+            <>
+              {post.title && post.title !== 'Post' && !post.body.startsWith(post.title) && (
+                <h3 className="text-[15px] font-black text-ink leading-snug mb-1">{post.title}</h3>
+              )}
+              <p className={cn('text-[14px] text-slate-800 leading-relaxed whitespace-pre-line', !isExpanded && post.body.length > 250 && 'line-clamp-4')}>
+                {post.body}
+              </p>
+              {!isExpanded && post.body.length > 250 && (
+                <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsExpanded(true); }} className="text-teal-600 text-sm font-bold mt-1 hover:underline">Read more</button>
+              )}
+            </>
+          );
+        })()}
 
         {post.image ? (
-          <FallbackImg src={post.image} alt={post.title} className="mt-3 aspect-square max-h-[400px] w-full rounded-xl object-cover border border-slate-100" />
+          <img
+            src={post.image}
+            alt={post.title}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFullImage(post.image!); }}
+            className="mt-3 w-full max-h-[480px] rounded-xl object-cover border border-slate-100 cursor-pointer hover:opacity-95 active:scale-[0.99] transition-all"
+          />
         ) : null}
         {post.videoUrl ? (
           <div className="mt-3 text-[13px] font-bold text-teal-700 bg-teal-50 px-3 py-2 rounded-lg inline-flex items-center gap-2">
@@ -271,7 +304,30 @@ function PostCard({ post, follows, onFollowToggle }: { post: DBPost & { href?: {
     </div>
   );
 
-  return post.href ? <Link href={post.href.url}>{inner}</Link> : inner;
+  return (
+    <>
+      {inner}
+      {fullImage && (
+        <div
+          className="fixed inset-0 z-[999] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-in fade-in duration-150"
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFullImage(null); }}
+        >
+          <button
+            className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/25 rounded-full text-white transition-colors"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFullImage(null); }}
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <img
+            src={fullImage}
+            alt="Full size"
+            className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+    </>
+  );
 }
 
 function timeAgo(dateString: string) {
