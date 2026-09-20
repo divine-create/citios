@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -7,6 +7,7 @@ import { useMoney } from '@/components/cityos/CityProvider';
 import { CityCard, FallbackImg, Stars, LocationRow, OpenBadge, ChipButton } from '@/components/cityos/CityUI';
 import { getCityMartProducts, getCityMartStores } from '@/app/actions/commerce';
 import { useCity } from '@/components/cityos/CityProvider';
+import { cn } from '@/lib/utils';
 
 const MARKET_CATS = ['All', 'Groceries', 'Food & Market', 'Fashion', 'Electronics', 'Books & Prints'];
 
@@ -63,26 +64,63 @@ export default function CityMarket() {
               <div className="py-10 text-center text-sm text-slate-500">{`Nothing here yet in ${cityName} for this category.`}</div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                {products.map((p) => (
-                  <Link key={p.id} href={`/product/${p.id}`} className="group flex flex-col gap-2 relative">
-                    <div className="aspect-[4/5] w-full rounded-2xl overflow-hidden bg-slate-100 ring-1 ring-slate-200/50">
-                      {p.imageAssetId ? (
-                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={`/api/assets/${p.imageAssetId}`} alt={p.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <FallbackImg alt={p.name} />
+                {products.map((p) => {
+                  const isOutOfStock = !p.isWeighed && (p.stockQuantity == null || p.stockQuantity <= 0);
+                  const isLowStock = !p.isWeighed && p.stockQuantity > 0 && p.stockQuantity <= 5;
+
+                  return (
+                    <Link
+                      key={p.id}
+                      href={`/product/${p.id}`}
+                      className={cn(
+                        'group flex flex-col gap-2 relative transition-opacity',
+                        isOutOfStock && 'opacity-75',
                       )}
-                    </div>
-                    <div className="space-y-0.5 px-1">
-                      <div className="flex items-center gap-1.5 opacity-80">
-                        <Store className="w-3 h-3 text-slate-500" />
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider line-clamp-1">{p.storeName}</span>
+                    >
+                      <div className="aspect-[4/5] w-full rounded-2xl overflow-hidden bg-slate-100 ring-1 ring-slate-200/50 relative">
+                        {p.imageAssetId ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={`/api/assets/${p.imageAssetId}`}
+                            alt={p.name}
+                            className={cn(
+                              'w-full h-full object-cover transition-transform group-hover:scale-105 duration-300',
+                              isOutOfStock && 'grayscale-[40%]',
+                            )}
+                          />
+                        ) : (
+                          <FallbackImg alt={p.name} />
+                        )}
+
+                        {/* Stock Badges */}
+                        {isOutOfStock ? (
+                          <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-slate-900/85 backdrop-blur-xs text-white text-[9px] font-black uppercase tracking-wider shadow-sm">
+                            Sold Out
+                          </div>
+                        ) : isLowStock ? (
+                          <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-amber-500 text-white text-[9px] font-black uppercase tracking-wider shadow-sm">
+                            Only {p.stockQuantity} left
+                          </div>
+                        ) : null}
                       </div>
-                      <h3 className="text-xs font-bold text-ink leading-tight line-clamp-2">{p.name}</h3>
-                      <div className="text-sm font-black text-teal-900 pt-0.5">{fmt(p.price)}</div>
-                    </div>
-                  </Link>
-                ))}
+                      <div className="space-y-0.5 px-1">
+                        <div className="flex items-center gap-1.5 opacity-80">
+                          <Store className="w-3 h-3 text-slate-500" />
+                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider line-clamp-1">{p.storeName}</span>
+                        </div>
+                        <h3 className="text-xs font-bold text-ink leading-tight line-clamp-2">{p.name}</h3>
+                        <div className="flex items-center justify-between pt-0.5">
+                          <div className="text-sm font-black text-teal-900">{fmt(p.price)}</div>
+                          {isOutOfStock ? (
+                            <span className="text-[10px] font-bold text-slate-400">Out of stock</span>
+                          ) : isLowStock ? (
+                            <span className="text-[10px] font-bold text-amber-600">{p.stockQuantity} left</span>
+                          ) : null}
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
             )}
           </div>

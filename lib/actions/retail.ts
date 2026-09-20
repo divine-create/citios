@@ -3,6 +3,7 @@
 import '@js-temporal/polyfill'
 import { db } from '@/src/prisma/db'
 import { requireMembership } from '@/lib/actions/tenant'
+import { revalidatePath } from 'next/cache'
 
 // Server-action convention in this codebase: resolve the caller's Membership
 // id from the authenticated session. Never accept a client-supplied
@@ -173,6 +174,8 @@ export async function createProduct(input: {
       return createdProduct;
     });
 
+    revalidatePath('/market');
+    revalidatePath('/workspaces/shopos');
     return { success: true, product: JSON.parse(JSON.stringify(product)) };
   } catch (error) {
     console.error('Error creating product:', error);
@@ -209,6 +212,9 @@ export async function updateProduct(productId: string, input: {
     if (input.categoryId !== undefined) data.categoryId = input.categoryId;
     if (input.imageAssetId !== undefined) data.imageAssetId = input.imageAssetId;
     await db.orm.public.RetailProduct.where({ id: productId }).update(data);
+    revalidatePath('/market');
+    revalidatePath('/workspaces/shopos');
+    revalidatePath(`/product/${productId}`);
     return { success: true };
   } catch (error) {
     console.error('Error updating product:', error);
@@ -221,6 +227,9 @@ export async function deleteProduct(productId: string) {
     const prod = await db.orm.public.RetailProduct.where({ id: productId }).all().first();
     if (prod) await requireMembership(prod.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     await db.orm.public.RetailProduct.where({ id: productId }).delete();
+    revalidatePath('/market');
+    revalidatePath('/workspaces/shopos');
+    revalidatePath(`/product/${productId}`);
     return { success: true };
   } catch (error) {
     console.error('Error deleting product:', error);
@@ -259,6 +268,9 @@ export async function adjustStock(productId: string, delta: number, note?: strin
       }
     });
 
+    revalidatePath('/market');
+    revalidatePath('/workspaces/shopos');
+    revalidatePath(`/product/${productId}`);
     return { success: true };
   } catch (error) {
     console.error('Error adjusting stock:', error);
@@ -762,6 +774,12 @@ export async function createOrder(input: {
 
       return created;
     });
+
+    revalidatePath('/market');
+    revalidatePath('/workspaces/shopos');
+    for (const line of lineItems) {
+      revalidatePath(`/product/${line.productId}`);
+    }
 
     return { success: true, orderId: order.id, totalAmount, taxAmount };
   } catch (error) {

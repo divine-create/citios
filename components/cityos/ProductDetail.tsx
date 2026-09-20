@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -59,13 +59,17 @@ export default function ProductDetail({ id }: { id: string }) {
     setTimeout(() => setAdded(false), 2000);
   };
 
+  const isOutOfStock = !p.isWeighed && (p.stockQuantity == null || p.stockQuantity <= 0);
+  const isLowStock = !p.isWeighed && p.stockQuantity > 0 && p.stockQuantity <= 5;
+  const maxQty = p.isWeighed ? 99 : Math.max(1, p.stockQuantity ?? 1);
+
   return (
     <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 animate-in fade-in duration-500">
       <div className="space-y-4">
         <div className="aspect-square w-full rounded-3xl overflow-hidden bg-slate-100 ring-1 ring-slate-200/50 relative">
           {p.imageAssetId ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={`/api/assets/${p.imageAssetId}`} alt={p.name} className="w-full h-full object-cover" />
+            <img src={`/api/assets/${p.imageAssetId}`} alt={p.name} className={cn("w-full h-full object-cover", isOutOfStock && "grayscale-[40%]")} />
           ) : (
             <FallbackImg alt={p.name} />
           )}
@@ -74,6 +78,11 @@ export default function ProductDetail({ id }: { id: string }) {
               <Stars rating={4.5} />
             </Pill>
           </div>
+          {isOutOfStock && (
+            <div className="absolute top-4 left-4 px-3 py-1 rounded-full bg-slate-900/90 text-white text-[10px] font-black uppercase tracking-wider shadow-sm">
+              Sold Out
+            </div>
+          )}
         </div>
       </div>
 
@@ -87,7 +96,15 @@ export default function ProductDetail({ id }: { id: string }) {
           <CityMismatchChip citySlug={p.citySlug} className="mt-1.5" />
           <div className="flex items-center gap-3 pt-1">
             <div className="text-2xl font-black text-teal-900">{fmt(p.price)}</div>
-            <Pill className="bg-emerald-50 text-emerald-800 border-0 text-[10px]">In Stock</Pill>
+            {isOutOfStock ? (
+              <Pill className="bg-slate-100 text-slate-500 border-0 text-[10px] font-bold">Out of Stock</Pill>
+            ) : isLowStock ? (
+              <Pill className="bg-amber-50 text-amber-800 border-0 text-[10px] font-bold">Only {p.stockQuantity} Left</Pill>
+            ) : (
+              <Pill className="bg-emerald-50 text-emerald-800 border-0 text-[10px] font-bold">
+                In Stock {!p.isWeighed && p.stockQuantity ? `(${p.stockQuantity})` : ''}
+              </Pill>
+            )}
           </div>
         </div>
 
@@ -98,29 +115,45 @@ export default function ProductDetail({ id }: { id: string }) {
               <button 
                 onClick={() => setQty(Math.max(1, qty - 1))}
                 className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white hover:shadow-sm transition-all text-slate-600 disabled:opacity-50"
-                disabled={qty <= 1}
+                disabled={qty <= 1 || isOutOfStock}
               >
                 <Minus className="w-4 h-4" />
               </button>
-              <span className="w-12 text-center font-bold text-ink">{qty}</span>
+              <span className="w-12 text-center font-bold text-ink">{isOutOfStock ? 0 : qty}</span>
               <button 
-                onClick={() => setQty(qty + 1)}
-                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white hover:shadow-sm transition-all text-slate-600"
+                onClick={() => setQty(Math.min(maxQty, qty + 1))}
+                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white hover:shadow-sm transition-all text-slate-600 disabled:opacity-50"
+                disabled={qty >= maxQty || isOutOfStock}
               >
                 <Plus className="w-4 h-4" />
               </button>
             </div>
             <button 
               onClick={handleAdd}
+              disabled={isOutOfStock}
               className={cn(
                 "flex-1 h-12 rounded-xl flex items-center justify-center gap-2 text-sm font-black transition-all",
-                added ? "bg-emerald-500 text-white" : "bg-teal-800 text-white hover:bg-teal-900"
+                isOutOfStock
+                  ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200"
+                  : added
+                    ? "bg-emerald-500 text-white"
+                    : "bg-teal-800 text-white hover:bg-teal-900 shadow-sm"
               )}
             >
-              {added ? <Check className="w-4 h-4" /> : <ShoppingCart className="w-4 h-4" />}
-              {added ? "Added to bag" : `Add ${qty} to bag`}
+              {isOutOfStock ? (
+                "Sold Out"
+              ) : added ? (
+                <span className="flex items-center gap-2"><Check className="w-4 h-4" /> Added to bag</span>
+              ) : (
+                <span className="flex items-center gap-2"><ShoppingCart className="w-4 h-4" /> Add {qty} to bag</span>
+              )}
             </button>
           </div>
+          {isOutOfStock && (
+            <p className="text-[11px] text-slate-400 font-medium">
+              This item is currently sold out in-store and online. Check back soon!
+            </p>
+          )}
         </div>
       </div>
     </div>

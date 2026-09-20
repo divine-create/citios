@@ -46,6 +46,14 @@ export async function placeRetailOrder(input: {
       throw new Error(`Product not found: ${item.productId}`);
     }
 
+    // Check product stock availability
+    if (!product.isWeighed && product.stockQuantity < item.qty) {
+      if (product.stockQuantity <= 0) {
+        throw new Error(`"${product.name}" is currently out of stock.`);
+      }
+      throw new Error(`Only ${product.stockQuantity} item(s) left in stock for "${product.name}".`);
+    }
+
     const unitPrice = product.price; // server-authoritative, never client price
     const subtotal = unitPrice * item.qty;
     const orgId = product.organizationId;
@@ -88,22 +96,59 @@ export async function placeRetailOrder(input: {
         status: 'COMPLETED',
       });
         
-        await tx.orm.public.Payment.create({
-          amount: group.total,
-          currency: 'USD',
-          method: input.method === 'wallet' ? 'WALLET' : input.method === 'card' ? 'CARD' : 'BANK_TRANSFER',
-          status: 'COMPLETED',
-          retailOrderId: createdOrder.id
-        });
+      await tx.orm.public.Payment.create({
+        amount: group.total,
+        currency: 'USD',
+        method: input.method === 'wallet' ? 'WALLET' : input.method === 'card' ? 'CARD' : 'BANK_TRANSFER',
+        status: 'COMPLETED',
+        retailOrderId: createdOrder.id
+      });
         
-        for (const verifiedItem of group.items) {
+      for (const verifiedItem of group.items) {
         await tx.orm.public.RetailOrderItem.create({ orderId: createdOrder.id, ...verifiedItem });
+
+        // Atomically decrement stock in database
+        const product = await tx.orm.public.RetailProduct.where({ id: verifiedItem.productId }).all().first();
+        if (product) {
+          if (!product.isWeighed && product.stockQuantity < verifiedItem.quantity) {
+            throw new Error(`Item "${product.name}" was just purchased or has insufficient stock.`);
+          }
+          const nextStock = Math.max(0, product.stockQuantity - verifiedItem.quantity);
+          await tx.orm.public.RetailProduct.where({ id: verifiedItem.productId }).update({
+            stockQuantity: nextStock,
+          });
+
+          // Audit log stock movement
+          await tx.orm.public.RetailStockMovement.create({
+            organizationId: orgId,
+            productId: verifiedItem.productId,
+            delta: -verifiedItem.quantity,
+            beforeQty: product.stockQuantity,
+            afterQty: nextStock,
+            reason: 'SALE',
+            note: `Online Order #${createdOrder.id.slice(0, 8)}`,
+            recordedById: null,
+          });
+        }
       }
       return createdOrder;
     });
 
     orderIds.push(order.id);
     grandTotal += group.total;
+
+    // Notify merchant in ShopOS bell
+    try {
+      await db.orm.public.RetailNotification.create({
+        organizationId: orgId,
+        type: 'NEW_ONLINE_ORDER',
+        title: `New Online Order #${order.id.slice(0, 8).toUpperCase()}`,
+        message: `${group.items.length} item(s) totaling ₦${group.total.toLocaleString()} placed via CityMart.`,
+        isRead: false,
+      });
+    } catch (notifErr) {
+      console.warn('Could not create shop notification:', notifErr);
+    }
 
     // Real event → resident notification (fire-and-forget, never blocks the order).
     await notifyPerson(personId, {
@@ -115,6 +160,10 @@ export async function placeRetailOrder(input: {
   }
 
   revalidatePath('/workspaces/shopos');
+  revalidatePath('/market');
+  for (const item of input.items) {
+    revalidatePath(`/product/${item.productId}`);
+  }
   return { success: true, orderIds, total: grandTotal };
 }
 
