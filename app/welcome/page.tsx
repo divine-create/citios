@@ -5,6 +5,7 @@ import WelcomeWizard from './WelcomeWizard';
 import { db } from '@/src/prisma/db';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 export const metadata = { title: 'Welcome to CityConnect' };
 
 export default async function WelcomePage() {
