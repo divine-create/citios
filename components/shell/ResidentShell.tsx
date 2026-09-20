@@ -538,12 +538,12 @@ const navGroups: { label: string; items: NavItem[] }[] = [
                   {session ? (
                     <AccountSwitcher />
                   ) : (
-                    <button
-                      onClick={() => signIn('google')}
-                      className="px-4 py-2 bg-teal-700 text-white rounded-lg text-xs font-bold shadow-sm hover:bg-teal-800 transition-colors"
+                    <Link
+                      href="/login"
+                      className="px-4 py-2 bg-teal-700 text-white rounded-lg text-xs font-bold shadow-sm hover:bg-teal-800 transition-colors inline-flex items-center gap-1.5"
                     >
                       Sign In
-                    </button>
+                    </Link>
                   )}
                 </div>
               </header>
@@ -600,7 +600,17 @@ const navGroups: { label: string; items: NavItem[] }[] = [
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Account / Page</p>
                     <AccountSwitcher />
                   </div>
-                ) : null}
+                ) : (
+                  <div className="p-4 border-b border-slate-100 bg-slate-50/70">
+                    <Link
+                      href="/login"
+                      onClick={() => setMenuOpen(false)}
+                      className="w-full py-2.5 px-4 bg-teal-700 hover:bg-teal-800 text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-2 shadow-xs"
+                    >
+                      Sign In to CityConnect
+                    </Link>
+                  </div>
+                )}
                 <nav className="flex-1 px-4 py-4 space-y-6">
                   <div>
                     <h3 className="px-3 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">

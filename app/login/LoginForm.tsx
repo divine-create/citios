@@ -10,18 +10,25 @@ export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/';
+  const urlError = searchParams.get('error');
 
   const [identifier, setIdentifier] = useState(''); // email or phone
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string>(() => {
+    if (!urlError) return '';
+    if (urlError === 'CredentialsSignin') return 'Incorrect email/phone or password. Please try again.';
+    if (urlError === 'OAuthSignin' || urlError === 'OAuthCallback') return 'Google Sign-In is not configured yet. Please log in with your email or phone.';
+    if (urlError === 'Configuration') return 'Authentication server configuration update in progress. Please log in with email/phone.';
+    return 'An authentication error occurred. Please try again with your email or phone.';
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    const cleanIdentifier = identifier.trim().toLowerCase();
+    const cleanIdentifier = identifier.trim();
     if (!cleanIdentifier) {
       setError('Please enter your email or phone number.');
       return;
@@ -57,8 +64,19 @@ export default function LoginForm() {
     }
   };
 
-  const handleGoogleSignIn = () => {
-    signIn('google', { callbackUrl });
+  const handleGoogleSignIn = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const res = await signIn('google', { callbackUrl, redirect: false });
+      if (res?.error) {
+        setError('Google Sign-In is not configured on this server yet. Please log in with your email or phone.');
+        setLoading(false);
+      }
+    } catch {
+      setError('Google Sign-In is not configured on this server yet. Please log in with your email or phone.');
+      setLoading(false);
+    }
   };
 
   return (

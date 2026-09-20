@@ -32,7 +32,7 @@ export default function SchoolRegisterForm({ isLoggedIn }: { isLoggedIn: boolean
     setError('');
 
     if (!isLoggedIn) {
-      signIn('google', { callbackUrl: '/business/schoolos/register' });
+      router.push('/login?callbackUrl=/business/schoolos/register');
       return;
     }
 

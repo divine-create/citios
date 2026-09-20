@@ -32,6 +32,49 @@ export async function findPersonByEmail(email: string) {
   return db.orm.public.Person.where({ id: identifier.personId }).all().first();
 }
 
+/**
+ * Find the canonical Person by either EMAIL or PHONE identifier, or null.
+ */
+export async function findPersonByIdentifier(raw: string) {
+  const normalized = (raw || '').trim().toLowerCase();
+  if (!normalized) return null;
+
+  // 1. Try EMAIL
+  const emailIdent = await db.orm.public.PersonIdentifier
+    .where({ type: 'EMAIL', normalizedValue: normalized })
+    .all()
+    .first();
+  if (emailIdent) {
+    return db.orm.public.Person.where({ id: emailIdent.personId }).all().first();
+  }
+
+  // 2. Try PHONE (exact match)
+  const phoneIdent = await db.orm.public.PersonIdentifier
+    .where({ type: 'PHONE', normalizedValue: normalized })
+    .all()
+    .first();
+  if (phoneIdent) {
+    return db.orm.public.Person.where({ id: phoneIdent.personId }).all().first();
+  }
+
+  // 3. Try stripped PHONE (without +, spaces, dashes)
+  const digitsOnly = normalized.replace(/\D/g, '');
+  if (digitsOnly.length >= 7) {
+    const allPhones = await db.orm.public.PersonIdentifier
+      .where({ type: 'PHONE' })
+      .all();
+    const match = allPhones.find((p) => {
+      const pDigits = p.normalizedValue.replace(/\D/g, '');
+      return pDigits.endsWith(digitsOnly.slice(-10)) || digitsOnly.endsWith(pDigits.slice(-10));
+    });
+    if (match) {
+      return db.orm.public.Person.where({ id: match.personId }).all().first();
+    }
+  }
+
+  return null;
+}
+
 function splitDisplayName(name: string | null | undefined) {
   const parts = (name || '').trim().split(/\s+/).filter(Boolean);
   return {

@@ -55,26 +55,23 @@ export default function LoginModal({
                     <p className="text-sm text-slate-500 mb-8 leading-relaxed max-w-sm mx-auto">{message}</p>
 
                     <div className="space-y-3">
-                        <Button 
-                            variant="accent" 
-                            className="w-full py-3.5 text-sm flex items-center justify-center gap-3 shadow-lg shadow-teal-900/10 hover:shadow-teal-900/20 group"
-                            onClick={() => signIn('google')}
-                        >
-                            <LogIn className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-                            Continue with Google
-                            <Sparkles className="w-4 h-4 text-teal-200 ml-auto mr-1" />
-                        </Button>
-
                         <a
                             href="/login"
-                            className="w-full py-3 px-4 bg-slate-50 hover:bg-slate-100 text-slate-800 font-bold text-xs rounded-xl transition-colors flex items-center justify-center border border-slate-200"
+                            className="w-full py-3.5 px-4 bg-teal-700 hover:bg-teal-800 text-white font-black text-sm rounded-xl transition-all shadow-md shadow-teal-900/10 flex items-center justify-center gap-2"
                         >
-                            Sign in with Email & Password
+                            <LogIn className="w-4 h-4" />
+                            Sign in to CityConnect
+                        </a>
+
+                        <a
+                            href="/register"
+                            className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl transition-colors flex items-center justify-center border border-slate-200"
+                        >
+                            Create New Account
                         </a>
 
                         <div className="text-center pt-1">
-                            <span className="text-xs text-slate-500">Need an account? </span>
-                            <a href="/register" className="text-xs font-bold text-teal-700 hover:underline">Create Account</a>
+                            <span className="text-xs text-slate-400">Join your local neighborhood network</span>
                         </div>
                         <button
                             onClick={onClose}

@@ -2,29 +2,45 @@ import { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { db } from "@/src/prisma/db";
-import { resolvePersonByEmail, findPersonByEmail } from "@/lib/identity";
+import { resolvePersonByEmail, findPersonByIdentifier } from "@/lib/identity";
 import { verifyPassword } from "@/lib/password";
 import type { OrgMembership } from "@/types/next-auth";
 
+const hasGoogleAuth = !!(
+  process.env.GOOGLE_CLIENT_ID &&
+  process.env.GOOGLE_CLIENT_SECRET &&
+  process.env.GOOGLE_CLIENT_ID !== "mock-client-id" &&
+  !process.env.GOOGLE_CLIENT_ID.includes("mock")
+);
+
 export const authOptions: NextAuthOptions = {
+  secret:
+    process.env.NEXTAUTH_SECRET ||
+    process.env.AUTH_SECRET ||
+    "cc-production-auth-jwt-secret-2026-cityconnect",
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID || "mock-client-id",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "mock-client-secret",
-    }),
+    ...(hasGoogleAuth
+      ? [
+          GoogleProvider({
+            clientId: process.env.GOOGLE_CLIENT_ID!,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+          }),
+        ]
+      : []),
     CredentialsProvider({
       id: "credentials",
       name: "Email and Password",
       credentials: {
-        email: { label: "Email", type: "text" },
+        email: { label: "Email or Phone", type: "text" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
           return null;
         }
-        const normalizedEmail = credentials.email.trim().toLowerCase();
-        const dbPerson = await findPersonByEmail(normalizedEmail);
+        const normalizedInput = credentials.email.trim();
+        // Support finding user by either email or phone
+        const dbPerson = await findPersonByIdentifier(normalizedInput);
         if (!dbPerson) {
           return null;
         }
@@ -43,10 +59,18 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
+        // Get primary email for session/jwt, fallback to identifier if needed
+        const emailIdent = await db.orm.public.PersonIdentifier
+          .where({ personId: dbPerson.id, type: 'EMAIL' })
+          .all()
+          .first();
+
+        const userEmail = emailIdent?.normalizedValue || `${dbPerson.id}@cityconnect.local`;
+
         return {
           id: dbPerson.id,
-          email: normalizedEmail,
-          name: `${dbPerson.firstName} ${dbPerson.lastName}`,
+          email: userEmail,
+          name: `${dbPerson.firstName} ${dbPerson.lastName}`.trim() || 'Resident',
         };
       },
     }),
@@ -59,9 +83,6 @@ export const authOptions: NextAuthOptions = {
       const lookupEmail = user?.email || token?.email;
       if (lookupEmail && (user || trigger === "update")) {
         try {
-          // Canonical Person resolution (provisions Person + PersonIdentifier
-          // on first sign-in). The email comes from the server session, never
-          // from client input.
           const dbPerson = await resolvePersonByEmail(
             lookupEmail as string,
             user?.name ?? (token?.name as string | undefined) ?? null,
@@ -93,7 +114,7 @@ export const authOptions: NextAuthOptions = {
               
               for (const member of orgMembers) {
                 const roles = await db.orm.public.MembershipRole.where({ membershipId: member.id }).all();
-                const org = organizations.find((o) => o.id === member.organizationId);
+                const org = organizations.find((o: any) => o.id === member.organizationId);
                 
                 if (org && roles.length > 0) {
                   memberships.push({
@@ -109,7 +130,7 @@ export const authOptions: NextAuthOptions = {
             token.memberships = memberships;
             token.isCourier = !!gigProfile;
             token.role = memberships.length > 0 ? "PROVIDER" : gigProfile ? "COURIER" : "RESIDENT";
-            token.onboardingComplete = residentProfile.onboardingComplete ?? false;
+            token.onboardingComplete = residentProfile?.onboardingComplete ?? false;
           }
         } catch (error) {
           console.error("Error resolving RBAC roles:", error);
@@ -121,7 +142,7 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      if (session.user) {
+      if (session?.user) {
         session.user.personId = token.personId as string | undefined;
         session.user.role = token.role;
         session.user.memberships = token.memberships ?? [];
@@ -133,5 +154,6 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: '/login',
+    error: '/login', // Route all auth errors to /login to avoid Server Component render crash on /api/auth/error
   },
 };
