@@ -8,8 +8,20 @@ export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Welcome to CityConnect' };
 
 export default async function WelcomePage() {
-  const session = await getServerSession(authOptions);
-  const cities = await getActiveCities();
+  let session = null;
+  let cities: Awaited<ReturnType<typeof getActiveCities>> = [];
+
+  try {
+    session = await getServerSession(authOptions);
+  } catch (err) {
+    console.error('[WelcomePage] getServerSession failed:', err);
+  }
+
+  try {
+    cities = await getActiveCities();
+  } catch (err) {
+    console.error('[WelcomePage] getActiveCities failed:', err);
+  }
 
   const isGuest = !session?.user;
   let alreadyCompleted = false;
@@ -50,7 +62,7 @@ export default async function WelcomePage() {
         }
       }
     } catch (err) {
-      console.error('Error fetching resident profile for welcome wizard:', err);
+      console.error('[WelcomePage] Error fetching resident profile:', err);
     }
   }
 
