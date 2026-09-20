@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Globe, Users, PenSquare, Check, Image as ImageIcon, Video, Calendar, MapPin, DollarSign } from 'lucide-react';
+import { Loader2, Globe, Users, PenSquare, Check, Image as ImageIcon, Video, X, Calendar, MapPin, DollarSign, Tag } from 'lucide-react';
 import { ChipButton } from '@/components/cityos/CityUI';
 import { cn } from '@/lib/utils';
 import { createPost } from '@/app/actions/newsfeed';
@@ -59,11 +59,31 @@ export default function CreatePost() {
     setPublishing(true);
     
     try {
+      let finalImageUrl = imageUrl;
+      
+      // Upload image to S3 if a file was selected
+      if (imageFile) {
+        const ext = imageFile.name.split('.').pop() || 'png';
+        const type = imageFile.type || 'image/png';
+        const { signedUrl, publicUrl } = await getPresignedUploadUrl(type, ext);
+        
+        const uploadRes = await fetch(signedUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': type },
+          body: imageFile,
+        });
+        
+        if (!uploadRes.ok) {
+           throw new Error('Failed to upload image to S3');
+        }
+        finalImageUrl = publicUrl;
+      }
+      
       await createPost({
         title: needsTitle ? title.trim() : (body.trim().length > 50 ? body.trim().slice(0, 50) + '...' : body.trim()),
         body: body.trim(),
         category,
-        imageUrl: imageUrl.trim() || undefined,
+        imageUrl: finalImageUrl.trim() || undefined,
         videoUrl: videoUrl.trim() || undefined,
         eventDate: eventDate || undefined,
         location: location.trim() || undefined,
