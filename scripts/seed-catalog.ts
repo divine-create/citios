@@ -40,7 +40,8 @@ export function seedBizOrgId(bizSlug: string): string {
   return `org_${bizSlug.replace(/[-\s]+/g, '_')}`;
 }
 
-export function seedOrgIdForSlug(slug: string): string {
+export function seedOrgIdForSlug(slug: string): string | undefined {
+  if (!slug) return undefined;
   return `org_${slug.replace(/[-\s]+/g, '_')}`;
 }
 

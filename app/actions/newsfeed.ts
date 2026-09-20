@@ -4,8 +4,57 @@ import { db } from '@/src/prisma/db';
 import { getServerSession } from 'next-auth';
 import { notifyPerson } from '@/lib/notify';
 import { authOptions } from '@/lib/auth';
+import { getPostBackground, parsePostMetadata, serializePostMetadata, type PostBackgroundId } from '@/lib/post-background';
 
-export async function fetchFeed(feedType: 'For You' | 'Following', topic: string = 'All') {
+// Reaction types
+export type ReactionType = 'LIKE' | 'LOVE' | 'HAHA' | 'WOW' | 'SAD' | 'ANGRY';
+
+function mapPost(post: any, myLikedPostIds: Set<string>, myReactions: Map<string, ReactionType>) {
+  let author = 'Unknown';
+  let role = 'Resident';
+  let isOrg = false;
+
+  if (post.organization) {
+    author = post.organization.name;
+    role = 'Organization';
+    isOrg = true;
+  } else if (post.person) {
+    author = `${post.person.firstName} ${post.person.lastName}`;
+  }
+
+  return {
+    id: post.id,
+    author,
+    role,
+    isOrg,
+    authorId: isOrg ? post.organizationId : post.personId,
+    avatarImg: isOrg ? undefined : post.person?.profile?.avatarUrl,
+    time: typeof post.createdAt === 'string' ? new Date(post.createdAt).toISOString() : post.createdAt.toString(),
+    category: post.category,
+    title: post.title,
+    body: post.content,
+    image: post.imageUrl,
+    videoUrl: post.videoUrl,
+    eventDate: post.eventDate ? new Date(post.eventDate).toISOString() : undefined,
+    location: post.location,
+    price: post.price != null ? Number(post.price) : undefined,
+    postBackground: parsePostMetadata(post.postMetadata).background,
+    likes: post.likes || 0,
+    comments: post.comments || 0,
+    shares: post.shareCount || 0,
+    viewCount: post.viewCount || 0,
+    isLikedByMe: myLikedPostIds.has(post.id),
+    myReaction: myReactions.get(post.id) ?? null,
+    orgId: post.organizationId,
+  };
+}
+
+export async function fetchFeed(
+  feedType: 'For You' | 'Following',
+  topic: string = 'All',
+  cursor?: string,   // createdAt timestamp of the last post (for pagination)
+  limit = 15
+) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.personId) {
     throw new Error('Unauthorized');
@@ -18,16 +67,11 @@ export async function fetchFeed(feedType: 'For You' | 'Following', topic: string
   if (feedType === 'Following') {
     const follows = await db.orm.public.Follow.where({ personId }).select('organizationId').all();
     const followedOrgIds = follows.map((f: any) => f.organizationId);
-
-    if (followedOrgIds.length === 0) {
-      return [];
-    }
+    if (followedOrgIds.length === 0) return { posts: [], nextCursor: null };
     postsClause.organizationId = { in: followedOrgIds };
   }
 
   if (topic !== 'All') {
-    // If it's marketplace, we might map it to 'Offer' or 'Marketplace', etc.
-    // Ensure we handle 'Marketplace' if it's stored as 'Offer' in the DB.
     if (topic === 'Marketplace') {
       postsClause.category = { in: ['Offer', 'Marketplace'] };
     } else {
@@ -35,56 +79,80 @@ export async function fetchFeed(feedType: 'For You' | 'Following', topic: string
     }
   }
 
+  // Cursor-based pagination using createdAt
+  if (cursor) {
+    postsClause.createdAt = { lt: new Date(cursor) };
+  }
+
   const rawPosts = await db.orm.public.Post.where(postsClause)
     .orderBy((p: any) => p.createdAt.desc())
-    .limit(50)
+    .limit(limit)
     .include('person', (p: any) => p.select('firstName', 'lastName', 'id').include('profile', (prof: any) => prof.select('avatarUrl')))
     .include('organization', (o: any) => o.select('name', 'id'))
     .include('likes', (likes: any) => likes.count())
     .include('comments', (comments: any) => comments.count())
     .all();
 
-  // In Prisma 8 ORM, the array of likes doesn't easily filter inside the include for existence without custom logic,
-  // so we'll fetch my likes separately.
   const myLikes = await db.orm.public.PostLike.where({ personId }).select('postId').all();
   const myLikedPostIds = new Set(myLikes.map((l: any) => l.postId));
 
-  return rawPosts.map((post: any) => {
-    let author = 'Unknown';
-    let role = 'Resident';
-    let isOrg = false;
-
-    if (post.organization) {
-      author = post.organization.name;
-      role = 'Organization';
-      isOrg = true;
-    } else if (post.person) {
-      author = `${post.person.firstName} ${post.person.lastName}`;
+  // Fetch reactions
+  const postIds = rawPosts.map((p: any) => p.id);
+  let myReactions = new Map<string, ReactionType>();
+  if (postIds.length > 0) {
+    try {
+      const reactions = await (db.orm.public as any).PostReaction
+        ?.where({ personId, postId: { in: postIds } })
+        ?.select('postId', 'type')
+        ?.all();
+      reactions?.forEach((r: any) => myReactions.set(r.postId, r.type as ReactionType));
+    } catch {
+      // PostReaction model may not exist yet — graceful fallback
     }
+  }
 
-    return {
-        id: post.id,
-        author,
-        role,
-        isOrg,
-        authorId: isOrg ? post.organizationId : post.personId,
-        avatarImg: isOrg ? undefined : post.person?.profile?.avatarUrl,
-        time: typeof post.createdAt === 'string' ? new Date(post.createdAt).toISOString() : post.createdAt.toString(),
-        category: post.category,
-        title: post.title,
-        body: post.content,
-        image: post.imageUrl,
-        videoUrl: post.videoUrl,
-        eventDate: post.eventDate ? new Date(post.eventDate).toISOString() : undefined,
-        location: post.location,
-        price: post.price != null ? Number(post.price) : undefined,
-        likes: post.likes || 0,
-        comments: post.comments || 0,
-        shares: post.shareCount || 0,
-        isLikedByMe: myLikedPostIds.has(post.id),
-        orgId: post.organizationId,
-      };
-  });
+  const posts = rawPosts.map((post: any) => mapPost(post, myLikedPostIds, myReactions));
+  const nextCursor = rawPosts.length === limit
+    ? rawPosts[rawPosts.length - 1].createdAt instanceof Date
+      ? rawPosts[rawPosts.length - 1].createdAt.toISOString()
+      : new Date(rawPosts[rawPosts.length - 1].createdAt).toISOString()
+    : null;
+
+  return { posts, nextCursor };
+}
+
+export async function fetchSinglePost(postId: string) {
+  const session = await getServerSession(authOptions);
+  const personId = session?.user?.personId;
+
+  const post = await db.orm.public.Post.where({ id: postId })
+    .include('person', (p: any) => p.select('firstName', 'lastName', 'id').include('profile', (prof: any) => prof.select('avatarUrl')))
+    .include('organization', (o: any) => o.select('name', 'id'))
+    .include('likes', (likes: any) => likes.count())
+    .include('comments', (comments: any) => comments.count())
+    .first();
+
+  if (!post) return null;
+
+  const myLikedPostIds = new Set<string>();
+  const myReactions = new Map<string, ReactionType>();
+
+  if (personId) {
+    const myLike = await db.orm.public.PostLike.where({ personId, postId }).first();
+    if (myLike) myLikedPostIds.add(postId);
+
+    try {
+      const reaction = await (db.orm.public as any).PostReaction?.where({ personId, postId }).first();
+      if (reaction) myReactions.set(postId, reaction.type as ReactionType);
+    } catch { /* graceful */ }
+  }
+
+  // Increment view count
+  try {
+    await db.orm.public.Post.where({ id: postId }).update({ viewCount: (post.viewCount || 0) + 1 });
+  } catch { /* non-fatal */ }
+
+  return mapPost(post, myLikedPostIds, myReactions);
 }
 
 export async function createPost(data: { 
@@ -97,6 +165,7 @@ export async function createPost(data: {
   location?: string;
   price?: number;
   postMetadata?: string;
+  postBackground?: PostBackgroundId;
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.personId) {
@@ -117,8 +186,59 @@ export async function createPost(data: {
     eventDate: data.eventDate ? new Date(data.eventDate) : undefined,
     location: data.location,
     price: data.price,
-    postMetadata: data.postMetadata,
+    postMetadata: data.postBackground
+      ? serializePostMetadata(getPostBackground(data.postBackground).id)
+      : data.postMetadata,
   });
+}
+
+export async function reactToPost(postId: string, reaction: ReactionType | null) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.personId) throw new Error('Unauthorized');
+  const personId = session.user.personId;
+
+  try {
+    const postReactionModel = (db.orm.public as any).PostReaction;
+    if (!postReactionModel) {
+      await togglePostLike(postId);
+      return;
+    }
+
+    const existing = await postReactionModel.where({ postId, personId }).first();
+
+    if (reaction === null) {
+      // Remove reaction
+      if (existing) {
+        await postReactionModel.where({ id: existing.id }).delete();
+        // Also remove PostLike
+        const like = await db.orm.public.PostLike.where({ postId, personId }).first();
+        if (like) await db.orm.public.PostLike.where({ id: like.id }).delete();
+      }
+    } else {
+      if (existing) {
+        await postReactionModel.where({ id: existing.id }).update({ type: reaction });
+      } else {
+        await postReactionModel.create({ postId, personId, type: reaction });
+        // Ensure PostLike exists too (for the like count)
+        const like = await db.orm.public.PostLike.where({ postId, personId }).first();
+        if (!like) {
+          await db.orm.public.PostLike.create({ postId, personId });
+        }
+        // Notify post author
+        const post = await db.orm.public.Post.where({ id: postId }).first();
+        if (post?.personId && post.personId !== personId) {
+          await notifyPerson(post.personId, {
+            type: 'SYSTEM',
+            title: `New reaction on your post`,
+            body: `Someone reacted to your post`,
+          });
+        }
+      }
+    }
+  } catch {
+    // PostReaction model doesn't exist yet — fallback to plain like
+    await togglePostLike(postId);
+  }
 }
 
 export async function togglePostLike(postId: string) {
@@ -138,7 +258,6 @@ export async function togglePostLike(postId: string) {
       postId,
       personId,
     });
-    // Notify post author
     const post = await db.orm.public.Post.where({ id: postId }).first();
     if (post?.personId && post.personId !== personId) {
       await notifyPerson(post.personId, {

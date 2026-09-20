@@ -9,6 +9,7 @@ import { createPost } from '@/app/actions/newsfeed';
 import { getPresignedUploadUrl } from '@/app/actions/upload';
 import { useCity } from '@/components/cityos/CityProvider';
 import { useSession } from 'next-auth/react';
+import { POST_BACKGROUNDS, type PostBackgroundId } from '@/lib/post-background';
 
 const POST_CATEGORIES = ['Community', 'Ask the city', 'Offer', 'Event', 'Housing', 'Update'];
 
@@ -21,6 +22,7 @@ export default function CreatePost() {
   const [audience, setAudience] = useState<'public' | 'following'>('public');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
+  const [postBackground, setPostBackground] = useState<PostBackgroundId>('auto');
   
   // Media fields
   const [imageUrl, setImageUrl] = useState('');
@@ -88,6 +90,7 @@ export default function CreatePost() {
         eventDate: eventDate || undefined,
         location: location.trim() || undefined,
         price: price ? parseFloat(price) : undefined,
+        postBackground,
       });
       setPublished(true);
       window.setTimeout(() => router.push('/feed'), 700);
@@ -160,6 +163,27 @@ export default function CreatePost() {
             rows={5}
             className="w-full bg-slate-50 rounded-xl p-4 text-[13px] text-slate-700 font-medium placeholder:text-slate-400 outline-none focus:ring-2 ring-teal-200 resize-none leading-relaxed"
           />
+
+          <div className="flex items-center gap-3">
+            <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Text background</span>
+            <div className="flex items-center gap-2" role="group" aria-label="Choose a text post background">
+              {POST_BACKGROUNDS.map((background) => (
+                <button
+                  key={background.id}
+                  type="button"
+                  aria-label={background.label}
+                  aria-pressed={postBackground === background.id}
+                  title={background.label}
+                  onClick={() => setPostBackground(background.id)}
+                  className={cn(
+                    'w-7 h-7 rounded-full bg-gradient-to-br ring-offset-2 transition-transform hover:scale-110',
+                    background.className,
+                    postBackground === background.id ? 'ring-2 ring-teal-700 scale-110' : 'ring-1 ring-slate-200',
+                  )}
+                />
+              ))}
+            </div>
+          </div>
 
           
           {(imagePreview || imageUrl) && (

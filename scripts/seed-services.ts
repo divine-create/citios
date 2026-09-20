@@ -70,7 +70,7 @@ async function seedServices() {
     });
     const membership = await db.orm.public.Membership.create({
       personId: admin.id,
-      organizationId: acOrgId
+      organizationId: acOrgId || 'org_mikes_ac_services'
     });
     await db.orm.public.MembershipRole.create({
       membershipId: membership.id,
