@@ -31,6 +31,22 @@ export async function switchCity(slug: string) {
   return { ok: true as const, city: { slug: city.slug, name: city.name } };
 }
 
+/** Cities grouped by state for two-level registration pickers (state → LGA). */
+export async function getCityRegistry() {
+  const cities = await getActiveCities();
+  const byState = new Map<string, { slug: string; name: string }[]>();
+  for (const c of cities) {
+    const s = c.state ?? 'Other';
+    byState.set(s, [...(byState.get(s) ?? []), { slug: c.slug, name: c.name }]);
+  }
+  return [...byState.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([state, lgas]) => ({
+      state,
+      lgas: lgas.sort((a, b) => a.name.localeCompare(b.name)),
+    }));
+}
+
 // Haversine great-circle distance in km. Not exported: every export in a
 // 'use server' module must be an async server action.
 function distanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {

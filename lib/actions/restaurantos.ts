@@ -10,7 +10,9 @@
 // ============================================================================
 
 import { revalidatePath } from 'next/cache';
+import { getServerSession } from 'next-auth';
 import { db } from '@/src/prisma/db';
+import { authOptions } from '@/lib/auth';
 import { requireMembership } from '@/lib/actions/tenant';
 
 // ---------------------------------------------------------------------------
@@ -855,6 +857,67 @@ export async function getFinancialSummary(organizationId: string) {
   } catch (error) {
     console.error('Error fetching financial summary:', error);
     return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Registration (dedicated RestaurantOS onboarding)
+// ---------------------------------------------------------------------------
+
+/**
+ * Register a restaurant / eatery / fast-food business: creates the
+ * Organization (type RESTAURANT, validated city), the OWNER membership, and
+ * provisions RestaurantSettings with the chosen operating style — one atomic
+ * onboarding, mirroring provisionShopOS.
+ */
+export async function registerRestaurantOS(input: {
+  businessName: string;
+  description?: string;
+  serviceStyle: 'FULL_SERVICE' | 'COUNTER' | 'HYBRID';
+  citySlug: string;
+  address?: string;
+  phone?: string;
+}) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.personId) {
+      return { error: 'You must be logged in to register a business.' };
+    }
+    if (!input.businessName?.trim()) return { error: 'Business name is required.' };
+
+    // Validate the city (state → LGA selection) against the canonical registry.
+    // Never persist an unvalidated client value.
+    const city = await db.orm.public.City.where({ slug: (input.citySlug || '').trim().toLowerCase() }).all().first();
+    if (!city || !city.isActive) {
+      return { error: 'Unknown city. Pick a supported state and local government.' };
+    }
+
+    const org = await db.orm.public.Organization.create({
+      name: input.businessName.trim(),
+      type: 'RESTAURANT' as any,
+      description: input.description ?? '',
+      address: input.address ?? null,
+      cityId: city.id,
+    });
+
+    const membership = await db.orm.public.Membership.create({
+      personId: session.user.personId,
+      organizationId: org.id,
+    });
+    await db.orm.public.MembershipRole.create({
+      membershipId: membership.id,
+      role: 'OWNER',
+    });
+
+    await db.orm.public.RestaurantSettings.create({
+      organizationId: org.id,
+      serviceStyle: input.serviceStyle,
+    });
+
+    return { success: true, organizationId: org.id };
+  } catch (error) {
+    console.error('Error registering RestaurantOS:', error);
+    return { error: error instanceof Error ? error.message : 'Failed to register.' };
   }
 }
 

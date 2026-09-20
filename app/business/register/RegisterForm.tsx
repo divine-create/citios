@@ -84,6 +84,12 @@ export default function RegisterForm({ initialType, isLoggedIn }: { initialType:
           <option value="HOTEL">Hotel / Hospitality</option>
           <option value="HEALTHCARE">Healthcare Facility</option>
         </select>
+        <a
+          href="/business/restaurantos/register"
+          className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-black text-orange-600 hover:text-orange-700 transition-colors"
+        >
+          🍽️ Own a restaurant, eatery or fast food? Use the RestaurantOS registration →
+        </a>
       </div>
 
       <div>
