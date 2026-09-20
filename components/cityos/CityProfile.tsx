@@ -240,23 +240,31 @@ export default function CityProfile() {
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-50">
+                <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-50">
           {[
+            { label: 'Personal Information', sub: 'Name, phone, and interests', icon: Settings, href: '/profile/edit' },
             { label: 'Notifications', sub: 'Rides, orders & offers', icon: Settings },
-            { label: 'Payment methods', sub: 'CityPay wallet Â· cards Â· transfer', icon: Wallet },
+            { label: 'Payment methods', sub: 'CityPay wallet, cards & transfer', icon: Wallet },
             { label: 'Privacy', sub: 'Who can see your feed posts', icon: Settings },
-            { label: 'Referral code', sub: userProfile?.id ? `REF-${userProfile.id.slice(0, 4).toUpperCase()}` : 'â€”', icon: Settings },
+            { label: 'Referral code', sub: userProfile?.id ? `REF-${userProfile.id.slice(0, 4).toUpperCase()}` : '-', icon: Settings },
             { label: 'Sign out', sub: 'From this device', icon: Settings },
-          ].map((s, i) => (
-            <div key={s.label} className="px-5 py-4 flex items-center gap-3">
-              <s.icon className="w-4 h-4 text-slate-400" />
-              <div className="flex-1">
-                <p className="text-[13px] font-black text-ink">{s.label}</p>
-                <p className="text-[11px] font-bold text-slate-400">{s.sub}</p>
+          ].map((s, i) => {
+            const inner = (
+              <div className="px-5 py-4 flex items-center gap-3 hover:bg-slate-50 transition-colors">
+                <s.icon className="w-4 h-4 text-slate-400" />
+                <div className="flex-1">
+                  <p className="text-[13px] font-black text-ink">{s.label}</p>
+                  <p className="text-[11px] font-bold text-slate-400">{s.sub}</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-300" />
               </div>
-              <ChevronRight className="w-4 h-4 text-slate-300" />
-            </div>
-          ))}
+            );
+            return s.href ? (
+              <Link key={s.label} href={s.href} className="block">{inner}</Link>
+            ) : (
+              <div key={s.label}>{inner}</div>
+            );
+          })}
         </div>
       )}
     </div>

@@ -86,3 +86,46 @@ export async function updateProfile(input: { name?: string; image?: string }) {
     return { error: 'Failed to update profile' };
   }
 }
+
+export async function updateFullProfile(input: {
+  firstName: string;
+  lastName: string;
+  dateOfBirth?: string;
+  homeCityId?: string;
+  phone?: string;
+  interests?: string[];
+}) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email || !session?.user?.personId) {
+    throw new Error('Not authenticated');
+  }
+
+  const personId = session.user.personId;
+
+  await db.transaction(async (tx) => {
+    // 1. Update Person
+    await tx.orm.public.Person.where({ id: personId }).update({
+      firstName: input.firstName,
+      lastName: input.lastName,
+      ...(input.homeCityId && { homeCityId: input.homeCityId }),
+      ...(input.dateOfBirth && { dateOfBirth: new Date(input.dateOfBirth) }),
+    });
+
+    // 2. Update Profile
+    const existing = await tx.orm.public.ResidentProfile.where({ personId }).all().first();
+    if (existing) {
+      await tx.orm.public.ResidentProfile.where({ personId }).update({
+        phone: input.phone || null,
+        interests: input.interests ? JSON.stringify(input.interests) : null,
+      });
+    } else {
+      await tx.orm.public.ResidentProfile.create({
+        personId,
+        phone: input.phone || null,
+        interests: input.interests ? JSON.stringify(input.interests) : null,
+      });
+    }
+  });
+
+  return { success: true };
+}
