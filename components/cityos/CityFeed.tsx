@@ -39,6 +39,79 @@ export type DBPost = {
   postMetadata?: string;
 };
 
+
+function ShareButton({
+  post,
+  shareCount,
+  setShareCount,
+}: {
+  post: DBPost;
+  shareCount: number;
+  setShareCount: React.Dispatch<React.SetStateAction<number>>;
+}) {
+  const [copied, setCopied] = useState(false);
+  const [sharing, setSharing] = useState(false);
+
+  const postUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/feed?post=${post.id}`
+    : `/feed?post=${post.id}`;
+
+  const handleShare = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (sharing) return;
+    setSharing(true);
+
+    // Optimistically increment
+    setShareCount((s) => s + 1);
+    sharePost(post.id).catch(console.error);
+
+    // Try native share (works on Android/iOS and some desktops)
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: post.title || 'CityConnect post',
+          text: post.body.slice(0, 120),
+          url: postUrl,
+        });
+      } catch {
+        // User cancelled — revert the optimistic increment
+        setShareCount((s) => s - 1);
+      }
+    } else {
+      // Desktop fallback: copy link
+      try {
+        await navigator.clipboard.writeText(postUrl);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2500);
+      } catch {
+        // clipboard API not available — silent fail
+      }
+    }
+    setSharing(false);
+  };
+
+  return (
+    <button
+      onClick={handleShare}
+      disabled={sharing}
+      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-bold transition-colors text-slate-500 hover:text-teal-600 active:scale-90 transition-transform disabled:opacity-50"
+      title="Share post"
+    >
+      {copied ? (
+        <span className="text-emerald-600 font-bold flex items-center gap-1">
+          <Share2 className="w-4 h-4" /> Copied!
+        </span>
+      ) : (
+        <>
+          <Share2 className="w-4 h-4" />
+          {shareCount}
+        </>
+      )}
+    </button>
+  );
+}
+
 function PostCard({ post, follows, onFollowToggle }: { post: DBPost & { href?: { url: string; label?: string } }, follows: string[], onFollowToggle: (id: string) => void }) {
   const router = useRouter();
   const handleProfileClick = (e: React.MouseEvent) => {
@@ -187,13 +260,7 @@ function PostCard({ post, follows, onFollowToggle }: { post: DBPost & { href?: {
             <MessageSquare className="w-4 h-4" />
             {commentCount}
           </button>
-        <button
-          onClick={() => setShareCount((s) => s + 1)}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-bold text-slate-500 hover:text-teal-600 active:scale-90 transition-transform transition-colors"
-        >
-          <Share2 className="w-4 h-4" />
-          {shareCount}
-        </button>
+        <ShareButton post={post} shareCount={shareCount} setShareCount={setShareCount} />
         </div>
         {showComments && (
           <div onClick={(e) => { e.stopPropagation(); e.preventDefault(); }} className="cursor-default">
