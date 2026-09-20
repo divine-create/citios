@@ -76,22 +76,6 @@ export default function LoginModal({
                             <span className="text-xs text-slate-500">Need an account? </span>
                             <a href="/register" className="text-xs font-bold text-teal-700 hover:underline">Create Account</a>
                         </div>
-
-                        {process.env.NODE_ENV !== 'production' && (
-                            <Button
-                                variant="outline"
-                                className="w-full py-3 text-xs flex items-center justify-center gap-3 text-teal-800 bg-teal-50/50 border-teal-200"
-                                onClick={() =>
-                                    signIn('demo', {
-                                        email: 'demo@cityconnect.local',
-                                        password: '1234',
-                                    })
-                                }
-                            >
-                                <Sparkles className="w-3.5 h-3.5 text-teal-600" />
-                                Instant Dev Demo Login
-                            </Button>
-                        )}
                         <button
                             onClick={onClose}
                             className="w-full py-2.5 text-xs font-bold text-slate-400 hover:text-slate-700 transition-colors uppercase tracking-wider"

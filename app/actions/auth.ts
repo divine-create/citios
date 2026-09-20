@@ -1,7 +1,9 @@
 'use server';
 
 import { db } from '@/src/prisma/db';
-import { hashPassword } from '@/lib/password';
+import { hashPassword, verifyPassword } from '@/lib/password';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 export interface RegisterInput {
   firstName: string;
@@ -31,6 +33,10 @@ export async function registerUser(input: RegisterInput) {
       return { error: 'Password must be at least 6 characters.' };
     }
 
+    if (!phone || phone.length < 7) {
+      return { error: 'Please enter a valid phone number.' };
+    }
+
     // Check if email already registered
     const existingIdentifier = await db.orm.public.PersonIdentifier
       .where({ type: 'EMAIL', normalizedValue: email })
@@ -41,14 +47,12 @@ export async function registerUser(input: RegisterInput) {
       return { error: 'An account with this email already exists. Please sign in.' };
     }
 
-    if (phone) {
-      const existingPhone = await db.orm.public.PersonIdentifier
-        .where({ type: 'PHONE', normalizedValue: phone })
-        .all()
-        .first();
-      if (existingPhone) {
-        return { error: 'An account with this phone number already exists.' };
-      }
+    const existingPhone = await db.orm.public.PersonIdentifier
+      .where({ type: 'PHONE', normalizedValue: phone })
+      .all()
+      .first();
+    if (existingPhone) {
+      return { error: 'An account with this phone number already exists.' };
     }
 
     const passwordHash = await hashPassword(password);
@@ -100,4 +104,66 @@ export async function registerUser(input: RegisterInput) {
     console.error('Registration failed:', err);
     return { error: err?.message || 'Registration failed. Please try again.' };
   }
+}
+
+export async function getUserPasswordStatus() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.personId) {
+    return { error: 'Not authenticated' };
+  }
+
+  const account = await db.orm.public.Account
+    .where({ personId: session.user.personId })
+    .all()
+    .first();
+
+  return {
+    hasPassword: Boolean(account?.passwordHash),
+    email: session.user.email,
+  };
+}
+
+export async function setUserPassword(input: { currentPassword?: string; newPassword: string }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.personId) {
+    return { error: 'You must be signed in to manage your password.' };
+  }
+
+  const newPassword = input.newPassword || '';
+  if (newPassword.length < 6) {
+    return { error: 'Password must be at least 6 characters long.' };
+  }
+
+  const account = await db.orm.public.Account
+    .where({ personId: session.user.personId })
+    .all()
+    .first();
+
+  if (!account) {
+    return { error: 'Account record not found.' };
+  }
+
+  // If user already has a password set, require and verify the current password
+  if (account.passwordHash) {
+    if (!input.currentPassword) {
+      return { error: 'Please enter your current password to set a new one.' };
+    }
+    const isValid = await verifyPassword(input.currentPassword, account.passwordHash);
+    if (!isValid) {
+      return { error: 'Current password is incorrect.' };
+    }
+  }
+
+  const newHash = await hashPassword(newPassword);
+
+  await db.orm.public.Account.where({ id: account.id }).update({
+    passwordHash: newHash,
+  });
+
+  return {
+    success: true,
+    message: account.passwordHash
+      ? 'Password changed successfully.'
+      : 'Password set successfully! You can now log in using your email and password.',
+  };
 }

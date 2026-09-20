@@ -2,19 +2,14 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Loader2, Sparkles, MapPin, Calendar, Heart } from 'lucide-react';
+import { ArrowRight, Loader2, Sparkles, Phone, Heart } from 'lucide-react';
 import { completeOnboarding } from '@/app/actions/onboarding';
 import { getSession } from 'next-auth/react';
+import StateLgaSelect, { CityOption } from '@/components/cityos/StateLgaSelect';
+import DateOfBirthPicker from '@/components/cityos/DateOfBirthPicker';
+import { INTEREST_CATEGORIES } from '@/components/cityos/interestTags';
 
-const INTEREST_TAGS = [
-  'Foodie', 'Nightlife', 'Fitness & Outdoors', 'Arts & Culture',
-  'Live Music', 'Families & Kids', 'Tech & Startups', 'Volunteering',
-  'Shopping', 'Pets', 'Gaming', 'Wellness',
-];
-
-type City = { id: string; name: string; country: string };
-
-export default function WelcomeWizard({ cities }: { cities: City[] }) {
+export default function WelcomeWizard({ cities }: { cities: CityOption[] }) {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -28,21 +23,33 @@ export default function WelcomeWizard({ cities }: { cities: City[] }) {
   });
 
   const toggleInterest = (tag: string) => {
-    setForm(prev => {
+    setForm((prev) => {
       if (prev.interests.includes(tag)) {
-        return { ...prev, interests: prev.interests.filter(t => t !== tag) };
+        return { ...prev, interests: prev.interests.filter((t) => t !== tag) };
       }
-      if (prev.interests.length >= 5) return prev;
+      if (prev.interests.length >= 8) return prev;
       return { ...prev, interests: [...prev.interests, tag] };
     });
   };
 
   const next = () => {
-    if (!form.homeCityId || !form.dateOfBirth) {
-      setError('Please fill in your city and date of birth.');
+    setError('');
+
+    if (!form.homeCityId) {
+      setError('Please select your state and local government area (city).');
       return;
     }
-    setError('');
+
+    if (!form.dateOfBirth) {
+      setError('Please provide your complete date of birth.');
+      return;
+    }
+
+    if (!form.phone || form.phone.trim().length < 7) {
+      setError('Please enter a valid phone number (required for notifications and orders).');
+      return;
+    }
+
     setStep(2);
   };
 
@@ -53,7 +60,7 @@ export default function WelcomeWizard({ cities }: { cities: City[] }) {
       await completeOnboarding({
         homeCityId: form.homeCityId,
         dateOfBirth: form.dateOfBirth,
-        phone: form.phone || undefined,
+        phone: form.phone.trim(),
         interests: form.interests,
       });
       await getSession(); // refresh session so onboardingComplete flips to true
@@ -68,119 +75,127 @@ export default function WelcomeWizard({ cities }: { cities: City[] }) {
   return (
     <div>
       {/* Header */}
-      <div className="bg-gradient-to-br from-teal-900 to-emerald-900 p-8 text-white">
-        <h1 className="text-3xl font-black flex items-center gap-2">
-          <Sparkles className="w-7 h-7 text-emerald-400" />
+      <div className="bg-gradient-to-br from-teal-900 via-teal-800 to-emerald-900 p-6 sm:p-8 text-white">
+        <h1 className="text-2xl sm:text-3xl font-black flex items-center gap-2.5">
+          <Sparkles className="w-6 h-6 sm:w-7 sm:h-7 text-emerald-400" />
           Welcome to CityConnect!
         </h1>
-        <p className="mt-2 text-emerald-100 text-sm font-medium">
+        <p className="mt-1.5 text-emerald-100 text-xs sm:text-sm font-medium">
           Let&apos;s personalize your city experience in two quick steps.
         </p>
-        <div className="flex gap-2 mt-6">
-          {[1, 2].map(i => (
+        <div className="flex gap-2 mt-5">
+          {[1, 2].map((i) => (
             <div
               key={i}
-              className={`h-1.5 flex-1 rounded-full transition-colors duration-500 ${step >= i ? 'bg-emerald-400' : 'bg-white/10'}`}
+              className={`h-1.5 flex-1 rounded-full transition-colors duration-500 ${
+                step >= i ? 'bg-emerald-400' : 'bg-white/20'
+              }`}
             />
           ))}
         </div>
       </div>
 
       {/* Body */}
-      <div className="p-8">
+      <div className="p-6 sm:p-8">
         {error && (
-          <div className="mb-5 px-4 py-3 bg-red-50 border border-red-100 text-red-600 text-sm font-bold rounded-2xl">
+          <div className="mb-5 px-4 py-3 bg-red-50 border border-red-200 text-red-600 text-xs sm:text-sm font-bold rounded-2xl animate-in fade-in">
             {error}
           </div>
         )}
 
         {step === 1 && (
-          <div className="space-y-5">
-            {/* City */}
-            <div>
-              <label className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2">
-                <MapPin className="w-4 h-4 text-emerald-600" />
-                Which city do you call home? *
-              </label>
-              <select
+          <div className="space-y-6">
+            {/* State -> Local Government Filter with Instant Search */}
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+              <StateLgaSelect
+                cities={cities}
                 value={form.homeCityId}
-                onChange={e => setForm({ ...form, homeCityId: e.target.value })}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-medium text-slate-900"
-              >
-                <option value="">Select your city...</option>
-                {cities.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}, {c.country}</option>
-                ))}
-              </select>
+                onChange={(cityId) => setForm({ ...form, homeCityId: cityId })}
+                label="Your City / Local Government"
+                required
+              />
             </div>
 
-            {/* Date of Birth */}
-            <div>
-              <label className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2">
-                <Calendar className="w-4 h-4 text-emerald-600" />
-                Date of Birth *
+            {/* Date of Birth Picker */}
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+              <DateOfBirthPicker
+                value={form.dateOfBirth}
+                onChange={(dob) => setForm({ ...form, dateOfBirth: dob })}
+                required
+              />
+              <p className="text-[11px] text-slate-400 mt-1.5">
+                Used to personalize age-appropriate community content, services, and local recommendations.
+              </p>
+            </div>
+
+            {/* Phone Number (Mandatory) */}
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1.5">
+              <label className="text-[12px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                <Phone className="w-3.5 h-3.5 text-teal-700" />
+                Phone Number <span className="text-red-500">*</span>
               </label>
               <input
-                type="date"
-                value={form.dateOfBirth}
-                onChange={e => setForm({ ...form, dateOfBirth: e.target.value })}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-medium text-slate-900"
+                type="tel"
+                required
+                placeholder="+234 800 000 0000"
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-600 transition-all"
               />
-              <p className="text-xs text-slate-400 mt-1.5">Used for age-appropriate content and event recommendations.</p>
+              <p className="text-[11px] text-slate-400">
+                Required for marketplace delivery dispatch, service booking confirmations, and emergency alerts.
+              </p>
             </div>
 
             <button
               onClick={next}
-              className="w-full py-3.5 mt-2 bg-slate-900 text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-slate-800 transition-colors"
+              className="w-full py-4 bg-teal-800 hover:bg-teal-900 text-white font-black text-sm rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.99] shadow-md shadow-teal-900/10 cursor-pointer"
             >
-              Continue <ArrowRight className="w-4 h-4" />
+              Continue to Interests <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         )}
 
         {step === 2 && (
           <div className="space-y-6">
-            {/* Interests */}
             <div>
-              <label className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-1">
+              <label className="flex items-center gap-2 text-sm sm:text-base font-black text-slate-800 mb-1">
                 <Heart className="w-4 h-4 text-emerald-600" />
-                What are you into? (pick up to 5)
+                What are you into? (pick up to 8)
               </label>
-              <p className="text-sm text-slate-500 mb-4">We use this to personalise your feed, events and local deals.</p>
-              <div className="flex flex-wrap gap-2">
-                {INTEREST_TAGS.map(tag => {
-                  const selected = form.interests.includes(tag);
-                  return (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => toggleInterest(tag)}
-                      className={`px-4 py-2 rounded-full text-sm font-bold border-2 transition-all ${
-                        selected
-                          ? 'bg-emerald-100 border-emerald-500 text-emerald-800'
-                          : 'bg-slate-50 border-transparent text-slate-600 hover:bg-slate-100'
-                      }`}
-                    >
-                      {tag}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+              <p className="text-xs sm:text-sm text-slate-500 mb-4">
+                We use your choices to curate your city newsfeed, marketplace discovery, and events.
+              </p>
 
-            {/* Phone */}
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">
-                Phone Number <span className="font-normal text-slate-400">(optional)</span>
-              </label>
-              <input
-                type="tel"
-                placeholder="+234 800 000 0000"
-                value={form.phone}
-                onChange={e => setForm({ ...form, phone: e.target.value })}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-medium text-slate-900"
-              />
-              <p className="text-xs text-slate-400 mt-1.5">Helpful for food delivery and booking confirmations.</p>
+              {/* Categorized Interests */}
+              <div className="space-y-4 max-h-[380px] overflow-y-auto pr-1">
+                {INTEREST_CATEGORIES.map((cat) => (
+                  <div key={cat.category} className="space-y-2">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                      {cat.category}
+                    </h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {cat.tags.map((tag) => {
+                        const selected = form.interests.includes(tag);
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => toggleInterest(tag)}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                              selected
+                                ? 'bg-teal-800 border-teal-800 text-white shadow-xs'
+                                : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                            }`}
+                          >
+                            {tag}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="flex gap-3 pt-2">
@@ -193,7 +208,7 @@ export default function WelcomeWizard({ cities }: { cities: City[] }) {
               <button
                 onClick={submit}
                 disabled={loading}
-                className="flex-1 py-3.5 bg-emerald-600 text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-emerald-700 transition-colors disabled:opacity-50 shadow-lg shadow-emerald-600/20"
+                className="flex-1 py-3.5 bg-emerald-600 text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-emerald-700 transition-colors disabled:opacity-50 shadow-lg shadow-emerald-600/20 active:scale-[0.99]"
               >
                 {loading ? (
                   <Loader2 className="w-5 h-5 animate-spin" />

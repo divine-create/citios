@@ -951,7 +951,7 @@ function SuppliersTab({ organizationId, symbol = "$" }: { organizationId: string
   const [pos, setPos] = useState<any[]>([]);
   const [view, setView] = useState<"suppliers" | "pos">("suppliers");
   const [isAddSupplierOpen, setIsAddSupplierOpen] = useState(false);
-  const [supplierForm, setSupplierForm] = useState({ name: "", contactName: "", email: "", phone: "" });
+  const [supplierForm, setSupplierForm] = useState({ name: "", email: "", phone: "" });
   const [isAddPoOpen, setIsAddPoOpen] = useState(false);
   const [poForm, setPoForm] = useState({ supplierId: "", poNumber: "", totalAmount: "" });
   const [loading, setLoading] = useState(true);
@@ -971,7 +971,7 @@ function SuppliersTab({ organizationId, symbol = "$" }: { organizationId: string
   const submitSupplier = async () => {
     if (!supplierForm.name.trim()) return;
     await createSupplier({ organizationId, ...supplierForm });
-    setSupplierForm({ name: "", contactName: "", email: "", phone: "" });
+    setSupplierForm({ name: "", email: "", phone: "" });
     setIsAddSupplierOpen(false);
     load();
   };
@@ -1020,7 +1020,7 @@ function SuppliersTab({ organizationId, symbol = "$" }: { organizationId: string
         <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
           <table className="w-full text-sm text-left">
             <thead className="bg-slate-50 text-slate-500 border-b border-slate-200">
-              <tr><th className="px-4 py-3">Name</th><th className="px-4 py-3">Contact</th><th className="px-4 py-3">Terms</th><th className="px-4 py-3 text-right">Actions</th></tr>
+              <tr><th className="px-4 py-3">Name</th><th className="px-4 py-3">Email</th><th className="px-4 py-3">Terms</th><th className="px-4 py-3 text-right">Actions</th></tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {suppliers.length === 0 ? (
@@ -1029,7 +1029,7 @@ function SuppliersTab({ organizationId, symbol = "$" }: { organizationId: string
                 suppliers.map((s) => (
                   <tr key={s.id}>
                     <td className="px-4 py-3 font-semibold text-slate-800">{s.name}</td>
-                    <td className="px-4 py-3 text-slate-500">{s.contactName ?? "—"} {s.email ? `· ${s.email}` : ""}</td>
+                    <td className="px-4 py-3 text-slate-500">{s.email ?? "—"}</td>
                     <td className="px-4 py-3 text-slate-500">{s.paymentTerms ?? "—"}</td>
                     <td className="px-4 py-3 text-right">
                       <button onClick={() => removeSupplier(s.id)} className="text-xs font-semibold text-red-500 hover:text-red-700">Delete</button>
@@ -1080,7 +1080,6 @@ function SuppliersTab({ organizationId, symbol = "$" }: { organizationId: string
             </div>
             <div className="p-6 space-y-3">
               <input placeholder="Supplier name" value={supplierForm.name} onChange={(e) => setSupplierForm((f) => ({ ...f, name: e.target.value }))} className={inputCls} />
-              <input placeholder="Contact name" value={supplierForm.contactName} onChange={(e) => setSupplierForm((f) => ({ ...f, contactName: e.target.value }))} className={inputCls} />
               <input placeholder="Email" value={supplierForm.email} onChange={(e) => setSupplierForm((f) => ({ ...f, email: e.target.value }))} className={inputCls} />
               <input placeholder="Phone" value={supplierForm.phone} onChange={(e) => setSupplierForm((f) => ({ ...f, phone: e.target.value }))} className={inputCls} />
             </div>

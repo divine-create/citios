@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/src/prisma/db";
 
 // Serves self-hosted microsite/product images (Asset rows store base64 in
-// `data`). Public read by design: asset ids are unguessable UUIDs referenced
+// `data` or direct S3 URL). Public read by design: asset ids are unguessable UUIDs referenced
 // from public storefront HTML (product images, logos, receipt uploads).
-// Swapping to an object store later only changes this route + the Asset model.
+// When S3 is used, this route 302-redirects directly to the S3 bucket asset.
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -19,6 +19,11 @@ export async function GET(
   const asset = await db.orm.public.Asset.where({ id }).all().first();
   if (!asset) {
     return new NextResponse("Not found", { status: 404 });
+  }
+
+  // If stored data is an S3 URL or external URL, redirect directly to S3
+  if (asset.data.startsWith("http://") || asset.data.startsWith("https://")) {
+    return NextResponse.redirect(asset.data, 302);
   }
 
   const buffer = Buffer.from(asset.data, "base64");

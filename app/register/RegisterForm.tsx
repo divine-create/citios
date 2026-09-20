@@ -38,6 +38,11 @@ export default function RegisterForm() {
       return;
     }
 
+    if (!formData.phone.trim() || formData.phone.trim().length < 7) {
+      setError('Please enter a valid phone number.');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -148,7 +153,7 @@ export default function RegisterForm() {
 
         <div>
           <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">
-            Phone Number <span className="text-slate-400 font-normal lowercase">(optional)</span>
+            Phone Number <span className="text-red-500">*</span>
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -156,6 +161,7 @@ export default function RegisterForm() {
             </div>
             <input
               type="tel"
+              required
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               placeholder="+234 801 234 5678"

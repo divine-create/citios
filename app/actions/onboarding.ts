@@ -4,28 +4,50 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/src/prisma/db';
 
-const INTEREST_OPTIONS = [
-  'Foodie', 'Nightlife', 'Fitness & Outdoors', 'Arts & Culture',
-  'Live Music', 'Families & Kids', 'Tech & Startups', 'Volunteering',
-  'Shopping', 'Pets', 'Gaming', 'Wellness',
-];
-
 export async function completeOnboarding(data: {
   homeCityId: string;
   dateOfBirth: string;
-  phone?: string;
+  phone: string;
   interests: string[];
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.personId) throw new Error('Unauthorized');
 
   const personId = session.user.personId;
+  const cleanPhone = (data.phone || '').trim();
+
+  if (!data.homeCityId) {
+    throw new Error('Please select your home city.');
+  }
+
+  if (!data.dateOfBirth) {
+    throw new Error('Please enter your date of birth.');
+  }
+
+  if (!cleanPhone || cleanPhone.length < 7) {
+    throw new Error('A valid phone number is required.');
+  }
 
   // Update Person with DOB + home city
   await db.orm.public.Person.where({ id: personId }).update({
     homeCityId: data.homeCityId,
     dateOfBirth: new Date(data.dateOfBirth),
   });
+
+  // Ensure PHONE PersonIdentifier is registered if not already present
+  const existingPhoneId = await db.orm.public.PersonIdentifier
+    .where({ type: 'PHONE', normalizedValue: cleanPhone })
+    .all()
+    .first();
+
+  if (!existingPhoneId) {
+    await db.orm.public.PersonIdentifier.create({
+      personId,
+      type: 'PHONE',
+      normalizedValue: cleanPhone,
+      isVerified: false,
+    });
+  }
 
   // Upsert the ResidentProfile
   const existing = await db.orm.public.ResidentProfile
@@ -35,14 +57,14 @@ export async function completeOnboarding(data: {
 
   if (existing) {
     await db.orm.public.ResidentProfile.where({ personId }).update({
-      phone: data.phone,
+      phone: cleanPhone,
       interests: JSON.stringify(data.interests),
       onboardingComplete: true,
     });
   } else {
     await db.orm.public.ResidentProfile.create({
       personId,
-      phone: data.phone,
+      phone: cleanPhone,
       interests: JSON.stringify(data.interests),
       onboardingComplete: true,
     });

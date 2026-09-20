@@ -4,33 +4,46 @@ import React, { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Mail, Lock, Loader2, ArrowRight, AlertCircle, Sparkles } from 'lucide-react';
+import { Mail, Lock, Loader2, Eye, EyeOff, AlertCircle, Sparkles } from 'lucide-react';
 
 export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/';
 
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState(''); // email or phone
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    const cleanIdentifier = identifier.trim().toLowerCase();
+    if (!cleanIdentifier) {
+      setError('Please enter your email or phone number.');
+      return;
+    }
+
+    if (!password) {
+      setError('Please enter your password.');
+      return;
+    }
+
     setLoading(true);
 
     try {
       const res = await signIn('credentials', {
-        email: email.trim().toLowerCase(),
+        email: cleanIdentifier,
         password,
         redirect: false,
         callbackUrl,
       });
 
       if (res?.error) {
-        setError('Invalid email or password. Please check your credentials and try again.');
+        setError('Incorrect email/phone or password. Please try again or create an account.');
         setLoading(false);
         return;
       }
@@ -48,96 +61,87 @@ export default function LoginForm() {
     signIn('google', { callbackUrl });
   };
 
-  const handleDemoSignIn = (demoEmail = 'demo@cityconnect.local') => {
-    setLoading(true);
-    signIn('demo', {
-      email: demoEmail,
-      password: '1234',
-      callbackUrl,
-    });
-  };
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {error && (
-        <div className="p-3.5 bg-rose-50 border border-rose-100 rounded-2xl flex items-start gap-3 text-rose-800 text-xs font-medium leading-relaxed">
+        <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-2.5 text-rose-800 text-xs font-semibold leading-relaxed animate-in fade-in">
           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
           <span>{error}</span>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-3.5">
         <div>
-          <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">
-            Email Address
-          </label>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-              <Mail className="w-4 h-4" />
-            </div>
-            <input
-              type="email"
-              required
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:bg-white transition-all"
-            />
-          </div>
+          <input
+            type="text"
+            required
+            autoComplete="username"
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
+            placeholder="Email address or phone number"
+            className="w-full px-4 py-3.5 bg-white border border-slate-300 rounded-xl text-[15px] font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 transition-all"
+          />
         </div>
 
-        <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider">
-              Password
-            </label>
-          </div>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-              <Lock className="w-4 h-4" />
-            </div>
-            <input
-              type="password"
-              required
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:bg-white transition-all"
-            />
-          </div>
+        <div className="relative">
+          <input
+            type={showPassword ? 'text' : 'password'}
+            required
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Password"
+            className="w-full pl-4 pr-11 py-3.5 bg-white border border-slate-300 rounded-xl text-[15px] font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 transition-all"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+          >
+            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
         </div>
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3.5 px-4 bg-teal-700 hover:bg-teal-800 disabled:opacity-50 text-white font-bold text-sm rounded-xl shadow-md shadow-teal-900/10 hover:shadow-lg transition-all flex items-center justify-center gap-2 mt-2"
+          className="w-full py-3.5 px-4 bg-teal-700 hover:bg-teal-800 active:scale-[0.99] disabled:opacity-60 text-white font-black text-[16px] rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
         >
-          {loading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <>
-              Sign In
-              <ArrowRight className="w-4 h-4" />
-            </>
-          )}
+          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Log In'}
         </button>
       </form>
 
-      <div className="relative flex items-center justify-center">
-        <div className="border-t border-slate-200 w-full" />
-        <span className="bg-white px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-          Or continue with
-        </span>
+      {/* Forgotten Password link */}
+      <div className="text-center pt-1">
+        <Link
+          href={`/login/forgot?callbackUrl=${encodeURIComponent(callbackUrl)}`}
+          className="text-[13px] font-semibold text-teal-700 hover:underline inline-block"
+        >
+          Forgotten password?
+        </Link>
+      </div>
+
+      {/* Divider */}
+      <div className="relative my-3">
         <div className="border-t border-slate-200 w-full" />
       </div>
 
-      <div className="space-y-2.5">
+      {/* Create New Account Button (Facebook style green CTA) */}
+      <div className="text-center">
+        <Link
+          href={`/register?callbackUrl=${encodeURIComponent(callbackUrl)}`}
+          className="inline-block px-6 py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-bold text-[14px] rounded-xl shadow-sm transition-all"
+        >
+          Create new account
+        </Link>
+      </div>
+
+      {/* Social / Alternative Sign-in */}
+      <div className="pt-3 border-t border-slate-100">
         <button
           type="button"
           onClick={handleGoogleSignIn}
-          className="w-full py-3 px-4 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-3"
+          className="w-full py-2.5 px-4 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-colors flex items-center justify-center gap-2.5"
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24">
             <path
@@ -157,30 +161,9 @@ export default function LoginForm() {
               d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
             />
           </svg>
-          Google
+          Continue with Google
         </button>
-
-        {process.env.NODE_ENV !== 'production' && (
-          <button
-            type="button"
-            onClick={() => handleDemoSignIn()}
-            className="w-full py-2.5 px-4 bg-teal-50 border border-teal-100 hover:bg-teal-100 text-teal-900 font-bold text-xs rounded-xl transition-colors flex items-center justify-center gap-2"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-teal-600" />
-            Instant Dev Demo Login
-          </button>
-        )}
       </div>
-
-      <p className="text-center text-xs text-slate-500">
-        Don&apos;t have an account yet?{' '}
-        <Link
-          href={`/register?callbackUrl=${encodeURIComponent(callbackUrl)}`}
-          className="font-bold text-teal-700 hover:text-teal-800 underline underline-offset-2"
-        >
-          Create an account
-        </Link>
-      </p>
     </div>
   );
 }

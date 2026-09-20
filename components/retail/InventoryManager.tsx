@@ -4,13 +4,13 @@ import React, { useState, useEffect } from "react";
 import { Plus, Search, Edit2, Trash2, ArrowUpDown, Package, AlertTriangle, X, Upload, Loader2, FolderTree, History, ArrowUpFromLine } from "lucide-react";
 import { createProduct, updateProduct, deleteProduct, createCategory, updateCategory, deleteCategory, getRetailSettings, adjustStock, getStockMovements } from "@/lib/actions/retail";
 import { uploadAsset } from "@/lib/actions/microsite";
+import { generateUniqueSku } from "@/lib/sku";
 import { PillTabs, inputCls, selectCls } from "./ShopUI";
 
 interface Product {
   id: string;
   name: string;
   sku: string | null;
-  barcode: string | null;
   categoryId: string | null;
   categoryName: string | null;
   price: number;
@@ -41,7 +41,7 @@ interface Category {
   description?: string | null;
 }
 
-const EMPTY_FORM = { name: "", sku: "", barcode: "", categoryId: "", price: "", cost: "", stockQuantity: "", lowStockLevel: "", isWeighed: false, unit: "ea" };
+const EMPTY_FORM = { name: "", sku: "", categoryId: "", price: "", cost: "", stockQuantity: "", lowStockLevel: "", isWeighed: false, unit: "ea" };
 
 export default function InventoryManager({ organizationId, products, categories, onChanged, symbol = "$" }: {
   organizationId: string;
@@ -131,13 +131,13 @@ export default function InventoryManager({ organizationId, products, categories,
   const filteredProducts = products.filter(
     (p) =>
       p.name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.sku ?? "").toLowerCase().includes(search.toLowerCase()) ||
-      (p.barcode ?? "").includes(search)
+      (p.sku ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
   const openAdd = () => {
     setEditId(null);
-    setForm(EMPTY_FORM);
+    const nextSku = generateUniqueSku(products.map((p) => p.sku ?? ""), "ITEM");
+    setForm({ ...EMPTY_FORM, sku: nextSku });
     setImageAssetId(null);
     setError(null);
     setIsModalOpen(true);
@@ -148,7 +148,6 @@ export default function InventoryManager({ organizationId, products, categories,
     setForm({
       name: p.name,
       sku: p.sku ?? "",
-      barcode: p.barcode ?? "",
       categoryId: p.categoryId ?? "",
       price: String(p.price),
       cost: p.cost != null ? String(p.cost) : "",
@@ -185,7 +184,6 @@ export default function InventoryManager({ organizationId, products, categories,
         const res = await updateProduct(editId, {
           name: form.name,
           sku: form.sku || null,
-          barcode: form.barcode || null,
           categoryId: form.categoryId || null,
           price,
           cost: form.cost ? parseFloat(form.cost) : null,
@@ -200,7 +198,6 @@ export default function InventoryManager({ organizationId, products, categories,
           organizationId,
           name: form.name,
           sku: form.sku || undefined,
-          barcode: form.barcode || undefined,
           categoryId: form.categoryId || undefined,
           price,
           cost: form.cost ? parseFloat(form.cost) : undefined,
@@ -332,7 +329,7 @@ export default function InventoryManager({ organizationId, products, categories,
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Search by name, SKU, or barcode..."
+            placeholder="Search by name or SKU..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-brand-600 focus:ring-1 focus:ring-brand-600 transition-shadow"
@@ -367,7 +364,7 @@ export default function InventoryManager({ organizationId, products, categories,
                         )}
                         <div>
                           <div className="font-bold text-slate-800">{item.name}</div>
-                          <div className="text-xs text-slate-500 mt-0.5">SKU: {item.sku ?? "—"} | UPC: {item.barcode ?? "—"}</div>
+                          <div className="text-xs text-slate-500 mt-0.5">SKU: {item.sku ?? "—"}</div>
                         </div>
                       </div>
                     </td>
@@ -526,12 +523,8 @@ export default function InventoryManager({ organizationId, products, categories,
                 </datalist>
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">SKU</label>
-                <input type="text" value={form.sku} onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))} className={inputCls} placeholder="PRD-001" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Barcode (UPC)</label>
-                <input type="text" value={form.barcode} onChange={(e) => setForm((f) => ({ ...f, barcode: e.target.value }))} className={inputCls} placeholder="Scan or type..." />
+                <label className="text-xs font-bold text-slate-500 uppercase">Generated SKU</label>
+                <input type="text" value={form.sku} readOnly className={`${inputCls} bg-slate-100 text-slate-700 cursor-not-allowed`} />
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase">Selling Price ({currencySymbol})</label>

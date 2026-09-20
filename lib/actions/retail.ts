@@ -4,6 +4,7 @@ import '@js-temporal/polyfill'
 import { db } from '@/src/prisma/db'
 import { requireMembership } from '@/lib/actions/tenant'
 import { revalidatePath } from 'next/cache'
+import { generateUniqueSku } from '@/lib/sku'
 
 // Server-action convention in this codebase: resolve the caller's Membership
 // id from the authenticated session. Never accept a client-supplied
@@ -125,7 +126,6 @@ export async function createProduct(input: {
   organizationId: string;
   name: string;
   description?: string;
-  barcode?: string;
   sku?: string;
   price: number;
   cost?: number;
@@ -142,14 +142,17 @@ export async function createProduct(input: {
     if (!input.name.trim()) return { error: 'Product name is required.' };
     if (input.price == null || input.price < 0) return { error: 'A valid price is required.' };
     const showOnFeed = input.showOnFeed ?? true;
+
+    const existingSkus = await db.orm.public.RetailProduct.where({ organizationId: input.organizationId }).all().then((products) => products.map((product) => product.sku ?? ''));
+    const nextSku = generateUniqueSku(existingSkus, input.name || 'ITEM');
+    const normalizedSku = (input.sku ?? '').trim() || nextSku;
     
     const product = await db.transaction(async (tx) => {
       const createdProduct = await tx.orm.public.RetailProduct.create({
         organizationId: input.organizationId,
         name: input.name,
         description: input.description,
-        barcode: input.barcode,
-        sku: input.sku,
+        sku: normalizedSku,
         price: input.price,
         cost: input.cost,
         stockQuantity: input.stockQuantity ?? 0,
@@ -186,7 +189,6 @@ export async function createProduct(input: {
 export async function updateProduct(productId: string, input: {
   name?: string;
   description?: string | null;
-  barcode?: string | null;
   sku?: string | null;
   price?: number;
   cost?: number | null;
@@ -202,7 +204,6 @@ export async function updateProduct(productId: string, input: {
     const data: Record<string, unknown> = {};
     if (input.name !== undefined) data.name = input.name;
     if (input.description !== undefined) data.description = input.description;
-    if (input.barcode !== undefined) data.barcode = input.barcode;
     if (input.sku !== undefined) data.sku = input.sku;
     if (input.price !== undefined) data.price = input.price;
     if (input.cost !== undefined) data.cost = input.cost;
@@ -928,14 +929,13 @@ export async function getSuppliers(organizationId: string) {
   }
 }
 
-export async function createSupplier(input: { organizationId: string; name: string; contactName?: string; email?: string; phone?: string; leadTimeDays?: number; paymentTerms?: string }) {
+export async function createSupplier(input: { organizationId: string; name: string; email?: string; phone?: string; leadTimeDays?: number; paymentTerms?: string }) {
   try {
     await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     if (!input.name.trim()) return { error: 'Supplier name is required.' };
     const supplier = await db.orm.public.RetailSupplier.create({
       organizationId: input.organizationId,
       name: input.name,
-      contactName: input.contactName,
       email: input.email,
       phone: input.phone,
       leadTimeDays: input.leadTimeDays,
@@ -948,13 +948,12 @@ export async function createSupplier(input: { organizationId: string; name: stri
   }
 }
 
-export async function updateSupplier(supplierId: string, input: { name?: string; contactName?: string | null; email?: string | null; phone?: string | null; leadTimeDays?: number | null; paymentTerms?: string | null }) {
+export async function updateSupplier(supplierId: string, input: { name?: string; email?: string | null; phone?: string | null; leadTimeDays?: number | null; paymentTerms?: string | null }) {
   try {
     const sup = await db.orm.public.RetailSupplier.where({ id: supplierId }).all().first();
     if (sup) await requireMembership(sup.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     const data: Record<string, unknown> = {};
     if (input.name !== undefined) data.name = input.name;
-    if (input.contactName !== undefined) data.contactName = input.contactName;
     if (input.email !== undefined) data.email = input.email;
     if (input.phone !== undefined) data.phone = input.phone;
     if (input.leadTimeDays !== undefined) data.leadTimeDays = input.leadTimeDays;
@@ -1784,7 +1783,7 @@ export async function searchShopOS(organizationId: string, query: string) {
     ]);
 
     const productResults = products
-      .filter((p) => p.name.toLowerCase().includes(q) || (p.sku ?? '').toLowerCase().includes(q) || (p.barcode ?? '').includes(q))
+      .filter((p) => p.name.toLowerCase().includes(q) || (p.sku ?? '').toLowerCase().includes(q))
       .slice(0, 6)
       .map((p) => ({
         id: p.id,

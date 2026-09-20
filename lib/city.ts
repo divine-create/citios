@@ -64,7 +64,7 @@ async function getHomeCity(cities: CityRecord[]): Promise<CityRecord | null> {
     const personId = session?.user?.personId;
     if (!personId) return null;
 
-    const person = await db.orm.public.Person.where({ id: personId }).first();
+    const person = await db.orm.public.Person.where({ id: personId }).all().first();
     if (!person?.homeCityId) return null;
 
     return cities.find((c) => c.id === person.homeCityId) ?? null;

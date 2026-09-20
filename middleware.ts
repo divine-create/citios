@@ -73,8 +73,8 @@ export default withAuth(
       if (req.nextUrl.pathname.startsWith("/school")) {
         url.pathname = "/school/login";
       } else {
-        // Default to NextAuth built-in generic login
-        url.pathname = "/api/auth/signin";
+        // App sign-in page
+        url.pathname = "/login";
       }
       
       url.searchParams.set("callbackUrl", req.nextUrl.href);

@@ -548,7 +548,7 @@ export async function reorderMicrositeSections(micrositeId: string, orderedIds: 
 }
 
 // ---------------------------------------------------------------------
-// Assets (self-hosted, base64-in-Postgres — see contract.prisma note)
+// Assets (AWS S3 cloud storage with backward-compatible DB fallback)
 // ---------------------------------------------------------------------
 
 export async function uploadAsset(organizationId: string, input: { fileName: string; mimeType: string; base64Data: string }) {
@@ -558,14 +558,37 @@ export async function uploadAsset(organizationId: string, input: { fileName: str
     const approxBytes = Math.ceil((input.base64Data.length * 3) / 4);
     if (approxBytes > MAX_ASSET_BYTES) return { error: 'Image is too large — please use one under 5MB.' };
 
+    const rawBase64 = input.base64Data.includes(',')
+      ? input.base64Data.split(',')[1]
+      : input.base64Data;
+    const buffer = Buffer.from(rawBase64, 'base64');
+
+    let storedData = input.base64Data;
+    try {
+      const { uploadBufferToS3 } = await import('@/lib/s3');
+      const { publicUrl } = await uploadBufferToS3({
+        buffer,
+        contentType: input.mimeType,
+        fileName: input.fileName,
+        folder: 'assets',
+      });
+      storedData = publicUrl;
+    } catch (s3Err: any) {
+      console.warn('S3 upload unavailable or failed, falling back to database storage:', s3Err?.message || s3Err);
+    }
+
     const asset = await db.orm.public.Asset.create({
       organizationId,
       fileName: input.fileName,
       mimeType: input.mimeType,
-      size: approxBytes,
-      data: input.base64Data,
+      size: buffer.length,
+      data: storedData,
     });
-    return { success: true, assetId: asset.id };
+    return {
+      success: true,
+      assetId: asset.id,
+      publicUrl: storedData.startsWith('http') ? storedData : `/api/assets/${asset.id}`,
+    };
   } catch (error) {
     console.error('Error uploading asset:', error);
     return { error: 'Failed to upload image.' };

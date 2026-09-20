@@ -15,31 +15,14 @@ export default function LoginPage() {
     
     setError('');
     
-    const result = await signIn('demo', {
+    const result = await signIn('credentials', {
       redirect: false,
-      email,
+      email: email.trim().toLowerCase(),
       password,
     });
 
     if (result?.error) {
       setError('Invalid email or password');
-    } else {
-      router.push('/school/admin'); // Default redirect
-    }
-  };
-
-  const demoAccount = async (roleEmail: string) => {
-    setEmail(roleEmail);
-    setPassword('1234');
-    
-    const result = await signIn('demo', {
-      redirect: false,
-      email: roleEmail,
-      password: '1234',
-    });
-
-    if (result?.error) {
-      setError('Invalid demo account');
     } else {
       router.push('/school/admin'); // Default redirect
     }
@@ -110,35 +93,13 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="mt-10">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-200" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-3 bg-white text-slate-400 font-medium tracking-wide text-xs uppercase">
-                Demo Accounts
-              </span>
-            </div>
-          </div>
-
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            <button onClick={() => demoAccount('principal@cityconnect.local')} className="w-full py-2.5 px-4 border border-slate-200 rounded-lg shadow-sm bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all">
-              Admin
-            </button>
-            <button onClick={() => demoAccount('demo@cityconnect.local')} className="w-full py-2.5 px-4 border border-slate-200 rounded-lg shadow-sm bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all">
-              Teacher
-            </button>
-            <button onClick={() => demoAccount('counselor@cityconnect.local')} className="w-full py-2.5 px-4 border border-slate-200 rounded-lg shadow-sm bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all">
-              Counselor
-            </button>
-            <button onClick={() => demoAccount('registrar@cityconnect.local')} className="w-full py-2.5 px-4 border border-slate-200 rounded-lg shadow-sm bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all">
-              Registrar
-            </button>
-            <button onClick={() => demoAccount('bursar@cityconnect.local')} className="w-full col-span-2 py-2.5 px-4 border border-slate-200 rounded-lg shadow-sm bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all">
-              Finance
-            </button>
-          </div>
+        <div className="mt-8 text-center">
+          <p className="text-xs text-slate-500">
+            Need an account or different portal?{' '}
+            <a href="/login" className="font-bold text-blue-600 hover:underline">
+              CityConnect Sign In
+            </a>
+          </p>
         </div>
         </div>
       </div>

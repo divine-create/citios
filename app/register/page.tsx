@@ -3,6 +3,8 @@ import RegisterForm from './RegisterForm';
 import Link from 'next/link';
 import { Building2 } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   title: 'Create an Account | CityConnect',
   description: 'Join CityConnect to access local businesses, resident services, and community networks.',

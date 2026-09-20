@@ -50,28 +50,6 @@ export const authOptions: NextAuthOptions = {
         };
       },
     }),
-    ...(process.env.NODE_ENV !== "production"
-      ? [
-          CredentialsProvider({
-            id: "demo",
-            name: "Demo Account",
-            credentials: {
-              email: { label: "Email", type: "text" },
-              password: { label: "Password", type: "password" },
-            },
-            async authorize(credentials) {
-              if (credentials?.password === "1234" && credentials?.email) {
-                // In dev, accept password '1234' for any email and fetch their actual DB person
-                const dbPerson = await findPersonByEmail(credentials.email);
-                if (dbPerson) {
-                  return { id: dbPerson.id, email: (credentials.email as string).toLowerCase(), name: `${dbPerson.firstName} ${dbPerson.lastName}` };
-                }
-              }
-              return null;
-            },
-          }),
-        ]
-      : []),
   ],
   session: {
     strategy: "jwt",
