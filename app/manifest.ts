@@ -12,21 +12,10 @@ export default function manifest(): MetadataRoute.Manifest {
     orientation: 'portrait-primary',
     icons: [
       {
-        src: '/icons/icon-192.png',
-        sizes: '192x192',
-        type: 'image/png',
-        purpose: 'maskable',
-      },
-      {
-        src: '/icons/icon-512.png',
-        sizes: '512x512',
-        type: 'image/png',
-        purpose: 'any',
-      },
-      {
         src: '/icons/icon.svg',
         sizes: 'any',
         type: 'image/svg+xml',
+        purpose: 'any',
       },
     ],
     shortcuts: [
@@ -35,28 +24,28 @@ export default function manifest(): MetadataRoute.Manifest {
         short_name: 'POS',
         description: 'Open Store POS Terminal',
         url: '/workspaces/shopos',
-        icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }],
+        icons: [{ src: '/icons/icon.svg', sizes: 'any' }],
       },
       {
         name: 'City Marketplace',
         short_name: 'Market',
         description: 'Explore City Marketplace',
         url: '/market',
-        icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }],
+        icons: [{ src: '/icons/icon.svg', sizes: 'any' }],
       },
       {
         name: 'Food & Dining',
         short_name: 'Food',
         description: 'Order from City Restaurants',
         url: '/food',
-        icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }],
+        icons: [{ src: '/icons/icon.svg', sizes: 'any' }],
       },
       {
         name: 'My Orders',
         short_name: 'Orders',
         description: 'View and track your orders',
         url: '/orders',
-        icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }],
+        icons: [{ src: '/icons/icon.svg', sizes: 'any' }],
       },
     ],
   };
