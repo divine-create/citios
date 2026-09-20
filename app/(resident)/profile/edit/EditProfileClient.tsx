@@ -34,11 +34,16 @@ export default function EditProfileClient({
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [error, setError] = useState('');
 
-  const parsedInterests = initialData.residentProfile?.interests
-    ? typeof initialData.residentProfile.interests === 'string'
-      ? JSON.parse(initialData.residentProfile.interests)
-      : initialData.residentProfile.interests
-    : [];
+  let parsedInterests: string[] = [];
+  try {
+    const rawInterests = initialData.residentProfile?.interests;
+    const parsed = typeof rawInterests === 'string' ? JSON.parse(rawInterests) : rawInterests;
+    if (Array.isArray(parsed)) {
+      parsedInterests = parsed.filter((interest): interest is string => typeof interest === 'string');
+    }
+  } catch {
+    parsedInterests = [];
+  }
 
   const [avatarUrl, setAvatarUrl] = useState<string>(
     initialData.residentProfile?.avatarUrl || initialData.image || ''
@@ -163,11 +168,15 @@ export default function EditProfileClient({
     setLoading(true);
 
     try {
-      await updateFullProfile({
+      const result = await updateFullProfile({
         ...form,
         phone: form.phone.trim(),
         avatarUrl,
       });
+      if (result?.error) {
+        setError(result.error);
+        return;
+      }
       router.push('/profile');
       router.refresh();
     } catch (err: any) {

@@ -106,41 +106,58 @@ export async function updateFullProfile(input: {
   phone?: string;
   interests?: string[];
 }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email || !session?.user?.personId) {
-    throw new Error('Not authenticated');
-  }
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email || !session?.user?.personId) {
+      return { error: 'Not authenticated' };
+    }
 
-  const personId = session.user.personId;
+    const firstName = input.firstName.trim();
+    const lastName = input.lastName.trim();
+    const phone = input.phone?.trim() ?? '';
+    if (!firstName || !lastName) return { error: 'First and last name are required.' };
+    if (phone.length < 7) return { error: 'A valid phone number is required.' };
 
-  await db.transaction(async (tx) => {
-    // 1. Update Person
-    await tx.orm.public.Person.where({ id: personId }).update({
-      firstName: input.firstName,
-      lastName: input.lastName,
-      ...(input.homeCityId && { homeCityId: input.homeCityId }),
-      ...(input.dateOfBirth && { dateOfBirth: new Date(input.dateOfBirth) }),
+    const dateOfBirth = input.dateOfBirth ? new Date(input.dateOfBirth) : null;
+    if (input.dateOfBirth && Number.isNaN(dateOfBirth?.getTime())) {
+      return { error: 'Please enter a valid date of birth.' };
+    }
+
+    const personId = session.user.personId;
+    const person = await db.orm.public.Person.where({ id: personId }).all().first();
+    if (!person) return { error: 'Your profile could not be found.' };
+
+    if (input.homeCityId) {
+      const city = await db.orm.public.City.where({ id: input.homeCityId, isActive: true }).all().first();
+      if (!city) return { error: 'Please select a valid city and local government.' };
+    }
+
+    await db.transaction(async (tx) => {
+      await tx.orm.public.Person.where({ id: personId }).update({
+        firstName,
+        lastName,
+        ...(input.homeCityId && { homeCityId: input.homeCityId }),
+        ...(dateOfBirth && { dateOfBirth }),
+      });
+
+      const existing = await tx.orm.public.ResidentProfile.where({ personId }).all().first();
+      const profileData = {
+        phone,
+        interests: JSON.stringify(Array.isArray(input.interests) ? input.interests : []),
+        ...(input.avatarUrl !== undefined && { avatarUrl: input.avatarUrl || null }),
+      };
+      if (existing) {
+        await tx.orm.public.ResidentProfile.where({ personId }).update(profileData);
+      } else {
+        await tx.orm.public.ResidentProfile.create({ personId, ...profileData });
+      }
     });
 
-    // 2. Update Profile
-    const existing = await tx.orm.public.ResidentProfile.where({ personId }).all().first();
-    if (existing) {
-      await tx.orm.public.ResidentProfile.where({ personId }).update({
-        phone: input.phone || null,
-        interests: input.interests ? JSON.stringify(input.interests) : null,
-        ...(input.avatarUrl !== undefined && { avatarUrl: input.avatarUrl || null }),
-      });
-    } else {
-      await tx.orm.public.ResidentProfile.create({
-        personId,
-        avatarUrl: input.avatarUrl || null,
-        phone: input.phone || null,
-        interests: input.interests ? JSON.stringify(input.interests) : null,
-      });
-    }
-  });
-
-  return { success: true };
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating full profile:', error);
+    return { error: 'Unable to save your profile right now. Please try again.' };
+  }
 }
 
 export async function updateProfileAvatar(avatarUrl: string) {
