@@ -238,6 +238,9 @@ function Section({ id, micrositeId, type, content, theme, products, hotelRooms, 
   const headingStyle: React.CSSProperties = { fontFamily: theme.headingFont, color: theme.text };
   const isLuxury = theme.label === "Horizon (Hotel)";
   const isSchoolTheme = theme.label.includes("School") || theme.label.includes("Elementary") || theme.label.includes("Innovator") || theme.label.includes("Scholastic") || theme.label.includes("Academy") || theme.label.includes("Prestige");
+  const [catalogQuery, setCatalogQuery] = useState('');
+  const [catalogCategory, setCatalogCategory] = useState('');
+  const catalogCategories = Array.from(new Set(products.map((product) => product.categoryName).filter(Boolean))) as string[];
 
   switch (type) {
     case "hero":
@@ -705,13 +708,39 @@ function Section({ id, micrositeId, type, content, theme, products, hotelRooms, 
     }
 
     case "retail-products": {
-      const filtered = content.categoryId ? products.filter((p) => p.categoryId === content.categoryId) : products;
+      const filtered = products.filter((product) => {
+        const matchesSection = content.categoryId ? product.categoryId === content.categoryId : true;
+        const matchesCategory = catalogCategory ? product.categoryName === catalogCategory : true;
+        const query = catalogQuery.trim().toLowerCase();
+        const matchesQuery = !query || product.name.toLowerCase().includes(query) || (product.categoryName ?? '').toLowerCase().includes(query);
+        return matchesSection && matchesCategory && matchesQuery;
+      });
       return (
         <section id={id} className="section-padding">
           <div style={{ maxWidth: "72rem", margin: "0 auto" }}>
             <FadeIn>
               {content.heading && <h2 style={{ ...headingStyle, fontSize: "2.5rem", fontWeight: 700, marginBottom: "3rem", textAlign: "center" }}>{content.heading}</h2>}
             </FadeIn>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", alignItems: "center", marginBottom: "2rem" }}>
+              <input
+                value={catalogQuery}
+                onChange={(event) => setCatalogQuery(event.target.value)}
+                placeholder="Search products"
+                aria-label="Search products"
+                style={{ flex: "1 1 14rem", minWidth: "12rem", padding: "0.75rem 1rem", borderRadius: theme.radius, border: `1px solid ${theme.surface}`, background: theme.bg, color: theme.text }}
+              />
+              {catalogCategories.length > 0 && (
+                <select
+                  value={catalogCategory}
+                  onChange={(event) => setCatalogCategory(event.target.value)}
+                  aria-label="Filter products by category"
+                  style={{ flex: "0 1 14rem", padding: "0.75rem 1rem", borderRadius: theme.radius, border: `1px solid ${theme.surface}`, background: theme.bg, color: theme.text }}
+                >
+                  <option value="">All categories</option>
+                  {catalogCategories.map((category) => <option key={category} value={category}>{category}</option>)}
+                </select>
+              )}
+            </div>
             {filtered.length === 0 ? (
               <p style={{ textAlign: "center", color: theme.textMuted }}>No products to show yet — check back soon.</p>
             ) : (

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Plus, X, Loader2 } from 'lucide-react';
 import { getRetailSettings, updateRetailSettings } from '../../lib/actions/retail';
+import { normalizeRetailUnits } from '@/lib/defaultUnits';
 
 interface SettingsProps {
   organizationId: string;
@@ -19,7 +20,7 @@ export default function Settings({ organizationId }: SettingsProps) {
       if (data) {
         setSettings({
           ...data,
-          customUnits: JSON.parse(data.customUnits || '[]'),
+          customUnits: normalizeRetailUnits(data.customUnits),
           bankDetails: JSON.parse(data.bankDetails || '{"bankName":"","accountNumber":"","accountName":""}'),
           shippingRates: JSON.parse(data.shippingRates || '[]'),
         });
@@ -50,10 +51,11 @@ const handleSave = async () => {
   };
 
   const addUnit = () => {
-    if (newUnit.trim() && !settings.customUnits.includes(newUnit.trim().toLowerCase())) {
+    const nextValue = newUnit.trim().toLowerCase();
+    if (nextValue && !settings.customUnits.includes(nextValue)) {
       setSettings({
         ...settings,
-        customUnits: [...settings.customUnits, newUnit.trim().toLowerCase()]
+        customUnits: normalizeRetailUnits([...settings.customUnits, nextValue])
       });
       setNewUnit('');
     }

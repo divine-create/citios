@@ -3,12 +3,19 @@ import PusherClient from 'pusher-js';
 // Singleton instance to prevent multiple connections on hot reload
 let pusherClientInstance: PusherClient | null = null;
 
-export const getPusherClient = () => {
+export const getPusherClient = (): PusherClient | null => {
   if (typeof window === 'undefined') return null;
+
+  const key = process.env.NEXT_PUBLIC_PUSHER_KEY;
+  const cluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
+
+  if (!key || !cluster) {
+    return null;
+  }
   
   if (!pusherClientInstance) {
-    pusherClientInstance = new PusherClient(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
-      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
+    pusherClientInstance = new PusherClient(key, {
+      cluster,
       authEndpoint: '/api/pusher/auth',
     });
   }

@@ -14,6 +14,8 @@ import { getServerSession } from 'next-auth';
 import { db } from '@/src/prisma/db';
 import { authOptions } from '@/lib/auth';
 import { requireMembership } from '@/lib/actions/tenant';
+import { notifyPerson, personIdForCustomerData } from '@/lib/notify';
+import { pusherServer } from '@/lib/pusher';
 
 // ---------------------------------------------------------------------------
 // Settings & provisioning
@@ -604,6 +606,26 @@ export async function createPosOrder(input: {
     });
 
     revalidatePath('/admin/restaurantos');
+
+    if (input.customerDataId) {
+      const personId = await personIdForCustomerData(input.customerDataId);
+      if (personId) {
+        await notifyPerson(personId, {
+          type: 'FOOD_ORDER_CONFIRMED',
+          title: 'Food Order Received',
+          body: `Your food order #${orderNumber} has been received.`,
+          href: '/orders',
+        });
+      }
+    }
+
+    // Trigger real-time Pusher event for kitchen display
+    pusherServer.trigger(`org-${input.organizationId}`, 'new-kitchen-ticket', {
+      orderId: order.id,
+      orderNumber,
+      totalAmount,
+    }).catch(() => {});
+
     return { success: true, orderId: order.id, orderNumber, totalAmount };
   } catch (error) {
     console.error('Error creating POS order:', error);
@@ -627,6 +649,33 @@ export async function updateOrderStatus(
       paidAt: paid && !order.paidAt ? new Date() : order.paidAt,
     });
     revalidatePath('/admin/restaurantos');
+
+    if (order.customerDataId) {
+      const personId = await personIdForCustomerData(order.customerDataId);
+      if (personId) {
+        const statusTitles: Record<string, string> = {
+          PREPARING: 'Kitchen Preparing Your Meal',
+          READY: 'Order Ready for Pickup',
+          DELIVERING: 'Order Out for Delivery',
+          COMPLETED: 'Order Completed & Paid',
+          CANCELLED: 'Order Cancelled',
+        };
+        await notifyPerson(personId, {
+          type: 'FOOD_ORDER_CONFIRMED',
+          title: statusTitles[status] || `Order Status: ${status}`,
+          body: `Your food order #${order.orderNumber ?? order.id.slice(0, 8)} is now ${status.toLowerCase()}.`,
+          href: `/orders`,
+        });
+      }
+    }
+
+    // Broadcast ticket status update to kitchen display / counter
+    pusherServer.trigger(`org-${order.organizationId}`, 'ticket-status-changed', {
+      orderId,
+      status,
+      orderNumber: order.orderNumber,
+    }).catch(() => {});
+
     return { success: true, status };
   } catch (error) {
     console.error('Error updating order status:', error);

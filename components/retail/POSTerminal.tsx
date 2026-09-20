@@ -5,6 +5,8 @@ import { Search, Plus, Minus, CreditCard, Banknote, X, ChevronRight, ShoppingCar
 import { getProducts, getCustomers, createOrder, createCustomer, getRetailSettings, getCouponDiscount } from "@/lib/actions/retail";
 import ReceiptModal from "./ReceiptModal";
 import { inputCls } from "./ShopUI";
+import { playCashRegisterChime } from "@/lib/audio";
+import AudioAlertToggle from "@/components/common/AudioAlertToggle";
 
 const CATEGORY_COLORS = [
   "bg-blue-100 text-blue-900",
@@ -183,6 +185,7 @@ export default function POSTerminal({ organizationId, products, shiftId, onOrder
         return;
       }
       setCompletedOrderId((res as any).orderId);
+      playCashRegisterChime();
     } finally {
       setIsProcessing(false);
     }
@@ -411,6 +414,9 @@ export default function POSTerminal({ organizationId, products, shiftId, onOrder
               </button>
             )}
           </div>
+
+          {/* Sound Mute/Unmute Toggle */}
+          <AudioAlertToggle compact />
 
           {/* Quick Mobile Cart Header Button */}
           <button

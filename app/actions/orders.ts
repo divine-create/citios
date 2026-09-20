@@ -63,11 +63,11 @@ export async function fetchMyOrders() {
   }));
 
   // Sort both by createdAt descending
-  enrichedRetail.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-  enrichedRestaurant.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  enrichedRetail.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  enrichedRestaurant.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  return {
+  return JSON.parse(JSON.stringify({
     retail: enrichedRetail,
     restaurant: enrichedRestaurant
-  };
+  }));
 }

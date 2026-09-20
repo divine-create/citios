@@ -31,7 +31,7 @@ import {
   X,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { CartProvider, useCart } from '@/components/cityos/CartStore';
 import { WalletProvider, useWallet } from '@/components/cityos/WalletStore';
 import { ExperienceProvider } from '@/components/cityos/ExperienceStore';
@@ -42,6 +42,7 @@ import CartCityGuard from '@/components/cityos/CartCityGuard';
 import { useMoney } from '@/components/cityos/CityProvider';
 import { getMyNotifications, markNotificationRead, markAllNotificationsRead } from '@/app/actions/notifications';
 import { getPusherClient } from '@/lib/pusherClient';
+import { playNotificationChime } from '@/lib/audio';
 import { cn } from '@/lib/utils';
 import { AccountSwitcherProvider } from '@/components/cityos/AccountSwitcherContext';
 import AccountSwitcher, { ActiveBusinessBanner } from '@/components/cityos/AccountSwitcher';
@@ -89,34 +90,56 @@ function NotificationsDropdown() {
   const [items, setItems] = useState<any[]>([]);
   const [unread, setUnread] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [toastNotification, setToastNotification] = useState<any>(null);
+  const previousUnreadRef = useRef<number | null>(null);
 
-  const load = async () => {
-    setLoading(true);
+  const load = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await getMyNotifications();
+      if (previousUnreadRef.current !== null && res.unreadCount > previousUnreadRef.current) {
+        playNotificationChime();
+        const newest = res.notifications.find((n: any) => !n.isRead);
+        if (newest) {
+          setToastNotification(newest);
+          setTimeout(() => setToastNotification(null), 5000);
+        }
+      }
+      previousUnreadRef.current = res.unreadCount;
       setItems(res.notifications);
       setUnread(res.unreadCount);
     } catch {
       // Fail closed to the empty state — never fabricate rows.
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
-  // Load on open + light polling while open (session-gated; no anonymous fetching).
+  // Immediate load on session mount + periodic background polling (session-gated)
   useEffect(() => {
-    if (!open || !session) return;
+    if (!session) return;
     load();
-    const t = setInterval(load, 30_000);
+    const t = setInterval(() => load(true), 25_000);
     return () => clearInterval(t);
+  }, [session]);
+
+  // Also refresh on manual dropdown toggle
+  useEffect(() => {
+    if (open && session) {
+      load();
+    }
   }, [open, session]);
 
   const openItem = async (n: any) => {
     setOpen(false);
+    setToastNotification(null);
     if (!n.isRead) {
       // Optimistic read-state, reconciled by the next load.
       setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, isRead: true } : x)));
       setUnread((u) => Math.max(0, u - 1));
+      if (previousUnreadRef.current !== null) {
+        previousUnreadRef.current = Math.max(0, previousUnreadRef.current - 1);
+      }
       try {
         await markNotificationRead(n.id);
       } catch {
@@ -128,6 +151,33 @@ function NotificationsDropdown() {
 
   return (
     <div className="relative">
+      {/* Real-time Notification Toast Banner */}
+      {toastNotification && (
+        <div
+          onClick={() => openItem(toastNotification)}
+          className="fixed top-4 right-4 z-50 max-w-sm bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-2xl border border-slate-200 cursor-pointer animate-in slide-in-from-top duration-300 flex items-start gap-3"
+        >
+          <div className="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0">
+            <Bell className="w-4 h-4" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h4 className="font-extrabold text-xs text-slate-900 truncate">{toastNotification.title}</h4>
+            {toastNotification.body && (
+              <p className="text-[11px] text-slate-500 line-clamp-2 mt-0.5">{toastNotification.body}</p>
+            )}
+          </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setToastNotification(null);
+            }}
+            className="text-slate-400 hover:text-slate-600 p-1"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       <button
         onClick={() => setOpen((o) => !o)}
         className="relative p-2.5 text-slate-600 hover:bg-slate-200/60 rounded-xl transition-colors flex items-center justify-center"

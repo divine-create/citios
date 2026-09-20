@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -38,7 +38,11 @@ import {
   BarChart3,
   Pencil,
   TrendingUp,
+  Printer,
 } from "lucide-react";
+import ThermalReceiptModal from "@/components/common/ThermalReceiptModal";
+import { playOrderChime } from "@/lib/audio";
+import AudioAlertToggle from "@/components/common/AudioAlertToggle";
 import Link from "next/link";
 import { useAccountSwitcher } from "@/components/cityos/AccountSwitcherContext";
 import { cn } from "@/lib/utils";
@@ -100,6 +104,7 @@ import {
   markShopNotificationsRead,
   exportShopReport,
 } from "@/lib/actions/retail";
+import { getCityRegistry } from "@/app/actions/city";
 import { uploadAsset } from "@/lib/actions/microsite";
 import DiscountsTab from "./DiscountsTab";
 import OnlineStoreTab from "./OnlineStoreTab";
@@ -148,9 +153,20 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
     })();
   }, []);
 
+  const previousUnreadRef = useRef<number | null>(null);
+
   const loadNotifications = async () => {
-    const rows = await getShopNotifications(organizationId);
-    setNotifications(rows);
+    try {
+      const rows = await getShopNotifications(organizationId);
+      const unread = (rows as any[]).filter((n: any) => !n.isRead).length;
+      if (previousUnreadRef.current !== null && unread > previousUnreadRef.current) {
+        playOrderChime();
+      }
+      previousUnreadRef.current = unread;
+      setNotifications(rows);
+    } catch {
+      // Non-fatal
+    }
   };
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
@@ -182,6 +198,7 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
 
   useEffect(() => {
     loadAll();
+    const notifTimer = setInterval(loadNotifications, 15_000);
     if (window.matchMedia("(max-width: 767px)").matches) setIsSidebarOpen(false);
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
@@ -193,7 +210,10 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
       }
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      clearInterval(notifTimer);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -414,6 +434,8 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
             <button onClick={() => setSearchOpen(true)} className="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors md:hidden">
               <Search size={20} />
             </button>
+
+            <AudioAlertToggle showTestButton={false} />
 
             <div className="relative">
               <button
@@ -1587,6 +1609,7 @@ function SalesReturnsTab({ organizationId, currentUserId, onChanged, symbol = "$
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [viewingOrder, setViewingOrder] = useState<any>(null);
+  const [receiptOrderId, setReceiptOrderId] = useState<string | null>(null);
   const [refundReason, setRefundReason] = useState("");
   const [isRefunding, setIsRefunding] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -1699,9 +1722,22 @@ function SalesReturnsTab({ organizationId, currentUserId, onChanged, symbol = "$
                   </td>
                   <td className="px-4 py-3 text-right font-bold text-slate-800">{symbol}{o.totalAmount.toFixed(2)}</td>
                   <td className="px-4 py-3 text-right">
-                    <button onClick={() => openView(o)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
-                      <Eye size={16} />
-                    </button>
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        title="Print Thermal Receipt"
+                        onClick={() => setReceiptOrderId(o.id)}
+                        className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors"
+                      >
+                        <Printer size={16} />
+                      </button>
+                      <button
+                        title="View Details"
+                        onClick={() => openView(o)}
+                        className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                      >
+                        <Eye size={16} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -1735,6 +1771,18 @@ function SalesReturnsTab({ organizationId, currentUserId, onChanged, symbol = "$
                 <div className="flex justify-between text-lg font-bold text-slate-900 pt-1"><span>Total</span><span>{symbol}{viewingOrder.totalAmount.toFixed(2)}</span></div>
               </div>
 
+              {/* Print Receipt Action */}
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => setReceiptOrderId(viewingOrder.id)}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl transition-colors shadow-sm"
+                >
+                  <Printer size={16} />
+                  <span>Print Thermal Receipt (80mm / 58mm)</span>
+                </button>
+              </div>
+
               {viewingOrder.status === "REFUNDED" ? (
                 <div className="bg-red-50 border border-red-100 rounded-lg p-3 text-sm">
                   <p className="font-semibold text-red-700 flex items-center gap-1.5"><RotateCcw size={14} /> Refunded {viewingOrder.refundedAt ? new Date(viewingOrder.refundedAt).toLocaleString() : ""}</p>
@@ -1757,6 +1805,13 @@ function SalesReturnsTab({ organizationId, currentUserId, onChanged, symbol = "$
             </div>
           </div>
         </div>
+      )}
+
+      {receiptOrderId && (
+        <ThermalReceiptModal
+          orderId={receiptOrderId}
+          onClose={() => setReceiptOrderId(null)}
+        />
       )}
     </div>
   );
@@ -2048,9 +2103,33 @@ function LocationsTab({ organizationId }: { organizationId: string }) {
   const [loading, setLoading] = useState(true);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", address: "" });
+  const [form, setForm] = useState({ name: "", address: "", state: "", lga: "" });
+  const [cityRegistry, setCityRegistry] = useState<Array<{ state: string; lgas: Array<{ slug: string; name: string }> }>>([]);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  const selectedStateOptions = cityRegistry.map((entry) => entry.state);
+  const selectedLgaOptions = cityRegistry.find((entry) => entry.state === form.state)?.lgas ?? [];
+
+  const parseLocationAddress = (value?: string | null) => {
+    const text = value ?? "";
+    const stateMatch = text.match(/State:\s*([^|]+)/i);
+    const lgaMatch = text.match(/LGA:\s*([^|]+)/i);
+    const streetMatch = text.match(/Address:\s*([^|]+)/i);
+    const state = stateMatch ? stateMatch[1].trim() : "";
+    const lga = lgaMatch ? lgaMatch[1].trim() : "";
+    const address = streetMatch ? streetMatch[1].trim() : text.replace(/\s*\|\s*LGA:\s*[^|]+/gi, '').replace(/\s*\|\s*State:\s*[^|]+/gi, '').trim();
+    return { state, lga, address };
+  };
+
+  const serializeLocationAddress = (address: string, state: string, lga: string) => {
+    const segments = [
+      address?.trim() ? `Address: ${address.trim()}` : null,
+      state ? `State: ${state}` : null,
+      lga ? `LGA: ${lga}` : null,
+    ].filter(Boolean);
+    return segments.join(' | ');
+  };
 
   const load = async () => {
     const rows = await getLocations(organizationId);
@@ -2060,19 +2139,26 @@ function LocationsTab({ organizationId }: { organizationId: string }) {
 
   useEffect(() => {
     load();
+    getCityRegistry().then((rows) => setCityRegistry(rows)).catch(() => setCityRegistry([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [organizationId]);
 
   const openAdd = () => {
     setEditId(null);
-    setForm({ name: "", address: "" });
+    setForm({ name: "", address: "", state: "", lga: "" });
     setError(null);
     setIsAddOpen(true);
   };
 
   const openEdit = (l: any) => {
+    const parsed = parseLocationAddress(l.address ?? "");
     setEditId(l.id);
-    setForm({ name: l.name, address: l.address ?? "" });
+    setForm({
+      name: l.name,
+      address: parsed.address,
+      state: parsed.state,
+      lga: parsed.lga,
+    });
     setError(null);
     setIsAddOpen(true);
   };
@@ -2080,16 +2166,18 @@ function LocationsTab({ organizationId }: { organizationId: string }) {
   const submit = async () => {
     setError(null);
     if (!form.name.trim()) { setError("Location name is required."); return; }
+    if (!form.state || !form.lga) { setError("Please select a state and local government."); return; }
     setIsSaving(true);
     try {
+      const resolvedAddress = serializeLocationAddress(form.address, form.state, form.lga);
       if (editId) {
-        const res = await updateLocation(editId, { name: form.name, address: form.address || null });
+        const res = await updateLocation(editId, { name: form.name, address: resolvedAddress || null });
         if ((res as any)?.error) { setError((res as any).error); return; }
       } else {
-        const res = await createLocation({ organizationId, name: form.name, address: form.address || undefined });
+        const res = await createLocation({ organizationId, name: form.name, address: resolvedAddress || undefined });
         if ((res as any)?.error) { setError((res as any).error); return; }
       }
-      setForm({ name: "", address: "" });
+      setForm({ name: "", address: "", state: "", lga: "" });
       setIsAddOpen(false);
       load();
     } finally {
@@ -2155,7 +2243,36 @@ function LocationsTab({ organizationId }: { organizationId: string }) {
             <div className="p-6 space-y-3">
               {error && <div className="p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-100">{error}</div>}
               <input placeholder="Location name (e.g. Main Street)" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className={inputCls} autoFocus />
-              <textarea placeholder="Address (optional)" value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} rows={2} className={inputCls} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold uppercase tracking-wide text-slate-500">State</label>
+                  <select
+                    value={form.state}
+                    onChange={(e) => setForm((f) => ({ ...f, state: e.target.value, lga: "" }))}
+                    className={selectCls}
+                  >
+                    <option value="">Select State</option>
+                    {selectedStateOptions.map((state) => (
+                      <option key={state} value={state}>{state}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Local Government</label>
+                  <select
+                    value={form.lga}
+                    onChange={(e) => setForm((f) => ({ ...f, lga: e.target.value }))}
+                    disabled={!form.state}
+                    className={selectCls}
+                  >
+                    <option value="">{form.state ? `Choose LGA in ${form.state}` : 'Select State first'}</option>
+                    {selectedLgaOptions.map((city) => (
+                      <option key={city.slug} value={city.name}>{city.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <textarea placeholder="Street address or landmark (optional)" value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} rows={2} className={inputCls} />
             </div>
             <div className="p-4 border-t border-slate-100 flex justify-end gap-3">
               <button onClick={() => setIsAddOpen(false)} className="px-4 py-2 font-semibold text-slate-500 hover:bg-slate-100 rounded-lg">Cancel</button>

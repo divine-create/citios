@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1877F2" />
+      <stop offset="100%" stop-color="#0E57B8" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000" flood-opacity="0.25" />
+    </filter>
+  </defs>
+
+  <!-- Rounded App Background -->
+  <rect width="512" height="512" rx="112" fill="url(#grad)" />
+
+  <!-- Inner Skyline and City Ring -->
+  <g filter="url(#shadow)" fill="#ffffff">
+    <!-- City Buildings Silhouette -->
+    <path d="M128 368 V 256 H 184 V 208 H 240 V 160 H 272 V 208 H 328 V 256 H 384 V 368 Z" opacity="0.95" />
+    <!-- City Windows / Grid accents -->
+    <rect x="144" y="276" width="18" height="24" rx="3" fill="#1877F2" />
+    <rect x="144" y="316" width="18" height="24" rx="3" fill="#1877F2" />
+    <rect x="200" y="228" width="18" height="24" rx="3" fill="#1877F2" />
+    <rect x="200" y="268" width="18" height="24" rx="3" fill="#1877F2" />
+    <rect x="200" y="308" width="18" height="24" rx="3" fill="#1877F2" />
+    <rect x="252" y="180" width="12" height="20" rx="2" fill="#1877F2" />
+    <rect x="294" y="228" width="18" height="24" rx="3" fill="#1877F2" />
+    <rect x="294" y="268" width="18" height="24" rx="3" fill="#1877F2" />
+    <rect x="294" y="308" width="18" height="24" rx="3" fill="#1877F2" />
+    <rect x="350" y="276" width="18" height="24" rx="3" fill="#1877F2" />
+    <rect x="350" y="316" width="18" height="24" rx="3" fill="#1877F2" />
+
+    <!-- Connecting Bridge / Signal Pulse -->
+    <circle cx="256" cy="120" r="16" fill="#FACC15" />
+    <path d="M224 120 A 32 32 0 0 1 288 120" stroke="#FACC15" stroke-width="6" fill="none" stroke-linecap="round" />
+    <path d="M208 120 A 48 48 0 0 1 304 120" stroke="#FACC15" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.6" />
+  </g>
+
+  <!-- Hyperlocal Baseline Indicator -->
+  <rect x="96" y="380" width="320" height="12" rx="6" fill="#ffffff" opacity="0.9" />
+</svg>

@@ -1,10 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import {
-  UtensilsCrossed, Plus, Minus, Check, Loader2, Trash2, ArrowLeftRight,
+  UtensilsCrossed, Plus, Minus, Check, Loader2, Trash2, ArrowLeftRight, Printer,
 } from 'lucide-react';
+import ThermalReceiptModal from '@/components/common/ThermalReceiptModal';
+import { type PrintableReceiptData } from '@/lib/receiptUtils';
+import { playOrderChime, playCashRegisterChime } from '@/lib/audio';
+import AudioAlertToggle from '@/components/common/AudioAlertToggle';
 import { useAccountSwitcher } from '@/components/cityos/AccountSwitcherContext';
 import { useMoney } from '@/components/cityos/CityProvider';
 import { StatTile, Pill, SectionHead } from '@/components/cityos/CityUI';
@@ -69,6 +73,8 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
   const [posPayment, setPosPayment] = useState<'WALLET' | 'CASH' | 'POS' | ''>('CASH');
   const [posBusy, setPosBusy] = useState(false);
   const [posMsg, setPosMsg] = useState<string | null>(null);
+  const [receiptModalData, setReceiptModalData] = useState<PrintableReceiptData | null>(null);
+  const previousTicketCountRef = useRef<number | null>(null);
 
   function posAdd(item: MenuItemRow) {
     if (item.isAvailable === false) return;
@@ -103,8 +109,34 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
       setPosMsg(res.error);
       return;
     }
+    const created = res as any;
+    playCashRegisterChime();
+
+    const placedReceipt: PrintableReceiptData = {
+      orderId: created.id || String(Date.now()),
+      orderNumber: created.orderNumber ? String(created.orderNumber) : undefined,
+      storeName: org?.name || 'Restaurant',
+      date: new Date(),
+      cashierName: 'POS Counter',
+      orderType: posType,
+      tableName: tables.find((t) => t.id === posTableId)?.name,
+      items: posLines.map((l) => ({
+        name: l.name,
+        quantity: l.qty,
+        unitPrice: l.price,
+        subtotal: l.price * l.qty,
+      })),
+      subtotal: posTotal,
+      taxAmount: posTax,
+      serviceCharge: posService,
+      totalAmount: created.totalAmount ?? (posTotal + posTax + posService),
+      paymentMethod: posPayment || 'UNPAID (DINE-IN)',
+      currencySymbol: '₦',
+    };
+    setReceiptModalData(placedReceipt);
+
     setPosLines([]);
-    setPosMsg(`Order #${(res as any).orderNumber} placed â€” ${fmt((res as any).totalAmount)}`);
+    setPosMsg(`Order #${(res as any).orderNumber} placed — ${fmt((res as any).totalAmount)}`);
     await refresh();
   }
 
@@ -150,6 +182,24 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
       live = false;
     };
   }, [slug]);
+
+  useEffect(() => {
+    if (!loaded || !org) return;
+    const interval = setInterval(async () => {
+      try {
+        const d = await getRestaurantOSData(slug);
+        if (d?.tickets) {
+          const pending = d.tickets.filter((t: any) => t.status === 'PENDING').length;
+          if (previousTicketCountRef.current !== null && pending > previousTicketCountRef.current) {
+            playOrderChime();
+          }
+          previousTicketCountRef.current = pending;
+          setTickets(d.tickets);
+        }
+      } catch {}
+    }, 12_000);
+    return () => clearInterval(interval);
+  }, [loaded, org, slug]);
 
 
   if (!loaded) {
@@ -216,6 +266,7 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
           >
             <UtensilsCrossed className="w-3.5 h-3.5 text-amber-600" /> Public page
           </Link>
+          <AudioAlertToggle showTestButton={false} />
           <Pill tone="orange">{tickets.length} open ticket{tickets.length === 1 ? '' : 's'}</Pill>
         </div>
       </div>
@@ -358,6 +409,16 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
                 Place order
               </button>
               {posMsg ? <p className="text-[11px] font-bold text-teal-700 text-center">{posMsg}</p> : null}
+              {receiptModalData ? (
+                <button
+                  type="button"
+                  onClick={() => setReceiptModalData({ ...receiptModalData })}
+                  className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  Print Thermal Receipt
+                </button>
+              ) : null}
             </div>
           </div>
         </div>
@@ -408,6 +469,35 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
                     {t.status !== 'COMPLETED' ? (
                       <button onClick={async () => { await updateOrderStatus(t.id, 'CANCELLED'); await refresh(); }} className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-black">Cancel</button>
                     ) : null}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setReceiptModalData({
+                          orderId: t.id,
+                          orderNumber: t.orderNumber ? String(t.orderNumber) : t.id.slice(0, 8),
+                          storeName: org?.name || 'Restaurant Kitchen',
+                          date: new Date(),
+                          orderType: t.type as any,
+                          tableName: t.tableName || undefined,
+                          items: t.items.map((i: any) => ({
+                            name: i.itemName,
+                            quantity: i.quantity,
+                            unitPrice: Number((i as any).unitPrice || 0),
+                            subtotal: Number((i as any).unitPrice || 0) * i.quantity,
+                            notes: i.notes || undefined,
+                          })),
+                          subtotal: t.totalAmount,
+                          totalAmount: t.totalAmount,
+                          paymentMethod: t.paymentMethod || 'UNPAID',
+                          currencySymbol: '₦',
+                          footerMessage: 'Kitchen Order Ticket',
+                        })
+                      }
+                      className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 text-[10px] font-black inline-flex items-center gap-1 transition-colors"
+                    >
+                      <Printer className="w-3 h-3" />
+                      <span>Print Bill</span>
+                    </button>
                   </div>
                 </div>
               ))}
@@ -622,6 +712,13 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
           <SettingsForm slug={slug} settings={settings} onDone={refresh} />
         </div>
       ) : null}
+
+      {receiptModalData && (
+        <ThermalReceiptModal
+          initialData={receiptModalData}
+          onClose={() => setReceiptModalData(null)}
+        />
+      )}
     </div>
   );
 }

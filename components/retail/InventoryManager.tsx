@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Plus, Search, Edit2, Trash2, ArrowUpDown, Package, AlertTriangle, X, Upload, Loader2, FolderTree, History, ArrowUpFromLine } from "lucide-react";
-import { createProduct, updateProduct, deleteProduct, createCategory, updateCategory, deleteCategory, getRetailSettings, adjustStock, getStockMovements } from "@/lib/actions/retail";
+import { Plus, Search, Edit2, Trash2, ArrowUpDown, Package, AlertTriangle, X, Upload, Loader2, History, ArrowUpFromLine } from "lucide-react";
+import { createProduct, updateProduct, deleteProduct, getRetailSettings, adjustStock, getStockMovements } from "@/lib/actions/retail";
 import { uploadAsset } from "@/lib/actions/microsite";
 import { generateUniqueSku } from "@/lib/sku";
-import { PillTabs, inputCls, selectCls } from "./ShopUI";
+import { DEFAULT_RETAIL_UNITS, normalizeRetailUnits } from "@/lib/defaultUnits";
+import { inputCls, selectCls } from "./ShopUI";
 
 interface Product {
   id: string;
@@ -51,15 +52,14 @@ export default function InventoryManager({ organizationId, products, categories,
   symbol?: string;
 }) {
   const [search, setSearch] = useState("");
-  const [activeTab, setActiveTab] = useState<"PRODUCTS" | "CATEGORIES">("PRODUCTS");
-  const [customUnits, setCustomUnits] = useState<string[]>(['ea', 'lb', 'kg', 'pack', 'box']);
+  const [customUnits, setCustomUnits] = useState<string[]>([...DEFAULT_RETAIL_UNITS]);
   const [currencySymbol, setCurrencySymbol] = useState<string>(symbol);
 
   useEffect(() => {
     async function loadSettings() {
       const settings = await getRetailSettings(organizationId);
       if (settings?.customUnits) {
-        setCustomUnits(JSON.parse(settings.customUnits));
+        setCustomUnits(normalizeRetailUnits(settings.customUnits));
       }
       if (settings?.currencySymbol) {
         setCurrencySymbol(settings.currencySymbol);
@@ -76,12 +76,6 @@ export default function InventoryManager({ organizationId, products, categories,
   const [uploadingImage, setUploadingImage] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-
-// Category State
-  const [isCatModalOpen, setIsCatModalOpen] = useState(false);
-  const [editCatId, setEditCatId] = useState<string | null>(null);
-  const [catName, setCatName] = useState("");
-  const [catDesc, setCatDesc] = useState("");
 
   // Stock ledger state (Phase 3)
   const [historyProduct, setHistoryProduct] = useState<Product | null>(null);
@@ -223,75 +217,25 @@ export default function InventoryManager({ organizationId, products, categories,
     onChanged();
   };
 
-  const openCatAdd = () => {
-    setEditCatId(null);
-    setCatName("");
-    setCatDesc("");
-    setError(null);
-    setIsCatModalOpen(true);
-  };
-
-  const openCatEdit = (cat: Category) => {
-    setEditCatId(cat.id);
-    setCatName(cat.name);
-    setCatDesc(cat.description || "");
-    setError(null);
-    setIsCatModalOpen(true);
-  };
-
-  const submitCat = async () => {
-    setError(null);
-    if (!catName.trim()) { setError("Category name is required"); return; }
-    setIsSaving(true);
-    try {
-      if (editCatId) {
-        const res = await updateCategory(editCatId, { name: catName, description: catDesc || undefined });
-        if ((res as any)?.error) { setError((res as any).error); return; }
-      } else {
-        const res = await createCategory({ organizationId, name: catName, description: catDesc || undefined });
-        if ((res as any)?.error) { setError((res as any).error); return; }
-      }
-      setIsCatModalOpen(false);
-      onChanged();
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const removeCat = async (id: string) => {
-    if (!confirm("Delete this category? Products using it must be reassigned first.")) return;
-    const res = await deleteCategory(id);
-    if ((res as any)?.error) { alert((res as any).error); return; }
-    onChanged();
-  };
-
   const totalValue = products.reduce((sum, p) => sum + (p.cost ?? 0) * p.stockQuantity, 0);
   const lowStockCount = products.filter((p) => p.lowStockLevel != null && p.stockQuantity <= (p.lowStockLevel as number)).length;
 
   return (
     <div className="p-8 max-w-7xl mx-auto h-full flex flex-col">
-<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h2 className="text-2xl font-black text-ink">Products & Inventory</h2>
-          <PillTabs
-            tabs={[{ value: "PRODUCTS", label: "Products" }, { value: "CATEGORIES", label: "Categories" }]}
-            active={activeTab}
-            onChange={setActiveTab}
-            className="mt-4"
-          />
         </div>
         <button
-          onClick={activeTab === 'PRODUCTS' ? openAdd : openCatAdd}
+          onClick={openAdd}
           className="flex items-center gap-2 bg-brand-700 hover:bg-brand-800 text-white px-5 py-2.5 rounded-lg font-bold transition-colors shadow-sm shadow-brand-700/25 mt-2"
         >
-          <Plus size={18} /> {activeTab === 'PRODUCTS' ? 'Add Product' : 'Add Category'}
+          <Plus size={18} /> Add Product
         </button>
       </div>
 
-      {activeTab === 'PRODUCTS' && (
-        <>
-          {/* Summary Cards */}
-<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 flex-shrink-0">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 flex-shrink-0">
         <div className="bg-white p-5 rounded-xl border border-slate-200 flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-brand-100 text-brand-800 flex items-center justify-center">
             <Package size={24} />
@@ -413,58 +357,6 @@ export default function InventoryManager({ organizationId, products, categories,
           )}
         </div>
       </div>
-      </>
-      )}
-
-      {activeTab === 'CATEGORIES' && (
-        <div className="bg-white border border-slate-200 rounded-xl flex-1 flex flex-col overflow-hidden shadow-sm">
-          <div className="overflow-x-auto flex-1">
-            <table className="w-full text-left border-collapse min-w-[600px]">
-              <thead className="bg-slate-50 text-slate-500 text-xs font-bold uppercase sticky top-0 shadow-sm">
-                <tr>
-                  <th className="px-6 py-4">Category Name</th>
-                  <th className="px-6 py-4">Description</th>
-                  <th className="px-6 py-4">Products</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-sm">
-                {categories.map((cat) => {
-                  const prodCount = products.filter(p => p.categoryId === cat.id).length;
-                  return (
-                    <tr key={cat.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4 font-bold text-slate-800">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-brand-100 text-brand-800 flex items-center justify-center"><FolderTree size={14} /></div>
-                          {cat.name}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-slate-500">{cat.description || "-"}</td>
-                      <td className="px-6 py-4 text-slate-500">{prodCount}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-end gap-2">
-<button onClick={() => openCatEdit(cat)} className="p-1.5 text-slate-400 hover:text-brand-700 hover:bg-brand-50 rounded-md transition-colors">
-                            <Edit2 size={16} />
-                          </button>
-                          <button onClick={() => removeCat(cat.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors">
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            {categories.length === 0 && (
-              <div className="p-12 text-center text-slate-400">
-                <FolderTree size={48} className="mx-auto mb-4 opacity-20" />
-                <p>No categories yet - add your first one.</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* ADD/EDIT PRODUCT MODAL */}
       {isModalOpen && (
@@ -561,38 +453,6 @@ export default function InventoryManager({ organizationId, products, categories,
         </div>
       )}
 
-      {/* CATEGORY MODAL */}
-      {isCatModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="font-bold text-lg text-slate-800">{editCatId ? "Edit Category" : "Add Category"}</h3>
-              <button onClick={() => setIsCatModalOpen(false)} className="text-slate-400 hover:text-slate-600">
-                <X size={24} />
-              </button>
-            </div>
-            <div className="p-6 space-y-4 bg-slate-50">
-              {error && <div className="p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-100">{error}</div>}
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Category Name</label>
-                <input type="text" value={catName} onChange={(e) => setCatName(e.target.value)} className={inputCls} placeholder="e.g. Produce" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Description (Optional)</label>
-                <textarea value={catDesc} onChange={(e) => setCatDesc(e.target.value)} className={inputCls} placeholder="Fresh fruits and vegetables..." rows={3} />
-              </div>
-            </div>
-            <div className="p-4 border-t border-slate-100 flex justify-end gap-3 bg-white">
-              <button onClick={() => setIsCatModalOpen(false)} className="px-4 py-2 font-semibold text-slate-500 hover:bg-slate-100 rounded-lg transition-colors">
-                Cancel
-              </button>
-              <button onClick={submitCat} disabled={isSaving} className="px-6 py-2 bg-brand-700 hover:bg-brand-800 disabled:opacity-50 text-white font-bold rounded-lg transition-colors">
-                {isSaving ? "Saving..." : "Save Category"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 {/* STOCK HISTORY MODAL */}
       {historyProduct && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">

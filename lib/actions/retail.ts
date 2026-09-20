@@ -4,7 +4,12 @@ import '@js-temporal/polyfill'
 import { db } from '@/src/prisma/db'
 import { requireMembership } from '@/lib/actions/tenant'
 import { revalidatePath } from 'next/cache'
+import { DEFAULT_RETAIL_CATEGORIES } from '@/lib/defaultCategories'
+import { DEFAULT_RETAIL_UNITS, normalizeRetailUnits } from '@/lib/defaultUnits'
 import { generateUniqueSku } from '@/lib/sku'
+import { sendWhatsAppOrderNotification } from '@/lib/whatsapp'
+import { notifyPerson, personIdForCustomerData } from '@/lib/notify'
+import { pusherServer } from '@/lib/pusher'
 
 // Server-action convention in this codebase: resolve the caller's Membership
 // id from the authenticated session. Never accept a client-supplied
@@ -33,6 +38,7 @@ const TAX_RATE = 0.08;
 async function createShopNotification(organizationId: string, type: string, title: string, message?: string) {
   try {
     await db.orm.public.RetailNotification.create({ organizationId, type, title, message, isRead: false });
+    pusherServer.trigger(`org-${organizationId}`, 'new-shop-notification', { type, title, message }).catch(() => {});
   } catch (error) {
     console.error('Error creating shop notification:', error);
   }
@@ -47,9 +53,50 @@ function instantToMillis(instant: unknown): number {
 // Categories
 // ---------------------------------------------------------------------
 
+export async function ensureDefaultCategories(organizationId: string) {
+  try {
+    await requireMembership(organizationId);
+    const existingCategories = await db.orm.public.RetailCategory.where({ organizationId }).all();
+    const existingByName = new Map(existingCategories.map((category) => [category.name.toLowerCase(), category]));
+
+    for (const category of DEFAULT_RETAIL_CATEGORIES) {
+      let parentCategory = existingByName.get(category.name.toLowerCase());
+      if (!parentCategory) {
+        parentCategory = await db.orm.public.RetailCategory.create({
+          organizationId,
+          name: category.name,
+          description: category.description,
+          parentId: null,
+        });
+        existingByName.set(parentCategory.name.toLowerCase(), parentCategory);
+      }
+
+      const existingSubs = await db.orm.public.RetailCategory.where({ organizationId, parentId: parentCategory.id }).all();
+      const subMap = new Map(existingSubs.map((item) => [item.name.toLowerCase(), item]));
+
+      for (const subcategory of category.subcategories) {
+        if (!subMap.has(subcategory.name.toLowerCase())) {
+          await db.orm.public.RetailCategory.create({
+            organizationId,
+            name: subcategory.name,
+            description: subcategory.description,
+            parentId: parentCategory.id,
+          });
+        }
+      }
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error ensuring default categories:', error);
+    return false;
+  }
+}
+
 export async function getCategories(organizationId: string) {
   try {
     await requireMembership(organizationId);
+    await ensureDefaultCategories(organizationId);
     const categories = await db.orm.public.RetailCategory.where({ organizationId }).all();
     return JSON.parse(JSON.stringify(categories));
   } catch (error) {
@@ -112,6 +159,7 @@ export async function deleteCategory(categoryId: string) {
 export async function getProducts(organizationId: string) {
   try {
     await requireMembership(organizationId);
+    await ensureDefaultCategories(organizationId);
     const products = await db.orm.public.RetailProduct.where({ organizationId }).all();
     const categories = await db.orm.public.RetailCategory.where({ organizationId }).all();
     const enriched = products.map((p) => ({ ...p, categoryName: categories.find((c) => c.id === p.categoryId)?.name ?? null }));
@@ -782,6 +830,45 @@ export async function createOrder(input: {
       revalidatePath(`/product/${line.productId}`);
     }
 
+    await createShopNotification(
+      input.organizationId,
+      'SALE',
+      'Sale completed',
+      `Order #${order.id.slice(0, 8).toUpperCase()} completed for ${totalAmount.toFixed(2)}.`,
+    );
+
+    if (input.customerDataId) {
+      const personId = await personIdForCustomerData(input.customerDataId);
+      if (personId) {
+        await notifyPerson(personId, {
+          type: 'ORDER_CONFIRMED',
+          title: 'Order Confirmed',
+          body: `Your order #${order.id.slice(0, 8).toUpperCase()} has been completed.`,
+          href: '/orders',
+        });
+      }
+
+      const customer = await db.orm.public.CustomerData.where({ id: input.customerDataId }).all().first();
+      const relationship = customer ? await db.orm.public.Relationship.where({ id: customer.relationshipId }).all().first() : null;
+      const phoneIdentifiers = relationship
+        ? await db.orm.public.PersonIdentifier.where({ personId: relationship.personId, type: 'PHONE' }).all()
+        : [];
+      const storeSettings = await db.orm.public.RetailSettings.where({ organizationId: input.organizationId }).all().first();
+
+      sendWhatsAppOrderNotification({
+        phone: phoneIdentifiers[0]?.normalizedValue,
+        orderId: order.id,
+        storeName: storeSettings?.storeName,
+        items: lineItems.map((line) => ({
+          name: productById.get(line.productId)?.name ?? 'Product',
+          quantity: line.quantity,
+          unitPrice: line.unitPrice,
+        })),
+        totalAmount,
+        currencySymbol: storeSettings?.currencySymbol,
+      }).catch((error) => console.error('WhatsApp order notification failed:', error));
+    }
+
     return { success: true, orderId: order.id, totalAmount, taxAmount };
   } catch (error) {
     console.error('Error creating order:', error);
@@ -905,6 +992,18 @@ export async function refundOrder(orderId: string, input: { reason?: string }) {
         'Refund processed',
         `Order #${orderId.slice(0, 8)} was refunded.`,
       );
+
+      if (matched.customerDataId) {
+        const personId = await personIdForCustomerData(matched.customerDataId);
+        if (personId) {
+          await notifyPerson(personId, {
+            type: 'SYSTEM',
+            title: 'Order Refunded',
+            body: `Your order #${orderId.slice(0, 8).toUpperCase()} has been refunded.`,
+            href: '/orders',
+          });
+        }
+      }
     }
 
     return { success: true };
@@ -1686,8 +1785,14 @@ export async function getRetailSettings(organizationId: string) {
       settings = await db.orm.public.RetailSettings.create({
         organizationId,
         storeName: 'My Retail Store',
-        customUnits: JSON.stringify(['ea', 'kg', 'lb', 'pack', 'box']),
+        customUnits: JSON.stringify(DEFAULT_RETAIL_UNITS),
       });
+    } else {
+      const normalizedUnits = normalizeRetailUnits(settings.customUnits);
+      if (JSON.stringify(normalizedUnits) !== settings.customUnits) {
+        await db.orm.public.RetailSettings.where({ organizationId }).update({ customUnits: JSON.stringify(normalizedUnits) });
+        settings = { ...settings, customUnits: JSON.stringify(normalizedUnits) };
+      }
     }
     return settings;
   } catch (error) {

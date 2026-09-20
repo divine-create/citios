@@ -2,15 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Package, UtensilsCrossed, Clock, CheckCircle2, ChevronRight, Truck } from 'lucide-react';
+import { Package, UtensilsCrossed, Clock, CheckCircle2, ChevronRight, Truck, Printer } from 'lucide-react';
 import { fetchMyOrders } from '@/app/actions/orders';
 import { ChipButton, FallbackImg, OpenBadge } from '@/components/cityos/CityUI';
 import { useMoney } from '@/components/cityos/CityProvider';
+import ThermalReceiptModal from '@/components/common/ThermalReceiptModal';
 
 export default function ResidentOrders() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>({ retail: [], restaurant: [] });
   const [tab, setTab] = useState<'ALL' | 'FOOD' | 'MARKET'>('ALL');
+  const [receiptOrder, setReceiptOrder] = useState<any>(null);
   const { fmt } = useMoney();
 
   useEffect(() => {
@@ -34,7 +36,7 @@ export default function ResidentOrders() {
   const allOrders = [
     ...data.retail.map((o: any) => ({ ...o, category: 'MARKET' })),
     ...data.restaurant.map((o: any) => ({ ...o, category: 'FOOD' }))
-  ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const filtered = tab === 'ALL' ? allOrders : allOrders.filter(o => o.category === tab);
 
@@ -98,8 +100,18 @@ export default function ResidentOrders() {
               </div>
 
               <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
-                  {order.payment?.method === 'WALLET' ? 'Paid via Wallet' : order.payment ? 'Paid' : 'Payment Pending'}
+                <div className="flex items-center gap-2.5">
+                  <span className="text-xs font-bold text-slate-500">
+                    {order.payment?.method === 'WALLET' ? 'Paid via Wallet' : order.payment ? 'Paid' : 'Payment Pending'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setReceiptOrder(order)}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-700 hover:text-teal-800 bg-slate-100 hover:bg-teal-50 px-2.5 py-1 rounded-lg transition-colors border border-slate-200"
+                  >
+                    <Printer className="w-3 h-3" />
+                    <span>Receipt</span>
+                  </button>
                 </div>
                 <div className="text-base font-black text-ink">
                   Total: {fmt(order.totalAmount)}
@@ -128,6 +140,30 @@ export default function ResidentOrders() {
           </div>
         )}
       </div>
+
+      {receiptOrder && (
+        <ThermalReceiptModal
+          initialData={{
+            orderId: receiptOrder.id,
+            orderNumber: receiptOrder.orderNumber ? String(receiptOrder.orderNumber) : receiptOrder.id.slice(-8).toUpperCase(),
+            storeName: receiptOrder.org?.name || 'CityConnect Order',
+            date: receiptOrder.createdAt,
+            orderType: receiptOrder.category === 'FOOD' ? 'TAKEOUT' : 'STORE_SALE',
+            items: receiptOrder.items.map((i: any) => ({
+              name: i.product?.name || i.name || 'Item',
+              quantity: i.quantity || 1,
+              unitPrice: i.unitPrice || 0,
+              subtotal: (i.unitPrice || 0) * (i.quantity || 1),
+            })),
+            subtotal: receiptOrder.totalAmount,
+            totalAmount: receiptOrder.totalAmount,
+            paymentMethod: receiptOrder.payment?.method || 'COMPLETED',
+            currencySymbol: '₦',
+            footerMessage: 'Thank you for your order on CityConnect!',
+          }}
+          onClose={() => setReceiptOrder(null)}
+        />
+      )}
     </div>
   );
 }
