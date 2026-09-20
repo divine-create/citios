@@ -40,6 +40,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
+import { useAccountSwitcher } from "@/components/cityos/AccountSwitcherContext";
 import {
   StatusPill,
   Avatar,
@@ -109,6 +110,7 @@ interface ShopDashboardProps {
 }
 
 export default function ShopDashboard({ organizationId, userRole, currentUserId }: ShopDashboardProps) {
+  const { switchToPersonal } = useAccountSwitcher();
   const [activeMenu, setActiveMenu] = useState(() => {
     if (userRole === "CASHIER") return "POS Terminal";
     if (userRole === "INVENTORY_STAFF") return "Products & Inventory";
@@ -259,7 +261,7 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
   const roleLabel = userRole === "OWNER" ? "Store Owner" : userRole === "MANAGER" ? "Store Manager" : userRole === "CASHIER" ? "Cashier" : "Inventory";
 
   return (
-    <div className="flex h-screen bg-[#F4F7FC] text-slate-800 font-sans overflow-hidden">
+    <div className="flex h-full flex-1 bg-[#F4F7FC] text-slate-800 font-sans overflow-hidden">
       {isSidebarOpen && (
         <div className="fixed inset-0 bg-black/40 z-30 md:hidden" onClick={() => setIsSidebarOpen(false)} />
       )}
@@ -329,7 +331,15 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
           )}
         </div>
 
-        <div className="p-4 border-t border-slate-100 bg-white">
+        <div className="p-4 border-t border-slate-100 bg-white space-y-3">
+          <button
+            type="button"
+            onClick={switchToPersonal}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200 transition-colors"
+          >
+            <ArrowRightLeft size={13} className="text-slate-500" />
+            <span>Personal Profile</span>
+          </button>
           <div className="flex items-center gap-3">
             <Avatar name={sessionName} tone="brand" />
             <div className="min-w-0 flex-1">
@@ -362,7 +372,25 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={switchToPersonal}
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors"
+              title="Exit to personal citizen profile"
+            >
+              <ArrowRightLeft size={13} className="text-slate-500" />
+              <span>Personal Account</span>
+            </button>
+            <Link
+              href={`/org/${organizationId}`}
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 text-xs font-bold transition-colors"
+              title="View customer-facing store page"
+            >
+              <Store size={13} className="text-teal-600" />
+              <span>Public Store</span>
+            </Link>
+
             <div
               className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border ${
                 openShiftData ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-slate-100 text-slate-500 border-slate-200"

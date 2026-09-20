@@ -342,6 +342,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
   };
 
   const isActive = (path: string) => (path === '/' ? pathname === '/' : pathname?.startsWith(path));
+  const isWorkspace = pathname?.startsWith('/workspaces/');
 
   return (
     <CityProvider city={city} cities={cities}>
@@ -351,7 +352,8 @@ const navGroups: { label: string; items: NavItem[] }[] = [
         <AccountSwitcherProvider>
           <CreateBusinessModal />
           <div className="flex h-screen bg-[#F6F7F8] overflow-hidden font-sans text-slate-900 selection:bg-teal-200">
-        {/* Desktop Sidebar */}
+        {/* Desktop Sidebar - only in resident mode */}
+        {!isWorkspace && (
         <aside className="hidden md:flex flex-col w-[268px] bg-white border-r border-slate-100 z-20 h-full overflow-y-auto">
           <div className="p-6 pb-4 flex flex-col gap-1 sticky top-0 bg-white z-10 border-b border-slate-100/60">
             <Link href="/" className="flex items-center gap-2.5">
@@ -442,62 +444,88 @@ const navGroups: { label: string; items: NavItem[] }[] = [
             <WalletChip />
           </div>
         </aside>
+        )}
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col min-w-0 bg-[#F6F7F8] md:bg-[#F6F7F8] relative">
-          {/* Desktop Top Nav */}
-          <header className="hidden md:flex h-16 items-center justify-between px-6 lg:px-8 bg-white border-b border-slate-100 sticky top-0 z-20">
-            <div className="flex items-center gap-3">
-              <h2 className="text-xs font-black text-ink uppercase tracking-[0.18em]">{getTitle()}</h2>
-              <span className="text-[10px] text-slate-300 font-bold">/</span>
-              <span className="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
-                System Online
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CartBell />
-              <NotificationsDropdown />
-              <div className="h-6 w-px bg-slate-100 mx-1" />
-              {session ? (
-                <AccountSwitcher />
-              ) : (
-                <button
-                  onClick={() => signIn('google')}
-                  className="px-4 py-2 bg-teal-700 text-white rounded-lg text-xs font-bold shadow-sm hover:bg-teal-800 transition-colors"
-                >
-                  Sign In
-                </button>
-              )}
-            </div>
-          </header>
-
-          {/* Mobile Header */}
-          <header className="md:hidden flex flex-col px-5 pt-4 pb-3 bg-[#F6F7F8] sticky top-0 z-20">
-            <div className="flex items-center justify-between">
-              <Link href="/" className="flex items-center gap-2" onClick={() => setMenuOpen(false)}>
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-700 to-teal-500 flex items-center justify-center text-white">
-                  <LayoutGrid className="w-4 h-4" />
+        <div className="flex-1 flex flex-col min-w-0 bg-[#F6F7F8] md:bg-[#F6F7F8] relative h-full overflow-hidden">
+          {/* Dedicated Workspace Top Bar */}
+          {isWorkspace ? (
+            <header className="h-11 bg-slate-900 text-white flex items-center justify-between px-4 sm:px-6 border-b border-slate-800 shrink-0 z-40 select-none">
+              <div className="flex items-center gap-3">
+                <Link href="/" className="flex items-center gap-2 text-white hover:text-teal-300 transition-colors">
+                  <div className="w-6 h-6 rounded-lg bg-teal-600 flex items-center justify-center font-black text-[10px] text-white shadow-sm">
+                    CC
+                  </div>
+                  <span className="font-black text-xs tracking-tight hidden sm:inline">CityConnect</span>
+                </Link>
+                <span className="text-slate-700 hidden sm:inline">/</span>
+                <div className="flex items-center gap-1.5 text-xs text-teal-400 font-bold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="uppercase tracking-wider text-[10px]">Business Portal</span>
                 </div>
-                <div>
-                  <h1 className="text-lg font-black tracking-tight text-ink leading-none">CityOS</h1>
-                  <CityPicker className="text-[8px]" />
-                </div>
-              </Link>
-              <div className="flex items-center gap-2">
-                <CartBell />
-                <NotificationsDropdown />
-                {session ? <AccountSwitcher className="sm:hidden" /> : null}
-                <button
-                  onClick={() => setMenuOpen((o) => !o)}
-                  aria-label="Menu"
-                  className="w-9 h-9 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 active:bg-slate-50 transition-colors"
-                >
-                  {menuOpen ? <X className="w-4 h-4" /> : <MenuIcon className="w-4 h-4" />}
-                </button>
               </div>
-            </div>
-          </header>
+
+              <div className="flex items-center gap-2">
+                <AccountSwitcher />
+              </div>
+            </header>
+          ) : (
+            <>
+              {/* Desktop Top Nav */}
+              <header className="hidden md:flex h-16 items-center justify-between px-6 lg:px-8 bg-white border-b border-slate-100 sticky top-0 z-20">
+                <div className="flex items-center gap-3">
+                  <h2 className="text-xs font-black text-ink uppercase tracking-[0.18em]">{getTitle()}</h2>
+                  <span className="text-[10px] text-slate-300 font-bold">/</span>
+                  <span className="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
+                    System Online
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CartBell />
+                  <NotificationsDropdown />
+                  <div className="h-6 w-px bg-slate-100 mx-1" />
+                  {session ? (
+                    <AccountSwitcher />
+                  ) : (
+                    <button
+                      onClick={() => signIn('google')}
+                      className="px-4 py-2 bg-teal-700 text-white rounded-lg text-xs font-bold shadow-sm hover:bg-teal-800 transition-colors"
+                    >
+                      Sign In
+                    </button>
+                  )}
+                </div>
+              </header>
+
+              {/* Mobile Header */}
+              <header className="md:hidden flex flex-col px-5 pt-4 pb-3 bg-[#F6F7F8] sticky top-0 z-20">
+                <div className="flex items-center justify-between">
+                  <Link href="/" className="flex items-center gap-2" onClick={() => setMenuOpen(false)}>
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-700 to-teal-500 flex items-center justify-center text-white">
+                      <LayoutGrid className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h1 className="text-lg font-black tracking-tight text-ink leading-none">CityOS</h1>
+                      <CityPicker className="text-[8px]" />
+                    </div>
+                  </Link>
+                  <div className="flex items-center gap-2">
+                    <CartBell />
+                    <NotificationsDropdown />
+                    {session ? <AccountSwitcher className="sm:hidden" /> : null}
+                    <button
+                      onClick={() => setMenuOpen((o) => !o)}
+                      aria-label="Menu"
+                      className="w-9 h-9 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 active:bg-slate-50 transition-colors"
+                    >
+                      {menuOpen ? <X className="w-4 h-4" /> : <MenuIcon className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+              </header>
+            </>
+          )}
 
           {/* Mobile Menu Drawer */}
           {menuOpen ? (
@@ -589,44 +617,57 @@ const navGroups: { label: string; items: NavItem[] }[] = [
           ) : null}
 
           {/* Scrollable View Area */}
-          <main className="flex-1 overflow-y-auto px-4 md:px-8 py-5 md:py-8 relative scroll-smooth pb-28 md:pb-8">
-            <div className="mx-auto max-w-6xl h-full">
-              <ActiveBusinessBanner />
-              {children}
-            </div>
+          <main
+            className={cn(
+              'flex-1 relative',
+              isWorkspace
+                ? 'p-0 overflow-hidden flex flex-col min-w-0 h-full'
+                : 'overflow-y-auto px-4 md:px-8 py-5 md:py-8 scroll-smooth pb-28 md:pb-8'
+            )}
+          >
+            {isWorkspace ? (
+              children
+            ) : (
+              <div className="mx-auto max-w-6xl h-full">
+                <ActiveBusinessBanner />
+                {children}
+              </div>
+            )}
           </main>
 
           {/* One-time geolocation suggestion: offers a switch, never performs one. */}
-          <GeoCitySuggestion />
+          {!isWorkspace && <GeoCitySuggestion />}
 
           {/* Cart/city trust layer: cross-city bag prompt + foreign-bag notice. */}
-          <CartCityGuard />
+          {!isWorkspace && <CartCityGuard />}
 
-          {/* Mobile Bottom Navigation */}
-          <nav className="md:hidden absolute bottom-0 left-0 right-0 bg-white border-t border-slate-100 flex items-center justify-between px-2 h-16 z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">
-            {[
-              { id: 'home', path: '/', label: 'Home', icon: LayoutGrid },
-              { id: 'map', path: '/map', label: 'Map', icon: MapIcon },
-              { id: 'create', path: '/create', label: 'Create', icon: PenSquare },
-              { id: 'activity', path: '/activity', label: 'Activity', icon: Bell },
-              { id: 'profile', path: '/profile', label: 'Profile', icon: UserIcon },
-            ].map((item) => {
-              const active = isActive(item.path);
-              return (
-                <Link
-                  key={item.id}
-                  href={item.path}
-                  className={cn(
-                    'flex flex-col items-center justify-center w-14 py-1.5 rounded-xl transition-colors',
-                    active ? 'text-teal-800' : 'text-slate-400 hover:text-slate-600',
-                  )}
-                >
-                  <item.icon className={cn('w-5 h-5 mb-0.5', active && 'fill-teal-50')} />
-                  <span className="text-[9px] font-bold uppercase tracking-wider">{item.label}</span>
-                </Link>
-              );
-            })}
-          </nav>
+          {/* Mobile Bottom Navigation - only in resident mode */}
+          {!isWorkspace && (
+            <nav className="md:hidden absolute bottom-0 left-0 right-0 bg-white border-t border-slate-100 flex items-center justify-between px-2 h-16 z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">
+              {[
+                { id: 'home', path: '/', label: 'Home', icon: LayoutGrid },
+                { id: 'map', path: '/map', label: 'Map', icon: MapIcon },
+                { id: 'create', path: '/create', label: 'Create', icon: PenSquare },
+                { id: 'activity', path: '/activity', label: 'Activity', icon: Bell },
+                { id: 'profile', path: '/profile', label: 'Profile', icon: UserIcon },
+              ].map((item) => {
+                const active = isActive(item.path);
+                return (
+                  <Link
+                    key={item.id}
+                    href={item.path}
+                    className={cn(
+                      'flex flex-col items-center justify-center w-14 py-1.5 rounded-xl transition-colors',
+                      active ? 'text-teal-800' : 'text-slate-400 hover:text-slate-600',
+                    )}
+                  >
+                    <item.icon className={cn('w-5 h-5 mb-0.5', active && 'fill-teal-50')} />
+                    <span className="text-[9px] font-bold uppercase tracking-wider">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+          )}
         </div>
       </div>
         </AccountSwitcherProvider>
