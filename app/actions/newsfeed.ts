@@ -76,7 +76,7 @@ export async function fetchFeed(feedType: 'For You' | 'Following', topic: string
         videoUrl: post.videoUrl,
         eventDate: post.eventDate ? new Date(post.eventDate).toISOString() : undefined,
         location: post.location,
-        price: post.price,
+        price: post.price != null ? Number(post.price) : undefined,
         likes: post.likes || 0,
         comments: post.comments || 0,
         shares: post.shareCount || 0,
