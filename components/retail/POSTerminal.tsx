@@ -63,7 +63,7 @@ export default function POSTerminal({ organizationId, products, shiftId, onOrder
   const [isCustomerPickerOpen, setIsCustomerPickerOpen] = useState(false);
   const [completedOrderId, setCompletedOrderId] = useState<string | null>(null);
   const [taxRate, setTaxRate] = useState<number>(8); // default fallback of 8%
-  const [symbol, setSymbol] = useState<string>("$");
+  const [symbol, setSymbol] = useState<string>("₦");
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 

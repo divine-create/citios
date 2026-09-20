@@ -3,18 +3,52 @@ import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { db } from "@/src/prisma/db";
 import { resolvePersonByEmail, findPersonByEmail } from "@/lib/identity";
+import { verifyPassword } from "@/lib/password";
 import type { OrgMembership } from "@/types/next-auth";
 
-// Dev-only demo login so the prototype can be exercised across every
-// vertical without real Google OAuth. Accepts password "1234" for any email
-// that matches an existing User row (e.g. demo@cityconnect.local, seeded
-// with OWNER membership everywhere, or a named per-role account like
-// principal@cityconnect.local). Never enabled in production.
 export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || "mock-client-id",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "mock-client-secret",
+    }),
+    CredentialsProvider({
+      id: "credentials",
+      name: "Email and Password",
+      credentials: {
+        email: { label: "Email", type: "text" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          return null;
+        }
+        const normalizedEmail = credentials.email.trim().toLowerCase();
+        const dbPerson = await findPersonByEmail(normalizedEmail);
+        if (!dbPerson) {
+          return null;
+        }
+
+        const account = await db.orm.public.Account
+          .where({ personId: dbPerson.id })
+          .all()
+          .first();
+
+        if (!account || !account.isActive || !account.passwordHash) {
+          return null;
+        }
+
+        const isValid = await verifyPassword(credentials.password, account.passwordHash);
+        if (!isValid) {
+          return null;
+        }
+
+        return {
+          id: dbPerson.id,
+          email: normalizedEmail,
+          name: `${dbPerson.firstName} ${dbPerson.lastName}`,
+        };
+      },
     }),
     ...(process.env.NODE_ENV !== "production"
       ? [
@@ -119,8 +153,7 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
-  // If we want a custom sign-in page later, we define it here:
-  // pages: {
-  //   signIn: '/login',
-  // }
+  pages: {
+    signIn: '/login',
+  },
 };

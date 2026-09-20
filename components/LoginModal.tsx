@@ -57,17 +57,30 @@ export default function LoginModal({
                     <div className="space-y-3">
                         <Button 
                             variant="accent" 
-                            className="w-full py-4 text-sm flex items-center justify-center gap-3 shadow-lg shadow-teal-900/10 hover:shadow-teal-900/20 group"
+                            className="w-full py-3.5 text-sm flex items-center justify-center gap-3 shadow-lg shadow-teal-900/10 hover:shadow-teal-900/20 group"
                             onClick={() => signIn('google')}
                         >
                             <LogIn className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
                             Continue with Google
                             <Sparkles className="w-4 h-4 text-teal-200 ml-auto mr-1" />
                         </Button>
+
+                        <a
+                            href="/login"
+                            className="w-full py-3 px-4 bg-slate-50 hover:bg-slate-100 text-slate-800 font-bold text-xs rounded-xl transition-colors flex items-center justify-center border border-slate-200"
+                        >
+                            Sign in with Email & Password
+                        </a>
+
+                        <div className="text-center pt-1">
+                            <span className="text-xs text-slate-500">Need an account? </span>
+                            <a href="/register" className="text-xs font-bold text-teal-700 hover:underline">Create Account</a>
+                        </div>
+
                         {process.env.NODE_ENV !== 'production' && (
                             <Button
                                 variant="outline"
-                                className="w-full py-4 text-sm flex items-center justify-center gap-3"
+                                className="w-full py-3 text-xs flex items-center justify-center gap-3 text-teal-800 bg-teal-50/50 border-teal-200"
                                 onClick={() =>
                                     signIn('demo', {
                                         email: 'demo@cityconnect.local',
@@ -75,13 +88,13 @@ export default function LoginModal({
                                     })
                                 }
                             >
-                                <Sparkles className="w-4 h-4" />
-                                Demo Login (all verticals)
+                                <Sparkles className="w-3.5 h-3.5 text-teal-600" />
+                                Instant Dev Demo Login
                             </Button>
                         )}
                         <button
                             onClick={onClose}
-                            className="w-full py-3 text-xs font-bold text-slate-400 hover:text-slate-700 transition-colors uppercase tracking-wider"
+                            className="w-full py-2.5 text-xs font-bold text-slate-400 hover:text-slate-700 transition-colors uppercase tracking-wider"
                         >
                             Not now, maybe later
                         </button>

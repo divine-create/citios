@@ -23,8 +23,7 @@ export default function RegisterForm({ initialType, isLoggedIn }: { initialType:
     setError('');
 
     if (!isLoggedIn) {
-      // Direct them to login, then redirect back here
-      signIn('google', { callbackUrl: `/business/register?type=${formData.type}` });
+      router.push(`/login?callbackUrl=${encodeURIComponent(`/business/register?type=${formData.type}`)}`);
       return;
     }
 

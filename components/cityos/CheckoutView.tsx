@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -8,13 +8,12 @@ import { useCart } from '@/components/cityos/CartStore';
 import { useWallet } from '@/components/cityos/WalletStore';
 import { Money, Pill } from '@/components/cityos/CityUI';
 import { cn } from '@/lib/utils';
-import { placeRetailOrder } from '@/app/actions/commerce';
-import { placeRestaurantOrder } from '@/app/actions/food';
+import { initiateCheckout } from '@/app/actions/payment';
 
 const METHODS = [
-  { id: 'wallet', label: 'CityPay Wallet', sub: 'Tap to use CityPay', icon: Wallet },
-  { id: 'card', label: 'Bank card', sub: 'Visa / Mastercard â€“ saved', icon: CreditCard },
-  { id: 'transfer', label: 'Bank transfer', sub: 'GTBank â€“ reference shown', icon: Landmark },
+  { id: 'card', label: 'Debit / Credit Card', sub: 'Visa, Mastercard, Verve via Paystack', icon: CreditCard },
+  { id: 'transfer', label: 'Bank Transfer / USSD', sub: 'Direct bank transfer via Paystack', icon: Landmark },
+  { id: 'wallet', label: 'CityPay Wallet', sub: 'Instant resident wallet balance', icon: Wallet },
 ] as const;
 
 type MethodId = 'wallet' | 'card' | 'transfer';
@@ -24,13 +23,13 @@ export default function CheckoutView() {
   const router = useRouter();
   const { lines, subtotal, deliveryFee, clear } = useCart();
   const { spend, balance } = useWallet();
-  const [method, setMethod] = useState<MethodId>('wallet');
+  const [method, setMethod] = useState<MethodId>('card');
   const [processing, setProcessing] = useState(false);
   const [walletError, setWalletError] = useState(false);
 
   // Split the shared cart by line kind. Retail and food are different
   // canonical order pipelines (RetailOrder vs RestaurantOrder), so a mixed
-  // cart cannot be checked out in one pass â€” the resident resolves it by
+  // cart cannot be checked out in one pass — the resident resolves it by
   // checking out each kind separately.
   const retailLines = lines.filter((l) => l.kind === 'retail');
   const foodLines = lines.filter((l) => l.kind === 'food');
@@ -66,29 +65,12 @@ export default function CheckoutView() {
     setProcessing(true);
 
     try {
-      if (foodOnly) {
-        // Food pipeline: RestaurantOrder + OrderItem per restaurant.
-        // Org and prices are derived server-side from MenuItem records.
-        const result = await placeRestaurantOrder({
-          items: foodLines.map((l) => ({
-            menuItemId: l.productId,
-            qty: l.qty,
-            name: l.name,
-          })),
-          type: 'TAKEOUT',
-        });
+      const checkoutKind = foodOnly ? 'food' : 'retail';
+      const activeLines = foodOnly ? foodLines : retailLines;
 
-        if (result.success) {
-          clear();
-          router.push('/pay/success');
-        }
-        return;
-      }
-
-      // Retail pipeline: RetailOrder + RetailOrderItem per organization.
-      // Org and prices are derived server-side from RetailProduct records.
-      const result = await placeRetailOrder({
-        items: retailLines.map((l) => ({
+      const res = await initiateCheckout({
+        kind: checkoutKind,
+        items: activeLines.map((l) => ({
           productId: l.productId,
           qty: l.qty,
           name: l.name,
@@ -96,13 +78,24 @@ export default function CheckoutView() {
         method,
       });
 
-      if (result.success) {
+      if (res.error) {
+        alert(res.error);
+        setProcessing(false);
+        return;
+      }
+
+      if (res.success && res.redirectUrl) {
         clear();
-        router.push('/pay/success');
+        if (res.redirectUrl.startsWith('http') && !res.redirectUrl.includes(window.location.host)) {
+          // External Paystack checkout URL
+          window.location.href = res.redirectUrl;
+        } else {
+          router.push(res.redirectUrl);
+        }
       }
     } catch (err) {
       console.error(err);
-      alert('Failed to place order via server action: ' + (err as Error).message);
+      alert('Failed to process payment: ' + (err as Error).message);
       setProcessing(false);
     }
   };
