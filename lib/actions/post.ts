@@ -74,6 +74,7 @@ export async function getPostDetails(postId: string) {
 }
 
 import { revalidatePath } from 'next/cache';
+import { notifyPerson } from '@/lib/notify';
 
 export async function addComment(postId: string, content: string, parentId?: string) {
     try {
@@ -90,6 +91,17 @@ export async function addComment(postId: string, content: string, parentId?: str
         if (parentId) data.parentId = parentId;
     
         await db.orm.public.Comment.create(data);
+
+        // Fetch the post to notify the author
+        const post = await db.orm.public.Post.where({ id: postId }).all().first();
+        if (post && post.personId !== person.id) {
+            await notifyPerson(post.personId, {
+                type: 'NEW_COMMENT',
+                title: 'New Comment on Your Post',
+                body: `${person.firstName || 'Someone'} commented: "${content.length > 30 ? content.slice(0, 30) + '...' : content}"`,
+                href: `/post/${postId}`,
+            });
+        }
         
         try {
             revalidatePath(`/post/${postId}`);
