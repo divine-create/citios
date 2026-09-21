@@ -409,7 +409,7 @@ function TabPOS({ menu, tables, showTables, slug, onDone, org, settings }: any) 
       <div className="flex-1 p-4 lg:p-6 overflow-y-auto">
         <PageHeader title="POS Terminal" subtitle="Tap items to add" />
         <div className="mt-6 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-          {menu.map(m => (
+          {menu.map((m: any) => (
             <button key={m.id} onClick={() => posAdd(m)} disabled={m.isAvailable === false} className={cn("p-4 rounded-xl border text-left transition-all", m.isAvailable === false ? "bg-slate-50 border-slate-200 opacity-50" : "bg-white border-slate-200 hover:border-orange-400 hover:shadow-md active:scale-95")}>
               <p className="text-sm font-bold text-slate-900 line-clamp-2">{m.name}</p>
               <p className="text-xs text-slate-500 mt-1">{m.category}</p>
