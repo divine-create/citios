@@ -17,32 +17,45 @@ import {
   CreditCard 
 } from 'lucide-react';
 
-const MOCK_TICKET_TIERS = [
-  { id: '1', name: 'Early Bird', price: 15, sold: 150, capacity: 150, status: 'Sold Out' },
-  { id: '2', name: 'General Admission', price: 25, sold: 342, capacity: 500, status: 'On Sale' },
-  { id: '3', name: 'VIP Access', price: 75, sold: 45, capacity: 50, status: 'On Sale' },
-];
-
-const MOCK_ATTENDEES = [
-  { id: 'a1', name: 'Alice Johnson', email: 'alice.j@example.com', tier: 'VIP Access', purchaseDate: 'Oct 12, 2024', status: 'Checked In' },
-  { id: 'a2', name: 'Bob Smith', email: 'bob.s@example.com', tier: 'General Admission', purchaseDate: 'Oct 14, 2024', status: 'Pending' },
-  { id: 'a3', name: 'Charlie Davis', email: 'charlie.d@example.com', tier: 'Early Bird', purchaseDate: 'Sep 01, 2024', status: 'Checked In' },
-  { id: 'a4', name: 'Diana Prince', email: 'diana.p@example.com', tier: 'General Admission', purchaseDate: 'Oct 15, 2024', status: 'Pending' },
-  { id: 'a5', name: 'Evan Wright', email: 'evan.w@example.com', tier: 'VIP Access', purchaseDate: 'Oct 18, 2024', status: 'Pending' },
-];
-
-export default function OrganizerDashboard() {
+export default function OrganizerDashboard({ event, ticketTiers, tickets, persons }: { event: any, ticketTiers: any[], tickets: any[], persons: any[] }) {
   const [activeTab, setActiveTab] = useState<'analytics' | 'tickets' | 'attendees'>('analytics');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const totalRevenue = MOCK_TICKET_TIERS.reduce((acc, tier) => acc + (tier.price * tier.sold), 0);
-  const totalSold = MOCK_TICKET_TIERS.reduce((acc, tier) => acc + tier.sold, 0);
-  const totalCapacity = MOCK_TICKET_TIERS.reduce((acc, tier) => acc + tier.capacity, 0);
+  const validTickets = tickets.filter(t => t.status === 'VALID' || t.status === 'SCANNED');
+  
+  const totalRevenue = validTickets.reduce((acc, ticket) => {
+    const tier = ticketTiers.find(tier => tier.id === ticket.tierId);
+    return acc + (tier?.price || 0);
+  }, 0);
+  const totalSold = validTickets.length;
+  const totalCapacity = ticketTiers.reduce((acc, tier) => acc + tier.capacity, 0);
 
-  const filteredAttendees = MOCK_ATTENDEES.filter(a => 
+  const attendees = tickets.map(ticket => {
+    const person = persons.find(p => p.id === ticket.personId);
+    const tier = ticketTiers.find(t => t.id === ticket.tierId);
+    return {
+      id: ticket.id,
+      name: person ? `${person.firstName || ''} ${person.lastName || ''}`.trim() : 'Unknown Attendee',
+      email: person?.email || '',
+      tier: tier?.name || 'Unknown Tier',
+      purchaseDate: new Date(ticket.createdAt || Date.now()).toLocaleDateString(),
+      status: ticket.status === 'SCANNED' ? 'Checked In' : (ticket.status === 'VALID' ? 'Pending' : ticket.status)
+    };
+  });
+
+  const filteredAttendees = attendees.filter(a => 
     a.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     a.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const ticketTiersWithSold = ticketTiers.map(tier => {
+    const sold = validTickets.filter(t => t.tierId === tier.id).length;
+    return {
+      ...tier,
+      sold,
+      status: sold >= tier.capacity ? 'Sold Out' : 'On Sale'
+    };
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col">
@@ -55,10 +68,10 @@ export default function OrganizerDashboard() {
               <span>&bull;</span>
               <span>Organizer Portal</span>
             </div>
-            <h1 className="text-3xl font-bold tracking-tight">Neon Nights Music Festival</h1>
+            <h1 className="text-3xl font-bold tracking-tight">{event.title || 'Event Name'}</h1>
             <div className="flex items-center space-x-4 mt-2 text-gray-500 text-sm">
-              <span className="flex items-center"><Calendar className="w-4 h-4 mr-1" /> Oct 31, 2024</span>
-              <span className="flex items-center"><MapPin className="w-4 h-4 mr-1" /> Downtown Warehouse</span>
+              <span className="flex items-center"><Calendar className="w-4 h-4 mr-1" /> {event.startDate ? new Date(event.startDate).toLocaleDateString() : 'Date TBD'}</span>
+              <span className="flex items-center"><MapPin className="w-4 h-4 mr-1" /> {event.location || 'Location TBD'}</span>
             </div>
           </div>
           <div className="flex space-x-3">
@@ -169,7 +182,7 @@ export default function OrganizerDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {MOCK_TICKET_TIERS.map(tier => (
+                  {ticketTiersWithSold.map(tier => (
                     <tr key={tier.id} className="hover:bg-gray-50/50 transition">
                       <td className="px-6 py-4 font-medium">{tier.name}</td>
                       <td className="px-6 py-4">${tier.price}</td>

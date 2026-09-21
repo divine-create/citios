@@ -2,40 +2,39 @@
 
 import React, { useState } from 'react';
 import { QrCode, Search, CheckCircle, AlertTriangle, Users, Scan, Check } from 'lucide-react';
+import { updateTicketStatus } from '@/lib/actions/events';
 
-const mockAttendees = [
-  { id: '1', name: 'Alice Smith', type: 'VIP', status: 'checked-in' },
-  { id: '2', name: 'Bob Jones', type: 'GA', status: 'pending' },
-  { id: '3', name: 'Charlie Brown', type: 'GA', status: 'pending' },
-  { id: '4', name: 'Diana Prince', type: 'VIP', status: 'pending' },
-  { id: '5', name: 'Evan Wright', type: 'Early Bird', status: 'checked-in' },
-  { id: '6', name: 'Frank Ocean', type: 'VIP', status: 'pending' },
-  { id: '7', name: 'Grace Hopper', type: 'GA', status: 'checked-in' },
-  { id: '8', name: 'Henry Ford', type: 'Early Bird', status: 'pending' },
-  { id: '9', name: 'Ivy Lee', type: 'GA', status: 'pending' },
-  { id: '10', name: 'Jack Ma', type: 'VIP', status: 'pending' },
-];
-
-export default function ScannerApp() {
+export default function ScannerApp({ event, tickets, persons }: { event: any, tickets: any[], persons: any[] }) {
   const [activeTab, setActiveTab] = useState<'scan' | 'list'>('scan');
   const [searchQuery, setSearchQuery] = useState('');
-  const [attendees, setAttendees] = useState(mockAttendees);
+  const [localTickets, setLocalTickets] = useState(tickets);
   
-  const capacity = 500;
-  const checkedInCount = attendees.filter(a => a.status === 'checked-in').length;
+  const capacity = event?.capacity || 500;
+  const checkedInCount = localTickets.filter(t => t.status === 'SCANNED').length;
 
-  const handleCheckIn = (id: string) => {
-    setAttendees(prev => 
-      prev.map(a => a.id === id ? { ...a, status: 'checked-in' } : a)
+  const handleCheckIn = async (id: string) => {
+    setLocalTickets(prev => 
+      prev.map(t => t.id === id ? { ...t, status: 'SCANNED' } : t)
     );
+    await updateTicketStatus(id, 'SCANNED');
   };
+
+  const attendees = localTickets.map(ticket => {
+    const person = persons.find(p => p.id === ticket.personId);
+    return {
+      id: ticket.id,
+      name: person ? `${person.firstName || ''} ${person.lastName || ''}`.trim() : 'Unknown Attendee',
+      type: ticket.tier?.name || 'General Admission',
+      status: ticket.status === 'SCANNED' ? 'checked-in' : 'pending'
+    };
+  });
 
   return (
     <div className="flex flex-col h-screen bg-black text-white font-sans overflow-hidden">
       {/* Header / Venue Capacity */}
       <div className="flex items-center justify-between p-4 bg-zinc-900 border-b border-zinc-800">
         <div className="flex flex-col">
-          <span className="text-sm text-zinc-400">CityConnect Neon Nights</span>
+          <span className="text-sm text-zinc-400">{event.title || 'CityConnect Event'}</span>
           <span className="text-xl font-bold">Door Scanner</span>
         </div>
         <div className="flex items-center space-x-2 bg-zinc-800 px-3 py-1.5 rounded-full border border-zinc-700">

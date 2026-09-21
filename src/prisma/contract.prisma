@@ -2072,17 +2072,30 @@ model Event {
   organization   Organization @relation("OrganizationEvents", fields: [organizationId], references: [id], onDelete: Cascade)
   
   tickets        Ticket[]
+  ticketTiers    EventTicketTier[]
   createdAt      DateTime     @default(now())
+}
+
+model EventTicketTier {
+  id        String   @id @default(uuid())
+  eventId   String
+  name      String
+  price     Float
+  capacity  Int
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  tickets   Ticket[]
 }
 
 model Ticket {
   id             String       @id @default(uuid())
   eventId        String
-  personId         String
+  tierId         String?
+  personId       String
   status         String       @default("VALID") // VALID, SCANNED, REFUNDED
   
   event          Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  person           Person         @relation("UserTickets", fields: [personId], references: [id], onDelete: Cascade)
+  tier           EventTicketTier? @relation(fields: [tierId], references: [id])
+  person         Person         @relation("UserTickets", fields: [personId], references: [id], onDelete: Cascade)
   
   createdAt      DateTime     @default(now())
 }

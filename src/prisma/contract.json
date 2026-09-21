@@ -92,6 +92,10 @@
       "model": "EventRegistration",
       "namespace": "public"
     },
+    "eventTicketTier": {
+      "model": "EventTicketTier",
+      "namespace": "public"
+    },
     "familyLink": {
       "model": "FamilyLink",
       "namespace": "public"
@@ -3762,6 +3766,21 @@
                   "namespace": "public"
                 }
               },
+              "ticketTiers": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "eventId"
+                  ]
+                },
+                "to": {
+                  "model": "EventTicketTier",
+                  "namespace": "public"
+                }
+              },
               "tickets": {
                 "cardinality": "1:N",
                 "on": {
@@ -3902,6 +3921,98 @@
               },
               "namespaceId": "public",
               "table": "eventRegistration"
+            }
+          },
+          "EventTicketTier": {
+            "fields": {
+              "capacity": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "eventId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "name": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "price": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "event": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "eventId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Event",
+                  "namespace": "public"
+                }
+              },
+              "tickets": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "tierId"
+                  ]
+                },
+                "to": {
+                  "model": "Ticket",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "capacity": {
+                  "column": "capacity"
+                },
+                "eventId": {
+                  "column": "eventId"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "name": {
+                  "column": "name"
+                },
+                "price": {
+                  "column": "price"
+                }
+              },
+              "namespaceId": "public",
+              "table": "eventTicketTier"
             }
           },
           "FamilyLink": {
@@ -21696,6 +21807,13 @@
                   "codecId": "pg/text@1",
                   "kind": "scalar"
                 }
+              },
+              "tierId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
               }
             },
             "relations": {
@@ -21728,6 +21846,21 @@
                   "model": "Person",
                   "namespace": "public"
                 }
+              },
+              "tier": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "tierId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "EventTicketTier",
+                  "namespace": "public"
+                }
               }
             },
             "storage": {
@@ -21746,6 +21879,9 @@
                 },
                 "status": {
                   "column": "status"
+                },
+                "tierId": {
+                  "column": "tierId"
                 }
               },
               "namespaceId": "public",
@@ -24894,6 +25030,70 @@
                   ]
                 }
               ]
+            },
+            "eventTicketTier": {
+              "columns": {
+                "capacity": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "eventId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "name": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "price": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "eventId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "eventTicketTier"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "event"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "eventId"
+                  ],
+                  "name": "eventTicketTier_eventId_idx_6a266d47",
+                  "prefix": "eventTicketTier_eventId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
             },
             "familyLink": {
               "columns": {
@@ -38422,6 +38622,11 @@
                   },
                   "nativeType": "text",
                   "nullable": false
+                },
+                "tierId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
                 }
               },
               "foreignKeys": [
@@ -38440,6 +38645,22 @@
                     ],
                     "namespaceId": "public",
                     "tableName": "event"
+                  }
+                },
+                {
+                  "source": {
+                    "columns": [
+                      "tierId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "ticket"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "eventTicketTier"
                   }
                 },
                 {
@@ -38475,6 +38696,14 @@
                   ],
                   "name": "ticket_personId_idx_e5e06b80",
                   "prefix": "ticket_personId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "tierId"
+                  ],
+                  "name": "ticket_tierId_idx_b5726123",
+                  "prefix": "ticket_tierId_idx",
                   "unique": false
                 }
               ],
@@ -39344,10 +39573,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "9d398bada4722de3c2cb500315294ea00e5e5e1dd33656083dea515af15333a8"
+    "storageHash": "8cd20a99d360dc69b558c73ade7ffeae8b1acdb040718b5a38710a8e0db17c31"
   },
   "execution": {
-    "executionHash": "20dd76bf54bd2e6d0fff8643326b0cf4a5118b472670df2652e792538e8eccaf",
+    "executionHash": "cbb92f74578305c118702181b671ac27380a242c9102cd91faad8bb8bf67c6d7",
     "mutations": {
       "defaults": [
         {
@@ -39590,6 +39819,17 @@
             "column": "id",
             "namespace": "public",
             "table": "eventRegistration"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "eventTicketTier"
           }
         },
         {
