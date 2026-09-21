@@ -20,8 +20,11 @@ import {
   getTables, createTable, updateTableStatus,
   getReservations, createReservation, updateReservationStatus,
   getKitchenTickets, getOrders, createPosOrder, updateOrderStatus,
-  getInventoryItems, createInventoryItem, adjustStock, deleteInventoryItem,
+  getInventoryItems, createInventoryItem, adjustStock, deleteInventoryItem, updateInventoryItem,
+  getStockMovements,
   getFinancialSummary, addExpense, getExpenses,
+  getSuppliers, createSupplier, deleteSupplier,
+  getPurchaseOrders, createPurchaseOrder, updatePurchaseOrderStatus,
 } from "@/lib/actions/restaurantos";
 import { cn } from "@/lib/utils";
 import {

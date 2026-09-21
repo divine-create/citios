@@ -1004,3 +1004,163 @@ export async function getRestaurantOSData(organizationId: string) {
     return null;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Suppliers (shared RetailSupplier table, scoped by organizationId)
+// ---------------------------------------------------------------------------
+
+export async function getSuppliers(organizationId: string) {
+  try {
+    await requireMembership(organizationId);
+    const suppliers = await db.orm.public.RetailSupplier.where({ organizationId }).all();
+    const sorted = [...suppliers].sort((a: any, b: any) =>
+      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    return JSON.parse(JSON.stringify(sorted));
+  } catch (error) {
+    console.error('Error fetching suppliers:', error);
+    return [];
+  }
+}
+
+export async function createSupplier(input: {
+  organizationId: string;
+  name: string;
+  contactName?: string;
+  email?: string;
+  phone?: string;
+  leadTimeDays?: number;
+  paymentTerms?: string;
+}) {
+  try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'INVENTORY_STAFF']);
+    if (!input.name.trim()) return { error: 'Supplier name is required.' };
+
+    const supplier = await db.orm.public.RetailSupplier.create({
+      organizationId: input.organizationId,
+      name: input.name.trim(),
+      contactName: input.contactName ?? null,
+      email: input.email ?? null,
+      phone: input.phone ?? null,
+      leadTimeDays: input.leadTimeDays ?? null,
+      paymentTerms: input.paymentTerms ?? null,
+    });
+    revalidatePath('/admin/restaurantos');
+    return JSON.parse(JSON.stringify(supplier));
+  } catch (error) {
+    console.error('Error creating supplier:', error);
+    return { error: error instanceof Error ? error.message : 'Failed to create supplier.' };
+  }
+}
+
+export async function updateSupplier(
+  supplierId: string,
+  input: Partial<{ name: string; contactName: string; email: string; phone: string; leadTimeDays: number; paymentTerms: string }>,
+) {
+  try {
+    const supplier = await db.orm.public.RetailSupplier.where({ id: supplierId }).all().first();
+    if (!supplier) return { error: 'Supplier not found.' };
+    await requireMembership(supplier.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'INVENTORY_STAFF']);
+
+    await db.orm.public.RetailSupplier.where({ id: supplierId }).update(input);
+    const updated = await db.orm.public.RetailSupplier.where({ id: supplierId }).all().first();
+    revalidatePath('/admin/restaurantos');
+    return JSON.parse(JSON.stringify(updated));
+  } catch (error) {
+    console.error('Error updating supplier:', error);
+    return { error: error instanceof Error ? error.message : 'Failed to update supplier.' };
+  }
+}
+
+export async function deleteSupplier(supplierId: string) {
+  try {
+    const supplier = await db.orm.public.RetailSupplier.where({ id: supplierId }).all().first();
+    if (!supplier) return { error: 'Supplier not found.' };
+    await requireMembership(supplier.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
+
+    await db.orm.public.RetailSupplier.where({ id: supplierId }).delete();
+    revalidatePath('/admin/restaurantos');
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting supplier:', error);
+    return { error: error instanceof Error ? error.message : 'Failed to delete supplier.' };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Purchase Orders (shared RetailPurchaseOrder table, scoped by organizationId)
+// ---------------------------------------------------------------------------
+
+export async function getPurchaseOrders(organizationId: string) {
+  try {
+    await requireMembership(organizationId);
+    const pos = await db.orm.public.RetailPurchaseOrder.where({ organizationId }).all();
+    const suppliers = await db.orm.public.RetailSupplier.where({ organizationId }).all();
+    const sorted = [...pos].sort((a: any, b: any) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return JSON.parse(JSON.stringify(
+      sorted.map((po: any) => ({
+        ...po,
+        supplierName: suppliers.find((s: any) => s.id === po.supplierId)?.name ?? 'Unknown',
+      })),
+    ));
+  } catch (error) {
+    console.error('Error fetching purchase orders:', error);
+    return [];
+  }
+}
+
+export async function createPurchaseOrder(input: {
+  organizationId: string;
+  supplierId: string;
+  poNumber?: string;
+  totalAmount?: number;
+  expectedDate?: string;
+  notes?: string;
+}) {
+  try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'INVENTORY_STAFF']);
+
+    // Verify supplier belongs to this org
+    const supplier = await db.orm.public.RetailSupplier
+      .where({ id: input.supplierId, organizationId: input.organizationId })
+      .all()
+      .first();
+    if (!supplier) return { error: 'Supplier not found for this organisation.' };
+
+    // Auto-generate PO number if not provided
+    const existing = await db.orm.public.RetailPurchaseOrder.where({ organizationId: input.organizationId }).all();
+    const poNumber = input.poNumber?.trim() || `PO-${String(existing.length + 1).padStart(4, '0')}`;
+
+    const po = await db.orm.public.RetailPurchaseOrder.create({
+      organizationId: input.organizationId,
+      supplierId: input.supplierId,
+      poNumber,
+      status: 'DRAFT',
+      totalAmount: input.totalAmount ?? null,
+      expectedDate: input.expectedDate ? new Date(input.expectedDate) : null,
+    });
+    revalidatePath('/admin/restaurantos');
+    return JSON.parse(JSON.stringify(po));
+  } catch (error) {
+    console.error('Error creating purchase order:', error);
+    return { error: error instanceof Error ? error.message : 'Failed to create purchase order.' };
+  }
+}
+
+export async function updatePurchaseOrderStatus(
+  poId: string,
+  status: 'DRAFT' | 'SENT' | 'RECEIVED' | 'PARTIAL' | 'CANCELLED',
+) {
+  try {
+    const po = await db.orm.public.RetailPurchaseOrder.where({ id: poId }).all().first();
+    if (!po) return { error: 'Purchase order not found.' };
+    await requireMembership(po.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'INVENTORY_STAFF']);
+
+    await db.orm.public.RetailPurchaseOrder.where({ id: poId }).update({ status });
+    revalidatePath('/admin/restaurantos');
+    return { success: true, status };
+  } catch (error) {
+    console.error('Error updating purchase order status:', error);
+    return { error: error instanceof Error ? error.message : 'Failed to update purchase order.' };
+  }
+}
