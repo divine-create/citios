@@ -58,6 +58,10 @@ export default withAuth(
     const skipOnboarding =
       req.nextUrl.pathname.startsWith('/welcome') ||
       req.nextUrl.pathname.startsWith('/profile') ||
+      req.nextUrl.pathname.startsWith('/admin/hotel') ||
+      req.nextUrl.pathname.startsWith('/hotel') ||
+      req.nextUrl.pathname.startsWith('/hotel-os') ||
+      req.nextUrl.pathname.startsWith('/business') ||
       req.nextUrl.pathname.startsWith('/api/') ||
       req.nextUrl.pathname.startsWith('/school/login') ||
       req.nextUrl.pathname === '/';
