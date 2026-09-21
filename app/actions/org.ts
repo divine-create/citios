@@ -1,4 +1,4 @@
-﻿'use server';
+'use server';
 
 import { db } from '@/src/prisma/db';
 import { getCurrentCity, getCityBySlug } from '@/lib/city';
@@ -27,6 +27,7 @@ export async function getCanonicalOrganization(id: string) {
     cityId: org.cityId,
     citySlug: orgCity?.slug ?? null,
     address: org.address,
+    logoAssetId: org.logoAssetId,
     locations,
     capabilities: {
       retail: products.length > 0,
