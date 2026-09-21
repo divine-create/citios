@@ -894,7 +894,7 @@ function ShiftsTab({ organizationId, registers, openShift: openShiftData, curren
     try {
       const res = await closeShift(openShiftData.id, { actualCash: cash });
       if (res && typeof res === 'object' && 'error' in res && res.error) { setError(res.error); return; }
-      setResult({ expectedCash: res.expectedCash, discrepancy: res.discrepancy });
+      setResult({ expectedCash: res.expectedCash as number, discrepancy: res.discrepancy as number });
       setActualCash("");
       onChanged();
       loadHistory();
