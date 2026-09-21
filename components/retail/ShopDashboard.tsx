@@ -133,6 +133,7 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
       else next.add(label);
       return next;
     });
+  const [salesShiftFilter, setSalesShiftFilter] = useState<string | null>(null);
   const [dashboard, setDashboard] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -526,7 +527,7 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
               )}
 
               {activeMenu === "Cash & Shifts" && (
-                <ShiftsTab organizationId={organizationId} registers={registers} openShift={openShiftData} currentUserId={currentUserId} onChanged={loadAll} symbol={currencySymbol} />
+                <ShiftsTab organizationId={organizationId} registers={registers} openShift={openShiftData} currentUserId={currentUserId} onChanged={loadAll} symbol={currencySymbol} setActiveMenu={setActiveMenu} setSalesShiftFilter={setSalesShiftFilter} />
               )}
 
               {activeMenu === "Suppliers & POs" && <SuppliersTab organizationId={organizationId} symbol={currencySymbol} />}
@@ -535,7 +536,7 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
 
               {activeMenu === "Settings" && <Settings organizationId={organizationId} />}
 
-              {activeMenu === "Sales & Returns" && <SalesReturnsTab organizationId={organizationId} currentUserId={currentUserId} onChanged={loadAll} symbol={currencySymbol} />}
+              {activeMenu === "Sales & Returns" && <SalesReturnsTab organizationId={organizationId} currentUserId={currentUserId} onChanged={loadAll} symbol={currencySymbol} salesShiftFilter={salesShiftFilter} setSalesShiftFilter={setSalesShiftFilter} />}
 
               {activeMenu === "Customers" && <CustomersTab organizationId={organizationId} symbol={currencySymbol} />}
 
@@ -866,8 +867,8 @@ function OpenShiftPrompt({ organizationId, registers, currentUserId, onOpened, s
 // Cash & Shifts
 // =====================================================================
 
-function ShiftsTab({ organizationId, registers, openShift: openShiftData, currentUserId, onChanged, symbol = "$" }: {
-  organizationId: string; registers: any[]; openShift: any | null; currentUserId: string; onChanged: () => void; symbol?: string;
+function ShiftsTab({ organizationId, registers, openShift: openShiftData, currentUserId, onChanged, symbol = "$", setActiveMenu, setSalesShiftFilter }: {
+  organizationId: string; registers: any[]; openShift: any | null; currentUserId: string; onChanged: () => void; symbol?: string; setActiveMenu: (m: string) => void; setSalesShiftFilter: (id: string | null) => void;
 }) {
   const [history, setHistory] = useState<any[]>([]);
   const [actualCash, setActualCash] = useState("");
@@ -954,20 +955,32 @@ function ShiftsTab({ organizationId, registers, openShift: openShiftData, curren
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3 text-right">Opening Float</th>
                 <th className="px-4 py-3 text-right">Discrepancy</th>
+                <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {history.length === 0 ? (
-                <tr><td colSpan={4} className="px-4 py-6 text-center text-slate-400">No shifts recorded yet.</td></tr>
+                <tr><td colSpan={5} className="px-4 py-6 text-center text-slate-400">No shifts recorded yet.</td></tr>
               ) : (
                 history.map((s) => (
-                  <tr key={s.id}>
+                  <tr key={s.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-4 py-3">{new Date(s.openedAt).toLocaleString()}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${s.status === "OPEN" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{s.status}</span>
                     </td>
                     <td className="px-4 py-3 text-right">{symbol}{s.openingFloat.toFixed(2)}</td>
                     <td className="px-4 py-3 text-right">{s.discrepancy != null ? `${symbol}${s.discrepancy.toFixed(2)}` : "—"}</td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        onClick={() => {
+                          setSalesShiftFilter(s.id);
+                          setActiveMenu("Sales & Returns");
+                        }}
+                        className="text-[11px] font-bold text-brand-600 hover:text-brand-800 transition-colors"
+                      >
+                        View Orders
+                      </button>
+                    </td>
                   </tr>
                 ))
               )}
@@ -1618,7 +1631,9 @@ function ReportsTab({ organizationId, setActiveMenu }: { organizationId: string;
 // Sales & Returns
 // =====================================================================
 
-function SalesReturnsTab({ organizationId, currentUserId, onChanged, symbol = "$" }: { organizationId: string; currentUserId: string; onChanged: () => void; symbol?: string }) {
+function SalesReturnsTab({ organizationId, currentUserId, onChanged, symbol = "$", salesShiftFilter, setSalesShiftFilter }: {
+  organizationId: string; currentUserId: string; onChanged: () => void; symbol?: string; salesShiftFilter?: string | null; setSalesShiftFilter?: (id: string | null) => void;
+}) {
   const [orders, setOrders] = useState<any[]>([]);
   const [statusFilter, setStatusFilter] = useState<"ALL" | "COMPLETED" | "REFUNDED">("ALL");
   const [search, setSearch] = useState("");
@@ -1630,7 +1645,10 @@ function SalesReturnsTab({ organizationId, currentUserId, onChanged, symbol = "$
   const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
-    const rows = await getOrders(organizationId, statusFilter === "ALL" ? undefined : { status: statusFilter });
+    const opts: any = {};
+    if (statusFilter !== "ALL") opts.status = statusFilter;
+    if (salesShiftFilter) opts.shiftId = salesShiftFilter;
+    const rows = await getOrders(organizationId, opts);
     setOrders(rows);
     setLoading(false);
   };
@@ -1638,7 +1656,7 @@ function SalesReturnsTab({ organizationId, currentUserId, onChanged, symbol = "$
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [organizationId, statusFilter]);
+  }, [organizationId, statusFilter, salesShiftFilter]);
 
   const filteredOrders = orders.filter((o) => {
     if (!search.trim()) return true;
@@ -1672,7 +1690,20 @@ function SalesReturnsTab({ organizationId, currentUserId, onChanged, symbol = "$
 
   return (
     <div className="p-8 max-w-6xl mx-auto space-y-6">
-      <h2 className="text-2xl font-black text-ink">Sales & Returns</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-black text-ink">Sales & Returns</h2>
+        {salesShiftFilter && (
+          <div className="bg-brand-50 border border-brand-200 text-brand-800 px-4 py-2 rounded-xl flex items-center gap-3 text-sm font-semibold">
+            <span>Viewing orders for specific shift</span>
+            <button
+              onClick={() => setSalesShiftFilter?.(null)}
+              className="px-2 py-1 bg-white hover:bg-brand-100 rounded-lg transition-colors border border-brand-200 text-xs"
+            >
+              Clear Filter
+            </button>
+          </div>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard label="Total Orders" value={String(orders.length)} />

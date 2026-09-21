@@ -11,6 +11,8 @@ import { sendWhatsAppOrderNotification } from '@/lib/whatsapp'
 import { notifyPerson, personIdForCustomerData } from '@/lib/notify'
 import { pusherServer } from '@/lib/pusher'
 
+export type ActionResponse<T = any> = { error?: string } & T;
+
 // Server-action convention in this codebase: resolve the caller's Membership
 // id from the authenticated session. Never accept a client-supplied
 // cashierId/membershipId when it can be derived here.
@@ -917,11 +919,12 @@ async function enrichOrders(organizationId: string, orders: any[]) {
   return enriched;
 }
 
-export async function getOrders(organizationId: string, options?: { limit?: number; status?: 'COMPLETED' | 'REFUNDED' }) {
+export async function getOrders(organizationId: string, options?: { limit?: number; status?: 'COMPLETED' | 'REFUNDED'; shiftId?: string }) {
   try {
     await requireMembership(organizationId);
     let orders = await db.orm.public.RetailOrder.where({ organizationId }).all();
     if (options?.status) orders = orders.filter((o) => o.status === options.status);
+    if (options?.shiftId) orders = orders.filter((o) => o.shiftId === options.shiftId);
     orders.sort((a, b) => epochMs(b.createdAt) - epochMs(a.createdAt));
     const limited = options?.limit ? orders.slice(0, options.limit) : orders;
 
