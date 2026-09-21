@@ -94,7 +94,7 @@ export async function addComment(postId: string, content: string, parentId?: str
 
         // Fetch the post to notify the author
         const post = await db.orm.public.Post.where({ id: postId }).all().first();
-        if (post && post.personId !== person.id) {
+        if (post && post.personId && post.personId !== person.id) {
             await notifyPerson(post.personId, {
                 type: 'NEW_COMMENT',
                 title: 'New Comment on Your Post',
