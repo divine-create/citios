@@ -9,7 +9,7 @@ export const runtime = 'nodejs';
 export const metadata = { title: 'Welcome to CityConnect' };
 
 export default async function WelcomePage() {
-  let session = null;
+  let session: any = null;
   let cities: Awaited<ReturnType<typeof getActiveCities>> = [];
 
   try {
@@ -23,6 +23,17 @@ export default async function WelcomePage() {
   } catch (err) {
     console.error('[WelcomePage] getActiveCities failed:', err);
   }
+
+  // Pass only plain, stable values across the server/client boundary. The
+  // database contract uses Temporal values on some columns, and leaking a
+  // raw model row into a client component can fail during production render.
+  const cityOptions = cities.map((city) => ({
+    id: String(city.id),
+    name: String(city.name),
+    state: city.state ? String(city.state) : null,
+    country: String(city.country || 'Nigeria'),
+    slug: city.slug ? String(city.slug) : undefined,
+  }));
 
   const isGuest = !session?.user;
   let alreadyCompleted = false;
@@ -43,8 +54,14 @@ export default async function WelcomePage() {
         initialData.homeCityId = person.homeCityId || '';
         if (person.dateOfBirth) {
           try {
-            const dob = new Date(person.dateOfBirth);
-            initialData.dateOfBirth = dob.toISOString().split('T')[0];
+            const dateValue = person.dateOfBirth as unknown as { epochMilliseconds?: number };
+            const timestamp = typeof dateValue.epochMilliseconds === 'number'
+              ? dateValue.epochMilliseconds
+              : new Date(person.dateOfBirth as unknown as string).getTime();
+            const dob = new Date(timestamp);
+            if (!Number.isNaN(dob.getTime())) {
+              initialData.dateOfBirth = dob.toISOString().split('T')[0];
+            }
           } catch {
             // ignore date parsing issue
           }
@@ -52,7 +69,7 @@ export default async function WelcomePage() {
       }
 
       if (resident) {
-        initialData.phone = resident.phone || '';
+        initialData.phone = typeof resident.phone === 'string' ? resident.phone : '';
         alreadyCompleted = !!resident.onboardingComplete;
         if (resident.interests) {
           try {
@@ -74,7 +91,7 @@ export default async function WelcomePage() {
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-2xl bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100 my-8">
         <WelcomeWizard
-          cities={cities}
+          cities={cityOptions}
           initialData={initialData}
           isGuest={isGuest}
           alreadyCompleted={alreadyCompleted}
