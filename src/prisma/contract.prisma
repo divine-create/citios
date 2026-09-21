@@ -401,6 +401,7 @@ model Organization {
   storeCategory String?
   description String?
   address     String?
+  logoAssetId String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now())
 

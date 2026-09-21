@@ -96,9 +96,13 @@ export default async function OrgProfile({ id }: { id: string }) {
         <div className="absolute -right-14 -top-14 w-60 h-60 rounded-full bg-white/10 blur-3xl" />
         <div className="relative flex flex-col md:flex-row md:items-end gap-4 justify-between">
           <div className="flex items-center gap-4">
-            <span className="w-16 h-16 rounded-2xl bg-white/15 ring-1 ring-white/20 flex items-center justify-center text-3xl shrink-0">
-              {emoji}
-            </span>
+            {org.logoAssetId ? (
+              <img src={`/api/assets?id=${org.logoAssetId}`} alt={org.name} className="w-16 h-16 rounded-2xl object-cover shrink-0 bg-white ring-1 ring-white/20" />
+            ) : (
+              <span className="w-16 h-16 rounded-2xl bg-white/15 ring-1 ring-white/20 flex items-center justify-center text-3xl shrink-0">
+                {emoji}
+              </span>
+            )}
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-2xl font-black tracking-tight">{org.name}</h1>
@@ -192,10 +196,17 @@ export default async function OrgProfile({ id }: { id: string }) {
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {shop.products.slice(0, 6).map((p: any) => (
-              <div key={p.id} className="bg-white rounded-2xl border border-slate-100 p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-[13px] font-black text-ink leading-snug">{p.name}</p>
-                  <Pill tone="blue">Product</Pill>
+              <div key={p.id} className="bg-white rounded-2xl border border-slate-100 p-4 flex flex-col justify-between">
+                <div>
+                  {p.imageAssetId && (
+                    <div className="mb-3 rounded-xl overflow-hidden aspect-video bg-slate-100">
+                      <img src={`/api/assets?id=${p.imageAssetId}`} alt={p.name} className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-[13px] font-black text-ink leading-snug">{p.name}</p>
+                    <Pill tone="blue">Product</Pill>
+                  </div>
                 </div>
                 <div className="flex items-center justify-between mt-3">
                   <span className="text-[12px] font-black text-teal-900">{fmt(p.price || 0)}</span>

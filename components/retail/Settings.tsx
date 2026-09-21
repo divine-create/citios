@@ -1,7 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Plus, X, Loader2 } from 'lucide-react';
+import { Save, Plus, X, Loader2, Upload } from 'lucide-react';
 import { getRetailSettings, updateRetailSettings } from '../../lib/actions/retail';
 import { normalizeRetailUnits } from '@/lib/defaultUnits';
+import { uploadAsset } from "@/lib/actions/microsite";
+
+function fileToBase64(file: File): Promise<{ base64: string; mimeType: string }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const [, base64] = result.split(",");
+      resolve({ base64, mimeType: file.type });
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 interface SettingsProps {
   organizationId: string;
@@ -13,6 +27,7 @@ export default function Settings({ organizationId }: SettingsProps) {
   const [saving, setSaving] = useState(false);
   const [newUnit, setNewUnit] = useState('');
   const [activeTab, setActiveTab] = useState('general');
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -45,9 +60,23 @@ const handleSave = async () => {
       shippingRates: JSON.stringify(settings.shippingRates),
       hasShippingPrices: (settings.shippingRates?.length ?? 0) > 0,
       hasSetPayment: hasBankDetails,
+      logoAssetId: settings.logoAssetId,
     });
     setSaving(false);
     alert('Settings saved successfully!');
+  };
+
+  const handleLogoUpload = async (file: File) => {
+    setUploadingLogo(true);
+    try {
+      const { base64, mimeType } = await fileToBase64(file);
+      const res = await uploadAsset(organizationId, { fileName: file.name, mimeType, base64Data: base64 });
+      if ((res as any)?.assetId) {
+        setSettings({ ...settings, logoAssetId: (res as any).assetId });
+      }
+    } finally {
+      setUploadingLogo(false);
+    }
   };
 
   const addUnit = () => {
@@ -139,6 +168,22 @@ const handleSave = async () => {
               <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
                 <h3 className="font-bold text-slate-800 border-b border-slate-100 pb-2">Store Profile</h3>
                 
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-500 uppercase">Logo</label>
+                  <div className="flex items-center gap-3">
+                    {settings?.logoAssetId ? (
+                      <img src={`/api/assets/${settings.logoAssetId}`} alt="" className="w-14 h-14 object-cover rounded-lg border border-slate-200" />
+                    ) : (
+                      <div className="w-14 h-14 rounded-lg border border-dashed border-slate-300 flex items-center justify-center text-slate-300"><Upload size={18} /></div>
+                    )}
+                    <label className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors bg-white">
+                      {uploadingLogo ? <Loader2 size={14} className="animate-spin inline" /> : (settings?.logoAssetId ? "Replace" : "Upload")}
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleLogoUpload(e.target.files[0])} />
+                    </label>
+                    {settings?.logoAssetId && <button onClick={() => setSettings({ ...settings, logoAssetId: null })} className="text-xs font-semibold text-slate-400 hover:text-red-600">Remove</button>}
+                  </div>
+                </div>
+
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-500 uppercase">Store Name</label>
                   <input 

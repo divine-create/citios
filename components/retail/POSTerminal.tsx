@@ -25,6 +25,7 @@ interface Product {
   stockQuantity: number;
   isWeighed: boolean;
   unit: string;
+  imageAssetId?: string | null;
 }
 
 interface Customer {
@@ -463,11 +464,16 @@ export default function POSTerminal({ organizationId, products, shiftId, onOrder
                   key={product.id}
                   onClick={() => addToCart(product)}
                   disabled={isOut}
-                  className={`min-h-[100px] sm:min-h-[120px] rounded-2xl p-3 sm:p-4 flex flex-col justify-between items-start text-left active:scale-95 hover:scale-[1.02] transition-transform shadow-2xs border border-black/5 disabled:opacity-40 disabled:hover:scale-100 ${CATEGORY_COLORS[i % CATEGORY_COLORS.length]}`}
+                  className={`relative overflow-hidden min-h-[100px] sm:min-h-[120px] rounded-2xl p-3 sm:p-4 flex flex-col justify-between items-start text-left active:scale-95 hover:scale-[1.02] transition-transform shadow-2xs border border-black/5 disabled:opacity-40 disabled:hover:scale-100 ${CATEGORY_COLORS[i % CATEGORY_COLORS.length]}`}
                 >
-                  <span className="font-extrabold text-xs sm:text-sm md:text-base leading-snug line-clamp-2">
-                    {product.name}
-                  </span>
+                  <div className="flex justify-between items-start w-full gap-2 z-10">
+                    <span className="font-extrabold text-xs sm:text-sm md:text-base leading-snug line-clamp-2 drop-shadow-sm">
+                      {product.name}
+                    </span>
+                    {product.imageAssetId && (
+                      <img src={`/api/assets?id=${product.imageAssetId}`} alt={product.name} className="w-10 h-10 rounded-lg object-cover shrink-0 shadow-sm ring-1 ring-black/5" />
+                    )}
+                  </div>
                   <div className="flex items-center justify-between w-full mt-2 pt-1 border-t border-black/5">
                     <span className="font-black text-black/75 bg-white/60 px-1.5 sm:px-2 py-0.5 rounded-md text-xs sm:text-sm">
                       {symbol}{product.price.toFixed(2)}

@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   UtensilsCrossed, LayoutDashboard, BarChart3, ShoppingCart, Receipt, Flame,
   Package, Truck, ClipboardList, Trash2, Grid3x3, CalendarDays, DollarSign,
-  SettingsIcon, Menu, Bell, Search, X, Plus, Minus, ArrowRightLeft, Loader2, Printer, CheckCircle2, Circle, TrendingUp
+  SettingsIcon, Menu, Bell, Search, X, Plus, Minus, ArrowRightLeft, Loader2, Printer, CheckCircle2, Circle, TrendingUp, Upload
 } from "lucide-react";
 import ThermalReceiptModal from "@/components/common/ThermalReceiptModal";
 import { playOrderChime, playCashRegisterChime } from "@/lib/audio";
@@ -26,6 +26,20 @@ import {
   getSuppliers, createSupplier, deleteSupplier,
   getPurchaseOrders, createPurchaseOrder, updatePurchaseOrderStatus,
 } from "@/lib/actions/restaurantos";
+import { uploadAsset } from "@/lib/actions/microsite";
+
+function fileToBase64(file: File): Promise<{ base64: string; mimeType: string }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const [, base64] = result.split(",");
+      resolve({ base64, mimeType: file.type });
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 import { cn } from "@/lib/utils";
 import {
   inputCls, selectCls, btnPrimary, btnOutline, btnDanger, btnDark,
@@ -410,9 +424,16 @@ function TabPOS({ menu, tables, showTables, slug, onDone, org, settings }: any) 
         <PageHeader title="POS Terminal" subtitle="Tap items to add" />
         <div className="mt-6 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
           {menu.map((m: any) => (
-            <button key={m.id} onClick={() => posAdd(m)} disabled={m.isAvailable === false} className={cn("p-4 rounded-xl border text-left transition-all", m.isAvailable === false ? "bg-slate-50 border-slate-200 opacity-50" : "bg-white border-slate-200 hover:border-orange-400 hover:shadow-md active:scale-95")}>
-              <p className="text-sm font-bold text-slate-900 line-clamp-2">{m.name}</p>
-              <p className="text-xs text-slate-500 mt-1">{m.category}</p>
+            <button key={m.id} onClick={() => posAdd(m)} disabled={m.isAvailable === false} className={cn("p-4 rounded-xl border text-left transition-all flex flex-col justify-between min-h-[100px]", m.isAvailable === false ? "bg-slate-50 border-slate-200 opacity-50" : "bg-white border-slate-200 hover:border-orange-400 hover:shadow-md active:scale-95")}>
+              <div className="flex justify-between items-start w-full gap-2">
+                <div>
+                  <p className="text-sm font-bold text-slate-900 line-clamp-2">{m.name}</p>
+                  <p className="text-xs text-slate-500 mt-1">{m.category}</p>
+                </div>
+                {m.imageAssetId && (
+                  <img src={`/api/assets?id=${m.imageAssetId}`} alt={m.name} className="w-10 h-10 rounded-lg object-cover shrink-0 shadow-sm ring-1 ring-black/5" />
+                )}
+              </div>
               <p className="text-sm font-bold text-orange-600 mt-2">{fmt(m.price)}</p>
             </button>
           ))}
@@ -855,14 +876,51 @@ function TabFinance({ finance, expenses, slug, onDone }: any) {
 function TabSettings({ settings, slug, onDone }: any) {
   const [style, setStyle] = useState(settings?.serviceStyle || 'HYBRID');
   const [busy, setBusy] = useState(false);
+  const [logoAssetId, setLogoAssetId] = useState<string | null>(settings?.logoAssetId || null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+
+  async function handleLogoUpload(file: File) {
+    setUploadingLogo(true);
+    try {
+      const { base64, mimeType } = await fileToBase64(file);
+      const res = await uploadAsset(slug, { fileName: file.name, mimeType, base64Data: base64 });
+      if ((res as any)?.assetId) {
+        setLogoAssetId((res as any).assetId);
+      }
+    } finally {
+      setUploadingLogo(false);
+    }
+  }
+
   async function save() {
     setBusy(true);
-    await updateRestaurantOSSettings(slug, { serviceStyle: style });
+    await updateRestaurantOSSettings(slug, { serviceStyle: style, logoAssetId });
     setBusy(false); onDone();
   }
   return (
     <div className="space-y-6 max-w-xl">
       <PageHeader title="Settings" />
+      
+      <SectionCard title="Store Profile">
+        <div className="p-6 space-y-4">
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-500 uppercase">Logo</label>
+            <div className="flex items-center gap-3">
+              {logoAssetId ? (
+                <img src={`/api/assets/${logoAssetId}`} alt="" className="w-14 h-14 object-cover rounded-lg border border-slate-200" />
+              ) : (
+                <div className="w-14 h-14 rounded-lg border border-dashed border-slate-300 flex items-center justify-center text-slate-300"><Upload size={18} /></div>
+              )}
+              <label className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors bg-white">
+                {uploadingLogo ? <Loader2 size={14} className="animate-spin inline" /> : (logoAssetId ? "Replace" : "Upload")}
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleLogoUpload(e.target.files[0])} />
+              </label>
+              {logoAssetId && <button onClick={() => setLogoAssetId(null)} className="text-xs font-semibold text-slate-400 hover:text-red-600">Remove</button>}
+            </div>
+          </div>
+        </div>
+      </SectionCard>
+
       <SectionCard title="Operating Mode">
         <div className="p-6 space-y-4">
            <div>

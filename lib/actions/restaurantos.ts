@@ -28,7 +28,12 @@ export async function getRestaurantOSSettings(organizationId: string) {
       .where({ organizationId })
       .all()
       .first();
-    return JSON.parse(JSON.stringify(settings));
+    const org = await db.orm.public.Organization.where({ id: organizationId }).all().first();
+    const result = settings ? JSON.parse(JSON.stringify(settings)) : null;
+    if (result) {
+      result.logoAssetId = org?.logoAssetId || null;
+    }
+    return result;
   } catch (error) {
     console.error('Error fetching RestaurantOS settings:', error);
     return null;
@@ -68,10 +73,12 @@ export async function updateRestaurantOSSettings(
     hasSetPayment: boolean;
     hasMenu: boolean;
     hasTables: boolean;
+    logoAssetId: string | null;
   }>,
 ) {
   try {
     await requireMembership(organizationId, ['OWNER', 'MANAGER']);
+    const { logoAssetId, ...settingsUpdates } = updates;
     const settings = await db.orm.public.RestaurantSettings
       .where({ organizationId })
       .all()
@@ -79,12 +86,20 @@ export async function updateRestaurantOSSettings(
     if (!settings) {
       const created = await db.orm.public.RestaurantSettings.create({
         organizationId,
-        ...updates,
+        ...settingsUpdates,
       });
+      if (logoAssetId !== undefined) {
+        await db.orm.public.Organization.where({ id: organizationId }).update({ logoAssetId });
+      }
       revalidatePath('/admin/restaurantos');
       return JSON.parse(JSON.stringify(created));
     }
-    await db.orm.public.RestaurantSettings.where({ organizationId }).update(updates);
+    if (Object.keys(settingsUpdates).length > 0) {
+      await db.orm.public.RestaurantSettings.where({ organizationId }).update(settingsUpdates as any);
+    }
+    if (logoAssetId !== undefined) {
+      await db.orm.public.Organization.where({ id: organizationId }).update({ logoAssetId });
+    }
     const updated = await db.orm.public.RestaurantSettings
       .where({ organizationId })
       .all()

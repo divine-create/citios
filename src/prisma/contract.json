@@ -9594,6 +9594,13 @@
                   "kind": "scalar"
                 }
               },
+              "logoAssetId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "name": {
                 "nullable": false,
                 "type": {
@@ -10442,6 +10449,9 @@
                 },
                 "id": {
                   "column": "id"
+                },
+                "logoAssetId": {
+                  "column": "logoAssetId"
                 },
                 "name": {
                   "column": "name"
@@ -29630,6 +29640,11 @@
                   "nativeType": "text",
                   "nullable": false
                 },
+                "logoAssetId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "name": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -39573,7 +39588,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "8cd20a99d360dc69b558c73ade7ffeae8b1acdb040718b5a38710a8e0db17c31"
+    "storageHash": "cf6009745564810357239075eef9a629621d74be11e3b4ad1dec202d64cbfc61"
   },
   "execution": {
     "executionHash": "cbb92f74578305c118702181b671ac27380a242c9102cd91faad8bb8bf67c6d7",

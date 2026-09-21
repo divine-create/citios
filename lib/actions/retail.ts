@@ -1794,7 +1794,8 @@ export async function getRetailSettings(organizationId: string) {
         settings = { ...settings, customUnits: JSON.stringify(normalizedUnits) };
       }
     }
-    return settings;
+    const org = await db.orm.public.Organization.where({ id: organizationId }).all().first();
+    return { ...settings, logoAssetId: org?.logoAssetId || null };
   } catch (error) {
     console.error('Error fetching retail settings:', error);
     return null;
@@ -1815,6 +1816,7 @@ export async function updateRetailSettings(organizationId: string, input: {
   paymentGateway?: string;
   bankDetails?: string;
   shippingRates?: string;
+  logoAssetId?: string | null;
 }) {
   try {
     await requireMembership(organizationId, ['OWNER', 'ADMIN']);
@@ -1834,6 +1836,10 @@ export async function updateRetailSettings(organizationId: string, input: {
     if (input.shippingRates !== undefined) data.shippingRates = input.shippingRates;
 
     await db.orm.public.RetailSettings.where({ organizationId }).update(data);
+    
+    if (input.logoAssetId !== undefined) {
+      await db.orm.public.Organization.where({ id: organizationId }).update({ logoAssetId: input.logoAssetId });
+    }
     return { success: true };
   } catch (error) {
     console.error('Error updating retail settings:', error);
