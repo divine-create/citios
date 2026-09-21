@@ -33,7 +33,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'cf6009745564810357239075eef9a629621d74be11e3b4ad1dec202d64cbfc61'>;
+  StorageHashBase<'eaddf8aa297bbf9f9bc307f48a97df80ec4682f94332056273e4cf9025927775'>;
 export type ExecutionHash =
   ExecutionHashBase<'cbb92f74578305c118702181b671ac27380a242c9102cd91faad8bb8bf67c6d7'>;
 export type ProfileHash =
@@ -1246,6 +1246,7 @@ export type FieldOutputTypes = {
       readonly productId: CodecTypes['pg/text@1']['output'];
       readonly quantity: CodecTypes['pg/float8@1']['output'];
       readonly unitPrice: CodecTypes['pg/float8@1']['output'];
+      readonly unitCost: CodecTypes['pg/float8@1']['output'] | null;
       readonly subtotal: CodecTypes['pg/float8@1']['output'];
       readonly discountReason: CodecTypes['pg/text@1']['output'] | null;
     };
@@ -1292,6 +1293,7 @@ export type FieldOutputTypes = {
       readonly storeName: CodecTypes['pg/text@1']['output'] | null;
       readonly storeAddress: CodecTypes['pg/text@1']['output'] | null;
       readonly receiptMessage: CodecTypes['pg/text@1']['output'] | null;
+      readonly taxEnabled: CodecTypes['pg/bool@1']['output'];
       readonly taxRate: CodecTypes['pg/float8@1']['output'];
       readonly currencySymbol: CodecTypes['pg/text@1']['output'];
       readonly storeUrl: CodecTypes['pg/text@1']['output'] | null;
@@ -2802,6 +2804,7 @@ export type FieldInputTypes = {
       readonly productId: CodecTypes['pg/text@1']['input'];
       readonly quantity: CodecTypes['pg/float8@1']['input'];
       readonly unitPrice: CodecTypes['pg/float8@1']['input'];
+      readonly unitCost: CodecTypes['pg/float8@1']['input'] | null;
       readonly subtotal: CodecTypes['pg/float8@1']['input'];
       readonly discountReason: CodecTypes['pg/text@1']['input'] | null;
     };
@@ -2848,6 +2851,7 @@ export type FieldInputTypes = {
       readonly storeName: CodecTypes['pg/text@1']['input'] | null;
       readonly storeAddress: CodecTypes['pg/text@1']['input'] | null;
       readonly receiptMessage: CodecTypes['pg/text@1']['input'] | null;
+      readonly taxEnabled: CodecTypes['pg/bool@1']['input'];
       readonly taxRate: CodecTypes['pg/float8@1']['input'];
       readonly currencySymbol: CodecTypes['pg/text@1']['input'];
       readonly storeUrl: CodecTypes['pg/text@1']['input'] | null;
@@ -4359,6 +4363,7 @@ export type StorageColumnTypes = {
       readonly productId: CodecTypes['pg/text@1']['output'];
       readonly quantity: CodecTypes['pg/float8@1']['output'];
       readonly subtotal: CodecTypes['pg/float8@1']['output'];
+      readonly unitCost: CodecTypes['pg/float8@1']['output'] | null;
       readonly unitPrice: CodecTypes['pg/float8@1']['output'];
     };
     readonly retailProduct: {
@@ -4419,6 +4424,7 @@ export type StorageColumnTypes = {
       readonly storeAddress: CodecTypes['pg/text@1']['output'] | null;
       readonly storeName: CodecTypes['pg/text@1']['output'] | null;
       readonly storeUrl: CodecTypes['pg/text@1']['output'] | null;
+      readonly taxEnabled: CodecTypes['pg/bool@1']['output'];
       readonly taxRate: CodecTypes['pg/float8@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly walletSettlementEnabled: CodecTypes['pg/bool@1']['output'];
@@ -5915,6 +5921,7 @@ export type StorageColumnInputTypes = {
       readonly productId: CodecTypes['pg/text@1']['input'];
       readonly quantity: CodecTypes['pg/float8@1']['input'];
       readonly subtotal: CodecTypes['pg/float8@1']['input'];
+      readonly unitCost: CodecTypes['pg/float8@1']['input'] | null;
       readonly unitPrice: CodecTypes['pg/float8@1']['input'];
     };
     readonly retailProduct: {
@@ -5975,6 +5982,7 @@ export type StorageColumnInputTypes = {
       readonly storeAddress: CodecTypes['pg/text@1']['input'] | null;
       readonly storeName: CodecTypes['pg/text@1']['input'] | null;
       readonly storeUrl: CodecTypes['pg/text@1']['input'] | null;
+      readonly taxEnabled: CodecTypes['pg/bool@1']['input'];
       readonly taxRate: CodecTypes['pg/float8@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly walletSettlementEnabled: CodecTypes['pg/bool@1']['input'];
@@ -14996,6 +15004,11 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/float8@1';
                   readonly nullable: false;
                 };
+                readonly unitCost: {
+                  readonly nativeType: 'float8';
+                  readonly codecId: 'pg/float8@1';
+                  readonly nullable: true;
+                };
                 readonly subtotal: {
                   readonly nativeType: 'float8';
                   readonly codecId: 'pg/float8@1';
@@ -15376,6 +15389,15 @@ type ContractBase = Omit<
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
                   readonly nullable: true;
+                };
+                readonly taxEnabled: {
+                  readonly nativeType: 'bool';
+                  readonly codecId: 'pg/bool@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/bool@1', false>;
+                  };
                 };
                 readonly taxRate: {
                   readonly nativeType: 'float8';
@@ -29553,6 +29575,10 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/float8@1' };
               };
+              readonly unitCost: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/float8@1' };
+              };
               readonly subtotal: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/float8@1' };
@@ -29595,6 +29621,7 @@ type ContractBase = Omit<
                 readonly productId: { readonly column: 'productId' };
                 readonly quantity: { readonly column: 'quantity' };
                 readonly unitPrice: { readonly column: 'unitPrice' };
+                readonly unitCost: { readonly column: 'unitCost' };
                 readonly subtotal: { readonly column: 'subtotal' };
                 readonly discountReason: { readonly column: 'discountReason' };
               };
@@ -29919,6 +29946,10 @@ type ContractBase = Omit<
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
+              readonly taxEnabled: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/bool@1' };
+              };
               readonly taxRate: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/float8@1' };
@@ -30024,6 +30055,7 @@ type ContractBase = Omit<
                 readonly storeName: { readonly column: 'storeName' };
                 readonly storeAddress: { readonly column: 'storeAddress' };
                 readonly receiptMessage: { readonly column: 'receiptMessage' };
+                readonly taxEnabled: { readonly column: 'taxEnabled' };
                 readonly taxRate: { readonly column: 'taxRate' };
                 readonly currencySymbol: { readonly column: 'currencySymbol' };
                 readonly storeUrl: { readonly column: 'storeUrl' };

@@ -503,6 +503,7 @@ model RetailSettings {
   storeName      String?
   storeAddress   String?
   receiptMessage String?
+  taxEnabled     Boolean      @default(false)
   taxRate        Float        @default(0)
   currencySymbol String       @default("$")
 

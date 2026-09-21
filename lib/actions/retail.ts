@@ -738,7 +738,7 @@ export async function createOrder(input: {
     let taxRate = 0;
     let walletSettlementEnabled = false;
     const settings = await db.orm.public.RetailSettings.where({ organizationId: input.organizationId }).all().first();
-    if (settings && settings.taxRate !== undefined) {
+    if (settings && settings.taxEnabled && settings.taxRate !== undefined) {
       taxRate = settings.taxRate / 100;
     }
     if (settings && settings.walletSettlementEnabled) {

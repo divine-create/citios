@@ -71,8 +71,8 @@ const handleSave = async () => {
     try {
       const { base64, mimeType } = await fileToBase64(file);
       const res = await uploadAsset(organizationId, { fileName: file.name, mimeType, base64Data: base64 });
-      if ((res as any)?.assetId) {
-        setSettings({ ...settings, logoAssetId: (res as any).assetId });
+      if (res && typeof res === 'object' && 'assetId' in res && res.assetId) {
+        setSettings({ ...settings, logoAssetId: res.assetId });
       }
     } finally {
       setUploadingLogo(false);
@@ -217,15 +217,29 @@ const handleSave = async () => {
                       className="w-full p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 text-center text-lg font-bold" 
                     />
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-500 uppercase">Default Tax Rate (%)</label>
-                    <input 
-                      type="number" 
-                      step="0.01"
-                      value={settings?.taxRate || 0} 
-                      onChange={e => setSettings({...settings, taxRate: e.target.value})}
-                      className="w-full p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20" 
-                    />
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={settings?.taxEnabled || false}
+                        onChange={(e) => setSettings({ ...settings, taxEnabled: e.target.checked })}
+                        className="w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-600"
+                      />
+                      <span className="text-sm font-semibold text-slate-700">Enable Sales Tax</span>
+                    </label>
+                    {settings?.taxEnabled && (
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-500 uppercase">Default Tax Rate (%)</label>
+                        <input 
+                          type="number" 
+                          step="0.01"
+                          value={settings?.taxRate || 0} 
+                          onChange={e => setSettings({...settings, taxRate: e.target.value})}
+                          className="w-full p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20" 
+                          placeholder="e.g. 8.5"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 

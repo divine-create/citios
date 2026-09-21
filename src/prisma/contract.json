@@ -15292,6 +15292,13 @@
                   "kind": "scalar"
                 }
               },
+              "unitCost": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
               "unitPrice": {
                 "nullable": false,
                 "type": {
@@ -15351,6 +15358,9 @@
                 },
                 "subtotal": {
                   "column": "subtotal"
+                },
+                "unitCost": {
+                  "column": "unitCost"
                 },
                 "unitPrice": {
                   "column": "unitPrice"
@@ -15968,6 +15978,13 @@
                   "kind": "scalar"
                 }
               },
+              "taxEnabled": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
               "taxRate": {
                 "nullable": false,
                 "type": {
@@ -16075,6 +16092,9 @@
                 },
                 "storeUrl": {
                   "column": "storeUrl"
+                },
+                "taxEnabled": {
+                  "column": "taxEnabled"
                 },
                 "taxRate": {
                   "column": "taxRate"
@@ -33445,6 +33465,11 @@
                   "nativeType": "float8",
                   "nullable": false
                 },
+                "unitCost": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
+                  "nullable": true
+                },
                 "unitPrice": {
                   "codecId": "pg/float8@1",
                   "nativeType": "float8",
@@ -33996,6 +34021,15 @@
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": true
+                },
+                "taxEnabled": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": false
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
                 },
                 "taxRate": {
                   "codecId": "pg/float8@1",
@@ -39588,7 +39622,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "cf6009745564810357239075eef9a629621d74be11e3b4ad1dec202d64cbfc61"
+    "storageHash": "eaddf8aa297bbf9f9bc307f48a97df80ec4682f94332056273e4cf9025927775"
   },
   "execution": {
     "executionHash": "cbb92f74578305c118702181b671ac27380a242c9102cd91faad8bb8bf67c6d7",
