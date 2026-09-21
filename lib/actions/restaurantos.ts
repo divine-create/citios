@@ -418,7 +418,7 @@ export async function createReservation(input: {
       customerName: input.customerName ?? null,
       customerPhone: input.customerPhone ?? null,
       partySize: input.partySize,
-      scheduledAt: scheduled,
+      scheduledAt: (globalThis as any).Temporal.Instant.fromEpochMilliseconds(scheduled.getTime()),
       status: 'pending',
       notes: input.notes ?? null,
     });
@@ -585,7 +585,7 @@ export async function createPosOrder(input: {
         tableId,
         orderNumber,
         paymentMethod: input.paymentMethod ?? null,
-        paidAt: paid ? new Date() : null,
+        paidAt: paid ? (globalThis as any).Temporal.Instant.fromEpochMilliseconds(Date.now()) : null,
         status: paid ? 'COMPLETED' : 'PENDING',
         servedByMembershipId: membership.id,
       });
@@ -646,7 +646,7 @@ export async function updateOrderStatus(
     const paid = status === 'COMPLETED';
     await db.orm.public.RestaurantOrder.where({ id: orderId }).update({
       status,
-      paidAt: paid && !order.paidAt ? new Date() : order.paidAt,
+      paidAt: paid && !order.paidAt ? (globalThis as any).Temporal.Instant.fromEpochMilliseconds(Date.now()) : order.paidAt,
     });
     revalidatePath('/admin/restaurantos');
 
@@ -1137,7 +1137,7 @@ export async function createPurchaseOrder(input: {
       poNumber,
       status: 'DRAFT',
       totalAmount: input.totalAmount ?? null,
-      expectedDate: input.expectedDate ? new Date(input.expectedDate) : null,
+      expectedDate: input.expectedDate ? (globalThis as any).Temporal.Instant.fromEpochMilliseconds(new Date(input.expectedDate).getTime()) : null,
     });
     revalidatePath('/admin/restaurantos');
     return JSON.parse(JSON.stringify(po));
