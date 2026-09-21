@@ -1,18 +1,18 @@
-'use client';
+"use client";
 
-import { useEffect, useState, useRef } from 'react';
-import Link from 'next/link';
+import React, { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import {
-  UtensilsCrossed, Plus, Minus, Check, Loader2, Trash2, ArrowLeftRight, Printer,
-} from 'lucide-react';
-import ThermalReceiptModal from '@/components/common/ThermalReceiptModal';
-import { type PrintableReceiptData } from '@/lib/receiptUtils';
-import { playOrderChime, playCashRegisterChime } from '@/lib/audio';
-import AudioAlertToggle from '@/components/common/AudioAlertToggle';
-import { useAccountSwitcher } from '@/components/cityos/AccountSwitcherContext';
-import { useMoney } from '@/components/cityos/CityProvider';
-import { StatTile, Pill, SectionHead } from '@/components/cityos/CityUI';
-import { getCanonicalOrganization } from '@/app/actions/org';
+  UtensilsCrossed, LayoutDashboard, BarChart3, ShoppingCart, Receipt, Flame,
+  Package, Truck, ClipboardList, Trash2, Grid3x3, CalendarDays, DollarSign,
+  SettingsIcon, Menu, Bell, Search, X, Plus, Minus, ArrowRightLeft, Loader2, Printer, CheckCircle2, Circle, TrendingUp
+} from "lucide-react";
+import ThermalReceiptModal from "@/components/common/ThermalReceiptModal";
+import { playOrderChime, playCashRegisterChime } from "@/lib/audio";
+import AudioAlertToggle from "@/components/common/AudioAlertToggle";
+import { useAccountSwitcher } from "@/components/cityos/AccountSwitcherContext";
+import { useMoney } from "@/components/cityos/CityProvider";
+import { getCanonicalOrganization } from "@/app/actions/org";
 import {
   getRestaurantOSData, getRestaurantOSSettings, updateRestaurantOSSettings,
   getMenuItems, createMenuItem, updateMenuItem, toggleMenuItemAvailability, deleteMenuItem,
@@ -22,125 +22,105 @@ import {
   getKitchenTickets, getOrders, createPosOrder, updateOrderStatus,
   getInventoryItems, createInventoryItem, adjustStock, deleteInventoryItem,
   getFinancialSummary, addExpense, getExpenses,
-} from '@/lib/actions/restaurantos';
-import { cn } from '@/lib/utils';
-
-type Org = NonNullable<Awaited<ReturnType<typeof getCanonicalOrganization>>>;
-type Settings = NonNullable<Awaited<ReturnType<typeof getRestaurantOSSettings>>>;
-type MenuItemRow = Awaited<ReturnType<typeof getMenuItems>>[number];
-type TableRow = Awaited<ReturnType<typeof getTables>>[number];
-type ReservationRow = Awaited<ReturnType<typeof getReservations>>[number];
-type Ticket = Awaited<ReturnType<typeof getKitchenTickets>>[number];
-type OrderRow = Awaited<ReturnType<typeof getOrders>>[number];
-type InventoryRow = Awaited<ReturnType<typeof getInventoryItems>>[number];
-type ExpenseRow = Awaited<ReturnType<typeof getExpenses>>[number];
-type Finance = NonNullable<Awaited<ReturnType<typeof getFinancialSummary>>>;
-
-const ALL_TABS = ['POS', 'Kitchen', 'Menu', 'Inventory', 'Finance', 'Tables', 'Reservations', 'Settings'] as const;
-type Tab = (typeof ALL_TABS)[number];
-
-const STATUS_TONE: Record<string, 'orange' | 'green' | 'blue' | 'red'> = {
-  PENDING: 'orange', PREPARING: 'orange', READY: 'blue', DELIVERING: 'blue', COMPLETED: 'green',
-};
+} from "@/lib/actions/restaurantos";
+import { cn } from "@/lib/utils";
+import {
+  inputCls, selectCls, btnPrimary, btnOutline, btnDanger, btnDark,
+  Card, StatCard, PageHeader, PillTabs, StatusPill, Avatar, ProgressBar,
+  Modal, SectionCard, EmptyState, Kbd
+} from "@/components/restaurant/RestaurantUI";
+import { type PrintableReceiptData } from "@/lib/receiptUtils";
 
 export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
   const { fmt } = useMoney();
   const { switchToPersonal } = useAccountSwitcher();
-  const [tab, setTab] = useState<Tab>('POS');
-  const [org, setOrg] = useState<Org | null>(null);
+  const [org, setOrg] = useState<any | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [denied, setDenied] = useState<string | null>(null);
-  const [settings, setSettings] = useState<Settings | null>(null);
-  const [menu, setMenu] = useState<MenuItemRow[]>([]);
-  const [tables, setTables] = useState<TableRow[]>([]);
-  const [reservations, setReservations] = useState<ReservationRow[]>([]);
-  const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [orders, setOrders] = useState<OrderRow[]>([]);
-  const [inventory, setInventory] = useState<InventoryRow[]>([]);
-  const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
-  const [finance, setFinance] = useState<Finance | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  const style = settings?.serviceStyle ?? 'HYBRID';
-  const showTables = style === 'FULL_SERVICE' || style === 'HYBRID';
-  const tabs = ALL_TABS.filter((t) => (t === 'Tables' || t === 'Reservations' ? showTables : true));
+  const [activeMenu, setActiveMenu] = useState("Dashboard");
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
+  // Data state
+  const [settings, setSettings] = useState<any | null>(null);
+  const [menu, setMenu] = useState<any[]>([]);
+  const [tables, setTables] = useState<any[]>([]);
+  const [reservations, setReservations] = useState<any[]>([]);
+  const [tickets, setKitchenTickets] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [inventory, setInventory] = useState<any[]>([]);
+  const [expenses, setExpenses] = useState<any[]>([]);
+  const [finance, setFinance] = useState<any | null>(null);
 
-  // POS state: items being ordered at the counter / table.
-  const [posLines, setPosLines] = useState<{ menuItemId: string; name: string; price: number; qty: number }[]>([]);
-  const [posType, setPosType] = useState<'DINE_IN' | 'TAKEOUT'>('TAKEOUT');
-  const [posTableId, setPosTableId] = useState<string>('');
-  const [posPayment, setPosPayment] = useState<'WALLET' | 'CASH' | 'POS' | ''>('CASH');
-  const [posBusy, setPosBusy] = useState(false);
-  const [posMsg, setPosMsg] = useState<string | null>(null);
-  const [receiptModalData, setReceiptModalData] = useState<PrintableReceiptData | null>(null);
-  const previousTicketCountRef = useRef<number | null>(null);
+  const style = settings?.serviceStyle ?? "HYBRID";
+  const showTables = style === "FULL_SERVICE" || style === "HYBRID";
 
-  function posAdd(item: MenuItemRow) {
-    if (item.isAvailable === false) return;
-    setPosLines((prev) => {
-      const ex = prev.find((l) => l.menuItemId === item.id);
-      if (ex) return prev.map((l) => (l.menuItemId === item.id ? { ...l, qty: l.qty + 1 } : l));
-      return [...prev, { menuItemId: item.id, name: item.name, price: item.price, qty: 1 }];
+  // Sidebar Logic
+  const toggleGroup = (label: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      return next;
     });
-  }
+  };
 
-  function posQty(menuItemId: string, qty: number) {
-    setPosLines((prev) => (qty <= 0 ? prev.filter((l) => l.menuItemId !== menuItemId) : prev.map((l) => (l.menuItemId === menuItemId ? { ...l, qty } : l))));
-  }
+  const NAV_GROUPS = [
+    {
+      label: "Overview",
+      items: [
+        { label: "Dashboard", icon: LayoutDashboard },
+        { label: "Reports", icon: BarChart3 },
+      ],
+    },
+    {
+      label: "Service",
+      items: [
+        { label: "POS Terminal", icon: ShoppingCart },
+        { label: "Orders", icon: Receipt },
+        { label: "Kitchen Board", icon: Flame },
+      ],
+    },
+    {
+      label: "Menu",
+      items: [
+        { label: "Menu Items", icon: UtensilsCrossed },
+      ],
+    },
+    {
+      label: "Inventory",
+      items: [
+        { label: "Stock & Ingredients", icon: Package },
+        { label: "Suppliers", icon: Truck },
+        { label: "Purchase Orders", icon: ClipboardList },
+        { label: "Waste Log", icon: Trash2 },
+      ],
+    },
+    {
+      label: "Floor",
+      hidden: !showTables,
+      items: [
+        { label: "Tables", icon: Grid3x3 },
+        { label: "Reservations", icon: CalendarDays },
+      ],
+    },
+    {
+      label: "Finance",
+      items: [
+        { label: "Finance", icon: DollarSign },
+      ],
+    },
+    {
+      label: "Settings",
+      items: [
+        { label: "Settings", icon: SettingsIcon },
+      ],
+    },
+  ].filter(g => !g.hidden);
 
-  const posTotal = posLines.reduce((s, l) => s + l.price * l.qty, 0);
-  const posTax = Math.round(posTotal * ((settings?.taxRate ?? 0) / 100));
-  const posService = Math.round(posTotal * ((settings?.serviceCharge ?? 0) / 100));
-
-  async function placeOrder() {
-    if (posLines.length === 0 || posBusy) return;
-    setPosBusy(true);
-    setPosMsg(null);
-    const res = await createPosOrder({
-      organizationId: slug,
-      items: posLines.map((l) => ({ menuItemId: l.menuItemId, quantity: l.qty })),
-      type: posType,
-      tableId: posType === 'DINE_IN' && posTableId ? posTableId : undefined,
-      paymentMethod: posPayment ? (posPayment as 'WALLET' | 'CASH' | 'POS') : undefined,
-    });
-    setPosBusy(false);
-    if ('error' in res && res.error) {
-      setPosMsg(res.error);
-      return;
-    }
-    const created = res as any;
-    playCashRegisterChime();
-
-    const placedReceipt: PrintableReceiptData = {
-      orderId: created.id || String(Date.now()),
-      orderNumber: created.orderNumber ? String(created.orderNumber) : undefined,
-      storeName: org?.name || 'Restaurant',
-      date: new Date(),
-      cashierName: 'POS Counter',
-      orderType: posType,
-      tableName: tables.find((t) => t.id === posTableId)?.name,
-      items: posLines.map((l) => ({
-        name: l.name,
-        quantity: l.qty,
-        unitPrice: l.price,
-        subtotal: l.price * l.qty,
-      })),
-      subtotal: posTotal,
-      taxAmount: posTax,
-      serviceCharge: posService,
-      totalAmount: created.totalAmount ?? (posTotal + posTax + posService),
-      paymentMethod: posPayment || 'UNPAID (DINE-IN)',
-      currencySymbol: '₦',
-    };
-    setReceiptModalData(placedReceipt);
-
-    setPosLines([]);
-    setPosMsg(`Order #${(res as any).orderNumber} placed — ${fmt((res as any).totalAmount)}`);
-    await refresh();
-  }
-
-  async function refresh() {
+  const loadData = async () => {
     const [d, f] = await Promise.all([
       getRestaurantOSData(slug),
       getFinancialSummary(slug),
@@ -150,13 +130,13 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
       setMenu(d.menu ?? []);
       setTables(d.tables ?? []);
       setReservations(d.reservations ?? []);
-      setTickets(d.tickets ?? []);
+      setKitchenTickets(d.tickets ?? []);
       setOrders(d.orders ?? []);
       setInventory(d.inventory ?? []);
       setExpenses(d.expenses ?? []);
     }
     setFinance(f);
-  }
+  };
 
   useEffect(() => {
     let live = true;
@@ -164,810 +144,736 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
       try {
         const found = await getCanonicalOrganization(slug);
         if (!live) return;
-        if (!found) {
-          setNotFound(true);
-          setLoaded(true);
-          return;
-        }
+        if (!found) { setNotFound(true); setLoaded(true); return; }
         setOrg(found);
-        await refresh();
+        await loadData();
       } catch (err: any) {
-        // requireMembership throws for non-members â€” show an honest denial.
-        if (live) setDenied(err?.message || 'Access denied');
+        if (live) setDenied(err?.message || "Access denied");
       } finally {
         if (live) setLoaded(true);
       }
     })();
-    return () => {
-      live = false;
-    };
+    return () => { live = false; };
   }, [slug]);
 
+  const previousTicketCountRef = useRef<number | null>(null);
   useEffect(() => {
     if (!loaded || !org) return;
     const interval = setInterval(async () => {
       try {
         const d = await getRestaurantOSData(slug);
         if (d?.tickets) {
-          const pending = d.tickets.filter((t: any) => t.status === 'PENDING').length;
+          const pending = d.tickets.filter((t: any) => t.status === "PENDING").length;
           if (previousTicketCountRef.current !== null && pending > previousTicketCountRef.current) {
             playOrderChime();
           }
           previousTicketCountRef.current = pending;
-          setTickets(d.tickets);
+          setKitchenTickets(d.tickets);
         }
       } catch {}
-    }, 12_000);
+    }, 12000);
+    if (window.matchMedia("(max-width: 767px)").matches) setIsSidebarOpen(false);
     return () => clearInterval(interval);
   }, [loaded, org, slug]);
 
 
-  if (!loaded) {
-    return (
-      <div className="max-w-lg mx-auto text-center py-24 text-[12px] font-bold text-slate-400">
-        Loading workspaceâ€¦
+  if (!loaded) return <div className="p-10 text-center flex items-center justify-center gap-2 text-slate-500"><Loader2 className="animate-spin" size={20} /> Loading workspace...</div>;
+  if (notFound || !org) return <div className="p-20 text-center"><h1 className="text-xl font-bold text-slate-900">Workspace not found</h1><Link href="/business" className={btnPrimary + " mt-4"}>Back to business</Link></div>;
+  if (denied) return <div className="p-20 text-center"><h1 className="text-xl font-bold text-slate-900">Access Denied</h1><p className="text-slate-500 mt-2">{denied}</p><Link href="/business" className={btnPrimary + " mt-4"}>Back</Link></div>;
+
+  return (
+    <div className="flex h-full flex-1 bg-slate-50 text-slate-800 font-sans overflow-hidden">
+      {isSidebarOpen && <div className="fixed inset-0 bg-black/40 z-30 md:hidden" onClick={() => setIsSidebarOpen(false)} />}
+      
+      <aside className={`fixed md:static inset-y-0 left-0 z-40 md:z-20 bg-white text-slate-800 border-r border-slate-200 flex-shrink-0 transition-all duration-300 overflow-y-auto flex flex-col ${isSidebarOpen ? "translate-x-0 w-64" : "-translate-x-full w-64 md:translate-x-0 md:w-0"}`}>
+        <div className="p-4 sm:p-5 flex items-center justify-between border-b border-slate-100 sticky top-0 bg-white z-10">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-gradient-to-br from-orange-500 via-orange-600 to-orange-800 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-sm shadow-orange-600/30 flex-shrink-0">
+              <UtensilsCrossed size={20} />
+            </div>
+            <div className="leading-tight">
+              <span className="font-black text-lg text-slate-900 tracking-tight block truncate max-w-[120px]">{org.name}</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">RestaurantOS</span>
+            </div>
+          </div>
+          <button onClick={() => setIsSidebarOpen(false)} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors md:hidden">
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="flex-1 p-4">
+          {NAV_GROUPS.map((group) => (
+            <div key={group.label} className="mb-4">
+              <button onClick={() => toggleGroup(group.label)} className="w-full flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 px-2 hover:text-slate-600">
+                {group.label}
+                <X size={14} className={`text-slate-300 transition-transform duration-200 ${collapsedGroups.has(group.label) ? "rotate-45" : "rotate-0 opacity-0"}`} />
+              </button>
+              {!collapsedGroups.has(group.label) && (
+                <ul className="space-y-0.5">
+                  {group.items.map((item) => (
+                    <li key={item.label}>
+                      <button onClick={() => { setActiveMenu(item.label); if (window.innerWidth < 768) setIsSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${activeMenu === item.label ? "bg-orange-600 text-white" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
+                        <item.icon size={18} className={activeMenu === item.label ? "text-white" : "text-slate-400"} />
+                        {item.label}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <div className="p-4 border-t border-slate-100 bg-white space-y-3">
+          <button type="button" onClick={switchToPersonal} className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200 transition-colors">
+            <ArrowRightLeft size={13} className="text-slate-500" />
+            <span>Personal Profile</span>
+          </button>
+          <Link href={`/org/${org.id}`} className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-800 text-xs font-bold border border-orange-200 transition-colors">
+            <UtensilsCrossed size={13} />
+            <span>Public Page</span>
+          </Link>
+        </div>
+      </aside>
+
+      <main className="flex-1 flex flex-col min-w-0 bg-slate-50">
+        <header className="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-3 sm:px-4 lg:px-8 flex-shrink-0 z-10">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 -ml-1 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors shrink-0 md:hidden">
+              <Menu size={20} />
+            </button>
+            <h1 className="font-bold text-base sm:text-lg text-slate-800 truncate max-w-[140px] sm:max-w-none">{activeMenu}</h1>
+          </div>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <AudioAlertToggle showTestButton={false} />
+            <div className="relative">
+              <button className="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors block">
+                <Bell size={20} />
+                {tickets.length > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-5 h-5 px-1 flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold">
+                    {tickets.length}
+                  </span>
+                )}
+              </button>
+            </div>
+            <button onClick={loadData} className="hidden sm:block px-3 py-1.5 text-xs font-bold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700">Refresh</button>
+          </div>
+        </header>
+
+        <div className={cn("flex-1 overflow-auto", activeMenu === "POS Terminal" ? "flex flex-col min-h-0" : "")}>
+          <div className={activeMenu === "POS Terminal" ? "h-full" : "p-4 sm:p-6 lg:p-8"}>
+            {activeMenu === "Dashboard" && <TabDashboard finance={finance} orders={orders} tickets={tickets} setActiveMenu={setActiveMenu} showTables={showTables} tables={tables} org={org} />}
+            {activeMenu === "Reports" && <TabReports finance={finance} />}
+            {activeMenu === "POS Terminal" && <TabPOS menu={menu} tables={tables} showTables={showTables} slug={slug} onDone={loadData} org={org} settings={settings} />}
+            {activeMenu === "Orders" && <TabOrders orders={orders} />}
+            {activeMenu === "Kitchen Board" && <TabKitchen tickets={tickets} slug={slug} onDone={loadData} org={org} />}
+            {activeMenu === "Menu Items" && <TabMenu menu={menu} slug={slug} onDone={loadData} />}
+            {activeMenu === "Stock & Ingredients" && <TabInventory inventory={inventory} slug={slug} onDone={loadData} subTab="Stock" />}
+            {activeMenu === "Suppliers" && <TabInventory inventory={inventory} slug={slug} onDone={loadData} subTab="Suppliers" />}
+            {activeMenu === "Purchase Orders" && <TabInventory inventory={inventory} slug={slug} onDone={loadData} subTab="POs" />}
+            {activeMenu === "Waste Log" && <TabInventory inventory={inventory} slug={slug} onDone={loadData} subTab="Waste" />}
+            {activeMenu === "Tables" && showTables && <TabTables tables={tables} slug={slug} onDone={loadData} />}
+            {activeMenu === "Reservations" && showTables && <TabReservations reservations={reservations} tables={tables} slug={slug} onDone={loadData} />}
+            {activeMenu === "Finance" && <TabFinance finance={finance} expenses={expenses} slug={slug} onDone={loadData} />}
+            {activeMenu === "Settings" && <TabSettings settings={settings} slug={slug} onDone={loadData} />}
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------
+// TABS
+// ---------------------------------------------------------------------
+
+function TabDashboard({ finance, orders, tickets, setActiveMenu, showTables, tables, org }: any) {
+  const { fmt } = useMoney();
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard label="Today's Revenue" value={fmt(finance?.today?.revenue ?? 0)} icon={DollarSign} tone="brand" />
+        <StatCard label="Orders Today" value={finance?.today?.orders ?? 0} icon={ShoppingCart} tone="amber" />
+        <StatCard label="Open Tickets" value={tickets.length} icon={Flame} tone="red" />
+        {showTables && <StatCard label="Tables Available" value={tables.filter((t:any) => t.status === 'available').length} icon={Grid3x3} tone="emerald" />}
+        {!showTables && <StatCard label="Avg Order Value" value={fmt(finance?.today?.averageTicket ?? 0)} icon={TrendingUp} tone="purple" />}
       </div>
-    );
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <SectionCard title="Recent Orders" action={<button onClick={() => setActiveMenu('Orders')} className="text-xs font-bold text-orange-600">View all</button>}>
+          {orders.slice(0,5).map((o:any) => (
+            <div key={o.id} className="flex justify-between items-center p-4 border-b border-slate-100 last:border-0 hover:bg-slate-50">
+              <div>
+                <p className="text-sm font-bold text-slate-900">#{o.orderNumber || o.id.slice(0,8)}</p>
+                <p className="text-xs text-slate-500">{o.type} • {o.items.length} items</p>
+              </div>
+              <div className="text-right">
+                <StatusPill tone={o.status === "COMPLETED" ? "emerald" : "orange"}>{o.status}</StatusPill>
+                <p className="text-sm font-bold text-slate-900 mt-1">{fmt(o.totalAmount)}</p>
+              </div>
+            </div>
+          ))}
+          {orders.length === 0 && <p className="p-4 text-sm text-slate-500 text-center">No orders yet.</p>}
+        </SectionCard>
+        <SectionCard title="Revenue by Payment Method">
+          <div className="p-6 space-y-4">
+             {["WALLET", "CASH", "POS"].map(m => (
+               <div key={m} className="flex justify-between items-center">
+                 <span className="text-sm font-medium text-slate-700">{m === 'WALLET' ? 'CityPay Wallet' : m === 'CASH' ? 'Cash' : 'POS Terminal'}</span>
+                 <span className="text-sm font-bold text-slate-900">{fmt(finance?.today?.revenueByMethod?.[m] ?? 0)}</span>
+               </div>
+             ))}
+          </div>
+        </SectionCard>
+      </div>
+    </div>
+  );
+}
+
+function TabReports({ finance }: any) {
+  const { fmt } = useMoney();
+  return (
+    <div className="space-y-6">
+      <PageHeader title="Reports" subtitle="Store performance overview" />
+      <EmptyState icon={BarChart3} title="Detailed reports coming soon" message="View Dashboard for daily metrics." />
+    </div>
+  );
+}
+
+function TabPOS({ menu, tables, showTables, slug, onDone, org, settings }: any) {
+  const { fmt } = useMoney();
+  const [posLines, setPosLines] = useState<any[]>([]);
+  const [posType, setPosType] = useState<"DINE_IN" | "TAKEOUT">("TAKEOUT");
+  const [posTableId, setPosTableId] = useState("");
+  const [posPayment, setPosPayment] = useState<"WALLET" | "CASH" | "POS" | "">("CASH");
+  const [posBusy, setPosBusy] = useState(false);
+  const [posMsg, setPosMsg] = useState<string | null>(null);
+  const [receiptModalData, setReceiptModalData] = useState<PrintableReceiptData | null>(null);
+
+  const posTotal = posLines.reduce((s, l) => s + l.price * l.qty, 0);
+  const posTax = Math.round(posTotal * ((settings?.taxRate ?? 0) / 100));
+  const posService = Math.round(posTotal * ((settings?.serviceCharge ?? 0) / 100));
+  const totalAmount = posTotal + posTax + posService;
+
+  function posAdd(item: any) {
+    if (item.isAvailable === false) return;
+    setPosLines(prev => {
+      const ex = prev.find(l => l.menuItemId === item.id);
+      if (ex) return prev.map(l => l.menuItemId === item.id ? { ...l, qty: l.qty + 1 } : l);
+      return [...prev, { menuItemId: item.id, name: item.name, price: item.price, qty: 1 }];
+    });
   }
 
-  if (notFound || !org) {
-    return (
-      <div className="max-w-lg mx-auto text-center py-20 space-y-4">
-        <p className="text-5xl">ðŸ½ï¸</p>
-        <h1 className="text-lg font-black text-ink">Workspace not found.</h1>
-        <p className="text-sm text-slate-500">This kitchen does not exist on CityOS.</p>
-        <Link href="/business" className="inline-block px-5 py-2.5 rounded-xl bg-teal-800 text-white text-xs font-black hover:bg-teal-900 transition-colors">
-          Back to business
-        </Link>
-      </div>
-    );
+  function posQty(id: string, qty: number) {
+    setPosLines(prev => qty <= 0 ? prev.filter(l => l.menuItemId !== id) : prev.map(l => l.menuItemId === id ? { ...l, qty } : l));
   }
 
-  if (denied) {
-    return (
-      <div className="max-w-lg mx-auto text-center py-20 space-y-4">
-        <p className="text-5xl">ðŸ”’</p>
-        <h1 className="text-lg font-black text-ink">Access denied</h1>
-        <p className="text-sm text-slate-500">{denied}</p>
-        <Link href="/business" className="inline-block px-5 py-2.5 rounded-xl bg-teal-800 text-white text-xs font-black hover:bg-teal-900 transition-colors">
-          Back to business
-        </Link>
-      </div>
-    );
+  async function placeOrder() {
+    if (posLines.length === 0 || posBusy) return;
+    setPosBusy(true); setPosMsg(null);
+    const res = await createPosOrder({
+      organizationId: slug,
+      items: posLines.map(l => ({ menuItemId: l.menuItemId, quantity: l.qty })),
+      type: posType,
+      tableId: posType === "DINE_IN" && posTableId ? posTableId : undefined,
+      paymentMethod: posPayment ? (posPayment as any) : undefined,
+    });
+    setPosBusy(false);
+    if ("error" in res && res.error) { setPosMsg(res.error); return; }
+    playCashRegisterChime();
+    setReceiptModalData({
+      orderId: (res as any).orderId,
+      orderNumber: String((res as any).orderNumber),
+      storeName: org?.name,
+      date: new Date(),
+      cashierName: "POS",
+      orderType: posType as any,
+      tableName: tables.find((t:any) => t.id === posTableId)?.name,
+      items: posLines.map(l => ({ name: l.name, quantity: l.qty, unitPrice: l.price, subtotal: l.price * l.qty })),
+      subtotal: posTotal,
+      taxAmount: posTax,
+      serviceCharge: posService,
+      totalAmount: (res as any).totalAmount ?? totalAmount,
+      paymentMethod: posPayment || "UNPAID",
+      currencySymbol: "₦"
+    });
+    setPosLines([]);
+    setPosMsg(`Order #${(res as any).orderNumber} placed`);
+    await onDone();
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-orange-600 to-amber-500 text-white flex items-center justify-center">
-            <UtensilsCrossed className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-xl font-black text-ink">{org.name}</h1>
-            <p className="text-xs text-slate-500 font-medium mt-0.5">
-              {`RestaurantOS Â· ${style === 'FULL_SERVICE' ? 'Full Service' : style === 'COUNTER' ? 'Fast Food' : 'Eatery'}`}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={switchToPersonal}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white ring-1 ring-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 hover:text-ink transition-colors shadow-xs"
-            title="Switch back to your personal citizen profile"
-          >
-            <ArrowLeftRight className="w-3.5 h-3.5 text-slate-500" /> Personal Account
-          </button>
-          <Link
-            href={`/org/${org.id}`}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white ring-1 ring-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 transition-colors shadow-xs"
-          >
-            <UtensilsCrossed className="w-3.5 h-3.5 text-amber-600" /> Public page
-          </Link>
-          <AudioAlertToggle showTestButton={false} />
-          <Pill tone="orange">{tickets.length} open ticket{tickets.length === 1 ? '' : 's'}</Pill>
+    <div className="flex flex-col lg:flex-row h-full">
+      <div className="flex-1 p-4 lg:p-6 overflow-y-auto">
+        <PageHeader title="POS Terminal" subtitle="Tap items to add" />
+        <div className="mt-6 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+          {menu.map(m => (
+            <button key={m.id} onClick={() => posAdd(m)} disabled={m.isAvailable === false} className={cn("p-4 rounded-xl border text-left transition-all", m.isAvailable === false ? "bg-slate-50 border-slate-200 opacity-50" : "bg-white border-slate-200 hover:border-orange-400 hover:shadow-md active:scale-95")}>
+              <p className="text-sm font-bold text-slate-900 line-clamp-2">{m.name}</p>
+              <p className="text-xs text-slate-500 mt-1">{m.category}</p>
+              <p className="text-sm font-bold text-orange-600 mt-2">{fmt(m.price)}</p>
+            </button>
+          ))}
+          {menu.length === 0 && <p className="col-span-full text-slate-500">No menu items available.</p>}
         </div>
       </div>
-
-      {/* Tab bar â€” style-irrelevant tabs are hidden */}
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 [&::-webkit-scrollbar]:hidden">
-        {tabs.map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={cn(
-              'px-4 py-2 rounded-xl text-[12px] font-black transition-colors whitespace-nowrap',
-              tab === t ? 'bg-orange-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-100 ring-1 ring-slate-100',
-            )}
-          >
-            {t}
-          </button>
-        ))}
+      <div className="w-full lg:w-96 bg-white border-l border-slate-200 flex flex-col flex-shrink-0 relative">
+        <div className="p-4 border-b border-slate-100">
+           <PillTabs tabs={[{value:'TAKEOUT', label:'Takeout'}, {value:'DINE_IN', label:'Dine-in'}]} active={posType} onChange={(v:any) => setPosType(v)} className="w-full justify-center flex" />
+           {posType === 'DINE_IN' && showTables && (
+             <select value={posTableId} onChange={e => setPosTableId(e.target.value)} className={selectCls + " mt-3"}>
+               <option value="">Select table...</option>
+               {tables.map((t:any) => <option key={t.id} value={t.id}>{t.name}</option>)}
+             </select>
+           )}
+        </div>
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {posLines.map(l => (
+            <div key={l.menuItemId} className="flex items-center gap-2 bg-slate-50 p-2 rounded-lg">
+              <span className="flex-1 text-sm font-bold truncate">{l.name}</span>
+              <button onClick={() => posQty(l.menuItemId, l.qty - 1)} className="p-1 bg-white rounded shadow-sm text-slate-500"><Minus size={14}/></button>
+              <span className="text-sm font-bold w-6 text-center">{l.qty}</span>
+              <button onClick={() => posQty(l.menuItemId, l.qty + 1)} className="p-1 bg-white rounded shadow-sm text-slate-500"><Plus size={14}/></button>
+              <span className="text-sm font-bold text-orange-600 w-16 text-right">{fmt(l.price * l.qty)}</span>
+            </div>
+          ))}
+          {posLines.length === 0 && <div className="text-center text-slate-400 py-10">Order is empty</div>}
+        </div>
+        <div className="p-4 border-t border-slate-100 bg-slate-50 space-y-2">
+           <div className="flex justify-between text-sm text-slate-500"><span>Subtotal</span><span>{fmt(posTotal)}</span></div>
+           {posTax > 0 && <div className="flex justify-between text-sm text-slate-500"><span>Tax</span><span>{fmt(posTax)}</span></div>}
+           {posService > 0 && <div className="flex justify-between text-sm text-slate-500"><span>Service</span><span>{fmt(posService)}</span></div>}
+           <div className="flex justify-between font-bold text-lg text-slate-900 border-t border-slate-200 pt-2"><span>Total</span><span className="text-orange-600">{fmt(totalAmount)}</span></div>
+           <div className="flex gap-2 pt-2">
+             {["CASH","POS","WALLET"].map(p => (
+               <button key={p} onClick={() => setPosPayment(posPayment === p ? "" : p as any)} className={cn("flex-1 py-2 rounded-lg text-xs font-bold transition-colors border", posPayment === p ? "bg-orange-600 text-white border-orange-600" : "bg-white text-slate-600 border-slate-200")}>{p}</button>
+             ))}
+           </div>
+           <button onClick={placeOrder} disabled={posLines.length === 0 || posBusy} className={btnPrimary + " w-full mt-2 h-12 text-base"}>
+             {posBusy ? <Loader2 className="animate-spin" size={18}/> : "Place Order"}
+           </button>
+           {posMsg && <p className="text-xs text-center text-emerald-600 font-bold">{posMsg}</p>}
+        </div>
       </div>
+      {receiptModalData && <ThermalReceiptModal initialData={receiptModalData} onClose={() => setReceiptModalData(null)} />}
+    </div>
+  );
+}
 
-      {tab === 'POS' ? (
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          <div className="lg:col-span-3 space-y-3">
-            <SectionHead title="Menu" sub="Tap items to add them to the order" />
-            {menu.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-200 p-10 text-center">
-                <p className="text-sm font-bold text-slate-500">No menu items yet.</p>
-                <p className="text-xs text-slate-400 mt-1">Add items in the Menu tab first.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {menu.map((m) => (
-                  <button
-                    key={m.id}
-                    onClick={() => posAdd(m)}
-                    disabled={m.isAvailable === false}
-                    className={cn(
-                      'rounded-2xl border p-3.5 text-left transition-all',
-                      m.isAvailable === false
-                        ? 'border-slate-100 bg-slate-50 opacity-50 cursor-not-allowed'
-                        : 'bg-white border-slate-100 hover:border-orange-300 hover:shadow-md active:scale-[0.98]',
-                    )}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-[13px] font-black text-ink leading-snug">{m.name}</p>
-                      {m.isAvailable === false ? <span className="text-[9px] font-black text-rose-500 uppercase">86'd</span> : null}
-                    </div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">{m.category}</p>
-                    <p className="text-[13px] font-black text-orange-600 mt-1.5">{fmt(m.price)}</p>
-                  </button>
-                ))}
-              </div>
-            )}
+function TabOrders({ orders }: any) {
+  const { fmt } = useMoney();
+  return (
+    <div className="space-y-6">
+      <PageHeader title="Order History" />
+      <SectionCard>
+         <table className="w-full text-sm text-left">
+           <thead className="bg-slate-50 border-b border-slate-100 text-xs text-slate-500 uppercase">
+             <tr><th className="px-4 py-3">Order #</th><th className="px-4 py-3">Date</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Total</th></tr>
+           </thead>
+           <tbody className="divide-y divide-slate-100">
+             {orders.map((o:any) => (
+               <tr key={o.id} className="hover:bg-slate-50">
+                 <td className="px-4 py-3 font-bold text-slate-900">#{o.orderNumber || o.id.slice(0,8)}</td>
+                 <td className="px-4 py-3 text-slate-500">{new Date(o.createdAt).toLocaleString()}</td>
+                 <td className="px-4 py-3"><StatusPill tone={o.status==="COMPLETED"?"emerald":"orange"}>{o.status}</StatusPill></td>
+                 <td className="px-4 py-3 font-bold text-slate-900">{fmt(o.totalAmount)}</td>
+               </tr>
+             ))}
+           </tbody>
+         </table>
+      </SectionCard>
+    </div>
+  );
+}
+
+function TabKitchen({ tickets, slug, onDone, org }: any) {
+  const { fmt } = useMoney();
+  const [receiptData, setReceiptData] = useState<any>(null);
+  const STATUS_COLORS: any = { PENDING: 'orange', PREPARING: 'orange', READY: 'blue', COMPLETED: 'green' };
+
+  return (
+    <div className="space-y-6">
+      <PageHeader title="Kitchen Display System" subtitle="Live active tickets" />
+      {tickets.length === 0 ? (
+         <EmptyState icon={CheckCircle2} title="All caught up" message="No pending orders." />
+      ) : (
+         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+           {tickets.map((t:any) => {
+             const minutesOld = Math.floor((new Date().getTime() - new Date(t.createdAt).getTime()) / 60000);
+             const timeColor = minutesOld > 15 ? "text-red-600" : minutesOld > 5 ? "text-amber-600" : "text-emerald-600";
+             return (
+               <Card key={t.id} className="p-4 flex flex-col border-t-4 border-t-orange-500">
+                 <div className="flex justify-between items-start mb-2">
+                   <div>
+                     <h3 className="font-black text-xl text-slate-900">#{t.orderNumber}</h3>
+                     <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t.type} {t.tableName && `• ${t.tableName}`}</p>
+                   </div>
+                   <div className="text-right">
+                     <StatusPill tone={STATUS_COLORS[t.status]}>{t.status}</StatusPill>
+                     <p className={`text-xs font-bold mt-1 ${timeColor}`}>{minutesOld}m ago</p>
+                   </div>
+                 </div>
+                 <div className="flex-1 py-3 border-y border-slate-100 my-2 space-y-1">
+                   {t.items.map((i:any) => (
+                     <div key={i.id} className="flex justify-between text-sm">
+                       <span className="font-bold text-slate-800">{i.quantity}x {i.itemName}</span>
+                       {i.notes && <span className="text-xs text-amber-600">{i.notes}</span>}
+                     </div>
+                   ))}
+                 </div>
+                 <div className="flex flex-wrap gap-2 mt-2">
+                    {t.status === 'PENDING' && <button onClick={async () => { await updateOrderStatus(t.id, 'PREPARING'); onDone(); }} className={btnPrimary + " flex-1 py-1.5 text-xs"}>Start</button>}
+                    {t.status === 'PREPARING' && <button onClick={async () => { await updateOrderStatus(t.id, 'READY'); onDone(); }} className="flex-1 py-1.5 text-xs bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700">Ready</button>}
+                    {t.status === 'READY' && <button onClick={async () => { await updateOrderStatus(t.id, 'COMPLETED'); onDone(); }} className="flex-1 py-1.5 text-xs bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700">Serve</button>}
+                    <button onClick={() => setReceiptData({
+                          orderId: t.id, orderNumber: String(t.orderNumber), storeName: org?.name, date: new Date(),
+                          orderType: t.type as any, tableName: t.tableName, items: t.items.map((i:any) => ({ name: i.itemName, quantity: i.quantity, unitPrice: i.unitPrice, subtotal: i.unitPrice*i.quantity })),
+                          subtotal: t.totalAmount, totalAmount: t.totalAmount, paymentMethod: t.paymentMethod || 'UNPAID', currencySymbol: '₦', footerMessage: 'Kitchen Ticket'
+                    })} className={btnOutline + " py-1.5 px-2"}><Printer size={14}/></button>
+                 </div>
+               </Card>
+             );
+           })}
+         </div>
+      )}
+      {receiptData && <ThermalReceiptModal initialData={receiptData} onClose={() => setReceiptData(null)} />}
+    </div>
+  );
+}
+
+function TabMenu({ menu, slug, onDone }: any) {
+  const { fmt } = useMoney();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [price, setPrice] = useState("");
+  const [category, setCategory] = useState("Mains");
+  const [busy, setBusy] = useState(false);
+  
+  async function save() {
+    setBusy(true);
+    await createMenuItem({ organizationId: slug, name, price: Number(price) || 0, category });
+    setBusy(false);
+    setModalOpen(false);
+    onDone();
+  }
+
+  return (
+    <div className="space-y-6">
+      <PageHeader title="Menu Items" actions={<button onClick={() => setModalOpen(true)} className={btnPrimary}><Plus size={16}/> Add Item</button>} />
+      <SectionCard>
+         <table className="w-full text-sm text-left">
+           <thead className="bg-slate-50 border-b border-slate-100 text-xs text-slate-500 uppercase">
+             <tr><th className="px-4 py-3">Name</th><th className="px-4 py-3">Category</th><th className="px-4 py-3">Price</th><th className="px-4 py-3">Status</th><th className="px-4 py-3 text-right">Actions</th></tr>
+           </thead>
+           <tbody className="divide-y divide-slate-100">
+             {menu.map((m:any) => (
+               <tr key={m.id} className="hover:bg-slate-50">
+                 <td className="px-4 py-3 font-bold text-slate-900">{m.name}</td>
+                 <td className="px-4 py-3 text-slate-500">{m.category}</td>
+                 <td className="px-4 py-3 font-bold text-orange-600">{fmt(m.price)}</td>
+                 <td className="px-4 py-3"><button onClick={async () => { await toggleMenuItemAvailability(m.id); onDone(); }}><StatusPill tone={m.isAvailable ? "emerald" : "red"}>{m.isAvailable ? "Available" : "86'd"}</StatusPill></button></td>
+                 <td className="px-4 py-3 text-right"><button onClick={async () => { if(confirm("Delete?")) { await deleteMenuItem(m.id); onDone(); } }} className="text-red-500 hover:text-red-700"><Trash2 size={16}/></button></td>
+               </tr>
+             ))}
+           </tbody>
+         </table>
+      </SectionCard>
+      {modalOpen && (
+        <Modal title="Add Menu Item" onClose={() => setModalOpen(false)} footer={<><button onClick={() => setModalOpen(false)} className={btnOutline}>Cancel</button><button onClick={save} disabled={busy} className={btnPrimary}>{busy ? <Loader2 className="animate-spin" size={16}/> : "Save"}</button></>}>
+          <div className="p-6 space-y-4">
+             <div><label className="block text-xs font-bold text-slate-500 mb-1">Name</label><input className={inputCls} value={name} onChange={e=>setName(e.target.value)}/></div>
+             <div><label className="block text-xs font-bold text-slate-500 mb-1">Price</label><input type="number" className={inputCls} value={price} onChange={e=>setPrice(e.target.value)}/></div>
+             <div><label className="block text-xs font-bold text-slate-500 mb-1">Category</label><input className={inputCls} value={category} onChange={e=>setCategory(e.target.value)}/></div>
           </div>
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-4 sticky top-24">
-
-              <h3 className="text-sm font-black text-ink">Order ticket</h3>
-
-              {/* Order type */}
-              <div className="flex gap-2">
-                {(['TAKEOUT', 'DINE_IN'] as const).map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setPosType(t)}
-                    className={cn(
-                      'flex-1 py-2 rounded-xl text-[11px] font-black transition-colors',
-                      posType === t ? 'bg-orange-600 text-white' : 'bg-slate-50 text-slate-600',
-                    )}
-                  >
-                    {t === 'TAKEOUT' ? 'Takeout' : 'Dine-in'}
-                  </button>
-                ))}
-              </div>
-
-              {/* Table select (full service) */}
-              {posType === 'DINE_IN' && showTables ? (
-                <select
-                  value={posTableId}
-                  onChange={(e) => setPosTableId(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-[12px] font-bold text-slate-700 bg-white"
-                >
-                  <option value="">Select tableâ€¦</option>
-                  {tables.map((t) => (
-                    <option key={t.id} value={t.id}>{`${t.name} Â· ${t.seats} seats Â· ${t.status}`}</option>
-                  ))}
-                </select>
-              ) : null}
-
-              {/* Lines */}
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {posLines.length === 0 ? (
-                  <p className="text-[12px] text-slate-400 font-medium text-center py-6">Tap menu items to add.</p>
-                ) : (
-                  posLines.map((l) => (
-                    <div key={l.menuItemId} className="flex items-center gap-2 bg-slate-50 rounded-xl p-2.5">
-                      <span className="flex-1 min-w-0 text-[12px] font-black text-ink truncate">{l.name}</span>
-                      <button onClick={() => posQty(l.menuItemId, l.qty - 1)} className="w-6 h-6 rounded-md bg-white flex items-center justify-center text-slate-500"><Minus className="w-3 h-3" /></button>
-                      <span className="w-6 text-center text-[12px] font-black">{l.qty}</span>
-                      <button onClick={() => posQty(l.menuItemId, l.qty + 1)} className="w-6 h-6 rounded-md bg-white flex items-center justify-center text-slate-500"><Plus className="w-3 h-3" /></button>
-                      <span className="w-16 text-right text-[12px] font-black text-orange-600">{fmt(l.price * l.qty)}</span>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {/* Totals */}
-              <div className="space-y-1.5 text-[12px] font-bold text-slate-600 border-t border-slate-100 pt-3">
-                <div className="flex justify-between"><span>Subtotal</span><span className="text-ink">{fmt(posTotal)}</span></div>
-                {posTax > 0 ? <div className="flex justify-between"><span>Tax</span><span className="text-ink">{fmt(posTax)}</span></div> : null}
-                {posService > 0 ? <div className="flex justify-between"><span>Service charge</span><span className="text-ink">{fmt(posService)}</span></div> : null}
-                <div className="flex justify-between text-sm pt-1"><span className="font-black text-ink">Total</span><span className="font-black text-orange-600">{fmt(posTotal + posTax + posService)}</span></div>
-              </div>
-
-              {/* Payment */}
-              <div className="flex gap-2">
-                {(['CASH', 'POS', 'WALLET'] as const).map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => setPosPayment(posPayment === p ? '' : p)}
-                    className={cn(
-                      'flex-1 py-2 rounded-xl text-[11px] font-black transition-colors',
-                      posPayment === p ? 'bg-teal-800 text-white' : 'bg-slate-50 text-slate-600',
-                    )}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-              <p className="text-[10px] text-slate-400 font-bold text-center">
-                {posPayment ? `Customer pays by ${posPayment} now` : 'No payment â€” bill at the end (dine-in)'}
-              </p>
-
-              <button
-                onClick={placeOrder}
-                disabled={posLines.length === 0 || posBusy}
-                className="w-full h-12 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-sm font-black transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {posBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                Place order
-              </button>
-              {posMsg ? <p className="text-[11px] font-bold text-teal-700 text-center">{posMsg}</p> : null}
-              {receiptModalData ? (
-                <button
-                  type="button"
-                  onClick={() => setReceiptModalData({ ...receiptModalData })}
-                  className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-sm"
-                >
-                  <Printer className="w-3.5 h-3.5" />
-                  Print Thermal Receipt
-                </button>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-
-      {tab === 'Kitchen' ? (
-        <div className="space-y-4">
-          <SectionHead title="Kitchen Display" sub="Live tickets â€” oldest first" />
-          {tickets.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-200 p-12 text-center">
-              <p className="text-sm font-bold text-slate-500">No open tickets.</p>
-              <p className="text-xs text-slate-400 mt-1">The kitchen is all caught up.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {tickets.map((t) => (
-                <div key={t.id} className="bg-white rounded-2xl border border-slate-100 p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-lg font-black text-ink">#{t.orderNumber ?? 'â€”'}</span>
-                    <Pill tone={STATUS_TONE[t.status] ?? 'orange'}>{t.status}</Pill>
-                  </div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    {`${t.type}${t.tableName ? ` Â· ${t.tableName}` : ''}`}
-                  </p>
-                  <div className="space-y-1">
-                    {t.items.map((i: any) => (
-                      <div key={i.id} className="flex justify-between text-[12px] font-bold text-slate-600">
-                        <span>{`${i.quantity}Ã— ${i.itemName}`}</span>
-                        {i.notes ? <span className="text-amber-600">{i.notes}</span> : null}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex justify-between text-[12px] font-black text-ink border-t border-slate-100 pt-2">
-                    <span>{t.paymentMethod ? `Paid by ${t.paymentMethod}` : 'Unpaid'}</span>
-                    <span>{fmt(t.totalAmount)}</span>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {t.status === 'PENDING' ? (
-                      <button onClick={async () => { await updateOrderStatus(t.id, 'PREPARING'); await refresh(); }} className="px-3 py-1.5 rounded-lg bg-orange-600 text-white text-[10px] font-black">Start preparing</button>
-                    ) : null}
-                    {t.status === 'PREPARING' ? (
-                      <button onClick={async () => { await updateOrderStatus(t.id, 'READY'); await refresh(); }} className="px-3 py-1.5 rounded-lg bg-teal-700 text-white text-[10px] font-black">Mark ready</button>
-                    ) : null}
-                    {t.status === 'READY' ? (
-                      <button onClick={async () => { await updateOrderStatus(t.id, 'COMPLETED'); await refresh(); }} className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-[10px] font-black">Served / complete</button>
-                    ) : null}
-                    {t.status !== 'COMPLETED' ? (
-                      <button onClick={async () => { await updateOrderStatus(t.id, 'CANCELLED'); await refresh(); }} className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-black">Cancel</button>
-                    ) : null}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setReceiptModalData({
-                          orderId: t.id,
-                          orderNumber: t.orderNumber ? String(t.orderNumber) : t.id.slice(0, 8),
-                          storeName: org?.name || 'Restaurant Kitchen',
-                          date: new Date(),
-                          orderType: t.type as any,
-                          tableName: t.tableName || undefined,
-                          items: t.items.map((i: any) => ({
-                            name: i.itemName,
-                            quantity: i.quantity,
-                            unitPrice: Number((i as any).unitPrice || 0),
-                            subtotal: Number((i as any).unitPrice || 0) * i.quantity,
-                            notes: i.notes || undefined,
-                          })),
-                          subtotal: t.totalAmount,
-                          totalAmount: t.totalAmount,
-                          paymentMethod: t.paymentMethod || 'UNPAID',
-                          currencySymbol: '₦',
-                          footerMessage: 'Kitchen Order Ticket',
-                        })
-                      }
-                      className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 text-[10px] font-black inline-flex items-center gap-1 transition-colors"
-                    >
-                      <Printer className="w-3 h-3" />
-                      <span>Print Bill</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      ) : null}
-
-
-      {tab === 'Menu' ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-3">
-            <SectionHead title="Menu items" sub="86 an item to stop selling it instantly" />
-            {menu.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-200 p-10 text-center">
-                <p className="text-sm font-bold text-slate-500">No menu items yet.</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {menu.map((m) => (
-                  <div key={m.id} className="bg-white rounded-2xl border border-slate-100 p-3.5 flex items-center gap-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-black text-ink truncate">{m.name}</p>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{`${m.category} Â· ${m.addons.length} addon${m.addons.length === 1 ? '' : 's'} Â· ${m.variants.length} variant${m.variants.length === 1 ? '' : 's'}`}</p>
-                    </div>
-                    <span className="text-[13px] font-black text-orange-600">{fmt(m.price)}</span>
-                    <button
-                      onClick={async () => { await toggleMenuItemAvailability(m.id); await refresh(); }}
-                      className={cn(
-                        'px-2.5 py-1.5 rounded-lg text-[10px] font-black transition-colors',
-                        m.isAvailable === false ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-500',
-                      )}
-                    >
-                      {m.isAvailable === false ? 'Restore' : "86 it"}
-                    </button>
-                    <button onClick={async () => { if (confirm(`Delete ${m.name}?`)) { await deleteMenuItem(m.id); await refresh(); } }} className="text-slate-400 hover:text-rose-500 transition-colors p-1"><Trash2 className="w-4 h-4" /></button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-3 h-fit">
-            <h3 className="text-sm font-black text-ink">Add menu item</h3>
-            <MenuItemForm slug={slug} onDone={refresh} />
-          </div>
-        </div>
-      ) : null}
-
-
-      {tab === 'Inventory' ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-3">
-            <SectionHead title="Stock" sub="Ingredients and resale stock â€” restock or record usage" />
-            {inventory.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-200 p-10 text-center">
-                <p className="text-sm font-bold text-slate-500">No stock items yet.</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {inventory.map((i) => {
-                  const low = i.quantity <= i.lowStockLevel;
-                  return (
-                    <div key={i.id} className={cn('rounded-2xl border p-3.5 flex items-center gap-3', low ? 'border-amber-200 bg-amber-50/50' : 'bg-white border-slate-100')}>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-black text-ink truncate">{i.name}</p>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                          {`${i.quantity} ${i.unit} left Â· min ${i.lowStockLevel}`}
-                          {low ? ' Â· LOW STOCK' : ''}
-                        </p>
-                      </div>
-                      <button onClick={async () => { await adjustStock(i.id, 1, 'Restock'); await refresh(); }} className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-600"><Plus className="w-3.5 h-3.5" /></button>
-                      <button onClick={async () => { await adjustStock(i.id, -1, 'Usage'); await refresh(); }} className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-600"><Minus className="w-3.5 h-3.5" /></button>
-                      <button onClick={async () => { if (confirm(`Delete ${i.name}?`)) { await deleteInventoryItem(i.id); await refresh(); } }} className="text-slate-400 hover:text-rose-500 transition-colors p-1"><Trash2 className="w-4 h-4" /></button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-3 h-fit">
-            <h3 className="text-sm font-black text-ink">Add stock item</h3>
-            <InventoryForm slug={slug} onDone={refresh} />
-          </div>
-        </div>
-      ) : null}
-
-
-      {tab === 'Finance' ? (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <StatTile label="Revenue today" value={fmt(finance?.today.revenue ?? 0)} delta={`${finance?.today.orders ?? 0} paid order(s)`} tone="teal" />
-            <StatTile label="Average ticket" value={fmt(finance?.today.averageTicket ?? 0)} delta="today" tone="blue" />
-            <StatTile label="Expenses today" value={fmt(finance?.expensesToday ?? 0)} delta="recorded costs" tone="orange" />
-            <StatTile label="Week net (rev âˆ’ exp)" value={fmt(finance?.week.net ?? 0)} delta={`${finance?.week.revenue ?? 0} revenue`} tone="emerald" />
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="bg-white rounded-2xl border border-slate-100 p-5 lg:col-span-2">
-              <SectionHead title="Payments today" sub="By method" />
-              <div className="space-y-2 mt-2">
-                {(['WALLET', 'CASH', 'POS'] as const).map((m) => (
-                  <div key={m} className="flex justify-between text-[13px] font-bold text-slate-600">
-                    <span>{m === 'WALLET' ? 'CityPay wallet' : m === 'CASH' ? 'Cash' : 'POS transfer'}</span>
-                    <span className="text-ink">{fmt(finance?.today.revenueByMethod?.[m] ?? 0)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-3 h-fit">
-              <h3 className="text-sm font-black text-ink">Record expense</h3>
-              <ExpenseForm slug={slug} onDone={refresh} />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-slate-100 p-5">
-            <SectionHead title="Recent expenses" sub="All recorded costs" />
-            <div className="space-y-2 mt-2">
-              {expenses.length === 0 ? (
-                <p className="text-[12px] text-slate-400 font-medium py-4 text-center">No expenses recorded yet.</p>
-              ) : (
-                expenses.slice(0, 10).map((e) => (
-                  <div key={e.id} className="flex justify-between text-[12px] font-bold text-slate-600">
-                    <span className="capitalize">{`${e.category}${e.note ? ` â€” ${e.note}` : ''}`}</span>
-                    <span className="text-rose-500">âˆ’{fmt(e.amount)}</span>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-
-      {tab === 'Tables' ? (
-        <div className="space-y-4">
-          <SectionHead title="Floor plan" sub="Tap a table to cycle its status" />
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            {tables.map((t) => (
-              <button
-                key={t.id}
-                onClick={async () => {
-                  const next = t.status === 'available' ? 'occupied' : t.status === 'occupied' ? 'reserved' : 'available';
-                  await updateTableStatus(t.id, next);
-                  await refresh();
-                }}
-                className={cn(
-                  'rounded-2xl border p-4 text-left transition-all',
-                  t.status === 'available' ? 'bg-white border-emerald-200' : t.status === 'occupied' ? 'bg-orange-50 border-orange-200' : 'bg-blue-50 border-blue-200',
-                )}
-              >
-                <p className="text-[13px] font-black text-ink">{t.name}</p>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-1 capitalize">{`${t.status} Â· ${t.seats} seats`}</p>
-              </button>
-            ))}
-            {tables.length === 0 ? (
-              <div className="col-span-full rounded-2xl border border-dashed border-slate-200 p-10 text-center">
-                <p className="text-sm font-bold text-slate-500">No tables yet.</p>
-              </div>
-            ) : null}
-          </div>
-          <div className="bg-white rounded-2xl border border-slate-100 p-5 max-w-sm space-y-3">
-            <h3 className="text-sm font-black text-ink">Add table</h3>
-            <TableForm slug={slug} onDone={refresh} />
-          </div>
-        </div>
-      ) : null}
-
-      {tab === 'Reservations' ? (
-        <div className="space-y-4">
-          <SectionHead title="Reservations" sub="Walk-in and online bookings" />
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-2">
-              {reservations.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-slate-200 p-10 text-center">
-                  <p className="text-sm font-bold text-slate-500">No reservations yet.</p>
-                </div>
-              ) : (
-                reservations.map((r) => (
-                  <div key={r.id} className="bg-white rounded-2xl border border-slate-100 p-3.5 flex items-center gap-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-black text-ink">{`${r.customerName ?? 'Guest'} Â· ${r.partySize} pax`}</p>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                        {`${new Date(r.scheduledAt).toLocaleString()}${r.tableId ? ` Â· ${tables.find((t) => t.id === r.tableId)?.name ?? 'table'}` : ''}`}
-                      </p>
-                    </div>
-                    <Pill tone={r.status === 'seated' ? 'green' : r.status === 'cancelled' ? 'red' : 'orange'}>{r.status}</Pill>
-                    {r.status === 'pending' ? (
-                      <button onClick={async () => { await updateReservationStatus(r.id, 'confirmed'); await refresh(); }} className="px-2.5 py-1.5 rounded-lg bg-teal-700 text-white text-[10px] font-black">Confirm</button>
-                    ) : null}
-                    {r.status === 'confirmed' ? (
-                      <button onClick={async () => { await updateReservationStatus(r.id, 'seated'); await refresh(); }} className="px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white text-[10px] font-black">Seat</button>
-                    ) : null}
-                  </div>
-                ))
-              )}
-            </div>
-            <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-3 h-fit">
-              <h3 className="text-sm font-black text-ink">New reservation</h3>
-              <ReservationForm slug={slug} tables={tables} onDone={refresh} />
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-
-      {tab === 'Settings' ? (
-        <div className="max-w-xl space-y-4">
-          <SectionHead title="RestaurantOS settings" sub="Operating style, pricing and payments" />
-          <SettingsForm slug={slug} settings={settings} onDone={refresh} />
-        </div>
-      ) : null}
-
-      {receiptModalData && (
-        <ThermalReceiptModal
-          initialData={receiptModalData}
-          onClose={() => setReceiptModalData(null)}
-        />
+        </Modal>
       )}
     </div>
   );
 }
 
+function TabInventory({ inventory, slug, onDone, subTab }: any) {
+  // Local state for missing server actions
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState(subTab);
 
-// ---------------------------------------------------------------------------
-// Forms
-// ---------------------------------------------------------------------------
-
-function MenuItemForm({ slug, onDone }: { slug: string; onDone: () => Promise<void> }) {
-  const [name, setName] = useState('');
-  const [price, setPrice] = useState('');
-  const [category, setCategory] = useState('Mains');
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
+  useEffect(() => { setActiveTab(subTab); }, [subTab]);
 
   return (
-    <div className="space-y-2.5">
-      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Item name (e.g. Party Jollof)" className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-[12px] font-bold text-ink focus:outline-none focus:border-orange-300" />
-      <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Price (e.g. 4500)" inputMode="numeric" className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-[12px] font-bold text-ink focus:outline-none focus:border-orange-300" />
-      <input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Category (Mains, Drinks, Grills)" className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-[12px] font-bold text-ink focus:outline-none focus:border-orange-300" />
-      <button
-        onClick={async () => {
-          setBusy(true); setMsg(null);
-          const res = await createMenuItem({ organizationId: slug, name, price: Number(price) || 0, category });
-          setBusy(false);
-          if ('error' in res && res.error) { setMsg(res.error); return; }
-          setName(''); setPrice('');
-          setMsg('Item added.');
-          await onDone();
-        }}
-        disabled={busy || !name.trim()}
-        className="w-full h-10 rounded-xl bg-orange-600 text-white text-[12px] font-black disabled:opacity-50 flex items-center justify-center gap-2"
-      >
-        {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-        Add item
-      </button>
-      {msg ? <p className="text-[10px] font-bold text-slate-500">{msg}</p> : null}
+    <div className="space-y-6">
+      <PageHeader title="Inventory Management" />
+      <PillTabs tabs={[
+        {value:'Stock', label:'Stock & Ingredients'},
+        {value:'Suppliers', label:'Suppliers'},
+        {value:'POs', label:'Purchase Orders'},
+        {value:'Waste', label:'Waste Log'}
+      ]} active={activeTab} onChange={(v:any) => setActiveTab(v)} />
+
+      {activeTab === 'Stock' && <StockView inventory={inventory} slug={slug} onDone={onDone} />}
+      {activeTab === 'Suppliers' && <SuppliersView suppliers={suppliers} setSuppliers={setSuppliers} />}
+      {activeTab === 'POs' && <POsView purchaseOrders={purchaseOrders} setPurchaseOrders={setPurchaseOrders} suppliers={suppliers} inventory={inventory} />}
+      {activeTab === 'Waste' && <WasteView inventory={inventory} />}
     </div>
   );
 }
 
-function InventoryForm({ slug, onDone }: { slug: string; onDone: () => Promise<void> }) {
-  const [name, setName] = useState('');
-  const [unit, setUnit] = useState('unit');
-  const [qty, setQty] = useState('');
-  const [min, setMin] = useState('5');
+function StockView({ inventory, slug, onDone }: any) {
+  const [modalType, setModalType] = useState<"" | "ADD" | "RESTOCK" | "WASTE">("");
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  
+  // Add form
+  const [name, setName] = useState(""); const [unit, setUnit] = useState("kg");
+  const [qty, setQty] = useState(""); const [min, setMin] = useState("5");
+
+  // Adjust form
+  const [adjQty, setAdjQty] = useState(""); const [adjNote, setAdjNote] = useState("");
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
+
+  async function handleAdd() {
+    setBusy(true);
+    await createInventoryItem({ organizationId: slug, name, unit, quantity: Number(qty)||0, lowStockLevel: Number(min)||5 });
+    setBusy(false); setModalType(""); onDone();
+  }
+
+  async function handleAdjust(isAdd: boolean) {
+    setBusy(true);
+    const amount = (Number(adjQty) || 0) * (isAdd ? 1 : -1);
+    await adjustStock(selectedItem.id, amount, adjNote || (isAdd ? 'Restock' : 'Spoiled'));
+    setBusy(false); setModalType(""); onDone();
+  }
 
   return (
-    <div className="space-y-2.5">
-      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Item (e.g. Rice â€” bag)" className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-[12px] font-bold text-ink focus:outline-none focus:border-orange-300" />
-      <input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="Unit (kg, crate, litre)" className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-[12px] font-bold text-ink focus:outline-none focus:border-orange-300" />
-      <div className="flex gap-2">
-        <input value={qty} onChange={(e) => setQty(e.target.value)} placeholder="Qty" inputMode="numeric" className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-[12px] font-bold text-ink focus:outline-none focus:border-orange-300" />
-        <input value={min} onChange={(e) => setMin(e.target.value)} placeholder="Min" inputMode="numeric" className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-[12px] font-bold text-ink focus:outline-none focus:border-orange-300" />
+    <div className="space-y-4">
+      <div className="flex justify-end"><button onClick={() => setModalType("ADD")} className={btnPrimary}><Plus size={16}/> Add Ingredient</button></div>
+      <SectionCard>
+        <table className="w-full text-sm text-left">
+           <thead className="bg-slate-50 border-b border-slate-100 text-xs text-slate-500 uppercase">
+             <tr><th className="px-4 py-3">Name</th><th className="px-4 py-3">In Stock</th><th className="px-4 py-3">Min Level</th><th className="px-4 py-3">Status</th><th className="px-4 py-3 text-right">Actions</th></tr>
+           </thead>
+           <tbody className="divide-y divide-slate-100">
+             {inventory.map((i:any) => {
+               const st = i.quantity === 0 ? 'OUT' : i.quantity <= i.lowStockLevel ? 'LOW' : 'OK';
+               return (
+                 <tr key={i.id} className={st === 'LOW' ? 'border-l-4 border-amber-500 bg-amber-50/10' : ''}>
+                   <td className="px-4 py-3 font-bold text-slate-900">{i.name}</td>
+                   <td className="px-4 py-3 text-slate-600">{i.quantity} {i.unit}</td>
+                   <td className="px-4 py-3 text-slate-500">{i.lowStockLevel} {i.unit}</td>
+                   <td className="px-4 py-3"><StatusPill tone={st==='OUT'?'red':st==='LOW'?'amber':'emerald'}>{st}</StatusPill></td>
+                   <td className="px-4 py-3 text-right space-x-2">
+                     <button onClick={() => { setSelectedItem(i); setModalType("RESTOCK"); }} className="text-emerald-600 hover:bg-emerald-50 px-2 py-1 rounded text-xs font-bold">[+] Restock</button>
+                     <button onClick={() => { setSelectedItem(i); setModalType("WASTE"); }} className="text-red-600 hover:bg-red-50 px-2 py-1 rounded text-xs font-bold">[-] Waste</button>
+                     <button onClick={async () => { if(confirm("Delete?")){ await deleteInventoryItem(i.id); onDone(); } }} className="text-slate-400 hover:text-red-500"><Trash2 size={14}/></button>
+                   </td>
+                 </tr>
+               );
+             })}
+           </tbody>
+        </table>
+      </SectionCard>
+      
+      {modalType === "ADD" && (
+        <Modal title="Add Ingredient" onClose={() => setModalType("")} footer={<><button onClick={() => setModalType("")} className={btnOutline}>Cancel</button><button onClick={handleAdd} disabled={busy} className={btnPrimary}>{busy?<Loader2 className="animate-spin" size={16}/>:"Save"}</button></>}>
+           <div className="p-6 space-y-4">
+             <div><label className="block text-xs font-bold text-slate-500 mb-1">Name</label><input className={inputCls} value={name} onChange={e=>setName(e.target.value)}/></div>
+             <div><label className="block text-xs font-bold text-slate-500 mb-1">Unit</label><input className={inputCls} value={unit} onChange={e=>setUnit(e.target.value)}/></div>
+             <div className="flex gap-4">
+               <div className="flex-1"><label className="block text-xs font-bold text-slate-500 mb-1">Initial Qty</label><input type="number" className={inputCls} value={qty} onChange={e=>setQty(e.target.value)}/></div>
+               <div className="flex-1"><label className="block text-xs font-bold text-slate-500 mb-1">Low Alert Level</label><input type="number" className={inputCls} value={min} onChange={e=>setMin(e.target.value)}/></div>
+             </div>
+           </div>
+        </Modal>
+      )}
+
+      {(modalType === "RESTOCK" || modalType === "WASTE") && (
+        <Modal title={`${modalType === 'RESTOCK' ? 'Restock' : 'Record Waste'}: ${selectedItem?.name}`} onClose={() => setModalType("")} footer={<><button onClick={() => setModalType("")} className={btnOutline}>Cancel</button><button onClick={() => handleAdjust(modalType==='RESTOCK')} disabled={busy} className={btnPrimary}>{busy?<Loader2 className="animate-spin" size={16}/>:"Save"}</button></>}>
+           <div className="p-6 space-y-4">
+             <div><label className="block text-xs font-bold text-slate-500 mb-1">Quantity</label><input type="number" className={inputCls} value={adjQty} onChange={e=>setAdjQty(e.target.value)}/></div>
+             <div><label className="block text-xs font-bold text-slate-500 mb-1">{modalType === 'RESTOCK' ? 'Supplier / Note' : 'Reason (Spoiled/Damaged)'}</label><input className={inputCls} value={adjNote} onChange={e=>setAdjNote(e.target.value)}/></div>
+           </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+function SuppliersView({ suppliers, setSuppliers }: any) {
+  // TODO: Missing server actions for Suppliers. Managed locally.
+  const [modalOpen, setModalOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [contact, setContact] = useState("");
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end"><button onClick={() => setModalOpen(true)} className={btnPrimary}><Plus size={16}/> Add Supplier</button></div>
+      <SectionCard>
+         {suppliers.length === 0 ? <p className="p-8 text-center text-slate-500">No suppliers defined. (Note: using local state)</p> : 
+         <ul className="divide-y divide-slate-100">
+            {suppliers.map((s:any, i:number) => (
+              <li key={i} className="p-4 flex justify-between items-center">
+                <div><p className="font-bold">{s.name}</p><p className="text-sm text-slate-500">{s.contact}</p></div>
+                <button onClick={() => setSuppliers((prev:any) => prev.filter((_:any,idx:number)=>idx!==i))} className="text-red-500"><Trash2 size={16}/></button>
+              </li>
+            ))}
+         </ul>}
+      </SectionCard>
+      {modalOpen && (
+        <Modal title="Add Supplier" onClose={() => setModalOpen(false)} footer={<><button onClick={() => setModalOpen(false)} className={btnOutline}>Cancel</button><button onClick={() => { setSuppliers([...suppliers, {name, contact}]); setModalOpen(false); }} className={btnPrimary}>Save</button></>}>
+          <div className="p-6 space-y-4">
+             <div><label className="block text-xs font-bold text-slate-500 mb-1">Name</label><input className={inputCls} value={name} onChange={e=>setName(e.target.value)}/></div>
+             <div><label className="block text-xs font-bold text-slate-500 mb-1">Contact</label><input className={inputCls} value={contact} onChange={e=>setContact(e.target.value)}/></div>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+function POsView({ purchaseOrders, setPurchaseOrders, suppliers, inventory }: any) {
+  // TODO: Missing server actions for POs. Managed locally.
+  return (
+    <div className="space-y-4">
+      <SectionCard>
+        <EmptyState icon={ClipboardList} title="Purchase Orders" message="PO management requires server actions. Coming soon." />
+      </SectionCard>
+    </div>
+  );
+}
+
+function WasteView({ inventory }: any) {
+  return (
+    <div className="space-y-4">
+      <SectionCard>
+        <EmptyState icon={Trash2} title="Waste Log" message="Waste is recorded via the Stock tab's [-] Waste action. Detailed historical logs coming soon." />
+      </SectionCard>
+    </div>
+  );
+}
+
+function TabTables({ tables, slug, onDone }: any) {
+  const [name, setName] = useState("");
+  const [seats, setSeats] = useState("");
+  async function handleAdd() {
+    await createTable({ organizationId: slug, name, seats: Number(seats)||4 });
+    setName(""); setSeats(""); onDone();
+  }
+  return (
+    <div className="space-y-6">
+      <PageHeader title="Tables" />
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+         {tables.map((t:any) => (
+           <button key={t.id} onClick={async () => { const n = t.status==='available'?'occupied':t.status==='occupied'?'reserved':'available'; await updateTableStatus(t.id, n); onDone(); }} className={cn("p-4 rounded-xl border text-left transition-colors h-24", t.status==='available'?'bg-emerald-50 border-emerald-200':t.status==='occupied'?'bg-orange-50 border-orange-200':'bg-blue-50 border-blue-200')}>
+             <p className="font-bold text-slate-900">{t.name}</p>
+             <p className="text-xs uppercase mt-1">{t.status} • {t.seats} pax</p>
+           </button>
+         ))}
       </div>
-      <button
-        onClick={async () => {
-          setBusy(true); setMsg(null);
-          const res = await createInventoryItem({ organizationId: slug, name, unit, quantity: Number(qty) || 0, lowStockLevel: Number(min) || 5 });
-          setBusy(false);
-          if ('error' in res && res.error) { setMsg(res.error); return; }
-          setName(''); setQty('');
-          setMsg('Stock item added.');
-          await onDone();
-        }}
-        disabled={busy || !name.trim()}
-        className="w-full h-10 rounded-xl bg-orange-600 text-white text-[12px] font-black disabled:opacity-50 flex items-center justify-center gap-2"
-      >
-        {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-        Add stock
-      </button>
-      {msg ? <p className="text-[10px] font-bold text-slate-500">{msg}</p> : null}
+      <SectionCard title="Add Table" className="max-w-md">
+         <div className="p-4 flex gap-2">
+           <input className={inputCls} placeholder="Name" value={name} onChange={e=>setName(e.target.value)}/>
+           <input type="number" className={inputCls} placeholder="Seats" value={seats} onChange={e=>setSeats(e.target.value)} style={{width: '100px'}}/>
+           <button onClick={handleAdd} className={btnPrimary}>Add</button>
+         </div>
+      </SectionCard>
     </div>
   );
 }
 
-
-function ExpenseForm({ slug, onDone }: { slug: string; onDone: () => Promise<void> }) {
-  const [category, setCategory] = useState('ingredients');
-  const [amount, setAmount] = useState('');
-  const [note, setNote] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-
+function TabReservations({ reservations, tables, slug, onDone }: any) {
   return (
-    <div className="space-y-2.5">
-      <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-[12px] font-bold text-slate-700 bg-white">
-        {['ingredients', 'gas', 'staff', 'rent', 'utilities', 'other'].map((c) => <option key={c} value={c}>{c}</option>)}
-      </select>
-      <input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Amount" inputMode="numeric" className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-[12px] font-bold text-ink focus:outline-none focus:border-orange-300" />
-      <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (optional)" className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-[12px] font-bold text-ink focus:outline-none focus:border-orange-300" />
-      <button
-        onClick={async () => {
-          setBusy(true); setMsg(null);
-          const res = await addExpense({ organizationId: slug, category, amount: Number(amount) || 0, note });
-          setBusy(false);
-          if ('error' in res && res.error) { setMsg(res.error); return; }
-          setAmount(''); setNote('');
-          setMsg('Expense recorded.');
-          await onDone();
-        }}
-        disabled={busy || !(Number(amount) > 0)}
-        className="w-full h-10 rounded-xl bg-orange-600 text-white text-[12px] font-black disabled:opacity-50 flex items-center justify-center gap-2"
-      >
-        {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-        Record expense
-      </button>
-      {msg ? <p className="text-[10px] font-bold text-slate-500">{msg}</p> : null}
+    <div className="space-y-6">
+      <PageHeader title="Reservations" />
+      <SectionCard>
+         <table className="w-full text-sm text-left">
+           <thead className="bg-slate-50 border-b border-slate-100 text-xs text-slate-500 uppercase">
+             <tr><th className="px-4 py-3">Customer</th><th className="px-4 py-3">Time</th><th className="px-4 py-3">Table</th><th className="px-4 py-3">Status</th><th className="px-4 py-3 text-right">Actions</th></tr>
+           </thead>
+           <tbody className="divide-y divide-slate-100">
+             {reservations.map((r:any) => (
+               <tr key={r.id}>
+                 <td className="px-4 py-3 font-bold">{r.customerName || 'Guest'} ({r.partySize} pax)</td>
+                 <td className="px-4 py-3 text-slate-500">{new Date(r.scheduledAt).toLocaleString()}</td>
+                 <td className="px-4 py-3 text-slate-500">{tables.find((t:any)=>t.id===r.tableId)?.name || 'Any'}</td>
+                 <td className="px-4 py-3"><StatusPill tone={r.status==='seated'?'green':r.status==='cancelled'?'red':'orange'}>{r.status}</StatusPill></td>
+                 <td className="px-4 py-3 text-right space-x-2">
+                   {r.status === 'pending' && <button onClick={async () => { await updateReservationStatus(r.id, 'confirmed'); onDone(); }} className="text-xs font-bold text-blue-600">Confirm</button>}
+                   {r.status === 'confirmed' && <button onClick={async () => { await updateReservationStatus(r.id, 'seated'); onDone(); }} className="text-xs font-bold text-emerald-600">Seat</button>}
+                 </td>
+               </tr>
+             ))}
+           </tbody>
+         </table>
+         {reservations.length === 0 && <p className="p-8 text-center text-slate-500">No reservations.</p>}
+      </SectionCard>
     </div>
   );
 }
 
-function TableForm({ slug, onDone }: { slug: string; onDone: () => Promise<void> }) {
-  const [name, setName] = useState('');
-  const [seats, setSeats] = useState('4');
+function TabFinance({ finance, expenses, slug, onDone }: any) {
+  const { fmt } = useMoney();
+  const [amt, setAmt] = useState("");
+  const [cat, setCat] = useState("");
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-
+  async function addExp() {
+    setBusy(true);
+    await addExpense({ organizationId: slug, amount: Number(amt), category: cat });
+    setBusy(false); setAmt(""); setCat(""); onDone();
+  }
   return (
-    <div className="space-y-2.5">
-      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Table name (e.g. T1, Window)" className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-[12px] font-bold text-ink focus:outline-none focus:border-orange-300" />
-      <input value={seats} onChange={(e) => setSeats(e.target.value)} placeholder="Seats" inputMode="numeric" className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-[12px] font-bold text-ink focus:outline-none focus:border-orange-300" />
-      <button
-        onClick={async () => {
-          setBusy(true); setMsg(null);
-          const res = await createTable({ organizationId: slug, name, seats: Number(seats) || 4 });
-          setBusy(false);
-          if ('error' in res && res.error) { setMsg(res.error); return; }
-          setName('');
-          setMsg('Table added.');
-          await onDone();
-        }}
-        disabled={busy || !name.trim()}
-        className="w-full h-10 rounded-xl bg-orange-600 text-white text-[12px] font-black disabled:opacity-50 flex items-center justify-center gap-2"
-      >
-        {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-        Add table
-      </button>
-      {msg ? <p className="text-[10px] font-bold text-slate-500">{msg}</p> : null}
-    </div>
-  );
-}
-
-
-function ReservationForm({ slug, tables, onDone }: { slug: string; tables: TableRow[]; onDone: () => Promise<void> }) {
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [party, setParty] = useState('2');
-  const [when, setWhen] = useState('');
-  const [tableId, setTableId] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-
-  return (
-    <div className="space-y-2.5">
-      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Guest name" className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-[12px] font-bold text-ink focus:outline-none focus:border-orange-300" />
-      <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone (optional)" className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-[12px] font-bold text-ink focus:outline-none focus:border-orange-300" />
-      <div className="flex gap-2">
-        <input value={party} onChange={(e) => setParty(e.target.value)} placeholder="Party size" inputMode="numeric" className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-[12px] font-bold text-ink focus:outline-none focus:border-orange-300" />
-        <input value={when} onChange={(e) => setWhen(e.target.value)} type="datetime-local" className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-[12px] font-bold text-slate-700 focus:outline-none focus:border-orange-300" />
+    <div className="space-y-6">
+      <PageHeader title="Finance" />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <StatCard label="Revenue Today" value={fmt(finance?.today?.revenue??0)} tone="brand" />
+        <StatCard label="Revenue Week" value={fmt(finance?.week?.revenue??0)} tone="blue" />
+        <StatCard label="Total Expenses" value={fmt(finance?.week?.expenses??0)} tone="red" />
+        <StatCard label="Net Profit" value={fmt(finance?.week?.net??0)} tone="emerald" />
       </div>
-      <select value={tableId} onChange={(e) => setTableId(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-[12px] font-bold text-slate-700 bg-white">
-        <option value="">No table preference</option>
-        {tables.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-      </select>
-      <button
-        onClick={async () => {
-          setBusy(true); setMsg(null);
-          const res = await createReservation({
-            organizationId: slug, customerName: name, customerPhone: phone,
-            partySize: Number(party) || 2, scheduledAt: when || new Date().toISOString(),
-            tableId: tableId || undefined,
-          });
-          setBusy(false);
-          if ('error' in res && res.error) { setMsg(res.error); return; }
-          setName(''); setPhone(''); setWhen('');
-          setMsg('Reservation created.');
-          await onDone();
-        }}
-        disabled={busy}
-        className="w-full h-10 rounded-xl bg-orange-600 text-white text-[12px] font-black disabled:opacity-50 flex items-center justify-center gap-2"
-      >
-        {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-        Create reservation
-      </button>
-      {msg ? <p className="text-[10px] font-bold text-slate-500">{msg}</p> : null}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <SectionCard title="Record Expense" className="lg:col-span-1 h-fit">
+          <div className="p-4 space-y-3">
+             <input type="number" className={inputCls} placeholder="Amount" value={amt} onChange={e=>setAmt(e.target.value)}/>
+             <input className={inputCls} placeholder="Category / Note" value={cat} onChange={e=>setCat(e.target.value)}/>
+             <button onClick={addExp} disabled={busy} className={btnPrimary + " w-full"}>Save Expense</button>
+          </div>
+        </SectionCard>
+        <SectionCard title="Recent Expenses" className="lg:col-span-2">
+           <ul className="divide-y divide-slate-100">
+             {expenses.slice(0,10).map((e:any) => (
+               <li key={e.id} className="p-4 flex justify-between">
+                 <span className="font-medium text-slate-900 capitalize">{e.category} {e.note && `— ${e.note}`}</span>
+                 <span className="font-bold text-red-600">-{fmt(e.amount)}</span>
+               </li>
+             ))}
+             {expenses.length === 0 && <p className="p-4 text-slate-500">No expenses recorded.</p>}
+           </ul>
+        </SectionCard>
+      </div>
     </div>
   );
 }
 
-
-function SettingsForm({ slug, settings, onDone }: { slug: string; settings: Settings | null; onDone: () => Promise<void> }) {
-  const [style, setStyle] = useState(settings?.serviceStyle ?? 'HYBRID');
-  const [tax, setTax] = useState(String(settings?.taxRate ?? 0));
-  const [service, setService] = useState(String(settings?.serviceCharge ?? 0));
-  const [hours, setHours] = useState(settings?.openingHours ?? '');
-  const [walkIns, setWalkIns] = useState(settings?.acceptsWalkIns ?? true);
-  const [walletSettle, setWalletSettle] = useState(settings?.walletSettlementEnabled ?? false);
+function TabSettings({ settings, slug, onDone }: any) {
+  const [style, setStyle] = useState(settings?.serviceStyle || 'HYBRID');
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-
+  async function save() {
+    setBusy(true);
+    await updateRestaurantOSSettings(slug, { serviceStyle: style });
+    setBusy(false); onDone();
+  }
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-3">
-      <div>
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Operating style</p>
-        <div className="flex gap-2">
-          {(['FULL_SERVICE', 'COUNTER', 'HYBRID'] as const).map((s) => (
-            <button key={s} onClick={() => setStyle(s)} className={cn('flex-1 py-2 rounded-xl text-[10px] font-black transition-colors', style === s ? 'bg-orange-600 text-white' : 'bg-slate-50 text-slate-600')}>
-              {s === 'FULL_SERVICE' ? 'Restaurant' : s === 'COUNTER' ? 'Fast food' : 'Eatery'}
-            </button>
-          ))}
+    <div className="space-y-6 max-w-xl">
+      <PageHeader title="Settings" />
+      <SectionCard title="Operating Mode">
+        <div className="p-6 space-y-4">
+           <div>
+             <label className="block text-sm font-bold text-slate-700 mb-2">Service Style</label>
+             <select className={selectCls} value={style} onChange={e=>setStyle(e.target.value)}>
+               <option value="HYBRID">Hybrid (Tables + Counter)</option>
+               <option value="FULL_SERVICE">Full Service (Tables only)</option>
+               <option value="COUNTER">Counter Service (Fast Food / Takeout only)</option>
+             </select>
+             <p className="text-xs text-slate-500 mt-2">Determines if Tables and Reservations tabs are visible, and if Dine-in prompts for a table.</p>
+           </div>
+           <button onClick={save} disabled={busy} className={btnPrimary}>{busy?<Loader2 className="animate-spin" size={16}/>:"Save Settings"}</button>
         </div>
-      </div>
-      <div className="flex gap-2">
-        <input value={tax} onChange={(e) => setTax(e.target.value)} placeholder="Tax %" inputMode="numeric" className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-[12px] font-bold text-ink focus:outline-none focus:border-orange-300" />
-        <input value={service} onChange={(e) => setService(e.target.value)} placeholder="Service charge %" inputMode="numeric" className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-[12px] font-bold text-ink focus:outline-none focus:border-orange-300" />
-      </div>
-      <input value={hours} onChange={(e) => setHours(e.target.value)} placeholder="Opening hours (e.g. 8:00 AM - 10:00 PM)" className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-[12px] font-bold text-ink focus:outline-none focus:border-orange-300" />
-      <label className="flex items-center gap-2 text-[12px] font-bold text-slate-600">
-        <input type="checkbox" checked={walkIns} onChange={(e) => setWalkIns(e.target.checked)} /> Accept walk-in customers
-      </label>
-      <label className="flex items-center gap-2 text-[12px] font-bold text-slate-600">
-        <input type="checkbox" checked={walletSettle} onChange={(e) => setWalletSettle(e.target.checked)} /> Settle sales to CityPay wallet
-      </label>
-      <button
-        onClick={async () => {
-          setBusy(true); setMsg(null);
-          const res = await updateRestaurantOSSettings(slug, {
-            serviceStyle: style as 'FULL_SERVICE' | 'COUNTER' | 'HYBRID',
-            taxRate: Number(tax) || 0,
-            serviceCharge: Number(service) || 0,
-            openingHours: hours,
-            acceptsWalkIns: walkIns,
-            walletSettlementEnabled: walletSettle,
-          });
-          setBusy(false);
-          if ('error' in res && res.error) { setMsg(res.error); return; }
-          setMsg('Settings saved.');
-          await onDone();
-        }}
-        disabled={busy}
-        className="w-full h-10 rounded-xl bg-teal-800 text-white text-[12px] font-black disabled:opacity-50"
-      >
-        {busy ? 'Savingâ€¦' : 'Save settings'}
-      </button>
-      {msg ? <p className="text-[10px] font-bold text-slate-500">{msg}</p> : null}
+      </SectionCard>
     </div>
   );
 }
