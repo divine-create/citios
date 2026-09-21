@@ -1,8 +1,13 @@
 'use server';
 
+import '@js-temporal/polyfill';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/src/prisma/db';
+
+function toInstant(date: Date) {
+  return (globalThis as any).Temporal.Instant.fromEpochMilliseconds(date.getTime());
+}
 
 export async function completeOnboarding(data: {
   homeCityId: string;
@@ -24,6 +29,11 @@ export async function completeOnboarding(data: {
     throw new Error('Please enter your date of birth.');
   }
 
+  const dateOfBirth = new Date(data.dateOfBirth);
+  if (Number.isNaN(dateOfBirth.getTime())) {
+    throw new Error('Please enter a valid date of birth.');
+  }
+
   if (!cleanPhone || cleanPhone.length < 7) {
     throw new Error('A valid phone number is required.');
   }
@@ -31,7 +41,7 @@ export async function completeOnboarding(data: {
   // Update Person with DOB + home city
   await db.orm.public.Person.where({ id: personId }).update({
     homeCityId: data.homeCityId,
-    dateOfBirth: new Date(data.dateOfBirth),
+    dateOfBirth: toInstant(dateOfBirth),
   });
 
   // Ensure PHONE PersonIdentifier is registered if not already present
