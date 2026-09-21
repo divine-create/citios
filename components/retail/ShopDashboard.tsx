@@ -576,15 +576,19 @@ function StatCard({ label, value, icon: Icon, tone = "brand", sub }: {
     slate: "bg-slate-100 text-slate-600",
   };
   return (
-    <div className="bg-white p-5 rounded-xl border border-slate-200 flex items-center gap-4">
-      {Icon && (
-        <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${TONES[tone]}`}>
-          <Icon size={22} />
-        </div>
-      )}
+    <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+      <div className="flex items-center gap-3">
+        {Icon && (
+          <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${TONES[tone]}`}>
+            <Icon size={20} className="sm:hidden" />
+            <Icon size={22} className="hidden sm:block" />
+          </div>
+        )}
+        <p className="text-sm font-medium text-slate-500 truncate sm:hidden">{label}</p>
+      </div>
       <div className="min-w-0">
-        <p className="text-sm font-medium text-slate-500 truncate">{label}</p>
-        <p className="text-2xl font-black text-ink tracking-tight mt-0.5 truncate">{value}</p>
+        <p className="hidden sm:block text-sm font-medium text-slate-500 truncate">{label}</p>
+        <p className="text-xl sm:text-2xl font-black text-ink tracking-tight mt-0.5 break-all sm:break-normal">{value}</p>
         {sub && <p className="text-xs text-slate-400 mt-0.5 truncate">{sub}</p>}
       </div>
     </div>
@@ -1455,7 +1459,12 @@ function ReportsTab({ organizationId, setActiveMenu }: { organizationId: string;
 
   const money = (v: number) => `${symbol}${(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const { periods, salesByProduct, salesByCashier, topCustomers, lowStock, totals } = reports;
-  const net = totals.gross - totals.refunded;
+  const net = (totals.gross || 0) - (totals.refunded || 0);
+  const tax = totals.tax || 0;
+  const cogs = totals.cogs || 0;
+  const grossProfit = net - cogs;
+  const expenses = totals.expenses || 0;
+  const netProfit = grossProfit - expenses;
 
   const downloadCsv = async (kind: "orders" | "products" | "customers", filename: string) => {
     const rows = await exportShopReport(organizationId, kind);
@@ -1488,8 +1497,8 @@ function ReportsTab({ organizationId, setActiveMenu }: { organizationId: string;
     <div className="p-8 max-w-6xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-black text-ink">Reports</h2>
-          <p className="text-sm text-slate-500 mt-1">Real sales figures from your stores — no estimates.</p>
+          <h2 className="text-2xl font-black text-ink">Reports & Financials</h2>
+          <p className="text-sm text-slate-500 mt-1">Real sales figures and Simple P&L.</p>
         </div>
         <div className="flex gap-2">
           <button onClick={() => doExport("orders")} disabled={exporting !== null} className="flex items-center gap-1.5 text-xs font-bold border border-slate-200 bg-white text-slate-600 px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50">
@@ -1506,23 +1515,32 @@ function ReportsTab({ organizationId, setActiveMenu }: { organizationId: string;
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
-          { label: "Today", ...periods.today },
-          { label: "Last 7 Days", ...periods.sevenDays },
-          { label: "Last 30 Days", ...periods.thirtyDays },
-        ].map((p) => (
-          <div key={p.label} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-            <p className="text-sm font-semibold text-slate-500">{p.label}</p>
-            <p className="text-2xl font-black text-ink mt-2">{money(p.sales)}</p>
-            <p className="text-xs text-slate-400 mt-1">{p.transactions} transaction{p.transactions === 1 ? "" : "s"} · {money(p.refunds)} refunded</p>
+          { label: "Today", p: periods.today },
+          { label: "Last 7 Days", p: periods.sevenDays },
+          { label: "Last 30 Days", p: periods.thirtyDays },
+        ].map(({ label, p }) => (
+          <div key={label} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+            <h3 className="font-bold text-slate-500 uppercase text-[11px] tracking-widest">{label}</h3>
+            <p className="text-3xl font-black text-ink mt-1 tracking-tight">{money(p.sales)}</p>
+            <div className="flex items-center gap-3 mt-3 text-sm">
+              <p><span className="font-bold text-slate-700">{p.transactions}</span> <span className="text-slate-400">orders</span></p>
+              {p.refunds > 0 && <p><span className="font-bold text-red-500">-{money(p.refunds)}</span> <span className="text-slate-400">refunds</span></p>}
+            </div>
           </div>
         ))}
       </div>
 
+      <h3 className="font-black text-ink text-lg mt-8 pt-6 border-t border-slate-200">Profit & Loss (All Time)</h3>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="Gross Sales" value={money(totals.gross)} />
-        <StatCard label="Net Sales" value={money(net)} />
-        <StatCard label="Orders" value={`${totals.completedCount}`} />
-        <StatCard label="Refunds" value={`${totals.refundedCount}`} />
+        <StatCard label="Gross Sales" value={money(totals.gross)} tone="slate" />
+        <StatCard label="Tax Collected" value={money(tax)} tone="slate" />
+        <StatCard label="Refunds" value={money(totals.refunded)} tone="slate" />
+        <StatCard label="Net Sales" value={money(net)} tone="blue" />
+        
+        <StatCard label="Cost of Goods (COGS)" value={money(cogs)} tone="slate" />
+        <StatCard label="Gross Profit" value={money(grossProfit)} tone="emerald" sub="Sales minus COGS" />
+        <StatCard label="Store Expenses" value={money(expenses)} tone="red" />
+        <StatCard label="True Net Profit" value={money(netProfit)} tone="brand" sub="Gross Profit minus Expenses" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

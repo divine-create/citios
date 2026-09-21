@@ -2407,6 +2407,7 @@ model RetailOrderItem {
   
   quantity       Float        // Float because it could be 1.5kg
   unitPrice      Float
+  unitCost       Float?       // Cost of goods sold (snapshot at time of order)
   subtotal       Float
   
   discountReason String?

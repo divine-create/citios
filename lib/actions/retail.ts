@@ -692,7 +692,7 @@ export async function createOrder(input: {
     const orgProducts = await db.orm.public.RetailProduct.where({ organizationId: input.organizationId }).all();
     const productById = new Map(orgProducts.map((p) => [p.id, p]));
 
-    const lineItems: { productId: string; quantity: number; unitPrice: number; subtotal: number }[] = [];
+    const lineItems: { productId: string; quantity: number; unitPrice: number; unitCost: number | null; subtotal: number }[] = [];
     let subtotal = 0;
     for (const item of input.items) {
       const product = productById.get(item.productId);
@@ -703,7 +703,7 @@ export async function createOrder(input: {
         return { error: `Not enough stock for ${product.name} (have ${product.stockQuantity}, need ${quantity}).` };
       }
       const lineSubtotal = product.price * quantity;
-      lineItems.push({ productId: product.id, quantity, unitPrice: product.price, subtotal: lineSubtotal });
+      lineItems.push({ productId: product.id, quantity, unitPrice: product.price, unitCost: product.cost ?? null, subtotal: lineSubtotal });
       subtotal += lineSubtotal;
     }
 
@@ -771,6 +771,7 @@ export async function createOrder(input: {
           productId: line.productId,
           quantity: line.quantity,
           unitPrice: line.unitPrice,
+          unitCost: line.unitCost,
           subtotal: line.subtotal,
         });
         const product = await tx.orm.public.RetailProduct.where({ id: line.productId }).all().first();
@@ -1994,6 +1995,7 @@ export async function getShopReports(organizationId: string) {
     const products = await db.orm.public.RetailProduct.where({ organizationId }).all();
     const productById = new Map(products.map((p) => [p.id, p]));
     const byProduct: Record<string, { units: number; revenue: number; orders: number }> = {};
+    let totalCogs = 0;
     for (const order of completed) {
       const items = await db.orm.public.RetailOrderItem.where({ orderId: order.id }).all();
       for (const item of items) {
@@ -2001,6 +2003,8 @@ export async function getShopReports(organizationId: string) {
         agg.units += item.quantity;
         agg.revenue += item.subtotal;
         agg.orders += 1;
+        const historicalCost = item.unitCost ?? (productById.get(item.productId)?.cost ?? 0);
+        totalCogs += historicalCost * item.quantity;
       }
     }
     const salesByProduct = Object.entries(byProduct)
@@ -2016,7 +2020,6 @@ export async function getShopReports(organizationId: string) {
       })
       .sort((a, b) => b.revenue - a.revenue);
 
-    // Cashier performance from session-derived cashierId on orders.
     const membershipCache: Record<string, string> = {};
     const cashierName = async (membershipId: string) => {
       if (membershipCache[membershipId]) return membershipCache[membershipId];
@@ -2027,11 +2030,11 @@ export async function getShopReports(organizationId: string) {
       membershipCache[membershipId] = name;
       return name;
     };
-    const byCashier: Record<string, { orders: number; revenue: number }> = {};
+    const byCashier: Record<string, { revenue: number; orders: number; name?: string }> = {};
     for (const order of completed) {
-      const agg = (byCashier[order.cashierId] ??= { orders: 0, revenue: 0 });
-      agg.orders += 1;
+      const agg = (byCashier[order.cashierId] ??= { revenue: 0, orders: 0 });
       agg.revenue += order.totalAmount;
+      agg.orders += 1;
     }
     const salesByCashier = [];
     for (const [cashierId, agg] of Object.entries(byCashier)) {
@@ -2039,8 +2042,19 @@ export async function getShopReports(organizationId: string) {
     }
     salesByCashier.sort((a, b) => b.revenue - a.revenue);
 
-    // Top customers reuses the canonical enrichment (totals are real spend).
-    const customers = await getCustomers(organizationId);
+    const allCustomers = await getCustomers(organizationId);
+    const customers = await Promise.all(
+      allCustomers.map(async (c: any) => {
+        const ords = await db.orm.public.RetailOrder.where({ customerDataId: c.id }).all();
+        const comp = ords.filter((o) => o.status === 'COMPLETED');
+        return {
+          ...c,
+          totalSpent: comp.reduce((sum, o) => sum + o.totalAmount, 0),
+          orderCount: comp.length,
+        };
+      }),
+    );
+    customers.sort((a, b) => b.totalSpent - a.totalSpent);
     const topCustomers = (customers as any[])
       .slice(0, 5)
       .map((c) => ({ id: c.id, name: c.name, totalSpent: c.totalSpent, orderCount: c.orderCount, loyaltyPoints: c.loyaltyPoints }));
@@ -2050,6 +2064,10 @@ export async function getShopReports(organizationId: string) {
       .sort((a, b) => a.stockQuantity - b.stockQuantity)
       .map((p) => ({ id: p.id, name: p.name, stockQuantity: p.stockQuantity, lowStockLevel: p.lowStockLevel, unit: p.unit }));
 
+    const expenses = await db.orm.public.RetailExpense.where({ organizationId }).all();
+    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalTax = completed.reduce((sum, o) => sum + o.taxAmount, 0);
+
     return JSON.parse(JSON.stringify({
       periods,
       salesByProduct,
@@ -2058,7 +2076,10 @@ export async function getShopReports(organizationId: string) {
       lowStock,
       totals: {
         gross: completed.reduce((sum, o) => sum + o.totalAmount, 0),
+        tax: totalTax,
         refunded: refunded.reduce((sum, o) => sum + o.totalAmount, 0),
+        cogs: totalCogs,
+        expenses: totalExpenses,
         completedCount: completed.length,
         refundedCount: refunded.length,
       },
