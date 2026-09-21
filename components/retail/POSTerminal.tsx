@@ -185,7 +185,7 @@ export default function POSTerminal({ organizationId, products, shiftId, onOrder
         setError(res.error);
         return;
       }
-      setCompletedOrderId(res.orderId);
+      setCompletedOrderId(res.orderId || null);
       playCashRegisterChime();
     } finally {
       setIsProcessing(false);
