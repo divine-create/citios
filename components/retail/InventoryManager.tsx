@@ -114,7 +114,7 @@ export default function InventoryManager({ organizationId, products, categories,
     setIsAdjusting(true);
     try {
       const res = await adjustStock(adjustProduct.id, delta, adjustNote.trim() || undefined);
-      if ((res as any)?.error) { setAdjustError((res as any).error); return; }
+      if (res && typeof res === 'object' && 'error' in res && res.error) { setAdjustError(res.error); return; }
       setAdjustProduct(null);
       onChanged();
     } finally {
@@ -160,7 +160,7 @@ export default function InventoryManager({ organizationId, products, categories,
     try {
       const { base64, mimeType } = await fileToBase64(file);
       const res = await uploadAsset(organizationId, { fileName: file.name, mimeType, base64Data: base64 });
-      if ((res as any)?.assetId) setImageAssetId((res as any).assetId);
+      if (res && typeof res === 'object' && 'assetId' in res && res.assetId) setImageAssetId(res.assetId);
     } finally {
       setUploadingImage(false);
     }
@@ -186,7 +186,7 @@ export default function InventoryManager({ organizationId, products, categories,
           unit: form.unit,
           imageAssetId,
         });
-        if ((res as any)?.error) { setError((res as any).error); return; }
+        if (res && typeof res === 'object' && 'error' in res && res.error) { setError(res.error); return; }
       } else {
         const res = await createProduct({
           organizationId,
@@ -201,7 +201,7 @@ export default function InventoryManager({ organizationId, products, categories,
           unit: form.unit,
           imageAssetId: imageAssetId || undefined,
         });
-        if ((res as any)?.error) { setError((res as any).error); return; }
+        if (res && typeof res === 'object' && 'error' in res && res.error) { setError(res.error); return; }
       }
       setIsModalOpen(false);
       onChanged();
@@ -213,15 +213,14 @@ export default function InventoryManager({ organizationId, products, categories,
   const remove = async (id: string) => {
     if (!confirm("Delete this product?")) return;
     const res = await deleteProduct(id);
-    if ((res as any)?.error) { alert((res as any).error); return; }
+    if (res && typeof res === 'object' && 'error' in res && res.error) { alert(res.error); return; }
     onChanged();
   };
 
   const totalValue = products.reduce((sum, p) => sum + (p.cost ?? 0) * p.stockQuantity, 0);
   const lowStockCount = products.filter((p) => p.lowStockLevel != null && p.stockQuantity <= (p.lowStockLevel as number)).length;
 
-  return (
-    <div className="p-8 max-w-7xl mx-auto h-full flex flex-col">
+    <div className="p-8 max-w-7xl mx-auto min-h-full flex flex-col">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h2 className="text-2xl font-black text-ink">Products & Inventory</h2>

@@ -158,7 +158,7 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
   const loadNotifications = async () => {
     try {
       const rows = await getShopNotifications(organizationId);
-      const unread = (rows as any[]).filter((n: any) => !n.isRead).length;
+      const unread = (rows as {isRead?: boolean}[]).filter(n => !n.isRead).length;
       if (previousUnreadRef.current !== null && unread > previousUnreadRef.current) {
         playOrderChime();
       }
@@ -362,6 +362,21 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
         </div>
 
         <div className="p-4 border-t border-slate-100 bg-white space-y-3">
+          <Link
+            href={`/org/${organizationId}`}
+            className="w-full sm:hidden flex flex-row items-center justify-center gap-2 px-3 py-2 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 text-xs font-bold transition-colors"
+          >
+            <Store size={13} className="text-teal-600" />
+            <span>View Public Store</span>
+          </Link>
+          <div
+            className={`w-full md:hidden flex items-center justify-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold border ${
+              openShiftData ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-slate-100 text-slate-500 border-slate-200"
+            }`}
+          >
+            <div className={`w-2 h-2 rounded-full ${openShiftData ? "bg-emerald-500 animate-pulse" : "bg-slate-400"}`} />
+            {openShiftData ? `${openShiftData.registerName}: OPEN` : "No Register Open"}
+          </div>
           <button
             type="button"
             onClick={switchToPersonal}
@@ -782,8 +797,8 @@ function OpenShiftPrompt({ organizationId, registers, currentUserId, onOpened, s
   const addRegister = async () => {
     if (!newRegisterName.trim()) return;
     const res = await createRegister(organizationId, newRegisterName);
-    if ((res as any)?.register) {
-      setRegisterId((res as any).register.id);
+    if (res && typeof res === 'object' && 'register' in res && res.register) {
+      setRegisterId(res.register.id);
       setNewRegisterName("");
       onOpened();
     }
@@ -797,7 +812,7 @@ function OpenShiftPrompt({ organizationId, registers, currentUserId, onOpened, s
     setIsSaving(true);
     try {
       const res = await openShift({ organizationId, registerId, openingFloat: float });
-      if ((res as any)?.error) { setError((res as any).error); return; }
+      if (res && typeof res === 'object' && 'error' in res && res.error) { setError(res.error); return; }
       onOpened();
     } finally {
       setIsSaving(false);
@@ -877,8 +892,8 @@ function ShiftsTab({ organizationId, registers, openShift: openShiftData, curren
     setIsSaving(true);
     try {
       const res = await closeShift(openShiftData.id, { actualCash: cash });
-      if ((res as any)?.error) { setError((res as any).error); return; }
-      setResult({ expectedCash: (res as any).expectedCash, discrepancy: (res as any).discrepancy });
+      if (res && typeof res === 'object' && 'error' in res && res.error) { setError(res.error); return; }
+      setResult({ expectedCash: res.expectedCash, discrepancy: res.discrepancy });
       setActualCash("");
       onChanged();
       loadHistory();
@@ -1001,7 +1016,7 @@ function SuppliersTab({ organizationId, symbol = "$" }: { organizationId: string
   const removeSupplier = async (id: string) => {
     if (!confirm("Delete this supplier?")) return;
     const res = await deleteSupplier(id);
-    if ((res as any)?.error) { alert((res as any).error); return; }
+    if (res && typeof res === 'object' && 'error' in res && res.error) { alert(res.error); return; }
     load();
   };
 
@@ -1015,7 +1030,7 @@ function SuppliersTab({ organizationId, symbol = "$" }: { organizationId: string
 
   const cyclePoStatus = async (po: any) => {
     const next: Record<string, string> = { DRAFT: "SENT", SENT: "RECEIVED", RECEIVED: "RECEIVED", PARTIAL: "RECEIVED" };
-    await updatePurchaseOrderStatus(po.id, next[po.status] as any);
+    await updatePurchaseOrderStatus(po.id, next[po.status] as "DRAFT" | "SENT" | "RECEIVED" | "PARTIAL");
     load();
   };
 
@@ -1197,7 +1212,7 @@ function ExpensesTab({ organizationId, currentUserId, symbol = "$" }: { organiza
     try {
       const { base64, mimeType } = await fileToBase64(file);
       const res = await uploadAsset(organizationId, { fileName: file.name, mimeType, base64Data: base64 });
-      if ((res as any)?.assetId) setReceiptAssetId((res as any).assetId);
+      if (res && typeof res === 'object' && 'assetId' in res && res.assetId) setReceiptAssetId(res.assetId);
     } finally {
       setUploading(false);
     }
@@ -1215,11 +1230,11 @@ function ExpensesTab({ organizationId, currentUserId, symbol = "$" }: { organiza
         description: form.description || undefined,
         amount,
         expenseDate: form.expenseDate,
-        paymentMethod: form.paymentMethod as any,
+        paymentMethod: form.paymentMethod as "CASH" | "CARD" | "WALLET",
         vendorName: form.vendorName || undefined,
         receiptAssetId: receiptAssetId ?? undefined,
       });
-      if ((res as any)?.error) { setError((res as any).error); return; }
+      if (res && typeof res === 'object' && 'error' in res && res.error) { setError(res.error); return; }
       setIsAddOpen(false);
       load();
     } finally {
@@ -1643,7 +1658,7 @@ function SalesReturnsTab({ organizationId, currentUserId, onChanged, symbol = "$
     setIsRefunding(true);
     try {
       const res = await refundOrder(viewingOrder.id, { reason: refundReason || undefined });
-      if ((res as any)?.error) { setError((res as any).error); return; }
+      if (res && typeof res === 'object' && 'error' in res && res.error) { setError(res.error); return; }
       setViewingOrder(null);
       load();
       onChanged();
@@ -1858,7 +1873,7 @@ function CustomersTab({ organizationId, symbol = "$" }: { organizationId: string
     setIsSaving(true);
     try {
       const res = await createCustomer({ organizationId, name: form.name, phone: form.phone || undefined, email: form.email || undefined, notes: form.notes || undefined });
-      if ((res as any)?.error) { setError((res as any).error); return; }
+      if (res && typeof res === 'object' && 'error' in res && res.error) { setError(res.error); return; }
       setIsAddOpen(false);
       load();
     } finally {
@@ -2004,7 +2019,7 @@ function CustomerDetailModal({ organizationId, customerDataId, onClose, onChange
   const remove = async () => {
     if (!confirm(`Delete ${customer.name}?`)) return;
     const res = await deleteCustomer(customerDataId);
-    if ((res as any)?.error) { alert((res as any).error); return; }
+    if (res && typeof res === 'object' && 'error' in res && res.error) { alert(res.error); return; }
     onChanged();
     onClose();
   };
@@ -2172,10 +2187,10 @@ function LocationsTab({ organizationId }: { organizationId: string }) {
       const resolvedAddress = serializeLocationAddress(form.address, form.state, form.lga);
       if (editId) {
         const res = await updateLocation(editId, { name: form.name, address: resolvedAddress || null });
-        if ((res as any)?.error) { setError((res as any).error); return; }
+        if (res && typeof res === 'object' && 'error' in res && res.error) { setError(res.error); return; }
       } else {
         const res = await createLocation({ organizationId, name: form.name, address: resolvedAddress || undefined });
-        if ((res as any)?.error) { setError((res as any).error); return; }
+        if (res && typeof res === 'object' && 'error' in res && res.error) { setError(res.error); return; }
       }
       setForm({ name: "", address: "", state: "", lga: "" });
       setIsAddOpen(false);
@@ -2188,7 +2203,7 @@ function LocationsTab({ organizationId }: { organizationId: string }) {
   const remove = async (id: string) => {
     if (!confirm("Delete this location?")) return;
     const res = await deleteLocation(id);
-    if ((res as any)?.error) { alert((res as any).error); return; }
+    if (res && typeof res === 'object' && 'error' in res && res.error) { alert(res.error); return; }
     load();
   };
 
@@ -2321,7 +2336,7 @@ function StaffTab({ organizationId, userRole }: { organizationId: string; userRo
     setIsSaving(true);
     try {
       const res = await addStaffMember({ organizationId, email: form.email, name: form.name || undefined, role: form.role });
-      if ((res as any)?.error) { setError((res as any).error); return; }
+      if (res && typeof res === 'object' && 'error' in res && res.error) { setError(res.error); return; }
       setForm({ email: "", name: "", role: "CASHIER" });
       setIsAddOpen(false);
       load();
@@ -2335,7 +2350,7 @@ function StaffTab({ organizationId, userRole }: { organizationId: string; userRo
     setError(null);
     try {
       const res = await updateStaffRole({ organizationId, membershipId, role });
-      if ((res as any)?.error) { alert((res as any).error); return; }
+      if (res && typeof res === 'object' && 'error' in res && res.error) { alert(res.error); return; }
       load();
     } finally {
       setSavingId(null);
@@ -2345,7 +2360,7 @@ function StaffTab({ organizationId, userRole }: { organizationId: string; userRo
   const remove = async (membershipId: string, name: string) => {
     if (!confirm(`Remove ${name} from this store?`)) return;
     const res = await removeStaffMember({ organizationId, membershipId });
-    if ((res as any)?.error) { alert((res as any).error); return; }
+    if (res && typeof res === 'object' && 'error' in res && res.error) { alert(res.error); return; }
     load();
   };
 
