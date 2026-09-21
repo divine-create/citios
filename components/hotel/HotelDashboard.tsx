@@ -30,9 +30,11 @@ interface HotelDashboardProps {
   userRole: "ADMIN" | "MANAGER" | "RECEPTIONIST" | "HOUSEKEEPING" | "MAINTENANCE" | "ACCOUNTANT";
   initialRooms?: any[];
   initialReservations?: any[];
+  initialFolioCharges?: any[];
+  initialMaintenanceTickets?: any[];
 }
 
-export default function HotelDashboard({ organizationId, userRole, initialRooms = [], initialReservations = [] }: HotelDashboardProps) {
+export default function HotelDashboard({ organizationId, userRole, initialRooms = [], initialReservations = [], initialFolioCharges = [], initialMaintenanceTickets = [] }: HotelDashboardProps) {
   const [activeMenu, setActiveMenu] = useState(() => {
     if (userRole === "RECEPTIONIST") return "Front Desk";
     if (userRole === "HOUSEKEEPING") return "Housekeeping";
@@ -182,11 +184,11 @@ export default function HotelDashboard({ organizationId, userRole, initialRooms 
             </div>
           )}
 
-          {activeMenu === "Front Desk" && <FrontDesk />}
+          {activeMenu === "Front Desk" && <FrontDesk reservations={initialReservations} rooms={initialRooms} folioCharges={initialFolioCharges} />}
           {activeMenu === "Reservations" && <TapeChart initialRooms={initialRooms} initialReservations={initialReservations} />}
-          {activeMenu === "Housekeeping" && <HousekeepingDashboard />}
-          {activeMenu === "Maintenance" && <MaintenanceDashboard />}
-          {activeMenu === "Guests & Folios" && <FolioBilling />}
+          {activeMenu === "Housekeeping" && <HousekeepingDashboard rooms={initialRooms} />}
+          {activeMenu === "Maintenance" && <MaintenanceDashboard maintenanceTickets={initialMaintenanceTickets} rooms={initialRooms} />}
+          {activeMenu === "Guests & Folios" && <FolioBilling reservations={initialReservations} rooms={initialRooms} folioCharges={initialFolioCharges} />}
 
           {activeMenu !== "Dashboard" && activeMenu !== "Front Desk" && activeMenu !== "Reservations" && activeMenu !== "Housekeeping" && activeMenu !== "Maintenance" && activeMenu !== "Guests & Folios" && (
             <div className="flex flex-col items-center justify-center h-full text-slate-400 bg-white rounded-3xl border border-slate-200 border-dashed p-12">

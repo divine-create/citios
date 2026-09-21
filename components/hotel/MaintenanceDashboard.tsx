@@ -2,24 +2,36 @@
 
 import React, { useState } from "react";
 import { Wrench, Plus, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
+import { updateMaintenanceTicketStatus } from "@/lib/actions/hotel";
+import { useRouter } from "next/navigation";
 
-const MOCK_TICKETS = [
-  { id: "MT-001", room: "204", issue: "AC not cooling", status: "PENDING", priority: "HIGH", reportedBy: "Front Desk" },
-  { id: "MT-002", room: "305", issue: "Leaking sink", status: "IN_PROGRESS", priority: "MEDIUM", reportedBy: "Housekeeping" },
-  { id: "MT-003", room: "112", issue: "TV remote batteries dead", status: "RESOLVED", priority: "LOW", reportedBy: "Guest" },
-];
-
-export default function MaintenanceDashboard() {
+export default function MaintenanceDashboard({ maintenanceTickets = [], rooms = [] }: { maintenanceTickets?: any[], rooms?: any[] }) {
   const [filter, setFilter] = useState("ALL");
+  const router = useRouter();
 
-  const filteredTickets = MOCK_TICKETS.filter(t => {
+  const mappedTickets = maintenanceTickets.map(t => {
+    const room = rooms.find(r => r.id === t.roomId);
+    return {
+      ...t,
+      roomNumber: room?.roomNumber || "N/A",
+      issue: t.title,
+      reportedBy: "Staff"
+    };
+  });
+
+  const filteredTickets = mappedTickets.filter(t => {
     if (filter === "ALL") return true;
     return t.status === filter;
   });
 
+  const changeStatus = async (id: string, status: 'IN_PROGRESS' | 'RESOLVED') => {
+    await updateMaintenanceTicketStatus(id, status);
+    router.refresh();
+  };
+
   const getStatusIcon = (status: string) => {
     switch(status) {
-      case 'PENDING': return <AlertTriangle size={18} className="text-amber-500" />;
+      case 'OPEN': return <AlertTriangle size={18} className="text-amber-500" />;
       case 'IN_PROGRESS': return <Clock size={18} className="text-blue-500" />;
       case 'RESOLVED': return <CheckCircle2 size={18} className="text-emerald-500" />;
       default: return <Wrench size={18} />;
@@ -45,7 +57,7 @@ export default function MaintenanceDashboard() {
 
       {/* Tabs */}
       <div className="px-6 py-3 border-b border-slate-100 flex gap-6 text-sm font-bold">
-        {["ALL", "PENDING", "IN_PROGRESS", "RESOLVED"].map(status => (
+        {["ALL", "OPEN", "IN_PROGRESS", "RESOLVED"].map(status => (
           <button
             key={status}
             onClick={() => setFilter(status)}
@@ -70,7 +82,7 @@ export default function MaintenanceDashboard() {
                 </div>
                 <div>
                   <div className="flex items-center gap-3">
-                    <h3 className="text-lg font-bold text-slate-800">Room {ticket.room}</h3>
+                    <h3 className="text-lg font-bold text-slate-800">Room {ticket.roomNumber}</h3>
                     <span className={`text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full ${
                       ticket.priority === 'HIGH' ? 'bg-rose-100 text-rose-700' :
                       ticket.priority === 'MEDIUM' ? 'bg-amber-100 text-amber-700' :
@@ -80,18 +92,18 @@ export default function MaintenanceDashboard() {
                     </span>
                   </div>
                   <p className="text-slate-600 mt-1">{ticket.issue}</p>
-                  <p className="text-xs text-slate-400 mt-2 font-medium">Reported by {ticket.reportedBy} • {ticket.id}</p>
+                  <p className="text-xs text-slate-400 mt-2 font-medium">Reported by {ticket.reportedBy} • {ticket.id.slice(0, 8)}</p>
                 </div>
               </div>
 
               <div className="flex gap-2 border-t md:border-t-0 border-slate-100 pt-4 md:pt-0">
-                {ticket.status === 'PENDING' && (
-                  <button className="px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg font-bold text-sm transition-colors">
+                {ticket.status === 'OPEN' && (
+                  <button onClick={() => changeStatus(ticket.id, 'IN_PROGRESS')} className="px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg font-bold text-sm transition-colors">
                     Start Work
                   </button>
                 )}
-                {(ticket.status === 'PENDING' || ticket.status === 'IN_PROGRESS') && (
-                  <button className="px-4 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg font-bold text-sm transition-colors">
+                {(ticket.status === 'OPEN' || ticket.status === 'IN_PROGRESS') && (
+                  <button onClick={() => changeStatus(ticket.id, 'RESOLVED')} className="px-4 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg font-bold text-sm transition-colors">
                     Resolve
                   </button>
                 )}

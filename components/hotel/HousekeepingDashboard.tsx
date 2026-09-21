@@ -2,22 +2,28 @@
 
 import React, { useState } from "react";
 import { Sparkles, CheckCircle2, AlertCircle, RefreshCcw, Search, Filter } from "lucide-react";
+import { updateRoom } from "@/lib/actions/hotel";
+import { useRouter } from "next/navigation";
 
-const MOCK_ROOMS = [
-  { id: "101", type: "Double Room", status: "DIRTY", priority: "HIGH", assignedTo: "Maria S." },
-  { id: "102", type: "Double Room", status: "CLEAN", priority: "NORMAL", assignedTo: "Maria S." },
-  { id: "201", type: "King Suite", status: "INSPECTING", priority: "HIGH", assignedTo: "John D." },
-  { id: "204", type: "Double Room", status: "DIRTY", priority: "NORMAL", assignedTo: "Unassigned" },
-  { id: "305", type: "Suite", status: "DIRTY", priority: "URGENT", assignedTo: "Unassigned" }, // Check-in arriving soon
-];
-
-export default function HousekeepingDashboard() {
+export default function HousekeepingDashboard({ rooms = [] }: { rooms?: any[] }) {
   const [filter, setFilter] = useState("ALL");
+  const router = useRouter();
 
-  const filteredRooms = MOCK_ROOMS.filter(room => {
+  const mappedRooms = rooms.map(room => ({
+    ...room,
+    priority: "NORMAL",
+    assignedTo: "Unassigned"
+  }));
+
+  const filteredRooms = mappedRooms.filter(room => {
     if (filter === "ALL") return true;
     return room.status === filter;
   });
+
+  const changeStatus = async (id: string, status: string) => {
+    await updateRoom(id, { status });
+    router.refresh();
+  };
 
   const getStatusColor = (status: string) => {
     switch(status) {
@@ -64,7 +70,7 @@ export default function HousekeepingDashboard() {
               
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <h3 className="text-2xl font-black text-slate-800 tracking-tight">Room {room.id}</h3>
+                  <h3 className="text-2xl font-black text-slate-800 tracking-tight">Room {room.roomNumber}</h3>
                   <p className="text-sm font-medium text-slate-500">{room.type}</p>
                 </div>
                 <div className={`px-3 py-1 rounded-full text-xs font-bold border uppercase tracking-wider ${getStatusColor(room.status)}`}>
@@ -86,12 +92,12 @@ export default function HousekeepingDashboard() {
                 
                 <div className="flex gap-2">
                   {room.status === "DIRTY" && (
-                    <button className="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-lg transition-colors" title="Mark as Clean">
+                    <button onClick={() => changeStatus(room.id, "CLEAN")} className="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-lg transition-colors" title="Mark as Clean">
                       <CheckCircle2 size={20} />
                     </button>
                   )}
                   {room.status === "CLEAN" && (
-                    <button className="p-2 bg-slate-50 text-slate-400 hover:bg-rose-50 hover:text-rose-600 rounded-lg transition-colors" title="Mark as Dirty">
+                    <button onClick={() => changeStatus(room.id, "DIRTY")} className="p-2 bg-slate-50 text-slate-400 hover:bg-rose-50 hover:text-rose-600 rounded-lg transition-colors" title="Mark as Dirty">
                       <RefreshCcw size={20} />
                     </button>
                   )}

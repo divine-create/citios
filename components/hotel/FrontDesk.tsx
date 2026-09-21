@@ -2,27 +2,51 @@
 
 import React, { useState } from "react";
 import { Search, LogIn, LogOut, KeyRound, User, CreditCard, AlertCircle } from "lucide-react";
+import { updateReservationStatus } from "@/lib/actions/hotel";
+import { useRouter } from "next/navigation";
 
-// Mock Data
-const MOCK_RESERVATIONS = [
-  { id: "RES-101", guestName: "Sarah Jenkins", type: "ARRIVAL", roomType: "King Suite", roomAssigned: null, nights: 3, balance: 450, status: "CONFIRMED" },
-  { id: "RES-102", guestName: "Michael Chen", type: "ARRIVAL", roomType: "Double Room", roomAssigned: "204", nights: 1, balance: 0, status: "CONFIRMED" },
-  { id: "RES-103", guestName: "Emma Watson", type: "DEPARTURE", roomType: "King Suite", roomAssigned: "305", nights: 2, balance: 120, status: "CHECKED_IN" }, // Balance owed (room service)
-  { id: "RES-104", guestName: "David Miller", type: "DEPARTURE", roomType: "Double Room", roomAssigned: "112", nights: 4, balance: 0, status: "CHECKED_IN" },
-  { id: "RES-105", guestName: "Olivia Pope", type: "IN_HOUSE", roomType: "Suite", roomAssigned: "401", nights: 5, balance: 0, status: "CHECKED_IN" },
-];
-
-export default function FrontDesk() {
+export default function FrontDesk({ reservations = [], rooms = [], folioCharges = [] }: { reservations?: any[], rooms?: any[], folioCharges?: any[] }) {
   const [activeTab, setActiveTab] = useState<"ARRIVALS" | "DEPARTURES" | "IN_HOUSE">("ARRIVALS");
   const [search, setSearch] = useState("");
+  const router = useRouter();
 
-  const filteredReservations = MOCK_RESERVATIONS.filter(res => {
+  const mappedReservations = reservations.map(res => {
+    const resCharges = folioCharges.filter(c => c.reservationId === res.id);
+    const balance = (res.totalPrice || 0) + resCharges.reduce((sum, c) => sum + c.amount, 0);
+    const room = rooms.find(r => r.id === res.roomId);
+    
+    const checkoutTime = res.checkOutDate?.epochMilliseconds || new Date(res.checkOutDate).getTime();
+    const isDeparture = checkoutTime <= new Date().getTime() + 86400000;
+    
+    let type = "IN_HOUSE";
+    if (res.status === "CONFIRMED") type = "ARRIVAL";
+    else if (res.status === "CHECKED_IN") type = isDeparture ? "DEPARTURE" : "IN_HOUSE";
+
+    const checkinTime = res.checkInDate?.epochMilliseconds || new Date(res.checkInDate).getTime();
+    const nights = Math.max(1, Math.round((checkoutTime - checkinTime) / 86400000));
+
+    return {
+      ...res,
+      type,
+      roomType: room?.type || "Unknown",
+      roomAssigned: room?.roomNumber || null,
+      nights,
+      balance,
+    };
+  }).filter(res => res.status === "CONFIRMED" || res.status === "CHECKED_IN");
+
+  const filteredReservations = mappedReservations.filter(res => {
     const matchesTab = activeTab === "ARRIVALS" ? res.type === "ARRIVAL" 
                      : activeTab === "DEPARTURES" ? res.type === "DEPARTURE" 
                      : res.type === "IN_HOUSE";
     const matchesSearch = res.guestName.toLowerCase().includes(search.toLowerCase()) || res.id.toLowerCase().includes(search.toLowerCase());
     return matchesTab && matchesSearch;
   });
+
+  const handleStatusChange = async (id: string, status: 'CHECKED_IN' | 'CHECKED_OUT') => {
+    await updateReservationStatus(id, status);
+    router.refresh();
+  };
 
   return (
     <div className="flex flex-col h-full bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
@@ -34,19 +58,19 @@ export default function FrontDesk() {
             onClick={() => setActiveTab("ARRIVALS")}
             className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === "ARRIVALS" ? "bg-white text-indigo-700 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
           >
-            Arrivals (2)
+            Arrivals ({mappedReservations.filter(r => r.type === "ARRIVAL").length})
           </button>
           <button 
             onClick={() => setActiveTab("DEPARTURES")}
             className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === "DEPARTURES" ? "bg-white text-indigo-700 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
           >
-            Departures (2)
+            Departures ({mappedReservations.filter(r => r.type === "DEPARTURE").length})
           </button>
           <button 
             onClick={() => setActiveTab("IN_HOUSE")}
             className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === "IN_HOUSE" ? "bg-white text-indigo-700 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
           >
-            In-House (1)
+            In-House ({mappedReservations.filter(r => r.type === "IN_HOUSE").length})
           </button>
         </div>
 
@@ -102,13 +126,14 @@ export default function FrontDesk() {
                 
                 {/* Action Buttons */}
                 {activeTab === "ARRIVALS" && (
-                  <button className="w-full md:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-colors shadow-sm shadow-indigo-600/20">
+                  <button onClick={() => handleStatusChange(res.id, 'CHECKED_IN')} className="w-full md:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-colors shadow-sm shadow-indigo-600/20">
                     Check In
                   </button>
                 )}
 
                 {activeTab === "DEPARTURES" && (
                   <button 
+                    onClick={() => handleStatusChange(res.id, 'CHECKED_OUT')}
                     className={`w-full md:w-auto px-6 py-2.5 rounded-xl font-bold transition-colors shadow-sm ${
                       res.balance > 0 
                         ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20' 

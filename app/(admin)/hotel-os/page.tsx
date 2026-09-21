@@ -25,6 +25,8 @@ export default async function HotelOSPage({
       userRole={userRole} 
       initialRooms={adminData?.rooms || []}
       initialReservations={adminData?.reservations || []}
+      initialFolioCharges={adminData?.folioCharges || []}
+      initialMaintenanceTickets={adminData?.maintenanceTickets || []}
     />
   );
 }

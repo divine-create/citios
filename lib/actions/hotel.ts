@@ -27,6 +27,14 @@ export async function getHotelAdminData() {
     const rateRules = await db.orm.public.RateRule.where({ organizationId: hotel.id }).all();
     const allInventory = await db.orm.public.InventoryItem.where({ organizationId: hotel.id }).all();
     const inventoryItems = allInventory.sort((a, b) => a.name.localeCompare(b.name));
+    const maintenanceTickets = await db.orm.public.MaintenanceTicket.where({ organizationId: hotel.id }).all();
+
+    const resIds = reservations.map(r => r.id);
+    let folioCharges: any[] = [];
+    if (resIds.length > 0) {
+      // @ts-ignore
+      folioCharges = await db.orm.public.FolioCharge.where({ reservationId: { in: resIds } }).all();
+    }
 
     return JSON.parse(JSON.stringify({
       hotel,
@@ -34,6 +42,8 @@ export async function getHotelAdminData() {
       reservations,
       rateRules,
       inventoryItems,
+      maintenanceTickets,
+      folioCharges,
     }));
   } catch (error) {
     console.error('Error fetching hotel data:', error);
