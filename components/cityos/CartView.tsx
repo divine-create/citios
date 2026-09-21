@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import Link from 'next/link';
 import { Minus, Plus, Trash2, ShoppingCart, ChevronRight, ArrowLeft } from 'lucide-react';
@@ -123,7 +123,7 @@ export default function CartView() {
             </div>
 
             <Link 
-              href="/cart/checkout"
+              href="/checkout"
               className="w-full h-12 flex items-center justify-between px-5 bg-teal-800 text-white rounded-xl text-sm font-black hover:bg-teal-900 transition-all active:scale-[0.98]"
             >
               <span>Checkout</span>

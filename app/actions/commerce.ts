@@ -258,13 +258,8 @@ export async function getCityMartProducts(citySlug?: string, cat: string = 'All'
 
   if (orgIds.length === 0) return [];
 
-  let query: any = { organizationId: { in: orgIds } };
-  if (cat !== 'All') {
-    query.globalCategory = cat;
-  }
-
-  // @ts-ignore — Prisma Next `in` operator requires ts-ignore
-  const products = await db.orm.public.RetailProduct.where(query).all();
+  const allProducts = await db.orm.public.RetailProduct.all();
+  const products = allProducts.filter((p: any) => orgIds.includes(p.organizationId) && (cat === 'All' || p.globalCategory === cat));
   return products.map(p => {
     const org = orgs.find(o => o.id === p.organizationId);
     return {
