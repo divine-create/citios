@@ -437,7 +437,7 @@ export default function InventoryManager({ organizationId, products, categories,
                 <input type="number" value={form.lowStockLevel} onChange={(e) => setForm((f) => ({ ...f, lowStockLevel: e.target.value }))} className={inputCls} placeholder="0" />
               </div>
               <div className="col-span-2 flex items-center gap-2 pt-2">
-                <input type="checkbox" id="isWeighed" checked={form.isWeighed} onChange={(e) => setForm((f) => ({ ...f, isWeighed: e.target.checked }))} />
+                <input type="checkbox" id="isWeighed" checked={form.isWeighed} onChange={(e) => setForm((f) => ({ ...f, isWeighed: e.target.checked, unit: e.target.checked && f.unit === "ea" ? "lb" : (!e.target.checked && f.unit === "lb" ? "ea" : f.unit) }))} />
                 <label htmlFor="isWeighed" className="text-sm text-slate-700">Sold by weight (price per {form.unit === "ea" ? "lb" : form.unit})</label>
               </div>
             </div>
