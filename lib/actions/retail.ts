@@ -885,12 +885,16 @@ async function enrichOrders(organizationId: string, orders: any[]) {
   const cashierIds = [...new Set(orders.map((o) => o.cashierId))];
   const cashiers: Record<string, string> = {};
   for (const id of cashierIds) {
+    if (id === 'ONLINE_CHECKOUT') {
+      cashiers[id] = 'Online Store';
+      continue;
+    }
     const membership = await db.orm.public.Membership.where({ id }).all().first();
     if (membership) {
        const person = await db.orm.public.Person.where({ id: membership.personId }).all().first();
        cashiers[id] = person ? `${person.firstName} ${person.lastName}`.trim() : 'Unknown';
     } else {
-       cashiers[id] = 'Unknown';
+       cashiers[id] = 'Former Staff';
     }
   }
 
@@ -2022,9 +2026,10 @@ export async function getShopReports(organizationId: string) {
 
     const membershipCache: Record<string, string> = {};
     const cashierName = async (membershipId: string) => {
+      if (membershipId === 'ONLINE_CHECKOUT') return 'Online Store';
       if (membershipCache[membershipId]) return membershipCache[membershipId];
       const m = await db.orm.public.Membership.where({ id: membershipId }).all().first();
-      if (!m) { membershipCache[membershipId] = 'Former staff'; return 'Former staff'; }
+      if (!m) { membershipCache[membershipId] = 'Former Staff'; return 'Former Staff'; }
       const p = await db.orm.public.Person.where({ id: m.personId }).all().first();
       const name = p ? `${p.firstName} ${p.lastName}`.trim() : 'Unknown';
       membershipCache[membershipId] = name;
