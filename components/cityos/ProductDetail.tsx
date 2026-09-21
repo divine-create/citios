@@ -73,11 +73,6 @@ export default function ProductDetail({ id }: { id: string }) {
           ) : (
             <FallbackImg alt={p.name} />
           )}
-          <div className="absolute top-4 right-4">
-            <Pill className="bg-white/90 backdrop-blur text-ink border-0 shadow-sm">
-              <Stars rating={4.5} />
-            </Pill>
-          </div>
           {isOutOfStock && (
             <div className="absolute top-4 left-4 px-3 py-1 rounded-full bg-slate-900/90 text-white text-[10px] font-black uppercase tracking-wider shadow-sm">
               Sold Out
@@ -90,7 +85,6 @@ export default function ProductDetail({ id }: { id: string }) {
         <div className="space-y-2">
           <Link href={`/org/${p.orgSlug}`} className="inline-flex items-center gap-1.5 opacity-80 hover:opacity-100 transition-opacity">
             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{p.storeName}</span>
-            <VerifiedBadge />
           </Link>
           <h1 className="text-2xl md:text-3xl font-black text-ink leading-tight">{p.name}</h1>
           <CityMismatchChip citySlug={p.citySlug} className="mt-1.5" />

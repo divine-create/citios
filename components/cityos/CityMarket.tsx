@@ -143,11 +143,7 @@ export default function CityMarket() {
                       <div className="space-y-1">
                         <h3 className="font-bold text-ink text-sm leading-tight line-clamp-1">{s.name}</h3>
                         <p className="text-xs text-slate-500 font-medium line-clamp-1">{s.storeCategory || 'Store'}</p>
-                        <div className="flex items-center gap-2 pt-1">
-                          <Stars rating={4} />
-                          <span className="text-[10px] font-bold text-slate-400">4.0</span>
                         </div>
-                      </div>
                     </div>
                   </CityCard>
                 </Link>

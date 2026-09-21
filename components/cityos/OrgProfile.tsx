@@ -106,10 +106,8 @@ export default async function OrgProfile({ id }: { id: string }) {
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-2xl font-black tracking-tight">{org.name}</h1>
-                <VerifiedBadge label="Verified" />
               </div>
               <div className="flex items-center gap-2 mt-1">
-                <Stars rating={5.0} />
                 <span className="text-[11px] font-bold text-white/70">Verified Org</span>
               </div>
             </div>
@@ -168,7 +166,6 @@ export default async function OrgProfile({ id }: { id: string }) {
                 <p className="text-[12px] text-slate-500 font-medium mt-1 line-clamp-2">{s.description || 'Service offered by this org.'}</p>
                 <div className="flex items-center justify-between mt-3">
                   <span className="text-[12px] font-black text-teal-900">{`from ${fmt(s.basePrice || 0)}`}</span>
-                  <Stars rating={5} />
                 </div>
               </div>
             ))}

@@ -682,7 +682,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
               'flex-1 relative',
               isWorkspace
                 ? 'p-0 overflow-hidden flex flex-col min-w-0 h-full'
-                : 'overflow-y-auto px-4 md:px-8 py-5 md:py-8 scroll-smooth pb-28 md:pb-8'
+                : 'overflow-y-auto px-4 md:px-8 py-5 md:py-8 scroll-smooth pb-36 md:pb-8'
             )}
           >
             {isWorkspace ? (
