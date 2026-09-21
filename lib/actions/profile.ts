@@ -122,6 +122,9 @@ export async function updateFullProfile(input: {
     if (input.dateOfBirth && Number.isNaN(dateOfBirth?.getTime())) {
       return { error: 'Please enter a valid date of birth.' };
     }
+    const dateOfBirthInstant = dateOfBirth
+      ? (globalThis as any).Temporal.Instant.fromEpochMilliseconds(dateOfBirth.getTime())
+      : null;
 
     const personId = session.user.personId;
     const person = await db.orm.public.Person.where({ id: personId }).all().first();
@@ -137,7 +140,7 @@ export async function updateFullProfile(input: {
         firstName,
         lastName,
         ...(input.homeCityId && { homeCityId: input.homeCityId }),
-        ...(dateOfBirth && { dateOfBirth }),
+        ...(dateOfBirthInstant && { dateOfBirth: dateOfBirthInstant }),
       });
 
       const existing = await tx.orm.public.ResidentProfile.where({ personId }).all().first();
