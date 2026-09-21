@@ -145,7 +145,7 @@ function resolveWorkspaceUrl(orgId: string, type: string): string {
     case 'SCHOOL':
       return `/workspaces/schoolos/${orgId}`;
     case 'HOTEL':
-      return `/admin/hotel`;
+      return `/hotel-os?org=${orgId}`;
     case 'EVENT_ORGANIZER':
       return `/admin/events`;
     case 'HEALTHCARE':

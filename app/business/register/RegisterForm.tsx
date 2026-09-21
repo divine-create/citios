@@ -46,7 +46,7 @@ export default function RegisterForm({ initialType, isLoggedIn }: { initialType:
         else if (formData.type === 'RETAIL') destination = `/workspaces/shopos/${orgId}`;
         else if (formData.type === 'SERVICES') destination = `/workspaces/serviceos/${orgId}`;
         else if (formData.type === 'SCHOOL') destination = `/workspaces/schoolos/${orgId}`;
-        else if (formData.type === 'HOTEL') destination = '/admin/hotel';
+        else if (formData.type === 'HOTEL') destination = `/hotel-os?org=${orgId}`;
         else if (formData.type === 'HEALTHCARE') destination = '/admin/healthcare';
         else destination = `/org/${orgId}`;
         try {
