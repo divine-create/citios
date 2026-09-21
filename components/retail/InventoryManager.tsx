@@ -220,6 +220,7 @@ export default function InventoryManager({ organizationId, products, categories,
   const totalValue = products.reduce((sum, p) => sum + (p.cost ?? 0) * p.stockQuantity, 0);
   const lowStockCount = products.filter((p) => p.lowStockLevel != null && p.stockQuantity <= (p.lowStockLevel as number)).length;
 
+  return (
     <div className="p-8 max-w-7xl mx-auto min-h-full flex flex-col">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
