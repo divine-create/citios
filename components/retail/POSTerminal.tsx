@@ -156,8 +156,8 @@ export default function POSTerminal({ organizationId, products, shiftId, onOrder
     setCouponError(null);
     try {
       const res = await getCouponDiscount(organizationId, code, subtotal);
-      if ((res as any)?.error) { setCouponError((res as any).error); return; }
-      setAppliedCoupon({ code: code.toUpperCase(), discount: (res as any).discount, label: (res as any).label });
+      if (res && typeof res === 'object' && 'error' in res && res.error) { setCouponError(res.error); return; }
+      setAppliedCoupon({ code: code.toUpperCase(), discount: res.discount, label: res.label });
     } finally {
       setIsCouponChecking(false);
     }
@@ -181,11 +181,11 @@ export default function POSTerminal({ organizationId, products, shiftId, onOrder
         discountAmount,
         couponCode: appliedCoupon?.code,
       });
-      if ((res as any)?.error) {
-        setError((res as any).error);
+      if (res && typeof res === 'object' && 'error' in res && res.error) {
+        setError(res.error);
         return;
       }
-      setCompletedOrderId((res as any).orderId);
+      setCompletedOrderId(res.orderId);
       playCashRegisterChime();
     } finally {
       setIsProcessing(false);
@@ -471,7 +471,7 @@ export default function POSTerminal({ organizationId, products, shiftId, onOrder
                       {product.name}
                     </span>
                     {product.imageAssetId && (
-                      <img src={`/api/assets?id=${product.imageAssetId}`} alt={product.name} className="w-10 h-10 rounded-lg object-cover shrink-0 shadow-sm ring-1 ring-black/5" />
+                      <img src={`/api/assets/${product.imageAssetId}`} alt={product.name} className="w-10 h-10 rounded-lg object-cover shrink-0 shadow-sm ring-1 ring-black/5" />
                     )}
                   </div>
                   <div className="flex items-center justify-between w-full mt-2 pt-1 border-t border-black/5">
@@ -667,7 +667,7 @@ function CustomerPicker({ organizationId, customers, onSelect, onCreated, onClos
     setIsSaving(true);
     try {
       const res = await createCustomer({ organizationId, name, phone: phone || undefined });
-      if ((res as any)?.customer) onCreated((res as any).customer);
+      if (res && typeof res === 'object' && 'customer' in res && res.customer) onCreated(res.customer);
     } finally {
       setIsSaving(false);
     }

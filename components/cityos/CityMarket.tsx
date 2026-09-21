@@ -81,7 +81,7 @@ export default function CityMarket() {
                         {p.imageAssetId ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
-                            src={`/api/assets?id=${p.imageAssetId}`}
+                            src={`/api/assets/${p.imageAssetId}`}
                             alt={p.name}
                             className={cn(
                               'w-full h-full object-cover transition-transform group-hover:scale-105 duration-300',

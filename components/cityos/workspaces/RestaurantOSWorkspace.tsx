@@ -431,7 +431,7 @@ function TabPOS({ menu, tables, showTables, slug, onDone, org, settings }: any) 
                   <p className="text-xs text-slate-500 mt-1">{m.category}</p>
                 </div>
                 {m.imageAssetId && (
-                  <img src={`/api/assets?id=${m.imageAssetId}`} alt={m.name} className="w-10 h-10 rounded-lg object-cover shrink-0 shadow-sm ring-1 ring-black/5" />
+                  <img src={`/api/assets/${m.imageAssetId}`} alt={m.name} className="w-10 h-10 rounded-lg object-cover shrink-0 shadow-sm ring-1 ring-black/5" />
                 )}
               </div>
               <p className="text-sm font-bold text-orange-600 mt-2">{fmt(m.price)}</p>
