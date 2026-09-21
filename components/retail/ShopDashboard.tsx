@@ -1243,7 +1243,7 @@ function ExpensesTab({ organizationId, currentUserId, symbol = "$" }: { organiza
         description: form.description || undefined,
         amount,
         expenseDate: form.expenseDate,
-        paymentMethod: form.paymentMethod as "CASH" | "CARD" | "WALLET",
+        paymentMethod: form.paymentMethod as "CASH" | "CARD" | "BANK_TRANSFER" | "OTHER",
         vendorName: form.vendorName || undefined,
         receiptAssetId: receiptAssetId ?? undefined,
       });
