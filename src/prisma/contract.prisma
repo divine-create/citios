@@ -2384,6 +2384,21 @@ model RetailShift {
   updatedAt      DateTime     @default(now())
 }
 
+enum RetailOrderStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+enum RetailFulfillmentStatus {
+  UNFULFILLED
+  PROCESSING
+  READY
+  FULFILLED
+  CANCELLED
+  RETURNED
+}
+
 model RetailOrder {
     id             String       @id @default(uuid())
     organizationId String
@@ -2407,7 +2422,9 @@ model RetailOrder {
   coupon         RetailCoupon? @relation("CouponOrders", fields: [couponId], references: [id])
   
   paymentMethod  String       // CASH, CARD, SPLIT
-  status         String       @default("COMPLETED") // PENDING, COMPLETED, REFUNDED
+  status         RetailOrderStatus @default(PENDING)
+  fulfillmentStatus RetailFulfillmentStatus @default(UNFULFILLED)
+  
 
   refundedAt     DateTime?
   refundedById   String?
@@ -2944,6 +2961,8 @@ model Payment {
   currency          String       @default("USD")
   method            String       // "WALLET", "CARD", "TRANSFER"
   status            PaymentStatus @default(PENDING)
+  refundedAmount    Float         @default(0.0)
+  refunds           Refund[]
     
     provider          String?      // e.g. "PAYSTACK"
   reference         String?      @unique // CityOS internal payment reference

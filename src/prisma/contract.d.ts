@@ -33,7 +33,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'59e754883a10d22e265556b097cc63320361c29cd0436330a6cbbc0f4f973105'>;
+  StorageHashBase<'a11dae3d445e14a2048b617d59416f33df588f19b8d35f4cb4cd8cd4a9a9a13b'>;
 export type ExecutionHash =
   ExecutionHashBase<'640cefb451f470f0a0c4a4f569b1ef4e8352142f5366f011e0a1131f7de22bf1'>;
 export type ProfileHash =
@@ -972,6 +972,7 @@ export type FieldOutputTypes = {
         | 'REFUNDED'
         | 'PARTIALLY_REFUNDED'
         | 'MANUAL_REFUND_NEEDED';
+      readonly refundedAmount: CodecTypes['pg/float8@1']['output'];
       readonly provider: CodecTypes['pg/text@1']['output'] | null;
       readonly reference: CodecTypes['pg/text@1']['output'] | null;
       readonly providerReference: CodecTypes['pg/text@1']['output'] | null;
@@ -1317,7 +1318,9 @@ export type FieldOutputTypes = {
       readonly discountAmount: CodecTypes['pg/float8@1']['output'];
       readonly couponId: CodecTypes['pg/text@1']['output'] | null;
       readonly paymentMethod: CodecTypes['pg/text@1']['output'];
-      readonly status: CodecTypes['pg/text@1']['output'];
+      readonly status: 'PENDING' | 'CONFIRMED' | 'CANCELLED';
+      readonly fulfillmentStatus:
+        'UNFULFILLED' | 'PROCESSING' | 'READY' | 'FULFILLED' | 'CANCELLED' | 'RETURNED';
       readonly refundedAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
       readonly refundedById: CodecTypes['pg/text@1']['output'] | null;
       readonly refundReason: CodecTypes['pg/text@1']['output'] | null;
@@ -2628,6 +2631,7 @@ export type FieldInputTypes = {
         | 'REFUNDED'
         | 'PARTIALLY_REFUNDED'
         | 'MANUAL_REFUND_NEEDED';
+      readonly refundedAmount: CodecTypes['pg/float8@1']['input'];
       readonly provider: CodecTypes['pg/text@1']['input'] | null;
       readonly reference: CodecTypes['pg/text@1']['input'] | null;
       readonly providerReference: CodecTypes['pg/text@1']['input'] | null;
@@ -2973,7 +2977,9 @@ export type FieldInputTypes = {
       readonly discountAmount: CodecTypes['pg/float8@1']['input'];
       readonly couponId: CodecTypes['pg/text@1']['input'] | null;
       readonly paymentMethod: CodecTypes['pg/text@1']['input'];
-      readonly status: CodecTypes['pg/text@1']['input'];
+      readonly status: 'PENDING' | 'CONFIRMED' | 'CANCELLED';
+      readonly fulfillmentStatus:
+        'UNFULFILLED' | 'PROCESSING' | 'READY' | 'FULFILLED' | 'CANCELLED' | 'RETURNED';
       readonly refundedAt: CodecTypes['pg/timestamptz-temporal@1']['input'] | null;
       readonly refundedById: CodecTypes['pg/text@1']['input'] | null;
       readonly refundReason: CodecTypes['pg/text@1']['input'] | null;
@@ -4279,6 +4285,7 @@ export type StorageColumnTypes = {
       readonly provider: CodecTypes['pg/text@1']['output'] | null;
       readonly providerReference: CodecTypes['pg/text@1']['output'] | null;
       readonly reference: CodecTypes['pg/text@1']['output'] | null;
+      readonly refundedAmount: CodecTypes['pg/float8@1']['output'];
       readonly restaurantOrderId: CodecTypes['pg/text@1']['output'] | null;
       readonly retailOrderId: CodecTypes['pg/text@1']['output'] | null;
       readonly status:
@@ -4622,6 +4629,8 @@ export type StorageColumnTypes = {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly customerDataId: CodecTypes['pg/text@1']['output'] | null;
       readonly discountAmount: CodecTypes['pg/float8@1']['output'];
+      readonly fulfillmentStatus:
+        'UNFULFILLED' | 'PROCESSING' | 'READY' | 'FULFILLED' | 'CANCELLED' | 'RETURNED';
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly idempotencyKey: CodecTypes['pg/text@1']['output'] | null;
       readonly locationId: CodecTypes['pg/text@1']['output'] | null;
@@ -4631,7 +4640,7 @@ export type StorageColumnTypes = {
       readonly refundedById: CodecTypes['pg/text@1']['output'] | null;
       readonly refundReason: CodecTypes['pg/text@1']['output'] | null;
       readonly shiftId: CodecTypes['pg/text@1']['output'] | null;
-      readonly status: CodecTypes['pg/text@1']['output'];
+      readonly status: 'PENDING' | 'CONFIRMED' | 'CANCELLED';
       readonly taxAmount: CodecTypes['pg/float8@1']['output'];
       readonly totalAmount: CodecTypes['pg/float8@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
@@ -5935,6 +5944,7 @@ export type StorageColumnInputTypes = {
       readonly provider: CodecTypes['pg/text@1']['input'] | null;
       readonly providerReference: CodecTypes['pg/text@1']['input'] | null;
       readonly reference: CodecTypes['pg/text@1']['input'] | null;
+      readonly refundedAmount: CodecTypes['pg/float8@1']['input'];
       readonly restaurantOrderId: CodecTypes['pg/text@1']['input'] | null;
       readonly retailOrderId: CodecTypes['pg/text@1']['input'] | null;
       readonly status:
@@ -6278,6 +6288,8 @@ export type StorageColumnInputTypes = {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly customerDataId: CodecTypes['pg/text@1']['input'] | null;
       readonly discountAmount: CodecTypes['pg/float8@1']['input'];
+      readonly fulfillmentStatus:
+        'UNFULFILLED' | 'PROCESSING' | 'READY' | 'FULFILLED' | 'CANCELLED' | 'RETURNED';
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly idempotencyKey: CodecTypes['pg/text@1']['input'] | null;
       readonly locationId: CodecTypes['pg/text@1']['input'] | null;
@@ -6287,7 +6299,7 @@ export type StorageColumnInputTypes = {
       readonly refundedById: CodecTypes['pg/text@1']['input'] | null;
       readonly refundReason: CodecTypes['pg/text@1']['input'] | null;
       readonly shiftId: CodecTypes['pg/text@1']['input'] | null;
-      readonly status: CodecTypes['pg/text@1']['input'];
+      readonly status: 'PENDING' | 'CONFIRMED' | 'CANCELLED';
       readonly taxAmount: CodecTypes['pg/float8@1']['input'];
       readonly totalAmount: CodecTypes['pg/float8@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
@@ -13039,6 +13051,15 @@ type ContractBase = Omit<
                     readonly value: DefaultLiteralValue<'pg/text@1', 'PENDING'>;
                   };
                 };
+                readonly refundedAmount: {
+                  readonly nativeType: 'float8';
+                  readonly codecId: 'pg/float8@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/float8@1', 0>;
+                  };
+                };
                 readonly provider: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
@@ -15894,7 +15915,16 @@ type ContractBase = Omit<
                   readonly nullable: false;
                   readonly default: {
                     readonly kind: 'literal';
-                    readonly value: DefaultLiteralValue<'pg/text@1', 'COMPLETED'>;
+                    readonly value: DefaultLiteralValue<'pg/text@1', 'PENDING'>;
+                  };
+                };
+                readonly fulfillmentStatus: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/text@1', 'UNFULFILLED'>;
                   };
                 };
                 readonly refundedAt: {
@@ -21084,6 +21114,21 @@ type ContractBase = Omit<
             readonly ReservationStatus: {
               readonly kind: 'valueSet';
               readonly values: readonly ['CONFIRMED', 'CHECKED_IN', 'CHECKED_OUT', 'CANCELLED'];
+            };
+            readonly RetailFulfillmentStatus: {
+              readonly kind: 'valueSet';
+              readonly values: readonly [
+                'UNFULFILLED',
+                'PROCESSING',
+                'READY',
+                'FULFILLED',
+                'CANCELLED',
+                'RETURNED',
+              ];
+            };
+            readonly RetailOrderStatus: {
+              readonly kind: 'valueSet';
+              readonly values: readonly ['PENDING', 'CONFIRMED', 'CANCELLED'];
             };
             readonly SyllabusTopicStatus: {
               readonly kind: 'valueSet';
@@ -28348,6 +28393,10 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
+              readonly refundedAmount: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/float8@1' };
+              };
               readonly provider: {
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
@@ -28403,6 +28452,17 @@ type ContractBase = Omit<
                   readonly targetFields: readonly ['paymentId'];
                 };
               };
+              readonly refunds: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'Refund';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['paymentId'];
+                };
+              };
               readonly restaurantOrder: {
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;
@@ -28446,6 +28506,7 @@ type ContractBase = Omit<
                 readonly currency: { readonly column: 'currency' };
                 readonly method: { readonly column: 'method' };
                 readonly status: { readonly column: 'status' };
+                readonly refundedAmount: { readonly column: 'refundedAmount' };
                 readonly provider: { readonly column: 'provider' };
                 readonly reference: { readonly column: 'reference' };
                 readonly providerReference: { readonly column: 'providerReference' };
@@ -31335,6 +31396,10 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
+              readonly fulfillmentStatus: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
               readonly refundedAt: {
                 readonly nullable: true;
                 readonly type: {
@@ -31450,6 +31515,7 @@ type ContractBase = Omit<
                 readonly couponId: { readonly column: 'couponId' };
                 readonly paymentMethod: { readonly column: 'paymentMethod' };
                 readonly status: { readonly column: 'status' };
+                readonly fulfillmentStatus: { readonly column: 'fulfillmentStatus' };
                 readonly refundedAt: { readonly column: 'refundedAt' };
                 readonly refundedById: { readonly column: 'refundedById' };
                 readonly refundReason: { readonly column: 'refundReason' };
@@ -36524,6 +36590,25 @@ type ContractBase = Omit<
               { readonly name: 'PENDING'; readonly value: 'PENDING' },
               { readonly name: 'ACCEPTED'; readonly value: 'ACCEPTED' },
               { readonly name: 'REJECTED'; readonly value: 'REJECTED' },
+            ];
+          };
+          readonly RetailOrderStatus: {
+            readonly codecId: 'pg/text@1';
+            readonly members: readonly [
+              { readonly name: 'PENDING'; readonly value: 'PENDING' },
+              { readonly name: 'CONFIRMED'; readonly value: 'CONFIRMED' },
+              { readonly name: 'CANCELLED'; readonly value: 'CANCELLED' },
+            ];
+          };
+          readonly RetailFulfillmentStatus: {
+            readonly codecId: 'pg/text@1';
+            readonly members: readonly [
+              { readonly name: 'UNFULFILLED'; readonly value: 'UNFULFILLED' },
+              { readonly name: 'PROCESSING'; readonly value: 'PROCESSING' },
+              { readonly name: 'READY'; readonly value: 'READY' },
+              { readonly name: 'FULFILLED'; readonly value: 'FULFILLED' },
+              { readonly name: 'CANCELLED'; readonly value: 'CANCELLED' },
+              { readonly name: 'RETURNED'; readonly value: 'RETURNED' },
             ];
           };
           readonly PaymentStatus: {

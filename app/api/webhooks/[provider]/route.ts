@@ -125,7 +125,7 @@ export async function POST(
                       }
                     }
                  }
-                 await tx.orm.public.RetailOrder.where({ id: order.id }).update({ status: 'COMPLETED' });
+                 await tx.orm.public.RetailOrder.where({ id: order.id }).update({ status: 'CONFIRMED' });
               }
            }
            
@@ -153,11 +153,11 @@ export async function POST(
              let transactionRecord = null;
              if (payment.transactionId) {
                 transactionRecord = await tx.orm.public.Transaction.where({ id: payment.transactionId }).all().first();
-                await tx.orm.public.Transaction.where({ id: payment.transactionId }).update({ status: 'COMPLETED' });
+                await tx.orm.public.Transaction.where({ id: payment.transactionId }).update({ status: 'CONFIRMED' });
              } else {
                 transactionRecord = await tx.orm.public.Transaction.create({
                   reference: payment.reference || `TX-${payment.id.slice(0,8)}`,
-                  status: 'COMPLETED',
+                  status: 'CONFIRMED',
                   description: `Online settlement ${payment.reference}`
                 });
                 await tx.orm.public.Payment.where({ id: payment.id }).update({ transactionId: transactionRecord.id });
@@ -175,7 +175,7 @@ export async function POST(
 
            // Finally mark payment completed
            await tx.orm.public.Payment.where({ id: payment.id }).update({ 
-             status: 'COMPLETED', 
+             status: 'CONFIRMED', 
              providerReference: event.providerReference 
            });
          });

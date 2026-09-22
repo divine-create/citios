@@ -675,7 +675,7 @@ export async function closeShift(shiftId: string, input: { actualCash: number })
 
     const orders = await db.orm.public.RetailOrder.where({ shiftId }).all();
     const cashSales = orders
-      .filter((o) => o.paymentMethod === 'CASH' && o.status === 'COMPLETED')
+      .filter((o) => o.paymentMethod === 'CASH' && o.status === 'CONFIRMED')
       .reduce((sum, o) => sum + o.totalAmount, 0);
     const expectedCash = shift.openingFloat + cashSales;
     const discrepancy = input.actualCash - expectedCash;
@@ -865,7 +865,7 @@ export async function createOrder(input: {
             delta: -line.quantity,
             beforeQty: stock.stockQuantity,
             afterQty: next,
-            reason: 'SALE',
+            reason: 'SALE_PENDING',
             referenceType: 'ORDER',
             referenceId: created.id,
             note: `Order ${created.id.slice(0, 8)}`,
@@ -968,6 +968,9 @@ export async function createOrder(input: {
       }).catch((error) => console.error('WhatsApp order notification failed:', error));
     }
 
+    if ((order as any).payment && (order as any).payment.method === 'PAYSTACK') {
+      return { success: true, orderId: order.id, checkoutUrl: `https://checkout.paystack.com/${(order as any).payment.id}`, totalAmount, taxAmount };
+    }
     return { success: true, orderId: order.id, totalAmount, taxAmount };
   } catch (error) {
     console.error('Error creating order:', error);
@@ -1020,7 +1023,7 @@ async function enrichOrders(organizationId: string, orders: any[]) {
   return enriched;
 }
 
-export async function getOrders(organizationId: string, locationId?: string | null, options?: { limit?: number; status?: 'COMPLETED' | 'REFUNDED'; shiftId?: string }) {
+export async function getOrders(organizationId: string, locationId?: string | null, options?: { limit?: number; status?: 'PENDING' | 'CONFIRMED' | 'CANCELLED'; shiftId?: string }) {
   try {
     await requireMembership(organizationId);
     let orders = await db.orm.public.RetailOrder.where(locationId ? { organizationId, locationId } : { organizationId }).all();
@@ -1448,13 +1451,13 @@ export async function getShopDashboardData(organizationId: string, locationId?: 
     const startOfToday = startOfDay(new Date()).getTime();
     const todayOrders = allOrders.filter((o) => epochMs(o.createdAt) >= startOfToday);
 
-    const completedToday = todayOrders.filter((o) => o.status === 'COMPLETED');
-    const refundedToday = todayOrders.filter((o) => o.status === 'REFUNDED');
+    const completedToday = todayOrders.filter((o) => o.status === 'CONFIRMED');
+    const refundedToday = todayOrders.filter((o) => o.status === 'CANCELLED');
     const grossSales = completedToday.reduce((sum, o) => sum + o.totalAmount, 0);
     const refundsTotal = refundedToday.reduce((sum, o) => sum + o.totalAmount, 0);
 
-    const completedOrders = allOrders.filter((o) => o.status === 'COMPLETED');
-    const refundedAll = allOrders.filter((o) => o.status === 'REFUNDED');
+    const completedOrders = allOrders.filter((o) => o.status === 'CONFIRMED');
+    const refundedAll = allOrders.filter((o) => o.status === 'CANCELLED');
 
     const products = await db.orm.public.RetailProduct.where({ organizationId }).all();
     
@@ -1660,7 +1663,7 @@ export async function getExpenseSummary(organizationId: string) {
 async function enrichCustomers(organizationId: string, customers: any[]) {
   const orders = await db.orm.public.RetailOrder.where({ organizationId }).all();
   return customers.map((c) => {
-    const theirOrders = orders.filter((o) => o.customerDataId === c.id && o.status === 'COMPLETED');
+    const theirOrders = orders.filter((o) => o.customerDataId === c.id && o.status === 'CONFIRMED');
     const lastVisit = theirOrders.reduce((max, o) => Math.max(max, epochMs(o.createdAt)), 0);
     return {
       ...c,
@@ -2079,8 +2082,8 @@ export async function getShopReports(organizationId: string) {
   try {
     await requireMembership(organizationId);
     const allOrders = await db.orm.public.RetailOrder.where({ organizationId }).all();
-    const completed = allOrders.filter((o) => o.status === 'COMPLETED');
-    const refunded = allOrders.filter((o) => o.status === 'REFUNDED');
+    const completed = allOrders.filter((o) => o.status === 'CONFIRMED');
+    const refunded = allOrders.filter((o) => o.status === 'CANCELLED');
 
     const dayMs = 24 * 60 * 60 * 1000;
     const startToday = startOfDay(new Date()).getTime();
@@ -2158,7 +2161,7 @@ export async function getShopReports(organizationId: string) {
     const customers = await Promise.all(
       allCustomers.map(async (c: any) => {
         const ords = await db.orm.public.RetailOrder.where({ customerDataId: c.id }).all();
-        const comp = ords.filter((o) => o.status === 'COMPLETED');
+        const comp = ords.filter((o) => o.status === 'CONFIRMED');
         return {
           ...c,
           totalSpent: comp.reduce((sum, o) => sum + o.totalAmount, 0),
@@ -2288,3 +2291,19 @@ export async function getShopWalletBalance(organizationId: string) {
   }
 }
 
+
+
+export async function updateFulfillmentStatus(orderId: string, status: 'UNFULFILLED' | 'PROCESSING' | 'READY' | 'FULFILLED' | 'CANCELLED' | 'RETURNED', locationId?: string) {
+  try {
+    const o = await db.orm.public.RetailOrder.where({ id: orderId }).all().first();
+    if (!o) return { error: 'Order not found.' };
+    const loc = await resolveLocationContext(o.organizationId, locationId || o.locationId).catch(e => { throw e; });
+    if (!loc) return { error: 'Order location cannot be resolved.' };
+    await requireMembership(o.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER'], loc.id);
+
+    await db.orm.public.RetailOrder.where({ id: orderId }).update({ fulfillmentStatus: status });
+    return { success: true };
+  } catch (error: any) {
+    return { error: error.message };
+  }
+}

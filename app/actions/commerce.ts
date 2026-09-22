@@ -241,7 +241,7 @@ export async function fetchRetailOrders(orgId: string) {
       area: 'Local',
       items: items.map(i => `${i.quantity}x item`).join(', '),
       total: o.totalAmount,
-      status: o.status === 'COMPLETED' ? 'packing' : 'delivered',
+      status: o.status === 'CONFIRMED' ? 'packing' : 'delivered',
     };
   }));
 }
@@ -280,7 +280,7 @@ export async function fetchMyOrders() {
       merchant: org?.name || 'CityOS Merchant',
       items: items.map(i => `${i.quantity}x item`).join(', '),
       total: o.totalAmount,
-      status: o.status === 'COMPLETED' ? 'packing' : 'delivered',
+      status: o.status === 'CONFIRMED' ? 'packing' : 'delivered',
       time: o.createdAt.toLocaleTimeString(),
     };
   }));

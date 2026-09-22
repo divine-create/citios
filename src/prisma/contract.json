@@ -1112,6 +1112,52 @@
               }
             ]
           },
+          "RetailFulfillmentStatus": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "UNFULFILLED",
+                "value": "UNFULFILLED"
+              },
+              {
+                "name": "PROCESSING",
+                "value": "PROCESSING"
+              },
+              {
+                "name": "READY",
+                "value": "READY"
+              },
+              {
+                "name": "FULFILLED",
+                "value": "FULFILLED"
+              },
+              {
+                "name": "CANCELLED",
+                "value": "CANCELLED"
+              },
+              {
+                "name": "RETURNED",
+                "value": "RETURNED"
+              }
+            ]
+          },
+          "RetailOrderStatus": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "PENDING",
+                "value": "PENDING"
+              },
+              {
+                "name": "CONFIRMED",
+                "value": "CONFIRMED"
+              },
+              {
+                "name": "CANCELLED",
+                "value": "CANCELLED"
+              }
+            ]
+          },
           "SyllabusTopicStatus": {
             "codecId": "pg/text@1",
             "members": [
@@ -11522,6 +11568,13 @@
                   "kind": "scalar"
                 }
               },
+              "refundedAmount": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
               "restaurantOrderId": {
                 "nullable": true,
                 "type": {
@@ -11577,6 +11630,21 @@
                 },
                 "to": {
                   "model": "PaymentEvent",
+                  "namespace": "public"
+                }
+              },
+              "refunds": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "paymentId"
+                  ]
+                },
+                "to": {
+                  "model": "Refund",
                   "namespace": "public"
                 }
               },
@@ -11654,6 +11722,9 @@
                 },
                 "reference": {
                   "column": "reference"
+                },
+                "refundedAmount": {
+                  "column": "refundedAmount"
                 },
                 "restaurantOrderId": {
                   "column": "restaurantOrderId"
@@ -16136,6 +16207,19 @@
                   "kind": "scalar"
                 }
               },
+              "fulfillmentStatus": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "RetailFulfillmentStatus",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
               "id": {
                 "nullable": false,
                 "type": {
@@ -16204,6 +16288,12 @@
                 "type": {
                   "codecId": "pg/text@1",
                   "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "RetailOrderStatus",
+                  "namespaceId": "public",
+                  "plane": "domain"
                 }
               },
               "taxAmount": {
@@ -16336,6 +16426,9 @@
                 },
                 "discountAmount": {
                   "column": "discountAmount"
+                },
+                "fulfillmentStatus": {
+                  "column": "fulfillmentStatus"
                 },
                 "id": {
                   "column": "id"
@@ -31844,6 +31937,15 @@
                   "nativeType": "text",
                   "nullable": true
                 },
+                "refundedAmount": {
+                  "codecId": "pg/float8@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "float8",
+                  "nullable": false
+                },
                 "restaurantOrderId": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -35400,6 +35502,18 @@
               "uniques": []
             },
             "retailOrder": {
+              "checks": [
+                {
+                  "expression": "\"fulfillmentStatus\" IN ('UNFULFILLED', 'PROCESSING', 'READY', 'FULFILLED', 'CANCELLED', 'RETURNED')",
+                  "name": "retailOrder_fulfillmentStatus_check_9e0c64a9",
+                  "prefix": "retailOrder_fulfillmentStatus_check"
+                },
+                {
+                  "expression": "\"status\" IN ('PENDING', 'CONFIRMED', 'CANCELLED')",
+                  "name": "retailOrder_status_check_647f5b5d",
+                  "prefix": "retailOrder_status_check"
+                }
+              ],
               "columns": {
                 "cashierId": {
                   "codecId": "pg/text@1",
@@ -35433,6 +35547,21 @@
                   },
                   "nativeType": "float8",
                   "nullable": false
+                },
+                "fulfillmentStatus": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "UNFULFILLED"
+                  },
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "RetailFulfillmentStatus",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
                 },
                 "id": {
                   "codecId": "pg/text@1",
@@ -35483,10 +35612,16 @@
                   "codecId": "pg/text@1",
                   "default": {
                     "kind": "literal",
-                    "value": "COMPLETED"
+                    "value": "PENDING"
                   },
                   "nativeType": "text",
-                  "nullable": false
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "RetailOrderStatus",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
                 },
                 "taxAmount": {
                   "codecId": "pg/float8@1",
@@ -42012,6 +42147,25 @@
                 "CANCELLED"
               ]
             },
+            "RetailFulfillmentStatus": {
+              "kind": "valueSet",
+              "values": [
+                "UNFULFILLED",
+                "PROCESSING",
+                "READY",
+                "FULFILLED",
+                "CANCELLED",
+                "RETURNED"
+              ]
+            },
+            "RetailOrderStatus": {
+              "kind": "valueSet",
+              "values": [
+                "PENDING",
+                "CONFIRMED",
+                "CANCELLED"
+              ]
+            },
             "SyllabusTopicStatus": {
               "kind": "valueSet",
               "values": [
@@ -42052,7 +42206,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "59e754883a10d22e265556b097cc63320361c29cd0436330a6cbbc0f4f973105"
+    "storageHash": "a11dae3d445e14a2048b617d59416f33df588f19b8d35f4cb4cd8cd4a9a9a13b"
   },
   "execution": {
     "executionHash": "640cefb451f470f0a0c4a4f569b1ef4e8352142f5366f011e0a1131f7de22bf1",
