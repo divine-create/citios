@@ -2322,7 +2322,7 @@ model RetailProduct {
   
   price          Float
   cost           Float?       // Used for COGS
-  stockQuantity  Float        @default(0)
+  stockQuantity  Float        @default(0) // DEPRECATED: Use RetailLocationStock
   lowStockLevel  Float?       // Reorder trigger
   
   isWeighed      Boolean      @default(false) // e.g. price per kg/lb
@@ -2505,7 +2505,7 @@ model RetailLocationStock {
   productId      String
   product        RetailProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  stockQuantity  Float         @default(0)
+  stockQuantity  Float         @default(0) // DEPRECATED: Use RetailLocationStock
   lowStockLevel  Float?
 
   updatedAt      DateTime?

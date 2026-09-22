@@ -729,9 +729,12 @@ export async function createOrder(input: {
     idempotencyKey?: string;
   }) {
   try {
-    // Cashier identity comes from the session (the Membership processing the
-    // sale) — never from the client payload.
-    const { membership } = await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER']);
+    // Determine exact location context
+    const loc = await resolveLocationContext(input.organizationId, input.locationId).catch(e => { throw e; });
+    if (!loc) return { error: 'An active location is required to create an order.' };
+
+    // Validate location access
+    const { membership } = await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER'], loc.id);
     const cashierId = membership.id;
     if (input.items.length === 0) return { error: 'Cart is empty.' };
 
@@ -749,8 +752,12 @@ export async function createOrder(input: {
       if (!product) return { error: 'A product in the cart is not available for this store.' };
       const quantity = item.quantity;
       if (!(quantity > 0)) return { error: 'Item quantities must be greater than zero.' };
-      if (!product.isWeighed && product.stockQuantity < quantity) {
-        return { error: `Not enough stock for ${product.name} (have ${product.stockQuantity}, need ${quantity}).` };
+      if (!product.isWeighed) {
+        const stock = await db.orm.public.RetailLocationStock.where({ locationId: loc.id, productId: product.id }).all().first();
+        const available = stock ? stock.stockQuantity : 0;
+        if (available < quantity) {
+          return { error: `Not enough stock for ${product.name} at this location (have ${available}, need ${quantity}).` };
+        }
       }
       const lineSubtotal = product.price * quantity;
       lineItems.push({ productId: product.id, quantity, unitPrice: product.price, unitCost: product.cost ?? null, subtotal: lineSubtotal });
@@ -834,26 +841,44 @@ export async function createOrder(input: {
           unitCost: line.unitCost,
           subtotal: line.subtotal,
         });
-        const product = await tx.orm.public.RetailProduct.where({ id: line.productId }).all().first();
-        if (product) {
-          const next = Math.max(0, product.stockQuantity - line.quantity);
-          await tx.orm.public.RetailProduct.where({ id: line.productId }).update({ stockQuantity: next });
+
+        const product = productById.get(line.productId);
+        if (product && !product.isWeighed) {
+          const stock = await getOrInitLocationStock(tx, input.organizationId, loc.id, line.productId);
+
+          const updated = await tx.sql`
+            UPDATE "RetailLocationStock"
+            SET "stockQuantity" = "stockQuantity" - ${line.quantity}
+            WHERE id = ${stock.id} AND "stockQuantity" >= ${line.quantity}
+            RETURNING "stockQuantity"
+          `;
+          
+          if (updated.length === 0) {
+            throw new Error(`Insufficient stock for ${product.name} at this location.`);
+          }
+          const next = updated[0].stockQuantity;
+
           await tx.orm.public.RetailStockMovement.create({
             organizationId: input.organizationId,
+            locationId: loc.id,
             productId: line.productId,
             delta: -line.quantity,
-            beforeQty: product.stockQuantity,
+            beforeQty: stock.stockQuantity,
             afterQty: next,
             reason: 'SALE',
+            referenceType: 'ORDER',
+            referenceId: created.id,
             note: `Order ${created.id.slice(0, 8)}`,
             recordedById: cashierId,
           });
+
           if (coupon) {
             await tx.orm.public.RetailCoupon.where({ id: coupon.id }).update({ timesUsed: coupon.timesUsed + 1 });
             coupon = { ...coupon, timesUsed: coupon.timesUsed + 1 };
           }
-          if (next <= (product.lowStockLevel ?? Number.NEGATIVE_INFINITY)) {
-            await createShopNotification(input.organizationId, 'LOW_STOCK', `Low stock: ${product.name}`, `${next} remaining (min ${product.lowStockLevel}).`);
+          
+          if (next <= (stock.lowStockLevel ?? product.lowStockLevel ?? Number.NEGATIVE_INFINITY)) {
+            await createShopNotification(input.organizationId, 'LOW_STOCK', `Low stock: ${product.name}`, `${next} remaining (min ${stock.lowStockLevel ?? product.lowStockLevel}).`);
           }
         }
       }
@@ -1432,11 +1457,22 @@ export async function getShopDashboardData(organizationId: string, locationId?: 
     const refundedAll = allOrders.filter((o) => o.status === 'REFUNDED');
 
     const products = await db.orm.public.RetailProduct.where({ organizationId }).all();
-    const lowStockCount = products.filter((p) => p.lowStockLevel != null && p.stockQuantity <= (p.lowStockLevel as number)).length;
+    
+    // Fetch location stock if locationId is provided, else aggregate all
+    const stocks = locationId 
+      ? await db.orm.public.RetailLocationStock.where({ organizationId, locationId }).all()
+      : await db.orm.public.RetailLocationStock.where({ organizationId }).all();
+      
+    const stockMap = new Map<string, number>();
+    for (const s of stocks) {
+      stockMap.set(s.productId, (stockMap.get(s.productId) || 0) + s.stockQuantity);
+    }
+    
+    const lowStockCount = products.filter((p) => p.lowStockLevel != null && (stockMap.get(p.id) || 0) <= (p.lowStockLevel as number)).length;
     const lowStockProducts = products
-      .filter((p) => p.lowStockLevel != null && p.stockQuantity <= (p.lowStockLevel as number))
-      .sort((a, b) => a.stockQuantity - b.stockQuantity)
-      .map((p) => ({ id: p.id, name: p.name, stockQuantity: p.stockQuantity, lowStockLevel: p.lowStockLevel, unit: p.unit, sku: p.sku }));
+      .filter((p) => p.lowStockLevel != null && (stockMap.get(p.id) || 0) <= (p.lowStockLevel as number))
+      .sort((a, b) => (stockMap.get(a.id) || 0) - (stockMap.get(b.id) || 0))
+      .map((p) => ({ id: p.id, name: p.name, stockQuantity: stockMap.get(p.id) || 0, lowStockLevel: p.lowStockLevel, unit: p.unit, sku: p.sku }));
 
     // Top products by units sold & revenue — derived from this org's own
     // completed order line items (never a cross-tenant scan).
