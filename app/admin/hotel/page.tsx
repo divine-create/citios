@@ -1,9 +1,9 @@
-import HotelAdminView from '@/components/HotelAdminView';
-import { getHotelAdminData } from '@/lib/actions/hotel';
-import { requireOrgAccess } from '@/lib/rbac';
+import { redirect } from 'next/navigation';
 
-export default async function HotelAdminPage() {
-    await requireOrgAccess('HOTEL');
-    const data = await getHotelAdminData();
-    return <HotelAdminView initialData={data} />;
+/**
+ * Legacy HotelOS entrypoint.
+ * The canonical management dashboard lives at /hotel-os.
+ */
+export default function LegacyHotelAdminPage() {
+  redirect('/hotel-os');
 }
