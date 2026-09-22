@@ -10,7 +10,7 @@ export async function searchCityExplore(citySlug: string | undefined, query: str
   }
 
   // Find organizations in the city
-  const orgs = await db.orm.public.Organization.where({ cityId: city.id }).all();
+  const orgs = await db.orm.public.Organization.where({ }).all();
   
   const q = query.trim().toLowerCase();
   

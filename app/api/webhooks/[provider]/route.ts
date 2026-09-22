@@ -206,7 +206,7 @@ export async function POST(
          
          if (!refundResult.success) {
             console.error(`[${providerName} Webhook] Failed to auto-refund oversell for ${payment.id}. Manual intervention required!`);
-            await db.orm.public.Payment.where({ id: payment.id }).update({ status: 'MANUAL_REFUND_NEEDED' });
+            await db.orm.public.Payment.where({ id: payment.id }).update({ status: 'FAILED' });
          }
       }
       

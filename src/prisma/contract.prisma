@@ -290,6 +290,7 @@ model Location {
   cityId         String?
   city           City?        @relation("CityLocations", fields: [cityId], references: [id])
   listings       DiscoveryListing[]
+  bookings       Booking[]          @relation("LocationBookings")
 }
 
 model Wallet {
@@ -471,6 +472,8 @@ model Organization {
   menuItemVariants       MenuItemVariant[]         @relation("OrgMenuItemVariants")
   menuItemCombos         MenuItemCombo[]           @relation("OrgMenuItemCombos")
   listings    DiscoveryListing[]
+  subscriptions Subscription[] @relation("OrgSubscriptions")
+  bookings      Booking[]      @relation("OrgBookings")
 }
 
 enum OrgRole {
@@ -959,6 +962,7 @@ model OutletOrderItem {
   outletOrderId String
   outletItemId  String
   quantity      Int         @default(1)
+  unitPrice     Float
 
   outletOrder   OutletOrder @relation(fields: [outletOrderId], references: [id], onDelete: Cascade)
   outletItem    OutletItem  @relation(fields: [outletItemId], references: [id])
@@ -1936,6 +1940,7 @@ model RestaurantOrder {
 model OrderItem {
   id             String          @id @default(uuid())
   quantity       Int             @default(1)
+  unitPrice      Float
   notes          String?         // Special instructions
   
   orderId        String
@@ -2132,6 +2137,8 @@ model Booking {
   id             String         @id @default(uuid())
   resourceId     String
   personId         String
+  organizationId String
+  locationId     String?
   startDate      DateTime
   endDate        DateTime
   status         BookingStatus  @default(CONFIRMED)
@@ -2139,6 +2146,8 @@ model Booking {
   
   resource       RentalResource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
   person           Person           @relation("UserBookings", fields: [personId], references: [id], onDelete: Cascade)
+  organization   Organization     @relation("OrgBookings", fields: [organizationId], references: [id], onDelete: Cascade)
+  location       Location?        @relation("LocationBookings", fields: [locationId], references: [id], onDelete: Cascade)
   
   createdAt      DateTime       @default(now())
 }
@@ -2235,6 +2244,7 @@ model PharmacyOrder {
 model PharmacyOrderItem {
   id             String              @id @default(uuid())
   quantity       Int                 @default(1)
+  unitPrice      Float
   
   orderId        String
   itemId         String
@@ -2915,14 +2925,27 @@ model Review {
 // COMMERCE & PAYMENTS (V2 Additions)
 // ============================================================================
 
+
+enum PaymentStatus {
+  INITIATED
+  PENDING
+  AUTHORIZED
+  COMPLETED
+  FAILED
+  CANCELLED
+  REFUNDED
+  PARTIALLY_REFUNDED
+  MANUAL_REFUND_NEEDED
+}
+
 model Payment {
   id                String       @id @default(uuid())
   amount            Float
   currency          String       @default("USD")
   method            String       // "WALLET", "CARD", "TRANSFER"
-  status            String       @default("PENDING") // "PENDING", "COMPLETED", "FAILED"
-  
-  provider          String?      // e.g. "PAYSTACK"
+  status            PaymentStatus @default(PENDING)
+    
+    provider          String?      // e.g. "PAYSTACK"
   reference         String?      @unique // CityOS internal payment reference
   providerReference String?      @unique // Provider's canonical transaction ID
   idempotencyKey    String?      @unique // Client's duplicate-initiation protection key
@@ -2940,6 +2963,24 @@ model Payment {
   
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @default(now())
+}
+
+
+model Refund {
+  id                String       @id @default(uuid())
+  paymentId         String
+  amount            Float
+  currency          String       @default("USD")
+  reason            String?
+  status            String       @default("PENDING") // PENDING, COMPLETED, FAILED
+  providerReference String?      @unique
+  idempotencyKey    String?      @unique
+  
+  payment           Payment      @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  transactionId     String?      @unique
+  transaction       Transaction? @relation(fields: [transactionId], references: [id])
+  
+  createdAt         DateTime     @default(now())
 }
 
 model PaymentEvent {
@@ -3030,4 +3071,54 @@ model DiscoveryListing {
   
   @@unique([organizationId, vertical, locationId])
   @@index([cityId, vertical, isActive])
+}
+
+
+// ----------------------------------------------------------------------------
+// SUBSCRIPTIONS & PLANS (Phase 1B)
+// ----------------------------------------------------------------------------
+
+model Plan {
+  id             String       @id @default(uuid())
+  name           String
+  code           String       @unique
+  description    String?
+  price          Float
+  interval       String       // MONTHLY, YEARLY
+  
+  subscriptions  Subscription[]
+  entitlements   PlanEntitlement[]
+  limits         PlanLimit[]
+}
+
+model Subscription {
+  id             String       @id @default(uuid())
+  organizationId String
+  planId         String
+  status         String       // ACTIVE, CANCELLED, PAST_DUE
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean      @default(false)
+  
+  organization   Organization @relation("OrgSubscriptions", fields: [organizationId], references: [id], onDelete: Cascade)
+  plan           Plan         @relation(fields: [planId], references: [id])
+}
+
+model PlanEntitlement {
+  id             String       @id @default(uuid())
+  planId         String
+  featureCode    String
+  
+  plan           Plan         @relation(fields: [planId], references: [id], onDelete: Cascade)
+  @@unique([planId, featureCode])
+}
+
+model PlanLimit {
+  id             String       @id @default(uuid())
+  planId         String
+  resourceCode   String
+  limit          Int
+  
+  plan           Plan         @relation(fields: [planId], references: [id], onDelete: Cascade)
+  @@unique([planId, resourceCode])
 }

@@ -668,8 +668,7 @@ export async function addItemToOrder(input: { outletOrderId: string; outletItemI
     await db.orm.public.OutletOrderItem.create({
       outletOrderId: input.outletOrderId,
       outletItemId: input.outletItemId,
-      quantity: input.quantity,
-    });
+      quantity: input.quantity, unitPrice: 0 });
     await recalculateOrderTotal(input.outletOrderId);
     return { success: true };
   } catch (error) {

@@ -19,4 +19,4 @@ export default async function HomePage() {
   }
 
   return <CityHome firstName={firstName} />;
-}
+}

@@ -29,7 +29,7 @@ function mapRestaurant(o: any, menuItems: any[], citySlug: string | null = null)
     type: o.type,
     description: o.description,
     address: o.address,
-    cityId: o.cityId,
+    
     citySlug,
     menuItems,
     imageUrl: undefined,
@@ -45,7 +45,7 @@ export async function getCityFood(citySlug?: string) {
   const city = citySlug ? await getCityBySlug(citySlug) : await getCurrentCity();
   if (!city) return { restaurants: [], menuItems: [] };
 
-  const orgs = await db.orm.public.Organization.where({ cityId: city.id, type: 'RESTAURANT' }).all();
+  const orgs = await db.orm.public.Organization.where({  type: 'RESTAURANT' }).all();
   const orgIds = orgs.map((o) => o.id);
   if (orgIds.length === 0) return { restaurants: [], menuItems: [] };
 
@@ -68,8 +68,8 @@ export async function getCityFoodRestaurant(orgId: string) {
     db.orm.public.MenuItem.where({ organizationId: org.id }).all(),
   ]);
 
-  const orgCity = org.cityId
-    ? await db.orm.public.City.where({ id: org.cityId }).first()
+  const orgCity = ""
+    ? await db.orm.public.City.where({ id: "" }).first()
     : null;
 
   const availableMenus = menus.filter((m: any) => m.isAvailable);

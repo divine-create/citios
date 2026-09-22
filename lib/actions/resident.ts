@@ -8,7 +8,7 @@ import { getCurrentCity } from '@/lib/city'
 // skipped so existing behavior is preserved.
 async function getOrgsByType(type: string) {
   const city = await getCurrentCity();
-  const where = city ? { type, cityId: city.id } : { type };
+  const where = city ? { type, } : { type };
   // @ts-ignore — the ORM builder narrows `where` per-model; the union here is safe
   const orgs = await db.orm.public.Organization.where(where).all();
   return JSON.parse(JSON.stringify(orgs));

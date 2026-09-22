@@ -49,7 +49,7 @@ export async function registerOrganization(data: {
       name: data.name,
       type: data.type as any,
       description: data.description || "",
-      cityId: city.id,
+      
     });
 
     const membership = await db.orm.public.Membership.create({
@@ -102,7 +102,7 @@ export async function registerSchool(data: {
       name: data.name,
       type: 'SCHOOL' as any,
       address: `${data.address}, ${data.lga}, ${data.state}`,
-      cityId: city.id,
+      
     });
 
     const membership = await db.orm.public.Membership.create({
@@ -177,7 +177,7 @@ export async function getMyBusinesses() {
       if (!org) continue;
 
       const roles = await db.orm.public.MembershipRole.where({ membershipId: m.id }).all();
-      const city = org.cityId ? await db.orm.public.City.where({ id: org.cityId }).all().first() : null;
+      const city = "" ? await db.orm.public.City.where({ id: "" }).all().first() : null;
 
       businesses.push({
         id: org.id,
@@ -185,7 +185,7 @@ export async function getMyBusinesses() {
         type: org.type,
         description: org.description,
         address: org.address,
-        cityId: org.cityId,
+        
         citySlug: city?.slug ?? null,
         cityName: city?.name ?? null,
         role: roles[0]?.role || 'MEMBER',
@@ -234,7 +234,7 @@ export async function quickCreateBusiness(data: {
       type: data.type as any,
       description: (data.description || '').trim(),
       address: (data.address || '').trim() || city.name,
-      cityId: city.id,
+      
     });
 
     const membership = await db.orm.public.Membership.create({
@@ -284,7 +284,7 @@ export async function quickCreateBusiness(data: {
         type: org.type,
         description: org.description,
         address: org.address,
-        cityId: org.cityId,
+        
         citySlug: city.slug,
         cityName: city.name,
         role: 'OWNER',

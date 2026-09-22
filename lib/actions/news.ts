@@ -40,7 +40,7 @@ export async function getPublishedNews() {
     // operating in the current city are shown. No city -> no filter.
     const city = await getCurrentCity();
     if (city) {
-      const locs = await db.orm.public.Location.where({ cityId: city.id }).all();
+      const locs = await db.orm.public.Location.where({ }).all();
       const cityOrgIds = new Set(locs.map(l => l.organizationId));
       posts = posts.filter(p => cityOrgIds.has(p.organizationId ?? ''));
     }

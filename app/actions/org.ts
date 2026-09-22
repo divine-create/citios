@@ -11,8 +11,8 @@ export async function getCanonicalOrganization(id: string) {
   if (!org) return null;
   
   const locations = await db.orm.public.Location.where({ organizationId: org.id }).all();
-  const orgCity = org.cityId
-    ? await db.orm.public.City.where({ id: org.cityId }).first()
+  const orgCity = locations[0]?.cityId
+    ? await db.orm.public.City.where({ id: locations[0].cityId }).first()
     : null;
   const jobs = await db.orm.public.Job.where({ organizationId: org.id }).all();
   const events = await db.orm.public.Event.where({ organizationId: org.id }).all();
@@ -24,7 +24,7 @@ export async function getCanonicalOrganization(id: string) {
     name: org.name,
     type: org.type,
     description: org.description,
-    cityId: org.cityId,
+    
     citySlug: orgCity?.slug ?? null,
     address: org.address,
     logoAssetId: org.logoAssetId,
@@ -47,7 +47,7 @@ export async function getCityJobs() {
   // City scope: only jobs whose org operates in the current city.
   const city = await getCurrentCity();
   const cityOrgIds = city
-    ? new Set((await db.orm.public.Organization.where({ cityId: city.id }).all()).map(o => o.id))
+    ? new Set((await db.orm.public.Location.where({ }).all()).map(o => o.organizationId))
     : null;
   const jobs = await db.orm.public.Job.include('organization', o => o.select('name', 'id')).all();
   return cityOrgIds ? jobs.filter(j => cityOrgIds.has(j.organizationId)) : jobs;
@@ -56,7 +56,7 @@ export async function getCityJobs() {
 export async function getCityEvents() {
   const city = await getCurrentCity();
   const cityOrgIds = city
-    ? new Set((await db.orm.public.Organization.where({ cityId: city.id }).all()).map(o => o.id))
+    ? new Set((await db.orm.public.Location.where({ }).all()).map(o => o.organizationId))
     : null;
   const events = await db.orm.public.Event.include('organization', o => o.select('name', 'id')).all();
   return cityOrgIds ? events.filter(e => cityOrgIds.has(e.organizationId)) : events;
@@ -144,8 +144,8 @@ export async function getCityMapEntities(citySlug?: string) {
   const city = citySlug ? await getCityBySlug(citySlug) : await getCurrentCity();
   if (!city) return { entities: [], jobs: [] };
 
-  const orgs = await db.orm.public.Organization.where({ cityId: city.id }).all();
-  const orgIds = orgs.map(o => o.id);
+  const orgs = await db.orm.public.Location.where({ }).all();
+  const orgIds = orgs.map(o => o.organizationId);
   
   if (orgIds.length === 0) return { entities: [], jobs: [] };
 

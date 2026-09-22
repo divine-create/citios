@@ -1020,7 +1020,7 @@ export async function registerRestaurantOS(input: {
       type: 'RESTAURANT' as any,
       description: input.description ?? '',
       address: input.address ?? null,
-      cityId: city.id,
+      
     });
 
     const membership = await db.orm.public.Membership.create({

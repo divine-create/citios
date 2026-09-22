@@ -8,7 +8,7 @@ export default async function ServicesPage() {
   // Canonical source: SERVICE-type organizations scoped to the current city.
   const city = await getCurrentCity();
   const orgs = city
-    ? await db.orm.public.Organization.where({ cityId: city.id, type: 'SERVICES' }).all()
+    ? await db.orm.public.Organization.where({  type: 'SERVICES' }).all()
     : [];
 
   return (

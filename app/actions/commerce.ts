@@ -291,7 +291,7 @@ export async function getCityMartProducts(citySlug?: string, cat: string = 'All'
   const city = citySlug ? await getCityBySlug(citySlug) : await getCurrentCity();
   if (!city) return [];
 
-  const orgs = await db.orm.public.Organization.where({ cityId: city.id, type: 'RETAIL' }).all();
+  const orgs = await db.orm.public.Organization.where({  type: 'RETAIL' }).all();
   const orgIds = orgs.map(o => o.id);
 
   if (orgIds.length === 0) return [];
@@ -313,7 +313,7 @@ export async function getCityMartStores(citySlug?: string) {
   const city = citySlug ? await getCityBySlug(citySlug) : await getCurrentCity();
   if (!city) return [];
 
-  const orgs = await db.orm.public.Organization.where({ cityId: city.id, type: 'RETAIL' }).all();
+  const orgs = await db.orm.public.Organization.where({  type: 'RETAIL' }).all();
   return orgs;
 }
 
@@ -322,7 +322,7 @@ export async function getCityMartProduct(productId: string) {
   if (!p) return null;
   const org = await db.orm.public.Organization.where({ id: p.organizationId }).first();
   const orgCity = org?.cityId
-    ? await db.orm.public.City.where({ id: org.cityId }).first()
+    ? await db.orm.public.City.where({ id: "" }).first()
     : null;
   return {
     ...p,
