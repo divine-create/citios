@@ -519,6 +519,11 @@ export async function updateMicrositeSection(sectionId: string, input: { content
 
 export async function deleteMicrositeSection(sectionId: string) {
   try {
+    const sec = await db.orm.public.MicrositeSection.where({ id: sectionId }).all().first();
+    const page = sec ? await db.orm.public.MicrositePage.where({ id: sec.pageId }).all().first() : null;
+    const m = page ? await db.orm.public.Microsite.where({ id: page.micrositeId }).all().first() : null;
+    if (m) await requireMembership(m.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
+
     await requireSectionAccess(sectionId);
     await db.orm.public.MicrositeSection.where({ id: sectionId }).delete();
     const { revalidatePath } = await import('next/cache');
@@ -686,8 +691,11 @@ export async function updateMicrositePage(pageId: string, input: { title?: strin
 
 export async function deleteMicrositePage(pageId: string) {
   try {
-    await requirePageAccess(pageId);
     const page = await db.orm.public.MicrositePage.where({ id: pageId }).all().first();
+    const m = page ? await db.orm.public.Microsite.where({ id: page.micrositeId }).all().first() : null;
+    if (m) await requireMembership(m.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
+
+    await requirePageAccess(pageId);
     if (page?.isHome) return { error: "Cannot delete the home page." };
 
     // Auto-sync cleanup: remove any navigation items pointing to this page
@@ -730,3 +738,5 @@ export async function resetMicrosite(micrositeId: string) {
     return { error: "Failed to reset website." };
   }
 }
+
+

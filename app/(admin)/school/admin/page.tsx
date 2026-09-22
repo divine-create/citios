@@ -1,6 +1,6 @@
 import AdminDashboard from '@/components/school/AdminDashboard';
 import { Metadata } from 'next';
-import { requireOrgRole } from '@/lib/rbac';
+import { requireOrgRole, resolveTenantOrg } from '@/lib/rbac';
 import { getSchoolAdminData, getSchoolGrades, getClassSections, getSubjects, getTerms, getRooms } from '@/lib/actions/school';
 import { getInquiries } from '@/lib/actions/microsite';
 
@@ -15,11 +15,14 @@ export default async function SuperAdminPage({ searchParams }: { searchParams: P
   let session = null;
 
   if (!orgId) {
-    session = await requireOrgRole('SCHOOL', ['ADMIN']);
-    orgId = session?.user?.memberships?.find((m) => m.organizationType === 'SCHOOL')?.organizationId || null;
+    orgId = await resolveTenantOrg('SCHOOL');
+  }
+  
+  if (orgId) {
+    session = await requireOrgRole(orgId, ['ADMIN']);
   }
 
-  const data = await getSchoolAdminData(orgId || undefined);
+  const data = await getSchoolAdminData(orgId!);
   if (!orgId) orgId = data?.school?.id ?? null;
   const [grades, classSections, subjects, terms, rooms, inquiries] = orgId
     ? await Promise.all([getSchoolGrades(orgId), getClassSections(orgId), getSubjects(orgId), getTerms(orgId), getRooms(orgId), getInquiries(orgId)])
@@ -51,3 +54,4 @@ export default async function SuperAdminPage({ searchParams }: { searchParams: P
     />
   );
 }
+

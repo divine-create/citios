@@ -2,11 +2,12 @@
 import { RestaurantAdminView } from '@/components/RestaurantAdminView';
 import { getRestaurantAdminData } from '@/lib/actions/restaurant';
 import { redirect } from 'next/navigation';
-import { requireOrgAccess } from '@/lib/rbac';
+import { requireOrgAccess, resolveTenantOrg } from '@/lib/rbac';
 
 export default async function RestaurantAdminPage() {
-  await requireOrgAccess('RESTAURANT');
-  const initialData = await getRestaurantAdminData();
+  const resolvedOrgId = await resolveTenantOrg('RESTAURANT');
+  await requireOrgAccess(resolvedOrgId);
+  const initialData = await getRestaurantAdminData(resolvedOrgId);
   
   if (!initialData) {
     // If no restaurant exists yet, we could show an empty state, 

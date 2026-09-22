@@ -38,7 +38,7 @@ async function seedCity() {
       name: 'Eko Mart',
       type: 'RETAIL',
       description: 'Lagos grocery and household store',
-      cityId: lagos.id,
+      
     });
     console.log('Organization created: Eko Mart (Lagos)');
   }
@@ -90,7 +90,7 @@ async function seedCity() {
       name: 'Naija Kitchen',
       type: 'RESTAURANT',
       description: 'Swallow, soups and grills — Lagos island',
-      cityId: lagos.id,
+      
     });
     console.log('Organization created: Naija Kitchen (Lagos)');
   }
@@ -141,3 +141,4 @@ async function seedCity() {
 }
 
 seedCity().catch(console.error);
+

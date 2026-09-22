@@ -25,7 +25,7 @@ async function seed() {
       name: "FreshMart Grocery",
       type: "RETAIL",
       description: "Local grocery store",
-      cityId: city.id,
+      
     });
   }
 
@@ -127,3 +127,4 @@ async function seed() {
 }
 
 seed().catch(console.error);
+

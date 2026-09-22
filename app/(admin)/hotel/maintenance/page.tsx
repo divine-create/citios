@@ -1,4 +1,4 @@
-import { requireOrgAccess } from '@/lib/rbac';
+import { requireOrgAccess, resolveTenantOrg } from '@/lib/rbac';
 import { getHotelAdminData, getMaintenanceTickets } from '@/lib/actions/hotel';
 import MaintenanceView from '@/components/hotel/MaintenanceView';
 
@@ -8,8 +8,9 @@ export const metadata = {
 };
 
 export default async function MaintenancePage() {
-  await requireOrgAccess('HOTEL');
-  const hotelData = await getHotelAdminData();
+  const resolvedOrgId = await resolveTenantOrg('HOTEL');
+  await requireOrgAccess(resolvedOrgId);
+  const hotelData = await getHotelAdminData(resolvedOrgId);
   const organizationId = hotelData?.hotel?.id ?? null;
   const tickets = organizationId ? await getMaintenanceTickets(organizationId) : [];
 

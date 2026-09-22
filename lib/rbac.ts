@@ -3,52 +3,33 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import type { OrgRole, OrgType } from "@/types/next-auth";
 
-/**
- * Gates a server component behind membership in an org of the given type(s).
- * There's one org per OrgType in the current data, so "member of an org of
- * this type" is the real-world equivalent of "works for this vertical" —
- * finer-grained per-page role checks (e.g. only OWNER can see financials)
- * can layer on top of `session.user.memberships` once the product defines
- * which roles should see which screens.
- */
-export async function requireOrgAccess(orgType: OrgType | OrgType[]) {
+export async function resolveTenantOrg(orgType: OrgType | OrgType[]) {
   const session = await getServerSession(authOptions);
   const allowed = Array.isArray(orgType) ? orgType : [orgType];
-  const hasAccess = session?.user?.memberships?.some((m) => allowed.includes(m.organizationType)) ?? false;
-
-  if (!hasAccess) {
+  const membership = session?.user?.memberships?.find((m) => allowed.includes(m.organizationType));
+  if (!membership?.organizationId) {
     redirect("/");
   }
-
-  return session;
+  return membership.organizationId;
 }
 
-/**
- * Gates a server component behind a specific role within an org of the given
- * type — e.g. only OrgRole.FINANCE (or OWNER, who can see every screen) may
- * reach the Bursar portal. Falls back to `requireOrgAccess` semantics (any
- * membership passes) if `allowedRoles` is omitted.
- */
-export async function requireOrgRole(orgType: OrgType, allowedRoles: OrgRole[]) {
+export async function requireOrgAccess(organizationId: string) {
   const session = await getServerSession(authOptions);
-  const membership = session?.user?.memberships?.find((m) => m.organizationType === orgType);
-
-  const hasAccess = !!membership && (membership.role === 'OWNER' || allowedRoles.includes(membership.role));
-
-  if (!hasAccess) {
-    redirect("/");
-  }
-
+  const hasAccess = session?.user?.memberships?.some((m) => m.organizationId === organizationId) ?? false;
+  if (!hasAccess) redirect("/");
   return session;
 }
 
-/** Gates a server component behind having a GigWorkerProfile (CityDrive courier). */
+export async function requireOrgRole(organizationId: string, allowedRoles: OrgRole[]) {
+  const session = await getServerSession(authOptions);
+  const membership = session?.user?.memberships?.find((m) => m.organizationId === organizationId);
+  const hasAccess = !!membership && (membership.role === 'OWNER' || allowedRoles.includes(membership.role));
+  if (!hasAccess) redirect("/");
+  return session;
+}
+
 export async function requireCourierAccess() {
   const session = await getServerSession(authOptions);
-
-  if (!session?.user?.isCourier) {
-    redirect("/");
-  }
-
+  if (!session?.user?.isCourier) redirect("/");
   return session;
 }

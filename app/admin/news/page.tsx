@@ -2,11 +2,12 @@
 import { NewsAdminView } from '@/components/NewsAdminView';
 import { getNewsAdminData } from '@/lib/actions/news';
 import { redirect } from 'next/navigation';
-import { requireOrgAccess } from '@/lib/rbac';
+import { requireOrgAccess, resolveTenantOrg } from '@/lib/rbac';
 
 export default async function NewsAdminPage() {
-  await requireOrgAccess('PUBLISHER');
-  const initialData = await getNewsAdminData();
+  const resolvedOrgId = await resolveTenantOrg('PUBLISHER');
+  await requireOrgAccess(resolvedOrgId);
+  const initialData = await getNewsAdminData(resolvedOrgId);
   
   if (!initialData) {
     redirect('/');

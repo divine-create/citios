@@ -2,11 +2,12 @@
 import { HealthcareAdminView } from '@/components/HealthcareAdminView';
 import { getHealthcareAdminData } from '@/lib/actions/healthcare';
 import { redirect } from 'next/navigation';
-import { requireOrgAccess } from '@/lib/rbac';
+import { requireOrgAccess, resolveTenantOrg } from '@/lib/rbac';
 
 export default async function HealthcareAdminPage() {
-  await requireOrgAccess(['HEALTHCARE', 'PHARMACY']);
-  const initialData = await getHealthcareAdminData();
+  const resolvedOrgId = await resolveTenantOrg(['HEALTHCARE', 'PHARMACY']);
+  await requireOrgAccess(resolvedOrgId);
+  const initialData = await getHealthcareAdminData(resolvedOrgId);
   
   if (!initialData) {
     redirect('/');

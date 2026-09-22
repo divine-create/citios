@@ -33,7 +33,7 @@ export async function requireAuthenticatedAccount() {
   return { session, person, account };
 }
 
-export async function requireMembership(organizationId: string, allowedRoles?: string[]) {
+export async function requireMembership(organizationId: string, allowedRoles?: string[], locationId?: string | null) {
   const { session, person, account } = await requireAuthenticatedAccount();
 
   const membership = await db.orm.public.Membership.where({ 
@@ -51,6 +51,16 @@ export async function requireMembership(organizationId: string, allowedRoles?: s
     const hasRole = roles.some(r => allowedRoles.includes(r.role));
     if (!hasRole) {
       throw new Error(`FORBIDDEN: Membership does not possess any of the required roles: ${allowedRoles.join(', ')}`);
+    }
+  }
+
+  if (locationId) {
+    const isGlobalAdmin = roles.some(r => ['OWNER', 'ADMIN', 'MANAGER'].includes(r.role));
+    if (!isGlobalAdmin) {
+      const memLoc = await db.orm.public.MembershipLocation.where({ membershipId: membership.id, locationId }).all().first();
+      if (!memLoc) {
+        throw new Error(`FORBIDDEN: Membership does not have access to location ${locationId}`);
+      }
     }
   }
 

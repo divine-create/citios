@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { getCurrentCity, getActiveCities } from '@/lib/city';
 import ResidentShell from '@/components/shell/ResidentShell';
 
@@ -22,3 +23,4 @@ export default async function ResidentLayout({ children }: { children: React.Rea
     </ResidentShell>
   );
 }
+

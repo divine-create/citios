@@ -2,10 +2,11 @@
 import { ServicesAdminView } from '@/components/ServicesAdminView';
 import { getServicesAdminData } from '@/lib/actions/services';
 import { redirect } from 'next/navigation';
-import { requireOrgAccess } from '@/lib/rbac';
+import { requireOrgAccess, resolveTenantOrg } from '@/lib/rbac';
 
 export default async function ServicesAdminPage() {
-  await requireOrgAccess('LOGISTICS');
+  const resolvedOrgId = await resolveTenantOrg('LOGISTICS');
+  await requireOrgAccess(resolvedOrgId);
   const initialData = await getServicesAdminData();
   
   if (!initialData) {
@@ -18,3 +19,4 @@ export default async function ServicesAdminPage() {
     </div>
   );
 }
+

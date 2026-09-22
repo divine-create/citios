@@ -8,7 +8,7 @@ async function verify() {
     console.log(`CITY: ${c.name} slug=${c.slug} currency=${c.currency} tz=${c.timezone} active=${c.isActive}`);
     console.log(`  COORDS: ${c.latitude ?? 'null'}, ${c.longitude ?? 'null'}`);
     console.log(`  RESIDENTS (homeCityId): ${persons.filter((p) => p.homeCityId === c.id).length}`);
-    const orgs = await db.orm.public.Organization.where({ cityId: c.id }).all();
+    const orgs = await db.orm.public.Organization.where({}).all();
     for (const o of orgs) {
       console.log(`  ORG: ${o.name} type=${o.type}`);
     }
@@ -20,7 +20,7 @@ async function verify() {
   const lagos = cities.find((c) => c.slug === 'lagos');
   if (lagos) {
     const lagosOrgIds = new Set(
-      (await db.orm.public.Organization.where({ cityId: lagos.id }).all()).map((o) => o.id),
+      (await db.orm.public.Organization.where({}).all()).map((o) => o.id),
     );
     const allProducts = await db.orm.public.RetailProduct.all();
     const lagosProducts = allProducts.filter((p) => lagosOrgIds.has(p.organizationId));
@@ -35,3 +35,4 @@ async function verify() {
 }
 
 verify().catch((e) => { console.error(e); process.exit(1); });
+

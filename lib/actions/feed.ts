@@ -10,14 +10,24 @@ export async function getCommunityFeed() {
     // in the current city. Personal (resident-authored) posts have no city
     // semantics yet, so they stay. No city resolved -> no filter (old behavior).
     const city = await getCurrentCity();
-    const orgs = await db.orm.public.Organization.all();
-    const cityOrgIds = city ? new Set(orgs.filter(o => o.cityId === city.id).map(o => o.id)) : null;
-    const posts = (await db.orm.public.Post.all()).filter(p =>
-      !cityOrgIds || !p.organizationId || cityOrgIds.has(p.organizationId)
-    );
-    const comments = await db.orm.public.Comment.all();
-    const likes = await db.orm.public.PostLike.all();
-    const users = await db.orm.public.Person.all();
+    let posts = await db.orm.public.Post.all();
+    let orgs = [];
+    if (city) {
+      const locs = await db.orm.public.Location.where({ cityId: city.id }).all();
+      const cityOrgIds = new Set(locs.map(l => l.organizationId));
+      posts = posts.filter(p => !p.organizationId || cityOrgIds.has(p.organizationId));
+      const orgIdsArr = Array.from(cityOrgIds);
+      orgs = orgIdsArr.length > 0 ? await db.orm.public.Organization.where(o => o.id.in(orgIdsArr)).all() : [];
+    } else {
+      orgs = await db.orm.public.Organization.all();
+    }
+    
+    const postIds = posts.map(p => p.id);
+    const comments = postIds.length > 0 ? await db.orm.public.Comment.where(c => c.postId.in(postIds)).all() : [];
+    const likes = postIds.length > 0 ? await db.orm.public.PostLike.where(l => l.postId.in(postIds)).all() : [];
+    
+    const userIdsArr = Array.from(new Set([...posts.map(p=>p.personId), ...comments.map(c=>c.personId)].filter(Boolean) as string[]));
+    const users = userIdsArr.length > 0 ? await db.orm.public.Person.where(p => p.id.in(userIdsArr)).all() : [];
 
     let session;
     try {
@@ -56,4 +66,5 @@ export async function getCommunityFeed() {
     return [];
   }
 }
+
 

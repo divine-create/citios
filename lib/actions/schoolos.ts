@@ -2,6 +2,7 @@
 
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import { requireMembership } from '@/lib/actions/tenant';
 import { db } from "@/src/prisma/db";
 
 export async function completeSchoolSetup(data: {

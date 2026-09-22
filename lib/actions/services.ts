@@ -7,7 +7,7 @@ export async function getServicesAdminData() {
     const tasks = await db.orm.public.Task.all();
     const gigWorkers = await db.orm.public.GigWorkerProfile.all();
     const quotes = await db.orm.public.ServiceQuote.all();
-    const persons = await db.orm.public.Person.all();
+    const persons = await db.orm.public.Person.where(p => p.id.in(tasks.map(t => t.requesterPersonId).filter(Boolean) as string[])).all();
 
     const tasksWithDetails = tasks.map(task => ({
         ...task,
@@ -33,3 +33,4 @@ export async function getServicesAdminData() {
     return null;
   }
 }
+

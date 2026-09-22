@@ -1,10 +1,11 @@
 import { CounselorDashboard } from "@/components/school/CounselorDashboard";
-import { requireOrgRole } from '@/lib/rbac';
+import { requireOrgRole, resolveTenantOrg } from '@/lib/rbac';
 import { getSchoolAdminData, getCounselorPortalData, getMyMembership } from '@/lib/actions/school';
 
 export default async function CounselorPage() {
-  const session = await requireOrgRole('SCHOOL', ['COUNSELOR']);
-  const schoolData = await getSchoolAdminData();
+  const orgId = await resolveTenantOrg('SCHOOL');
+  const session = orgId ? await requireOrgRole(orgId, ['COUNSELOR']) : null;
+  const schoolData = await getSchoolAdminData(orgId!);
   const organizationId = schoolData?.school?.id ?? null;
   const counselorData = organizationId ? await getCounselorPortalData(organizationId) : null;
 
@@ -26,3 +27,4 @@ export default async function CounselorPage() {
     </main>
   );
 }
+

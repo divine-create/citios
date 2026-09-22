@@ -1,6 +1,6 @@
 import FinanceDashboard from "@/components/school/FinanceDashboard";
 import { Metadata } from "next";
-import { requireOrgRole } from '@/lib/rbac';
+import { requireOrgRole, resolveTenantOrg } from '@/lib/rbac';
 import { getSchoolAdminData, getFinancePortalData } from '@/lib/actions/school';
 
 export const metadata: Metadata = {
@@ -9,8 +9,9 @@ export const metadata: Metadata = {
 };
 
 export default async function SchoolFinancePage() {
-  await requireOrgRole('SCHOOL', ['FINANCE']);
-  const schoolData = await getSchoolAdminData();
+  const orgId = await resolveTenantOrg('SCHOOL');
+  if (orgId) await requireOrgRole(orgId, ['FINANCE']);
+  const schoolData = await getSchoolAdminData(orgId!);
   const organizationId = schoolData?.school?.id ?? null;
   const financeData = organizationId ? await getFinancePortalData(organizationId) : null;
 
@@ -29,3 +30,4 @@ export default async function SchoolFinancePage() {
     </div>
   );
 }
+

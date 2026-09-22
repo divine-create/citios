@@ -72,6 +72,10 @@
       "model": "DeliveryJob",
       "namespace": "public"
     },
+    "discoveryListing": {
+      "model": "DiscoveryListing",
+      "namespace": "public"
+    },
     "document": {
       "model": "Document",
       "namespace": "public"
@@ -2418,7 +2422,7 @@
               }
             },
             "relations": {
-              "organizations": {
+              "listings": {
                 "cardinality": "1:N",
                 "on": {
                   "localFields": [
@@ -2429,7 +2433,22 @@
                   ]
                 },
                 "to": {
-                  "model": "Organization",
+                  "model": "DiscoveryListing",
+                  "namespace": "public"
+                }
+              },
+              "locations": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "cityId"
+                  ]
+                },
+                "to": {
+                  "model": "Location",
                   "namespace": "public"
                 }
               },
@@ -3254,6 +3273,193 @@
               },
               "namespaceId": "public",
               "table": "deliveryJob"
+            }
+          },
+          "DiscoveryListing": {
+            "fields": {
+              "cityId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "coverAssetId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "description": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "isActive": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
+              "locationId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "metadata": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "organizationId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "slug": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "title": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "vertical": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "city": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "cityId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "City",
+                  "namespace": "public"
+                }
+              },
+              "location": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "locationId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Location",
+                  "namespace": "public"
+                }
+              },
+              "organization": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "organizationId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Organization",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "cityId": {
+                  "column": "cityId"
+                },
+                "coverAssetId": {
+                  "column": "coverAssetId"
+                },
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "description": {
+                  "column": "description"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "isActive": {
+                  "column": "isActive"
+                },
+                "locationId": {
+                  "column": "locationId"
+                },
+                "metadata": {
+                  "column": "metadata"
+                },
+                "organizationId": {
+                  "column": "organizationId"
+                },
+                "slug": {
+                  "column": "slug"
+                },
+                "title": {
+                  "column": "title"
+                },
+                "updatedAt": {
+                  "column": "updatedAt"
+                },
+                "vertical": {
+                  "column": "vertical"
+                }
+              },
+              "namespaceId": "public",
+              "table": "discoveryListing"
             }
           },
           "Document": {
@@ -6518,6 +6724,13 @@
                   "kind": "scalar"
                 }
               },
+              "cityId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "id": {
                 "nullable": false,
                 "type": {
@@ -6555,6 +6768,36 @@
               }
             },
             "relations": {
+              "city": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "cityId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "City",
+                  "namespace": "public"
+                }
+              },
+              "listings": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "locationId"
+                  ]
+                },
+                "to": {
+                  "model": "DiscoveryListing",
+                  "namespace": "public"
+                }
+              },
               "memberAccess": {
                 "cardinality": "1:N",
                 "on": {
@@ -6590,6 +6833,9 @@
               "fields": {
                 "address": {
                   "column": "address"
+                },
+                "cityId": {
+                  "column": "cityId"
                 },
                 "id": {
                   "column": "id"
@@ -9574,13 +9820,6 @@
                   "kind": "scalar"
                 }
               },
-              "cityId": {
-                "nullable": true,
-                "type": {
-                  "codecId": "pg/text@1",
-                  "kind": "scalar"
-                }
-              },
               "createdAt": {
                 "nullable": false,
                 "type": {
@@ -9675,21 +9914,6 @@
                   "namespace": "public"
                 }
               },
-              "city": {
-                "cardinality": "N:1",
-                "on": {
-                  "localFields": [
-                    "cityId"
-                  ],
-                  "targetFields": [
-                    "id"
-                  ]
-                },
-                "to": {
-                  "model": "City",
-                  "namespace": "public"
-                }
-              },
               "events": {
                 "cardinality": "1:N",
                 "on": {
@@ -9747,6 +9971,21 @@
                 },
                 "to": {
                   "model": "InventoryItem",
+                  "namespace": "public"
+                }
+              },
+              "listings": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "organizationId"
+                  ]
+                },
+                "to": {
+                  "model": "DiscoveryListing",
                   "namespace": "public"
                 }
               },
@@ -10445,9 +10684,6 @@
               "fields": {
                 "address": {
                   "column": "address"
-                },
-                "cityId": {
-                  "column": "cityId"
                 },
                 "createdAt": {
                   "column": "createdAt"
@@ -24871,6 +25107,195 @@
                 }
               ]
             },
+            "discoveryListing": {
+              "columns": {
+                "cityId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "coverAssetId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "createdAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "description": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "isActive": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": true
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
+                "locationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "metadata": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "organizationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "slug": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "title": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "updatedAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "vertical": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "organizationId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "discoveryListing"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "organization"
+                  }
+                },
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "locationId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "discoveryListing"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "location"
+                  }
+                },
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "cityId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "discoveryListing"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "city"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "cityId"
+                  ],
+                  "name": "discoveryListing_cityId_idx_1ab1b247",
+                  "prefix": "discoveryListing_cityId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "cityId",
+                    "vertical",
+                    "isActive"
+                  ],
+                  "name": "discoveryListing_cityId_vertical_isActive_idx_155aef4e",
+                  "prefix": "discoveryListing_cityId_vertical_isActive_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "locationId"
+                  ],
+                  "name": "discoveryListing_locationId_idx_7aae3038",
+                  "prefix": "discoveryListing_locationId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "organizationId"
+                  ],
+                  "name": "discoveryListing_organizationId_idx_2e17ef41",
+                  "prefix": "discoveryListing_organizationId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "slug"
+                  ]
+                },
+                {
+                  "columns": [
+                    "organizationId",
+                    "vertical",
+                    "locationId"
+                  ]
+                }
+              ]
+            },
             "document": {
               "columns": {
                 "filePath": {
@@ -27667,6 +28092,11 @@
                   "nativeType": "text",
                   "nullable": true
                 },
+                "cityId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "id": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -27710,9 +28140,33 @@
                     "namespaceId": "public",
                     "tableName": "organization"
                   }
+                },
+                {
+                  "source": {
+                    "columns": [
+                      "cityId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "location"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "city"
+                  }
                 }
               ],
               "indexes": [
+                {
+                  "columns": [
+                    "cityId"
+                  ],
+                  "name": "location_cityId_idx_1ab1b247",
+                  "prefix": "location_cityId_idx",
+                  "unique": false
+                },
                 {
                   "columns": [
                     "organizationId"
@@ -30053,11 +30507,6 @@
                   "nativeType": "text",
                   "nullable": true
                 },
-                "cityId": {
-                  "codecId": "pg/text@1",
-                  "nativeType": "text",
-                  "nullable": true
-                },
                 "createdAt": {
                   "codecId": "pg/timestamptz-temporal@1",
                   "default": {
@@ -30113,34 +30562,8 @@
                   "nullable": false
                 }
               },
-              "foreignKeys": [
-                {
-                  "source": {
-                    "columns": [
-                      "cityId"
-                    ],
-                    "namespaceId": "public",
-                    "tableName": "organization"
-                  },
-                  "target": {
-                    "columns": [
-                      "id"
-                    ],
-                    "namespaceId": "public",
-                    "tableName": "city"
-                  }
-                }
-              ],
-              "indexes": [
-                {
-                  "columns": [
-                    "cityId"
-                  ],
-                  "name": "organization_cityId_idx_1ab1b247",
-                  "prefix": "organization_cityId_idx",
-                  "unique": false
-                }
-              ],
+              "foreignKeys": [],
+              "indexes": [],
               "primaryKey": {
                 "columns": [
                   "id"
@@ -40430,10 +40853,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "403ce8e7ac77babd108ab47c1276f6063de0a7beedf8278b9e9f08daff938dd5"
+    "storageHash": "6904607f22f291e838ea483e24ff955b1413e31b2e0383c019e01254b8f6bb81"
   },
   "execution": {
-    "executionHash": "8e53305d0fd3d36bbad2780b67a50b6414ac8d4a43e923283100bf36d29969ae",
+    "executionHash": "ce799e9010734e8973b7d403dfe9fe9a516c7a492787ca664186f0436cac4751",
     "mutations": {
       "defaults": [
         {
@@ -40621,6 +41044,17 @@
             "column": "id",
             "namespace": "public",
             "table": "deliveryJob"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "discoveryListing"
           }
         },
         {

@@ -4,16 +4,15 @@
 import { db } from '@/src/prisma/db'
 import { requireMembership } from '@/lib/actions/tenant'
 
-export async function getHealthcareAdminData() {
+export async function getHealthcareAdminData(organizationId: string) {
   try {
-    const clinic = await db.orm.public.Organization.where({ type: 'HEALTHCARE' }).all().first();
-    const pharmacy = await db.orm.public.Organization.where({ type: 'PHARMACY' }).all().first();
-
-    if (!clinic || !pharmacy) return null;
+    await requireMembership(organizationId);
+    const clinic = await db.orm.public.Organization.where({ id: organizationId }).all().first();
+    if (!clinic) return null;
 
     const appointments = await db.orm.public.Appointment.where({ organizationId: clinic.id }).all();
     const prescriptions = await db.orm.public.Prescription.where({ organizationId: clinic.id }).all();
-    const pharmacyItems = await db.orm.public.PharmacyItem.where({ organizationId: pharmacy.id }).all();
+    const pharmacyItems = await db.orm.public.PharmacyItem.where({ organizationId: clinic.id }).all();
 
     // Hydrate patient names: PatientData -> Relationship -> Person
     async function resolvePatientName(patientDataId: string): Promise<string> {
@@ -40,8 +39,7 @@ export async function getHealthcareAdminData() {
     );
 
     return JSON.parse(JSON.stringify({
-      clinic,
-      pharmacy,
+      clinic, pharmacy: clinic,
       appointments: appointmentsWithPatients,
       prescriptions: prescriptionsWithPatients,
       pharmacyItems,
@@ -192,3 +190,5 @@ export async function updatePrescriptionStatus(
     return { error: 'Failed to update prescription.' };
   }
 }
+
+

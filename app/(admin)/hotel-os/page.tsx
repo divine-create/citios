@@ -16,8 +16,9 @@ export default async function HotelOSPage({
   // Simple role testing override via URL parameter. Defaults to MANAGER.
   const userRole = (resolvedParams.role?.toUpperCase() as any) || "MANAGER";
   
-  const adminData = await getHotelAdminData();
-  const orgId = resolvedParams.org || adminData?.hotel?.id || null;
+  const orgId = resolvedParams.org || 'FAKE_ORG_ID';
+  const adminData = await getHotelAdminData(orgId);
+  
 
   return (
     <HotelDashboard 

@@ -1,10 +1,11 @@
 import RegistrarDashboard from "@/components/school/RegistrarDashboard";
-import { requireOrgRole } from '@/lib/rbac';
+import { requireOrgRole, resolveTenantOrg } from '@/lib/rbac';
 import { getSchoolAdminData, getRegistrarPortalData } from '@/lib/actions/school';
 
 export default async function RegistrarPortalPage() {
-  const session = await requireOrgRole('SCHOOL', ['REGISTRAR']);
-  const schoolData = await getSchoolAdminData();
+  const orgId = await resolveTenantOrg('SCHOOL');
+  const session = orgId ? await requireOrgRole(orgId, ['REGISTRAR']) : null;
+  const schoolData = await getSchoolAdminData(orgId!);
   const organizationId = schoolData?.school?.id ?? null;
   const registrarData = organizationId ? await getRegistrarPortalData(organizationId) : null;
 
@@ -21,3 +22,4 @@ export default async function RegistrarPortalPage() {
     />
   );
 }
+

@@ -1,10 +1,11 @@
 import TeacherDashboard from '@/components/school/TeacherDashboard';
-import { requireOrgRole } from '@/lib/rbac';
+import { requireOrgRole, resolveTenantOrg } from '@/lib/rbac';
 import { getMyMembership, getSchoolAdminData, getTeacherPortalData } from '@/lib/actions/school';
 
 export default async function TeacherPortalPage() {
-  const session = await requireOrgRole('SCHOOL', ['TEACHER']);
-  const schoolData = await getSchoolAdminData();
+  const orgId = await resolveTenantOrg('SCHOOL');
+  const session = orgId ? await requireOrgRole(orgId, ['TEACHER']) : null;
+  const schoolData = await getSchoolAdminData(orgId!);
   const organizationId = schoolData?.school?.id ?? null;
 
   const userId = session?.user?.personId;
@@ -29,3 +30,4 @@ export default async function TeacherPortalPage() {
     />
   );
 }
+

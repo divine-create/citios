@@ -14,10 +14,7 @@ const hasGoogleAuth = !!(
 );
 
 export const authOptions: NextAuthOptions = {
-  secret:
-    process.env.NEXTAUTH_SECRET ||
-    process.env.AUTH_SECRET ||
-    "cc-production-auth-jwt-secret-2026-cityconnect",
+  secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
   providers: [
     ...(hasGoogleAuth
       ? [

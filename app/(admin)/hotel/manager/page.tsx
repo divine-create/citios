@@ -1,6 +1,6 @@
 import { ManagerDashboard } from "@/components/hotel/ManagerDashboard";
 import { Metadata } from "next";
-import { requireOrgAccess } from '@/lib/rbac';
+import { requireOrgAccess, resolveTenantOrg } from '@/lib/rbac';
 import { getHotelAdminData, getNightAuditReports, getOutletsData, getRoomBlocks } from '@/lib/actions/hotel';
 
 export const metadata: Metadata = {
@@ -9,9 +9,10 @@ export const metadata: Metadata = {
 };
 
 export default async function ManagerPage() {
-  await requireOrgAccess('HOTEL');
-  const data = await getHotelAdminData();
-  const organizationId = data?.hotel?.id ?? null;
+  const resolvedOrgId = await resolveTenantOrg('HOTEL');
+  await requireOrgAccess(resolvedOrgId);
+  const organizationId = resolvedOrgId;
+  const data = await getHotelAdminData(organizationId);
   const [roomBlocks, nightAuditReports, outletsData] = organizationId
     ? await Promise.all([getRoomBlocks(organizationId), getNightAuditReports(organizationId), getOutletsData(organizationId)])
     : [[], [], null];

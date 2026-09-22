@@ -70,7 +70,7 @@ async function fetchHydratedStaff(organizationId: string) {
 // Reads
 // ---------------------------------------------------------------------
 
-export async function getSchoolAdminData(organizationId?: string) {
+export async function getSchoolAdminData(organizationId: string) {
   try {
     let school;
     if (organizationId) {

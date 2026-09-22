@@ -2,11 +2,13 @@
 'use server'
 
 import { db } from '@/src/prisma/db'
+import { requireMembership } from '@/lib/actions/tenant'
 import { getCurrentCity } from '@/lib/city'
 
-export async function getNewsAdminData() {
+export async function getNewsAdminData(organizationId: string) {
   try {
-    const org = await db.orm.public.Organization.where({ type: 'PUBLISHER' }).all().first();
+    await requireMembership(organizationId);
+    const org = await db.orm.public.Organization.where({ id: organizationId }).all().first();
 
     if (!org) return null;
 
@@ -38,7 +40,8 @@ export async function getPublishedNews() {
     // operating in the current city are shown. No city -> no filter.
     const city = await getCurrentCity();
     if (city) {
-      const cityOrgIds = new Set(orgs.filter(o => o.cityId === city.id).map(o => o.id));
+      const locs = await db.orm.public.Location.where({ cityId: city.id }).all();
+      const cityOrgIds = new Set(locs.map(l => l.organizationId));
       posts = posts.filter(p => cityOrgIds.has(p.organizationId ?? ''));
     }
 

@@ -163,7 +163,7 @@ export function ManagerDashboard({
   const [outletItems, setOutletItems] = useState<OutletItem[]>(initialOutletItems);
 
   const refreshData = async () => {
-    const data = await getHotelAdminData();
+    const data = await getHotelAdminData(organizationId!);
     if (data) {
       setHotel(data.hotel);
       setRooms(data.rooms);

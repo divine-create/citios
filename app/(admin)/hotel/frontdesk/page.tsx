@@ -1,6 +1,6 @@
 import React from 'react';
 import FrontDeskCalendar from '@/components/hotel/FrontDeskCalendar';
-import { requireOrgAccess } from '@/lib/rbac';
+import { requireOrgAccess, resolveTenantOrg } from '@/lib/rbac';
 import { getHotelAdminData } from '@/lib/actions/hotel';
 
 export const metadata = {
@@ -9,8 +9,9 @@ export const metadata = {
 };
 
 export default async function FrontDeskPage() {
-  await requireOrgAccess('HOTEL');
-  const data = await getHotelAdminData();
+  const resolvedOrgId = await resolveTenantOrg('HOTEL');
+  await requireOrgAccess(resolvedOrgId);
+  const data = await getHotelAdminData(resolvedOrgId);
 
   return (
     <main className="h-screen w-full overflow-hidden">

@@ -59,6 +59,7 @@ async function resolveLocationContext(organizationId: string, locationId?: strin
     if (!locationId) throw new Error('An active location is required for this operation.');
     const loc = locations.find(l => l.id === locationId);
     if (!loc) throw new Error('Location does not belong to this organization.');
+    await requireMembership(organizationId, undefined, locationId);
     return loc;
   }
   return null;

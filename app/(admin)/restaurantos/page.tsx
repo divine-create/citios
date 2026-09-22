@@ -1,5 +1,5 @@
 import RestaurantOSWorkspace from '@/components/cityos/workspaces/RestaurantOSWorkspace';
-import { requireOrgAccess } from '@/lib/rbac';
+import { requireOrgAccess, resolveTenantOrg } from '@/lib/rbac';
 
 export default async function RestaurantOSPage({ searchParams }: { searchParams: Promise<{ org?: string }> }) {
   const resolvedParams = await searchParams;
@@ -7,9 +7,10 @@ export default async function RestaurantOSPage({ searchParams }: { searchParams:
   let session = null;
 
   if (!orgId) {
-    session = await requireOrgAccess('RESTAURANT');
-    orgId = session?.user?.memberships?.find((m) => m.organizationType === 'RESTAURANT')?.organizationId || null;
+    orgId = await resolveTenantOrg('RESTAURANT');
+    session = await requireOrgAccess(orgId);
   }
 
   return <RestaurantOSWorkspace slug={orgId || ''} />;
 }
+

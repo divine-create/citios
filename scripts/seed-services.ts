@@ -22,7 +22,7 @@ async function seedServices() {
         name: `${t.pro.split(' ')[0]}'s Services`,
         type: "SERVICES",
         description: "Local service provider",
-        cityId: city.id,
+        
       });
     }
 
@@ -82,3 +82,4 @@ async function seedServices() {
 }
 
 seedServices().catch(console.error);
+

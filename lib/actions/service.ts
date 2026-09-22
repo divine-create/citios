@@ -59,6 +59,7 @@ async function createPersonIdentifiers(personId: string, email?: string, phone?:
 
 export async function getOrgCustomers(organizationId: string) {
   try {
+    await requireMembership(organizationId);
     const rels = await db.orm.public.Relationship.where({ organizationId, type: 'CUSTOMER' }).all();
     const customers = [];
     for (const rel of rels) {
@@ -132,6 +133,7 @@ export async function createOrgCustomer(input: {
 
 export async function getServiceSettings(organizationId: string) {
   try {
+    await requireMembership(organizationId);
     let settings = await db.orm.public.ServiceSettings.where({ organizationId }).all().first();
     if (!settings) {
       settings = await db.orm.public.ServiceSettings.create({ organizationId });
@@ -167,6 +169,7 @@ export async function updateServiceSettings(organizationId: string, updates: Par
 
 export async function getServiceCatalogItems(organizationId: string) {
   try {
+    await requireMembership(organizationId);
     return await db.orm.public.ServiceCatalogItem.where({ organizationId }).all();
   } catch (error) {
     console.error('Error fetching catalog items:', error);
@@ -219,6 +222,7 @@ export async function createServiceCatalogItem(input: {
 
 export async function getServiceStaff(organizationId: string) {
   try {
+    await requireMembership(organizationId);
     const memberships = await db.orm.public.Membership.where({ organizationId }).all();
     const staff = [];
     for (const m of memberships) {
@@ -290,6 +294,7 @@ export async function createServiceStaff(input: {
 
 export async function getServiceAppointments(organizationId: string) {
   try {
+    await requireMembership(organizationId);
     return await db.orm.public.ServiceAppointment.where({ organizationId }).all();
   } catch (error) {
     console.error('Error fetching appointments:', error);
@@ -358,6 +363,7 @@ export async function updateServiceAppointmentStatus(id: string, status: string)
 
 export async function getServiceJobs(organizationId: string) {
   try {
+    await requireMembership(organizationId);
     return await db.orm.public.ServiceJob.where({ organizationId }).all();
   } catch (error) {
     console.error('Error fetching jobs:', error);
@@ -390,6 +396,7 @@ export async function createServiceJob(input: {
 
 export async function getServiceQuotes(organizationId: string) {
   try {
+    await requireMembership(organizationId);
     return await db.orm.public.ServiceJobQuote.where({ organizationId }).all();
   } catch (error) {
     console.error('Error fetching quotes:', error);
@@ -399,9 +406,11 @@ export async function getServiceQuotes(organizationId: string) {
 
 export async function getServiceInvoices(organizationId: string) {
   try {
+    await requireMembership(organizationId);
     return await db.orm.public.ServiceInvoice.where({ organizationId }).all();
   } catch (error) {
     console.error('Error fetching invoices:', error);
     return [];
   }
 }
+

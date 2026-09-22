@@ -1,4 +1,4 @@
-import { requireOrgAccess } from '@/lib/rbac';
+import { requireOrgAccess, resolveTenantOrg } from '@/lib/rbac';
 import { getOutletsData, getHotelAdminData } from '@/lib/actions/hotel';
 import OutletPOS from '@/components/hotel/OutletPOS';
 
@@ -8,8 +8,9 @@ export const metadata = {
 };
 
 export default async function OutletsPage() {
-  await requireOrgAccess('HOTEL');
-  const hotelData = await getHotelAdminData();
+  const resolvedOrgId = await resolveTenantOrg('HOTEL');
+  await requireOrgAccess(resolvedOrgId);
+  const hotelData = await getHotelAdminData(resolvedOrgId);
   const organizationId = hotelData?.hotel?.id ?? null;
   const outletsData = organizationId ? await getOutletsData(organizationId) : null;
 

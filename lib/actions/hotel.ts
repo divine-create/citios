@@ -12,10 +12,13 @@ function epochMs(instant: unknown) {
   return (instant as { epochMilliseconds: number }).epochMilliseconds;
 }
 
-export async function getHotelAdminData() {
+export async function getHotelAdminData(organizationId: string) {
   try {
-    // Find the hotel organization (we only have one right now for mock purposes)
-    const hotel = await db.orm.public.Organization.where({ type: 'HOTEL' }).all().first();
+    // Validate authorization boundary
+    await requireMembership(organizationId);
+
+    // Find the specific hotel organization
+    const hotel = await db.orm.public.Organization.where({ id: organizationId }).all().first();
 
     if (!hotel) return null;
 

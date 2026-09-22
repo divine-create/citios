@@ -154,7 +154,7 @@ export default function FrontDeskCalendar({ organizationId, initialRooms, initia
   };
 
   const refreshData = async (reservationIdToReselect?: string) => {
-    const data = await getHotelAdminData();
+    const data = await getHotelAdminData(organizationId!);
     if (!data) return;
     setRooms(data.rooms);
     setReservations(data.reservations);

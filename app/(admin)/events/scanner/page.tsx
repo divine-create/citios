@@ -1,10 +1,11 @@
 import ScannerApp from '@/components/events/ScannerApp';
-import { requireOrgAccess } from '@/lib/rbac';
+import { requireOrgAccess, resolveTenantOrg } from '@/lib/rbac';
 import { getEventsAdminData } from '@/lib/actions/events';
 
 export default async function ScannerPage() {
-  await requireOrgAccess('EVENT_ORGANIZER');
-  const data = await getEventsAdminData();
+  const resolvedOrgId = await resolveTenantOrg('EVENT_ORGANIZER');
+  await requireOrgAccess(resolvedOrgId);
+  const data = await getEventsAdminData(resolvedOrgId);
   const event = data?.events?.[0];
 
   if (!event) {
