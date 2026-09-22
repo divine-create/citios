@@ -184,6 +184,7 @@ export async function updateReservationStatus(
   try {
     const reservation = await db.orm.public.Reservation.where({ id: reservationId }).all().first();
     if (!reservation) return { error: 'Reservation not found.' };
+    if (reservation.organizationId !== order.organizationId) return { error: 'Reservation does not belong to this hotel.' };
     await requireHotelMembership(reservation.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST']);
     await db.orm.public.Reservation.where({ id: reservationId }).update({ status });
     return { success: true };
@@ -583,6 +584,9 @@ export async function updateOutlet(
   input: { name?: string; type?: 'RESTAURANT' | 'BAR' | 'CLUB' | 'SPA'; isActive?: boolean }
 ) {
   try {
+    const outlet = await db.orm.public.Outlet.where({ id: outletId }).all().first();
+    if (!outlet) return { error: 'Outlet not found.' };
+    await requireHotelMembership(outlet.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     const data: Record<string, unknown> = {};
     if (input.name !== undefined) data.name = input.name.trim();
     if (input.type !== undefined) data.type = input.type;
@@ -615,7 +619,8 @@ export async function deleteOutlet(outletId: string) {
 export async function createOutletItem(input: { outletId: string; name: string; price: number; category: string }) {
   try {
     const outlet = await db.orm.public.Outlet.where({ id: input.outletId }).all().first();
-    if (outlet) await requireHotelMembership(outlet.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
+    if (!outlet) return { error: 'Outlet not found.' };
+    await requireHotelMembership(outlet.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     if (!input.name.trim()) return { error: 'Item name is required.' };
     if (input.price < 0) return { error: 'Price cannot be negative.' };
     await db.orm.public.OutletItem.create({
@@ -634,10 +639,10 @@ export async function createOutletItem(input: { outletId: string; name: string; 
 export async function updateOutletItem(itemId: string, input: { name?: string; price?: number; category?: string }) {
   try {
     const item = await db.orm.public.OutletItem.where({ id: itemId }).all().first();
-    if (item) {
-      const outlet = await db.orm.public.Outlet.where({ id: item.outletId }).all().first();
-      if (outlet) await requireHotelMembership(outlet.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
-    }
+    if (!item) return { error: 'Outlet item not found.' };
+    const outlet = await db.orm.public.Outlet.where({ id: item.outletId }).all().first();
+    if (!outlet) return { error: 'Outlet not found.' };
+    await requireHotelMembership(outlet.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     if (input.price !== undefined && input.price < 0) return { error: 'Price cannot be negative.' };
     const data: Record<string, unknown> = {};
     if (input.name !== undefined) data.name = input.name.trim();
@@ -655,10 +660,10 @@ export async function updateOutletItem(itemId: string, input: { name?: string; p
 export async function deleteOutletItem(itemId: string) {
   try {
     const item = await db.orm.public.OutletItem.where({ id: itemId }).all().first();
-    if (item) {
-      const outlet = await db.orm.public.Outlet.where({ id: item.outletId }).all().first();
-      if (outlet) await requireHotelMembership(outlet.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
-    }
+    if (!item) return { error: 'Outlet item not found.' };
+    const outlet = await db.orm.public.Outlet.where({ id: item.outletId }).all().first();
+    if (!outlet) return { error: 'Outlet not found.' };
+    await requireHotelMembership(outlet.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     await db.orm.public.OutletItem.where({ id: itemId }).delete();
     return { success: true };
   } catch (error) {
@@ -670,6 +675,8 @@ export async function deleteOutletItem(itemId: string) {
 export async function createOutletOrder(input: { organizationId: string; outletId: string; tabName: string }) {
   try {
     await requireHotelMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST', 'STAFF']);
+    const outlet = await db.orm.public.Outlet.where({ id: input.outletId }).all().first();
+    if (!outlet || outlet.organizationId !== input.organizationId) return { error: 'Outlet does not belong to this hotel.' };
     if (!input.tabName.trim()) return { error: 'A table/tab name is required.' };
     const order = await db.orm.public.OutletOrder.create({
       organizationId: input.organizationId,
@@ -699,7 +706,12 @@ async function recalculateOrderTotal(outletOrderId: string) {
 export async function addItemToOrder(input: { outletOrderId: string; outletItemId: string; quantity: number }) {
   try {
     const order = await db.orm.public.OutletOrder.where({ id: input.outletOrderId }).all().first();
-    if (order) await requireHotelMembership(order.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST', 'STAFF']);
+    if (!order) return { error: 'Order not found.' };
+    await requireHotelMembership(order.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST', 'STAFF']);
+    const item = await db.orm.public.OutletItem.where({ id: input.outletItemId }).all().first();
+    if (!item) return { error: 'Outlet item not found.' };
+    const outlet = await db.orm.public.Outlet.where({ id: item.outletId }).all().first();
+    if (!outlet || outlet.id !== order.outletId || outlet.organizationId !== order.organizationId) return { error: 'Outlet item does not belong to this order.' };
     if (input.quantity <= 0) return { error: 'Quantity must be positive.' };
     await db.orm.public.OutletOrderItem.create({
       outletOrderId: input.outletOrderId,
@@ -755,7 +767,9 @@ export async function chargeOrderToRoom(outletOrderId: string, reservationId: st
 export async function payOrderDirectly(outletOrderId: string) {
   try {
     const order = await db.orm.public.OutletOrder.where({ id: outletOrderId }).all().first();
-    if (order) await requireHotelMembership(order.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST', 'STAFF']);
+    if (!order) return { error: 'Order not found.' };
+    await requireHotelMembership(order.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST', 'STAFF']);
+    if (order.status !== 'OPEN') return { error: 'This tab is already closed.' };
     await db.orm.public.OutletOrder.where({ id: outletOrderId }).update({ status: 'PAID' });
     return { success: true };
   } catch (error) {
