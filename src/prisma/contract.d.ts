@@ -33,7 +33,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'d46af040f63ae9a044632d127abe2a5dd416117aa239f56a9adbc960249499b0'>;
+  StorageHashBase<'403ce8e7ac77babd108ab47c1276f6063de0a7beedf8278b9e9f08daff938dd5'>;
 export type ExecutionHash =
   ExecutionHashBase<'8e53305d0fd3d36bbad2780b67a50b6414ac8d4a43e923283100bf36d29969ae'>;
 export type ProfileHash =
@@ -1176,6 +1176,7 @@ export type FieldOutputTypes = {
       readonly itemId: CodecTypes['pg/text@1']['output'];
       readonly delta: CodecTypes['pg/float8@1']['output'];
       readonly note: CodecTypes['pg/text@1']['output'] | null;
+      readonly recordedById: CodecTypes['pg/text@1']['output'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
     };
     readonly RestaurantTable: {
@@ -2762,6 +2763,7 @@ export type FieldInputTypes = {
       readonly itemId: CodecTypes['pg/text@1']['input'];
       readonly delta: CodecTypes['pg/float8@1']['input'];
       readonly note: CodecTypes['pg/text@1']['input'] | null;
+      readonly recordedById: CodecTypes['pg/text@1']['input'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
     };
     readonly RestaurantTable: {
@@ -4349,6 +4351,7 @@ export type StorageColumnTypes = {
       readonly itemId: CodecTypes['pg/text@1']['output'];
       readonly note: CodecTypes['pg/text@1']['output'] | null;
       readonly organizationId: CodecTypes['pg/text@1']['output'];
+      readonly recordedById: CodecTypes['pg/text@1']['output'] | null;
     };
     readonly restaurantTable: {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
@@ -5935,6 +5938,7 @@ export type StorageColumnInputTypes = {
       readonly itemId: CodecTypes['pg/text@1']['input'];
       readonly note: CodecTypes['pg/text@1']['input'] | null;
       readonly organizationId: CodecTypes['pg/text@1']['input'];
+      readonly recordedById: CodecTypes['pg/text@1']['input'] | null;
     };
     readonly restaurantTable: {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
@@ -14506,6 +14510,11 @@ type ContractBase = Omit<
                   readonly nullable: false;
                 };
                 readonly note: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly recordedById: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
                   readonly nullable: true;
@@ -29407,6 +29416,10 @@ type ContractBase = Omit<
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
+              readonly recordedById: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
               readonly createdAt: {
                 readonly nullable: false;
                 readonly type: {
@@ -29448,6 +29461,7 @@ type ContractBase = Omit<
                 readonly itemId: { readonly column: 'itemId' };
                 readonly delta: { readonly column: 'delta' };
                 readonly note: { readonly column: 'note' };
+                readonly recordedById: { readonly column: 'recordedById' };
                 readonly createdAt: { readonly column: 'createdAt' };
               };
             };

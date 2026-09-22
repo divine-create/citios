@@ -14407,6 +14407,13 @@
                   "codecId": "pg/text@1",
                   "kind": "scalar"
                 }
+              },
+              "recordedById": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
               }
             },
             "relations": {
@@ -14460,6 +14467,9 @@
                 },
                 "organizationId": {
                   "column": "organizationId"
+                },
+                "recordedById": {
+                  "column": "recordedById"
                 }
               },
               "namespaceId": "public",
@@ -33147,6 +33157,11 @@
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": false
+                },
+                "recordedById": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
                 }
               },
               "foreignKeys": [
@@ -40415,7 +40430,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "d46af040f63ae9a044632d127abe2a5dd416117aa239f56a9adbc960249499b0"
+    "storageHash": "403ce8e7ac77babd108ab47c1276f6063de0a7beedf8278b9e9f08daff938dd5"
   },
   "execution": {
     "executionHash": "8e53305d0fd3d36bbad2780b67a50b6414ac8d4a43e923283100bf36d29969ae",

@@ -2040,6 +2040,7 @@ model RestaurantStockMovement {
 
   delta          Float        // positive = restock, negative = usage
   note           String?
+  recordedById   String?      // Membership id that caused the movement
 
   createdAt DateTime @default(now())
 }

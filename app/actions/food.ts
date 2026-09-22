@@ -51,10 +51,11 @@ export async function getCityFood(citySlug?: string) {
 
   // @ts-ignore — Prisma Next `in` operator on the ORM requires a ts-ignore
   const menus = await db.orm.public.MenuItem.where({ organizationId: { in: orgIds } }).all();
+  const availableMenus = menus.filter((m: any) => m.isAvailable);
 
   return {
-    restaurants: orgs.map((o) => mapRestaurant(o, menus.filter((m) => m.organizationId === o.id).map(mapMenuItem), city.slug)),
-    menuItems: menus.map(mapMenuItem),
+    restaurants: orgs.map((o) => mapRestaurant(o, availableMenus.filter((m: any) => m.organizationId === o.id).map(mapMenuItem), city.slug)),
+    menuItems: availableMenus.map(mapMenuItem),
   };
 }
 
@@ -71,10 +72,12 @@ export async function getCityFoodRestaurant(orgId: string) {
     ? await db.orm.public.City.where({ id: org.cityId }).first()
     : null;
 
+  const availableMenus = menus.filter((m: any) => m.isAvailable);
+
   return {
-    ...mapRestaurant(org, menus.map(mapMenuItem), orgCity?.slug ?? null),
+    ...mapRestaurant(org, availableMenus.map(mapMenuItem), orgCity?.slug ?? null),
     location: locs[0] ?? null,
-    menuItems: menus.map(mapMenuItem),
+    menuItems: availableMenus.map(mapMenuItem),
   };
 }
 
@@ -144,6 +147,10 @@ export async function placeRestaurantOrder(input: {
     g.total += subtotal;
   }
 
+  if (orderType === 'DINE_IN' && orgGroups.size > 1) {
+    throw new Error('DINE_IN orders cannot span multiple restaurants.');
+  }
+
   const orderIds: string[] = [];
   let grandTotal = 0;
 
@@ -176,14 +183,8 @@ export async function placeRestaurantOrder(input: {
           totalAmount: group.total,
           type: orderType,
           tableNumber,
-        });
-        
-        await tx.orm.public.Payment.create({
-          amount: group.total,
-          currency: 'USD',
-          method: 'WALLET', // Assuming wallet for now
-          status: 'COMPLETED', // Mocking successful payment
-          restaurantOrderId: created.id
+          status: 'PENDING',
+          // paymentMethod: 'WALLET', // TODO: Phase 1B CityPay Integration
         });
         
         for (const it of group.items) {
@@ -203,7 +204,7 @@ export async function placeRestaurantOrder(input: {
       await notifyPerson(personId, {
         type: 'FOOD_ORDER_CONFIRMED',
         title: `Food order placed at ${org.name}`,
-        body: `${group.items.length} item${group.items.length === 1 ? '' : 's'} · total ₦${group.total.toLocaleString()}`,
+        body: `${group.items.length} item${group.items.length === 1 ? '' : 's'} · total ${group.total.toLocaleString()} (local currency)`,
         href: '/orders',
       });
     } catch (e: any) {

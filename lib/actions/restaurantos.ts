@@ -43,6 +43,7 @@ export async function getRestaurantOSSettings(organizationId: string) {
 /** Provision the OS for a new restaurant/eatery/fast-food org (idempotent). */
 export async function provisionRestaurantOS(organizationId: string, serviceStyle = 'HYBRID') {
   try {
+    await requireMembership(organizationId, ['OWNER', 'MANAGER']);
     const existing = await db.orm.public.RestaurantSettings
       .where({ organizationId })
       .all()
@@ -246,6 +247,12 @@ export async function createMenuItemAddon(input: {
   try {
     await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     if (!input.name.trim()) return { error: 'Addon name is required.' };
+    
+    const menuItem = await db.orm.public.MenuItem.where({ id: input.menuItemId }).all().first();
+    if (!menuItem || menuItem.organizationId !== input.organizationId) {
+      return { error: 'Menu item not found in this organization.' };
+    }
+
     const addon = await db.orm.public.MenuItemAddon.create({
       organizationId: input.organizationId,
       menuItemId: input.menuItemId,
@@ -270,6 +277,12 @@ export async function createMenuItemVariant(input: {
   try {
     await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     if (!input.name.trim()) return { error: 'Variant name is required.' };
+    
+    const menuItem = await db.orm.public.MenuItem.where({ id: input.menuItemId }).all().first();
+    if (!menuItem || menuItem.organizationId !== input.organizationId) {
+      return { error: 'Menu item not found in this organization.' };
+    }
+
     const variant = await db.orm.public.MenuItemVariant.create({
       organizationId: input.organizationId,
       menuItemId: input.menuItemId,
@@ -297,6 +310,15 @@ export async function createMenuItemCombo(input: {
     if (!input.name.trim()) return { error: 'Combo name is required.' };
     if (!(input.price >= 0)) return { error: 'Combo price must be zero or greater.' };
     if (input.items.length === 0) return { error: 'A combo needs at least one item.' };
+
+    const menuItemIds = input.items.map(it => it.menuItemId).filter(Boolean) as string[];
+    if (menuItemIds.length > 0) {
+      // @ts-ignore
+      const menuItems = await db.orm.public.MenuItem.where({ id: { in: menuItemIds } }).all();
+      if (menuItems.length !== menuItemIds.length || menuItems.some(m => m.organizationId !== input.organizationId)) {
+        return { error: 'One or more menu items do not belong to this organization.' };
+      }
+    }
 
     const combo = await db.orm.public.MenuItemCombo.create({
       organizationId: input.organizationId,
@@ -425,6 +447,24 @@ export async function createReservation(input: {
     if (!(input.partySize > 0)) return { error: 'Party size must be at least 1.' };
     const scheduled = new Date(input.scheduledAt);
     if (isNaN(scheduled.getTime())) return { error: 'Invalid reservation date.' };
+
+    if (input.tableId) {
+      const table = await db.orm.public.RestaurantTable.where({ id: input.tableId }).all().first();
+      if (!table || table.organizationId !== input.organizationId) {
+        return { error: 'Table not found in this organization.' };
+      }
+    }
+
+    if (input.customerDataId) {
+      const customer = await db.orm.public.CustomerData.where({ id: input.customerDataId }).all().first();
+      if (!customer) {
+        return { error: 'Customer not found.' };
+      }
+      const relationship = await db.orm.public.Relationship.where({ id: customer.relationshipId }).all().first();
+      if (!relationship || relationship.organizationId !== input.organizationId) {
+        return { error: 'Customer does not belong to this organization.' };
+      }
+    }
 
     const reservation = await db.orm.public.RestaurantReservation.create({
       organizationId: input.organizationId,
@@ -658,6 +698,12 @@ export async function updateOrderStatus(
     if (!order) return { error: 'Order not found.' };
     await requireMembership(order.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER', 'KITCHEN', 'WAITER']);
 
+    // PHASE 1B DEBT: OrderStatus is currently used as a proxy for PaymentStatus.
+    // Setting COMPLETED stamps paidAt as if payment were confirmed. This is NOT a
+    // real payment confirmation — it is an operational status update by staff.
+    // Phase 1B (CityPay integration) must introduce a separate PaymentStatus field
+    // so that a COMPLETED order only counts as paid when the payment gateway confirms
+    // settlement. Until then, COMPLETED == operational completion, NOT payment receipt.
     const paid = status === 'COMPLETED';
     await db.orm.public.RestaurantOrder.where({ id: orderId }).update({
       status,
@@ -791,14 +837,23 @@ export async function adjustStock(itemId: string, delta: number, note?: string) 
     const { membership } = await requireMembership(item.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'INVENTORY_STAFF', 'KITCHEN']);
     if (!(delta !== 0)) return { error: 'Adjustment must be non-zero.' };
 
-    const next = Math.max(0, item.quantity + delta);
-    await db.orm.public.RestaurantInventoryItem.where({ id: itemId }).update({ quantity: next });
-    await db.orm.public.RestaurantStockMovement.create({
-      organizationId: item.organizationId,
-      itemId,
-      delta,
-      note: note ?? (delta > 0 ? 'Restock' : 'Usage'),
+    const next = await db.transaction(async (tx: any) => {
+      // Re-read item inside transaction for concurrency
+      const txItem = await tx.orm.public.RestaurantInventoryItem.where({ id: itemId }).all().first();
+      if (!txItem) throw new Error('Inventory item not found during transaction.');
+
+      const updatedQty = Math.max(0, txItem.quantity + delta);
+      await tx.orm.public.RestaurantInventoryItem.where({ id: itemId }).update({ quantity: updatedQty });
+      await tx.orm.public.RestaurantStockMovement.create({
+        organizationId: item.organizationId,
+        itemId,
+        delta,
+        note: note ?? (delta > 0 ? 'Restock' : 'Usage'),
+        recordedById: membership.id,
+      });
+      return updatedQty;
     });
+
     revalidatePath('/admin/restaurantos');
     return { success: true, quantity: next, lowStock: next <= item.lowStockLevel };
   } catch (error) {
@@ -881,6 +936,10 @@ export async function getFinancialSummary(organizationId: string) {
     const startOfWeek = new Date(startOfToday);
     startOfWeek.setDate(startOfWeek.getDate() - 6);
 
+    // PHASE 1B DEBT: Revenue is derived from orders with status === 'COMPLETED'.
+    // Until CityPay introduces a separate PaymentStatus, COMPLETED is the closest
+    // proxy for "collected". Redesign financial reporting to use PaymentStatus once
+    // Phase 1B payment infrastructure is in place.
     const paidOrders = orders.filter((o: any) => o.status === 'COMPLETED');
     const todaysOrders = paidOrders.filter((o: any) =>
       new Date(o.createdAt.toString()).getTime() >= startOfToday.getTime());
