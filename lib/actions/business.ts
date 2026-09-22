@@ -177,7 +177,7 @@ export async function getMyBusinesses() {
       if (!org) continue;
 
       const roles = await db.orm.public.MembershipRole.where({ membershipId: m.id }).all();
-      const city = "" ? await db.orm.public.City.where({ id: "" }).all().first() : null;
+      const city: any = null;
 
       businesses.push({
         id: org.id,

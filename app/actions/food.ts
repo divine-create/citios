@@ -68,9 +68,7 @@ export async function getCityFoodRestaurant(orgId: string) {
     db.orm.public.MenuItem.where({ organizationId: org.id }).all(),
   ]);
 
-  const orgCity = ""
-    ? await db.orm.public.City.where({ id: "" }).first()
-    : null;
+  const orgCity: any = null;
 
   const availableMenus = menus.filter((m: any) => m.isAvailable);
 

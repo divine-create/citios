@@ -224,7 +224,7 @@ export async function createProduct(input: {
     const nextSku = generateUniqueSku(existingSkus, input.name || 'ITEM');
     const normalizedSku = (input.sku ?? '').trim() || nextSku;
     
-    const product = await db.transaction(async (tx) => {
+    const product = await db.transaction(async (tx: any) => {
       const createdProduct = await tx.orm.public.RetailProduct.create({
         organizationId: input.organizationId,
         name: input.name,
@@ -325,7 +325,7 @@ export async function adjustStock(productId: string, delta: number, note?: strin
     const { membership } = await requireMembership(product.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'INVENTORY_STAFF']);
     if (!(Number.isFinite(delta))) return { error: 'Enter a valid stock change.' };
 
-    await db.transaction(async (tx) => {
+    await db.transaction(async (tx: any) => {
       const current = await tx.orm.public.RetailProduct.where({ id: productId }).all().first();
       if (!current) throw new Error('Product not found.');
       const next = current.stockQuantity + delta;
@@ -816,7 +816,7 @@ export async function createOrder(input: {
 
     let order;
     try {
-      order = await db.transaction(async (tx) => {
+      order = await db.transaction(async (tx: any) => {
       const created = await tx.orm.public.RetailOrder.create({
         organizationId: input.organizationId,
         shiftId: input.shiftId,
@@ -1058,7 +1058,7 @@ export async function refundOrder(orderId: string, input: { reason?: string }) {
 
     // Stock restoration and the refunded status flip are one atomic unit — a
     // failure can never leave stock restored onto a still-"completed" order.
-    await db.transaction(async (tx) => {
+    await db.transaction(async (tx: any) => {
       const order = await tx.orm.public.RetailOrder.where({ id: orderId }).all().first();
       if (!order) throw new Error('Order not found.');
       if (order.status === 'REFUNDED') throw new Error('Order is already refunded.');

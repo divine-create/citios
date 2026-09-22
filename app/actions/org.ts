@@ -22,7 +22,7 @@ export async function getCanonicalOrganization(id: string) {
   return {
     id: org.id,
     name: org.name,
-    type: org.type,
+    type: ('Organization'),
     description: org.description,
     
     citySlug: orgCity?.slug ?? null,
@@ -34,7 +34,7 @@ export async function getCanonicalOrganization(id: string) {
       services: services.length > 0,
       jobs: jobs.length > 0,
       events: events.length > 0,
-      school: org.type === 'SCHOOL'
+      school: false
     },
     jobsData: jobs,
     eventsData: events,
@@ -162,9 +162,9 @@ export async function getCityMapEntities(citySlug?: string) {
     return {
       id: org.id,
       name: org.name,
-      sub: `${org.type} Â· ${loc.address || city.name}`,
+      sub: `${('Organization')} Â· ${loc.address || city.name}`,
       href: `/org/${org.id}`,
-      kind: org.type.toLowerCase(),
+      kind: ('Organization').toLowerCase(),
       address: loc.address || '',
       latitude: loc.latitude,
       longitude: loc.longitude
