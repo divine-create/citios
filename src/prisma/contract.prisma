@@ -2326,8 +2326,10 @@ model RetailProduct {
 }
 
 model RetailRegister {
-  id             String       @id @default(uuid())
-  organizationId String
+    id             String       @id @default(uuid())
+    organizationId String
+    locationId     String?
+    location       Location?    @relation(fields: [locationId], references: [id])
   organization   Organization @relation("OrgRetailRegisters", fields: [organizationId], references: [id], onDelete: Cascade)
   
   name           String       // e.g. "Register 1", "Self-Checkout A"
@@ -2339,8 +2341,10 @@ model RetailRegister {
 }
 
 model RetailShift {
-  id             String       @id @default(uuid())
-  organizationId String
+    id             String       @id @default(uuid())
+    organizationId String
+    locationId     String?
+    location       Location?    @relation(fields: [locationId], references: [id])
   organization   Organization @relation("OrgRetailShifts", fields: [organizationId], references: [id], onDelete: Cascade)
   
   registerId     String
@@ -2366,8 +2370,11 @@ model RetailShift {
 }
 
 model RetailOrder {
-  id             String       @id @default(uuid())
-  organizationId String
+    id             String       @id @default(uuid())
+    organizationId String
+    locationId     String?
+    location       Location?    @relation(fields: [locationId], references: [id])
+    idempotencyKey String?      @unique
   organization   Organization @relation("OrgRetailOrders", fields: [organizationId], references: [id], onDelete: Cascade)
   
   shiftId        String?
@@ -2471,9 +2478,31 @@ model RetailExpense {
 // Immutable per-event change to a product's stock level. Written by sales,
 // refunds, manual adjustments, and (future) PO receiving so the store always
 // has an auditable movement trail instead of only a current quantity.
-model RetailStockMovement {
+
+model RetailLocationStock {
   id             String        @id @default(uuid())
   organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  locationId     String
+  location       Location      @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  
+  productId      String
+  product        RetailProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  stockQuantity  Float         @default(0)
+  lowStockLevel  Float?
+
+  updatedAt      DateTime?
+
+  @@unique([locationId, productId])
+}
+
+model RetailStockMovement {
+    id             String        @id @default(uuid())
+    organizationId String
+    locationId     String?
+    location       Location?     @relation(fields: [locationId], references: [id])
   organization   Organization  @relation("OrgRetailStockMovements", fields: [organizationId], references: [id], onDelete: Cascade)
 
   productId      String
@@ -2482,8 +2511,10 @@ model RetailStockMovement {
   delta          Float         // signed; +/- from the sale or correction
   beforeQty      Float
   afterQty       Float
-  reason         String        // SALE | REFUND | ADJUSTMENT | RECEIVED
-  note           String?
+    reason         String        // SALE | REFUND | ADJUSTMENT | RECEIVED | TRANSFER_IN | TRANSFER_OUT | DAMAGE | LOSS | PURCHASE | INITIAL_STOCK
+    referenceType  String?       // ORDER | PO | REFUND
+    referenceId    String?
+    note           String?
   recordedById   String?       // Membership id that caused the movement
 
   createdAt      DateTime      @default(now())

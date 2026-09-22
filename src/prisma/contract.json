@@ -396,6 +396,10 @@
       "model": "RetailExpense",
       "namespace": "public"
     },
+    "retailLocationStock": {
+      "model": "RetailLocationStock",
+      "namespace": "public"
+    },
     "retailNotification": {
       "model": "RetailNotification",
       "namespace": "public"
@@ -14904,6 +14908,133 @@
               "table": "retailExpense"
             }
           },
+          "RetailLocationStock": {
+            "fields": {
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "locationId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "lowStockLevel": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
+              "organizationId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "productId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "stockQuantity": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "location": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "locationId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Location",
+                  "namespace": "public"
+                }
+              },
+              "organization": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "organizationId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Organization",
+                  "namespace": "public"
+                }
+              },
+              "product": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "productId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "RetailProduct",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "id": {
+                  "column": "id"
+                },
+                "locationId": {
+                  "column": "locationId"
+                },
+                "lowStockLevel": {
+                  "column": "lowStockLevel"
+                },
+                "organizationId": {
+                  "column": "organizationId"
+                },
+                "productId": {
+                  "column": "productId"
+                },
+                "stockQuantity": {
+                  "column": "stockQuantity"
+                },
+                "updatedAt": {
+                  "column": "updatedAt"
+                }
+              },
+              "namespaceId": "public",
+              "table": "retailLocationStock"
+            }
+          },
           "RetailNotification": {
             "fields": {
               "createdAt": {
@@ -15045,6 +15176,20 @@
                   "kind": "scalar"
                 }
               },
+              "idempotencyKey": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "locationId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "organizationId": {
                 "nullable": false,
                 "type": {
@@ -15162,6 +15307,21 @@
                   "namespace": "public"
                 }
               },
+              "location": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "locationId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Location",
+                  "namespace": "public"
+                }
+              },
               "organization": {
                 "cardinality": "N:1",
                 "on": {
@@ -15212,6 +15372,12 @@
                 },
                 "id": {
                   "column": "id"
+                },
+                "idempotencyKey": {
+                  "column": "idempotencyKey"
+                },
+                "locationId": {
+                  "column": "locationId"
                 },
                 "organizationId": {
                   "column": "organizationId"
@@ -15767,6 +15933,13 @@
                   "kind": "scalar"
                 }
               },
+              "locationId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "name": {
                 "nullable": false,
                 "type": {
@@ -15783,6 +15956,21 @@
               }
             },
             "relations": {
+              "location": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "locationId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Location",
+                  "namespace": "public"
+                }
+              },
               "organization": {
                 "cardinality": "N:1",
                 "on": {
@@ -15824,6 +16012,9 @@
                 },
                 "isActive": {
                   "column": "isActive"
+                },
+                "locationId": {
+                  "column": "locationId"
                 },
                 "name": {
                   "column": "name"
@@ -16164,6 +16355,13 @@
                   "kind": "scalar"
                 }
               },
+              "locationId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "openedAt": {
                 "nullable": false,
                 "type": {
@@ -16215,6 +16413,21 @@
               }
             },
             "relations": {
+              "location": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "locationId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Location",
+                  "namespace": "public"
+                }
+              },
               "orders": {
                 "cardinality": "1:N",
                 "on": {
@@ -16284,6 +16497,9 @@
                 "id": {
                   "column": "id"
                 },
+                "locationId": {
+                  "column": "locationId"
+                },
                 "openedAt": {
                   "column": "openedAt"
                 },
@@ -16347,6 +16563,13 @@
                   "kind": "scalar"
                 }
               },
+              "locationId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "note": {
                 "nullable": true,
                 "type": {
@@ -16381,9 +16604,38 @@
                   "codecId": "pg/text@1",
                   "kind": "scalar"
                 }
+              },
+              "referenceId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "referenceType": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
               }
             },
             "relations": {
+              "location": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "locationId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Location",
+                  "namespace": "public"
+                }
+              },
               "organization": {
                 "cardinality": "N:1",
                 "on": {
@@ -16432,6 +16684,9 @@
                 "id": {
                   "column": "id"
                 },
+                "locationId": {
+                  "column": "locationId"
+                },
                 "note": {
                   "column": "note"
                 },
@@ -16446,6 +16701,12 @@
                 },
                 "recordedById": {
                   "column": "recordedById"
+                },
+                "referenceId": {
+                  "column": "referenceId"
+                },
+                "referenceType": {
+                  "column": "referenceType"
                 }
               },
               "namespaceId": "public",
@@ -33131,6 +33392,141 @@
               },
               "uniques": []
             },
+            "retailLocationStock": {
+              "columns": {
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "locationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "lowStockLevel": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
+                  "nullable": true
+                },
+                "organizationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "productId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "stockQuantity": {
+                  "codecId": "pg/float8@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "float8",
+                  "nullable": false
+                },
+                "updatedAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": true
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "organizationId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "retailLocationStock"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "organization"
+                  }
+                },
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "locationId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "retailLocationStock"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "location"
+                  }
+                },
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "productId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "retailLocationStock"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "retailProduct"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "locationId"
+                  ],
+                  "name": "retailLocationStock_locationId_idx_7aae3038",
+                  "prefix": "retailLocationStock_locationId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "organizationId"
+                  ],
+                  "name": "retailLocationStock_organizationId_idx_2e17ef41",
+                  "prefix": "retailLocationStock_organizationId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "productId"
+                  ],
+                  "name": "retailLocationStock_productId_idx_5858600a",
+                  "prefix": "retailLocationStock_productId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "locationId",
+                    "productId"
+                  ]
+                }
+              ]
+            },
             "retailNotification": {
               "columns": {
                 "createdAt": {
@@ -33262,6 +33658,16 @@
                   "nativeType": "text",
                   "nullable": false
                 },
+                "idempotencyKey": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "locationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "organizationId": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -33326,6 +33732,22 @@
                 }
               },
               "foreignKeys": [
+                {
+                  "source": {
+                    "columns": [
+                      "locationId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "retailOrder"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "location"
+                  }
+                },
                 {
                   "onDelete": "cascade",
                   "source": {
@@ -33411,6 +33833,14 @@
                 },
                 {
                   "columns": [
+                    "locationId"
+                  ],
+                  "name": "retailOrder_locationId_idx_7aae3038",
+                  "prefix": "retailOrder_locationId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
                     "organizationId"
                   ],
                   "name": "retailOrder_organizationId_idx_2e17ef41",
@@ -33431,7 +33861,13 @@
                   "id"
                 ]
               },
-              "uniques": []
+              "uniques": [
+                {
+                  "columns": [
+                    "idempotencyKey"
+                  ]
+                }
+              ]
             },
             "retailOrderItem": {
               "columns": {
@@ -33849,6 +34285,11 @@
                   "nativeType": "bool",
                   "nullable": false
                 },
+                "locationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "name": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -33861,6 +34302,22 @@
                 }
               },
               "foreignKeys": [
+                {
+                  "source": {
+                    "columns": [
+                      "locationId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "retailRegister"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "location"
+                  }
+                },
                 {
                   "onDelete": "cascade",
                   "source": {
@@ -33880,6 +34337,14 @@
                 }
               ],
               "indexes": [
+                {
+                  "columns": [
+                    "locationId"
+                  ],
+                  "name": "retailRegister_locationId_idx_7aae3038",
+                  "prefix": "retailRegister_locationId_idx",
+                  "unique": false
+                },
                 {
                   "columns": [
                     "organizationId"
@@ -34138,6 +34603,11 @@
                   "nativeType": "text",
                   "nullable": false
                 },
+                "locationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "openedAt": {
                   "codecId": "pg/timestamptz-temporal@1",
                   "default": {
@@ -34192,6 +34662,22 @@
               },
               "foreignKeys": [
                 {
+                  "source": {
+                    "columns": [
+                      "locationId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "retailShift"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "location"
+                  }
+                },
+                {
                   "onDelete": "cascade",
                   "source": {
                     "columns": [
@@ -34227,6 +34713,14 @@
                 }
               ],
               "indexes": [
+                {
+                  "columns": [
+                    "locationId"
+                  ],
+                  "name": "retailShift_locationId_idx_7aae3038",
+                  "prefix": "retailShift_locationId_idx",
+                  "unique": false
+                },
                 {
                   "columns": [
                     "organizationId"
@@ -34282,6 +34776,11 @@
                   "nativeType": "text",
                   "nullable": false
                 },
+                "locationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "note": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -34306,9 +34805,35 @@
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": true
+                },
+                "referenceId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "referenceType": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
                 }
               },
               "foreignKeys": [
+                {
+                  "source": {
+                    "columns": [
+                      "locationId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "retailStockMovement"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "location"
+                  }
+                },
                 {
                   "onDelete": "cascade",
                   "source": {
@@ -34345,6 +34870,14 @@
                 }
               ],
               "indexes": [
+                {
+                  "columns": [
+                    "locationId"
+                  ],
+                  "name": "retailStockMovement_locationId_idx_7aae3038",
+                  "prefix": "retailStockMovement_locationId_idx",
+                  "unique": false
+                },
                 {
                   "columns": [
                     "organizationId"
@@ -39622,10 +40155,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "eaddf8aa297bbf9f9bc307f48a97df80ec4682f94332056273e4cf9025927775"
+    "storageHash": "d4c78c359d3477823a719c8ed3dcda9fc3cae602699b21abffd753f4ab14f221"
   },
   "execution": {
-    "executionHash": "cbb92f74578305c118702181b671ac27380a242c9102cd91faad8bb8bf67c6d7",
+    "executionHash": "273cf93a7e46509b4c99e2dfdb867a547407e1a62b27491a0e62aea539cbda21",
     "mutations": {
       "defaults": [
         {
@@ -40704,6 +41237,17 @@
             "column": "id",
             "namespace": "public",
             "table": "retailExpense"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "retailLocationStock"
           }
         },
         {

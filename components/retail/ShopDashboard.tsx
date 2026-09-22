@@ -143,6 +143,8 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
   const [notifOpen, setNotifOpen] = useState(false);
   const [sessionName, setSessionName] = useState("Store User");
   const [sessionEmail, setSessionEmail] = useState("");
+  const [locations, setLocations] = useState<any[]>([]);
+  const [activeLocationId, setActiveLocationId] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -183,11 +185,16 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
   };
 
   const loadAll = async () => {
+    const locs = await getLocations(organizationId);
+    setLocations(locs);
+    const locToUse = activeLocationId || (locs.length > 0 ? locs[0].id : null);
+    if (!activeLocationId && locToUse) setActiveLocationId(locToUse);
+
     const [dash, prods, cats, regs] = await Promise.all([
-      getShopDashboardData(organizationId),
-      getProducts(organizationId),
+      getShopDashboardData(organizationId, locToUse),
+      getProducts(organizationId, locToUse),
       getCategories(organizationId),
-      getRegisters(organizationId),
+      getRegisters(organizationId, locToUse),
     ]);
     setDashboard(dash);
     setProducts(prods);
@@ -294,12 +301,31 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
         }`}
       >
         <div className="p-4 sm:p-5 flex items-center justify-between border-b border-slate-100 sticky top-0 bg-white z-10">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-gradient-to-br from-brand-500 via-brand-600 to-brand-800 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-sm shadow-brand-600/30 flex-shrink-0">S</div>
-            <div className="leading-tight">
-              <span className="font-black text-lg text-ink tracking-tight block">ShopOS</span>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Retail Suite</span>
+          <div className="flex flex-col gap-3 w-full">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-gradient-to-br from-brand-500 via-brand-600 to-brand-800 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-sm shadow-brand-600/30 flex-shrink-0">S</div>
+              <div className="leading-tight">
+                <span className="font-black text-lg text-ink tracking-tight block">CityMart</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Retail Suite</span>
+              </div>
             </div>
+            {locations.length > 0 && (
+              <div className="mt-2 w-full">
+                <select
+                  value={activeLocationId || ""}
+                  onChange={(e) => {
+                    setActiveLocationId(e.target.value);
+                    setLoading(true);
+                  }}
+                  className={selectCls}
+                >
+                  <option value="" disabled>Select Location</option>
+                  {locations.map((loc) => (
+                    <option key={loc.id} value={loc.id}>{loc.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
           <button
             onClick={() => setIsSidebarOpen(false)}
@@ -516,18 +542,18 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
 
               {activeMenu === "POS Terminal" && (
                 openShiftData ? (
-                  <POSTerminal organizationId={organizationId} products={products} shiftId={openShiftData.id} onOrderComplete={loadAll} />
+                  <POSTerminal organizationId={organizationId} locationId={activeLocationId} products={products} shiftId={openShiftData.id} onOrderComplete={loadAll} />
                 ) : (
-                  <OpenShiftPrompt organizationId={organizationId} registers={registers} currentUserId={currentUserId} onOpened={loadAll} symbol={currencySymbol} />
+                  <OpenShiftPrompt organizationId={organizationId} locationId={activeLocationId} registers={registers} currentUserId={currentUserId} onOpened={loadAll} symbol={currencySymbol} />
                 )
               )}
 
               {activeMenu === "Products & Inventory" && (
-                <InventoryManager organizationId={organizationId} products={products} categories={categories} onChanged={loadAll} symbol={currencySymbol} />
+                <InventoryManager organizationId={organizationId} locationId={activeLocationId} products={products} categories={categories} onChanged={loadAll} symbol={currencySymbol} />
               )}
 
               {activeMenu === "Cash & Shifts" && (
-                <ShiftsTab organizationId={organizationId} registers={registers} openShift={openShiftData} currentUserId={currentUserId} onChanged={loadAll} symbol={currencySymbol} setActiveMenu={setActiveMenu} setSalesShiftFilter={setSalesShiftFilter} />
+                <ShiftsTab organizationId={organizationId} locationId={activeLocationId} registers={registers} openShift={openShiftData} currentUserId={currentUserId} onChanged={loadAll} symbol={currencySymbol} setActiveMenu={setActiveMenu} setSalesShiftFilter={setSalesShiftFilter} />
               )}
 
               {activeMenu === "Suppliers & POs" && <SuppliersTab organizationId={organizationId} symbol={currencySymbol} />}
@@ -536,7 +562,9 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
 
               {activeMenu === "Settings" && <Settings organizationId={organizationId} />}
 
-              {activeMenu === "Sales & Returns" && <SalesReturnsTab organizationId={organizationId} currentUserId={currentUserId} onChanged={loadAll} symbol={currencySymbol} salesShiftFilter={salesShiftFilter} setSalesShiftFilter={setSalesShiftFilter} />}
+              {activeMenu === "Sales & Returns" && (
+                <SalesReturnsTab organizationId={organizationId} locationId={activeLocationId} currentUserId={currentUserId} onChanged={loadAll} symbol={currencySymbol} salesShiftFilter={salesShiftFilter} setSalesShiftFilter={setSalesShiftFilter} />
+              )}
 
               {activeMenu === "Customers" && <CustomersTab organizationId={organizationId} symbol={currencySymbol} />}
 
@@ -790,8 +818,8 @@ function EmptyState({ icon: Icon, title, message, cta, onCta }: {
 // Open Shift prompt (POS is gated behind an open register shift)
 // =====================================================================
 
-function OpenShiftPrompt({ organizationId, registers, currentUserId, onOpened, symbol = "$" }: {
-  organizationId: string; registers: any[]; currentUserId: string; onOpened: () => void; symbol?: string;
+function OpenShiftPrompt({ organizationId, locationId, registers, currentUserId, onOpened, symbol = "$" }: {
+  organizationId: string; locationId?: string | null; registers: any[]; currentUserId: string; onOpened: () => void; symbol?: string;
 }) {
   const [registerId, setRegisterId] = useState(registers[0]?.id ?? "");
   const [openingFloat, setOpeningFloat] = useState("100");
@@ -801,7 +829,7 @@ function OpenShiftPrompt({ organizationId, registers, currentUserId, onOpened, s
 
   const addRegister = async () => {
     if (!newRegisterName.trim()) return;
-    const res = await createRegister(organizationId, newRegisterName);
+    const res = await createRegister(organizationId, newRegisterName, locationId);
     if (res && typeof res === 'object' && 'register' in res && res.register) {
       setRegisterId(res.register.id);
       setNewRegisterName("");
@@ -816,7 +844,7 @@ function OpenShiftPrompt({ organizationId, registers, currentUserId, onOpened, s
     if (isNaN(float) || float < 0) { setError("Enter a valid opening cash float."); return; }
     setIsSaving(true);
     try {
-      const res = await openShift({ organizationId, registerId, openingFloat: float });
+      const res = await openShift({ organizationId, registerId, openingFloat: float, locationId });
       if (res && typeof res === 'object' && 'error' in res && res.error) { setError(res.error); return; }
       onOpened();
     } finally {
@@ -871,8 +899,8 @@ function OpenShiftPrompt({ organizationId, registers, currentUserId, onOpened, s
 // Cash & Shifts
 // =====================================================================
 
-function ShiftsTab({ organizationId, registers, openShift: openShiftData, currentUserId, onChanged, symbol = "$", setActiveMenu, setSalesShiftFilter }: {
-  organizationId: string; registers: any[]; openShift: any | null; currentUserId: string; onChanged: () => void; symbol?: string; setActiveMenu: (m: string) => void; setSalesShiftFilter: (id: string | null) => void;
+function ShiftsTab({ organizationId, locationId, registers, openShift: openShiftData, currentUserId, onChanged, symbol = "$", setActiveMenu, setSalesShiftFilter }: {
+  organizationId: string; locationId?: string | null; registers: any[]; openShift: any | null; currentUserId: string; onChanged: () => void; symbol?: string; setActiveMenu: (m: string) => void; setSalesShiftFilter: (id: string | null) => void;
 }) {
   const [history, setHistory] = useState<any[]>([]);
   const [actualCash, setActualCash] = useState("");
@@ -1649,8 +1677,8 @@ function ReportsTab({ organizationId, setActiveMenu }: { organizationId: string;
 // Sales & Returns
 // =====================================================================
 
-function SalesReturnsTab({ organizationId, currentUserId, onChanged, symbol = "$", salesShiftFilter, setSalesShiftFilter }: {
-  organizationId: string; currentUserId: string; onChanged: () => void; symbol?: string; salesShiftFilter?: string | null; setSalesShiftFilter?: (id: string | null) => void;
+function SalesReturnsTab({ organizationId, locationId, currentUserId, onChanged, symbol = "$", salesShiftFilter, setSalesShiftFilter }: {
+  organizationId: string; locationId?: string | null; currentUserId: string; onChanged: () => void; symbol?: string; salesShiftFilter?: string | null; setSalesShiftFilter?: (id: string | null) => void;
 }) {
   const [orders, setOrders] = useState<any[]>([]);
   const [statusFilter, setStatusFilter] = useState<"ALL" | "COMPLETED" | "REFUNDED">("ALL");
@@ -1666,7 +1694,7 @@ function SalesReturnsTab({ organizationId, currentUserId, onChanged, symbol = "$
     const opts: any = {};
     if (statusFilter !== "ALL") opts.status = statusFilter;
     if (salesShiftFilter) opts.shiftId = salesShiftFilter;
-    const rows = await getOrders(organizationId, opts);
+    const rows = await getOrders(organizationId, locationId, opts);
     setOrders(rows);
     setLoading(false);
   };

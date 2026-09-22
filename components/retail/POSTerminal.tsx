@@ -49,8 +49,9 @@ const COLORS = [
   "bg-cyan-100 text-cyan-800",
 ];
 
-export default function POSTerminal({ organizationId, products, shiftId, onOrderComplete }: {
+export default function POSTerminal({ organizationId, locationId, products, shiftId, onOrderComplete }: {
   organizationId: string;
+  locationId?: string | null;
   products: Product[];
   shiftId: string;
   onOrderComplete: () => void;
@@ -173,8 +174,9 @@ export default function POSTerminal({ organizationId, products, shiftId, onOrder
     setIsProcessing(true);
     try {
       const res = await createOrder({
-        organizationId,
-        shiftId,
+          organizationId,
+          locationId,
+          shiftId,
         customerDataId: selectedCustomer?.id,
         items: cart.map((item) => ({ productId: item.product.id, quantity: item.quantity })),
         paymentMethod,
@@ -723,3 +725,5 @@ function CustomerPicker({ organizationId, customers, onSelect, onCreated, onClos
     </div>
   );
 }
+
+

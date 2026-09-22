@@ -35,7 +35,7 @@ export default function ShopOnboardingWidget({ settings, organizationId, onNavig
           getProducts(organizationId),
           getCustomers(organizationId),
           getLocations(organizationId),
-          getOrders(organizationId, { limit: 1 }),
+          getOrders(organizationId, null, { limit: 1 }),
         ]);
         if (unmounted) return;
         setCounts({

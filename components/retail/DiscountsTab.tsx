@@ -77,7 +77,7 @@ export default function DiscountsTab({ organizationId, symbol = "$" }: { organiz
           expiresAt: form.expiresAt || null,
           description: form.description || null,
         });
-        if ((res as any)?.error) { setError((res as any).error); return; }
+        if (res && typeof res === 'object' && 'error' in res && res.error) { setError(res.error); return; }
       } else {
         const res = await createCoupon({
           organizationId,
@@ -89,7 +89,7 @@ export default function DiscountsTab({ organizationId, symbol = "$" }: { organiz
           expiresAt: form.expiresAt || null,
           description: form.description || null,
         });
-        if ((res as any)?.error) { setError((res as any).error); return; }
+        if (res && typeof res === 'object' && 'error' in res && res.error) { setError(res.error); return; }
       }
       setIsModalOpen(false);
       load();
@@ -100,14 +100,14 @@ export default function DiscountsTab({ organizationId, symbol = "$" }: { organiz
 
   const toggle = async (c: Coupon) => {
     const res = await updateCoupon(c.id, { isActive: !c.isActive });
-    if ((res as any)?.error) { alert((res as any).error); return; }
+    if (res && typeof res === 'object' && 'error' in res && res.error) { alert(res.error); return; }
     load();
   };
 
   const remove = async (id: string) => {
     if (!confirm("Delete this coupon? Applied orders keep their recorded discount.")) return;
     const res = await deleteCoupon(id);
-    if ((res as any)?.error) { alert((res as any).error); return; }
+    if (res && typeof res === 'object' && 'error' in res && res.error) { alert(res.error); return; }
     load();
   };
 

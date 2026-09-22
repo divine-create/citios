@@ -52,6 +52,32 @@ function instantToMillis(instant: unknown): number {
 }
 
 // ---------------------------------------------------------------------
+
+async function resolveLocationContext(organizationId: string, locationId?: string | null) {
+  const locations = await db.orm.public.Location.where({ organizationId }).all();
+  if (locations.length > 0) {
+    if (!locationId) throw new Error('An active location is required for this operation.');
+    const loc = locations.find(l => l.id === locationId);
+    if (!loc) throw new Error('Location does not belong to this organization.');
+    return loc;
+  }
+  return null;
+}
+
+async function getOrInitLocationStock(tx: any, organizationId: string, locationId: string, productId: string) {
+  let stock = await tx.orm.public.RetailLocationStock.where({ locationId, productId }).all().first();
+  if (!stock) {
+    stock = await tx.orm.public.RetailLocationStock.create({
+      organizationId,
+      locationId,
+      productId,
+      stockQuantity: 0,
+      lowStockLevel: null
+    });
+  }
+  return stock;
+}
+
 // Categories
 // ---------------------------------------------------------------------
 
@@ -158,7 +184,7 @@ export async function deleteCategory(categoryId: string) {
 // Products
 // ---------------------------------------------------------------------
 
-export async function getProducts(organizationId: string) {
+export async function getProducts(organizationId: string, locationId?: string | null) {
   try {
     await requireMembership(organizationId);
     await ensureDefaultCategories(organizationId);
@@ -291,7 +317,7 @@ export async function deleteProduct(productId: string) {
 // Manual stock correction (receiving stock outside a PO, shrinkage/damage
 // write-offs, stocktake adjustments). `delta` is signed. Every change writes
 // an immutable RetailStockMovement row so the store has an audit trail.
-export async function adjustStock(productId: string, delta: number, note?: string) {
+export async function adjustStock(productId: string, delta: number, note?: string, locationId?: string | null) {
   try {
     const product = await db.orm.public.RetailProduct.where({ id: productId }).all().first();
     if (!product) return { error: 'Product not found.' };
@@ -303,7 +329,26 @@ export async function adjustStock(productId: string, delta: number, note?: strin
       if (!current) throw new Error('Product not found.');
       const next = current.stockQuantity + delta;
       if (next < 0) throw new Error('Stock cannot go below zero.');
-      await tx.orm.public.RetailProduct.where({ id: productId }).update({ stockQuantity: next });
+      const loc = await resolveLocationContext(product.organizationId, locationId).catch(e => { throw e; });
+      if (loc) {
+        const stock = await getOrInitLocationStock(tx, product.organizationId, loc.id, productId);
+        const next = stock.stockQuantity + delta;
+        if (next < 0) throw new Error('Stock cannot go below zero.');
+        await tx.orm.public.RetailLocationStock.where({ id: stock.id }).update({ stockQuantity: next });
+        await tx.orm.public.RetailStockMovement.create({
+          organizationId: current.organizationId,
+          locationId: loc.id,
+          productId,
+          delta,
+          beforeQty: stock.stockQuantity,
+          afterQty: next,
+          reason: 'ADJUSTMENT',
+          note: note ?? null,
+          recordedById: membership.id,
+        });
+      } else {
+        await tx.orm.public.RetailProduct.where({ id: productId }).update({ stockQuantity: next });
+      }
       await tx.orm.public.RetailStockMovement.create({
         organizationId: current.organizationId,
         productId,
@@ -556,10 +601,10 @@ export async function getStaff(organizationId: string) {
 // Registers & Shifts
 // ---------------------------------------------------------------------
 
-export async function getRegisters(organizationId: string) {
+export async function getRegisters(organizationId: string, locationId?: string | null) {
   try {
     await requireMembership(organizationId);
-    const registers = await db.orm.public.RetailRegister.where({ organizationId }).all();
+    const registers = await db.orm.public.RetailRegister.where(locationId ? { organizationId, locationId } : { organizationId }).all();
     return JSON.parse(JSON.stringify(registers));
   } catch (error) {
     console.error('Error fetching registers:', error);
@@ -567,11 +612,12 @@ export async function getRegisters(organizationId: string) {
   }
 }
 
-export async function createRegister(organizationId: string, name: string) {
+export async function createRegister(organizationId: string, name: string, locationId?: string | null) {
   try {
     await requireMembership(organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     if (!name.trim()) return { error: 'Register name is required.' };
-    const register = await db.orm.public.RetailRegister.create({ organizationId, name, isActive: true });
+    const loc = await resolveLocationContext(organizationId, locationId).catch(e => { throw e; });
+    const register = await db.orm.public.RetailRegister.create({ organizationId, locationId: loc ? loc.id : null, name, isActive: true });
     return { success: true, register: JSON.parse(JSON.stringify(register)) };
   } catch (error) {
     console.error('Error creating register:', error);
@@ -582,7 +628,7 @@ export async function createRegister(organizationId: string, name: string) {
 // The single open shift for this org, if any — the whole POS/dashboard UI
 // assumes one active register/shift at a time (matches the MVP scope of
 // the existing ShopDashboard UI, which shows a single "Register: OPEN" chip).
-export async function getOpenShift(organizationId: string) {
+export async function getOpenShift(organizationId: string, locationId?: string | null) {
   try {
     await requireMembership(organizationId);
     const registers = await db.orm.public.RetailRegister.where({ organizationId }).all();
@@ -597,12 +643,13 @@ export async function getOpenShift(organizationId: string) {
   }
 }
 
-export async function openShift(input: { organizationId: string; registerId: string; openingFloat: number }) {
+export async function openShift(input: { organizationId: string; registerId: string; openingFloat: number; locationId?: string | null }) {
   try {
     const { membership } = await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER']);
     const existing = await db.orm.public.RetailShift.where({ registerId: input.registerId, status: 'OPEN' }).all();
     if (existing.length > 0) return { error: 'This register already has an open shift.' };
     const shift = await db.orm.public.RetailShift.create({
+      locationId: input.locationId,
       organizationId: input.organizationId,
       registerId: input.registerId,
       openedById: membership.id,
@@ -653,10 +700,10 @@ export async function closeShift(shiftId: string, input: { actualCash: number })
   }
 }
 
-export async function getShiftHistory(organizationId: string) {
+export async function getShiftHistory(organizationId: string, locationId?: string | null) {
   try {
     await requireMembership(organizationId);
-    const shifts = await db.orm.public.RetailShift.where({ organizationId }).all();
+    const shifts = await db.orm.public.RetailShift.where(locationId ? { organizationId, locationId } : { organizationId }).all();
     shifts.sort((a, b) => epochMs(b.openedAt) - epochMs(a.openedAt));
     return JSON.parse(JSON.stringify(shifts));
   } catch (error) {
@@ -672,6 +719,7 @@ export async function getShiftHistory(organizationId: string) {
 export async function createOrder(input: {
   organizationId: string;
   shiftId?: string;
+  locationId?: string | null;
   customerDataId?: string;
   items: { productId: string; quantity: number }[];
   paymentMethod: 'CASH' | 'CARD' | 'SPLIT';
@@ -755,6 +803,7 @@ export async function createOrder(input: {
       const created = await tx.orm.public.RetailOrder.create({
         organizationId: input.organizationId,
         shiftId: input.shiftId,
+        locationId: input.locationId,
         cashierId,
         customerDataId: input.customerDataId,
         couponId: coupon?.id,
@@ -924,10 +973,10 @@ async function enrichOrders(organizationId: string, orders: any[]) {
   return enriched;
 }
 
-export async function getOrders(organizationId: string, options?: { limit?: number; status?: 'COMPLETED' | 'REFUNDED'; shiftId?: string }) {
+export async function getOrders(organizationId: string, locationId?: string | null, options?: { limit?: number; status?: 'COMPLETED' | 'REFUNDED'; shiftId?: string }) {
   try {
     await requireMembership(organizationId);
-    let orders = await db.orm.public.RetailOrder.where({ organizationId }).all();
+    let orders = await db.orm.public.RetailOrder.where(locationId ? { organizationId, locationId } : { organizationId }).all();
     if (options?.status) orders = orders.filter((o) => o.status === options.status);
     if (options?.shiftId) orders = orders.filter((o) => o.shiftId === options.shiftId);
     orders.sort((a, b) => epochMs(b.createdAt) - epochMs(a.createdAt));
@@ -1344,7 +1393,7 @@ export async function exportShopReport(organizationId: string, kind: 'orders' | 
 // Dashboard
 // ---------------------------------------------------------------------
 
-export async function getShopDashboardData(organizationId: string) {
+export async function getShopDashboardData(organizationId: string, locationId?: string | null) {
   try {
     await requireMembership(organizationId);
     const allOrders = await db.orm.public.RetailOrder.where({ organizationId }).all();
@@ -2180,3 +2229,4 @@ export async function getShopWalletBalance(organizationId: string) {
     return { enabled: false, wallet: null };
   }
 }
+

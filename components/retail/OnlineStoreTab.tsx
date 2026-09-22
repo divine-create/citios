@@ -50,7 +50,7 @@ export default function OnlineStoreTab({ organizationId, onChanged }: { organiza
     setSavingMeta(true);
     try {
       const res = await updateShopStorefront(organizationId, { storeName, storeAddress, receiptMessage });
-      if ((res as any)?.error) { setError((res as any).error); return; }
+      if (res && typeof res === 'object' && 'error' in res && res.error) { setError(res.error); return; }
       setNotice("Store details saved.");
       onChanged();
     } finally {
@@ -68,7 +68,7 @@ export default function OnlineStoreTab({ organizationId, onChanged }: { organiza
         await updateShopStorefront(organizationId, { published: false });
       } else {
         const res = await updateShopStorefront(organizationId, { published: true });
-        if ((res as any)?.error) { setError((res as any).error); return; }
+        if (res && typeof res === 'object' && 'error' in res && res.error) { setError(res.error); return; }
       }
       setNotice(isPublished ? "Storefront unpublished." : "Storefront published!");
       load();
@@ -84,7 +84,7 @@ export default function OnlineStoreTab({ organizationId, onChanged }: { organiza
     setTogglingWallet(true);
     try {
       const res = await toggleWalletSettlement(organizationId, !walletEnabled);
-      if ((res as any)?.error) { setError((res as any).error); return; }
+      if (res && typeof res === 'object' && 'error' in res && res.error) { setError(res.error); return; }
       setWalletEnabled(!walletEnabled);
       setNotice(!walletEnabled ? "Sale settlements enabled. New sales credit your CityPay wallet." : "Sale settlements disabled.");
       load();

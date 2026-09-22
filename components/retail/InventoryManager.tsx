@@ -44,8 +44,9 @@ interface Category {
 
 const EMPTY_FORM = { name: "", sku: "", categoryId: "", price: "", cost: "", stockQuantity: "", lowStockLevel: "", isWeighed: false, unit: "ea" };
 
-export default function InventoryManager({ organizationId, products, categories, onChanged, symbol = "$" }: {
+export default function InventoryManager({ organizationId, locationId, products, categories, onChanged, symbol = "$" }: {
   organizationId: string;
+  locationId?: string | null;
   products: Product[];
   categories: Category[];
   onChanged: () => void;
@@ -567,4 +568,6 @@ export default function InventoryManager({ organizationId, products, categories,
     </div>
   );
 }
+
+
 
