@@ -109,6 +109,7 @@ model Membership {
   reviewedRequests EnrolmentRequest[] @relation("ReviewedBy")
   id             String       @id @default(uuid())
   organizationId String
+  locationId     String?
   personId       String
   
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -291,6 +292,14 @@ model Location {
   city           City?        @relation("CityLocations", fields: [cityId], references: [id])
   listings       DiscoveryListing[]
   bookings       Booking[]          @relation("LocationBookings")
+  
+  // RestaurantOS Location Relations
+  restaurantMenuItems MenuItem[]      @relation("LocationMenuItems")
+  restaurantOrders    RestaurantOrder[] @relation("LocationRestaurantOrders")
+  restaurantTables    RestaurantTable[] @relation("LocationRestaurantTables")
+  restaurantReservations RestaurantReservation[] @relation("LocationRestaurantReservations")
+  restaurantInventory RestaurantInventoryItem[] @relation("LocationRestaurantInventory")
+  restaurantExpenses  RestaurantExpense[] @relation("LocationRestaurantExpenses")
 }
 
 model Wallet {
@@ -1829,6 +1838,9 @@ model MenuItem {
   organizationId String
   organization   Organization @relation("RestaurantMenuItems", fields: [organizationId], references: [id], onDelete: Cascade)
   
+  locationId     String?
+  location       Location?    @relation("LocationMenuItems", fields: [locationId], references: [id])
+  
   orderItems     OrderItem[]
 
   // RestaurantOS menu enhancements
@@ -1927,6 +1939,8 @@ model RestaurantOrder {
   customerDataId     String?      // The user who placed the order
   
   organization   Organization @relation("RestaurantOrders", fields: [organizationId], references: [id], onDelete: Cascade)
+  locationId     String?
+  location       Location?    @relation("LocationRestaurantOrders", fields: [locationId], references: [id])
   customer       CustomerData?        @relation("CustomerRestaurantOrders", fields: [customerDataId], references: [id])
   
   items          OrderItem[]
@@ -1989,6 +2003,8 @@ model RestaurantTable {
   id             String       @id @default(uuid())
   organizationId String
   organization   Organization @relation("RestaurantTables", fields: [organizationId], references: [id], onDelete: Cascade)
+  locationId     String?
+  location       Location?    @relation("LocationRestaurantTables", fields: [locationId], references: [id])
 
   name           String       // "T1", "Window 2", "Booth 3"
   seats          Int          @default(4)
@@ -2005,6 +2021,8 @@ model RestaurantReservation {
   id             String       @id @default(uuid())
   organizationId String
   organization   Organization @relation("OrgRestaurantReservations", fields: [organizationId], references: [id], onDelete: Cascade)
+  locationId     String?
+  location       Location?    @relation("LocationRestaurantReservations", fields: [locationId], references: [id])
 
   tableId        String?
   table          RestaurantTable? @relation("TableReservations", fields: [tableId], references: [id])
@@ -2026,6 +2044,8 @@ model RestaurantInventoryItem {
   id             String       @id @default(uuid())
   organizationId String
   organization   Organization @relation("RestaurantInventory", fields: [organizationId], references: [id], onDelete: Cascade)
+  locationId     String?
+  location       Location?    @relation("LocationRestaurantInventory", fields: [locationId], references: [id])
 
   name           String       // "Rice (bag)", "Groundnut Oil (litre)", "Chicken (crate)"
   unit           String       @default("unit") // kg, crate, litre, bag, carton
@@ -2058,6 +2078,8 @@ model RestaurantExpense {
   id             String       @id @default(uuid())
   organizationId String
   organization   Organization @relation("OrgRestaurantExpenses", fields: [organizationId], references: [id], onDelete: Cascade)
+  locationId     String?
+  location       Location?    @relation("LocationRestaurantExpenses", fields: [locationId], references: [id])
 
   category       String       @default("ingredients") // ingredients | gas | staff | rent | utilities | other
   amount         Float

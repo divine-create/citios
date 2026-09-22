@@ -117,10 +117,14 @@ export async function updateRestaurantOSSettings(
 // Menu management (items, availability/86)
 // ---------------------------------------------------------------------------
 
-export async function getMenuItems(organizationId: string) {
+export async function getMenuItems(organizationId: string, locationId?: string) {
   try {
     await requireMembership(organizationId);
-    const items = await db.orm.public.MenuItem.where({ organizationId }).all();
+    let q = db.orm.public.MenuItem.where({ organizationId });
+    if (locationId) {
+      q = q.where({ locationId });
+    }
+    const items = await q.all();
     const itemIds = items.map((i) => i.id);
 
     // @ts-ignore — Prisma Next `in` operator on the ORM requires a ts-ignore
@@ -365,10 +369,14 @@ export async function getMenuItemCombos(organizationId: string) {
 // Tables & floor plan (Full Service)
 // ---------------------------------------------------------------------------
 
-export async function getTables(organizationId: string) {
+export async function getTables(organizationId: string, locationId?: string) {
   try {
     await requireMembership(organizationId);
-    const tables = await db.orm.public.RestaurantTable.where({ organizationId }).all();
+    let q = db.orm.public.RestaurantTable.where({ organizationId });
+    if (locationId) {
+      q = q.where({ locationId });
+    }
+    const tables = await q.all();
     return JSON.parse(JSON.stringify(tables));
   } catch (error) {
     console.error('Error fetching tables:', error);
@@ -376,7 +384,7 @@ export async function getTables(organizationId: string) {
   }
 }
 
-export async function createTable(input: { organizationId: string; name: string; seats: number }) {
+export async function createTable(input: { organizationId: string; locationId?: string; name: string; seats: number }) {
   try {
     await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     if (!input.name.trim()) return { error: 'Table name is required.' };
@@ -421,10 +429,14 @@ export async function updateTableStatus(tableId: string, status: 'available' | '
 // Reservations (Full Service)
 // ---------------------------------------------------------------------------
 
-export async function getReservations(organizationId: string) {
+export async function getReservations(organizationId: string, locationId?: string) {
   try {
     await requireMembership(organizationId);
-    const reservations = await db.orm.public.RestaurantReservation.where({ organizationId }).all();
+    let q = db.orm.public.RestaurantReservation.where({ organizationId });
+    if (locationId) {
+      q = q.where({ locationId });
+    }
+    const reservations = await q.all();
     return JSON.parse(JSON.stringify(reservations));
   } catch (error) {
     console.error('Error fetching reservations:', error);
@@ -434,6 +446,7 @@ export async function getReservations(organizationId: string) {
 
 export async function createReservation(input: {
   organizationId: string;
+  locationId?: string;
   tableId?: string;
   customerDataId?: string;
   customerName?: string;
@@ -443,17 +456,10 @@ export async function createReservation(input: {
   notes?: string;
 }) {
   try {
-    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'WAITER']);
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'WAITER'], input.locationId);
     if (!(input.partySize > 0)) return { error: 'Party size must be at least 1.' };
     const scheduled = new Date(input.scheduledAt);
     if (isNaN(scheduled.getTime())) return { error: 'Invalid reservation date.' };
-
-    if (input.tableId) {
-      const table = await db.orm.public.RestaurantTable.where({ id: input.tableId }).all().first();
-      if (!table || table.organizationId !== input.organizationId) {
-        return { error: 'Table not found in this organization.' };
-      }
-    }
 
     if (input.customerDataId) {
       const customer = await db.orm.public.CustomerData.where({ id: input.customerDataId }).all().first();
@@ -466,17 +472,52 @@ export async function createReservation(input: {
       }
     }
 
-    const reservation = await db.orm.public.RestaurantReservation.create({
-      organizationId: input.organizationId,
-      tableId: input.tableId ?? null,
-      customerDataId: input.customerDataId ?? null,
-      customerName: input.customerName ?? null,
-      customerPhone: input.customerPhone ?? null,
-      partySize: input.partySize,
-      scheduledAt: (globalThis as any).Temporal.Instant.fromEpochMilliseconds(scheduled.getTime()),
-      status: 'pending',
-      notes: input.notes ?? null,
+    const reservation = await db.transaction(async (tx: any) => {
+      if (input.tableId) {
+        // 1. Lock the table row to serialize concurrent requests for this exact table
+        const tableLock = await tx.sql`
+          SELECT id FROM "RestaurantTable"
+          WHERE id = ${input.tableId}
+            AND "organizationId" = ${input.organizationId}
+          FOR UPDATE
+        `;
+
+        if (!tableLock || tableLock.length === 0) {
+          throw new Error('Table not found or could not be locked.');
+        }
+
+        // 2. Check overlapping time windows while holding the table lock
+        const windowMs = 60 * 60 * 1000; 
+        const minTime = new Date(scheduled.getTime() - windowMs).toISOString();
+        const maxTime = new Date(scheduled.getTime() + windowMs).toISOString();
+        
+        const overlaps = await tx.sql`
+          SELECT id FROM "RestaurantReservation"
+          WHERE "tableId" = ${input.tableId}
+            AND "status" IN ('pending', 'confirmed', 'seated')
+            AND "scheduledAt" > ${minTime}::timestamp
+            AND "scheduledAt" < ${maxTime}::timestamp
+        `;
+        
+        if (overlaps && overlaps.length > 0) {
+          throw new Error('Table is already reserved for this time block.');
+        }
+      }
+
+      return await tx.orm.public.RestaurantReservation.create({
+        organizationId: input.organizationId,
+        locationId: input.locationId ?? null,
+        tableId: input.tableId ?? null,
+        customerDataId: input.customerDataId ?? null,
+        customerName: input.customerName ?? null,
+        customerPhone: input.customerPhone ?? null,
+        partySize: input.partySize,
+        scheduledAt: (globalThis as any).Temporal.Instant.fromEpochMilliseconds(scheduled.getTime()),
+        status: 'pending',
+        notes: input.notes ?? null,
+      });
     });
+
     revalidatePath('/admin/restaurantos');
     return JSON.parse(JSON.stringify(reservation));
   } catch (error) {
@@ -641,7 +682,7 @@ export async function createPosOrder(input: {
         orderNumber,
         paymentMethod: input.paymentMethod ?? null,
         paidAt: paid ? (globalThis as any).Temporal.Instant.fromEpochMilliseconds(Date.now()) : null,
-        status: paid ? 'COMPLETED' : 'PENDING',
+        status: paid ? 'PREPARING' : 'PENDING',
         servedByMembershipId: membership.id,
       });
       for (const line of lineItems) {
@@ -748,10 +789,14 @@ export async function updateOrderStatus(
 // Inventory (all styles)
 // ---------------------------------------------------------------------------
 
-export async function getInventoryItems(organizationId: string) {
+export async function getInventoryItems(organizationId: string, locationId?: string) {
   try {
     await requireMembership(organizationId);
-    const items = await db.orm.public.RestaurantInventoryItem.where({ organizationId }).all();
+    let q = db.orm.public.RestaurantInventoryItem.where({ organizationId });
+    if (locationId) {
+      q = q.where({ locationId });
+    }
+    const items = await q.all();
     return JSON.parse(JSON.stringify(items));
   } catch (error) {
     console.error('Error fetching inventory items:', error);
@@ -839,12 +884,18 @@ export async function adjustStock(itemId: string, delta: number, note?: string) 
 
     const next = await db.transaction(async (tx: any) => {
       // Re-read item inside transaction for concurrency
-      const txItem = await tx.orm.public.RestaurantInventoryItem.where({ id: itemId }).all().first();
-      if (!txItem) throw new Error('Inventory item not found during transaction.');
-
-      const updatedQty = Math.max(0, txItem.quantity + delta);
-      await tx.orm.public.RestaurantInventoryItem.where({ id: itemId }).update({ quantity: updatedQty });
-      await tx.orm.public.RestaurantStockMovement.create({
+              const updated = await tx.sql`
+          UPDATE "RestaurantInventoryItem"
+          SET "quantity" = "quantity" + ${delta}
+          WHERE id = ${itemId} AND "quantity" + ${delta} >= 0
+          RETURNING "quantity"
+        `;
+        if (!updated || updated.length === 0) {
+          throw new Error('Stock cannot go below zero or concurrent modification occurred.');
+        }
+        const updatedQty = updated[0].quantity;
+        
+        await tx.orm.public.RestaurantStockMovement.create({
         organizationId: item.organizationId,
         itemId,
         delta,
@@ -907,10 +958,14 @@ export async function addExpense(input: {
   }
 }
 
-export async function getExpenses(organizationId: string) {
+export async function getExpenses(organizationId: string, locationId?: string) {
   try {
     await requireMembership(organizationId);
-    const expenses = await db.orm.public.RestaurantExpense.where({ organizationId }).all();
+    let q = db.orm.public.RestaurantExpense.where({ organizationId });
+    if (locationId) {
+      q = q.where({ locationId });
+    }
+    const expenses = await q.all();
     const sorted = [...expenses].sort((a: any, b: any) =>
       new Date(b.spentAt.toString()).getTime() - new Date(a.spentAt.toString()).getTime());
     return JSON.parse(JSON.stringify(sorted));
@@ -1083,159 +1138,49 @@ export async function getRestaurantOSData(organizationId: string) {
 // Suppliers (shared RetailSupplier table, scoped by organizationId)
 // ---------------------------------------------------------------------------
 
-export async function getSuppliers(organizationId: string) {
-  try {
-    await requireMembership(organizationId);
-    const suppliers = await db.orm.public.RetailSupplier.where({ organizationId }).all();
-    const sorted = [...suppliers].sort((a: any, b: any) =>
-      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-    return JSON.parse(JSON.stringify(sorted));
-  } catch (error) {
-    console.error('Error fetching suppliers:', error);
-    return [];
-  }
-}
 
-export async function createSupplier(input: {
-  organizationId: string;
-  name: string;
-  contactName?: string;
-  email?: string;
-  phone?: string;
-  leadTimeDays?: number;
-  paymentTerms?: string;
-}) {
+export async function refundRestaurantOrder(orderId: string, input: { reason?: string }) {
   try {
-    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'INVENTORY_STAFF']);
-    if (!input.name.trim()) return { error: 'Supplier name is required.' };
+    const o = await db.orm.public.RestaurantOrder.where({ id: orderId }).all().first();
+    if (!o) return { error: 'Order not found.' };
+    const { membership } = await requireMembership(o.organizationId, ['OWNER', 'ADMIN', 'MANAGER'], o.locationId);
 
-    const supplier = await db.orm.public.RetailSupplier.create({
-      organizationId: input.organizationId,
-      name: input.name.trim(),
-      contactName: input.contactName ?? null,
-      email: input.email ?? null,
-      phone: input.phone ?? null,
-      leadTimeDays: input.leadTimeDays ?? null,
-      paymentTerms: input.paymentTerms ?? null,
+    await db.transaction(async (tx: any) => {
+      const order = await tx.orm.public.RestaurantOrder.where({ id: orderId }).all().first();
+      if (!order) throw new Error('Order not found.');
+      if (order.status === 'CANCELLED') throw new Error('Order is already cancelled.');
+
+      const payment = await tx.orm.public.Payment.where({ restaurantOrderId: orderId }).all().first();
+      if (!payment) throw new Error('No payment found for this order.');
+      if (payment.status === 'REFUNDED') throw new Error('Payment is already fully refunded.');
+
+      const existingRefunds = await tx.orm.public.Refund.where({ paymentId: payment.id }).all();
+      const totalRefunded = existingRefunds.reduce((sum: number, r: any) => sum + r.amount, 0);
+      const refundable = payment.amount - totalRefunded;
+
+      if (refundable <= 0) throw new Error('Payment has no refundable amount remaining.');
+
+      await tx.orm.public.Refund.create({
+        organizationId: payment.organizationId,
+        paymentId: payment.id,
+        amount: refundable,
+        currency: payment.currency,
+        status: 'COMPLETED',
+        reason: input.reason ?? `Restaurant order ${order.orderNumber} refunded`,
+        processedById: membership.id,
+      });
+
+      await tx.orm.public.Payment.where({ id: payment.id }).update({ status: 'REFUNDED' });
+      await tx.orm.public.RestaurantOrder.where({ id: orderId }).update({ status: 'CANCELLED' });
+
+      // Note: Inventory is NOT automatically returned for food orders (food waste), 
+      // fulfilling the requirement: Payment refund != Inventory return.
     });
-    revalidatePath('/admin/restaurantos');
-    return JSON.parse(JSON.stringify(supplier));
-  } catch (error) {
-    console.error('Error creating supplier:', error);
-    return { error: error instanceof Error ? error.message : 'Failed to create supplier.' };
-  }
-}
 
-export async function updateSupplier(
-  supplierId: string,
-  input: Partial<{ name: string; contactName: string; email: string; phone: string; leadTimeDays: number; paymentTerms: string }>,
-) {
-  try {
-    const supplier = await db.orm.public.RetailSupplier.where({ id: supplierId }).all().first();
-    if (!supplier) return { error: 'Supplier not found.' };
-    await requireMembership(supplier.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'INVENTORY_STAFF']);
-
-    await db.orm.public.RetailSupplier.where({ id: supplierId }).update(input);
-    const updated = await db.orm.public.RetailSupplier.where({ id: supplierId }).all().first();
-    revalidatePath('/admin/restaurantos');
-    return JSON.parse(JSON.stringify(updated));
-  } catch (error) {
-    console.error('Error updating supplier:', error);
-    return { error: error instanceof Error ? error.message : 'Failed to update supplier.' };
-  }
-}
-
-export async function deleteSupplier(supplierId: string) {
-  try {
-    const supplier = await db.orm.public.RetailSupplier.where({ id: supplierId }).all().first();
-    if (!supplier) return { error: 'Supplier not found.' };
-    await requireMembership(supplier.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
-
-    await db.orm.public.RetailSupplier.where({ id: supplierId }).delete();
     revalidatePath('/admin/restaurantos');
     return { success: true };
   } catch (error) {
-    console.error('Error deleting supplier:', error);
-    return { error: error instanceof Error ? error.message : 'Failed to delete supplier.' };
+    console.error('Error refunding order:', error);
+    return { error: error instanceof Error ? error.message : 'Failed to refund order.' };
   }
 }
-
-// ---------------------------------------------------------------------------
-// Purchase Orders (shared RetailPurchaseOrder table, scoped by organizationId)
-// ---------------------------------------------------------------------------
-
-export async function getPurchaseOrders(organizationId: string) {
-  try {
-    await requireMembership(organizationId);
-    const pos = await db.orm.public.RetailPurchaseOrder.where({ organizationId }).all();
-    const suppliers = await db.orm.public.RetailSupplier.where({ organizationId }).all();
-    const sorted = [...pos].sort((a: any, b: any) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    return JSON.parse(JSON.stringify(
-      sorted.map((po: any) => ({
-        ...po,
-        supplierName: suppliers.find((s: any) => s.id === po.supplierId)?.name ?? 'Unknown',
-      })),
-    ));
-  } catch (error) {
-    console.error('Error fetching purchase orders:', error);
-    return [];
-  }
-}
-
-export async function createPurchaseOrder(input: {
-  organizationId: string;
-  supplierId: string;
-  poNumber?: string;
-  totalAmount?: number;
-  expectedDate?: string;
-  notes?: string;
-}) {
-  try {
-    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'INVENTORY_STAFF']);
-
-    // Verify supplier belongs to this org
-    const supplier = await db.orm.public.RetailSupplier
-      .where({ id: input.supplierId, organizationId: input.organizationId })
-      .all()
-      .first();
-    if (!supplier) return { error: 'Supplier not found for this organisation.' };
-
-    // Auto-generate PO number if not provided
-    const existing = await db.orm.public.RetailPurchaseOrder.where({ organizationId: input.organizationId }).all();
-    const poNumber = input.poNumber?.trim() || `PO-${String(existing.length + 1).padStart(4, '0')}`;
-
-    const po = await db.orm.public.RetailPurchaseOrder.create({
-      organizationId: input.organizationId,
-      supplierId: input.supplierId,
-      poNumber,
-      status: 'DRAFT',
-      totalAmount: input.totalAmount ?? null,
-      expectedDate: input.expectedDate ? (globalThis as any).Temporal.Instant.fromEpochMilliseconds(new Date(input.expectedDate).getTime()) : null,
-    });
-    revalidatePath('/admin/restaurantos');
-    return JSON.parse(JSON.stringify(po));
-  } catch (error) {
-    console.error('Error creating purchase order:', error);
-    return { error: error instanceof Error ? error.message : 'Failed to create purchase order.' };
-  }
-}
-
-export async function updatePurchaseOrderStatus(
-  poId: string,
-  status: 'DRAFT' | 'SENT' | 'RECEIVED' | 'PARTIAL' | 'CANCELLED',
-) {
-  try {
-    const po = await db.orm.public.RetailPurchaseOrder.where({ id: poId }).all().first();
-    if (!po) return { error: 'Purchase order not found.' };
-    await requireMembership(po.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'INVENTORY_STAFF']);
-
-    await db.orm.public.RetailPurchaseOrder.where({ id: poId }).update({ status });
-    revalidatePath('/admin/restaurantos');
-    return { success: true, status };
-  } catch (error) {
-    console.error('Error updating purchase order status:', error);
-    return { error: error instanceof Error ? error.message : 'Failed to update purchase order.' };
-  }
-}
-

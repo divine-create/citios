@@ -7003,6 +7003,96 @@
                   "model": "Organization",
                   "namespace": "public"
                 }
+              },
+              "restaurantExpenses": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "locationId"
+                  ]
+                },
+                "to": {
+                  "model": "RestaurantExpense",
+                  "namespace": "public"
+                }
+              },
+              "restaurantInventory": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "locationId"
+                  ]
+                },
+                "to": {
+                  "model": "RestaurantInventoryItem",
+                  "namespace": "public"
+                }
+              },
+              "restaurantMenuItems": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "locationId"
+                  ]
+                },
+                "to": {
+                  "model": "MenuItem",
+                  "namespace": "public"
+                }
+              },
+              "restaurantOrders": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "locationId"
+                  ]
+                },
+                "to": {
+                  "model": "RestaurantOrder",
+                  "namespace": "public"
+                }
+              },
+              "restaurantReservations": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "locationId"
+                  ]
+                },
+                "to": {
+                  "model": "RestaurantReservation",
+                  "namespace": "public"
+                }
+              },
+              "restaurantTables": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "locationId"
+                  ]
+                },
+                "to": {
+                  "model": "RestaurantTable",
+                  "namespace": "public"
+                }
               }
             },
             "storage": {
@@ -7188,6 +7278,13 @@
               },
               "id": {
                 "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "locationId": {
+                "nullable": true,
                 "type": {
                   "codecId": "pg/text@1",
                   "kind": "scalar"
@@ -7503,6 +7600,9 @@
                 "id": {
                   "column": "id"
                 },
+                "locationId": {
+                  "column": "locationId"
+                },
                 "organizationId": {
                   "column": "organizationId"
                 },
@@ -7680,6 +7780,13 @@
                   "kind": "scalar"
                 }
               },
+              "locationId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "name": {
                 "nullable": false,
                 "type": {
@@ -7730,6 +7837,21 @@
                 },
                 "to": {
                   "model": "MenuItemComboItem",
+                  "namespace": "public"
+                }
+              },
+              "location": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "locationId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Location",
                   "namespace": "public"
                 }
               },
@@ -7795,6 +7917,9 @@
                 },
                 "isAvailable": {
                   "column": "isAvailable"
+                },
+                "locationId": {
+                  "column": "locationId"
                 },
                 "name": {
                   "column": "name"
@@ -14433,6 +14558,13 @@
                   "kind": "scalar"
                 }
               },
+              "locationId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "note": {
                 "nullable": true,
                 "type": {
@@ -14456,6 +14588,21 @@
               }
             },
             "relations": {
+              "location": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "locationId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Location",
+                  "namespace": "public"
+                }
+              },
               "organization": {
                 "cardinality": "N:1",
                 "on": {
@@ -14485,6 +14632,9 @@
                 },
                 "id": {
                   "column": "id"
+                },
+                "locationId": {
+                  "column": "locationId"
                 },
                 "note": {
                   "column": "note"
@@ -14518,6 +14668,13 @@
               },
               "id": {
                 "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "locationId": {
+                "nullable": true,
                 "type": {
                   "codecId": "pg/text@1",
                   "kind": "scalar"
@@ -14567,6 +14724,21 @@
               }
             },
             "relations": {
+              "location": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "locationId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Location",
+                  "namespace": "public"
+                }
+              },
               "movements": {
                 "cardinality": "1:N",
                 "on": {
@@ -14609,6 +14781,9 @@
                 "id": {
                   "column": "id"
                 },
+                "locationId": {
+                  "column": "locationId"
+                },
                 "lowStockLevel": {
                   "column": "lowStockLevel"
                 },
@@ -14650,6 +14825,13 @@
               },
               "id": {
                 "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "locationId": {
+                "nullable": true,
                 "type": {
                   "codecId": "pg/text@1",
                   "kind": "scalar"
@@ -14791,6 +14973,21 @@
                   "namespace": "public"
                 }
               },
+              "location": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "locationId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Location",
+                  "namespace": "public"
+                }
+              },
               "organization": {
                 "cardinality": "N:1",
                 "on": {
@@ -14847,6 +15044,9 @@
                 },
                 "id": {
                   "column": "id"
+                },
+                "locationId": {
+                  "column": "locationId"
                 },
                 "orderNumber": {
                   "column": "orderNumber"
@@ -14923,6 +15123,13 @@
                   "kind": "scalar"
                 }
               },
+              "locationId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "notes": {
                 "nullable": true,
                 "type": {
@@ -14989,6 +15196,21 @@
                   "namespace": "public"
                 }
               },
+              "location": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "locationId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Location",
+                  "namespace": "public"
+                }
+              },
               "organization": {
                 "cardinality": "N:1",
                 "on": {
@@ -15036,6 +15258,9 @@
                 },
                 "id": {
                   "column": "id"
+                },
+                "locationId": {
+                  "column": "locationId"
                 },
                 "notes": {
                   "column": "notes"
@@ -15378,6 +15603,13 @@
                   "kind": "scalar"
                 }
               },
+              "locationId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "name": {
                 "nullable": false,
                 "type": {
@@ -15415,6 +15647,21 @@
               }
             },
             "relations": {
+              "location": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "locationId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Location",
+                  "namespace": "public"
+                }
+              },
               "orders": {
                 "cardinality": "1:N",
                 "on": {
@@ -15468,6 +15715,9 @@
                 },
                 "id": {
                   "column": "id"
+                },
+                "locationId": {
+                  "column": "locationId"
                 },
                 "name": {
                   "column": "name"
@@ -29374,6 +29624,11 @@
                   "nativeType": "text",
                   "nullable": false
                 },
+                "locationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "organizationId": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -29631,6 +29886,11 @@
                   "nativeType": "bool",
                   "nullable": false
                 },
+                "locationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "name": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -29664,9 +29924,33 @@
                     "namespaceId": "public",
                     "tableName": "organization"
                   }
+                },
+                {
+                  "source": {
+                    "columns": [
+                      "locationId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "menuItem"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "location"
+                  }
                 }
               ],
               "indexes": [
+                {
+                  "columns": [
+                    "locationId"
+                  ],
+                  "name": "menuItem_locationId_idx_7aae3038",
+                  "prefix": "menuItem_locationId_idx",
+                  "unique": false
+                },
                 {
                   "columns": [
                     "organizationId"
@@ -34241,6 +34525,11 @@
                   "nativeType": "text",
                   "nullable": false
                 },
+                "locationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "note": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -34278,9 +34567,33 @@
                     "namespaceId": "public",
                     "tableName": "organization"
                   }
+                },
+                {
+                  "source": {
+                    "columns": [
+                      "locationId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "restaurantExpense"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "location"
+                  }
                 }
               ],
               "indexes": [
+                {
+                  "columns": [
+                    "locationId"
+                  ],
+                  "name": "restaurantExpense_locationId_idx_7aae3038",
+                  "prefix": "restaurantExpense_locationId_idx",
+                  "unique": false
+                },
                 {
                   "columns": [
                     "organizationId"
@@ -34317,6 +34630,11 @@
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": false
+                },
+                "locationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
                 },
                 "lowStockLevel": {
                   "codecId": "pg/float8@1",
@@ -34382,9 +34700,33 @@
                     "namespaceId": "public",
                     "tableName": "organization"
                   }
+                },
+                {
+                  "source": {
+                    "columns": [
+                      "locationId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "restaurantInventoryItem"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "location"
+                  }
                 }
               ],
               "indexes": [
+                {
+                  "columns": [
+                    "locationId"
+                  ],
+                  "name": "restaurantInventoryItem_locationId_idx_7aae3038",
+                  "prefix": "restaurantInventoryItem_locationId_idx",
+                  "unique": false
+                },
                 {
                   "columns": [
                     "organizationId"
@@ -34433,6 +34775,11 @@
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": false
+                },
+                "locationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
                 },
                 "orderNumber": {
                   "codecId": "pg/int4@1",
@@ -34551,6 +34898,22 @@
                 {
                   "source": {
                     "columns": [
+                      "locationId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "restaurantOrder"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "location"
+                  }
+                },
+                {
+                  "source": {
+                    "columns": [
                       "customerDataId"
                     ],
                     "namespaceId": "public",
@@ -34572,6 +34935,14 @@
                   ],
                   "name": "restaurantOrder_customerDataId_idx_579cb63a",
                   "prefix": "restaurantOrder_customerDataId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "locationId"
+                  ],
+                  "name": "restaurantOrder_locationId_idx_7aae3038",
+                  "prefix": "restaurantOrder_locationId_idx",
                   "unique": false
                 },
                 {
@@ -34628,6 +34999,11 @@
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": false
+                },
+                "locationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
                 },
                 "notes": {
                   "codecId": "pg/text@1",
@@ -34698,6 +35074,22 @@
                 {
                   "source": {
                     "columns": [
+                      "locationId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "restaurantReservation"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "location"
+                  }
+                },
+                {
+                  "source": {
+                    "columns": [
                       "tableId"
                     ],
                     "namespaceId": "public",
@@ -34735,6 +35127,14 @@
                   ],
                   "name": "restaurantReservation_customerDataId_idx_579cb63a",
                   "prefix": "restaurantReservation_customerDataId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "locationId"
+                  ],
+                  "name": "restaurantReservation_locationId_idx_7aae3038",
+                  "prefix": "restaurantReservation_locationId_idx",
                   "unique": false
                 },
                 {
@@ -35040,6 +35440,11 @@
                   "nativeType": "text",
                   "nullable": false
                 },
+                "locationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "name": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -35095,9 +35500,33 @@
                     "namespaceId": "public",
                     "tableName": "organization"
                   }
+                },
+                {
+                  "source": {
+                    "columns": [
+                      "locationId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "restaurantTable"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "location"
+                  }
                 }
               ],
               "indexes": [
+                {
+                  "columns": [
+                    "locationId"
+                  ],
+                  "name": "restaurantTable_locationId_idx_7aae3038",
+                  "prefix": "restaurantTable_locationId_idx",
+                  "unique": false
+                },
                 {
                   "columns": [
                     "organizationId"
@@ -42542,7 +42971,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "ba34c624c27a1601342d814f36f027eb6fe00ef8a0c2bd93cc84e7d74bbfffbd"
+    "storageHash": "10a0e2b65edf177d9b0d071b20bbdfd4e16b5ca66320dc853ac5b6813a433ace"
   },
   "execution": {
     "executionHash": "8ffe4abe549eee59d8014cc6ba66d7aa7f1e6b28e81a55c99e3f0de420286778",

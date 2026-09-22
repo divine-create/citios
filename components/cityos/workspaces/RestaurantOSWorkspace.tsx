@@ -23,10 +23,10 @@ import {
   getInventoryItems, createInventoryItem, adjustStock, deleteInventoryItem, updateInventoryItem,
   getStockMovements,
   getFinancialSummary, addExpense, getExpenses,
-  getSuppliers, createSupplier, deleteSupplier,
-  getPurchaseOrders, createPurchaseOrder, updatePurchaseOrderStatus,
+  
 } from "@/lib/actions/restaurantos";
 import { uploadAsset } from "@/lib/actions/microsite";
+import { getSuppliers, createSupplier, deleteSupplier, getPurchaseOrders, createPurchaseOrder, updatePurchaseOrderStatus } from "@/lib/actions/procurement";
 
 function fileToBase64(file: File): Promise<{ base64: string; mimeType: string }> {
   return new Promise((resolve, reject) => {
