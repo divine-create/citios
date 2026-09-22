@@ -444,6 +444,10 @@
       "model": "RetailPurchaseOrder",
       "namespace": "public"
     },
+    "retailPurchaseOrderItem": {
+      "model": "RetailPurchaseOrderItem",
+      "namespace": "public"
+    },
     "retailRegister": {
       "model": "RetailRegister",
       "namespace": "public"
@@ -16764,6 +16768,21 @@
                   "namespace": "public"
                 }
               },
+              "poItems": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "productId"
+                  ]
+                },
+                "to": {
+                  "model": "RetailPurchaseOrderItem",
+                  "namespace": "public"
+                }
+              },
               "stockMovements": {
                 "cardinality": "1:N",
                 "on": {
@@ -16861,6 +16880,20 @@
                   "kind": "scalar"
                 }
               },
+              "locationId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "notes": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "organizationId": {
                 "nullable": false,
                 "type": {
@@ -16905,6 +16938,36 @@
               }
             },
             "relations": {
+              "items": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "poId"
+                  ]
+                },
+                "to": {
+                  "model": "RetailPurchaseOrderItem",
+                  "namespace": "public"
+                }
+              },
+              "location": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "locationId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Location",
+                  "namespace": "public"
+                }
+              },
               "organization": {
                 "cardinality": "N:1",
                 "on": {
@@ -16947,6 +17010,12 @@
                 "id": {
                   "column": "id"
                 },
+                "locationId": {
+                  "column": "locationId"
+                },
+                "notes": {
+                  "column": "notes"
+                },
                 "organizationId": {
                   "column": "organizationId"
                 },
@@ -16968,6 +17037,128 @@
               },
               "namespaceId": "public",
               "table": "retailPurchaseOrder"
+            }
+          },
+          "RetailPurchaseOrderItem": {
+            "fields": {
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "orderedQty": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
+              "poId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "productId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "receivedQty": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
+              "totalCost": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
+              "unitCost": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "po": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "poId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "RetailPurchaseOrder",
+                  "namespace": "public"
+                }
+              },
+              "product": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "productId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "RetailProduct",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "orderedQty": {
+                  "column": "orderedQty"
+                },
+                "poId": {
+                  "column": "poId"
+                },
+                "productId": {
+                  "column": "productId"
+                },
+                "receivedQty": {
+                  "column": "receivedQty"
+                },
+                "totalCost": {
+                  "column": "totalCost"
+                },
+                "unitCost": {
+                  "column": "unitCost"
+                }
+              },
+              "namespaceId": "public",
+              "table": "retailPurchaseOrderItem"
             }
           },
           "RetailRegister": {
@@ -36077,6 +36268,16 @@
                   "nativeType": "text",
                   "nullable": false
                 },
+                "locationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "notes": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "organizationId": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -36149,9 +36350,33 @@
                     "namespaceId": "public",
                     "tableName": "retailSupplier"
                   }
+                },
+                {
+                  "source": {
+                    "columns": [
+                      "locationId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "retailPurchaseOrder"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "location"
+                  }
                 }
               ],
               "indexes": [
+                {
+                  "columns": [
+                    "locationId"
+                  ],
+                  "name": "retailPurchaseOrder_locationId_idx_7aae3038",
+                  "prefix": "retailPurchaseOrder_locationId_idx",
+                  "unique": false
+                },
                 {
                   "columns": [
                     "organizationId"
@@ -36166,6 +36391,117 @@
                   ],
                   "name": "retailPurchaseOrder_supplierId_idx_c4d9a8b9",
                   "prefix": "retailPurchaseOrder_supplierId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
+            },
+            "retailPurchaseOrderItem": {
+              "columns": {
+                "createdAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "orderedQty": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
+                  "nullable": false
+                },
+                "poId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "productId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "receivedQty": {
+                  "codecId": "pg/float8@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "float8",
+                  "nullable": false
+                },
+                "totalCost": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
+                  "nullable": false
+                },
+                "unitCost": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "poId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "retailPurchaseOrderItem"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "retailPurchaseOrder"
+                  }
+                },
+                {
+                  "source": {
+                    "columns": [
+                      "productId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "retailPurchaseOrderItem"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "retailProduct"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "poId"
+                  ],
+                  "name": "retailPurchaseOrderItem_poId_idx_f6a16692",
+                  "prefix": "retailPurchaseOrderItem_poId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "productId"
+                  ],
+                  "name": "retailPurchaseOrderItem_productId_idx_5858600a",
+                  "prefix": "retailPurchaseOrderItem_productId_idx",
                   "unique": false
                 }
               ],
@@ -42206,10 +42542,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "a11dae3d445e14a2048b617d59416f33df588f19b8d35f4cb4cd8cd4a9a9a13b"
+    "storageHash": "ba34c624c27a1601342d814f36f027eb6fe00ef8a0c2bd93cc84e7d74bbfffbd"
   },
   "execution": {
-    "executionHash": "640cefb451f470f0a0c4a4f569b1ef4e8352142f5366f011e0a1131f7de22bf1",
+    "executionHash": "8ffe4abe549eee59d8014cc6ba66d7aa7f1e6b28e81a55c99e3f0de420286778",
     "mutations": {
       "defaults": [
         {
@@ -43420,6 +43756,17 @@
             "column": "id",
             "namespace": "public",
             "table": "retailPurchaseOrder"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "retailPurchaseOrderItem"
           }
         },
         {

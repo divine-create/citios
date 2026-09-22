@@ -64,46 +64,8 @@ import InventoryManager from "./InventoryManager";
 import Settings from "./Settings";
 import ShopOnboardingWidget from "./ShopOnboardingWidget";
 import GlobalSearch from "./GlobalSearch";
-import {
-  getShopDashboardData,
-  getProducts,
-  getCategories,
-  getRegisters,
-  openShift,
-  closeShift,
-  getShiftHistory,
-  getSuppliers,
-  createSupplier,
-  deleteSupplier,
-  getPurchaseOrders,
-  createPurchaseOrder,
-  updatePurchaseOrderStatus,
-  createRegister,
-  getExpenses,
-  createExpense,
-  deleteExpense,
-  getExpenseSummary,
-  getOrders,
-  refundOrder,
-  getCustomers,
-  getCustomer,
-  createCustomer,
-  deleteCustomer,
-  adjustLoyaltyPoints,
-  getLocations,
-  createLocation,
-  updateLocation,
-  deleteLocation,
-  getStaff,
-  addStaffMember,
-  updateStaffRole,
-  removeStaffMember,
-  getShopReports,
-  getRetailSettings,
-  getShopNotifications,
-  markShopNotificationsRead,
-  exportShopReport,
-} from "@/lib/actions/retail";
+import { getShopDashboardData, getProducts, getCategories, getRegisters, openShift, closeShift, getShiftHistory, createRegister, getExpenses, createExpense, deleteExpense, getExpenseSummary, getOrders, refundOrder, getCustomers, getCustomer, createCustomer, deleteCustomer, adjustLoyaltyPoints, getLocations, createLocation, updateLocation, deleteLocation, getStaff, addStaffMember, updateStaffRole, removeStaffMember, getShopReports, getRetailSettings, getShopNotifications, markShopNotificationsRead, exportShopReport } from '@/lib/actions/retail'
+import { getSuppliers, createSupplier, deleteSupplier, getPurchaseOrders, createPurchaseOrder, updatePurchaseOrderStatus } from '@/lib/actions/procurement';
 import { getCityRegistry } from "@/app/actions/city";
 import { uploadAsset } from "@/lib/actions/microsite";
 import DiscountsTab from "./DiscountsTab";
@@ -1067,7 +1029,7 @@ function SuppliersTab({ organizationId, symbol = "$" }: { organizationId: string
 
   const submitPo = async () => {
     if (!poForm.supplierId || !poForm.poNumber.trim()) return;
-    await createPurchaseOrder({ organizationId, supplierId: poForm.supplierId, poNumber: poForm.poNumber, totalAmount: poForm.totalAmount ? parseFloat(poForm.totalAmount) : undefined });
+    await createPurchaseOrder({ organizationId, supplierId: poForm.supplierId, locationId: "", poNumber: poForm.poNumber, items: [] });
     setPoForm({ supplierId: "", poNumber: "", totalAmount: "" });
     setIsAddPoOpen(false);
     load();
@@ -1075,7 +1037,7 @@ function SuppliersTab({ organizationId, symbol = "$" }: { organizationId: string
 
   const cyclePoStatus = async (po: any) => {
     const next: Record<string, string> = { DRAFT: "SENT", SENT: "RECEIVED", RECEIVED: "RECEIVED", PARTIAL: "RECEIVED" };
-    await updatePurchaseOrderStatus(po.id, next[po.status] as "DRAFT" | "SENT" | "RECEIVED" | "PARTIAL");
+    await updatePurchaseOrderStatus(po.id, next[po.status] as any);
     load();
   };
 

@@ -2334,6 +2334,7 @@ model RetailProduct {
   category       RetailCategory? @relation(fields: [categoryId], references: [id])
   
   orderItems     RetailOrderItem[]
+  poItems        RetailPurchaseOrderItem[] @relation("ProductPOItems")
   stockMovements RetailStockMovement[] @relation("ProductStockMovements")
   
   createdAt      DateTime     @default(now())
@@ -2475,18 +2476,44 @@ model RetailPurchaseOrder {
   id             String       @id @default(uuid())
   organizationId String
   organization   Organization @relation("OrgRetailPurchaseOrders", fields: [organizationId], references: [id], onDelete: Cascade)
-  
+
   supplierId     String
   supplier       RetailSupplier @relation(fields: [supplierId], references: [id])
-  
+
+  locationId     String?
+  location       Location?    @relation("LocationPurchaseOrders", fields: [locationId], references: [id])
+
   poNumber       String
-  status         String       @default("DRAFT") // DRAFT, SENT, RECEIVED, PARTIAL
-  
+  status         String       @default("DRAFT") // DRAFT, SUBMITTED, APPROVED, PARTIAL, RECEIVED, CANCELLED
+
+  notes          String?
   expectedDate   DateTime?
   totalAmount    Float?
 
+  items          RetailPurchaseOrderItem[]
+
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @default(now())
+
+  @@index([organizationId])
+}
+
+model RetailPurchaseOrderItem {
+  id          String              @id @default(uuid())
+  poId        String
+  po          RetailPurchaseOrder @relation(fields: [poId], references: [id], onDelete: Cascade)
+
+  productId   String
+  product     RetailProduct       @relation("ProductPOItems", fields: [productId], references: [id])
+
+  orderedQty  Float
+  receivedQty Float               @default(0)
+  unitCost    Float
+  totalCost   Float
+
+  createdAt   DateTime            @default(now())
+
+  @@index([poId])
 }
 
 model RetailExpense {

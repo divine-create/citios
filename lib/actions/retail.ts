@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import '@js-temporal/polyfill'
 import { db } from '@/src/prisma/db'
@@ -10,6 +10,7 @@ import { generateUniqueSku } from '@/lib/sku'
 import { sendWhatsAppOrderNotification } from '@/lib/whatsapp'
 import { notifyPerson, personIdForCustomerData } from '@/lib/notify'
 import { pusherServer } from '@/lib/pusher'
+import { requireWithinLimit } from '@/lib/actions/entitlements'
 
 export type ActionResponse<T = any> = { error?: string } & T;
 
@@ -172,7 +173,7 @@ export async function deleteCategory(categoryId: string) {
     const cat = await db.orm.public.RetailCategory.where({ id: categoryId }).all().first();
     if (cat) await requireMembership(cat.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     const productsUsingIt = await db.orm.public.RetailProduct.where({ categoryId }).all();
-    if (productsUsingIt.length > 0) return { error: `${productsUsingIt.length} product(s) still use this category — reassign them first.` };
+    if (productsUsingIt.length > 0) return { error: `${productsUsingIt.length} product(s) still use this category â€” reassign them first.` };
     await db.orm.public.RetailCategory.where({ id: categoryId }).delete();
     return { success: true };
   } catch (error) {
@@ -216,6 +217,11 @@ export async function createProduct(input: {
 }) {
   try {
     await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
+    
+    // Entitlement limit check: count products and verify against plan limit
+    const productCount = await db.orm.public.RetailProduct.where({ organizationId: input.organizationId }).all().then(p => p.length);
+    await requireWithinLimit(input.organizationId, 'CITYMART_PRODUCTS', productCount);
+
     if (!input.name.trim()) return { error: 'Product name is required.' };
     if (input.price == null || input.price < 0) return { error: 'A valid price is required.' };
     const showOnFeed = input.showOnFeed ?? true;
@@ -404,7 +410,7 @@ export async function getStockMovements(organizationId: string, productId?: stri
 }
 
 // ---------------------------------------------------------------------
-// Locations (physical branches — V1 Location model, org-level)
+// Locations (physical branches â€” V1 Location model, org-level)
 // ---------------------------------------------------------------------
 
 export async function getLocations(organizationId: string) {
@@ -463,14 +469,14 @@ export async function deleteLocation(locationId: string) {
 }
 
 // ---------------------------------------------------------------------
-// Staff (workforce: Person → Membership → MembershipRole)
+// Staff (workforce: Person â†’ Membership â†’ MembershipRole)
 // ---------------------------------------------------------------------
 
 const ASSIGNABLE_STAFF_ROLES = ['MANAGER', 'CASHIER', 'INVENTORY_STAFF'] as const;
 
 // Adds a staff member by email. V1 identity: the email identifier pins the
 // Person (created here if new, unverified until they first sign in and the
-// auth flow claims it — one verified email → one Person, Person may exist
+// auth flow claims it â€” one verified email â†’ one Person, Person may exist
 // without an Account). Membership is org-scoped; no client-supplied ids.
 export async function addStaffMember(input: { organizationId: string; email: string; name?: string; role: string }) {
   try {
@@ -482,7 +488,7 @@ export async function addStaffMember(input: { organizationId: string; email: str
       return { error: 'Role must be MANAGER, CASHIER, or INVENTORY_STAFF.' };
     }
 
-    // Deterministic email → Person (no fuzzy matching).
+    // Deterministic email â†’ Person (no fuzzy matching).
     let identifier = await db.orm.public.PersonIdentifier.where({ type: 'EMAIL', normalizedValue: email }).all().first();
     let person = identifier ? await db.orm.public.Person.where({ id: identifier.personId }).all().first() : null;
 
@@ -500,7 +506,7 @@ export async function addStaffMember(input: { organizationId: string; email: str
       }
     }
 
-    // One Membership per (person, org) — unique in the contract.
+    // One Membership per (person, org) â€” unique in the contract.
     let membership = await db.orm.public.Membership.where({ personId: person.id, organizationId: input.organizationId }).all().first();
     if (!membership) {
       membership = await db.orm.public.Membership.create({ personId: person.id, organizationId: input.organizationId });
@@ -626,7 +632,7 @@ export async function createRegister(organizationId: string, name: string, locat
   }
 }
 
-// The single open shift for this org, if any — the whole POS/dashboard UI
+// The single open shift for this org, if any â€” the whole POS/dashboard UI
 // assumes one active register/shift at a time (matches the MVP scope of
 // the existing ShopDashboard UI, which shows a single "Register: OPEN" chip).
 export async function getOpenShift(organizationId: string, locationId?: string | null) {
@@ -741,7 +747,7 @@ export async function createOrder(input: {
     // Resolve products in ONE org-scoped fetch and refuse any cart item whose
     // product does not belong to the sale's organization. Without this guard a
     // member of another store could craft a cart that decrements that store's
-    // stock — a cross-tenant inventory corruption vector.
+    // stock â€” a cross-tenant inventory corruption vector.
     const orgProducts = await db.orm.public.RetailProduct.where({ organizationId: input.organizationId }).all();
     const productById = new Map(orgProducts.map((p) => [p.id, p]));
 
@@ -766,7 +772,7 @@ export async function createOrder(input: {
 
     // Manual discount (typed at the register) is clamped to the subtotal. A
     // coupon code, when given, is validated org-scoped and its discount is
-    // stacked on top — still never taking the sale below zero.
+    // stacked on top â€” still never taking the sale below zero.
     let coupon: { id: string; code: string; type: string; value: number; minSpend: number; isActive: boolean; usageLimit: number | null; timesUsed: number; expiresAt: unknown } | null = null;
     const manualDiscount = Math.max(0, Math.min(input.discountAmount ?? 0, subtotal));
     if (input.couponCode?.trim()) {
@@ -791,7 +797,7 @@ export async function createOrder(input: {
       : 0;
     const discountAmount = manualDiscount + couponDiscount;
 
-    // Fetch the store's tax rate (Settings stores a percentage — 8 for 8%).
+    // Fetch the store's tax rate (Settings stores a percentage â€” 8 for 8%).
     let taxRate = 0;
     let walletSettlementEnabled = false;
     const settings = await db.orm.public.RetailSettings.where({ organizationId: input.organizationId }).all().first();
@@ -1059,7 +1065,7 @@ export async function refundOrder(orderId: string, input: { reason?: string }) {
     if (!o) return { error: 'Order not found.' };
     const { membership } = await requireMembership(o.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
 
-    // Stock restoration and the refunded status flip are one atomic unit — a
+    // Stock restoration and the refunded status flip are one atomic unit â€” a
     // failure can never leave stock restored onto a still-"completed" order.
     await db.transaction(async (tx: any) => {
       const order = await tx.orm.public.RetailOrder.where({ id: orderId }).all().first();
@@ -1117,120 +1123,6 @@ export async function refundOrder(orderId: string, input: { reason?: string }) {
   } catch (error) {
     console.error('Error refunding order:', error);
     return { error: error instanceof Error ? error.message : 'Failed to refund order.' };
-  }
-}
-
-// ---------------------------------------------------------------------
-// Suppliers & Purchase Orders
-// ---------------------------------------------------------------------
-
-export async function getSuppliers(organizationId: string) {
-  try {
-    await requireMembership(organizationId);
-    const suppliers = await db.orm.public.RetailSupplier.where({ organizationId }).all();
-    return JSON.parse(JSON.stringify(suppliers));
-  } catch (error) {
-    console.error('Error fetching suppliers:', error);
-    return [];
-  }
-}
-
-export async function createSupplier(input: { organizationId: string; name: string; email?: string; phone?: string; leadTimeDays?: number; paymentTerms?: string }) {
-  try {
-    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
-    if (!input.name.trim()) return { error: 'Supplier name is required.' };
-    const supplier = await db.orm.public.RetailSupplier.create({
-      organizationId: input.organizationId,
-      name: input.name,
-      email: input.email,
-      phone: input.phone,
-      leadTimeDays: input.leadTimeDays,
-      paymentTerms: input.paymentTerms,
-    });
-    return { success: true, supplier: JSON.parse(JSON.stringify(supplier)) };
-  } catch (error) {
-    console.error('Error creating supplier:', error);
-    return { error: 'Failed to create supplier.' };
-  }
-}
-
-export async function updateSupplier(supplierId: string, input: { name?: string; email?: string | null; phone?: string | null; leadTimeDays?: number | null; paymentTerms?: string | null }) {
-  try {
-    const sup = await db.orm.public.RetailSupplier.where({ id: supplierId }).all().first();
-    if (sup) await requireMembership(sup.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
-    const data: Record<string, unknown> = {};
-    if (input.name !== undefined) data.name = input.name;
-    if (input.email !== undefined) data.email = input.email;
-    if (input.phone !== undefined) data.phone = input.phone;
-    if (input.leadTimeDays !== undefined) data.leadTimeDays = input.leadTimeDays;
-    if (input.paymentTerms !== undefined) data.paymentTerms = input.paymentTerms;
-    await db.orm.public.RetailSupplier.where({ id: supplierId }).update(data);
-    return { success: true };
-  } catch (error) {
-    console.error('Error updating supplier:', error);
-    return { error: 'Failed to update supplier.' };
-  }
-}
-
-export async function deleteSupplier(supplierId: string) {
-  try {
-    const sup = await db.orm.public.RetailSupplier.where({ id: supplierId }).all().first();
-    if (sup) await requireMembership(sup.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
-    const posUsingIt = await db.orm.public.RetailPurchaseOrder.where({ supplierId }).all();
-    if (posUsingIt.length > 0) return { error: `${posUsingIt.length} purchase order(s) reference this supplier.` };
-    await db.orm.public.RetailSupplier.where({ id: supplierId }).delete();
-    return { success: true };
-  } catch (error) {
-    console.error('Error deleting supplier:', error);
-    return { error: 'Failed to delete supplier.' };
-  }
-}
-
-export async function getPurchaseOrders(organizationId: string) {
-  try {
-    await requireMembership(organizationId);
-    const pos = await db.orm.public.RetailPurchaseOrder.where({ organizationId }).all();
-    const suppliers = await db.orm.public.RetailSupplier.where({ organizationId }).all();
-    const enriched = pos.map((po) => ({ ...po, supplierName: suppliers.find((s) => s.id === po.supplierId)?.name ?? 'Unknown' }));
-    enriched.sort((a, b) => epochMs(b.createdAt) - epochMs(a.createdAt));
-    return JSON.parse(JSON.stringify(enriched));
-  } catch (error) {
-    console.error('Error fetching purchase orders:', error);
-    return [];
-  }
-}
-
-export async function createPurchaseOrder(input: { organizationId: string; supplierId: string; poNumber: string; expectedDate?: string; totalAmount?: number }) {
-  try {
-    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
-    if (!input.poNumber.trim()) return { error: 'PO number is required.' };
-    const po = await db.orm.public.RetailPurchaseOrder.create({
-      organizationId: input.organizationId,
-      supplierId: input.supplierId,
-      poNumber: input.poNumber,
-      status: 'DRAFT',
-      expectedDate: input.expectedDate ? toInstant(new Date(input.expectedDate)) : undefined,
-      totalAmount: input.totalAmount,
-    });
-    return { success: true, po: JSON.parse(JSON.stringify(po)) };
-  } catch (error) {
-    console.error('Error creating purchase order:', error);
-    return { error: 'Failed to create purchase order.' };
-  }
-}
-
-export async function updatePurchaseOrderStatus(poId: string, status: 'DRAFT' | 'SENT' | 'RECEIVED' | 'PARTIAL') {
-  try {
-    const po = await db.orm.public.RetailPurchaseOrder.where({ id: poId }).all().first();
-    if (po) await requireMembership(po.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
-    await db.orm.public.RetailPurchaseOrder.where({ id: poId }).update({ status });
-    if (po && status === 'RECEIVED') {
-      await createShopNotification(po.organizationId, 'PO_RECEIVED', 'Purchase order received', `PO #${po.poNumber} was marked received.`);
-    }
-    return { success: true };
-  } catch (error) {
-    console.error('Error updating purchase order:', error);
-    return { error: 'Failed to update purchase order.' };
   }
 }
 
@@ -1477,7 +1369,7 @@ export async function getShopDashboardData(organizationId: string, locationId?: 
       .sort((a, b) => (stockMap.get(a.id) || 0) - (stockMap.get(b.id) || 0))
       .map((p) => ({ id: p.id, name: p.name, stockQuantity: stockMap.get(p.id) || 0, lowStockLevel: p.lowStockLevel, unit: p.unit, sku: p.sku }));
 
-    // Top products by units sold & revenue — derived from this org's own
+    // Top products by units sold & revenue â€” derived from this org's own
     // completed order line items (never a cross-tenant scan).
     const productById = new Map(products.map((p) => [p.id, p.name]));
     const salesByProduct: Record<string, { units: number; revenue: number }> = {};
@@ -1997,7 +1889,7 @@ export async function getReceiptData(orderId: string) {
 }
 
 // ---------------------------------------------------------------------
-// Global search (⌘K palette)
+// Global search (âŒ˜K palette)
 // ---------------------------------------------------------------------
 
 export async function searchShopOS(organizationId: string, query: string) {
@@ -2017,7 +1909,7 @@ export async function searchShopOS(organizationId: string, query: string) {
       .map((p) => ({
         id: p.id,
         name: p.name,
-        subtitle: `${p.sku ? `SKU ${p.sku} · ` : ''}${p.stockQuantity} ${p.unit} in stock`,
+        subtitle: `${p.sku ? `SKU ${p.sku} Â· ` : ''}${p.stockQuantity} ${p.unit} in stock`,
         icon: 'PRODUCT',
       }));
 
@@ -2052,7 +1944,7 @@ export async function searchShopOS(organizationId: string, query: string) {
       .map((o) => ({
         id: o.id,
         name: `Order #${o.id.slice(0, 8)}`,
-        subtitle: `${o.cashierName} · ${o.items.length} item${o.items.length === 1 ? '' : 's'} · ${o.paymentMethod}`,
+        subtitle: `${o.cashierName} Â· ${o.items.length} item${o.items.length === 1 ? '' : 's'} Â· ${o.paymentMethod}`,
         icon: 'ORDER',
       }));
 
@@ -2075,7 +1967,7 @@ export async function searchShopOS(organizationId: string, query: string) {
 }
 
 // ---------------------------------------------------------------------
-// Reports (real, derived figures — no fabrications)
+// Reports (real, derived figures â€” no fabrications)
 // ---------------------------------------------------------------------
 
 export async function getShopReports(organizationId: string) {
@@ -2307,3 +2199,4 @@ export async function updateFulfillmentStatus(orderId: string, status: 'UNFULFIL
     return { error: error.message };
   }
 }
+
