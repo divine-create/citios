@@ -300,6 +300,10 @@
       "model": "Payment",
       "namespace": "public"
     },
+    "paymentEvent": {
+      "model": "PaymentEvent",
+      "namespace": "public"
+    },
     "person": {
       "model": "Person",
       "namespace": "public"
@@ -11071,8 +11075,36 @@
                   "kind": "scalar"
                 }
               },
+              "idempotencyKey": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "method": {
                 "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "provider": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "providerReference": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "reference": {
+                "nullable": true,
                 "type": {
                   "codecId": "pg/text@1",
                   "kind": "scalar"
@@ -11115,6 +11147,21 @@
               }
             },
             "relations": {
+              "events": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "paymentId"
+                  ]
+                },
+                "to": {
+                  "model": "PaymentEvent",
+                  "namespace": "public"
+                }
+              },
               "restaurantOrder": {
                 "cardinality": "N:1",
                 "on": {
@@ -11175,8 +11222,20 @@
                 "id": {
                   "column": "id"
                 },
+                "idempotencyKey": {
+                  "column": "idempotencyKey"
+                },
                 "method": {
                   "column": "method"
+                },
+                "provider": {
+                  "column": "provider"
+                },
+                "providerReference": {
+                  "column": "providerReference"
+                },
+                "reference": {
+                  "column": "reference"
                 },
                 "restaurantOrderId": {
                   "column": "restaurantOrderId"
@@ -11196,6 +11255,93 @@
               },
               "namespaceId": "public",
               "table": "payment"
+            }
+          },
+          "PaymentEvent": {
+            "fields": {
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "payload": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/json@1",
+                  "kind": "scalar"
+                }
+              },
+              "paymentId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "providerEventId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "type": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "payment": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "paymentId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Payment",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "payload": {
+                  "column": "payload"
+                },
+                "paymentId": {
+                  "column": "paymentId"
+                },
+                "providerEventId": {
+                  "column": "providerEventId"
+                },
+                "type": {
+                  "column": "type"
+                }
+              },
+              "namespaceId": "public",
+              "table": "paymentEvent"
             }
           },
           "Person": {
@@ -30476,10 +30622,30 @@
                   "nativeType": "text",
                   "nullable": false
                 },
+                "idempotencyKey": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "method": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": false
+                },
+                "provider": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "providerReference": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "reference": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
                 },
                 "restaurantOrderId": {
                   "codecId": "pg/text@1",
@@ -30574,6 +30740,21 @@
               "uniques": [
                 {
                   "columns": [
+                    "reference"
+                  ]
+                },
+                {
+                  "columns": [
+                    "providerReference"
+                  ]
+                },
+                {
+                  "columns": [
+                    "idempotencyKey"
+                  ]
+                },
+                {
+                  "columns": [
                     "transactionId"
                   ]
                 },
@@ -30585,6 +30766,85 @@
                 {
                   "columns": [
                     "retailOrderId"
+                  ]
+                }
+              ]
+            },
+            "paymentEvent": {
+              "columns": {
+                "createdAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "payload": {
+                  "codecId": "pg/json@1",
+                  "nativeType": "json",
+                  "nullable": false
+                },
+                "paymentId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "providerEventId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "type": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "paymentId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "paymentEvent"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "payment"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "paymentId"
+                  ],
+                  "name": "paymentEvent_paymentId_idx_b2fe9a10",
+                  "prefix": "paymentEvent_paymentId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "providerEventId"
                   ]
                 }
               ]
@@ -40155,10 +40415,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "d4c78c359d3477823a719c8ed3dcda9fc3cae602699b21abffd753f4ab14f221"
+    "storageHash": "d46af040f63ae9a044632d127abe2a5dd416117aa239f56a9adbc960249499b0"
   },
   "execution": {
-    "executionHash": "273cf93a7e46509b4c99e2dfdb867a547407e1a62b27491a0e62aea539cbda21",
+    "executionHash": "8e53305d0fd3d36bbad2780b67a50b6414ac8d4a43e923283100bf36d29969ae",
     "mutations": {
       "defaults": [
         {
@@ -40973,6 +41233,17 @@
             "column": "id",
             "namespace": "public",
             "table": "payment"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "paymentEvent"
           }
         },
         {

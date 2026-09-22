@@ -15,9 +15,12 @@ import { notifyPerson } from '@/lib/notify';
  * Supports multi-org carts: creates one RetailOrder per organization group.
  */
 export async function placeRetailOrder(input: {
-  orgId?: string; // accepted but ignored — org derived server-side per product
+  orgId?: string; // accepted but ignored
+  locationId?: string; // Phase 2B location support
   items: { productId: string; qty: number; name: string }[];
   method: string;
+  paymentReference?: string;
+  idempotencyKey?: string;
 }) {
   const session = await getServerSession(authOptions);
 
@@ -87,48 +90,83 @@ export async function placeRetailOrder(input: {
     }
 
     const order = await db.transaction(async (tx: any) => {
+      const isWallet = input.method === 'wallet';
+      const orderStatus = isWallet ? 'COMPLETED' : 'PENDING';
+
+      // Idempotency check for duplicate creation
+      if (input.idempotencyKey) {
+        const existingOrder = await tx.orm.public.RetailOrder.where({ idempotencyKey: input.idempotencyKey }).all().first();
+        if (existingOrder) {
+          // If we find an existing order, we return it safely
+          return existingOrder;
+        }
+      }
+
       const createdOrder = await tx.orm.public.RetailOrder.create({
         organizationId: orgId,
+        locationId: input.locationId,
         customerDataId: customer.id,
         cashierId: 'ONLINE_CHECKOUT',
         totalAmount: group.total,
-        paymentMethod: input.method === 'wallet' ? 'WALLET' : input.method === 'card' ? 'CARD' : 'BANK_TRANSFER',
-        status: 'COMPLETED',
+        paymentMethod: isWallet ? 'WALLET' : input.method === 'card' ? 'CARD' : 'BANK_TRANSFER',
+        status: orderStatus,
+        idempotencyKey: input.idempotencyKey,
       });
         
       await tx.orm.public.Payment.create({
         amount: group.total,
         currency: 'USD',
-        method: input.method === 'wallet' ? 'WALLET' : input.method === 'card' ? 'CARD' : 'BANK_TRANSFER',
-        status: 'COMPLETED',
-        retailOrderId: createdOrder.id
+        method: isWallet ? 'WALLET' : input.method === 'card' ? 'CARD' : 'BANK_TRANSFER',
+        status: orderStatus,
+        retailOrderId: createdOrder.id,
+        reference: input.paymentReference,
+        idempotencyKey: input.idempotencyKey ? input.idempotencyKey + '_pay' : undefined,
       });
         
       for (const verifiedItem of group.items) {
         await tx.orm.public.RetailOrderItem.create({ orderId: createdOrder.id, ...verifiedItem });
 
-        // Atomically decrement stock in database
-        const product = await tx.orm.public.RetailProduct.where({ id: verifiedItem.productId }).all().first();
-        if (product) {
-          if (!product.isWeighed && product.stockQuantity < verifiedItem.quantity) {
-            throw new Error(`Item "${product.name}" was just purchased or has insufficient stock.`);
+        if (isWallet) {
+          // For wallet (synchronous success), deduct stock immediately using location logic if possible
+          if (input.locationId) {
+             const locStock = await tx.orm.public.RetailLocationStock.where({ locationId: input.locationId, productId: verifiedItem.productId }).all().first();
+             if (!locStock || locStock.quantity < verifiedItem.quantity) {
+                 throw new Error(`Insufficient stock for item at this location.`);
+             }
+             await tx.orm.public.RetailLocationStock.where({ id: locStock.id }).update({ quantity: locStock.quantity - verifiedItem.quantity });
+             
+             await tx.orm.public.RetailStockMovement.create({
+               organizationId: orgId,
+               locationId: input.locationId,
+               productId: verifiedItem.productId,
+               delta: -verifiedItem.quantity,
+               beforeQty: locStock.quantity,
+               afterQty: locStock.quantity - verifiedItem.quantity,
+               reason: 'SALE',
+               note: `Online Order #${createdOrder.id.slice(0, 8)}`,
+             });
+          } else {
+             // Fallback to global stock if no location provided (legacy)
+             const product = await tx.orm.public.RetailProduct.where({ id: verifiedItem.productId }).all().first();
+             if (product) {
+               if (!product.isWeighed && product.stockQuantity < verifiedItem.quantity) {
+                 throw new Error(`Item "${product.name}" has insufficient stock.`);
+               }
+               const nextStock = Math.max(0, product.stockQuantity - verifiedItem.quantity);
+               await tx.orm.public.RetailProduct.where({ id: verifiedItem.productId }).update({
+                 stockQuantity: nextStock,
+               });
+               await tx.orm.public.RetailStockMovement.create({
+                 organizationId: orgId,
+                 productId: verifiedItem.productId,
+                 delta: -verifiedItem.quantity,
+                 beforeQty: product.stockQuantity,
+                 afterQty: nextStock,
+                 reason: 'SALE',
+                 note: `Online Order #${createdOrder.id.slice(0, 8)}`,
+               });
+             }
           }
-          const nextStock = Math.max(0, product.stockQuantity - verifiedItem.quantity);
-          await tx.orm.public.RetailProduct.where({ id: verifiedItem.productId }).update({
-            stockQuantity: nextStock,
-          });
-
-          // Audit log stock movement
-          await tx.orm.public.RetailStockMovement.create({
-            organizationId: orgId,
-            productId: verifiedItem.productId,
-            delta: -verifiedItem.quantity,
-            beforeQty: product.stockQuantity,
-            afterQty: nextStock,
-            reason: 'SALE',
-            note: `Online Order #${createdOrder.id.slice(0, 8)}`,
-            recordedById: null,
-          });
         }
       }
       return createdOrder;

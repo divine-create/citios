@@ -2917,6 +2917,11 @@ model Payment {
   method            String       // "WALLET", "CARD", "TRANSFER"
   status            String       @default("PENDING") // "PENDING", "COMPLETED", "FAILED"
   
+  provider          String?      // e.g. "PAYSTACK"
+  reference         String?      @unique // CityOS internal payment reference
+  providerReference String?      @unique // Provider's canonical transaction ID
+  idempotencyKey    String?      @unique // Client's duplicate-initiation protection key
+  
   transactionId     String?      @unique
   transaction       Transaction? @relation(fields: [transactionId], references: [id])
   
@@ -2926,8 +2931,24 @@ model Payment {
   retailOrderId     String?      @unique
   retailOrder       RetailOrder? @relation(fields: [retailOrderId], references: [id])
   
+  events            PaymentEvent[]
+  
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @default(now())
+}
+
+model PaymentEvent {
+  id              String   @id @default(uuid())
+  paymentId       String
+  payment         Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  
+  providerEventId String   @unique // Provider's unique event ID for exactly-once webhook processing
+  type            String   // e.g., "charge.success", "refund.failed"
+  payload         Json     // Raw or normalized event data (No PANs/CVVs)
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([paymentId])
 }
 
 model DeliveryJob {

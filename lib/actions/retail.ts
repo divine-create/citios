@@ -724,8 +724,9 @@ export async function createOrder(input: {
   items: { productId: string; quantity: number }[];
   paymentMethod: 'CASH' | 'CARD' | 'SPLIT';
   discountAmount?: number;
-  couponCode?: string;
-}) {
+    couponCode?: string;
+    idempotencyKey?: string;
+  }) {
   try {
     // Cashier identity comes from the session (the Membership processing the
     // sale) — never from the client payload.
@@ -794,16 +795,25 @@ export async function createOrder(input: {
     }
 
     const taxAmount = (subtotal - discountAmount) * taxRate;
-    const totalAmount = subtotal - discountAmount + taxAmount;
+        const totalAmount = subtotal - discountAmount + taxAmount;
 
-    // Order, line items, stock movements, coupon usage, and (when enabled)
-    // the CityPay wallet credit are one atomic unit: a failure anywhere rolls
-    // the whole sale back.
-    const order = await db.transaction(async (tx) => {
+    if (input.idempotencyKey) {
+      const existing = await db.orm.public.RetailOrder.where({ idempotencyKey: input.idempotencyKey, organizationId: input.organizationId }).all().first();
+      if (existing) {
+        if (existing.locationId !== (input.locationId ?? null)) return { error: 'Idempotency conflict: location mismatch.' };
+        if (Math.abs(existing.totalAmount - totalAmount) > 0.01) return { error: 'Idempotency conflict: payload does not match the original request.' };
+        return { success: true, orderId: existing.id, totalAmount: existing.totalAmount, taxAmount: existing.taxAmount };
+      }
+    }
+
+    let order;
+    try {
+      order = await db.transaction(async (tx) => {
       const created = await tx.orm.public.RetailOrder.create({
         organizationId: input.organizationId,
         shiftId: input.shiftId,
         locationId: input.locationId,
+        idempotencyKey: input.idempotencyKey,
         cashierId,
         customerDataId: input.customerDataId,
         couponId: coupon?.id,
@@ -874,7 +884,18 @@ export async function createOrder(input: {
       }
 
       return created;
-    });
+      });
+    } catch (error: any) {
+      if (input.idempotencyKey && (error.code === 'P2002' || (error.message && (error.message.includes('idempotencyKey') || error.message.includes('Unique constraint'))))) {
+        const existing = await db.orm.public.RetailOrder.where({ idempotencyKey: input.idempotencyKey, organizationId: input.organizationId }).all().first();
+        if (existing) {
+          if (existing.locationId !== (input.locationId ?? null)) return { error: 'Idempotency conflict: location mismatch.' };
+          if (Math.abs(existing.totalAmount - totalAmount) > 0.01) return { error: 'Idempotency conflict: payload does not match the original request.' };
+          return { success: true, orderId: existing.id, totalAmount: existing.totalAmount, taxAmount: existing.taxAmount };
+        }
+      }
+      throw error;
+    }
 
     revalidatePath('/market');
     revalidatePath('/workspaces/shopos');

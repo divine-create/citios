@@ -33,9 +33,9 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'d4c78c359d3477823a719c8ed3dcda9fc3cae602699b21abffd753f4ab14f221'>;
+  StorageHashBase<'d46af040f63ae9a044632d127abe2a5dd416117aa239f56a9adbc960249499b0'>;
 export type ExecutionHash =
-  ExecutionHashBase<'273cf93a7e46509b4c99e2dfdb867a547407e1a62b27491a0e62aea539cbda21'>;
+  ExecutionHashBase<'8e53305d0fd3d36bbad2780b67a50b6414ac8d4a43e923283100bf36d29969ae'>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
 
@@ -944,11 +944,23 @@ export type FieldOutputTypes = {
       readonly currency: CodecTypes['pg/text@1']['output'];
       readonly method: CodecTypes['pg/text@1']['output'];
       readonly status: CodecTypes['pg/text@1']['output'];
+      readonly provider: CodecTypes['pg/text@1']['output'] | null;
+      readonly reference: CodecTypes['pg/text@1']['output'] | null;
+      readonly providerReference: CodecTypes['pg/text@1']['output'] | null;
+      readonly idempotencyKey: CodecTypes['pg/text@1']['output'] | null;
       readonly transactionId: CodecTypes['pg/text@1']['output'] | null;
       readonly restaurantOrderId: CodecTypes['pg/text@1']['output'] | null;
       readonly retailOrderId: CodecTypes['pg/text@1']['output'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    };
+    readonly PaymentEvent: {
+      readonly id: CodecTypes['pg/text@1']['output'];
+      readonly paymentId: CodecTypes['pg/text@1']['output'];
+      readonly providerEventId: CodecTypes['pg/text@1']['output'];
+      readonly type: CodecTypes['pg/text@1']['output'];
+      readonly payload: CodecTypes['pg/json@1']['output'];
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
     };
     readonly Person: {
       readonly id: CodecTypes['pg/text@1']['output'];
@@ -2518,11 +2530,23 @@ export type FieldInputTypes = {
       readonly currency: CodecTypes['pg/text@1']['input'];
       readonly method: CodecTypes['pg/text@1']['input'];
       readonly status: CodecTypes['pg/text@1']['input'];
+      readonly provider: CodecTypes['pg/text@1']['input'] | null;
+      readonly reference: CodecTypes['pg/text@1']['input'] | null;
+      readonly providerReference: CodecTypes['pg/text@1']['input'] | null;
+      readonly idempotencyKey: CodecTypes['pg/text@1']['input'] | null;
       readonly transactionId: CodecTypes['pg/text@1']['input'] | null;
       readonly restaurantOrderId: CodecTypes['pg/text@1']['input'] | null;
       readonly retailOrderId: CodecTypes['pg/text@1']['input'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+    };
+    readonly PaymentEvent: {
+      readonly id: CodecTypes['pg/text@1']['input'];
+      readonly paymentId: CodecTypes['pg/text@1']['input'];
+      readonly providerEventId: CodecTypes['pg/text@1']['input'];
+      readonly type: CodecTypes['pg/text@1']['input'];
+      readonly payload: CodecTypes['pg/json@1']['input'];
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
     };
     readonly Person: {
       readonly id: CodecTypes['pg/text@1']['input'];
@@ -4091,12 +4115,24 @@ export type StorageColumnTypes = {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly currency: CodecTypes['pg/text@1']['output'];
       readonly id: CodecTypes['pg/text@1']['output'];
+      readonly idempotencyKey: CodecTypes['pg/text@1']['output'] | null;
       readonly method: CodecTypes['pg/text@1']['output'];
+      readonly provider: CodecTypes['pg/text@1']['output'] | null;
+      readonly providerReference: CodecTypes['pg/text@1']['output'] | null;
+      readonly reference: CodecTypes['pg/text@1']['output'] | null;
       readonly restaurantOrderId: CodecTypes['pg/text@1']['output'] | null;
       readonly retailOrderId: CodecTypes['pg/text@1']['output'] | null;
       readonly status: CodecTypes['pg/text@1']['output'];
       readonly transactionId: CodecTypes['pg/text@1']['output'] | null;
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    };
+    readonly paymentEvent: {
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly id: CodecTypes['pg/text@1']['output'];
+      readonly payload: CodecTypes['pg/json@1']['output'];
+      readonly paymentId: CodecTypes['pg/text@1']['output'];
+      readonly providerEventId: CodecTypes['pg/text@1']['output'];
+      readonly type: CodecTypes['pg/text@1']['output'];
     };
     readonly person: {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
@@ -5665,12 +5701,24 @@ export type StorageColumnInputTypes = {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly currency: CodecTypes['pg/text@1']['input'];
       readonly id: CodecTypes['pg/text@1']['input'];
+      readonly idempotencyKey: CodecTypes['pg/text@1']['input'] | null;
       readonly method: CodecTypes['pg/text@1']['input'];
+      readonly provider: CodecTypes['pg/text@1']['input'] | null;
+      readonly providerReference: CodecTypes['pg/text@1']['input'] | null;
+      readonly reference: CodecTypes['pg/text@1']['input'] | null;
       readonly restaurantOrderId: CodecTypes['pg/text@1']['input'] | null;
       readonly retailOrderId: CodecTypes['pg/text@1']['input'] | null;
       readonly status: CodecTypes['pg/text@1']['input'];
       readonly transactionId: CodecTypes['pg/text@1']['input'] | null;
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+    };
+    readonly paymentEvent: {
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly id: CodecTypes['pg/text@1']['input'];
+      readonly payload: CodecTypes['pg/json@1']['input'];
+      readonly paymentId: CodecTypes['pg/text@1']['input'];
+      readonly providerEventId: CodecTypes['pg/text@1']['input'];
+      readonly type: CodecTypes['pg/text@1']['input'];
     };
     readonly person: {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
@@ -12513,6 +12561,26 @@ type ContractBase = Omit<
                     readonly value: DefaultLiteralValue<'pg/text@1', 'PENDING'>;
                   };
                 };
+                readonly provider: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly reference: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly providerReference: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly idempotencyKey: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
                 readonly transactionId: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
@@ -12543,6 +12611,9 @@ type ContractBase = Omit<
               };
               primaryKey: { readonly columns: readonly ['id'] };
               uniques: readonly [
+                { readonly columns: readonly ['reference'] },
+                { readonly columns: readonly ['providerReference'] },
+                { readonly columns: readonly ['idempotencyKey'] },
                 { readonly columns: readonly ['transactionId'] },
                 { readonly columns: readonly ['restaurantOrderId'] },
                 { readonly columns: readonly ['retailOrderId'] },
@@ -12582,6 +12653,65 @@ type ContractBase = Omit<
                   readonly target: {
                     readonly namespaceId: 'public' & NamespaceId;
                     readonly tableName: 'retailOrder';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+              ];
+            };
+            readonly paymentEvent: {
+              columns: {
+                readonly id: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly paymentId: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly providerEventId: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly type: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly payload: {
+                  readonly nativeType: 'json';
+                  readonly codecId: 'pg/json@1';
+                  readonly nullable: false;
+                };
+                readonly createdAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [{ readonly columns: readonly ['providerEventId'] }];
+              indexes: readonly [
+                {
+                  readonly name: 'paymentEvent_paymentId_idx_b2fe9a10';
+                  readonly prefix: 'paymentEvent_paymentId_idx';
+                  readonly columns: readonly ['paymentId'];
+                  readonly unique: false;
+                },
+              ];
+              foreignKeys: readonly [
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'paymentEvent';
+                    readonly columns: readonly ['paymentId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'payment';
                     readonly columns: readonly ['id'];
                   };
                 },
@@ -20658,6 +20788,10 @@ type ContractBase = Omit<
     readonly savedItem: { readonly namespace: 'public' & NamespaceId; readonly model: 'SavedItem' };
     readonly review: { readonly namespace: 'public' & NamespaceId; readonly model: 'Review' };
     readonly payment: { readonly namespace: 'public' & NamespaceId; readonly model: 'Payment' };
+    readonly paymentEvent: {
+      readonly namespace: 'public' & NamespaceId;
+      readonly model: 'PaymentEvent';
+    };
     readonly deliveryJob: {
       readonly namespace: 'public' & NamespaceId;
       readonly model: 'DeliveryJob';
@@ -27159,6 +27293,22 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
+              readonly provider: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly reference: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly providerReference: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly idempotencyKey: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
               readonly transactionId: {
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
@@ -27187,6 +27337,17 @@ type ContractBase = Omit<
               };
             };
             readonly relations: {
+              readonly events: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'PaymentEvent';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['paymentId'];
+                };
+              };
               readonly restaurantOrder: {
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;
@@ -27230,11 +27391,71 @@ type ContractBase = Omit<
                 readonly currency: { readonly column: 'currency' };
                 readonly method: { readonly column: 'method' };
                 readonly status: { readonly column: 'status' };
+                readonly provider: { readonly column: 'provider' };
+                readonly reference: { readonly column: 'reference' };
+                readonly providerReference: { readonly column: 'providerReference' };
+                readonly idempotencyKey: { readonly column: 'idempotencyKey' };
                 readonly transactionId: { readonly column: 'transactionId' };
                 readonly restaurantOrderId: { readonly column: 'restaurantOrderId' };
                 readonly retailOrderId: { readonly column: 'retailOrderId' };
                 readonly createdAt: { readonly column: 'createdAt' };
                 readonly updatedAt: { readonly column: 'updatedAt' };
+              };
+            };
+          };
+          readonly PaymentEvent: {
+            readonly fields: {
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly paymentId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly providerEventId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly type: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly payload: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/json@1' };
+              };
+              readonly createdAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                };
+              };
+            };
+            readonly relations: {
+              readonly payment: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'Payment';
+                };
+                readonly cardinality: 'N:1';
+                readonly on: {
+                  readonly localFields: readonly ['paymentId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+            };
+            readonly storage: {
+              readonly table: 'paymentEvent';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly id: { readonly column: 'id' };
+                readonly paymentId: { readonly column: 'paymentId' };
+                readonly providerEventId: { readonly column: 'providerEventId' };
+                readonly type: { readonly column: 'type' };
+                readonly payload: { readonly column: 'payload' };
+                readonly createdAt: { readonly column: 'createdAt' };
               };
             };
           };
@@ -35546,6 +35767,14 @@ type ContractBase = Omit<
           readonly ref: {
             readonly namespace: 'public';
             readonly table: 'payment';
+            readonly column: 'id';
+          };
+          readonly onCreate: { readonly kind: 'generator'; readonly id: 'uuidv4' };
+        },
+        {
+          readonly ref: {
+            readonly namespace: 'public';
+            readonly table: 'paymentEvent';
             readonly column: 'id';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'uuidv4' };
