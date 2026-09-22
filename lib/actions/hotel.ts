@@ -7,7 +7,7 @@ import { requireAuthenticatedAccount, requireMembership } from '@/lib/actions/te
 const HOTEL_ROLES = ['OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST', 'STAFF', 'HOUSEKEEPER'] as const;
 
 async function requireHotelMembership(organizationId: string, allowedRoles?: readonly string[]) {
-  const result = await requireHotelMembership(organizationId, allowedRoles ? [...allowedRoles] : undefined);
+  const result = await requireMembership(organizationId, allowedRoles ? [...allowedRoles] : undefined);
   const organization = await db.orm.public.Organization.where({ id: organizationId }).all().first();
   if (!organization || organization.type !== 'HOTEL') {
     throw new Error('FORBIDDEN: Organization is not a HOTEL organization');
@@ -131,6 +131,7 @@ export async function createReservation(input: {
   roomBlockId?: string;
 }) {
   try {
+    await requireHotelMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST']);
     const room = await db.orm.public.HotelRoom.where({ id: input.roomId }).all().first();
     if (!room || room.organizationId !== input.organizationId) return { error: 'Room does not belong to this hotel.' };
     const guestName = input.guestName.trim();
@@ -155,7 +156,6 @@ export async function createReservation(input: {
     });
     if (overlaps) return { error: 'This room is already booked for part of that date range.' };
 
-    const room = await db.orm.public.HotelRoom.where({ id: input.roomId }).all().first();
     const totalPrice = room ? await computeStayPrice(input.organizationId, room.baseRate, checkIn, checkOut) : null;
 
     await db.orm.public.Reservation.create({
