@@ -618,7 +618,7 @@ function TabMenu({ menu, slug, onDone }: any) {
          </table>
       </SectionCard>
       {modalOpen && (
-        <Modal title="Add Menu Item" onClose={() => setModalOpen(false)} actions={<button onClick={save} disabled={busy || !name} className={btnPrimary}>Save Item</button>}>
+        <Modal title="Add Menu Item" onClose={() => setModalOpen(false)} footer={<button onClick={save} disabled={busy || !name} className={btnPrimary}>Save Item</button>}>
           <div className="p-6 space-y-4">
              <div><label className="block text-xs font-bold text-slate-500 mb-1">Name</label><input className={inputCls} value={name} onChange={e=>setName(e.target.value)}/></div>
              <div><label className="block text-xs font-bold text-slate-500 mb-1">Price</label><input type="number" className={inputCls} value={price} onChange={e=>setPrice(e.target.value)}/></div>
