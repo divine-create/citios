@@ -564,12 +564,28 @@ function TabKitchen({ tickets, slug, onDone, org }: any) {
   );
 }
 
+const MENU_CATEGORIES = [
+  "Rice Dishes",
+  "Soups & Stews",
+  "Snacks & Sides",
+  "Swallow & Fufu",
+  "Breakfast",
+  "Drinks & Beverages",
+  "Desserts",
+  "Beans & Legumes",
+  "Yam Dishes",
+  "Chicken",
+  "Beef & Meat",
+  "Fish & Seafood",
+  "Plantain"
+];
+
 function TabMenu({ menu, slug, onDone }: any) {
   const { fmt } = useMoney();
   const [modalOpen, setModalOpen] = useState(false);
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
-  const [category, setCategory] = useState("Mains");
+  const [category, setCategory] = useState(MENU_CATEGORIES[0]);
   const [busy, setBusy] = useState(false);
   
   async function save() {
@@ -602,11 +618,16 @@ function TabMenu({ menu, slug, onDone }: any) {
          </table>
       </SectionCard>
       {modalOpen && (
-        <Modal title="Add Menu Item" onClose={() => setModalOpen(false)} footer={<><button onClick={() => setModalOpen(false)} className={btnOutline}>Cancel</button><button onClick={save} disabled={busy} className={btnPrimary}>{busy ? <Loader2 className="animate-spin" size={16}/> : "Save"}</button></>}>
+        <Modal title="Add Menu Item" onClose={() => setModalOpen(false)} actions={<button onClick={save} disabled={busy || !name} className={btnPrimary}>Save Item</button>}>
           <div className="p-6 space-y-4">
              <div><label className="block text-xs font-bold text-slate-500 mb-1">Name</label><input className={inputCls} value={name} onChange={e=>setName(e.target.value)}/></div>
              <div><label className="block text-xs font-bold text-slate-500 mb-1">Price</label><input type="number" className={inputCls} value={price} onChange={e=>setPrice(e.target.value)}/></div>
-             <div><label className="block text-xs font-bold text-slate-500 mb-1">Category</label><input className={inputCls} value={category} onChange={e=>setCategory(e.target.value)}/></div>
+             <div>
+               <label className="block text-xs font-bold text-slate-500 mb-1">Category</label>
+               <select className={selectCls} value={category} onChange={e=>setCategory(e.target.value)}>
+                 {MENU_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+               </select>
+             </div>
           </div>
         </Modal>
       )}
