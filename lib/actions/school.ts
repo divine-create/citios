@@ -1513,7 +1513,7 @@ export async function createAssignment(input: {
     const currentTerm = terms.find((t) => epochMs(t.startDate) <= now && now <= epochMs(t.endDate)) ?? terms[0];
 
     await db.orm.public.Gradebook.create({
-      organizationId: course.organizationId,
+      organizationId: cls.organizationId,
       classId: input.courseId,
       termId: currentTerm.id,
       name: input.title,
@@ -1533,9 +1533,8 @@ export async function recordGrade(input: { assignmentId: string; studentDataId: 
     if (input.score < 0) return { error: 'Score cannot be negative.' };
     
     const cls = await db.orm.public.SchoolClass.where({ id: input.courseId }).all().first();
-    if (cls) {
-        await requireMembership(cls.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'TEACHER', 'REGISTRAR']);
-    }
+    if (!cls) return { error: 'Class not found' };
+    await requireMembership(cls.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'TEACHER', 'REGISTRAR']);
 
     const existing = await db.orm.public.Grade.where({ 
       gradebookId: input.assignmentId, 
@@ -1546,7 +1545,7 @@ export async function recordGrade(input: { assignmentId: string; studentDataId: 
       await db.orm.public.Grade.where({ id: existing.id }).update({ score: input.score });
     } else {
       await db.orm.public.Grade.create({
-        organizationId: course.organizationId,
+        organizationId: cls.organizationId,
         gradebookId: input.assignmentId,
         studentDataId: input.studentDataId,
         score: input.score,
