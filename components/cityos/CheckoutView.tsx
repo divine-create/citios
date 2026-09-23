@@ -213,11 +213,7 @@ export default function CheckoutView() {
 
               
 
-              {cardError && (
-                <div className="text-rose-600 text-xs font-bold text-center">
-                  Payment declined.
-                </div>
-              )}
+              
 
               <button 
                 onClick={pay}
@@ -237,6 +233,7 @@ export default function CheckoutView() {
     </div>
   );
 }
+
 
 
 
