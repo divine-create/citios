@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Wallet, CreditCard, Landmark, ShieldCheck, Loader2, ChevronRight, Truck, Lock, AlertCircle } from 'lucide-react';
 import { useMoney } from '@/components/cityos/CityProvider';
 import { useCart } from '@/components/cityos/CartStore';
-import { useWallet } from '@/components/cityos/WalletStore';
+
 import { Money, Pill } from '@/components/cityos/CityUI';
 import { cn } from '@/lib/utils';
 import { initiateCheckout } from '@/app/actions/payment';
@@ -13,7 +13,6 @@ import { initiateCheckout } from '@/app/actions/payment';
 const METHODS = [
   { id: 'card', label: 'Debit / Credit Card', sub: 'Visa, Mastercard, Verve via Paystack', icon: CreditCard },
   { id: 'transfer', label: 'Bank Transfer / USSD', sub: 'Direct bank transfer via Paystack', icon: Landmark },
-  { id: 'wallet', label: 'CityPay Wallet', sub: 'Instant resident wallet balance', icon: Wallet },
 ] as const;
 
 type MethodId = 'wallet' | 'card' | 'transfer';
@@ -22,10 +21,11 @@ export default function CheckoutView() {
   const { fmt } = useMoney();
   const router = useRouter();
   const { lines, subtotal, deliveryFee, clear } = useCart();
-  const { spend, balance } = useWallet();
+  
   const [method, setMethod] = useState<MethodId>('card');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
   const [processing, setProcessing] = useState(false);
-  const [walletError, setWalletError] = useState(false);
+  
 
   // Split the shared cart by line kind. Retail and food are different
   // canonical order pipelines (RetailOrder vs RestaurantOrder), so a mixed
@@ -49,7 +49,7 @@ export default function CheckoutView() {
   }
 
   const total = subtotal + deliveryFee;
-  const walletOk = method === 'wallet' ? balance - total >= 0 : true;
+  
 
   const pay = async () => {
     if (processing || hasMixed) return;
@@ -70,7 +70,8 @@ export default function CheckoutView() {
 
       const res = await initiateCheckout({
         kind: checkoutKind,
-        items: activeLines.map((l) => ({
+        deliveryAddress,
+          items: activeLines.map((l) => ({
           productId: l.productId,
           qty: l.qty,
           name: l.name,
@@ -141,9 +142,8 @@ export default function CheckoutView() {
                 <Truck className="w-4 h-4 text-slate-400" />
               </div>
               <div>
-                <h3 className="font-bold text-sm text-ink leading-tight">Home address</h3>
-                <p className="text-xs text-slate-500 mt-0.5">14 Marian Road, Calabar</p>
-                <div className="mt-2 text-[10px] font-bold text-teal-700 bg-teal-50 px-2 py-1 rounded inline-block">Default address used for Calabar</div>
+                <h3 className="font-bold text-sm text-ink leading-tight">Delivery Address</h3>
+                  <textarea className="w-full mt-2 p-2 border border-slate-200 rounded text-xs text-slate-700" placeholder="Enter your delivery address..." value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} required={!foodOnly} />
               </div>
             </div>
           </div>
@@ -233,7 +233,7 @@ export default function CheckoutView() {
 
               <button 
                 onClick={pay}
-                disabled={processing || !walletOk || hasMixed}
+                disabled={processing || hasMixed}
                 className="w-full h-14 flex items-center justify-center gap-2 bg-teal-800 text-white rounded-xl text-sm font-black hover:bg-teal-900 transition-all disabled:opacity-50 disabled:active:scale-100 active:scale-[0.98] shadow-sm"
               >
                 {processing ? <Loader2 className="w-5 h-5 animate-spin opacity-50" /> : <Lock className="w-4 h-4 opacity-70" />}
@@ -249,3 +249,12 @@ export default function CheckoutView() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
+

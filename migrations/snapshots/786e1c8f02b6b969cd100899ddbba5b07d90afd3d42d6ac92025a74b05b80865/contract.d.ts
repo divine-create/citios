@@ -33,7 +33,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'0968625fce39750630a94ce373d0e8154c4a77be9d755a85d92fc5ef11a0cad8'>;
+  StorageHashBase<'786e1c8f02b6b969cd100899ddbba5b07d90afd3d42d6ac92025a74b05b80865'>;
 export type ExecutionHash =
   ExecutionHashBase<'8ffe4abe549eee59d8014cc6ba66d7aa7f1e6b28e81a55c99e3f0de420286778'>;
 export type ProfileHash =
@@ -1336,7 +1336,6 @@ export type FieldOutputTypes = {
       readonly status: 'PENDING' | 'CONFIRMED' | 'CANCELLED';
       readonly fulfillmentStatus:
         'UNFULFILLED' | 'PROCESSING' | 'READY' | 'FULFILLED' | 'CANCELLED' | 'RETURNED';
-      readonly deliveryAddress: CodecTypes['pg/text@1']['output'] | null;
       readonly refundedAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
       readonly refundedById: CodecTypes['pg/text@1']['output'] | null;
       readonly refundReason: CodecTypes['pg/text@1']['output'] | null;
@@ -3024,7 +3023,6 @@ export type FieldInputTypes = {
       readonly status: 'PENDING' | 'CONFIRMED' | 'CANCELLED';
       readonly fulfillmentStatus:
         'UNFULFILLED' | 'PROCESSING' | 'READY' | 'FULFILLED' | 'CANCELLED' | 'RETURNED';
-      readonly deliveryAddress: CodecTypes['pg/text@1']['input'] | null;
       readonly refundedAt: CodecTypes['pg/timestamptz-temporal@1']['input'] | null;
       readonly refundedById: CodecTypes['pg/text@1']['input'] | null;
       readonly refundReason: CodecTypes['pg/text@1']['input'] | null;
@@ -4701,7 +4699,6 @@ export type StorageColumnTypes = {
       readonly couponId: CodecTypes['pg/text@1']['output'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly customerDataId: CodecTypes['pg/text@1']['output'] | null;
-      readonly deliveryAddress: CodecTypes['pg/text@1']['output'] | null;
       readonly discountAmount: CodecTypes['pg/float8@1']['output'];
       readonly fulfillmentStatus:
         'UNFULFILLED' | 'PROCESSING' | 'READY' | 'FULFILLED' | 'CANCELLED' | 'RETURNED';
@@ -6389,7 +6386,6 @@ export type StorageColumnInputTypes = {
       readonly couponId: CodecTypes['pg/text@1']['input'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly customerDataId: CodecTypes['pg/text@1']['input'] | null;
-      readonly deliveryAddress: CodecTypes['pg/text@1']['input'] | null;
       readonly discountAmount: CodecTypes['pg/float8@1']['input'];
       readonly fulfillmentStatus:
         'UNFULFILLED' | 'PROCESSING' | 'READY' | 'FULFILLED' | 'CANCELLED' | 'RETURNED';
@@ -16225,11 +16221,6 @@ type ContractBase = Omit<
                     readonly kind: 'literal';
                     readonly value: DefaultLiteralValue<'pg/text@1', 'UNFULFILLED'>;
                   };
-                };
-                readonly deliveryAddress: {
-                  readonly nativeType: 'text';
-                  readonly codecId: 'pg/text@1';
-                  readonly nullable: true;
                 };
                 readonly refundedAt: {
                   readonly nativeType: 'timestamptz';
@@ -32039,10 +32030,6 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
-              readonly deliveryAddress: {
-                readonly nullable: true;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
-              };
               readonly refundedAt: {
                 readonly nullable: true;
                 readonly type: {
@@ -32159,7 +32146,6 @@ type ContractBase = Omit<
                 readonly paymentMethod: { readonly column: 'paymentMethod' };
                 readonly status: { readonly column: 'status' };
                 readonly fulfillmentStatus: { readonly column: 'fulfillmentStatus' };
-                readonly deliveryAddress: { readonly column: 'deliveryAddress' };
                 readonly refundedAt: { readonly column: 'refundedAt' };
                 readonly refundedById: { readonly column: 'refundedById' };
                 readonly refundReason: { readonly column: 'refundReason' };

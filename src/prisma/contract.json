@@ -16534,6 +16534,13 @@
                   "kind": "scalar"
                 }
               },
+              "deliveryAddress": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "discountAmount": {
                 "nullable": false,
                 "type": {
@@ -16757,6 +16764,9 @@
                 },
                 "customerDataId": {
                   "column": "customerDataId"
+                },
+                "deliveryAddress": {
+                  "column": "deliveryAddress"
                 },
                 "discountAmount": {
                   "column": "discountAmount"
@@ -36289,6 +36299,11 @@
                   "nativeType": "text",
                   "nullable": true
                 },
+                "deliveryAddress": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "discountAmount": {
                   "codecId": "pg/float8@1",
                   "default": {
@@ -43106,7 +43121,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "786e1c8f02b6b969cd100899ddbba5b07d90afd3d42d6ac92025a74b05b80865"
+    "storageHash": "0968625fce39750630a94ce373d0e8154c4a77be9d755a85d92fc5ef11a0cad8"
   },
   "execution": {
     "executionHash": "8ffe4abe549eee59d8014cc6ba66d7aa7f1e6b28e81a55c99e3f0de420286778",

@@ -13,7 +13,7 @@ export async function getCommunityFeed() {
     let posts = await db.orm.public.Post.all();
     let orgs = [];
     if (city) {
-      const locs = await db.orm.public.Location.where({ }).all();
+      const locs = await db.orm.public.Location.where({ cityId: city.id }).all();
       const cityOrgIds = new Set(locs.map(l => l.organizationId));
       posts = posts.filter(p => !p.organizationId || cityOrgIds.has(p.organizationId));
       const orgIdsArr = Array.from(cityOrgIds);
@@ -66,5 +66,6 @@ export async function getCommunityFeed() {
     return [];
   }
 }
+
 
 

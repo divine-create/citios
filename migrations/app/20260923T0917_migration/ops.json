@@ -1,0 +1,1778 @@
+[
+  {
+    "id": "table.retailPurchaseOrderItem",
+    "label": "Create table \"retailPurchaseOrderItem\"",
+    "summary": "Creates table \"retailPurchaseOrderItem\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "retailPurchaseOrderItem"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"retailPurchaseOrderItem\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"retailPurchaseOrderItem\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"retailPurchaseOrderItem\"",
+        "sql": "CREATE TABLE \"public\".\"retailPurchaseOrderItem\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" text NOT NULL,\n  \"orderedQty\" float8 NOT NULL,\n  \"poId\" text NOT NULL,\n  \"productId\" text NOT NULL,\n  \"receivedQty\" float8 DEFAULT 0 NOT NULL,\n  \"totalCost\" float8 NOT NULL,\n  \"unitCost\" float8 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"retailPurchaseOrderItem\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"retailPurchaseOrderItem\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.attendance.organizationId",
+    "label": "Add column \"organizationId\" to \"attendance\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "organizationId",
+        "table": "attendance"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"organizationId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "attendance",
+          "organizationId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"organizationId\"",
+        "sql": "ALTER TABLE \"public\".\"attendance\" ADD COLUMN \"organizationId\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"organizationId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "attendance",
+          "organizationId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.grade.organizationId",
+    "label": "Add column \"organizationId\" to \"grade\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "organizationId",
+        "table": "grade"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"organizationId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "grade",
+          "organizationId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"organizationId\"",
+        "sql": "ALTER TABLE \"public\".\"grade\" ADD COLUMN \"organizationId\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"organizationId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "grade",
+          "organizationId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.gradebook.organizationId",
+    "label": "Add column \"organizationId\" to \"gradebook\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "organizationId",
+        "table": "gradebook"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"organizationId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "gradebook",
+          "organizationId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"organizationId\"",
+        "sql": "ALTER TABLE \"public\".\"gradebook\" ADD COLUMN \"organizationId\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"organizationId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "gradebook",
+          "organizationId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.hotelRoom.locationId",
+    "label": "Add column \"locationId\" to \"hotelRoom\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "locationId",
+        "table": "hotelRoom"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"locationId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "hotelRoom",
+          "locationId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"locationId\"",
+        "sql": "ALTER TABLE \"public\".\"hotelRoom\" ADD COLUMN \"locationId\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"locationId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "hotelRoom",
+          "locationId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.inventoryItem.locationId",
+    "label": "Add column \"locationId\" to \"inventoryItem\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "locationId",
+        "table": "inventoryItem"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"locationId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "inventoryItem",
+          "locationId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"locationId\"",
+        "sql": "ALTER TABLE \"public\".\"inventoryItem\" ADD COLUMN \"locationId\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"locationId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "inventoryItem",
+          "locationId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.maintenanceTicket.locationId",
+    "label": "Add column \"locationId\" to \"maintenanceTicket\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "locationId",
+        "table": "maintenanceTicket"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"locationId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "maintenanceTicket",
+          "locationId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"locationId\"",
+        "sql": "ALTER TABLE \"public\".\"maintenanceTicket\" ADD COLUMN \"locationId\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"locationId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "maintenanceTicket",
+          "locationId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.membership.locationId",
+    "label": "Add column \"locationId\" to \"membership\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "locationId",
+        "table": "membership"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"locationId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "membership",
+          "locationId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"locationId\"",
+        "sql": "ALTER TABLE \"public\".\"membership\" ADD COLUMN \"locationId\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"locationId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "membership",
+          "locationId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.menuItem.locationId",
+    "label": "Add column \"locationId\" to \"menuItem\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "locationId",
+        "table": "menuItem"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"locationId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "menuItem",
+          "locationId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"locationId\"",
+        "sql": "ALTER TABLE \"public\".\"menuItem\" ADD COLUMN \"locationId\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"locationId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "menuItem",
+          "locationId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.outlet.locationId",
+    "label": "Add column \"locationId\" to \"outlet\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "locationId",
+        "table": "outlet"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"locationId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "outlet",
+          "locationId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"locationId\"",
+        "sql": "ALTER TABLE \"public\".\"outlet\" ADD COLUMN \"locationId\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"locationId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "outlet",
+          "locationId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.payment.refundedAmount",
+    "label": "Add column \"refundedAmount\" to \"payment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "refundedAmount",
+        "table": "payment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"refundedAmount\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "payment",
+          "refundedAmount"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"refundedAmount\"",
+        "sql": "ALTER TABLE \"public\".\"payment\" ADD COLUMN \"refundedAmount\" float8 DEFAULT 0 NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"refundedAmount\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "payment",
+          "refundedAmount"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.reservation.locationId",
+    "label": "Add column \"locationId\" to \"reservation\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "locationId",
+        "table": "reservation"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"locationId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "reservation",
+          "locationId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"locationId\"",
+        "sql": "ALTER TABLE \"public\".\"reservation\" ADD COLUMN \"locationId\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"locationId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "reservation",
+          "locationId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.restaurantExpense.locationId",
+    "label": "Add column \"locationId\" to \"restaurantExpense\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "locationId",
+        "table": "restaurantExpense"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"locationId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "restaurantExpense",
+          "locationId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"locationId\"",
+        "sql": "ALTER TABLE \"public\".\"restaurantExpense\" ADD COLUMN \"locationId\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"locationId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "restaurantExpense",
+          "locationId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.restaurantInventoryItem.locationId",
+    "label": "Add column \"locationId\" to \"restaurantInventoryItem\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "locationId",
+        "table": "restaurantInventoryItem"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"locationId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "restaurantInventoryItem",
+          "locationId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"locationId\"",
+        "sql": "ALTER TABLE \"public\".\"restaurantInventoryItem\" ADD COLUMN \"locationId\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"locationId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "restaurantInventoryItem",
+          "locationId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.restaurantOrder.locationId",
+    "label": "Add column \"locationId\" to \"restaurantOrder\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "locationId",
+        "table": "restaurantOrder"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"locationId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "restaurantOrder",
+          "locationId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"locationId\"",
+        "sql": "ALTER TABLE \"public\".\"restaurantOrder\" ADD COLUMN \"locationId\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"locationId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "restaurantOrder",
+          "locationId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.restaurantReservation.locationId",
+    "label": "Add column \"locationId\" to \"restaurantReservation\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "locationId",
+        "table": "restaurantReservation"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"locationId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "restaurantReservation",
+          "locationId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"locationId\"",
+        "sql": "ALTER TABLE \"public\".\"restaurantReservation\" ADD COLUMN \"locationId\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"locationId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "restaurantReservation",
+          "locationId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.restaurantTable.locationId",
+    "label": "Add column \"locationId\" to \"restaurantTable\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "locationId",
+        "table": "restaurantTable"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"locationId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "restaurantTable",
+          "locationId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"locationId\"",
+        "sql": "ALTER TABLE \"public\".\"restaurantTable\" ADD COLUMN \"locationId\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"locationId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "restaurantTable",
+          "locationId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.retailOrder.deliveryAddress",
+    "label": "Add column \"deliveryAddress\" to \"retailOrder\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "deliveryAddress",
+        "table": "retailOrder"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"deliveryAddress\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "retailOrder",
+          "deliveryAddress"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"deliveryAddress\"",
+        "sql": "ALTER TABLE \"public\".\"retailOrder\" ADD COLUMN \"deliveryAddress\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"deliveryAddress\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "retailOrder",
+          "deliveryAddress"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.retailOrder.fulfillmentStatus",
+    "label": "Add column \"fulfillmentStatus\" to \"retailOrder\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "fulfillmentStatus",
+        "table": "retailOrder"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"fulfillmentStatus\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "retailOrder",
+          "fulfillmentStatus"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"fulfillmentStatus\"",
+        "sql": "ALTER TABLE \"public\".\"retailOrder\" ADD COLUMN \"fulfillmentStatus\" text DEFAULT 'UNFULFILLED' NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"fulfillmentStatus\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "retailOrder",
+          "fulfillmentStatus"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.retailPurchaseOrder.locationId",
+    "label": "Add column \"locationId\" to \"retailPurchaseOrder\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "locationId",
+        "table": "retailPurchaseOrder"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"locationId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "retailPurchaseOrder",
+          "locationId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"locationId\"",
+        "sql": "ALTER TABLE \"public\".\"retailPurchaseOrder\" ADD COLUMN \"locationId\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"locationId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "retailPurchaseOrder",
+          "locationId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.retailPurchaseOrder.notes",
+    "label": "Add column \"notes\" to \"retailPurchaseOrder\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "notes",
+        "table": "retailPurchaseOrder"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"notes\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "retailPurchaseOrder",
+          "notes"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"notes\"",
+        "sql": "ALTER TABLE \"public\".\"retailPurchaseOrder\" ADD COLUMN \"notes\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"notes\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "retailPurchaseOrder",
+          "notes"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.roomBlock.locationId",
+    "label": "Add column \"locationId\" to \"roomBlock\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "locationId",
+        "table": "roomBlock"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"locationId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "roomBlock",
+          "locationId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"locationId\"",
+        "sql": "ALTER TABLE \"public\".\"roomBlock\" ADD COLUMN \"locationId\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"locationId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "roomBlock",
+          "locationId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "setDefault.retailOrder.status",
+    "label": "Set default on \"retailOrder\".\"status\"",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "status",
+        "table": "retailOrder"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"status\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "retailOrder",
+          "status"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "set default on \"status\"",
+        "sql": "ALTER TABLE \"public\".\"retailOrder\" ALTER COLUMN \"status\" SET DEFAULT 'PENDING'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"status\" has a default",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3 AND \"column_default\" IS NOT NULL)) AS \"result\"",
+        "params": [
+          "public",
+          "retailOrder",
+          "status"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "checkConstraint.retailOrder.retailOrder_fulfillmentStatus_check_9e0c64a9",
+    "label": "Add check constraint \"retailOrder_fulfillmentStatus_check_9e0c64a9\" on \"retailOrder\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "checkConstraint",
+        "name": "retailOrder_fulfillmentStatus_check_9e0c64a9",
+        "table": "retailOrder"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"retailOrder_fulfillmentStatus_check_9e0c64a9\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "retailOrder_fulfillmentStatus_check_9e0c64a9",
+          "public",
+          "\"public\".\"retailOrder\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add check constraint \"retailOrder_fulfillmentStatus_check_9e0c64a9\"",
+        "sql": "ALTER TABLE \"public\".\"retailOrder\" ADD CONSTRAINT \"retailOrder_fulfillmentStatus_check_9e0c64a9\" CHECK (\"fulfillmentStatus\" IN ('UNFULFILLED', 'PROCESSING', 'READY', 'FULFILLED', 'CANCELLED', 'RETURNED'))"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"retailOrder_fulfillmentStatus_check_9e0c64a9\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "retailOrder_fulfillmentStatus_check_9e0c64a9",
+          "public",
+          "\"public\".\"retailOrder\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "checkConstraint.retailOrder.retailOrder_status_check_647f5b5d",
+    "label": "Add check constraint \"retailOrder_status_check_647f5b5d\" on \"retailOrder\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "checkConstraint",
+        "name": "retailOrder_status_check_647f5b5d",
+        "table": "retailOrder"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"retailOrder_status_check_647f5b5d\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "retailOrder_status_check_647f5b5d",
+          "public",
+          "\"public\".\"retailOrder\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add check constraint \"retailOrder_status_check_647f5b5d\"",
+        "sql": "ALTER TABLE \"public\".\"retailOrder\" ADD CONSTRAINT \"retailOrder_status_check_647f5b5d\" CHECK (\"status\" IN ('PENDING', 'CONFIRMED', 'CANCELLED'))"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"retailOrder_status_check_647f5b5d\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "retailOrder_status_check_647f5b5d",
+          "public",
+          "\"public\".\"retailOrder\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.menuItem.menuItem_locationId_idx_7aae3038",
+    "label": "Create index \"menuItem_locationId_idx_7aae3038\" on \"menuItem\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "menuItem_locationId_idx_7aae3038",
+        "table": "menuItem"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"menuItem_locationId_idx_7aae3038\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"menuItem_locationId_idx_7aae3038\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"menuItem_locationId_idx_7aae3038\"",
+        "sql": "CREATE INDEX \"menuItem_locationId_idx_7aae3038\" ON \"public\".\"menuItem\" (\"locationId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"menuItem_locationId_idx_7aae3038\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"menuItem_locationId_idx_7aae3038\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.restaurantExpense.restaurantExpense_locationId_idx_7aae3038",
+    "label": "Create index \"restaurantExpense_locationId_idx_7aae3038\" on \"restaurantExpense\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "restaurantExpense_locationId_idx_7aae3038",
+        "table": "restaurantExpense"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"restaurantExpense_locationId_idx_7aae3038\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"restaurantExpense_locationId_idx_7aae3038\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"restaurantExpense_locationId_idx_7aae3038\"",
+        "sql": "CREATE INDEX \"restaurantExpense_locationId_idx_7aae3038\" ON \"public\".\"restaurantExpense\" (\"locationId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"restaurantExpense_locationId_idx_7aae3038\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"restaurantExpense_locationId_idx_7aae3038\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.restaurantInventoryItem.restaurantInventoryItem_locationId_idx_7aae3038",
+    "label": "Create index \"restaurantInventoryItem_locationId_idx_7aae3038\" on \"restaurantInventoryItem\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "restaurantInventoryItem_locationId_idx_7aae3038",
+        "table": "restaurantInventoryItem"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"restaurantInventoryItem_locationId_idx_7aae3038\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"restaurantInventoryItem_locationId_idx_7aae3038\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"restaurantInventoryItem_locationId_idx_7aae3038\"",
+        "sql": "CREATE INDEX \"restaurantInventoryItem_locationId_idx_7aae3038\" ON \"public\".\"restaurantInventoryItem\" (\"locationId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"restaurantInventoryItem_locationId_idx_7aae3038\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"restaurantInventoryItem_locationId_idx_7aae3038\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.restaurantOrder.restaurantOrder_locationId_idx_7aae3038",
+    "label": "Create index \"restaurantOrder_locationId_idx_7aae3038\" on \"restaurantOrder\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "restaurantOrder_locationId_idx_7aae3038",
+        "table": "restaurantOrder"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"restaurantOrder_locationId_idx_7aae3038\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"restaurantOrder_locationId_idx_7aae3038\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"restaurantOrder_locationId_idx_7aae3038\"",
+        "sql": "CREATE INDEX \"restaurantOrder_locationId_idx_7aae3038\" ON \"public\".\"restaurantOrder\" (\"locationId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"restaurantOrder_locationId_idx_7aae3038\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"restaurantOrder_locationId_idx_7aae3038\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.restaurantReservation.restaurantReservation_locationId_idx_7aae3038",
+    "label": "Create index \"restaurantReservation_locationId_idx_7aae3038\" on \"restaurantReservation\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "restaurantReservation_locationId_idx_7aae3038",
+        "table": "restaurantReservation"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"restaurantReservation_locationId_idx_7aae3038\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"restaurantReservation_locationId_idx_7aae3038\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"restaurantReservation_locationId_idx_7aae3038\"",
+        "sql": "CREATE INDEX \"restaurantReservation_locationId_idx_7aae3038\" ON \"public\".\"restaurantReservation\" (\"locationId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"restaurantReservation_locationId_idx_7aae3038\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"restaurantReservation_locationId_idx_7aae3038\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.restaurantTable.restaurantTable_locationId_idx_7aae3038",
+    "label": "Create index \"restaurantTable_locationId_idx_7aae3038\" on \"restaurantTable\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "restaurantTable_locationId_idx_7aae3038",
+        "table": "restaurantTable"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"restaurantTable_locationId_idx_7aae3038\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"restaurantTable_locationId_idx_7aae3038\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"restaurantTable_locationId_idx_7aae3038\"",
+        "sql": "CREATE INDEX \"restaurantTable_locationId_idx_7aae3038\" ON \"public\".\"restaurantTable\" (\"locationId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"restaurantTable_locationId_idx_7aae3038\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"restaurantTable_locationId_idx_7aae3038\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.retailPurchaseOrder.retailPurchaseOrder_locationId_idx_7aae3038",
+    "label": "Create index \"retailPurchaseOrder_locationId_idx_7aae3038\" on \"retailPurchaseOrder\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "retailPurchaseOrder_locationId_idx_7aae3038",
+        "table": "retailPurchaseOrder"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"retailPurchaseOrder_locationId_idx_7aae3038\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"retailPurchaseOrder_locationId_idx_7aae3038\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"retailPurchaseOrder_locationId_idx_7aae3038\"",
+        "sql": "CREATE INDEX \"retailPurchaseOrder_locationId_idx_7aae3038\" ON \"public\".\"retailPurchaseOrder\" (\"locationId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"retailPurchaseOrder_locationId_idx_7aae3038\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"retailPurchaseOrder_locationId_idx_7aae3038\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.retailPurchaseOrderItem.retailPurchaseOrderItem_poId_idx_f6a16692",
+    "label": "Create index \"retailPurchaseOrderItem_poId_idx_f6a16692\" on \"retailPurchaseOrderItem\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "retailPurchaseOrderItem_poId_idx_f6a16692",
+        "table": "retailPurchaseOrderItem"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"retailPurchaseOrderItem_poId_idx_f6a16692\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"retailPurchaseOrderItem_poId_idx_f6a16692\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"retailPurchaseOrderItem_poId_idx_f6a16692\"",
+        "sql": "CREATE INDEX \"retailPurchaseOrderItem_poId_idx_f6a16692\" ON \"public\".\"retailPurchaseOrderItem\" (\"poId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"retailPurchaseOrderItem_poId_idx_f6a16692\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"retailPurchaseOrderItem_poId_idx_f6a16692\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.retailPurchaseOrderItem.retailPurchaseOrderItem_productId_idx_5858600a",
+    "label": "Create index \"retailPurchaseOrderItem_productId_idx_5858600a\" on \"retailPurchaseOrderItem\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "retailPurchaseOrderItem_productId_idx_5858600a",
+        "table": "retailPurchaseOrderItem"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"retailPurchaseOrderItem_productId_idx_5858600a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"retailPurchaseOrderItem_productId_idx_5858600a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"retailPurchaseOrderItem_productId_idx_5858600a\"",
+        "sql": "CREATE INDEX \"retailPurchaseOrderItem_productId_idx_5858600a\" ON \"public\".\"retailPurchaseOrderItem\" (\"productId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"retailPurchaseOrderItem_productId_idx_5858600a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"retailPurchaseOrderItem_productId_idx_5858600a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.menuItem.menuItem_locationId_fkey",
+    "label": "Add foreign key \"menuItem_locationId_fkey\" on \"menuItem\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "menuItem_locationId_fkey",
+        "table": "menuItem"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"menuItem_locationId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "menuItem_locationId_fkey",
+          "public",
+          "\"public\".\"menuItem\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"menuItem_locationId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"menuItem\"\nADD CONSTRAINT \"menuItem_locationId_fkey\"\nFOREIGN KEY (\"locationId\")\nREFERENCES \"public\".\"location\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"menuItem_locationId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "menuItem_locationId_fkey",
+          "public",
+          "\"public\".\"menuItem\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.restaurantExpense.restaurantExpense_locationId_fkey",
+    "label": "Add foreign key \"restaurantExpense_locationId_fkey\" on \"restaurantExpense\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "restaurantExpense_locationId_fkey",
+        "table": "restaurantExpense"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"restaurantExpense_locationId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "restaurantExpense_locationId_fkey",
+          "public",
+          "\"public\".\"restaurantExpense\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"restaurantExpense_locationId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"restaurantExpense\"\nADD CONSTRAINT \"restaurantExpense_locationId_fkey\"\nFOREIGN KEY (\"locationId\")\nREFERENCES \"public\".\"location\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"restaurantExpense_locationId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "restaurantExpense_locationId_fkey",
+          "public",
+          "\"public\".\"restaurantExpense\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.restaurantInventoryItem.restaurantInventoryItem_locationId_fkey",
+    "label": "Add foreign key \"restaurantInventoryItem_locationId_fkey\" on \"restaurantInventoryItem\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "restaurantInventoryItem_locationId_fkey",
+        "table": "restaurantInventoryItem"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"restaurantInventoryItem_locationId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "restaurantInventoryItem_locationId_fkey",
+          "public",
+          "\"public\".\"restaurantInventoryItem\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"restaurantInventoryItem_locationId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"restaurantInventoryItem\"\nADD CONSTRAINT \"restaurantInventoryItem_locationId_fkey\"\nFOREIGN KEY (\"locationId\")\nREFERENCES \"public\".\"location\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"restaurantInventoryItem_locationId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "restaurantInventoryItem_locationId_fkey",
+          "public",
+          "\"public\".\"restaurantInventoryItem\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.restaurantOrder.restaurantOrder_locationId_fkey",
+    "label": "Add foreign key \"restaurantOrder_locationId_fkey\" on \"restaurantOrder\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "restaurantOrder_locationId_fkey",
+        "table": "restaurantOrder"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"restaurantOrder_locationId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "restaurantOrder_locationId_fkey",
+          "public",
+          "\"public\".\"restaurantOrder\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"restaurantOrder_locationId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"restaurantOrder\"\nADD CONSTRAINT \"restaurantOrder_locationId_fkey\"\nFOREIGN KEY (\"locationId\")\nREFERENCES \"public\".\"location\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"restaurantOrder_locationId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "restaurantOrder_locationId_fkey",
+          "public",
+          "\"public\".\"restaurantOrder\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.restaurantReservation.restaurantReservation_locationId_fkey",
+    "label": "Add foreign key \"restaurantReservation_locationId_fkey\" on \"restaurantReservation\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "restaurantReservation_locationId_fkey",
+        "table": "restaurantReservation"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"restaurantReservation_locationId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "restaurantReservation_locationId_fkey",
+          "public",
+          "\"public\".\"restaurantReservation\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"restaurantReservation_locationId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"restaurantReservation\"\nADD CONSTRAINT \"restaurantReservation_locationId_fkey\"\nFOREIGN KEY (\"locationId\")\nREFERENCES \"public\".\"location\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"restaurantReservation_locationId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "restaurantReservation_locationId_fkey",
+          "public",
+          "\"public\".\"restaurantReservation\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.restaurantTable.restaurantTable_locationId_fkey",
+    "label": "Add foreign key \"restaurantTable_locationId_fkey\" on \"restaurantTable\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "restaurantTable_locationId_fkey",
+        "table": "restaurantTable"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"restaurantTable_locationId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "restaurantTable_locationId_fkey",
+          "public",
+          "\"public\".\"restaurantTable\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"restaurantTable_locationId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"restaurantTable\"\nADD CONSTRAINT \"restaurantTable_locationId_fkey\"\nFOREIGN KEY (\"locationId\")\nREFERENCES \"public\".\"location\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"restaurantTable_locationId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "restaurantTable_locationId_fkey",
+          "public",
+          "\"public\".\"restaurantTable\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.retailPurchaseOrder.retailPurchaseOrder_locationId_fkey",
+    "label": "Add foreign key \"retailPurchaseOrder_locationId_fkey\" on \"retailPurchaseOrder\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "retailPurchaseOrder_locationId_fkey",
+        "table": "retailPurchaseOrder"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"retailPurchaseOrder_locationId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "retailPurchaseOrder_locationId_fkey",
+          "public",
+          "\"public\".\"retailPurchaseOrder\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"retailPurchaseOrder_locationId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"retailPurchaseOrder\"\nADD CONSTRAINT \"retailPurchaseOrder_locationId_fkey\"\nFOREIGN KEY (\"locationId\")\nREFERENCES \"public\".\"location\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"retailPurchaseOrder_locationId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "retailPurchaseOrder_locationId_fkey",
+          "public",
+          "\"public\".\"retailPurchaseOrder\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.retailPurchaseOrderItem.retailPurchaseOrderItem_poId_fkey",
+    "label": "Add foreign key \"retailPurchaseOrderItem_poId_fkey\" on \"retailPurchaseOrderItem\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "retailPurchaseOrderItem_poId_fkey",
+        "table": "retailPurchaseOrderItem"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"retailPurchaseOrderItem_poId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "retailPurchaseOrderItem_poId_fkey",
+          "public",
+          "\"public\".\"retailPurchaseOrderItem\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"retailPurchaseOrderItem_poId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"retailPurchaseOrderItem\"\nADD CONSTRAINT \"retailPurchaseOrderItem_poId_fkey\"\nFOREIGN KEY (\"poId\")\nREFERENCES \"public\".\"retailPurchaseOrder\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"retailPurchaseOrderItem_poId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "retailPurchaseOrderItem_poId_fkey",
+          "public",
+          "\"public\".\"retailPurchaseOrderItem\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.retailPurchaseOrderItem.retailPurchaseOrderItem_productId_fkey",
+    "label": "Add foreign key \"retailPurchaseOrderItem_productId_fkey\" on \"retailPurchaseOrderItem\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "retailPurchaseOrderItem_productId_fkey",
+        "table": "retailPurchaseOrderItem"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"retailPurchaseOrderItem_productId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "retailPurchaseOrderItem_productId_fkey",
+          "public",
+          "\"public\".\"retailPurchaseOrderItem\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"retailPurchaseOrderItem_productId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"retailPurchaseOrderItem\"\nADD CONSTRAINT \"retailPurchaseOrderItem_productId_fkey\"\nFOREIGN KEY (\"productId\")\nREFERENCES \"public\".\"retailProduct\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"retailPurchaseOrderItem_productId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "retailPurchaseOrderItem_productId_fkey",
+          "public",
+          "\"public\".\"retailPurchaseOrderItem\""
+        ]
+      }
+    ]
+  }
+]

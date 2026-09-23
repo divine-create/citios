@@ -1,0 +1,1 @@
+const fs = require('fs'); let content = fs.readFileSync('components/cityos/CheckoutView.tsx', 'utf8'); let lines = content.split('\n'); lines.splice(221, 12); fs.writeFileSync('components/cityos/CheckoutView.tsx', lines.join('\n'));

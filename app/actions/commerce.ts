@@ -90,7 +90,7 @@ export async function placeRetailOrder(input: {
     }
 
     const order = await db.transaction(async (tx: any) => {
-      const isWallet = input.method === 'wallet';
+      const isWallet = false; if (input.method === 'wallet') throw new Error('Wallet payment temporarily disabled for retail');
       const orderStatus = isWallet ? 'COMPLETED' : 'PENDING';
 
       // Idempotency check for duplicate creation
@@ -126,8 +126,9 @@ export async function placeRetailOrder(input: {
       for (const verifiedItem of group.items) {
         await tx.orm.public.RetailOrderItem.create({ orderId: createdOrder.id, ...verifiedItem });
 
-        if (isWallet) {
-          // For wallet (synchronous success), deduct stock immediately using location logic if possible
+        // Deduct stock immediately (reserve on checkout). Restored if payment fails.
+          if (true) {
+            // using location logic if possible
           if (input.locationId) {
              const locStock = await tx.orm.public.RetailLocationStock.where({ locationId: input.locationId, productId: verifiedItem.productId }).all().first();
              if (!locStock || locStock.quantity < verifiedItem.quantity) {
@@ -329,3 +330,6 @@ export async function getCityMartProduct(productId: string) {
     citySlug: orgCity?.slug ?? null,
   };
 }
+
+
+

@@ -2456,6 +2456,7 @@ model RetailOrder {
   paymentMethod  String       // CASH, CARD, SPLIT
   status         RetailOrderStatus @default(PENDING)
   fulfillmentStatus RetailFulfillmentStatus @default(UNFULFILLED)
+  deliveryAddress String?
   
 
   refundedAt     DateTime?
@@ -3199,3 +3200,4 @@ model PlanLimit {
   plan           Plan         @relation(fields: [planId], references: [id], onDelete: Cascade)
   @@unique([planId, resourceCode])
 }
+
