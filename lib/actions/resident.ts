@@ -71,11 +71,23 @@ export async function getLocalServicesOrgs() {
 
 // And we can fetch specific data like menus or items
 export async function getRestaurantMenu(orgId: string) {
+    const activeCity = await getCurrentCity();
+    let locs = await db.orm.public.Location.where({ organizationId: orgId }).all();
+    if (activeCity) {
+      locs = locs.filter(l => l.cityId === activeCity.id);
+      if (locs.length === 0) return [];
+    }
     const items = await db.orm.public.MenuItem.where({ organizationId: orgId }).all();
     return JSON.parse(JSON.stringify(items));
 }
 
 export async function getPharmacyItems(orgId: string) {
+    const activeCity = await getCurrentCity();
+    let locs = await db.orm.public.Location.where({ organizationId: orgId }).all();
+    if (activeCity) {
+      locs = locs.filter(l => l.cityId === activeCity.id);
+      if (locs.length === 0) return [];
+    }
     const items = await db.orm.public.PharmacyItem.where({ organizationId: orgId }).all();
     return JSON.parse(JSON.stringify(items));
 }
@@ -89,7 +101,15 @@ export async function getHotelOrgs() {
 }
 
 export async function getHotelRooms(orgId: string) {
-    const items = await db.orm.public.HotelRoom.where({ organizationId: orgId }).all();
+    const activeCity = await getCurrentCity();
+    let locs = await db.orm.public.Location.where({ organizationId: orgId }).all();
+    if (activeCity) {
+      const cityLocs = locs.filter(l => l.cityId === activeCity.id);
+      if (cityLocs.length > 0) locs = cityLocs;
+    }
+    const validLocIds = new Set(locs.map(l => l.id));
+    let items = await db.orm.public.HotelRoom.where({ organizationId: orgId }).all();
+    items = items.filter(i => validLocIds.has(i.locationId));
     return JSON.parse(JSON.stringify(items));
 }
 

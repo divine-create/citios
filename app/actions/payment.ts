@@ -37,7 +37,9 @@ export async function initiateCheckout(input: InitiateCheckoutInput) {
   // 1. Wallet payment: executes immediately and completes
   if (input.method === 'wallet') {
     if (input.kind === 'food') {
+      if (!input.locationId) throw new Error('Location is required for food orders');
       const res = await placeRestaurantOrder({
+        locationId: input.locationId,
         items: input.items.map((i) => ({ menuItemId: i.productId, qty: i.qty, name: i.name })),
         type: input.type || 'TAKEOUT',
         tableNumber: input.tableNumber,
@@ -101,12 +103,14 @@ export async function initiateCheckout(input: InitiateCheckoutInput) {
     }
   } else {
     // Restaurant OS fallback
+    if (!input.locationId) throw new Error('Location is required for food orders');
     const orderResult: any = await placeRestaurantOrder({
+      locationId: input.locationId,
       items: input.items.map((i) => ({ menuItemId: i.productId, qty: i.qty, name: i.name })),
       type: input.type || 'TAKEOUT',
       tableNumber: input.tableNumber,
-        paymentReference: reference,
-        method: input.method,
+      paymentReference: reference,
+      method: input.method,
     });
     primaryOrderId = orderResult.orderId || (orderResult.orderIds && orderResult.orderIds[0]);
   }

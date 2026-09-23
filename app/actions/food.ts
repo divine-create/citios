@@ -72,17 +72,23 @@ export async function getCityFoodRestaurant(orgId: string) {
   const org = await db.orm.public.Organization.where({ id: orgId, type: 'RESTAURANT' }).all().first();
   if (!org) return null;
 
-  const [locs, menus] = await Promise.all([
-    db.orm.public.Location.where({ organizationId: org.id }).all(),
-    db.orm.public.MenuItem.where({ organizationId: org.id }).all(),
-  ]);
+  const activeCity = await getCurrentCity();
+  let locs = await db.orm.public.Location.where({ organizationId: org.id }).all();
+  
+  // If the user is in a city context, prioritize local presence
+  if (activeCity) {
+    const cityLocs = locs.filter((l) => l.cityId === activeCity.id);
+    if (cityLocs.length > 0) {
+      locs = cityLocs;
+    }
+  }
 
-  const orgCity: any = null;
+  const menus = await db.orm.public.MenuItem.where({ organizationId: org.id }).all();
 
   const availableMenus = menus.filter((m: any) => m.isAvailable);
 
   return {
-    ...mapRestaurant(org, availableMenus.map(mapMenuItem), orgCity?.slug ?? null),
+    ...mapRestaurant(org, availableMenus.map(mapMenuItem), activeCity?.slug ?? null),
     location: locs[0] ?? null,
     menuItems: availableMenus.map(mapMenuItem),
   };
@@ -93,12 +99,22 @@ export async function getCityFoodMenuItem(menuItemId: string) {
   if (!m) return null;
 
   const org = await db.orm.public.Organization.where({ id: m.organizationId }).all().first();
-  const loc = await db.orm.public.Location.where({ organizationId: m.organizationId }).all().first();
+  
+  const activeCity = await getCurrentCity();
+  let locs = await db.orm.public.Location.where({ organizationId: m.organizationId }).all();
+
+  // Scope to the active city context
+  if (activeCity) {
+    const cityLocs = locs.filter((l) => l.cityId === activeCity.id);
+    if (cityLocs.length > 0) {
+      locs = cityLocs;
+    }
+  }
 
   return {
     ...mapMenuItem(m),
     org,
-    location: loc ?? null,
+    location: locs[0] ?? null,
   };
 }
 
@@ -110,7 +126,8 @@ export async function getCityFoodMenuItem(menuItemId: string) {
  *  - Multi-restaurant carts become one RestaurantOrder per restaurant (pickup, no delivery in V1).
  */
 export async function placeRestaurantOrder(input: {
-  orgId?: string; // accepted but ignored — org derived server-side per menu item
+  orgId?: string;
+  locationId: string;
   items: { menuItemId: string; qty: number; name: string }[];
   type?: 'DINE_IN' | 'TAKEOUT';
   tableNumber?: string;
@@ -188,6 +205,7 @@ export async function placeRestaurantOrder(input: {
       const order = await db.transaction(async (tx: any) => {
         const created = await tx.orm.public.RestaurantOrder.create({
           organizationId: orgId,
+          locationId: input.locationId,
           customerDataId: customer.id,
           totalAmount: group.total,
           type: orderType,
