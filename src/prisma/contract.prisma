@@ -827,6 +827,7 @@ model HotelRoom {
   status         String       @default("CLEAN") // CLEAN, DIRTY, INSPECTING, OUT_OF_ORDER
   baseRate       Float        @default(0)
   organizationId String
+  locationId     String?
   organization   Organization @relation("HotelRooms", fields: [organizationId], references: [id], onDelete: Cascade)
 
   reservations   Reservation[]
@@ -864,6 +865,7 @@ model Reservation {
   roomBlockId    String?      // Set when this reservation was made as part of a group block
 
   organizationId String
+  locationId     String?
 
   guestRelationship          Relationship?        @relation("GuestReservations", fields: [guestRelationshipId], references: [id])
   room           HotelRoom?   @relation(fields: [roomId], references: [id])
@@ -879,6 +881,7 @@ model Reservation {
 model RoomBlock {
   id             String       @id @default(uuid())
   organizationId String
+  locationId     String?
   groupName      String
   checkInDate    DateTime
   checkOutDate   DateTime
@@ -919,6 +922,7 @@ enum OutletType {
 model Outlet {
   id             String       @id @default(uuid())
   organizationId String
+  locationId     String?
   name           String
   type           OutletType
   isActive       Boolean      @default(true) // whether this outlet's POS is available for staff to use
@@ -992,6 +996,7 @@ enum MaintenanceTicketPriority {
 model MaintenanceTicket {
   id             String                    @id @default(uuid())
   organizationId String
+  locationId     String?
   roomId         String?
   title          String
   description    String?
@@ -1052,6 +1057,7 @@ enum InventoryCategory {
 model InventoryItem {
   id             String            @id @default(uuid())
   organizationId String
+  locationId     String?
   name           String
   category       InventoryCategory
   unit           String            // e.g. "units", "bottles", "rolls"

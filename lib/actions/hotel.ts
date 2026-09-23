@@ -114,38 +114,30 @@ export async function createReservation(input: {
 
     const checkIn = new Date(input.checkInDate);
     const checkOut = new Date(input.checkOutDate);
-    if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) {
-      return { error: 'Invalid dates.' };
-    }
-    if (checkOut.getTime() <= checkIn.getTime()) {
-      return { error: 'Check-out must be after check-in.' };
-    }
+    if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) return { error: 'Invalid dates.' };
+    if (checkOut.getTime() <= checkIn.getTime()) return { error: 'Check-out must be after check-in.' };
 
-    // Guard against double-booking: an active reservation on this room that
-    // overlaps the requested range blocks the new booking.
-    const roomReservations = await db.orm.public.Reservation.where({ roomId: input.roomId }).all();
-    const overlaps = roomReservations.some((r) => {
-      if (r.status === 'CANCELLED' || r.status === 'CHECKED_OUT') return false;
-      return checkIn.getTime() < epochMs(r.checkOutDate) && checkOut.getTime() > epochMs(r.checkInDate);
+    return await db.transaction(async (tx: any) => {
+      const roomRaw = await tx.sql`SELECT id, "baseRate", "locationId" FROM "HotelRoom" WHERE id = ${input.roomId} AND "organizationId" = ${input.organizationId} FOR UPDATE`;
+      if (roomRaw.length === 0) return { error: 'Room not found.' };
+
+      const overlaps = await tx.sql`
+        SELECT id FROM "Reservation"
+        WHERE "roomId" = ${input.roomId}
+        AND status NOT IN ('CANCELLED', 'CHECKED_OUT')
+        AND "checkOutDate" > ${toInstant(checkIn)}
+        AND "checkInDate" < ${toInstant(checkOut)}
+      `;
+      if (overlaps.length > 0) return { error: 'This room is already booked for part of that date range.' };
+
+      const totalPrice = await computeStayPrice(input.organizationId, roomRaw[0].baseRate, checkIn, checkOut);
+
+      await tx.sql`
+        INSERT INTO "Reservation" (id, "guestName", "roomId", "organizationId", "locationId", "status", "checkInDate", "checkOutDate", "totalPrice", "paymentStatus", "roomBlockId")
+        VALUES (gen_random_uuid(), ${guestName}, ${input.roomId}, ${input.organizationId}, ${roomRaw[0].locationId}, 'CONFIRMED', ${toInstant(checkIn)}, ${toInstant(checkOut)}, ${totalPrice}, 'PENDING', ${input.roomBlockId ?? null})
+      `;
+      return { success: true };
     });
-    if (overlaps) return { error: 'This room is already booked for part of that date range.' };
-
-    const room = await db.orm.public.HotelRoom.where({ id: input.roomId }).all().first();
-    const totalPrice = room ? await computeStayPrice(input.organizationId, room.baseRate, checkIn, checkOut) : null;
-
-    await db.orm.public.Reservation.create({
-      guestName,
-      roomId: input.roomId,
-      organizationId: input.organizationId,
-      status: 'CONFIRMED',
-      checkInDate: toInstant(checkIn),
-      checkOutDate: toInstant(checkOut),
-      totalPrice: totalPrice ?? undefined,
-      paymentStatus: 'PENDING',
-      roomBlockId: input.roomBlockId ?? undefined,
-    });
-
-    return { success: true };
   } catch (error) {
     console.error('Error creating reservation:', error);
     return { error: 'Failed to create reservation.' };
@@ -157,6 +149,10 @@ export async function updateReservationStatus(
   status: 'CHECKED_IN' | 'CHECKED_OUT' | 'CANCELLED'
 ) {
   try {
+    const res = await db.orm.public.Reservation.where({ id: reservationId }).all().first();
+    if (!res) return { error: 'Reservation not found.' } as { success?: boolean; paidViaWallet?: boolean; error?: string };
+    await requireMembership(res.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST'], res.locationId ?? undefined);
+
     await db.orm.public.Reservation.where({ id: reservationId }).update({ status });
     return { success: true };
   } catch (error) {
@@ -170,7 +166,7 @@ export async function extendReservationStay(reservationId: string, newCheckOutDa
     const res = await db.orm.public.Reservation.where({ id: reservationId }).all().first();
     if (res) await requireMembership(res.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST']);
     const reservation = await db.orm.public.Reservation.where({ id: reservationId }).all().first();
-    if (!reservation) return { error: 'Reservation not found.' };
+    if (!reservation) return { error: 'Reservation not found.' } as { success?: boolean; paidViaWallet?: boolean; error?: string };
 
     const newCheckOut = new Date(newCheckOutDate);
     if (isNaN(newCheckOut.getTime())) return { error: 'Invalid date.' };
@@ -257,6 +253,10 @@ export async function updateRoom(
   input: { roomNumber?: string; type?: string; baseRate?: number; status?: string }
 ) {
   try {
+    const room = await db.orm.public.HotelRoom.where({ id: roomId }).all().first();
+    if (!room) return { error: 'Room not found.' };
+    await requireMembership(room.organizationId, ['OWNER', 'ADMIN', 'MANAGER'], room.locationId ?? undefined);
+
     if (input.baseRate !== undefined && input.baseRate < 0) {
       return { error: 'Base rate cannot be negative.' };
     }
@@ -371,6 +371,10 @@ export async function updateInventoryItem(
   input: { quantityOnHand?: number; parLevel?: number; name?: string; unit?: string }
 ) {
   try {
+    const item = await db.orm.public.InventoryItem.where({ id: itemId }).all().first();
+    if (!item) return { error: 'Item not found.' };
+    await requireMembership(item.organizationId, ['OWNER', 'ADMIN', 'MANAGER'], item.locationId ?? undefined);
+
     if (input.quantityOnHand !== undefined && input.quantityOnHand < 0) {
       return { error: 'Quantity cannot be negative.' };
     }
@@ -411,6 +415,7 @@ export async function getFolio(reservationId: string) {
   try {
     const reservation = await db.orm.public.Reservation.where({ id: reservationId }).all().first();
     if (!reservation) return null;
+    await requireMembership(reservation.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST'], reservation.locationId ?? undefined);
 
     const charges = await db.orm.public.FolioCharge.where({ reservationId }).all();
     const roomCharge = reservation.totalPrice ?? 0;
@@ -461,41 +466,44 @@ export async function addFolioCharge(input: {
 // means (cash/card at the desk) — either way paymentStatus becomes PAID.
 export async function settleFolio(reservationId: string) {
   try {
-    const reservation = await db.orm.public.Reservation.where({ id: reservationId }).all().first();
-    if (!reservation) return { error: 'Reservation not found.' };
+    const res = await db.orm.public.Reservation.where({ id: reservationId }).all().first();
+    if (!res) return { error: 'Reservation not found.' } as { success?: boolean; paidViaWallet?: boolean; error?: string };
+    await requireMembership(res.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST'], res.locationId ?? undefined);
 
-    await requireMembership(reservation.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST']);
+    return await db.transaction(async (tx: any) => {
+      const lockedRes = await tx.sql`SELECT id, "totalPrice", "paymentStatus", "guestRelationshipId" FROM "Reservation" WHERE id = ${reservationId} FOR UPDATE`;
+      if (lockedRes[0].paymentStatus === 'PAID') return { success: true, paidViaWallet: false } as { success?: boolean; paidViaWallet?: boolean; error?: string };
+      
+      const charges = await tx.sql`SELECT amount FROM "FolioCharge" WHERE "reservationId" = ${reservationId}`;
+      let total = lockedRes[0].totalPrice ?? 0;
+      for (const c of charges) total += c.amount;
 
-    const charges = await db.orm.public.FolioCharge.where({ reservationId }).all();
-    const total = (reservation.totalPrice ?? 0) + charges.reduce((sum, c) => sum + c.amount, 0);
-
-    let paidViaWallet = false;
-    if (reservation.guestRelationshipId && total > 0) {
-      const rel = await db.orm.public.Relationship.where({ id: reservation.guestRelationshipId }).all().first();
-      if (rel) {
-        const guestWallet = await db.orm.public.Wallet.where({ personId: rel.personId }).all().first();
-        const hotelWallet = await db.orm.public.Wallet.where({ organizationId: reservation.organizationId }).all().first();
-        if (guestWallet && hotelWallet && guestWallet.balance >= total) {
-          const txn = await db.orm.public.Transaction.create({
-            status: 'COMPLETED',
-            description: `Hotel stay settlement for reservation ${reservationId}`
-          });
-          await db.orm.public.LedgerEntry.create({ walletId: guestWallet.id, transactionId: txn.id, amount: -total, currency: guestWallet.currency ?? 'USD' });
-          await db.orm.public.LedgerEntry.create({ walletId: hotelWallet.id, transactionId: txn.id, amount: total, currency: hotelWallet.currency ?? 'USD' });
+      let paidViaWallet = false;
+      if (lockedRes[0].guestRelationshipId && total > 0) {
+        const rel = await tx.sql`SELECT "personId" FROM "Relationship" WHERE id = ${lockedRes[0].guestRelationshipId}`;
+        if (rel.length > 0) {
+          const guestWallet = await tx.sql`SELECT id, balance, currency FROM "Wallet" WHERE "personId" = ${rel[0].personId} FOR UPDATE`;
+          const hotelWallet = await tx.sql`SELECT id, currency FROM "Wallet" WHERE "organizationId" = ${res.organizationId} FOR UPDATE`;
           
-          await db.orm.public.Wallet.where({ id: guestWallet.id }).update({ balance: guestWallet.balance - total });
-          await db.orm.public.Wallet.where({ id: hotelWallet.id }).update({ balance: hotelWallet.balance + total });
-          
-          paidViaWallet = true;
+          if (guestWallet.length > 0 && hotelWallet.length > 0 && guestWallet[0].balance >= total) {
+            const txnId = await tx.sql`INSERT INTO "Transaction" (id, status, description) VALUES (gen_random_uuid(), 'COMPLETED', 'Hotel stay settlement') RETURNING id`;
+            await tx.sql`INSERT INTO "LedgerEntry" ("walletId", "transactionId", amount, currency) VALUES (${guestWallet[0].id}, ${txnId[0].id}, ${-total}, ${guestWallet[0].currency})`;
+            await tx.sql`INSERT INTO "LedgerEntry" ("walletId", "transactionId", amount, currency) VALUES (${hotelWallet[0].id}, ${txnId[0].id}, ${total}, ${hotelWallet[0].currency})`;
+            await tx.sql`UPDATE "Wallet" SET balance = balance - ${total} WHERE id = ${guestWallet[0].id}`;
+            await tx.sql`UPDATE "Wallet" SET balance = balance + ${total} WHERE id = ${hotelWallet[0].id}`;
+            
+            await tx.sql`INSERT INTO "Payment" (id, "transactionId", status, method, "walletId") VALUES (gen_random_uuid(), ${txnId[0].id}, 'COMPLETED', 'WALLET', ${guestWallet[0].id})`;
+            paidViaWallet = true;
+          }
         }
       }
-    }
-
-    await db.orm.public.Reservation.where({ id: reservationId }).update({ paymentStatus: 'PAID' });
-    return { success: true, paidViaWallet };
+      
+      await tx.sql`UPDATE "Reservation" SET "paymentStatus" = 'PAID' WHERE id = ${reservationId}`;
+      return { success: true, paidViaWallet } as { success?: boolean; paidViaWallet?: boolean; error?: string };
+    });
   } catch (error) {
     console.error('Error settling folio:', error);
-    return { error: 'Failed to settle folio.' };
+    return { error: 'Failed to settle folio.' } as { success?: boolean; paidViaWallet?: boolean; error?: string };
   }
 }
 
@@ -505,6 +513,7 @@ export async function settleFolio(reservationId: string) {
 
 export async function getOutletsData(organizationId: string) {
   try {
+    await requireMembership(organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST']);
     const outlets = await db.orm.public.Outlet.where({ organizationId }).all();
 
     const items: any[] = [];
@@ -688,7 +697,7 @@ export async function chargeOrderToRoom(outletOrderId: string, reservationId: st
     if (order.status !== 'OPEN') return { error: 'This tab is already closed.' };
 
     const reservation = await db.orm.public.Reservation.where({ id: reservationId }).all().first();
-    if (!reservation) return { error: 'Reservation not found.' };
+    if (!reservation) return { error: 'Reservation not found.' } as { success?: boolean; paidViaWallet?: boolean; error?: string };
     if (reservation.status !== 'CHECKED_IN') {
       return { error: 'Guest must be checked in to charge to their room.' };
     }
@@ -733,6 +742,7 @@ export async function payOrderDirectly(outletOrderId: string) {
 
 export async function getMaintenanceTickets(organizationId: string) {
   try {
+    await requireMembership(organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'MAINTENANCE']);
     const tickets = await db.orm.public.MaintenanceTicket.where({ organizationId }).all();
     return JSON.parse(JSON.stringify(tickets.sort((a, b) => epochMs(b.createdAt) - epochMs(a.createdAt))));
   } catch (error) {
@@ -799,6 +809,7 @@ export async function updateMaintenanceTicketStatus(
 
 export async function getRoomBlocks(organizationId: string) {
   try {
+    await requireMembership(organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST']);
     const blocks = await db.orm.public.RoomBlock.where({ organizationId }).all();
     const withCounts = [];
     for (const block of blocks) {
@@ -879,6 +890,7 @@ export async function addReservationToBlock(input: {
 
 export async function getNightAuditReports(organizationId: string) {
   try {
+    await requireMembership(organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     const reports = await db.orm.public.NightAuditReport.where({ organizationId }).all();
     return JSON.parse(JSON.stringify(reports.sort((a, b) => epochMs(b.auditDate) - epochMs(a.auditDate))));
   } catch (error) {
@@ -963,6 +975,7 @@ export async function runNightAudit(organizationId: string, auditDateStr: string
 
 export async function getHousekeepingTasks(organizationId: string) {
   try {
+    await requireMembership(organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'HOUSEKEEPER']);
     const allRooms = await db.orm.public.HotelRoom.where({ organizationId }).all();
     const allReservations = await db.orm.public.Reservation.where({ organizationId }).all();
     

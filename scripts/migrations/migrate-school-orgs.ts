@@ -3,31 +3,28 @@ import { db } from '../../src/prisma/db';
 export async function migrateSchoolOrgs() {
   console.log('Starting SchoolOS Organization Migration...');
 
-  const classes = await db.orm.public.SchoolClass.all();
-  let gradebooksUpdated = 0;
-  for (const cls of classes) {
-    gradebooksUpdated += (await db.orm.public.Gradebook.where({ classId: cls.id, organizationId: null }).update({ organizationId: cls.organizationId })).count;
-  }
-  console.log(Updated  Gradebook records.);
+  await db.transaction(async (tx: any) => {
+      const classes = await tx.sql`SELECT id, "organizationId" FROM "SchoolClass"`;
+      for (const cls of classes) {
+        await tx.sql`UPDATE "Gradebook" SET "organizationId" = ${cls.organizationId} WHERE "classId" = ${cls.id} AND "organizationId" IS NULL`;
+      }
 
-  const gradebooks = await db.orm.public.Gradebook.all();
-  let gradesUpdated = 0;
-  for (const gb of gradebooks) {
-    if (gb.organizationId) {
-      gradesUpdated += (await db.orm.public.Grade.where({ gradebookId: gb.id, organizationId: null }).update({ organizationId: gb.organizationId })).count;
-    }
-  }
-  console.log(Updated  Grade records.);
+      const gradebooks = await tx.sql`SELECT id, "organizationId" FROM "Gradebook" WHERE "organizationId" IS NOT NULL`;
+      for (const gb of gradebooks) {
+        await tx.sql`UPDATE "Grade" SET "organizationId" = ${gb.organizationId} WHERE "gradebookId" = ${gb.id} AND "organizationId" IS NULL`;
+      }
 
-  const studentData = await db.orm.public.StudentData.all();
-  let attendancesUpdated = 0;
-  for (const s of studentData) {
-    const rel = await db.orm.public.Relationship.where({ id: s.relationshipId }).all().first();
-    if (rel) {
-      attendancesUpdated += (await db.orm.public.Attendance.where({ studentDataId: s.id, organizationId: null }).update({ organizationId: rel.organizationId })).count;
-    }
-  }
-  console.log(Updated  Attendance records.);
+      const studentData = await tx.sql`
+        SELECT s.id, r."organizationId" 
+        FROM "StudentData" s
+        JOIN "Relationship" r ON s."relationshipId" = r.id
+      `;
+      for (const s of studentData) {
+        if (s.organizationId) {
+          await tx.sql`UPDATE "Attendance" SET "organizationId" = ${s.organizationId} WHERE "studentDataId" = ${s.id} AND "organizationId" IS NULL`;
+        }
+      }
+  });
   
   console.log('Migration complete.');
 }

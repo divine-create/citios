@@ -5898,6 +5898,13 @@
                   "kind": "scalar"
                 }
               },
+              "locationId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "organizationId": {
                 "nullable": false,
                 "type": {
@@ -5996,6 +6003,9 @@
                 },
                 "id": {
                   "column": "id"
+                },
+                "locationId": {
+                  "column": "locationId"
                 },
                 "organizationId": {
                   "column": "organizationId"
@@ -6207,6 +6217,13 @@
                   "kind": "scalar"
                 }
               },
+              "locationId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "name": {
                 "nullable": false,
                 "type": {
@@ -6277,6 +6294,9 @@
                 },
                 "id": {
                   "column": "id"
+                },
+                "locationId": {
+                  "column": "locationId"
                 },
                 "name": {
                   "column": "name"
@@ -7176,6 +7196,13 @@
                   "kind": "scalar"
                 }
               },
+              "locationId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "organizationId": {
                 "nullable": false,
                 "type": {
@@ -7273,6 +7300,9 @@
                 },
                 "id": {
                   "column": "id"
+                },
+                "locationId": {
+                  "column": "locationId"
                 },
                 "organizationId": {
                   "column": "organizationId"
@@ -11108,6 +11138,13 @@
                   "kind": "scalar"
                 }
               },
+              "locationId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "name": {
                 "nullable": false,
                 "type": {
@@ -11193,6 +11230,9 @@
                 },
                 "isActive": {
                   "column": "isActive"
+                },
+                "locationId": {
+                  "column": "locationId"
                 },
                 "name": {
                   "column": "name"
@@ -14277,6 +14317,13 @@
                   "kind": "scalar"
                 }
               },
+              "locationId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "organizationId": {
                 "nullable": false,
                 "type": {
@@ -14437,6 +14484,9 @@
                 },
                 "id": {
                   "column": "id"
+                },
+                "locationId": {
+                  "column": "locationId"
                 },
                 "organizationId": {
                   "column": "organizationId"
@@ -18677,6 +18727,13 @@
                   "kind": "scalar"
                 }
               },
+              "locationId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "notes": {
                 "nullable": true,
                 "type": {
@@ -18740,6 +18797,9 @@
                 },
                 "id": {
                   "column": "id"
+                },
+                "locationId": {
+                  "column": "locationId"
                 },
                 "notes": {
                   "column": "notes"
@@ -28573,6 +28633,11 @@
                   "nativeType": "text",
                   "nullable": false
                 },
+                "locationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "organizationId": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -28808,6 +28873,11 @@
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": false
+                },
+                "locationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
                 },
                 "name": {
                   "codecId": "pg/text@1",
@@ -29541,6 +29611,11 @@
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": false
+                },
+                "locationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
                 },
                 "organizationId": {
                   "codecId": "pg/text@1",
@@ -31968,6 +32043,11 @@
                   "nativeType": "bool",
                   "nullable": false
                 },
+                "locationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "name": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -34306,6 +34386,11 @@
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": false
+                },
+                "locationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
                 },
                 "organizationId": {
                   "codecId": "pg/text@1",
@@ -37961,6 +38046,11 @@
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": false
+                },
+                "locationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
                 },
                 "notes": {
                   "codecId": "pg/text@1",
@@ -43016,7 +43106,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "90076624107bb963d797deb955bc1ac6808427d9a9c3c89d76521eccdfa3e82c"
+    "storageHash": "786e1c8f02b6b969cd100899ddbba5b07d90afd3d42d6ac92025a74b05b80865"
   },
   "execution": {
     "executionHash": "8ffe4abe549eee59d8014cc6ba66d7aa7f1e6b28e81a55c99e3f0de420286778",
