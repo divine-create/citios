@@ -275,7 +275,7 @@ export default function BusinessDashboard() {
           <SectionHead title="Top products" sub="By sold units, 7 days" />            <div className="space-y-3">
               {(realData ? realData.topProducts : d.topProducts).length === 0 ? (
                 <p className="text-[12px] text-slate-400 font-medium">No product sales recorded yet.</p>
-              ) : (realData ? realData.topProducts : d.topProducts).map((tp, i) => (
+              ) : (realData ? realData.topProducts : d.topProducts).map((tp: any, i: number) => (
               <div key={tp.name} className="flex items-center gap-3">
                 <span className="w-6 h-6 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-black flex items-center justify-center shrink-0">
                   {i + 1}
@@ -319,5 +319,6 @@ export default function BusinessDashboard() {
     </div>
   );
 }
+
 
 
