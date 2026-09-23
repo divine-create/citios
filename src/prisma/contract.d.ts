@@ -33,7 +33,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'10a0e2b65edf177d9b0d071b20bbdfd4e16b5ca66320dc853ac5b6813a433ace'>;
+  StorageHashBase<'90076624107bb963d797deb955bc1ac6808427d9a9c3c89d76521eccdfa3e82c'>;
 export type ExecutionHash =
   ExecutionHashBase<'8ffe4abe549eee59d8014cc6ba66d7aa7f1e6b28e81a55c99e3f0de420286778'>;
 export type ProfileHash =
@@ -279,6 +279,7 @@ export type FieldOutputTypes = {
     };
     readonly Attendance: {
       readonly id: CodecTypes['pg/text@1']['output'];
+      readonly organizationId: CodecTypes['pg/text@1']['output'] | null;
       readonly studentDataId: CodecTypes['pg/text@1']['output'];
       readonly termId: CodecTypes['pg/text@1']['output'];
       readonly date: CodecTypes['pg/timestamptz-temporal@1']['output'];
@@ -547,6 +548,7 @@ export type FieldOutputTypes = {
     };
     readonly Grade: {
       readonly id: CodecTypes['pg/text@1']['output'];
+      readonly organizationId: CodecTypes['pg/text@1']['output'] | null;
       readonly gradebookId: CodecTypes['pg/text@1']['output'];
       readonly studentDataId: CodecTypes['pg/text@1']['output'];
       readonly score: CodecTypes['pg/float8@1']['output'] | null;
@@ -559,6 +561,7 @@ export type FieldOutputTypes = {
     };
     readonly Gradebook: {
       readonly id: CodecTypes['pg/text@1']['output'];
+      readonly organizationId: CodecTypes['pg/text@1']['output'] | null;
       readonly classId: CodecTypes['pg/text@1']['output'];
       readonly termId: CodecTypes['pg/text@1']['output'];
       readonly name: CodecTypes['pg/text@1']['output'];
@@ -1957,6 +1960,7 @@ export type FieldInputTypes = {
     };
     readonly Attendance: {
       readonly id: CodecTypes['pg/text@1']['input'];
+      readonly organizationId: CodecTypes['pg/text@1']['input'] | null;
       readonly studentDataId: CodecTypes['pg/text@1']['input'];
       readonly termId: CodecTypes['pg/text@1']['input'];
       readonly date: CodecTypes['pg/timestamptz-temporal@1']['input'];
@@ -2225,6 +2229,7 @@ export type FieldInputTypes = {
     };
     readonly Grade: {
       readonly id: CodecTypes['pg/text@1']['input'];
+      readonly organizationId: CodecTypes['pg/text@1']['input'] | null;
       readonly gradebookId: CodecTypes['pg/text@1']['input'];
       readonly studentDataId: CodecTypes['pg/text@1']['input'];
       readonly score: CodecTypes['pg/float8@1']['input'] | null;
@@ -2237,6 +2242,7 @@ export type FieldInputTypes = {
     };
     readonly Gradebook: {
       readonly id: CodecTypes['pg/text@1']['input'];
+      readonly organizationId: CodecTypes['pg/text@1']['input'] | null;
       readonly classId: CodecTypes['pg/text@1']['input'];
       readonly termId: CodecTypes['pg/text@1']['input'];
       readonly name: CodecTypes['pg/text@1']['input'];
@@ -3639,6 +3645,7 @@ export type StorageColumnTypes = {
       readonly markedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly markedById: CodecTypes['pg/text@1']['output'] | null;
       readonly notes: CodecTypes['pg/text@1']['output'] | null;
+      readonly organizationId: CodecTypes['pg/text@1']['output'] | null;
       readonly status: CodecTypes['pg/text@1']['output'];
       readonly studentDataId: CodecTypes['pg/text@1']['output'];
       readonly termId: CodecTypes['pg/text@1']['output'];
@@ -3908,6 +3915,7 @@ export type StorageColumnTypes = {
       readonly gradedAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
       readonly gradedById: CodecTypes['pg/text@1']['output'] | null;
       readonly id: CodecTypes['pg/text@1']['output'];
+      readonly organizationId: CodecTypes['pg/text@1']['output'] | null;
       readonly score: CodecTypes['pg/float8@1']['output'] | null;
       readonly studentDataId: CodecTypes['pg/text@1']['output'];
       readonly submissionUrl: CodecTypes['pg/text@1']['output'] | null;
@@ -3921,6 +3929,7 @@ export type StorageColumnTypes = {
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly maxScore: CodecTypes['pg/float8@1']['output'];
       readonly name: CodecTypes['pg/text@1']['output'];
+      readonly organizationId: CodecTypes['pg/text@1']['output'] | null;
       readonly termId: CodecTypes['pg/text@1']['output'];
       readonly type: CodecTypes['pg/text@1']['output'];
       readonly weight: CodecTypes['pg/float8@1']['output'];
@@ -5317,6 +5326,7 @@ export type StorageColumnInputTypes = {
       readonly markedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly markedById: CodecTypes['pg/text@1']['input'] | null;
       readonly notes: CodecTypes['pg/text@1']['input'] | null;
+      readonly organizationId: CodecTypes['pg/text@1']['input'] | null;
       readonly status: CodecTypes['pg/text@1']['input'];
       readonly studentDataId: CodecTypes['pg/text@1']['input'];
       readonly termId: CodecTypes['pg/text@1']['input'];
@@ -5586,6 +5596,7 @@ export type StorageColumnInputTypes = {
       readonly gradedAt: CodecTypes['pg/timestamptz-temporal@1']['input'] | null;
       readonly gradedById: CodecTypes['pg/text@1']['input'] | null;
       readonly id: CodecTypes['pg/text@1']['input'];
+      readonly organizationId: CodecTypes['pg/text@1']['input'] | null;
       readonly score: CodecTypes['pg/float8@1']['input'] | null;
       readonly studentDataId: CodecTypes['pg/text@1']['input'];
       readonly submissionUrl: CodecTypes['pg/text@1']['input'] | null;
@@ -5599,6 +5610,7 @@ export type StorageColumnInputTypes = {
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly maxScore: CodecTypes['pg/float8@1']['input'];
       readonly name: CodecTypes['pg/text@1']['input'];
+      readonly organizationId: CodecTypes['pg/text@1']['input'] | null;
       readonly termId: CodecTypes['pg/text@1']['input'];
       readonly type: CodecTypes['pg/text@1']['input'];
       readonly weight: CodecTypes['pg/float8@1']['input'];
@@ -7272,6 +7284,11 @@ type ContractBase = Omit<
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
                   readonly nullable: false;
+                };
+                readonly organizationId: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
                 };
                 readonly studentDataId: {
                   readonly nativeType: 'text';
@@ -9681,6 +9698,11 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/text@1';
                   readonly nullable: false;
                 };
+                readonly organizationId: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
                 readonly gradebookId: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
@@ -9776,6 +9798,11 @@ type ContractBase = Omit<
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
                   readonly nullable: false;
+                };
+                readonly organizationId: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
                 };
                 readonly classId: {
                   readonly nativeType: 'text';
@@ -22340,6 +22367,10 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
+              readonly organizationId: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
               readonly studentDataId: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
@@ -22401,6 +22432,7 @@ type ContractBase = Omit<
               readonly namespaceId: 'public';
               readonly fields: {
                 readonly id: { readonly column: 'id' };
+                readonly organizationId: { readonly column: 'organizationId' };
                 readonly studentDataId: { readonly column: 'studentDataId' };
                 readonly termId: { readonly column: 'termId' };
                 readonly date: { readonly column: 'date' };
@@ -24644,6 +24676,10 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
+              readonly organizationId: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
               readonly gradebookId: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
@@ -24716,6 +24752,7 @@ type ContractBase = Omit<
               readonly namespaceId: 'public';
               readonly fields: {
                 readonly id: { readonly column: 'id' };
+                readonly organizationId: { readonly column: 'organizationId' };
                 readonly gradebookId: { readonly column: 'gradebookId' };
                 readonly studentDataId: { readonly column: 'studentDataId' };
                 readonly score: { readonly column: 'score' };
@@ -24732,6 +24769,10 @@ type ContractBase = Omit<
             readonly fields: {
               readonly id: {
                 readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly organizationId: {
+                readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
               readonly classId: {
@@ -24811,6 +24852,7 @@ type ContractBase = Omit<
               readonly namespaceId: 'public';
               readonly fields: {
                 readonly id: { readonly column: 'id' };
+                readonly organizationId: { readonly column: 'organizationId' };
                 readonly classId: { readonly column: 'classId' };
                 readonly termId: { readonly column: 'termId' };
                 readonly name: { readonly column: 'name' };

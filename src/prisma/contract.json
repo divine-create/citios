@@ -1746,6 +1746,13 @@
                   "kind": "scalar"
                 }
               },
+              "organizationId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "status": {
                 "nullable": false,
                 "type": {
@@ -1816,6 +1823,9 @@
                 },
                 "notes": {
                   "column": "notes"
+                },
+                "organizationId": {
+                  "column": "organizationId"
                 },
                 "status": {
                   "column": "status"
@@ -5316,6 +5326,13 @@
                   "kind": "scalar"
                 }
               },
+              "organizationId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "score": {
                 "nullable": true,
                 "type": {
@@ -5396,6 +5413,9 @@
                 },
                 "id": {
                   "column": "id"
+                },
+                "organizationId": {
+                  "column": "organizationId"
                 },
                 "score": {
                   "column": "score"
@@ -5562,6 +5582,13 @@
                   "kind": "scalar"
                 }
               },
+              "organizationId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "termId": {
                 "nullable": false,
                 "type": {
@@ -5653,6 +5680,9 @@
                 },
                 "name": {
                   "column": "name"
+                },
+                "organizationId": {
+                  "column": "organizationId"
                 },
                 "termId": {
                   "column": "termId"
@@ -24955,6 +24985,11 @@
                   "nativeType": "text",
                   "nullable": true
                 },
+                "organizationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "status": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -28044,6 +28079,11 @@
                   "nativeType": "text",
                   "nullable": false
                 },
+                "organizationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "score": {
                   "codecId": "pg/float8@1",
                   "nativeType": "float8",
@@ -28251,6 +28291,11 @@
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": false
+                },
+                "organizationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
                 },
                 "termId": {
                   "codecId": "pg/text@1",
@@ -42971,7 +43016,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "10a0e2b65edf177d9b0d071b20bbdfd4e16b5ca66320dc853ac5b6813a433ace"
+    "storageHash": "90076624107bb963d797deb955bc1ac6808427d9a9c3c89d76521eccdfa3e82c"
   },
   "execution": {
     "executionHash": "8ffe4abe549eee59d8014cc6ba66d7aa7f1e6b28e81a55c99e3f0de420286778",

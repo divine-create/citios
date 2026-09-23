@@ -72,12 +72,9 @@ async function fetchHydratedStaff(organizationId: string) {
 
 export async function getSchoolAdminData(organizationId: string) {
   try {
-    let school;
-    if (organizationId) {
-      school = await db.orm.public.Organization.where({ id: organizationId, type: 'SCHOOL' }).all().first();
-    } else {
-      school = await db.orm.public.Organization.where({ type: 'SCHOOL' }).all().first();
-    }
+    if (!organizationId) return null;
+    await requireMembership(organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR', 'FINANCE']);
+    const school = await db.orm.public.Organization.where({ id: organizationId, type: 'SCHOOL' }).all().first();
     if (!school) return null;
 
     const students = (await fetchHydratedStudents(school.id)).sort((a, b) => a.lastName.localeCompare(b.lastName));
@@ -261,6 +258,7 @@ export async function getCourseGradebook(classId: string) {
   try {
     const schoolClass = await db.orm.public.SchoolClass.where({ id: classId }).all().first();
     if (!schoolClass) return null;
+    await requireMembership(schoolClass.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'TEACHER', 'REGISTRAR']);
 
     const enrollments = await db.orm.public.ClassEnrolment.where({ classId }).all();
     const enrolledStudentDataIds = new Set(enrollments.map((e) => e.studentDataId));
@@ -524,6 +522,9 @@ export async function removeTeacherFromClass(classTeacherId: string) {
 
 export async function deleteCourse(classId: string) {
   try {
+    const item = await db.orm.public.SchoolClass.where({ id: classId }).all().first();
+    if (!item) return { error: 'Not found' };
+    await requireMembership(item.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
     await db.orm.public.SchoolClass.where({ id: classId }).delete();
     return { success: true };
   } catch (error) {
@@ -595,6 +596,9 @@ export async function updateSubject(subjectId: string, input: { name?: string; c
 
 export async function deleteSubject(subjectId: string) {
   try {
+    const item = await db.orm.public.Subject.where({ id: subjectId }).all().first();
+    if (!item) return { error: 'Not found' };
+    await requireMembership(item.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
     await db.orm.public.Subject.where({ id: subjectId }).delete();
     return { success: true };
   } catch (error) {
@@ -757,6 +761,9 @@ export async function updateTerm(
 
 export async function deleteTerm(termId: string) {
   try {
+    const item = await db.orm.public.Term.where({ id: termId }).all().first();
+    if (!item) return { error: 'Not found' };
+    await requireMembership(item.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
     await db.orm.public.Term.where({ id: termId }).delete();
     return { success: true };
   } catch (error) {
@@ -816,6 +823,9 @@ export async function updateSchoolGrade(gradeId: string, input: { name?: string;
 
 export async function deleteSchoolGrade(gradeId: string) {
   try {
+    const item = await db.orm.public.SchoolGrade.where({ id: gradeId }).all().first();
+    if (!item) return { error: 'Not found' };
+    await requireMembership(item.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
     const sections = await db.orm.public.ClassSection.where({ gradeId }).all();
     if (sections.length > 0) {
       return { error: 'Remove this class\'s sections before deleting it.' };
@@ -1025,6 +1035,10 @@ export async function updateSyllabusTopic(
 
 export async function deleteSyllabusTopic(topicId: string) {
   try {
+    const item = await db.orm.public.SyllabusTopic.where({ id: topicId }).all().first();
+    if (!item) return { error: 'Not found' };
+    const course = await db.orm.public.SchoolClass.where({ id: item.classId }).all().first();
+    if (course) await requireMembership(course.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR', 'TEACHER']);
     await db.orm.public.SyllabusTopic.where({ id: topicId }).delete();
     return { success: true };
   } catch (error) {
@@ -1441,6 +1455,7 @@ export async function markAttendance(
       });
     } else {
       await db.orm.public.Attendance.create({
+        organizationId: rel.organizationId,
         studentDataId: studentDataId,
         termId: term.id,
         date: dayInstant,
@@ -1498,6 +1513,7 @@ export async function createAssignment(input: {
     const currentTerm = terms.find((t) => epochMs(t.startDate) <= now && now <= epochMs(t.endDate)) ?? terms[0];
 
     await db.orm.public.Gradebook.create({
+      organizationId: course.organizationId,
       classId: input.courseId,
       termId: currentTerm.id,
       name: input.title,
@@ -1530,6 +1546,7 @@ export async function recordGrade(input: { assignmentId: string; studentDataId: 
       await db.orm.public.Grade.where({ id: existing.id }).update({ score: input.score });
     } else {
       await db.orm.public.Grade.create({
+        organizationId: course.organizationId,
         gradebookId: input.assignmentId,
         studentDataId: input.studentDataId,
         score: input.score,
@@ -1708,6 +1725,9 @@ export async function updateFeeType(feeTypeId: string, input: {
 
 export async function deleteFeeType(feeTypeId: string) {
   try {
+    const item = await db.orm.public.FeeType.where({ id: feeTypeId }).all().first();
+    if (!item) return { error: 'Not found' };
+    await requireMembership(item.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'FINANCE']);
     await db.orm.public.FeeType.where({ id: feeTypeId }).delete();
     return { success: true };
   } catch (error) {
@@ -1807,33 +1827,83 @@ export async function recordFeePayment(input: {
   try {
     if (input.amount <= 0) return { error: 'Payment amount must be greater than zero.' };
 
-    const invoice = await db.orm.public.FeeInvoice.where({ id: input.invoiceId }).all().first();
-    if (!invoice) return { error: 'Invoice not found.' };
+    const invoiceInitial = await db.orm.public.FeeInvoice.where({ id: input.invoiceId }).all().first();
+    if (!invoiceInitial) return { error: 'Invoice not found.' };
 
-    const { membership } = await requireMembership(invoice.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'FINANCE', 'REGISTRAR']);
+    const { membership } = await requireMembership(invoiceInitial.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'FINANCE', 'REGISTRAR']);
 
-    await db.orm.public.FeePayment.create({
-      invoiceId: input.invoiceId,
-      amount: input.amount,
-      method: input.method,
-      reference: input.reference,
-      notes: input.notes,
-      recordedBy: input.recordedBy ?? membership.id,
-      paidAt: toInstant(new Date()),
-    });
+    await db.transaction(async (tx: any) => {
+      const lockedInvoiceRows = await tx.sql`
+        SELECT "id", "totalAmount", "paidAmount"
+        FROM "FeeInvoice"
+        WHERE "id" = ${input.invoiceId}
+        FOR UPDATE
+      `;
+      if (!lockedInvoiceRows || lockedInvoiceRows.length === 0) {
+        throw new Error('Invoice not found or could not be locked.');
+      }
+      const lockedInvoice = lockedInvoiceRows[0];
 
-    const newPaidAmount = invoice.paidAmount + input.amount;
-    const status = newPaidAmount >= invoice.totalAmount ? 'paid' : newPaidAmount > 0 ? 'partial' : 'unpaid';
+      if (lockedInvoice.paidAmount + input.amount > lockedInvoice.totalAmount) {
+         throw new Error(`Cannot overpay invoice. Remaining balance is ${lockedInvoice.totalAmount - lockedInvoice.paidAmount}.`);
+      }
 
-    await db.orm.public.FeeInvoice.where({ id: input.invoiceId }).update({
-      paidAmount: newPaidAmount,
-      status,
+      const wallet = await tx.orm.public.Wallet.where({ organizationId: invoiceInitial.organizationId }).all().first();
+      let transactionId = null;
+
+      if (wallet) {
+         const t = await tx.orm.public.Transaction.create({
+            status: 'COMPLETED',
+            reference: `MANUAL-FEE-${Date.now()}-${input.invoiceId.slice(0,8)}`,
+            description: `Manual Fee Payment: ${input.notes ?? 'Invoice ' + input.invoiceId.slice(0,8)}`,
+         });
+         transactionId = t.id;
+
+         await tx.orm.public.LedgerEntry.create({
+            walletId: wallet.id,
+            transactionId: t.id,
+            amount: input.amount,
+            currency: wallet.currency
+         });
+
+         await tx.orm.public.Wallet.where({ id: wallet.id }).update({
+            balance: wallet.balance + input.amount
+         });
+      }
+
+      const paymentRef = input.reference || `MANUAL-${Date.now()}`;
+      await tx.orm.public.Payment.create({
+         amount: input.amount,
+         currency: wallet?.currency || 'USD',
+         method: (input.method || 'CASH').toUpperCase(),
+         status: 'COMPLETED',
+         reference: paymentRef,
+         transactionId: transactionId
+      });
+
+      await tx.orm.public.FeePayment.create({
+        invoiceId: input.invoiceId,
+        amount: input.amount,
+        method: input.method || 'cash',
+        reference: paymentRef,
+        notes: input.notes,
+        recordedBy: input.recordedBy ?? membership.id,
+        paidAt: (globalThis as any).Temporal.Instant.fromEpochMilliseconds(Date.now()),
+      });
+
+      const newPaidAmount = lockedInvoice.paidAmount + input.amount;
+      const status = newPaidAmount >= lockedInvoice.totalAmount ? 'paid' : newPaidAmount > 0 ? 'partial' : 'unpaid';
+
+      await tx.orm.public.FeeInvoice.where({ id: input.invoiceId }).update({
+        paidAmount: newPaidAmount,
+        status,
+      });
     });
 
     return { success: true };
   } catch (error) {
     console.error('Error recording fee payment:', error);
-    return { error: 'Failed to record payment.' };
+    return { error: error instanceof Error ? error.message : 'Failed to record payment.' };
   }
 }
 
@@ -2061,6 +2131,9 @@ export async function createStudentDocument(input: { organizationId: string; stu
 
 export async function deleteStudentDocument(documentId: string) {
   try {
+    const item = await db.orm.public.Document.where({ id: documentId }).all().first();
+    if (!item) return { error: 'Not found' };
+    await requireMembership(item.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
     await db.orm.public.Document.where({ id: documentId }).delete();
     return { success: true };
   } catch (error) {
@@ -2713,6 +2786,7 @@ function eventMatchesAudience(event: { targetRoles: string; targetYears: string 
 
 export async function getSchoolEvents(organizationId: string) {
   try {
+    await requireMembership(organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'TEACHER', 'REGISTRAR', 'COUNSELOR', 'FINANCE', 'LIBRARIAN', 'STUDENT', 'PARENT']);
     const events = await db.orm.public.SchoolEvent.where({ organizationId }).all();
     return JSON.parse(JSON.stringify(events.sort((a, b) => epochMs(a.startDate) - epochMs(b.startDate))));
   } catch (error) {
@@ -2799,6 +2873,9 @@ export async function updateSchoolEvent(eventId: string, input: {
 
 export async function deleteSchoolEvent(eventId: string) {
   try {
+    const item = await db.orm.public.SchoolEvent.where({ id: eventId }).all().first();
+    if (!item) return { error: 'Not found' };
+    await requireMembership(item.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
     await db.orm.public.SchoolEvent.where({ id: eventId }).delete();
     return { success: true };
   } catch (error) {
@@ -2875,6 +2952,9 @@ export async function updateGradingScale(scaleId: string, input: { name?: string
 
 export async function deleteGradingScale(scaleId: string) {
   try {
+    const item = await db.orm.public.GradingScale.where({ id: scaleId }).all().first();
+    if (!item) return { error: 'Not found' };
+    await requireMembership(item.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
     await db.orm.public.GradingScale.where({ id: scaleId }).delete();
     return { success: true };
   } catch (error) {
@@ -2933,6 +3013,10 @@ export async function updateGradeBoundary(boundaryId: string, input: {
 
 export async function deleteGradeBoundary(boundaryId: string) {
   try {
+    const item = await db.orm.public.GradeBoundary.where({ id: boundaryId }).all().first();
+    if (!item) return { error: 'Not found' };
+    const scale = await db.orm.public.GradingScale.where({ id: item.gradingScaleId }).all().first();
+    if (scale) await requireMembership(scale.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'REGISTRAR']);
     await db.orm.public.GradeBoundary.where({ id: boundaryId }).delete();
     return { success: true };
   } catch (error) {
