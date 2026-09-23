@@ -105,9 +105,12 @@ export async function createReservation(input: {
   checkInDate: string;
   checkOutDate: string;
   roomBlockId?: string;
+  byResident?: boolean;
 }) {
   try {
-    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST']);
+    if (!input.byResident) {
+      await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST']);
+    }
     const guestName = input.guestName.trim();
     if (!guestName) return { error: 'Guest name is required.' };
     if (!input.roomId) return { error: 'Please select a room.' };

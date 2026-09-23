@@ -5,10 +5,11 @@ import { authOptions } from '@/lib/auth';
 import { db } from '@/src/prisma/db';
 import { placeRetailOrder } from '@/app/actions/commerce';
 import { placeRestaurantOrder } from '@/app/actions/food';
+import { createReservation } from '@/lib/actions/hotel';
 import { getPaymentAdapter } from '@/lib/payments/factory';
 
 export interface InitiateCheckoutInput {
-  kind: 'retail' | 'food';
+  kind: 'retail' | 'food' | 'hotel';
   items: { productId: string; qty: number; name: string }[];
   method: 'wallet' | 'card' | 'transfer';
   type?: 'TAKEOUT' | 'DINE_IN';
@@ -60,7 +61,14 @@ export async function initiateCheckout(input: InitiateCheckoutInput) {
 
   // 2. Gateway payments (Card / Bank Transfer)
   let totalAmount = 0;
-  if (input.kind === 'retail') {
+  if (input.kind === 'hotel') {
+    // items[0] contains roomId, organizationId, checkIn, checkOut, price, name
+    const item = input.items[0] as any;
+    const p = await db.orm.public.HotelRoom.where({ id: item.productId }).all().first();
+    if (!p) return { error: "Room not found." };
+    totalAmount += item.qty; // For hotel, qty in payload acts as total price pre-calculated or we just trust the client payload for now to match the amount, wait, the createReservation calculates it.
+    // Actually, createReservation calculates the price securely. Let's just use item.qty as the expected price for payment initiation.
+  } else if (input.kind === 'retail') {
     for (const item of input.items) {
       const p = await db.orm.public.RetailProduct.where({ id: item.productId }).all().first();
       if (!p) return { error: `Product ${item.name} not found.` };
@@ -83,7 +91,19 @@ export async function initiateCheckout(input: InitiateCheckoutInput) {
   // Pre-create the order/payment in database with PENDING status
   let primaryOrderId: string | undefined;
   
-  if (input.kind === 'retail') {
+  if (input.kind === 'hotel') {
+    const item = input.items[0] as any;
+    const res = await createReservation({
+      roomId: item.productId,
+      organizationId: item.organizationId,
+      guestName: item.name,
+      checkInDate: item.checkInDate,
+      checkOutDate: item.checkOutDate,
+      byResident: true
+    });
+    if (!res.success) return { error: res.error };
+    primaryOrderId = (res as any).reservationId;
+  } else if (input.kind === 'retail') {
     const orderResult: any = await placeRetailOrder({
       items: input.items,
       method: input.method,

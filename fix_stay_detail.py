@@ -1,4 +1,9 @@
-'use client';
+import sys
+
+with open('components/cityos/CityStayDetail.tsx', 'r', encoding='utf-8') as f:
+    c = f.read()
+
+good = ''''use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
@@ -97,4 +102,6 @@ export default function CityStayDetail({ org, rooms }: { org: any, rooms: any[] 
       </div>
     </div>
   );
-}
+}'''
+with open('components/cityos/CityStayDetail.tsx', 'w', encoding='utf-8') as f:
+    f.write(good)

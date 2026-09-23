@@ -9,12 +9,12 @@ import { useCity } from '@/components/cityos/CityProvider';
 
 const FILTERS = ['All', 'Under â‚¦10,000', 'Near stadium', 'Open 24h'];
 
-export default function CityStayList() {
+export default function CityStayList({ hotels = [] }: { hotels?: any[] }) {
   const cityName = useCity().city?.name ?? 'CityOS';
   const { fmt } = useMoney();
   const [filter, setFilter] = useState('All');
 
-  const hotels: any[] = [];
+  
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
@@ -35,15 +35,15 @@ export default function CityStayList() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {hotels.map((h) => (
-          <CityCard key={h.slug} href={`/stay/${h.slug}`} className="flex flex-col">
+          <CityCard key={h.id} href={`/stay/${h.id}`} className="flex flex-col">
             <div className="relative">
-              <FallbackImg src={h.image} alt={h.name} className="h-40 w-full" gradient="from-teal-900 to-teal-700" />
+              <FallbackImg src={h.storeCoverImage} alt={h.name} className="h-40 w-full" gradient="from-teal-900 to-teal-700" />
               <span className="absolute top-2 left-2">
-                <Pill tone={h.pricePerNight < 10000 ? 'green' : 'blue'}>
-                  {h.pricePerNight < 10000 ? 'Best value' : h.tags[0] ?? 'Hotel'}
+                <Pill tone={false ? 'green' : 'blue'}>
+                  {false ? 'Best value' : h.storeCategory ?? 'Hotel'}
                 </Pill>
               </span>
-              {h.nearStadium ? (
+              {false ? (
                 <span className="absolute top-2 right-2">
                   <Pill tone="orange">Near stadium</Pill>
                 </span>
@@ -53,19 +53,19 @@ export default function CityStayList() {
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="text-[14px] font-black text-ink truncate">{h.name}</p>
-                  <LocationRow text={h.area} className="text-[10px]" />
+                  <LocationRow text={h.description || "City Center"} className="text-[10px]" />
                 </div>
-                <Stars rating={h.rating} className="shrink-0" />
+                <Stars rating={5} className="shrink-0" />
               </div>
-              <p className="text-[12px] text-slate-500 font-medium leading-snug line-clamp-2">{h.tagline}</p>
+              <p className="text-[12px] text-slate-500 font-medium leading-snug line-clamp-2">{h.description}</p>
               <div className="mt-auto pt-2 flex items-end justify-between">
                 <div>
                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">per night</p>
-                  <p className="text-[15px] font-black text-ink">{fmt(h.pricePerNight)}</p>
+                  <p className="text-[15px] font-black text-ink">{fmt(0)}</p>
                 </div>
                 <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
                   <Clock className="w-3 h-3" />
-                  {h.open24 ? 'Open 24h' : 'Reception till late'}
+                  {true ? 'Open 24h' : 'Reception till late'}
                 </div>
               </div>
             </div>

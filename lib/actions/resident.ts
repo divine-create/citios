@@ -2,6 +2,8 @@
 'use server'
 import { db } from '@/src/prisma/db'
 import { getCurrentCity } from '@/lib/city'
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 // City scope: resident-facing org listings only surface orgs operating in
 // the current city. When no city resolves (unseeded DB), the filter is
@@ -115,14 +117,19 @@ export async function getHotelRooms(orgId: string) {
 
 export async function getParentDashboard() {
   try {
-    const students = await db.orm.public.StudentData.all();
-    if (students.length === 0) return [];
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user || !session.user.personId) return [];
     
-    // Prisma Next doesn't have deep nested includes easily in .all() without raw SQL, 
-    // so we'll fetch relations manually or just return what we can and mock the rest for the UI prototype.
-    // Actually, Prisma Next DOES have some include support, but let's try safely.
-    // To be safe and avoid crashing due to Prisma 8 quirks, I will just return the students 
-    // and let the component mock the rich nested relations for this phase.
+    const personId = session.user.personId;
+    const auths = await db.orm.public.GuardianAuthorization.where({ guardianPersonId: personId }).all();
+    if (auths.length === 0) return [];
+    
+    const wardRelIds = auths.map((a: any) => a.wardRelationshipId);
+    
+    // Fetch students linked to those relationships
+    const allStudents = await db.orm.public.StudentData.all();
+    const students = allStudents.filter(s => wardRelIds.includes(s.relationshipId));
+    
     return JSON.parse(JSON.stringify(students));
   } catch (e) {
     console.error(e);

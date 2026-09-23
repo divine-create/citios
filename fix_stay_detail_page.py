@@ -1,4 +1,9 @@
-import { db } from '@/src/prisma/db';
+import sys
+
+with open('app/(resident)/stay/[slug]/page.tsx', 'r', encoding='utf-8') as f:
+    c = f.read()
+
+good = '''import { db } from '@/src/prisma/db';
 import { getHotelRooms } from '@/lib/actions/resident';
 import CityStayDetail from '@/components/cityos/CityStayDetail';
 import { notFound } from 'next/navigation';
@@ -12,4 +17,6 @@ export default async function StayDetailPage({ params }: { params: Promise<{ slu
   
   const rooms = await getHotelRooms(org.id);
   return <CityStayDetail org={JSON.parse(JSON.stringify(org))} rooms={rooms} />;
-}
+}'''
+with open('app/(resident)/stay/[slug]/page.tsx', 'w', encoding='utf-8') as f:
+    f.write(good)
