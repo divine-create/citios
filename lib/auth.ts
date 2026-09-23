@@ -1,6 +1,7 @@
 import { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
-import CredentialsProvider from "next-auth/providers/credentials";
+import _CredentialsProvider from "next-auth/providers/credentials";
+const CredentialsProvider = ((_CredentialsProvider as any).default || _CredentialsProvider) as typeof _CredentialsProvider;
 import { db } from "@/src/prisma/db";
 import { resolvePersonByEmail, findPersonByIdentifier } from "@/lib/identity";
 import { verifyPassword } from "@/lib/password";

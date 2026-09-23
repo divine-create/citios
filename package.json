@@ -11,7 +11,8 @@
     "test": "tsx --test lib/*.test.ts",
     "clean": "next clean",
     "postinstall": "prisma skills sync || exit 0",
-    "contract:emit": "prisma contract emit"
+    "contract:emit": "prisma contract emit",
+    "test:integration": "tsx --test lib/*.integration.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1136.0",
@@ -49,7 +50,6 @@
     "@types/uuid": "^10.0.0",
     "eslint": "9.39.1",
     "eslint-config-next": "16.0.8",
-
     "prisma": "^8.0.0-rc.10",
     "tailwindcss": "4.1.11",
     "tsx": "^4.23.12",
