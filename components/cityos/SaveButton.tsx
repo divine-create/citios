@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Heart } from 'lucide-react';
-import { toggleSavedItem } from '@/app/actions/saved';
+import { toggleSavedItem } from '@/app/actions/org';
 import { cn } from '@/lib/utils';
 import { useSession } from 'next-auth/react';
 
@@ -52,3 +52,4 @@ export default function SaveButton({ kind, entityId, cityId, initialSaved = fals
     </button>
   );
 }
+
