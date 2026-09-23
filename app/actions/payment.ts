@@ -16,6 +16,7 @@ export interface InitiateCheckoutInput {
   callbackUrl?: string;
   locationId?: string;
   idempotencyKey?: string;
+  deliveryAddress?: string;
 }
 
 export async function initiateCheckout(input: InitiateCheckoutInput) {

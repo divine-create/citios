@@ -38,6 +38,12 @@ export async function processPaymentEvent(payload: any) {
       });
 
       if (event === 'charge.success') {
+        const currentPayment = await prismaTx.orm.public.Payment.where({ id: payment.id }).all().first();
+        if (currentPayment.status === 'COMPLETED') {
+            console.info(`[CityPay] Payment ${payment.id} already completed.`);
+            return { status: 'already_processed' };
+        }
+
         const txRow = await prismaTx.orm.public.Transaction.create({
           status: 'COMPLETED',
           reference: payment.id,
@@ -62,6 +68,31 @@ export async function processPaymentEvent(payload: any) {
             status: 'PREPARING'
           });
         }
+
+        // --- MERCHANTS PAYOUT ACCOUNTING ---
+        let organizationId = null;
+        if (payment.retailOrderId) {
+          const retailOrder = await prismaTx.orm.public.RetailOrder.where({ id: payment.retailOrderId }).all().first();
+          if (retailOrder) organizationId = retailOrder.organizationId;
+        } else if (payment.restaurantOrderId) {
+          const restOrder = await prismaTx.orm.public.RestaurantOrder.where({ id: payment.restaurantOrderId }).all().first();
+          if (restOrder) organizationId = restOrder.organizationId;
+        }
+
+        if (organizationId) {
+          const wallet = await prismaTx.orm.public.Wallet.where({ organizationId }).all().first();
+          if (wallet) {
+            await prismaTx.orm.public.LedgerEntry.create({
+              walletId: wallet.id,
+              transactionId: txRow.id,
+              amount: payment.amount,
+              currency: wallet.currency
+            });
+            // Update balance natively
+            await prismaTx.sql`UPDATE "Wallet" SET "balance" = "balance" + ${payment.amount} WHERE "id" = ${wallet.id}`;
+          }
+        }
+        // -----------------------------------
         
       } else if (event === 'charge.failed') {
         await prismaTx.orm.public.Payment.where({ id: payment.id }).update({

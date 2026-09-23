@@ -15,7 +15,7 @@ const METHODS = [
   { id: 'transfer', label: 'Bank Transfer / USSD', sub: 'Direct bank transfer via Paystack', icon: Landmark },
 ] as const;
 
-type MethodId = 'wallet' | 'card' | 'transfer';
+type MethodId = 'card' | 'card' | 'transfer';
 
 export default function CheckoutView() {
   const { fmt } = useMoney();
@@ -54,14 +54,7 @@ export default function CheckoutView() {
   const pay = async () => {
     if (processing || hasMixed) return;
 
-    if (method === 'wallet') {
-      const ok = spend(total, foodOnly ? 'CityPay food order' : 'CityPay order');
-      if (!ok) {
-        setWalletError(true);
-        return;
-      }
-    }
-    setWalletError(false);
+
     setProcessing(true);
 
     try {
@@ -175,7 +168,7 @@ export default function CheckoutView() {
                         {m.label}
                       </div>
                       <div className={cn("text-xs", method === m.id ? "text-teal-700" : "text-slate-500")}>
-                        {m.id === 'wallet' ? `${fmt(balance)} available` : m.sub}
+                        {m.sub}
                       </div>
                     </div>
                   </div>
@@ -218,14 +211,14 @@ export default function CheckoutView() {
                 <span className="text-2xl font-black text-teal-900"><Money amount={total} /></span>
               </div>
 
-              {!walletOk && (
+              {!cardOk && (
                 <div className="p-3 bg-rose-50 text-rose-800 text-xs font-medium rounded-xl flex gap-2 items-start leading-relaxed">
                   <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 opacity-70" />
-                  <div>Insufficient wallet balance. Please add funds or switch payment method.</div>
+                  <div>Insufficient card balance. Please add funds or switch payment method.</div>
                 </div>
               )}
 
-              {walletError && (
+              {cardError && (
                 <div className="text-rose-600 text-xs font-bold text-center">
                   Payment declined.
                 </div>
@@ -249,6 +242,10 @@ export default function CheckoutView() {
     </div>
   );
 }
+
+
+
+
 
 
 
