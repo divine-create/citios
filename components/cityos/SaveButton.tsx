@@ -28,9 +28,8 @@ export default function SaveButton({ kind, entityId, cityId, initialSaved = fals
     }
     setLoading(true);
     try {
-      const res = await toggleSavedItem(kind, entityId, cityId);
-      if (res.error) alert(res.error);
-      else setIsSaved(res.saved);
+      const res = await toggleSavedItem(kind, entityId);
+      setIsSaved(res);
     } catch (err) {
       console.error(err);
     }
@@ -52,4 +51,5 @@ export default function SaveButton({ kind, entityId, cityId, initialSaved = fals
     </button>
   );
 }
+
 
