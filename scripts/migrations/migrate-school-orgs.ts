@@ -1,56 +1,33 @@
-import { PrismaClient } from '@prisma/client';
+import { db } from '../../src/prisma/db';
 
-const prisma = new PrismaClient();
+export async function migrateSchoolOrgs() {
+  console.log('Starting SchoolOS Organization Migration...');
 
-async function run() {
-  console.log('Migrating Attendance...');
-  const attendances = await prisma.attendance.findMany({ where: { organizationId: null } });
-  for (const att of attendances) {
-    const sd = await prisma.studentData.findUnique({ where: { id: att.studentDataId } });
-    if (sd) {
-      const rel = await prisma.relationship.findUnique({ where: { id: sd.relationshipId } });
-      if (rel) {
-        await prisma.attendance.update({
-          where: { id: att.id },
-          data: { organizationId: rel.organizationId }
-        });
-      }
-    }
+  const classes = await db.orm.public.SchoolClass.all();
+  let gradebooksUpdated = 0;
+  for (const cls of classes) {
+    gradebooksUpdated += (await db.orm.public.Gradebook.where({ classId: cls.id, organizationId: null }).update({ organizationId: cls.organizationId })).count;
   }
+  console.log(Updated  Gradebook records.);
 
-  console.log('Migrating Gradebook...');
-  const gradebooks = await prisma.gradebook.findMany({ where: { organizationId: null } });
+  const gradebooks = await db.orm.public.Gradebook.all();
+  let gradesUpdated = 0;
   for (const gb of gradebooks) {
-    const cls = await prisma.schoolClass.findUnique({ where: { id: gb.classId } });
-    if (cls) {
-      await prisma.gradebook.update({
-        where: { id: gb.id },
-        data: { organizationId: cls.organizationId }
-      });
+    if (gb.organizationId) {
+      gradesUpdated += (await db.orm.public.Grade.where({ gradebookId: gb.id, organizationId: null }).update({ organizationId: gb.organizationId })).count;
     }
   }
+  console.log(Updated  Grade records.);
 
-  console.log('Migrating Grade...');
-  const grades = await prisma.grade.findMany({ where: { organizationId: null } });
-  for (const grade of grades) {
-    const gb = await prisma.gradebook.findUnique({ where: { id: grade.gradebookId } });
-    if (gb && gb.organizationId) {
-      await prisma.grade.update({
-        where: { id: grade.id },
-        data: { organizationId: gb.organizationId }
-      });
-    } else if (gb) {
-        const cls = await prisma.schoolClass.findUnique({ where: { id: gb.classId } });
-        if (cls) {
-            await prisma.grade.update({
-                where: { id: grade.id },
-                data: { organizationId: cls.organizationId }
-            });
-        }
+  const studentData = await db.orm.public.StudentData.all();
+  let attendancesUpdated = 0;
+  for (const s of studentData) {
+    const rel = await db.orm.public.Relationship.where({ id: s.relationshipId }).all().first();
+    if (rel) {
+      attendancesUpdated += (await db.orm.public.Attendance.where({ studentDataId: s.id, organizationId: null }).update({ organizationId: rel.organizationId })).count;
     }
   }
-
+  console.log(Updated  Attendance records.);
+  
   console.log('Migration complete.');
 }
-
-run().catch(console.error).finally(() => prisma.$disconnect());
