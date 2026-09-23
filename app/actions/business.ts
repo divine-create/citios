@@ -42,7 +42,7 @@ export async function getUnifiedBusinessAnalytics(organizationId: string) {
       ref: o.id.substring(0, 6).toUpperCase(),
       name: 'Customer', // Would need customerData fetch
       area: 'Local',
-      amount: (o.totalPrice ?? 0),
+      amount: (o.totalAmount || 0),
       status: o.status,
       time: o.createdAt
     })));
@@ -68,7 +68,7 @@ export async function getUnifiedBusinessAnalytics(organizationId: string) {
       ref: o.id.substring(0, 6).toUpperCase(),
       name: 'Customer',
       area: 'Local',
-      amount: (o.totalPrice ?? 0),
+      amount: (o.totalAmount || 0),
       status: o.status,
       time: o.createdAt
     })));
@@ -81,7 +81,7 @@ export async function getUnifiedBusinessAnalytics(organizationId: string) {
       ref: o.id.substring(0, 6).toUpperCase(),
       name: o.guestName,
       area: 'Reservation',
-      amount: (o.totalPrice ?? 0),
+      amount: (o.totalPrice || 0),
       status: o.status,
       time: o.createdAt
     })));
@@ -106,6 +106,9 @@ export async function getUnifiedBusinessAnalytics(organizationId: string) {
     }))
   };
 }
+
+
+
 
 
 
