@@ -101,7 +101,7 @@ export async function initiateCheckout(input: InitiateCheckoutInput) {
       checkOutDate: item.checkOutDate,
       byResident: true
     });
-    if (!res.success) return { error: res.error };
+    if (res.error) return { error: res.error };
     primaryOrderId = (res as any).reservationId;
   } else if (input.kind === 'retail') {
     const orderResult: any = await placeRetailOrder({
