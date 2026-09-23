@@ -118,31 +118,50 @@ export async function createReservation(input: {
     if (checkOut.getTime() <= checkIn.getTime()) return { error: 'Check-out must be after check-in.' };
 
     return await db.transaction(async (tx: any) => {
-      const roomRaw = await tx.sql`SELECT id, "baseRate", "locationId" FROM "HotelRoom" WHERE id = ${input.roomId} AND "organizationId" = ${input.organizationId} FOR UPDATE`;
-      if (roomRaw.length === 0) return { error: 'Room not found.' };
+      // Acquire a row-level write-lock on the room to prevent concurrent booking races
+      const lockPlan = db.raw.sql`SELECT id FROM "hotelRoom" WHERE id = ${input.roomId} AND "organizationId" = ${input.organizationId} FOR UPDATE`
+        .affectedCount()
+        .build();
+      // Execute lock then fetch room via ORM (same transaction connection holds the lock)
+      await tx.execute(lockPlan);
 
-      const overlaps = await tx.sql`
-        SELECT id FROM "Reservation"
-        WHERE "roomId" = ${input.roomId}
-        AND status NOT IN ('CANCELLED', 'CHECKED_OUT')
-        AND "checkOutDate" > ${toInstant(checkIn)}
-        AND "checkInDate" < ${toInstant(checkOut)}
-      `;
+      const room = await tx.orm.public.HotelRoom.where({ id: input.roomId, organizationId: input.organizationId }).all().first();
+      if (!room) return { error: 'Room not found.' };
+
+      // Check for overlapping reservations inside the transaction (lock acquired above)
+      const allReservations = await tx.orm.public.Reservation.where({ roomId: input.roomId }).all();
+      const checkInMs = checkIn.getTime();
+      const checkOutMs = checkOut.getTime();
+      const overlaps = allReservations.filter((r: any) => {
+        if (r.status === 'CANCELLED' || r.status === 'CHECKED_OUT') return false;
+        const rIn = epochMs(r.checkInDate);
+        const rOut = epochMs(r.checkOutDate);
+        return rIn < checkOutMs && rOut > checkInMs;
+      });
       if (overlaps.length > 0) return { error: 'This room is already booked for part of that date range.' };
 
-      const totalPrice = await computeStayPrice(input.organizationId, roomRaw[0].baseRate, checkIn, checkOut);
+      const totalPrice = await computeStayPrice(input.organizationId, room.baseRate, checkIn, checkOut);
 
-      await tx.sql`
-        INSERT INTO "Reservation" (id, "guestName", "roomId", "organizationId", "locationId", "status", "checkInDate", "checkOutDate", "totalPrice", "paymentStatus", "roomBlockId")
-        VALUES (gen_random_uuid(), ${guestName}, ${input.roomId}, ${input.organizationId}, ${roomRaw[0].locationId}, 'CONFIRMED', ${toInstant(checkIn)}, ${toInstant(checkOut)}, ${totalPrice}, 'PENDING', ${input.roomBlockId ?? null})
-      `;
-      return { success: true };
+      const newReservation = await tx.orm.public.Reservation.create({
+        guestName,
+        roomId: input.roomId,
+        organizationId: input.organizationId,
+        locationId: room.locationId ?? undefined,
+        status: 'CONFIRMED',
+        checkInDate: toInstant(checkIn),
+        checkOutDate: toInstant(checkOut),
+        totalPrice,
+        paymentStatus: 'PENDING',
+        roomBlockId: input.roomBlockId ?? undefined,
+      });
+      return { success: true, reservationId: newReservation.id };
     });
   } catch (error) {
     console.error('Error creating reservation:', error);
     return { error: 'Failed to create reservation.' };
   }
 }
+
 
 export async function updateReservationStatus(
   reservationId: string,
@@ -470,35 +489,71 @@ export async function settleFolio(reservationId: string) {
     if (!res) return { error: 'Reservation not found.' } as { success?: boolean; paidViaWallet?: boolean; error?: string };
     await requireMembership(res.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST'], res.locationId ?? undefined);
 
+    if (res.paymentStatus === 'PAID') {
+      return { success: true, paidViaWallet: false } as { success?: boolean; paidViaWallet?: boolean; error?: string };
+    }
+
     return await db.transaction(async (tx: any) => {
-      const lockedRes = await tx.sql`SELECT id, "totalPrice", "paymentStatus", "guestRelationshipId" FROM "Reservation" WHERE id = ${reservationId} FOR UPDATE`;
-      if (lockedRes[0].paymentStatus === 'PAID') return { success: true, paidViaWallet: false } as { success?: boolean; paidViaWallet?: boolean; error?: string };
-      
-      const charges = await tx.sql`SELECT amount FROM "FolioCharge" WHERE "reservationId" = ${reservationId}`;
-      let total = lockedRes[0].totalPrice ?? 0;
+      // Acquire a transaction-scoped advisory lock keyed on the reservation ID.
+      // This serializes concurrent settlement attempts: one blocks until the other commits.
+      // pg_advisory_xact_lock is safe with PgBouncer in transaction mode because the
+      // lock is acquired and released within the same transaction boundary.
+      const advisoryLockPlan = db.raw.sql`SELECT pg_advisory_xact_lock(('x' || md5(${reservationId}))::bit(64)::bigint)`
+        .affectedCount()
+        .build();
+      await tx.execute(advisoryLockPlan);
+
+      // Re-read inside the transaction after acquiring the lock
+      const lockedRes = await tx.orm.public.Reservation.where({ id: reservationId }).all().first();
+      if (!lockedRes) return { error: 'Reservation not found.' } as { success?: boolean; paidViaWallet?: boolean; error?: string };
+      // If the first concurrent call already settled it, the second finds PAID here
+      if (lockedRes.paymentStatus === 'PAID') {
+        return { success: true, paidViaWallet: false } as { success?: boolean; paidViaWallet?: boolean; error?: string };
+      }
+
+      const charges = await tx.orm.public.FolioCharge.where({ reservationId }).all();
+      let total = lockedRes.totalPrice ?? 0;
       for (const c of charges) total += c.amount;
 
       let paidViaWallet = false;
-      if (lockedRes[0].guestRelationshipId && total > 0) {
-        const rel = await tx.sql`SELECT "personId" FROM "Relationship" WHERE id = ${lockedRes[0].guestRelationshipId}`;
-        if (rel.length > 0) {
-          const guestWallet = await tx.sql`SELECT id, balance, currency FROM "Wallet" WHERE "personId" = ${rel[0].personId} FOR UPDATE`;
-          const hotelWallet = await tx.sql`SELECT id, currency FROM "Wallet" WHERE "organizationId" = ${res.organizationId} FOR UPDATE`;
-          
-          if (guestWallet.length > 0 && hotelWallet.length > 0 && guestWallet[0].balance >= total) {
-            const txnId = await tx.sql`INSERT INTO "Transaction" (id, status, description) VALUES (gen_random_uuid(), 'COMPLETED', 'Hotel stay settlement') RETURNING id`;
-            await tx.sql`INSERT INTO "LedgerEntry" ("walletId", "transactionId", amount, currency) VALUES (${guestWallet[0].id}, ${txnId[0].id}, ${-total}, ${guestWallet[0].currency})`;
-            await tx.sql`INSERT INTO "LedgerEntry" ("walletId", "transactionId", amount, currency) VALUES (${hotelWallet[0].id}, ${txnId[0].id}, ${total}, ${hotelWallet[0].currency})`;
-            await tx.sql`UPDATE "Wallet" SET balance = balance - ${total} WHERE id = ${guestWallet[0].id}`;
-            await tx.sql`UPDATE "Wallet" SET balance = balance + ${total} WHERE id = ${hotelWallet[0].id}`;
-            
-            await tx.sql`INSERT INTO "Payment" (id, "transactionId", status, method, "walletId") VALUES (gen_random_uuid(), ${txnId[0].id}, 'COMPLETED', 'WALLET', ${guestWallet[0].id})`;
+      if (lockedRes.guestRelationshipId && total > 0) {
+        const rel = await tx.orm.public.Relationship.where({ id: lockedRes.guestRelationshipId }).all().first();
+        if (rel) {
+          const guestWallet = await tx.orm.public.Wallet.where({ personId: rel.personId }).all().first();
+          const hotelWallet = await tx.orm.public.Wallet.where({ organizationId: res.organizationId }).all().first();
+
+          if (guestWallet && hotelWallet && guestWallet.balance >= total) {
+            const txn = await tx.orm.public.Transaction.create({
+              status: 'COMPLETED',
+              description: 'Hotel stay settlement',
+            });
+            await tx.orm.public.LedgerEntry.create({
+              walletId: guestWallet.id,
+              transactionId: txn.id,
+              amount: -total,
+              currency: guestWallet.currency,
+            });
+            await tx.orm.public.LedgerEntry.create({
+              walletId: hotelWallet.id,
+              transactionId: txn.id,
+              amount: total,
+              currency: hotelWallet.currency,
+            });
+            await tx.orm.public.Wallet.where({ id: guestWallet.id }).update({ balance: guestWallet.balance - total });
+            await tx.orm.public.Wallet.where({ id: hotelWallet.id }).update({ balance: hotelWallet.balance + total });
+            await tx.orm.public.Payment.create({
+              transactionId: txn.id,
+              status: 'COMPLETED',
+              method: 'WALLET',
+              amount: total,
+              currency: guestWallet.currency,
+            });
             paidViaWallet = true;
           }
         }
       }
-      
-      await tx.sql`UPDATE "Reservation" SET "paymentStatus" = 'PAID' WHERE id = ${reservationId}`;
+
+      await tx.orm.public.Reservation.where({ id: reservationId }).update({ paymentStatus: 'PAID' });
       return { success: true, paidViaWallet } as { success?: boolean; paidViaWallet?: boolean; error?: string };
     });
   } catch (error) {
@@ -506,6 +561,9 @@ export async function settleFolio(reservationId: string) {
     return { error: 'Failed to settle folio.' } as { success?: boolean; paidViaWallet?: boolean; error?: string };
   }
 }
+
+
+
 
 // ---------------------------------------------------------------------
 // Multi-Outlet Management: Restaurants / Bars / Clubs + Unified POS

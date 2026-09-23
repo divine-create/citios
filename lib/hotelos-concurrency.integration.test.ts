@@ -51,7 +51,16 @@ async function setupAuth(orgId: string, locationId: string) {
   });
 
   const token = await encode({
-    token: { email, name: "Test User" },
+    token: { 
+      email, 
+      name: "Test User",
+      personId: person.id,
+      memberships: [{
+        organizationId: orgId,
+        organizationType: "HOTEL" as const,
+        role: "ADMIN" as const
+      }]
+    },
     secret: process.env.NEXTAUTH_SECRET!
   });
   mockCookies['next-auth.session-token'] = token;
@@ -69,8 +78,7 @@ test('HotelOS Integration Concurrency Tests', async (t) => {
     await db.orm.public.Organization.create({ id: orgId, name: `Org`, type: "HOTEL" });
     await db.orm.public.Location.create({ id: locId, organizationId: orgId, name: `Loc` });
     await db.orm.public.HotelRoom.create({
-      id: roomId, organizationId: orgId, locationId: locId, name: "101",
-      roomType: "STANDARD", basePrice: 100, status: "AVAILABLE"
+      id: roomId, organizationId: orgId, locationId: locId, roomNumber: "101", type: "King", baseRate: 100, status: "CLEAN"
     });
 
     await setupAuth(orgId, locId);
@@ -104,8 +112,7 @@ test('HotelOS Integration Concurrency Tests', async (t) => {
     await db.orm.public.Organization.create({ id: orgId, name: `Org`, type: "HOTEL" });
     await db.orm.public.Location.create({ id: locId, organizationId: orgId, name: `Loc` });
     await db.orm.public.HotelRoom.create({
-      id: roomId, organizationId: orgId, locationId: locId, name: "102",
-      roomType: "STANDARD", basePrice: 100, status: "AVAILABLE"
+      id: roomId, organizationId: orgId, locationId: locId, roomNumber: "102", type: "King", baseRate: 100, status: "CLEAN"
     });
 
     await setupAuth(orgId, locId);
@@ -114,13 +121,13 @@ test('HotelOS Integration Concurrency Tests', async (t) => {
       organizationId: orgId, roomId: roomId, guestName: "Alice",
       checkInDate: "2026-10-01", checkOutDate: "2026-10-03"
     });
-    assert.strictEqual(r1.success, true);
+    assert.strictEqual((r1 as any).success, true);
 
     const r2 = await createReservation({
       organizationId: orgId, roomId: roomId, guestName: "Bob",
       checkInDate: "2026-10-03", checkOutDate: "2026-10-05"
     });
-    assert.strictEqual(r2.success, true);
+    assert.strictEqual((r2 as any).success, true);
 
     const reservations = await db.orm.public.Reservation.where({ roomId }).all();
     assert.strictEqual(reservations.length, 2, 'Both non-overlapping reservations should succeed');
@@ -135,8 +142,7 @@ test('HotelOS Integration Concurrency Tests', async (t) => {
     await db.orm.public.Organization.create({ id: orgId, name: `Org`, type: "HOTEL" });
     await db.orm.public.Location.create({ id: locId, organizationId: orgId, name: `Loc` });
     await db.orm.public.HotelRoom.create({
-      id: roomId, organizationId: orgId, locationId: locId, name: "103",
-      roomType: "STANDARD", basePrice: 100, status: "AVAILABLE"
+      id: roomId, organizationId: orgId, locationId: locId, roomNumber: "103", type: "King", baseRate: 100, status: "CLEAN"
     });
     await db.orm.public.Wallet.create({ id: walletId, organizationId: orgId, balance: 0, currency: "USD" });
 
@@ -146,10 +152,10 @@ test('HotelOS Integration Concurrency Tests', async (t) => {
       organizationId: orgId, roomId: roomId, guestName: "Charlie",
       checkInDate: "2026-10-01", checkOutDate: "2026-10-05"
     });
-    assert.strictEqual(resResult.success, true);
-    const reservationId = resResult.reservationId!;
+    assert.strictEqual((resResult as any).success, true);
+    const reservationId = (resResult as any).reservationId as string;
 
-    await db.orm.public.Reservation.where({ id: reservationId }).update({ paymentStatus: 'UNPAID' });
+    // Add folio charge (reservation already has paymentStatus PENDING from createReservation)
     await db.orm.public.FolioCharge.create({ reservationId, amount: 500, description: "Room" });
     const guestWallet = await db.orm.public.Wallet.create({ personId: person.id, balance: 1000, currency: "USD" });
     
@@ -164,15 +170,19 @@ test('HotelOS Integration Concurrency Tests', async (t) => {
     const p2 = settleFolio(reservationId).catch(e => ({ error: e.message }));
 
     const results = await Promise.all([p1, p2]);
-    const successes = results.filter(r => (r as any).success);
+    const walletDebits = results.filter(r => (r as any).paidViaWallet === true);
 
-    assert.strictEqual(successes.length, 1, 'Only one settlement should succeed');
+    // Only one concurrent settlement should have actually debited the wallet.
+    // The other concurrent call may still return success=true (idempotent API)
+    // but must NOT have created a second wallet transaction.
+    assert.strictEqual(walletDebits.length, 1, 'Only one settlement should debit the wallet');
 
     const wallet = await db.orm.public.Wallet.where({ id: walletId }).all().first();
-    assert.strictEqual(wallet?.balance, 500, 'Hotel wallet balance incremented exactly once');
+    // 4 nights × $100 base rate = $400 room totalPrice + $500 folio charge = $900 total
+    assert.strictEqual(wallet?.balance, 900, 'Hotel wallet balance incremented exactly once');
 
     const guestW = await db.orm.public.Wallet.where({ id: guestWallet.id }).all().first();
-    assert.strictEqual(guestW?.balance, 500, 'Guest wallet balance decremented exactly once');
+    assert.strictEqual(guestW?.balance, 100, 'Guest wallet balance decremented exactly once');
   });
 
   await db.close();
