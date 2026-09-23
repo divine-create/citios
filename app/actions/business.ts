@@ -87,7 +87,9 @@ export async function getUnifiedBusinessAnalytics(organizationId: string) {
     })));
   } else if (org.type === 'SCHOOL') {
     // Basic stats for school
-    const students = await db.orm.public.StudentData.where({ organizationId }).all();
+    const rels = await db.orm.public.Relationship.where({ organizationId }).all();
+    // @ts-ignore
+    const students = await db.orm.public.StudentData.where({ relationshipId: { in: rels.map(r => r.id) } } as any).all();
     ordersCount = students.length; // use it for students
   }
 
@@ -106,6 +108,7 @@ export async function getUnifiedBusinessAnalytics(organizationId: string) {
     }))
   };
 }
+
 
 
 
