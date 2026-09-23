@@ -50,7 +50,7 @@ export async function getUnifiedBusinessAnalytics(organizationId: string) {
     const orders = await db.orm.public.RestaurantOrder.where({ organizationId }).all();
     ordersCount = orders.length;
     revenue = orders.reduce((sum, o) => sum + o.totalAmount, 0);
-    const completed = orders.filter(o => o.status === 'CONFIRMED' || o.status === 'DELIVERED');
+    const completed = orders.filter(o => o.status === 'COMPLETED');
 
     // Add to top products
     // @ts-ignore
@@ -106,6 +106,7 @@ export async function getUnifiedBusinessAnalytics(organizationId: string) {
     }))
   };
 }
+
 
 
 
