@@ -99,6 +99,8 @@ test('RetailOS Integration Concurrency Tests', async (t) => {
       placeRetailOrder(input),
       placeRetailOrder(input)
     ]);
+    if (res1.status === 'rejected') console.log('res1 error:', res1.reason);
+    if (res2.status === 'rejected') console.log('res2 error:', res2.reason);
 
     const finalStock = await db.orm.public.RetailLocationStock.where({ id: stock.id }).all().first();
     assert.strictEqual(finalStock!.stockQuantity, 0, 'Final stock should be 0');

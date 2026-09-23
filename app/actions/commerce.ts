@@ -130,38 +130,45 @@ export async function placeRetailOrder(input: {
           if (true) {
             // using location logic if possible
           if (input.locationId) {
-             const locStock = await tx.orm.public.RetailLocationStock.where({ locationId: input.locationId, productId: verifiedItem.productId }).all().first();
-             if (!locStock || locStock.quantity < verifiedItem.quantity) {
+             const updatedLoc = await tx.sql`
+               UPDATE "RetailLocationStock"
+               SET "stockQuantity" = "stockQuantity" - ${verifiedItem.quantity}
+               WHERE "locationId" = ${input.locationId} AND "productId" = ${verifiedItem.productId} AND "stockQuantity" - ${verifiedItem.quantity} >= 0
+               RETURNING "id", "stockQuantity"
+             `;
+             if (!updatedLoc || updatedLoc.length === 0) {
                  throw new Error(`Insufficient stock for item at this location.`);
              }
-             await tx.orm.public.RetailLocationStock.where({ id: locStock.id }).update({ quantity: locStock.quantity - verifiedItem.quantity });
              
              await tx.orm.public.RetailStockMovement.create({
                organizationId: orgId,
                locationId: input.locationId,
                productId: verifiedItem.productId,
                delta: -verifiedItem.quantity,
-               beforeQty: locStock.quantity,
-               afterQty: locStock.quantity - verifiedItem.quantity,
+               beforeQty: updatedLoc[0].stockQuantity + verifiedItem.quantity,
+               afterQty: updatedLoc[0].stockQuantity,
                reason: 'SALE',
                note: `Online Order #${createdOrder.id.slice(0, 8)}`,
              });
           } else {
              // Fallback to global stock if no location provided (legacy)
              const product = await tx.orm.public.RetailProduct.where({ id: verifiedItem.productId }).all().first();
-             if (product) {
-               if (!product.isWeighed && product.stockQuantity < verifiedItem.quantity) {
+             if (product && !product.isWeighed) {
+               const updatedProd = await tx.sql`
+                 UPDATE "RetailProduct"
+                 SET "stockQuantity" = "stockQuantity" - ${verifiedItem.quantity}
+                 WHERE "id" = ${verifiedItem.productId} AND "stockQuantity" - ${verifiedItem.quantity} >= 0
+                 RETURNING "stockQuantity"
+               `;
+               if (!updatedProd || updatedProd.length === 0) {
                  throw new Error(`Item "${product.name}" has insufficient stock.`);
                }
-               const nextStock = Math.max(0, product.stockQuantity - verifiedItem.quantity);
-               await tx.orm.public.RetailProduct.where({ id: verifiedItem.productId }).update({
-                 stockQuantity: nextStock,
-               });
+               const nextStock = updatedProd[0].stockQuantity;
                await tx.orm.public.RetailStockMovement.create({
                  organizationId: orgId,
                  productId: verifiedItem.productId,
                  delta: -verifiedItem.quantity,
-                 beforeQty: product.stockQuantity,
+                 beforeQty: nextStock + verifiedItem.quantity,
                  afterQty: nextStock,
                  reason: 'SALE',
                  note: `Online Order #${createdOrder.id.slice(0, 8)}`,

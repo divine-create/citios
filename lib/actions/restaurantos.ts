@@ -415,7 +415,7 @@ export async function updateTableStatus(tableId: string, status: 'available' | '
   try {
     const table = await db.orm.public.RestaurantTable.where({ id: tableId }).all().first();
     if (!table) return { error: 'Table not found.' };
-    await requireMembership(table.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'WAITER']);
+    await requireMembership(table.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'WAITER'], table.locationId);
     await db.orm.public.RestaurantTable.where({ id: tableId }).update({ status });
     revalidatePath('/admin/restaurantos');
     return { success: true, status };
@@ -536,7 +536,7 @@ export async function updateReservationStatus(
       .all()
       .first();
     if (!reservation) return { error: 'Reservation not found.' };
-    await requireMembership(reservation.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'WAITER']);
+    await requireMembership(reservation.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'WAITER'], reservation.locationId);
 
     await db.orm.public.RestaurantReservation.where({ id: reservationId }).update({ status });
     revalidatePath('/admin/restaurantos');
@@ -584,10 +584,10 @@ async function enrichOrders(organizationId: string, orders: any[]) {
   }));
 }
 
-export async function getOrders(organizationId: string, options?: { status?: string; limit?: number }) {
+export async function getOrders(organizationId: string, options?: { status?: string; limit?: number; locationId?: string }) {
   try {
     await requireMembership(organizationId);
-    const all = await db.orm.public.RestaurantOrder.where({ organizationId }).all();
+    const all = await db.orm.public.RestaurantOrder.where(options?.locationId ? { organizationId, locationId: options.locationId } : { organizationId }).all();
     let orders = options?.status ? all.filter((o: any) => o.status === options.status) : all;
     orders = [...orders].sort((a: any, b: any) =>
       new Date(b.createdAt.toString()).getTime() - new Date(a.createdAt.toString()).getTime());
@@ -600,10 +600,10 @@ export async function getOrders(organizationId: string, options?: { status?: str
 }
 
 /** Live kitchen tickets: unpaid + in-progress orders, oldest first. */
-export async function getKitchenTickets(organizationId: string) {
+export async function getKitchenTickets(organizationId: string, locationId?: string) {
   try {
     await requireMembership(organizationId);
-    const all = await db.orm.public.RestaurantOrder.where({ organizationId }).all();
+    const all = await db.orm.public.RestaurantOrder.where(locationId ? { organizationId, locationId } : { organizationId }).all();
     const active = all.filter((o: any) =>
       ['PENDING', 'PREPARING', 'READY', 'DELIVERING'].includes(o.status));
     const sorted = active.sort((a: any, b: any) =>
@@ -619,12 +619,13 @@ export async function createPosOrder(input: {
   organizationId: string;
   items: { menuItemId: string; quantity: number; notes?: string }[];
   type?: 'DINE_IN' | 'TAKEOUT' | 'DELIVERY';
+    locationId?: string;
   tableId?: string;
   paymentMethod?: 'WALLET' | 'CASH' | 'POS';
   customerDataId?: string;
 }) {
   try {
-    const { membership } = await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER', 'WAITER']);
+    const { membership } = await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER', 'WAITER'], input.locationId);
     if (input.items.length === 0) return { error: 'No items on the order.' };
 
     // Resolve menu items in ONE org-scoped fetch and refuse any item that does
@@ -737,7 +738,7 @@ export async function updateOrderStatus(
   try {
     const order = await db.orm.public.RestaurantOrder.where({ id: orderId }).all().first();
     if (!order) return { error: 'Order not found.' };
-    await requireMembership(order.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER', 'KITCHEN', 'WAITER']);
+    await requireMembership(order.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER', 'KITCHEN', 'WAITER'], order.locationId);
 
     // PHASE 1B DEBT: OrderStatus is currently used as a proxy for PaymentStatus.
     // Setting COMPLETED stamps paidAt as if payment were confirmed. This is NOT a
@@ -1184,3 +1185,4 @@ export async function refundRestaurantOrder(orderId: string, input: { reason?: s
     return { error: error instanceof Error ? error.message : 'Failed to refund order.' };
   }
 }
+

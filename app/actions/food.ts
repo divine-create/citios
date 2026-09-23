@@ -45,7 +45,16 @@ export async function getCityFood(citySlug?: string) {
   const city = citySlug ? await getCityBySlug(citySlug) : await getCurrentCity();
   if (!city) return { restaurants: [], menuItems: [] };
 
-  const orgs = await db.orm.public.Organization.where({  type: 'RESTAURANT' }).all();
+  const locs = await db.orm.public.Location.where({ cityId: city.id }).all();
+  const orgIdsWithLoc = locs.map((l) => l.organizationId);
+  if (orgIdsWithLoc.length === 0) return { restaurants: [], menuItems: [] };
+
+  // @ts-ignore
+  const orgs = await db.orm.public.Organization.where({ 
+    // @ts-ignore
+    id: { in: orgIdsWithLoc },
+    type: 'RESTAURANT'
+  }).all();
   const orgIds = orgs.map((o) => o.id);
   if (orgIds.length === 0) return { restaurants: [], menuItems: [] };
 
@@ -105,6 +114,8 @@ export async function placeRestaurantOrder(input: {
   items: { menuItemId: string; qty: number; name: string }[];
   type?: 'DINE_IN' | 'TAKEOUT';
   tableNumber?: string;
+  paymentReference?: string;
+  method?: string;
 }) {
   const session = await getServerSession(authOptions);
 
@@ -193,6 +204,17 @@ export async function placeRestaurantOrder(input: {
             unitPrice: it.unitPrice,
           });
         }
+        
+        if (input.paymentReference) {
+          await tx.orm.public.Payment.create({
+            amount: group.total,
+            currency: 'NGN',
+            method: input.method === 'wallet' ? 'WALLET' : input.method === 'card' ? 'CARD' : 'TRANSFER',
+            status: 'PENDING',
+            reference: input.paymentReference,
+            restaurantOrderId: created.id,
+          });
+        }
         return created;
       });
       orderIds.push(order.id);
@@ -213,3 +235,4 @@ export async function placeRestaurantOrder(input: {
   revalidatePath('/workspaces/foodos');
   return { success: true, orderIds, total: grandTotal };
 }
+

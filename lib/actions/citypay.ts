@@ -89,7 +89,7 @@ export async function processPaymentEvent(payload: any) {
               currency: wallet.currency
             });
             // Update balance natively
-            await prismaTx.sql`UPDATE "Wallet" SET "balance" = "balance" + ${payment.amount} WHERE "id" = ${wallet.id}`;
+            await prismaTx.orm.public.Wallet.where({ id: wallet.id }).update({ balance: wallet.balance + payment.amount });
           }
         }
         // -----------------------------------

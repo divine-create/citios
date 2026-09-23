@@ -31,6 +31,9 @@ export async function initiateCheckout(input: InitiateCheckoutInput) {
     return { error: 'Valid user email required for payment processing.' };
   }
 
+  // Generate unique canonical payment reference
+  const reference = `CC-${input.kind.toUpperCase().slice(0, 3)}-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+
   // 1. Wallet payment: executes immediately and completes
   if (input.method === 'wallet') {
     if (input.kind === 'food') {
@@ -38,6 +41,8 @@ export async function initiateCheckout(input: InitiateCheckoutInput) {
         items: input.items.map((i) => ({ menuItemId: i.productId, qty: i.qty, name: i.name })),
         type: input.type || 'TAKEOUT',
         tableNumber: input.tableNumber,
+        paymentReference: reference,
+        method: input.method,
       });
       return { success: true, redirectUrl: '/pay/success' };
     } else {
@@ -68,8 +73,6 @@ export async function initiateCheckout(input: InitiateCheckoutInput) {
     }
   }
 
-  // Generate unique canonical payment reference
-  const reference = `CC-${input.kind.toUpperCase().slice(0, 3)}-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
 
   // Determine provider (for now, default to PAYSTACK)
   const provider = 'PAYSTACK';
@@ -102,6 +105,8 @@ export async function initiateCheckout(input: InitiateCheckoutInput) {
       items: input.items.map((i) => ({ menuItemId: i.productId, qty: i.qty, name: i.name })),
       type: input.type || 'TAKEOUT',
       tableNumber: input.tableNumber,
+        paymentReference: reference,
+        method: input.method,
     });
     primaryOrderId = orderResult.orderId || (orderResult.orderIds && orderResult.orderIds[0]);
   }
