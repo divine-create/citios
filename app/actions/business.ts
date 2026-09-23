@@ -42,7 +42,7 @@ export async function getUnifiedBusinessAnalytics(organizationId: string) {
       ref: o.id.substring(0, 6).toUpperCase(),
       name: 'Customer', // Would need customerData fetch
       area: 'Local',
-      amount: o.totalAmount,
+      amount: (o.totalAmount ?? o.totalPrice ?? 0),
       status: o.status,
       time: o.createdAt
     })));
@@ -68,20 +68,20 @@ export async function getUnifiedBusinessAnalytics(organizationId: string) {
       ref: o.id.substring(0, 6).toUpperCase(),
       name: 'Customer',
       area: 'Local',
-      amount: o.totalAmount,
+      amount: (o.totalAmount ?? o.totalPrice ?? 0),
       status: o.status,
       time: o.createdAt
     })));
   } else if (org.type === 'HOTEL') {
     const res = await db.orm.public.Reservation.where({ organizationId }).all();
     ordersCount = res.length;
-    revenue = res.reduce((sum, r) => sum + r.totalAmount, 0);
+    revenue = res.reduce((sum, r) => sum + (r.totalPrice || 0), 0);
 
     recentOrders.push(...res.slice(0, 10).map(o => ({
       ref: o.id.substring(0, 6).toUpperCase(),
       name: o.guestName,
       area: 'Reservation',
-      amount: o.totalAmount,
+      amount: (o.totalAmount ?? o.totalPrice ?? 0),
       status: o.status,
       time: o.createdAt
     })));
@@ -106,6 +106,7 @@ export async function getUnifiedBusinessAnalytics(organizationId: string) {
     }))
   };
 }
+
 
 
 
