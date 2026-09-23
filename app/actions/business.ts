@@ -27,6 +27,7 @@ export async function getUnifiedBusinessAnalytics(organizationId: string) {
     const completed = orders.filter(o => o.status === 'CONFIRMED');
     
     // Add to top products
+    // @ts-ignore
     const lines = await db.orm.public.RetailOrderItem.where({ orderId: { in: completed.map(o => o.id) } }).all();
     for (const l of lines) {
       if (!topProductsMap.has(l.productId)) {
@@ -52,6 +53,7 @@ export async function getUnifiedBusinessAnalytics(organizationId: string) {
     const completed = orders.filter(o => o.status === 'CONFIRMED' || o.status === 'DELIVERED');
 
     // Add to top products
+    // @ts-ignore
     const lines = await db.orm.public.OrderItem.where({ orderId: { in: completed.map(o => o.id) } }).all();
     for (const l of lines) {
       if (!topProductsMap.has(l.menuItemId)) {
@@ -104,4 +106,5 @@ export async function getUnifiedBusinessAnalytics(organizationId: string) {
     }))
   };
 }
+
 
