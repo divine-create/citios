@@ -73,6 +73,7 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
 
   const style = settings?.serviceStyle ?? "HYBRID";
   const showTables = style === "FULL_SERVICE" || style === "HYBRID";
+  const showKitchen = style !== "COUNTER";
 
   // Sidebar Logic
   const toggleGroup = (label: string) => {
@@ -97,7 +98,7 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
       items: [
         { label: "POS Terminal", icon: ShoppingCart },
         { label: "Orders", icon: Receipt },
-        { label: "Kitchen Board", icon: Flame },
+        { label: "Kitchen Board", icon: Flame, hidden: !showKitchen },
       ],
     },
     {
@@ -227,7 +228,7 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
               </button>
               {!collapsedGroups.has(group.label) && (
                 <ul className="space-y-0.5">
-                  {group.items.map((item) => (
+                  {group.items.filter((item: any) => !item.hidden).map((item: any) => (
                     <li key={item.label}>
                       <button onClick={() => { setActiveMenu(item.label); if (window.innerWidth < 768) setIsSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${activeMenu === item.label ? "bg-orange-600 text-white" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
                         <item.icon size={18} className={activeMenu === item.label ? "text-white" : "text-slate-400"} />
@@ -1074,6 +1075,8 @@ function TabSettings({ settings, slug, onDone }: any) {
     </div>
   );
 }
+
+
 
 
 

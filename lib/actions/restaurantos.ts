@@ -683,7 +683,7 @@ export async function createPosOrder(input: {
         orderNumber,
         paymentMethod: input.paymentMethod ?? null,
         paidAt: paid ? (globalThis as any).Temporal.Instant.fromEpochMilliseconds(Date.now()) : null,
-        status: paid ? 'PREPARING' : 'PENDING',
+        status: paid ? (settings?.serviceStyle === 'COUNTER' ? 'COMPLETED' : 'PREPARING') : 'PENDING',
         servedByMembershipId: membership.id,
       });
       for (const line of lineItems) {
@@ -1185,4 +1185,5 @@ export async function refundRestaurantOrder(orderId: string, input: { reason?: s
     return { error: error instanceof Error ? error.message : 'Failed to refund order.' };
   }
 }
+
 
