@@ -54,7 +54,7 @@ export default function CartView() {
         <div className="flex-1 space-y-3">
           {lines.map((l) => (
             <div key={l.productId} className="bg-white rounded-2xl border border-slate-100 p-3.5 flex gap-4 items-center">
-              <Link href={`/product/${l.productId}`}>
+              <Link href={l.kind === 'food' ? `/food/item/${l.productId}` : `/product/${l.productId}`}>
                 <div className="w-20 h-20 rounded-xl overflow-hidden bg-slate-50 ring-1 ring-slate-200/50 relative">
                   {l.image ? (
                      // eslint-disable-next-line @next/next/no-img-element
@@ -68,7 +68,7 @@ export default function CartView() {
               <div className="flex-1 space-y-2">
                 <div>
                   <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{l.orgName}</div>
-                  <Link href={`/product/${l.productId}`} className="text-sm font-black text-ink hover:text-teal-700 transition-colors">{l.name}</Link>
+                  <Link href={l.kind === 'food' ? `/food/item/${l.productId}` : `/product/${l.productId}`} className="text-sm font-black text-ink hover:text-teal-700 transition-colors">{l.name}</Link>
                   <div className="text-xs font-bold text-teal-800 pt-0.5">{fmt(l.price)}</div>
                 </div>
                 

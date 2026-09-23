@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { Package, UtensilsCrossed, Clock, CheckCircle2, ChevronRight, Truck, Printer } from 'lucide-react';
+import { Package, UtensilsCrossed, Clock, CheckCircle2, ChevronRight, Truck, Printer, ShoppingBag } from 'lucide-react';
 import { fetchMyOrders } from '@/app/actions/orders';
 import { ChipButton, FallbackImg, OpenBadge } from '@/components/cityos/CityUI';
 import { useMoney } from '@/components/cityos/CityProvider';
 import ThermalReceiptModal from '@/components/common/ThermalReceiptModal';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 export default function ResidentOrders() {
   const [loading, setLoading] = useState(true);
@@ -134,10 +134,12 @@ export default function ResidentOrders() {
         })}
 
         {filtered.length === 0 && (
-          <div className="text-center p-12 bg-slate-50 rounded-3xl border border-slate-100">
-            <p className="text-sm font-bold text-slate-500">No orders found.</p>
-            <Link href="/food" className="inline-block mt-4 text-xs font-black text-teal-600 hover:text-teal-700">Browse CityFood &rarr;</Link>
-          </div>
+          <EmptyState
+            icon={<ShoppingBag className="w-7 h-7" />}
+            title="No orders yet"
+            description="When you place your first order, it'll appear here."
+            action={{ label: 'Browse the market', href: '/market' }}
+          />
         )}
       </div>
 

@@ -29359,6 +29359,17 @@ type ContractBase = Omit<
                   readonly targetFields: readonly ['requesterPersonId'];
                 };
               };
+              readonly savedItems: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'SavedItem';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['personId'];
+                };
+              };
               readonly sentMessages: {
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;

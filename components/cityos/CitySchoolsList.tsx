@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 
 import { GraduationCap } from 'lucide-react';
 
@@ -18,7 +19,7 @@ export default function CitySchoolsList({ schools = [] }: { schools?: any[] }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {schools.map(s => (
-          <Link key={s.id} href={/schools/} className="bg-white rounded-2xl border border-slate-200 p-5 block hover:border-slate-300 transition-colors">
+          <Link key={s.id} href={`/schools/${s.id}`} className="bg-white rounded-2xl border border-slate-200 p-5 block hover:border-slate-300 transition-colors">
             <h2 className="font-black text-ink">{s.name}</h2>
             <p className="text-xs text-slate-500 mt-1 line-clamp-2">{s.description}</p>
           </Link>

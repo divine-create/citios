@@ -25,6 +25,7 @@ model Person {
         tickets        Ticket[]           @relation("UserTickets")
   bookings       Booking[]          @relation("UserBookings")
         postLikes      PostLike[]
+  savedItems     SavedItem[]
   comments       Comment[]          @relation("UserComments")
   noticeReads    NoticeRead[]       @relation("UserNoticeReads")
   sentMessages   Message[]          @relation("SentMessages")
@@ -3200,4 +3201,6 @@ model PlanLimit {
   plan           Plan         @relation(fields: [planId], references: [id], onDelete: Cascade)
   @@unique([planId, resourceCode])
 }
+
+
 

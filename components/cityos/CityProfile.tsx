@@ -30,6 +30,7 @@ export default function CityProfile() {
   const [ordersError, setOrdersError] = useState(false);
   const [userProfile, setUserProfile] = useState<any | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -46,9 +47,10 @@ export default function CityProfile() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      alert('Photo must be less than 5MB');
+      setAvatarError('Photo must be less than 5MB');
       return;
     }
+    setAvatarError(null);
     setUploadingAvatar(true);
     try {
       const ext = file.name.split('.').pop() || 'png';
@@ -66,7 +68,7 @@ export default function CityProfile() {
       setUserProfile((prev: any) => ({ ...prev, avatarUrl: publicUrl, image: publicUrl }));
     } catch (err) {
       console.error(err);
-      alert('Failed to upload profile photo');
+      setAvatarError('Failed to upload profile photo. Please try again.');
     } finally {
       setUploadingAvatar(false);
     }

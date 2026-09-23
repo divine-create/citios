@@ -140,7 +140,7 @@ export default function OutletPOS({
     return (
       <div className="p-10 text-center text-gray-400">
         <UtensilsCrossed size={48} className="mx-auto mb-4 opacity-20" />
-        <p>No hotel organization found — run the seed script.</p>
+        <p>No hotel organization found — complete your organization onboarding profile.</p>
       </div>
     );
   }

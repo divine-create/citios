@@ -10,6 +10,7 @@ export default function InlineComments({ postId, onCommentAdded }: { postId: str
     const [commentText, setCommentText] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+    const [commentError, setCommentError] = useState<string | null>(null);
     
     // Reply state
     const [replyingTo, setReplyingTo] = useState<any | null>(null);
@@ -41,6 +42,7 @@ export default function InlineComments({ postId, onCommentAdded }: { postId: str
         if (!commentText.trim()) return;
         
         setIsSubmitting(true);
+        setCommentError(null);
         // If we are replying to a reply, attach it to the same parent to keep it 1-level deep
         const actualParentId = replyingTo ? (replyingTo.parentId || replyingTo.id) : undefined;
         
@@ -50,7 +52,7 @@ export default function InlineComments({ postId, onCommentAdded }: { postId: str
                 if (res.error === 'Not logged in') {
                     setIsLoginModalOpen(true);
                 } else {
-                    alert(res.error);
+                    setCommentError(res.error);
                 }
             } else {
                 setCommentText('');
@@ -64,7 +66,7 @@ export default function InlineComments({ postId, onCommentAdded }: { postId: str
             }
         } catch (e: any) {
             console.error("Failed to add comment:", e);
-            alert(e.message || "Something went wrong.");
+            setCommentError(e.message || "Something went wrong.");
         } finally {
             setIsSubmitting(false);
         }
@@ -154,6 +156,9 @@ export default function InlineComments({ postId, onCommentAdded }: { postId: str
                     </button>
                 </div>
             </div>
+            {commentError && (
+                <p className="text-xs font-bold text-red-500 mt-1 px-1">{commentError}</p>
+            )}
             
             <LoginModal 
                 isOpen={isLoginModalOpen} 

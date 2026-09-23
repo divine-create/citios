@@ -13,17 +13,19 @@ export default function SandboxPaymentView() {
   const email = searchParams.get('email') || '';
 
   const [loading, setLoading] = useState(false);
+  const [simError, setSimError] = useState<string | null>(null);
 
   const amountNaira = (amountKobo / 100).toLocaleString();
 
   const handleSimulateSuccess = async () => {
     setLoading(true);
+    setSimError(null);
     try {
       await verifyOrderPayment(reference);
       router.push(`/pay/success?reference=${encodeURIComponent(reference)}`);
     } catch (e) {
       console.error(e);
-      alert('Simulation error');
+      setSimError('Simulation failed. Please try again.');
       setLoading(false);
     }
   };
@@ -63,6 +65,11 @@ export default function SandboxPaymentView() {
         </div>
 
         <div className="space-y-3">
+          {simError && (
+            <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-xs font-bold text-red-600">
+              {simError}
+            </div>
+          )}
           <button
             onClick={handleSimulateSuccess}
             disabled={loading}

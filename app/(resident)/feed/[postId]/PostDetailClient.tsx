@@ -56,6 +56,7 @@ export default function PostDetailClient({ post }: { post: DBPost }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [postError, setPostError] = useState<string | null>(null);
 
   const [editTitle, setEditTitle] = useState(post.title);
   const [editBody, setEditBody] = useState(post.body);
@@ -96,12 +97,13 @@ export default function PostDetailClient({ post }: { post: DBPost }) {
 
   const handleDelete = async () => {
     setIsDeleting(true);
+    setPostError(null);
     try {
       await deletePost(post.id);
       router.push('/feed');
     } catch (err) {
       console.error(err);
-      alert('Failed to delete post');
+      setPostError('Failed to delete post. Please try again.');
       setIsDeleting(false);
     }
   };
@@ -109,6 +111,7 @@ export default function PostDetailClient({ post }: { post: DBPost }) {
   const handleEditSave = async () => {
     if (!editBody.trim()) return;
     setIsUpdating(true);
+    setPostError(null);
     try {
       await updatePost(post.id, {
         title: editTitle.trim() || undefined,
@@ -123,7 +126,7 @@ export default function PostDetailClient({ post }: { post: DBPost }) {
       setShowEditModal(false);
     } catch (err) {
       console.error(err);
-      alert('Failed to update post');
+      setPostError('Failed to update post. Please try again.');
     } finally {
       setIsUpdating(false);
     }
@@ -149,6 +152,11 @@ export default function PostDetailClient({ post }: { post: DBPost }) {
       </div>
 
       <div className="bg-white">
+        {postError && (
+          <div className="mx-4 mt-3 p-3 rounded-xl bg-red-50 border border-red-100 text-xs font-bold text-red-600">
+            {postError}
+          </div>
+        )}
         {/* Author */}
         <div className="p-5 pb-3 flex items-start gap-3">
           <Link href={post.isOrg ? `/org/${post.authorId}` : `/profile/${post.authorId}`} className="shrink-0">

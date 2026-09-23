@@ -8,6 +8,7 @@ import { fmtNaira, parseNaira } from '@/lib/format';
 import { StatTile, Pill,  SectionHead } from '@/components/cityos/CityUI';
 import { useAccountSwitcher } from '@/components/cityos/AccountSwitcherContext';
 import { cn } from '@/lib/utils';
+import { getUnifiedBusinessAnalytics } from '@/app/actions/business';
 
 interface LiveOrder {
   ref: string;
@@ -55,8 +56,8 @@ export default function BusinessDashboard() {
   };
   const os = OS_ROUTES[effectiveOrgType ?? ''] ?? { href: currentBusiness?.workspaceUrl || '/admin/grocery', label: 'Open Workspace' };
   const liveTotal = live.reduce((s, o) => s + o.amount, 0);
-  const todayRevenue = parseNaira(d.today.revenue) + liveTotal;
-  const todayOrders = d.today.orders + live.length;
+  const todayRevenue = parseNaira((realData ? fmtNaira(realData.revenue) : d.today.revenue)) + liveTotal;
+  const todayOrders = (realData ? realData.ordersCount : d.today.orders) + live.length;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -151,7 +152,7 @@ export default function BusinessDashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatTile label="Revenue today" value={fmtNaira(todayRevenue)} delta={live.length > 0 ? 'incl. live orders' : 'no sales recorded yet'} icon={<Banknote className="w-4 h-4" />} tone="teal" />
         <StatTile label="Orders today" value={todayOrders.toString()} delta="no sales recorded yet" icon={<ShoppingBag className="w-4 h-4" />} tone="orange" />
-        <StatTile label="New customers" value={d.today.customers.toString()} delta="no data yet" icon={<Users className="w-4 h-4" />} tone="blue" />
+        <StatTile label="New customers" value={(realData ? realData.customersCount : d.today.customers).toString()} delta="no data yet" icon={<Users className="w-4 h-4" />} tone="blue" />
         <StatTile label="Gross merchandise" value={d.today.gmv} delta="no data yet" icon={<TrendingUp className="w-4 h-4" />} tone="emerald" />
       </div>
 
@@ -239,7 +240,7 @@ export default function BusinessDashboard() {
               <span className="hidden md:block col-span-1 text-right text-[10px] font-bold text-slate-400">{o.time}</span>
             </div>
           ))}
-          {d.recentOrders.map((o: any) => (
+          {(realData ? realData.recentOrders : d.recentOrders).map((o: any) => (
             <div key={o.ref} className="grid grid-cols-2 md:grid-cols-12 gap-2 md:gap-3 px-5 py-3.5 border-b border-slate-50 text-[12px] items-center">
               <span className="col-span-1 font-black text-teal-800">{o.ref}</span>
               <span className="col-span-3 font-black text-ink truncate">{o.name}</span>
@@ -253,7 +254,7 @@ export default function BusinessDashboard() {
               <span className="hidden md:block col-span-1 text-right text-[10px] font-bold text-slate-400">{o.time}</span>
             </div>
           ))}
-          {live.length === 0 && d.recentOrders.length === 0 ? (
+          {live.length === 0 && (realData ? realData.recentOrders : d.recentOrders).length === 0 ? (
             <div className="px-5 py-8 text-center">
               <p className="text-[13px] font-black text-ink">No orders yet</p>
               <p className="text-[11px] text-slate-400 font-medium mt-1">Orders from your storefront will appear here.</p>
@@ -266,9 +267,9 @@ export default function BusinessDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-white rounded-2xl border border-slate-100 p-5">
           <SectionHead title="Top products" sub="By sold units, 7 days" />            <div className="space-y-3">
-              {d.topProducts.length === 0 ? (
+              {(realData ? realData.topProducts : d.topProducts).length === 0 ? (
                 <p className="text-[12px] text-slate-400 font-medium">No product sales recorded yet.</p>
-              ) : d.topProducts.map((tp, i) => (
+              ) : (realData ? realData.topProducts : d.topProducts).map((tp, i) => (
               <div key={tp.name} className="flex items-center gap-3">
                 <span className="w-6 h-6 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-black flex items-center justify-center shrink-0">
                   {i + 1}

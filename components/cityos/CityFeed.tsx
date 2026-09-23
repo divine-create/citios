@@ -197,6 +197,7 @@ function PostCard({ post, follows, onFollowToggle, onDelete, isGuest, onRequireA
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [feedItemError, setFeedItemError] = useState<string | null>(null);
 
   const [editTitle, setEditTitle] = useState(post.title);
   const [editBody, setEditBody] = useState(post.body);
@@ -269,7 +270,7 @@ function PostCard({ post, follows, onFollowToggle, onDelete, isGuest, onRequireA
       onDelete?.(post.id);
     } catch (err) {
       console.error(err);
-      alert('Failed to delete post');
+      setFeedItemError('Failed to delete post. Please try again.');
     } finally {
       setIsDeleting(false);
     }
@@ -292,7 +293,7 @@ function PostCard({ post, follows, onFollowToggle, onDelete, isGuest, onRequireA
       setShowEditModal(false);
     } catch (err) {
       console.error(err);
-      alert('Failed to update post');
+      setFeedItemError('Failed to update post. Please try again.');
     } finally {
       setIsUpdating(false);
     }

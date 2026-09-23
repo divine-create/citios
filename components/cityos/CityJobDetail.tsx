@@ -13,7 +13,7 @@ export default async function CityJobDetail({ id }: { id: string }) {
   if (!job) {
     return (
       <div className="max-w-lg mx-auto text-center py-20 space-y-4">
-        <p className="text-5xl">dY'</p>
+        <p className="text-5xl">??</p>
         <h1 className="text-lg font-black text-ink">That role is not in the city graph.</h1>
         <Link href="/jobs" className="inline-block px-5 py-2.5 rounded-xl bg-teal-800 text-white text-xs font-black hover:bg-teal-900 transition-colors">
           Back to CityJobs
@@ -53,7 +53,7 @@ export default async function CityJobDetail({ id }: { id: string }) {
         <div className="absolute -right-14 -top-14 w-56 h-56 rounded-full bg-indigo-500/15 blur-3xl" />
         <div className="relative">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-2xl">dY'</span>
+            <span className="text-2xl">??</span>
             <Pill tone="orange">{job.type.replace('_', ' ')}</Pill>
           </div>
           <h1 className="mt-4 text-2xl md:text-3xl font-black tracking-tight">{job.title}</h1>
@@ -92,7 +92,7 @@ export default async function CityJobDetail({ id }: { id: string }) {
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Hiring organization</p>
             {job.organization ? (
               <Link href={`/org/${job.organization.id}`} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-teal-50 transition-colors">
-                <span className="text-2xl">dY'</span>
+                <span className="text-2xl">??</span>
                 <div className="min-w-0">
                   <p className="text-[13px] font-black text-ink truncate">{job.organization.name}</p>
                   <p className="text-[10px] font-bold text-slate-400">{job.area || 'Local'}</p>

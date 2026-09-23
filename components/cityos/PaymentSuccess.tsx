@@ -10,6 +10,7 @@ export default function PaymentSuccess() {
   const searchParams = useSearchParams();
   const reference = searchParams.get('reference');
   const [verifying, setVerifying] = useState(Boolean(reference));
+  const [successStatus, setSuccessStatus] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (reference) {

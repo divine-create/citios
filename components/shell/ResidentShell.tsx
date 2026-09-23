@@ -109,7 +109,7 @@ function NotificationsDropdown() {
       setItems(res.notifications);
       setUnread(res.unreadCount);
     } catch {
-      // Fail closed to the empty state — never fabricate rows.
+      // Fail closed to the empty state � never fabricate rows.
     } finally {
       if (!silent) setLoading(false);
     }
@@ -143,7 +143,7 @@ function NotificationsDropdown() {
       try {
         await markNotificationRead(n.id);
       } catch {
-        // Non-fatal — read-state reconciles on next open.
+        // Non-fatal � read-state reconciles on next open.
       }
     }
     if (n.href) router.push(n.href);
@@ -276,7 +276,7 @@ function WalletChip() {
       <div className="min-w-0 flex-1">
         <p className="text-[13px] font-bold leading-tight truncate">{name}</p>
         <p className="text-[10px] text-teal-100/80 font-bold tabular-nums">
-          {`CityPay Â· ${fmt(balance)}`}
+          {`CityPay · ${fmt(balance)}`}
         </p>
       </div>
       <ChevronRight className="w-4 h-4 text-teal-100/70" />

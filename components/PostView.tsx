@@ -17,6 +17,7 @@ export default function PostView({ post }: { post: any }) {
     const [shareCount, setShareCount] = useState(post?.shareCount || 0);
     
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+    const [postViewError, setPostViewError] = useState<string | null>(null);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -28,7 +29,7 @@ export default function PostView({ post }: { post: any }) {
             if (res.error === 'Not logged in') {
                 setIsLoginModalOpen(true);
             } else {
-                alert(res.error);
+                setPostViewError(res.error);
             }
         } else {
             setCommentText('');
@@ -50,7 +51,7 @@ export default function PostView({ post }: { post: any }) {
             if (res.error === 'Not logged in') {
                 setIsLoginModalOpen(true);
             } else {
-                alert(res.error);
+                setPostViewError(res.error);
             }
         }
     };
@@ -67,7 +68,7 @@ export default function PostView({ post }: { post: any }) {
                 await navigator.share({ title: post.title, url: shareUrl });
             } else {
                 await navigator.clipboard.writeText(shareUrl);
-                alert("Link copied to clipboard!");
+                setPostViewError('Link copied to clipboard!');
             }
         } catch (err) {
             console.error(err);
@@ -79,7 +80,7 @@ export default function PostView({ post }: { post: any }) {
             if (res.error === 'Not logged in') {
                 setIsLoginModalOpen(true);
             } else {
-                alert(res.error);
+                setPostViewError(res.error);
             }
         }
     };
@@ -148,6 +149,9 @@ export default function PostView({ post }: { post: any }) {
                 </div>
 
                 {/* Comment Input */}
+                {postViewError && (
+                    <p className="text-xs font-bold text-red-500 mb-3">{postViewError}</p>
+                )}
                 <form onSubmit={handleSubmit} className="flex gap-2">
                     <input
                         type="text"

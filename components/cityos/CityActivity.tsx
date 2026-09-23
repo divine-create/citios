@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { fetchResidentActivity } from '@/app/actions/activity';
 import { cn } from '@/lib/utils';
-import {  } from '@/components/cityos/CityUI';
+import { Ticket, Briefcase, Wrench, Heart, ShoppingBag } from 'lucide-react';
 import { useCity } from '@/components/cityos/CityProvider';
 
 const FILTERS = ['All', 'Orders', 'Service Requests', 'CityJobs', 'Events', 'Saved Items'];
@@ -51,11 +51,7 @@ export default function CityActivity() {
             'bg-teal-50 text-teal-800'
           )}
         >
-          {a.kind === 'event_rsvp' ? '🎟️' :
-           a.kind === 'job_apply' ? '💼' :
-           a.kind === 'service_booked' ? '🔧' :
-           a.kind === 'saved_item' ? '🔖' :
-           '🛍️'}
+          {a.kind === 'event_rsvp' ? <Ticket size={20}/> : a.kind === 'job_apply' ? <Briefcase size={20}/> : a.kind === 'service_booked' ? <Wrench size={20}/> : a.kind === 'saved_item' ? <Heart size={20}/> : <ShoppingBag size={20}/>}
         </span>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
@@ -105,3 +101,7 @@ export default function CityActivity() {
     </div>
   );
 }
+
+
+
+

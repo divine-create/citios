@@ -261,7 +261,7 @@ export function ManagerDashboard({
         {!organizationId ? (
           <div className="text-center text-gray-400 py-16">
             <BedDouble size={48} className="mx-auto mb-4 opacity-20" />
-            <p>No hotel organization found — run the seed script.</p>
+            <p>No hotel organization found — complete your organization onboarding profile.</p>
           </div>
         ) : (
           <>

@@ -8,6 +8,7 @@ import { CityCard, FallbackImg, Stars, LocationRow, OpenBadge, ChipButton } from
 import { getCityMartProducts, getCityMartStores } from '@/app/actions/commerce';
 import { useCity } from '@/components/cityos/CityProvider';
 import { cn } from '@/lib/utils';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 const MARKET_CATS = ['All', 'Groceries', 'Food & Market', 'Fashion', 'Electronics', 'Books & Prints'];
 
@@ -61,7 +62,11 @@ export default function CityMarket() {
             </div>
             
             {products.length === 0 ? (
-              <div className="py-10 text-center text-sm text-slate-500">{`Nothing here yet in ${cityName} for this category.`}</div>
+              <EmptyState
+                icon={<Store className="w-7 h-7" />}
+                title={`Nothing here yet in ${cityName}`}
+                description="Try a different category, or check back soon as vendors add new products."
+              />
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                 {products.map((p) => {

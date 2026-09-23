@@ -48,6 +48,18 @@ export async function initiateCheckout(input: InitiateCheckoutInput) {
         method: input.method,
       });
       return { success: true, redirectUrl: '/pay/success' };
+    } else if (input.kind === 'hotel') {
+      const item = input.items[0] as any;
+      const res = await createReservation({
+        roomId: item.productId,
+        organizationId: item.organizationId,
+        guestName: item.name,
+        checkInDate: item.checkInDate,
+        checkOutDate: item.checkOutDate,
+        
+      });
+      if (res.error) return { error: res.error };
+      return { success: true, redirectUrl: '/pay/success' };
     } else {
       const res = await placeRetailOrder({
         items: input.items,
@@ -109,7 +121,7 @@ export async function initiateCheckout(input: InitiateCheckoutInput) {
       method: input.method,
       locationId: input.locationId,
       idempotencyKey: input.idempotencyKey,
-      paymentReference: reference,
+      
     });
     // In our modified placeRetailOrder, if idempotency hits, it returns the order object
     // If newly created, it also returns the order object (since orderResult is the createdOrder)
@@ -129,8 +141,8 @@ export async function initiateCheckout(input: InitiateCheckoutInput) {
       items: input.items.map((i) => ({ menuItemId: i.productId, qty: i.qty, name: i.name })),
       type: input.type || 'TAKEOUT',
       tableNumber: input.tableNumber,
-      paymentReference: reference,
-      method: input.method,
+        paymentReference: reference,
+        method: input.method,
     });
     primaryOrderId = orderResult.orderId || (orderResult.orderIds && orderResult.orderIds[0]);
   }

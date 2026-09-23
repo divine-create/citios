@@ -70,8 +70,8 @@ export default function LoginPage() {
           <Link href="/market" className="hover:underline">CityMart</Link>
           <Link href="/schools" className="hover:underline">Schools</Link>
           <Link href="/services" className="hover:underline">Services</Link>
-          <Link href="/privacy" className="hover:underline">Privacy</Link>
-          <Link href="/terms" className="hover:underline">Terms</Link>
+          <Link href="#" className="hover:underline">Privacy</Link>
+          <Link href="#" className="hover:underline">Terms</Link>
         </div>
         <p>CityConnect Platform © {new Date().getFullYear()} · All rights reserved.</p>
       </footer>

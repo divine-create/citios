@@ -25,6 +25,7 @@ export default function CheckoutView() {
   const [method, setMethod] = useState<MethodId>('card');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
   
 
   // Split the shared cart by line kind. Retail and food are different
@@ -73,7 +74,7 @@ export default function CheckoutView() {
       });
 
       if (res.error) {
-        alert(res.error);
+        setErrorMsg(res.error);
         setProcessing(false);
         return;
       }
@@ -89,7 +90,7 @@ export default function CheckoutView() {
       }
     } catch (err) {
       console.error(err);
-      alert('Failed to process payment: ' + (err as Error).message);
+      setErrorMsg('Failed to process payment: ' + (err as Error).message);
       setProcessing(false);
     }
   };
@@ -134,10 +135,12 @@ export default function CheckoutView() {
               <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
                 <Truck className="w-4 h-4 text-slate-400" />
               </div>
-              <div>
+              {!foodOnly && (
+                <div>
                 <h3 className="font-bold text-sm text-ink leading-tight">Delivery Address</h3>
                   <textarea className="w-full mt-2 p-2 border border-slate-200 rounded text-xs text-slate-700" placeholder="Enter your delivery address..." value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} required={!foodOnly} />
               </div>
+              )}
             </div>
           </div>
           

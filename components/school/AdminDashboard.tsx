@@ -123,7 +123,7 @@ export default function AdminDashboard({
     return (
       <div className="p-10 text-center text-gray-400">
         <GraduationCap size={48} className="mx-auto mb-4 opacity-20" />
-        <p>No school organization found — run the seed script.</p>
+        <p>No school organization found — complete your organization onboarding profile.</p>
       </div>
     );
   }

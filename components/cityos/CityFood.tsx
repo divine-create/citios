@@ -9,6 +9,8 @@ import { getCityFood } from '@/app/actions/food';
 import { useCart } from '@/components/cityos/CartStore';
 import { useCity } from '@/components/cityos/CityProvider';
 import { useMoney } from '@/components/cityos/CityProvider';
+import { SkeletonCard } from '@/components/ui/SkeletonCard';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 const FOOD_CATS = ['All', 'Restaurant', 'Cafe', 'Campus Eats', 'Food & Market'];
 
@@ -93,37 +95,49 @@ export default function CityFood() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {restos.map((r) => {
-          return (
-            <Link key={r.id} href={`/food/${r.id}`} className="flex flex-col group cursor-pointer">
-              <div className="relative overflow-hidden rounded-2xl w-full aspect-video border border-slate-100 bg-slate-50 mb-3">
-                 <FallbackImg
-                   src={r.image}
-                   alt={r.name}
-                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                   icon={<span className="text-xl font-black text-slate-400">{r.name.slice(0, 1)}</span>}
-                 />
-                 <div className="absolute bottom-2 right-2 bg-white/95 backdrop-blur-sm px-2 py-1 rounded-lg text-[10px] font-black text-slate-800 shadow-sm flex items-center gap-1.5">
-                   <OpenBadge open={r.isOpen ?? true} />
-                 </div>
+        {loading ? (
+          Array.from({ length: 6 }).map((_, i) => (
+            <SkeletonCard key={i} lines={2} />
+          ))
+        ) : (
+          <>
+            {restos.map((r) => {
+              return (
+                <Link key={r.id} href={`/food/${r.id}`} className="flex flex-col group cursor-pointer">
+                  <div className="relative overflow-hidden rounded-2xl w-full aspect-video border border-slate-100 bg-slate-50 mb-3">
+                     <FallbackImg
+                       src={r.image}
+                       alt={r.name}
+                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                       icon={<span className="text-xl font-black text-slate-400">{r.name.slice(0, 1)}</span>}
+                     />
+                     <div className="absolute bottom-2 right-2 bg-white/95 backdrop-blur-sm px-2 py-1 rounded-lg text-[10px] font-black text-slate-800 shadow-sm flex items-center gap-1.5">
+                       <OpenBadge open={r.isOpen ?? true} />
+                     </div>
+                  </div>
+                  <div className="flex flex-col gap-0.5 px-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-[15px] font-black text-ink truncate">{r.name}</p>
+                      {r.rating ? <Stars rating={r.rating} className="shrink-0 mt-0.5" /> : null}
+                    </div>
+                    <p className="text-[12px] font-bold text-slate-400 truncate">
+                       {r.category ?? 'Restaurant'} • {r.deliveryEta || '15-30 min'}
+                    </p>
+                  </div>
+                </Link>
+              );
+            })}
+            {restos.length === 0 ? (
+              <div className="col-span-full">
+                <EmptyState
+                  icon={<UtensilsCrossed className="w-7 h-7" />}
+                  title={`No kitchens open in ${cityName} right now`}
+                  description="Check back later or browse a nearby city for food options."
+                />
               </div>
-              <div className="flex flex-col gap-0.5 px-1">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-[15px] font-black text-ink truncate">{r.name}</p>
-                  {r.rating ? <Stars rating={r.rating} className="shrink-0 mt-0.5" /> : null}
-                </div>
-                <p className="text-[12px] font-bold text-slate-400 truncate">
-                   {r.category ?? 'Restaurant'} • {r.deliveryEta || '15-30 min'}
-                </p>
-              </div>
-            </Link>
-          );
-        })}
-        {restos.length === 0 ? (
-          <div className="col-span-full rounded-3xl bg-slate-50 p-12 text-center">
-            <p className="text-sm font-bold text-slate-500">{`No kitchens open in ${cityName} right now.`}</p>
-          </div>
-        ) : null}
+            ) : null}
+          </>
+        )}
       </div>
 
       {items.length ? (

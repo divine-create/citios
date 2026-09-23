@@ -28,6 +28,7 @@ export default function InteractiveFeedItem({
     const [localCommentsCount, setLocalCommentsCount] = useState(props.comments || 0);
     
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+    const [feedError, setFeedError] = useState<string | null>(null);
 
     const handleLike = async () => {
         const previousLiked = hasLiked;
@@ -42,7 +43,7 @@ export default function InteractiveFeedItem({
             if (res.error === 'Not logged in') {
                 setIsLoginModalOpen(true);
             } else {
-                alert(res.error);
+                setFeedError(res.error);
             }
         }
     };
@@ -55,10 +56,11 @@ export default function InteractiveFeedItem({
             if (res.error === 'Not logged in') {
                 setIsLoginModalOpen(true);
             } else {
-                alert(res.error);
+                setFeedError(res.error);
             }
         } else {
-            alert('Thanks for sharing!');
+            // Share succeeded — suppress the alert; the share count increment is feedback enough
+            console.log('Post shared successfully');
         }
     };
 

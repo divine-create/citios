@@ -12355,6 +12355,21 @@
                   "namespace": "public"
                 }
               },
+              "savedItems": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "personId"
+                  ]
+                },
+                "to": {
+                  "model": "SavedItem",
+                  "namespace": "public"
+                }
+              },
               "sentMessages": {
                 "cardinality": "1:N",
                 "on": {
