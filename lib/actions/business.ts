@@ -301,3 +301,5 @@ export async function quickCreateBusiness(data: {
 
 
 export async function registerHOTEL(data: { name: string; shortName: string; state: string; lga: string; address: string; phone: string; email: string; }) { const session = await getServerSession(authOptions); if (!session?.user?.personId) { return { error: 'You must be logged in to register a hotel.' }; } try { const city = await resolveRegistrationCity(); if (!city) { return { error: 'Unknown city.' }; } const org = await db.orm.public.Organization.create({ name: data.name, type: 'HOTEL' as any, description: data.address, }); const location = await db.orm.public.Location.create({ organizationId: org.id, name: data.shortName || 'Main Campus', address: data.address, cityId: city.id, }); const membership = await db.orm.public.Membership.create({ personId: session.user.personId, organizationId: org.id, }); await db.orm.public.MembershipRole.create({ membershipId: membership.id, role: 'OWNER', }); return { success: true, organizationId: org.id }; } catch (err: any) { return { error: err.message }; } }
+
+

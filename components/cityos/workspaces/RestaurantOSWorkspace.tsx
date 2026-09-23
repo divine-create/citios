@@ -585,12 +585,13 @@ function TabMenu({ menu, slug, onDone }: any) {
   const [modalOpen, setModalOpen] = useState(false);
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [category, setCategory] = useState(MENU_CATEGORIES[0]);
   const [busy, setBusy] = useState(false);
   
   async function save() {
     setBusy(true);
-    await createMenuItem({ organizationId: slug, name, price: Number(price) || 0, category });
+    await createMenuItem({ organizationId: slug, name, price: Number(price) || 0, category, imageUrl: imageUrl.trim() || undefined });
     setBusy(false);
     setModalOpen(false);
     onDone();
@@ -622,7 +623,8 @@ function TabMenu({ menu, slug, onDone }: any) {
           <div className="p-6 space-y-4">
              <div><label className="block text-xs font-bold text-slate-500 mb-1">Name</label><input className={inputCls} value={name} onChange={e=>setName(e.target.value)}/></div>
              <div><label className="block text-xs font-bold text-slate-500 mb-1">Price</label><input type="number" className={inputCls} value={price} onChange={e=>setPrice(e.target.value)}/></div>
-             <div>
+               <div><label className="block text-xs font-bold text-slate-500 mb-1">Image URL</label><input type="url" className={inputCls} value={imageUrl} onChange={e=>setImageUrl(e.target.value)} placeholder="https://..."/></div>
+               <div>
                <label className="block text-xs font-bold text-slate-500 mb-1">Category</label>
                <select className={selectCls} value={category} onChange={e=>setCategory(e.target.value)}>
                  {MENU_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -959,3 +961,5 @@ function TabSettings({ settings, slug, onDone }: any) {
     </div>
   );
 }
+
+
