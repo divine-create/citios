@@ -37,10 +37,16 @@ export default function BusinessDashboard() {
   const d = EMPTY_DASHBOARD;
   const maxWeek = Math.max(...d.week);
   const [live, setLive] = useState<LiveOrder[]>([]);
+  const [realData, setRealData] = useState<any>(null);
   const { data: session } = useSession();
   const { myBusinesses, activeBusiness, switchToBusiness, openCreateModal } = useAccountSwitcher();
 
   const currentBusiness = activeBusiness || myBusinesses[0] || null;
+  useEffect(() => {
+    if (currentBusiness) {
+      getUnifiedBusinessAnalytics(currentBusiness.id).then(res => setRealData(res)).catch(console.error);
+    }
+  }, [currentBusiness]);
   const currentMerchant = currentBusiness?.name || d.merchant;
 
   // Route each business to ITS OWN OS by org type — a restaurant owner must
@@ -313,3 +319,5 @@ export default function BusinessDashboard() {
     </div>
   );
 }
+
+
