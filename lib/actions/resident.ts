@@ -109,7 +109,7 @@ export async function getHotelRooms(orgId: string) {
     }
     const validLocIds = new Set(locs.map(l => l.id));
     let items = await db.orm.public.HotelRoom.where({ organizationId: orgId }).all();
-    items = items.filter(i => validLocIds.has(i.locationId));
+    items = items.filter(i => i.locationId && validLocIds.has(i.locationId));
     return JSON.parse(JSON.stringify(items));
 }
 
