@@ -28,7 +28,7 @@ export async function getUnifiedBusinessAnalytics(organizationId: string) {
     
     // Add to top products
     // @ts-ignore
-    const lines = await db.orm.public.RetailOrderItem.where({ orderId: { in: completed.map(o => o.id) } }).all();
+    const lines = await db.orm.public.RetailOrderItem.where({ orderId: { in: completed.map(o => o.id) } } as any).all();
     for (const l of lines) {
       if (!topProductsMap.has(l.productId)) {
         topProductsMap.set(l.productId, { name: 'Product ' + l.productId.substring(0, 4), revenue: 0, sold: 0 });
@@ -54,7 +54,7 @@ export async function getUnifiedBusinessAnalytics(organizationId: string) {
 
     // Add to top products
     // @ts-ignore
-    const lines = await db.orm.public.OrderItem.where({ orderId: { in: completed.map(o => o.id) } }).all();
+    const lines = await db.orm.public.OrderItem.where({ orderId: { in: completed.map(o => o.id) } } as any).all();
     for (const l of lines) {
       if (!topProductsMap.has(l.menuItemId)) {
         topProductsMap.set(l.menuItemId, { name: 'Item ' + l.menuItemId.substring(0, 4), revenue: 0, sold: 0 });
@@ -106,5 +106,6 @@ export async function getUnifiedBusinessAnalytics(organizationId: string) {
     }))
   };
 }
+
 
 
