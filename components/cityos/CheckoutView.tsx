@@ -211,12 +211,7 @@ export default function CheckoutView() {
                 <span className="text-2xl font-black text-teal-900"><Money amount={total} /></span>
               </div>
 
-              {!cardOk && (
-                <div className="p-3 bg-rose-50 text-rose-800 text-xs font-medium rounded-xl flex gap-2 items-start leading-relaxed">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 opacity-70" />
-                  <div>Insufficient card balance. Please add funds or switch payment method.</div>
-                </div>
-              )}
+              
 
               {cardError && (
                 <div className="text-rose-600 text-xs font-bold text-center">
@@ -242,6 +237,7 @@ export default function CheckoutView() {
     </div>
   );
 }
+
 
 
 
