@@ -1444,6 +1444,7 @@ model TimetableRequirement {
 
 model Attendance {
   id         String   @id @default(uuid())
+  organizationId String?
   studentDataId  String
   termId     String
   date       DateTime
@@ -1459,6 +1460,7 @@ model Attendance {
 
 model Gradebook {
   id          String    @id @default(uuid())
+  organizationId String?
   classId     String
   termId      String
   name        String
@@ -1475,6 +1477,7 @@ model Gradebook {
 
 model Grade {
   id          String    @id @default(uuid())
+  organizationId String?
   gradebookId String
   studentDataId   String
   score       Float?
