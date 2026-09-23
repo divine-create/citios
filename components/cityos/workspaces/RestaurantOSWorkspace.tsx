@@ -281,7 +281,7 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
         <div className={cn("flex-1 overflow-auto", activeMenu === "POS Terminal" ? "flex flex-col min-h-0" : "")}>
           <div className={activeMenu === "POS Terminal" ? "h-full" : "p-4 sm:p-6 lg:p-8"}>
             {activeMenu === "Dashboard" && <TabDashboard finance={finance} orders={orders} tickets={tickets} setActiveMenu={setActiveMenu} showTables={showTables} tables={tables} org={org} />}
-            {activeMenu === "Reports" && <TabReports finance={finance} />}
+            {activeMenu === "Reports" && <TabReports finance={finance} orders={orders} expenses={expenses} />}
             {activeMenu === "POS Terminal" && <TabPOS menu={menu} tables={tables} showTables={showTables} slug={slug} onDone={loadData} org={org} settings={settings} />}
             {activeMenu === "Orders" && <TabOrders orders={orders} />}
             {activeMenu === "Kitchen Board" && <TabKitchen tickets={tickets} slug={slug} onDone={loadData} org={org} />}
@@ -347,12 +347,101 @@ function TabDashboard({ finance, orders, tickets, setActiveMenu, showTables, tab
   );
 }
 
-function TabReports({ finance }: any) {
+function TabReports({ finance, orders, expenses }: any) {
   const { fmt } = useMoney();
+  
+  if (!finance) return <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-slate-300" size={32} /></div>;
+
+  const today = finance.today || { revenue: 0, orders: 0, averageTicket: 0, revenueByMethod: { CASH: 0, POS: 0, WALLET: 0 } };
+  const week = finance.week || { revenue: 0, orders: 0, expenses: 0, net: 0 };
+
   return (
     <div className="space-y-6">
-      <PageHeader title="Reports" subtitle="Store performance overview" />
-      <EmptyState icon={BarChart3} title="Detailed reports coming soon" message="View Dashboard for daily metrics." />
+      <PageHeader title="Financial Reports" subtitle="Store performance and revenue analytics" />
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between h-32">
+          <p className="text-sm font-bold text-slate-500">Today's Revenue</p>
+          <div>
+            <h3 className="text-2xl font-black text-slate-900">{fmt(today.revenue)}</h3>
+            <p className="text-xs text-slate-400 mt-1">{today.orders} orders • {fmt(today.averageTicket)} avg</p>
+          </div>
+        </div>
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between h-32">
+          <p className="text-sm font-bold text-slate-500">7-Day Revenue</p>
+          <div>
+            <h3 className="text-2xl font-black text-slate-900">{fmt(week.revenue)}</h3>
+            <p className="text-xs text-slate-400 mt-1">{week.orders} total orders</p>
+          </div>
+        </div>
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between h-32">
+          <p className="text-sm font-bold text-slate-500">7-Day Expenses</p>
+          <div>
+            <h3 className="text-2xl font-black text-red-600">{fmt(week.expenses)}</h3>
+            <p className="text-xs text-slate-400 mt-1">Logged expenses</p>
+          </div>
+        </div>
+        <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-sm flex flex-col justify-between h-32 text-white">
+          <p className="text-sm font-bold text-slate-400">7-Day Net Profit</p>
+          <div>
+            <h3 className="text-2xl font-black text-emerald-400">{fmt(week.net)}</h3>
+            <p className="text-xs text-slate-400 mt-1">Revenue minus expenses</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <SectionCard title="Today's Revenue by Tender">
+          <div className="p-6">
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-emerald-500"></div><span className="text-sm font-bold text-slate-700">Cash</span></div>
+                <span className="font-bold text-slate-900">{fmt(today.revenueByMethod?.CASH || 0)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-500"></div><span className="text-sm font-bold text-slate-700">POS Terminal</span></div>
+                <span className="font-bold text-slate-900">{fmt(today.revenueByMethod?.POS || 0)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-purple-500"></div><span className="text-sm font-bold text-slate-700">CityOS Wallet</span></div>
+                <span className="font-bold text-slate-900">{fmt(today.revenueByMethod?.WALLET || 0)}</span>
+              </div>
+            </div>
+            
+            <div className="mt-8 flex h-4 rounded-full overflow-hidden bg-slate-100">
+               {today.revenue > 0 ? (
+                 <>
+                   <div style={{width: `${((today.revenueByMethod?.CASH || 0)/today.revenue)*100}%`}} className="bg-emerald-500 h-full"></div>
+                   <div style={{width: `${((today.revenueByMethod?.POS || 0)/today.revenue)*100}%`}} className="bg-blue-500 h-full"></div>
+                   <div style={{width: `${((today.revenueByMethod?.WALLET || 0)/today.revenue)*100}%`}} className="bg-purple-500 h-full"></div>
+                 </>
+               ) : (
+                 <div className="w-full bg-slate-200 h-full"></div>
+               )}
+            </div>
+          </div>
+        </SectionCard>
+
+        <SectionCard title="Recent Expense Log">
+          <div className="p-6">
+             {expenses && expenses.length > 0 ? (
+               <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
+                 {expenses.slice(0, 10).map((e: any) => (
+                   <div key={e.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
+                     <div>
+                       <p className="text-sm font-bold text-slate-900">{e.category}</p>
+                       <p className="text-xs text-slate-500">{new Date(e.spentAt).toLocaleDateString()} {e.note && `• ${e.note}`}</p>
+                     </div>
+                     <p className="text-sm font-black text-red-600">-{fmt(e.amount)}</p>
+                   </div>
+                 ))}
+               </div>
+             ) : (
+               <p className="text-center py-8 text-sm text-slate-500">No expenses recorded yet.</p>
+             )}
+          </div>
+        </SectionCard>
+      </div>
     </div>
   );
 }
