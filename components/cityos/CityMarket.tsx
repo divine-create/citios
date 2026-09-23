@@ -39,7 +39,7 @@ export default function CityMarket() {
       <div className="flex flex-col gap-1">
         <h1 className="text-xl font-black text-ink">Market</h1>
         <p className="text-xs text-slate-500 font-medium">
-          Shop the city â€” marketplaces, stalls and stores sold through CityOS.
+          Shop the city's marketplaces, stalls and stores sold through CityOS.
         </p>
       </div>
 
@@ -155,3 +155,4 @@ export default function CityMarket() {
     </div>
   );
 }
+

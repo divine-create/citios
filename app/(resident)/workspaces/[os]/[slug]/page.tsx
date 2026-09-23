@@ -24,8 +24,18 @@ export default async function WorkspacePage({ params }: { params: Promise<{ os: 
   }
 
   const session = await getServerSession(authOptions);
-  let userRole: 'OWNER' | 'MANAGER' | 'CASHIER' | 'INVENTORY_STAFF' = 'OWNER';
+  let userRole: 'OWNER' | 'MANAGER' | 'CASHIER' | 'INVENTORY_STAFF' | null = null;
   const currentUserId = session?.user?.personId || '';
+
+  if (!session?.user?.personId) {
+    return (
+      <div className="max-w-lg mx-auto text-center py-20 space-y-4">
+        <p className="text-5xl">??</p>
+        <h1 className="text-lg font-black text-ink">Unauthorized</h1>
+        <p className="text-[12px] text-slate-400 font-medium">You must be logged in to access this workspace.</p>
+      </div>
+    );
+  }
 
   if (session?.user?.personId) {
     const membership = await db.orm.public.Membership.where({
@@ -41,8 +51,18 @@ export default async function WorkspacePage({ params }: { params: Promise<{ os: 
       } else {
         userRole = 'OWNER';
       }
+    } else {
+      return (
+        <div className="max-w-lg mx-auto text-center py-20 space-y-4">
+          <p className="text-5xl">??</p>
+          <h1 className="text-lg font-black text-ink">Access Denied</h1>
+          <p className="text-[12px] text-slate-400 font-medium">You do not have permission to access this organization.</p>
+        </div>
+      );
     }
   }
+
+  if (!userRole) return null;
 
   if (os === 'shopos') {
     return (
@@ -64,4 +84,6 @@ export default async function WorkspacePage({ params }: { params: Promise<{ os: 
     </div>
   );
 }
+
+
 

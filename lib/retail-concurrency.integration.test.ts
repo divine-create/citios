@@ -101,23 +101,23 @@ test('RetailOS Integration Concurrency Tests', async (t) => {
     ]);
 
     const finalStock = await db.orm.public.RetailLocationStock.where({ id: stock.id }).all().first();
-    assert.strictEqual(finalStock.stockQuantity, 0, 'Final stock should be 0');
+    assert.strictEqual(finalStock!.stockQuantity, 0, 'Final stock should be 0');
 
     let successCount = 0;
     let failCount = 0;
 
     if (res1.status === 'fulfilled') {
       if (res1.value.success) successCount++;
-      if (res1.value.error) {
+      if ((res1.value as any).error) {
         failCount++;
-        console.log('res1 error:', res1.value.error);
+        console.log('res1 error:', (res1.value as any).error);
       }
     }
     if (res2.status === 'fulfilled') {
       if (res2.value.success) successCount++;
-      if (res2.value.error) {
+      if ((res2.value as any).error) {
         failCount++;
-        console.log('res2 error:', res2.value.error);
+        console.log('res2 error:', (res2.value as any).error);
       }
     }
 
@@ -136,12 +136,16 @@ test('RetailOS Integration Concurrency Tests', async (t) => {
     });
 
     const finalStock = await db.orm.public.RetailLocationStock.where({ id: stock.id }).all().first();
-    assert.strictEqual(finalStock.stockQuantity, 1, 'Stock should be restored to 1');
+    assert.strictEqual(finalStock!.stockQuantity, 1, 'Stock should be restored to 1');
     
     await db.transaction(async (prismaTx: any) => {
       await handleFailedRetailPayment(prismaTx, order.id);
     });
     const finalStock2 = await db.orm.public.RetailLocationStock.where({ id: stock.id }).all().first();
-    assert.strictEqual(finalStock2.stockQuantity, 1, 'Stock should still be 1 after duplicate failure');
+    assert.strictEqual(finalStock2!.stockQuantity, 1, 'Stock should still be 1 after duplicate failure');
   });
 });
+
+
+
+

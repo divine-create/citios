@@ -27,10 +27,10 @@ test('CityPay Merchant Payout Idempotency', async (t) => {
 
   const order = await db.orm.public.RetailOrder.create({
     organizationId: org.id,
-    total: 5000,
-    status: 'PENDING', method: 'CARD',
-    fulfillmentstatus: 'PENDING', method: 'CARD',
-    paymentId: payment.id,
+    totalAmount: 5000,
+      status: 'PENDING', paymentMethod: 'CARD', cashierId: 'test-cashier', 
+    fulfillmentStatus: 'UNFULFILLED',
+    // paymentId: payment.id,
   });
 
   await db.orm.public.Payment.where({ id: payment.id }).update({ retailOrderId: order.id });
@@ -48,7 +48,8 @@ test('CityPay Merchant Payout Idempotency', async (t) => {
     ]);
 
     const finalWallet = await db.orm.public.Wallet.where({ id: wallet.id }).all().first();
-    assert.strictEqual(finalWallet.balance, 5000, 'Wallet should be credited exactly once');
+    if (!finalWallet) throw new Error('wallet not found');
+    assert.strictEqual(finalWallet!.balance, 5000, 'Wallet should be credited exactly once');
 
     const ledgers = await db.orm.public.LedgerEntry.where({ walletId: wallet.id }).all();
     assert.strictEqual(ledgers.length, 1, 'Only one ledger entry should be created');
@@ -70,10 +71,19 @@ test('CityPay Merchant Payout Idempotency', async (t) => {
     await processPaymentEvent(payload2);
 
     const finalWallet = await db.orm.public.Wallet.where({ id: wallet.id }).all().first();
-    assert.strictEqual(finalWallet.balance, 8000, 'Wallet should be cumulatively credited (+3000)');
+    if (!finalWallet) throw new Error('wallet not found');
+    assert.strictEqual(finalWallet!.balance, 8000, 'Wallet should be cumulatively credited (+3000)');
 
     const ledgers = await db.orm.public.LedgerEntry.where({ walletId: wallet.id }).all();
     assert.strictEqual(ledgers.length, 2, 'Two ledger entries should exist');
   });
 });
+
+
+
+
+
+
+
+
 

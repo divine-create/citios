@@ -292,7 +292,10 @@ export async function getCityMartProducts(citySlug?: string, cat: string = 'All'
   const city = citySlug ? await getCityBySlug(citySlug) : await getCurrentCity();
   if (!city) return [];
 
-  const orgs = await db.orm.public.Organization.where({  type: 'RETAIL' }).all();
+  const locs = await db.orm.public.Location.where({ cityId: city.id }).all();
+  const orgIdsInCity = Array.from(new Set(locs.map((l: any) => l.organizationId)));
+  const allOrgs = await db.orm.public.Organization.all();
+  const orgs = allOrgs.filter((o: any) => o.type === 'RETAIL' && orgIdsInCity.includes(o.id));
   const orgIds = orgs.map(o => o.id);
 
   if (orgIds.length === 0) return [];
@@ -314,7 +317,10 @@ export async function getCityMartStores(citySlug?: string) {
   const city = citySlug ? await getCityBySlug(citySlug) : await getCurrentCity();
   if (!city) return [];
 
-  const orgs = await db.orm.public.Organization.where({  type: 'RETAIL' }).all();
+  const locs = await db.orm.public.Location.where({ cityId: city.id }).all();
+  const orgIdsInCity = Array.from(new Set(locs.map((l: any) => l.organizationId)));
+  const allOrgs = await db.orm.public.Organization.all();
+  const orgs = allOrgs.filter((o: any) => o.type === 'RETAIL' && orgIdsInCity.includes(o.id));
   return orgs;
 }
 
@@ -330,6 +336,7 @@ export async function getCityMartProduct(productId: string) {
     citySlug: orgCity?.slug ?? null,
   };
 }
+
 
 
 
