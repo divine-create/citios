@@ -53,4 +53,4 @@ async function run() {
   console.log('Migration complete.');
 }
 
-run().catch(console.error).finally(() => prisma.\());
+run().catch(console.error).finally(() => prisma.$disconnect());
