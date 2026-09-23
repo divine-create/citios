@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   UtensilsCrossed, LayoutDashboard, BarChart3, ShoppingCart, Receipt, Flame,
   Package, Truck, ClipboardList, Trash2, Grid3x3, CalendarDays, DollarSign,
-  SettingsIcon, Menu, Bell, Search, X, Plus, Minus, ArrowRightLeft, Loader2, Printer, CheckCircle2, Circle, TrendingUp, Upload
+  SettingsIcon, Menu, Bell, Search, X, Plus, Minus, ArrowRightLeft, Loader2, Printer, CheckCircle2, Circle, TrendingUp, Upload, UploadCloud, ImageIcon
 } from "lucide-react";
 import ThermalReceiptModal from "@/components/common/ThermalReceiptModal";
 import { playOrderChime, playCashRegisterChime } from "@/lib/audio";
@@ -580,6 +580,15 @@ const MENU_CATEGORIES = [
   "Plantain"
 ];
 
+const FOOD_LIBRARY = [
+  { name: 'Jollof Rice & Chicken', category: 'Rice Dishes', image: 'https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Fried Rice', category: 'Rice Dishes', image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Burger & Fries', category: 'Snacks & Sides', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Grilled Chicken', category: 'Snacks & Sides', image: 'https://images.unsplash.com/photo-1598514982205-f36b96d1e8d4?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Egusi Soup', category: 'Soups & Stews', image: 'https://images.unsplash.com/photo-1548502632-6b93092aad0b?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Beef Suya', category: 'Snacks & Sides', image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&q=80&w=600' },
+];
+
 function TabMenu({ menu, slug, onDone }: any) {
   const { fmt } = useMoney();
   const [modalOpen, setModalOpen] = useState(false);
@@ -588,6 +597,8 @@ function TabMenu({ menu, slug, onDone }: any) {
   const [imageUrl, setImageUrl] = useState("");
   const [category, setCategory] = useState(MENU_CATEGORIES[0]);
   const [busy, setBusy] = useState(false);
+  const [showLibrary, setShowLibrary] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   async function save() {
     setBusy(true);
@@ -597,17 +608,48 @@ function TabMenu({ menu, slug, onDone }: any) {
     onDone();
   }
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBusy(true);
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64Data = reader.result as string;
+        const res = await uploadAsset(slug, {
+          fileName: file.name,
+          mimeType: file.type,
+          base64Data
+        });
+        if (res.success && res.publicUrl) {
+          setImageUrl(res.publicUrl);
+        } else if (res.error) {
+          alert(res.error);
+        }
+        setBusy(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      setBusy(false);
+      console.error(err);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader title="Menu Items" actions={<button onClick={() => setModalOpen(true)} className={btnPrimary}><Plus size={16}/> Add Item</button>} />
       <SectionCard>
+        <div className="overflow-x-auto">
          <table className="w-full text-sm text-left">
            <thead className="bg-slate-50 border-b border-slate-100 text-xs text-slate-500 uppercase">
-             <tr><th className="px-4 py-3">Name</th><th className="px-4 py-3">Category</th><th className="px-4 py-3">Price</th><th className="px-4 py-3">Status</th><th className="px-4 py-3 text-right">Actions</th></tr>
+             <tr><th className="px-4 py-3 w-12"></th><th className="px-4 py-3">Name</th><th className="px-4 py-3">Category</th><th className="px-4 py-3">Price</th><th className="px-4 py-3">Status</th><th className="px-4 py-3 text-right">Actions</th></tr>
            </thead>
            <tbody className="divide-y divide-slate-100">
              {menu.map((m:any) => (
                <tr key={m.id} className="hover:bg-slate-50">
+                 <td className="px-4 py-3">
+                   {m.imageUrl ? <img src={m.imageUrl} alt={m.name} className="w-8 h-8 rounded-lg object-cover" /> : <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-300"><ImageIcon size={14}/></div>}
+                 </td>
                  <td className="px-4 py-3 font-bold text-slate-900">{m.name}</td>
                  <td className="px-4 py-3 text-slate-500">{m.category}</td>
                  <td className="px-4 py-3 font-bold text-orange-600">{fmt(m.price)}</td>
@@ -617,26 +659,74 @@ function TabMenu({ menu, slug, onDone }: any) {
              ))}
            </tbody>
          </table>
+        </div>
       </SectionCard>
       {modalOpen && (
-        <Modal title="Add Menu Item" onClose={() => setModalOpen(false)} footer={<button onClick={save} disabled={busy || !name} className={btnPrimary}>Save Item</button>}>
+        <Modal title="Add Menu Item" onClose={() => setModalOpen(false)} footer={<button onClick={save} disabled={busy || !name} className={btnPrimary}>{busy ? 'Saving...' : 'Save Item'}</button>}>
           <div className="p-6 space-y-4">
-             <div><label className="block text-xs font-bold text-slate-500 mb-1">Name</label><input className={inputCls} value={name} onChange={e=>setName(e.target.value)}/></div>
-             <div><label className="block text-xs font-bold text-slate-500 mb-1">Price</label><input type="number" className={inputCls} value={price} onChange={e=>setPrice(e.target.value)}/></div>
-               <div><label className="block text-xs font-bold text-slate-500 mb-1">Image URL</label><input type="url" className={inputCls} value={imageUrl} onChange={e=>setImageUrl(e.target.value)} placeholder="https://..."/></div>
+             {showLibrary ? (
                <div>
-               <label className="block text-xs font-bold text-slate-500 mb-1">Category</label>
-               <select className={selectCls} value={category} onChange={e=>setCategory(e.target.value)}>
-                 {MENU_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-               </select>
-             </div>
+                 <div className="flex items-center justify-between mb-4">
+                   <h3 className="font-bold text-sm text-slate-900">Food Library</h3>
+                   <button onClick={() => setShowLibrary(false)} className="text-xs font-bold text-orange-600">Back to custom form</button>
+                 </div>
+                 <div className="grid grid-cols-2 gap-3 max-h-64 overflow-y-auto pr-2">
+                   {FOOD_LIBRARY.map((item, idx) => (
+                     <button key={idx} onClick={() => { setName(item.name); setCategory(item.category); setImageUrl(item.image); setShowLibrary(false); }} className="text-left border border-slate-200 rounded-xl overflow-hidden hover:border-orange-400 transition-colors">
+                       <img src={item.image} alt={item.name} className="w-full h-24 object-cover" />
+                       <div className="p-2">
+                         <p className="text-xs font-bold truncate">{item.name}</p>
+                         <p className="text-[10px] text-slate-500 truncate">{item.category}</p>
+                       </div>
+                     </button>
+                   ))}
+                 </div>
+               </div>
+             ) : (
+               <>
+                 <div className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100">
+                   <div>
+                     <p className="text-xs font-bold text-slate-900">Need inspiration?</p>
+                     <p className="text-[10px] text-slate-500">Pick from our pre-filled library with high quality images.</p>
+                   </div>
+                   <button onClick={() => setShowLibrary(true)} className="px-3 py-1.5 bg-white border border-slate-200 text-xs font-bold rounded-lg shadow-sm hover:bg-slate-50">Browse Library</button>
+                 </div>
+                 
+                 <div><label className="block text-xs font-bold text-slate-500 mb-1">Name</label><input className={inputCls} value={name} onChange={e=>setName(e.target.value)}/></div>
+                 <div><label className="block text-xs font-bold text-slate-500 mb-1">Price</label><input type="number" className={inputCls} value={price} onChange={e=>setPrice(e.target.value)}/></div>
+                 <div>
+                   <label className="block text-xs font-bold text-slate-500 mb-1">Image</label>
+                   <div className="flex items-end gap-3">
+                     <div className="flex-1">
+                       <input type="url" className={inputCls} value={imageUrl} onChange={e=>setImageUrl(e.target.value)} placeholder="https://..."/>
+                     </div>
+                     <span className="text-xs font-bold text-slate-400 pb-2">OR</span>
+                     <button onClick={() => fileInputRef.current?.click()} className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl whitespace-nowrap transition-colors flex items-center gap-2">
+                       <UploadCloud size={14} /> {busy ? 'Uploading...' : 'Upload'}
+                     </button>
+                     <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="image/*" className="hidden" />
+                   </div>
+                   {imageUrl && (
+                     <div className="mt-3 relative inline-block">
+                       <img src={imageUrl} alt="Preview" className="w-24 h-24 object-cover rounded-xl border border-slate-200" />
+                       <button onClick={() => setImageUrl("")} className="absolute -top-2 -right-2 w-6 h-6 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-400 hover:text-red-500 shadow-sm"><X size={12} /></button>
+                     </div>
+                   )}
+                 </div>
+                 <div>
+                   <label className="block text-xs font-bold text-slate-500 mb-1">Category</label>
+                   <select className={selectCls} value={category} onChange={e=>setCategory(e.target.value)}>
+                     {MENU_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                   </select>
+                 </div>
+               </>
+             )}
           </div>
         </Modal>
       )}
     </div>
   );
 }
-
 function TabInventory({ inventory, slug, onDone, subTab }: any) {
   // Local state for missing server actions
   const [suppliers, setSuppliers] = useState<any[]>([]);
@@ -961,5 +1051,8 @@ function TabSettings({ settings, slug, onDone }: any) {
     </div>
   );
 }
+
+
+
 
 
