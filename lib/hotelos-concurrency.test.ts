@@ -21,7 +21,7 @@ test('HotelOS Concurrency & Security Regression', async (t) => {
   });
 
   await t.test('IDOR and tenant isolation is enforced', () => {
-    assert.match(code, /getFolio[\\s\\S]*await requireMembership/, 'getFolio must authorize');
+    assert.match(code, /getFolio[\s\S]*await requireMembership/, 'getFolio must authorize');
     assert.match(code, /await requireMembership[\\s\\S]*updateRoom/, 'updateRoom must authorize');
     assert.match(code, /await requireMembership[\\s\\S]*updateReservationStatus/, 'updateReservationStatus must authorize');
   });
