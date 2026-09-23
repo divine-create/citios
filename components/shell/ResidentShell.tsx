@@ -485,12 +485,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
           </nav>
 
           <div className="p-4 border-t border-slate-100 space-y-3">
-            {session ? (
-              <div className="flex items-center justify-between px-1">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Account</span>
-                <AccountSwitcher />
-              </div>
-            ) : null}
+            
             <WalletChip />
           </div>
         </aside>
