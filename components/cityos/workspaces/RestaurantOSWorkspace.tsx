@@ -583,10 +583,33 @@ const MENU_CATEGORIES = [
 const FOOD_LIBRARY = [
   { name: 'Jollof Rice & Chicken', category: 'Rice Dishes', image: 'https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?auto=format&fit=crop&q=80&w=600' },
   { name: 'Fried Rice', category: 'Rice Dishes', image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Ofada Rice & Stew', category: 'Rice Dishes', image: 'https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Egusi Soup & Pounded Yam', category: 'Soups & Stews', image: 'https://images.unsplash.com/photo-1548502632-6b93092aad0b?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Edikaikong Soup', category: 'Soups & Stews', image: 'https://images.unsplash.com/photo-1633504581786-316c8002b1b9?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Afang Soup', category: 'Soups & Stews', image: 'https://images.unsplash.com/photo-1574653853027-5382a3d23a15?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Ogbono Soup', category: 'Soups & Stews', image: 'https://images.unsplash.com/photo-1608897013039-887f21d8c804?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Banga Soup', category: 'Soups & Stews', image: 'https://images.unsplash.com/photo-1542528180-0c79567c66de?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Amala & Ewedu', category: 'Swallow & Fufu', image: 'https://images.unsplash.com/photo-1588691516089-9b4e54817a03?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Eba & Okro Soup', category: 'Swallow & Fufu', image: 'https://images.unsplash.com/photo-1572449043416-55f4685c9bb7?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Asun (Spicy Goat Meat)', category: 'Beef & Meat', image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Beef Suya', category: 'Snacks & Sides', image: 'https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Chicken Suya', category: 'Snacks & Sides', image: 'https://images.unsplash.com/photo-1598514982205-f36b96d1e8d4?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Nkwobi', category: 'Beef & Meat', image: 'https://images.unsplash.com/photo-1615870216519-2f9fa575fa5c?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Isi Ewu', category: 'Beef & Meat', image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Catfish Pepper Soup', category: 'Soups & Stews', image: 'https://images.unsplash.com/photo-1512489816562-b91c01e6ef84?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Goat Meat Pepper Soup', category: 'Soups & Stews', image: 'https://images.unsplash.com/photo-1563379926898-05f452098679?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Moi Moi', category: 'Beans & Legumes', image: 'https://images.unsplash.com/photo-1598515322588-46741b6bfd41?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Akara (Bean Cakes)', category: 'Breakfast', image: 'https://images.unsplash.com/photo-1605333396914-2c67cf761a20?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Ewa Agoyin', category: 'Beans & Legumes', image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Fried Plantain (Dodo)', category: 'Plantain', image: 'https://images.unsplash.com/photo-1541525997-6a75f284d7be?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Roasted Plantain (Boli)', category: 'Plantain', image: 'https://images.unsplash.com/photo-1559181567-c1648b125320?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Yam Porridge (Asaro)', category: 'Yam Dishes', image: 'https://images.unsplash.com/photo-1580879207865-c3f2d25032b4?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Shawarma', category: 'Snacks & Sides', image: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&q=80&w=600' },
   { name: 'Burger & Fries', category: 'Snacks & Sides', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Grilled Chicken', category: 'Snacks & Sides', image: 'https://images.unsplash.com/photo-1598514982205-f36b96d1e8d4?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Egusi Soup', category: 'Soups & Stews', image: 'https://images.unsplash.com/photo-1548502632-6b93092aad0b?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Beef Suya', category: 'Snacks & Sides', image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Chapman Drink', category: 'Drinks & Beverages', image: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Zobo Drink', category: 'Drinks & Beverages', image: 'https://images.unsplash.com/photo-1589146141384-ad4b97148ff6?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Malt Drink', category: 'Drinks & Beverages', image: 'https://images.unsplash.com/photo-1596700858169-d7c71f3074f0?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Palm Wine', category: 'Drinks & Beverages', image: 'https://images.unsplash.com/photo-1575037614876-c3852d2427df?auto=format&fit=crop&q=80&w=600' },
 ];
 
 function TabMenu({ menu, slug, onDone }: any) {
@@ -1051,6 +1074,7 @@ function TabSettings({ settings, slug, onDone }: any) {
     </div>
   );
 }
+
 
 
 
