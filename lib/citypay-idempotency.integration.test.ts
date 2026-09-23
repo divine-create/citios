@@ -22,14 +22,14 @@ test('CityPay Merchant Payout Idempotency', async (t) => {
   const payment = await db.orm.public.Payment.create({
     amount: 5000,
     currency: 'NGN',
-    status: 'PENDING',
+    status: 'PENDING', method: 'CARD',
   });
 
   const order = await db.orm.public.RetailOrder.create({
     organizationId: org.id,
     total: 5000,
-    status: 'PENDING',
-    fulfillmentStatus: 'PENDING',
+    status: 'PENDING', method: 'CARD',
+    fulfillmentstatus: 'PENDING', method: 'CARD',
     paymentId: payment.id,
   });
 
@@ -58,7 +58,7 @@ test('CityPay Merchant Payout Idempotency', async (t) => {
     const payment2 = await db.orm.public.Payment.create({
       amount: 3000,
       currency: 'NGN',
-      status: 'PENDING',
+      status: 'PENDING', method: 'CARD',
       retailOrderId: order.id
     });
 
@@ -76,3 +76,4 @@ test('CityPay Merchant Payout Idempotency', async (t) => {
     assert.strictEqual(ledgers.length, 2, 'Two ledger entries should exist');
   });
 });
+
