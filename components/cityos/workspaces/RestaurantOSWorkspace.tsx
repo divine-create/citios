@@ -1503,7 +1503,7 @@ function TabShiftHistory({ shifts, activeShift }: any) {
       <SectionCard>
         <h3 className="font-bold text-slate-800 mb-4">Past Shifts</h3>
         {shifts.length === 0 ? (
-          <EmptyState title="No shifts" message="No shift history found." />
+          <EmptyState icon={CalendarDays} title="No shifts" message="No shift history found." />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[800px]">
