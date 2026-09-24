@@ -160,7 +160,7 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
       label: "Production & Recipes",
       items: [
         { label: "Recipes", icon: ClipboardList, href: `/workspaces/restaurantos/${slug}/management/recipes` },
-        { label: "Kitchen Prep & Batches", icon: Flame },
+        { label: "Kitchen Prep & Batches", icon: Flame, href: `/workspaces/restaurantos/${slug}/management/production` },
         { label: "Waste Log", icon: Trash2 },
       ],
     },
