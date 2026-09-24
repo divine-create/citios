@@ -1,4 +1,6 @@
-'use client';
+﻿import fs from 'fs';
+
+const code = `'use client';
 
 import React from 'react';
 import { Button, Badge } from '@/components/ui';
@@ -104,7 +106,7 @@ export default function CostingDashboard({ slug, menu, recipes, ingredients, inv
                     </td>
                     <td className="px-6 py-4 font-black text-emerald-600">{formatNaira(m.margin)}</td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-black ${m.costPercent > 35 ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                      <span className={\`inline-flex items-center px-2 py-1 rounded-md text-xs font-black \${m.costPercent > 35 ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}\`}>
                         {m.costPercent.toFixed(1)}%
                       </span>
                     </td>
@@ -128,3 +130,6 @@ export default function CostingDashboard({ slug, menu, recipes, ingredients, inv
     </div>
   );
 }
+`;
+
+fs.writeFileSync('components/restaurantos/management/CostingDashboard.tsx', code);
