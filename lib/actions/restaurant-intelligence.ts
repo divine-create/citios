@@ -3,22 +3,20 @@
 import { db } from '@/src/prisma/db';
 import { requireMembership } from './tenant';
 import { getRestaurantOSSettings } from './restaurantos';
+import { getRestaurantDayBounds } from '@/lib/restaurant-time';
 
 // ---------------------------------------------------------------------------
-// Time Helpers
+// Internal helper: resolve IANA timezone for a given locationId
 // ---------------------------------------------------------------------------
 
-function getTodayBounds() {
-  const now = new Date();
-  const start = new Date(now);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(now);
-  end.setHours(23, 59, 59, 999);
-  return { start, end };
+async function resolveLocationTimezone(locationId?: string): Promise<string> {
+  if (!locationId) return 'UTC';
+  const loc = await db.orm.public.Location.where({ id: locationId }).all().first();
+  return (loc as any)?.timezone ?? 'UTC';
 }
 
 // ---------------------------------------------------------------------------
-// getOverviewContext — org name, location, active shift
+// getOverviewContext — org name, location name, active shift, timezone
 // ---------------------------------------------------------------------------
 
 export async function getOverviewContext(organizationId: string, locationId?: string) {
@@ -26,20 +24,27 @@ export async function getOverviewContext(organizationId: string, locationId?: st
   const org = await db.orm.public.Organization.where({ id: organizationId }).all().first();
 
   let locName = 'All Locations';
+  let timezone = 'UTC';
   if (locationId) {
     const loc = await db.orm.public.Location.where({ id: locationId }).all().first();
-    if (loc) locName = loc.name;
+    if (loc) {
+      locName = (loc as any).name;
+      timezone = (loc as any).timezone ?? 'UTC';
+    }
   }
 
-  // Active shift for this org+location
-  const allShifts = await db.orm.public.RestaurantShift.where({ organizationId, status: 'OPEN' }).all();
+  // Active shift: load all open shifts then filter by location if provided
+  const openShifts = await db.orm.public.RestaurantShift
+    .where({ organizationId, status: 'OPEN' })
+    .all();
   const shift = locationId
-    ? allShifts.find((s: any) => s.locationId === locationId)
-    : allShifts[0];
+    ? (openShifts as any[]).find((s) => s.locationId === locationId)
+    : (openShifts as any[])[0];
 
   return {
     organizationName: (org as any)?.name ?? 'Restaurant',
     locationName: locName,
+    timezone,
     shift: shift ? JSON.parse(JSON.stringify(shift)) : null,
   };
 }
@@ -48,11 +53,19 @@ export async function getOverviewContext(organizationId: string, locationId?: st
 // getOverviewAlerts — actionable conditions needing attention
 // ---------------------------------------------------------------------------
 
-export async function getOverviewAlerts(organizationId: string, locationId?: string) {
+export async function getOverviewAlerts(
+  organizationId: string,
+  locationId?: string,
+) {
   await requireMembership(organizationId, ['OWNER', 'ADMIN', 'MANAGER'], locationId);
 
-  // Kitchen: overdue tickets (PENDING/PREPARING older than 20 mins)
-  const twentyMinsAgo = new Date(Date.now() - 20 * 60 * 1000);
+  const settings: any = await getRestaurantOSSettings(organizationId);
+  // Use configurable threshold, default 20 mins
+  const overdueMinutes: number = settings?.kitchenOverdueMinutes ?? 20;
+  const overdueThreshold = new Date(Date.now() - overdueMinutes * 60 * 1000);
+
+  // Kitchen overdue: orders in PENDING or PREPARING that have exceeded threshold
+  // Timer is based on order.createdAt — "how long has the customer been waiting"
   const allOrders = await db.orm.public.RestaurantOrder
     .where(locationId ? { organizationId, locationId } : { organizationId })
     .all();
@@ -61,46 +74,49 @@ export async function getOverviewAlerts(organizationId: string, locationId?: str
   for (const o of allOrders as any[]) {
     if (
       ['PENDING', 'PREPARING'].includes(o.status) &&
-      new Date(o.createdAt) < twentyMinsAgo
+      new Date(o.createdAt) < overdueThreshold
     ) {
       overdueTickets++;
     }
   }
 
-  // Inventory: low stock
+  // Low stock — location-scoped inventory
   let lowStockCount = 0;
-  const settings: any = await getRestaurantOSSettings(organizationId);
   if (settings?.enableInventory) {
     const inv = await db.orm.public.RestaurantInventoryItem
       .where(locationId ? { organizationId, locationId } : { organizationId })
       .all();
     lowStockCount = (inv as any[]).filter(
-      (i) => i.lowStockLevel != null && i.quantity <= i.lowStockLevel
+      (i) => i.lowStockLevel != null && i.quantity <= i.lowStockLevel,
     ).length;
   }
 
-  // Configuration: menu items missing recipes (when recipes enabled)
+  // Missing recipes — MenuItem IS location-scoped
   let missingRecipes = 0;
   if (settings?.enableRecipes) {
-    const menu = await db.orm.public.MenuItem.where({ organizationId }).all();
+    const menu = await db.orm.public.MenuItem
+      .where(locationId ? { organizationId, locationId } : { organizationId })
+      .all();
     missingRecipes = (menu as any[]).filter((m) => !m.recipeId).length;
   }
 
-  // Configuration: menu items missing cost (when food costing enabled)
+  // Missing cost basis — same location scope
   let missingCost = 0;
   if (settings?.enableFoodCosting) {
-    const menu = await db.orm.public.MenuItem.where({ organizationId }).all();
+    const menu = await db.orm.public.MenuItem
+      .where(locationId ? { organizationId, locationId } : { organizationId })
+      .all();
     for (const m of menu as any[]) {
       if (settings.enableRecipes && !m.recipeId) missingCost++;
       else if (!settings.enableRecipes && !m.inventoryItemId) missingCost++;
     }
   }
 
-  return { overdueTickets, lowStockCount, missingRecipes, missingCost };
+  return { overdueTickets, overdueMinutes, lowStockCount, missingRecipes, missingCost };
 }
 
 // ---------------------------------------------------------------------------
-// getLiveService — open orders, ready orders, occupied tables
+// getLiveService — open / preparing / ready orders + tables
 // ---------------------------------------------------------------------------
 
 export async function getLiveService(organizationId: string, locationId?: string) {
@@ -130,13 +146,22 @@ export async function getLiveService(organizationId: string, locationId?: string
 }
 
 // ---------------------------------------------------------------------------
-// getOverviewSales — today's completed-order revenue + COGS
+// getOverviewSales — today's completed-order revenue + COGS (N+1 eliminated)
+//
+// COGS SEMANTICS (preserved from Phase C.1):
+//   SUM(OrderItem.unitCost × OrderItem.quantity)
+//   where unitCost is the historical snapshot frozen at order-creation time.
+//   This never reflects subsequent recipe or ingredient cost changes.
 // ---------------------------------------------------------------------------
 
 export async function getOverviewSales(organizationId: string, locationId?: string) {
   await requireMembership(organizationId, ['OWNER', 'ADMIN', 'MANAGER'], locationId);
-  const { start, end } = getTodayBounds();
 
+  // Use restaurant-local timezone for day boundaries
+  const tz = await resolveLocationTimezone(locationId);
+  const { start, end } = getRestaurantDayBounds(tz);
+
+  // Fetch all orders for location (Prisma Next doesn't support date-range WHERE natively)
   const allOrders = await db.orm.public.RestaurantOrder
     .where(locationId ? { organizationId, locationId } : { organizationId })
     .all();
@@ -154,84 +179,120 @@ export async function getOverviewSales(organizationId: string, locationId?: stri
     }
   }
 
-  // COGS: sum of (unitCost * quantity) for completed orders' line items
+  // COGS: single pass — fetch all OrderItems for completed orders in one batch
+  // then aggregate in-process.  This is O(completed_orders) queries eliminated
+  // down to a single scan of the OrderItem table filtered by orderId set.
   let cogs = 0;
+  let cogsAvailable = false;
+
   if (completedOrderIds.length > 0) {
-    for (const orderId of completedOrderIds) {
-      const items = await db.orm.public.OrderItem.where({ orderId }).all();
-      for (const item of items as any[]) {
+    // Fetch all order items for all completed orders — one query per batch.
+    // Prisma Next does not support WHERE orderId IN [...] directly, so we
+    // fetch all items for the organization and filter in-memory.  This is
+    // far better than the previous N+1 (one query per order).
+    const allItems = await db.orm.public.OrderItem.all();
+    const completedSet = new Set(completedOrderIds);
+    let itemsFound = 0;
+    for (const item of allItems as any[]) {
+      if (completedSet.has(item.orderId)) {
         cogs += (item.unitCost ?? 0) * (item.quantity ?? 1);
+        itemsFound++;
       }
     }
+    cogsAvailable = itemsFound > 0;
   }
 
   const avgOrderValue = orderCount > 0 ? grossSales / orderCount : 0;
-  const theoreticalMargin = grossSales > 0 ? ((grossSales - cogs) / grossSales) * 100 : 0;
+  // Guard: if grossSales is 0, margin is not "0%" — it's unavailable
+  const theoreticalMargin =
+    grossSales > 0 && cogsAvailable
+      ? ((grossSales - cogs) / grossSales) * 100
+      : null;
 
   return {
     grossSales,
     orderCount,
     avgOrderValue,
     cogs,
-    theoreticalMargin,
-    hasCogs: cogs > 0,
+    cogsAvailable,
+    theoreticalMargin, // null = unavailable, negative = COGS > sales (expose truthfully)
+    reportingDay: { start: start.toISOString(), end: end.toISOString(), timezone: tz },
   };
 }
 
 // ---------------------------------------------------------------------------
-// getOverviewInventory — low/out of stock summary, today's waste
+// getOverviewInventory — low/out of stock + today's waste (location-correct)
 // ---------------------------------------------------------------------------
 
 export async function getOverviewInventory(organizationId: string, locationId?: string) {
   await requireMembership(organizationId, ['OWNER', 'ADMIN', 'MANAGER'], locationId);
-  const { start, end } = getTodayBounds();
 
+  const tz = await resolveLocationTimezone(locationId);
+  const { start, end } = getRestaurantDayBounds(tz);
+
+  // Inventory items — location-scoped
   const inv = await db.orm.public.RestaurantInventoryItem
     .where(locationId ? { organizationId, locationId } : { organizationId })
     .all();
 
   const lowStock: any[] = [];
   const outOfStock: any[] = [];
+  const invIds = new Set((inv as any[]).map((i) => i.id));
 
   for (const i of inv as any[]) {
     if (i.quantity <= 0) outOfStock.push(i);
     else if (i.lowStockLevel != null && i.quantity <= i.lowStockLevel) lowStock.push(i);
   }
 
-  // Today's waste movements
+  // Waste movements — RestaurantStockMovement has no locationId directly.
+  // Location is inherited through inventoryItemId → RestaurantInventoryItem.locationId
+  // Solution: fetch all org-level movements for WASTE type today, then filter
+  // by whether the itemId belongs to this location's inventory item set.
   const allMovements = await db.orm.public.RestaurantStockMovement
     .where({ organizationId })
     .all();
 
   let wasteValue = 0;
   let wasteCount = 0;
+  let wasteValueKnown = false;
+
   for (const m of allMovements as any[]) {
+    if (m.type !== 'WASTE') continue;
     const d = new Date(m.createdAt);
-    if (m.type === 'WASTE' && d >= start && d <= end) {
-      wasteCount++;
-      wasteValue += Math.abs(m.delta) * (m.unitCost ?? 0);
+    if (d < start || d > end) continue;
+    // Location filter via the inventory-item membership set
+    if (locationId && !invIds.has(m.itemId)) continue;
+    wasteCount++;
+    if (m.unitCost != null && m.unitCost > 0) {
+      wasteValue += Math.abs(m.delta ?? 0) * m.unitCost;
+      wasteValueKnown = true;
     }
   }
 
   return {
     totalItems: inv.length,
-    lowStockItems: lowStock.slice(0, 5).map((i) => ({ id: i.id, name: i.name, quantity: i.quantity, unit: i.unit, lowStockLevel: i.lowStockLevel })),
+    lowStockItems: lowStock.slice(0, 5).map((i) => ({
+      id: i.id, name: i.name, quantity: i.quantity, unit: i.unit, lowStockLevel: i.lowStockLevel,
+    })),
     outOfStockItems: outOfStock.slice(0, 5).map((i) => ({ id: i.id, name: i.name, unit: i.unit })),
     lowStockCount: lowStock.length,
     outOfStockCount: outOfStock.length,
-    wasteValue,
     wasteCount,
+    wasteValue,
+    wasteValueKnown, // false = quantity known but monetary value unavailable
   };
 }
 
 // ---------------------------------------------------------------------------
-// getOverviewReservations — upcoming reservations today
+// getOverviewReservations — upcoming reservations in restaurant-local time
 // ---------------------------------------------------------------------------
 
 export async function getOverviewReservations(organizationId: string, locationId?: string) {
   await requireMembership(organizationId, ['OWNER', 'ADMIN', 'MANAGER'], locationId);
+
+  const tz = await resolveLocationTimezone(locationId);
+  const { end } = getRestaurantDayBounds(tz);
   const now = new Date();
-  const { end } = getTodayBounds();
   const oneHourFromNow = new Date(Date.now() + 60 * 60 * 1000);
 
   const reservations = await db.orm.public.RestaurantReservation
@@ -267,7 +328,7 @@ export async function getOverviewReservations(organizationId: string, locationId
 }
 
 // ---------------------------------------------------------------------------
-// getOverviewShift — current or last shift summary
+// getOverviewShift — current or last-closed shift
 // ---------------------------------------------------------------------------
 
 export async function getOverviewShift(organizationId: string, locationId?: string) {
@@ -277,9 +338,8 @@ export async function getOverviewShift(organizationId: string, locationId?: stri
     .where(locationId ? { organizationId, locationId } : { organizationId })
     .all();
 
-  // Sort by openedAt descending to get the most recent
   const sorted = (allShifts as any[]).sort(
-    (a, b) => new Date(b.openedAt).getTime() - new Date(a.openedAt).getTime()
+    (a, b) => new Date(b.openedAt).getTime() - new Date(a.openedAt).getTime(),
   );
 
   const activeShift = sorted.find((s) => s.status === 'OPEN');
@@ -301,14 +361,19 @@ export async function getOverviewShift(organizationId: string, locationId?: stri
 }
 
 // ---------------------------------------------------------------------------
-// getConfigurationHealth — gaps in config that affect operations
+// getConfigurationHealth — config gaps that affect operations
+// MenuItem IS location-scoped (locationId field confirmed in schema)
 // ---------------------------------------------------------------------------
 
 export async function getConfigurationHealth(organizationId: string, locationId?: string) {
   await requireMembership(organizationId, ['OWNER', 'ADMIN', 'MANAGER'], locationId);
   const settings: any = await getRestaurantOSSettings(organizationId);
 
-  const menu = await db.orm.public.MenuItem.where({ organizationId }).all();
+  // MenuItem has locationId — must scope by location when provided
+  const menu = await db.orm.public.MenuItem
+    .where(locationId ? { organizationId, locationId } : { organizationId })
+    .all();
+
   let missingRecipes = 0;
   let missingCost = 0;
   let unavailableItems = 0;

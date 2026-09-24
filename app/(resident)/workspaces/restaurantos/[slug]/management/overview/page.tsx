@@ -147,7 +147,7 @@ export default async function OverviewPage({
     attentionItems.push({
       severity: 'critical',
       title: `${alerts.overdueTickets} Overdue Kitchen Ticket${alerts.overdueTickets > 1 ? 's' : ''}`,
-      description: `${alerts.overdueTickets > 1 ? 'These tickets have' : 'This ticket has'} been open for more than 20 minutes.`,
+      description: `${alerts.overdueTickets > 1 ? 'These tickets have' : 'This ticket has'} been waiting more than ${alerts.overdueMinutes} minutes since the order was placed.`,
       action: 'Open KDS',
       href: `/workspaces/restaurantos/${slug}/kds`,
     });
@@ -247,11 +247,12 @@ export default async function OverviewPage({
       )}
 
       {/* ── LIVE SERVICE + KITCHEN ───────────────────────────────────── */}
-      <section aria-label="Live Service and Kitchen">
+      <section aria-label="Service and Kitchen">
         <SectionHeading>
           <span className="inline-flex items-center gap-2">
             <Flame size={13} className="text-orange-500" aria-hidden />
-            Live Service &amp; Kitchen
+            Service &amp; Kitchen
+            <span className="text-slate-300 font-normal normal-case tracking-normal">— current snapshot</span>
           </span>
         </SectionHeading>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -317,20 +318,39 @@ export default async function OverviewPage({
             <StatCard
               label="Theoretical Margin"
               value={
-                sales.hasCogs
-                  ? `${sales.theoreticalMargin.toFixed(1)}%`
-                  : 'Costing unavailable'
+                sales.theoreticalMargin !== null
+                  ? `${(sales.theoreticalMargin as number).toFixed(1)}%`
+                  : 'Unavailable'
               }
-              icon={<Percent size={20} className={sales.theoreticalMargin > 60 ? 'text-emerald-400' : 'text-amber-400'} />}
+              icon={
+                <Percent
+                  size={20}
+                  className={
+                    sales.theoreticalMargin === null
+                      ? 'text-slate-400'
+                      : (sales.theoreticalMargin as number) > 60
+                      ? 'text-emerald-400'
+                      : 'text-amber-400'
+                  }
+                />
+              }
               href={`/workspaces/restaurantos/${slug}/management/costing`}
               accent
             />
           ) : null}
         </div>
-        {(settings as any)?.enableFoodCosting && sales.hasCogs && (
+        {(settings as any)?.enableFoodCosting && sales.cogsAvailable && (
           <p className="mt-2 text-xs text-slate-400 font-medium">
-            * Theoretical Gross Margin = (Gross Sales − Theoretical COGS) / Gross Sales. Not accounting profit.
-            COGS today: <strong>{formatNaira(sales.cogs)}</strong>.
+            * Theoretical Gross Margin = (Gross Sales − Theoretical COGS) / Gross Sales.
+            Not accounting profit. COGS today: <strong>{formatNaira(sales.cogs)}</strong>.
+            {sales.theoreticalMargin !== null && (sales.theoreticalMargin as number) < 0 && (
+              <span className="text-rose-500 ml-1">⚠ COGS exceeds revenue — verify recipe costs.</span>
+            )}
+          </p>
+        )}
+        {(settings as any)?.enableFoodCosting && !sales.cogsAvailable && sales.orderCount > 0 && (
+          <p className="mt-2 text-xs text-slate-400 font-medium">
+            Theoretical margin unavailable — no recorded COGS for today&apos;s orders.
           </p>
         )}
       </section>
@@ -379,10 +399,12 @@ export default async function OverviewPage({
               <div className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm">
                 <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Waste Today</p>
                 <p className="text-2xl font-black text-slate-900">{inventoryData.wasteCount} entries</p>
-                {inventoryData.wasteValue > 0 && (
+                {inventoryData.wasteValueKnown ? (
                   <p className="text-sm text-slate-500 font-medium mt-1">
                     Value: <span className="text-slate-700 font-bold">{formatNaira(inventoryData.wasteValue)}</span>
                   </p>
+                ) : (
+                  <p className="text-sm text-slate-400 font-medium mt-1">Monetary value unavailable — items have no unit cost.</p>
                 )}
                 <Link
                   href={`/workspaces/restaurantos/${slug}/management/waste`}
