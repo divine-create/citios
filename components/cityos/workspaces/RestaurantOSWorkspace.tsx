@@ -135,7 +135,7 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
     {
       label: "Overview",
       items: [
-        { label: "Dashboard", icon: LayoutDashboard },
+        { label: "Dashboard", icon: LayoutDashboard, href: `/workspaces/restaurantos/${slug}/management/overview` },
         { label: "Reports", icon: BarChart3 },
       ],
     },
@@ -151,13 +151,15 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
     {
       label: "Menu & Pricing",
       items: [
-        { label: "Menu Items", icon: UtensilsCrossed },
+        { label: "Menu Items", icon: UtensilsCrossed, href: `/workspaces/restaurantos/${slug}/management/menu` },
+        { label: "Modifiers", icon: LayoutDashboard, href: `/workspaces/restaurantos/${slug}/management/modifiers` },
+        { label: "Food Costing", icon: TrendingUp, href: `/workspaces/restaurantos/${slug}/management/costing` },
       ],
     },
     {
       label: "Production & Recipes",
       items: [
-        { label: "Recipes", icon: ClipboardList },
+        { label: "Recipes", icon: ClipboardList, href: `/workspaces/restaurantos/${slug}/management/recipes` },
         { label: "Kitchen Prep & Batches", icon: Flame },
         { label: "Waste Log", icon: Trash2 },
       ],
@@ -187,7 +189,7 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
     {
       label: "Settings",
         items: [
-          { label: "Settings", icon: SettingsIcon },
+          { label: "Capabilities", icon: SettingsIcon, href: `/workspaces/restaurantos/${slug}/management/capabilities` },
           { label: "Team", icon: Users },
         ],
     },
