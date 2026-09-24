@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button, Input } from '@/components/ui';
 import { createProductionRun } from '@/lib/actions/restaurantos';
 
-export function ProductionRunLogger({ recipes, organizationId, onDone }: any) {
+export function ProductionRunLogger({ recipes, inventory, organizationId, onDone }: any) {
   const [recipeId, setRecipeId] = useState(recipes[0]?.id || '');
   const [batchMultiplier, setBatchMultiplier] = useState(1);
   const [actualYield, setActualYield] = useState(recipes[0]?.yieldQuantity || 1);
@@ -88,7 +88,7 @@ export function ProductionRunLogger({ recipes, organizationId, onDone }: any) {
           <p className="text-xs font-bold text-slate-500 uppercase">Will deduct:</p>
           <ul className="text-sm space-y-1 text-slate-700">
             {selectedRecipe.ingredients.map((ing: any) => (
-              <li key={ing.id}>• {ing.quantity * batchMultiplier}x of Item {ing.itemId}</li>
+              <li key={ing.id}>• {ing.quantity * batchMultiplier}x of {inventory?.find((i: any) => i.id === ing.itemId)?.name || 'Item ' + ing.itemId}</li>
             ))}
           </ul>
         </div>

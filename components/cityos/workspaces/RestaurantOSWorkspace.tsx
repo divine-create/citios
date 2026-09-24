@@ -1137,7 +1137,7 @@ function TabProductionRuns({ runs, recipes, slug, onDone }: any) {
         {showForm ? (
           <div>
             <button onClick={() => setShowForm(false)} className="mb-4 text-xs font-bold text-slate-500 hover:text-slate-800">&larr; Back to Production Runs</button>
-            <ProductionRunLogger organizationId={slug} recipes={recipes} onDone={() => { setShowForm(false); onDone(); }} />
+            <ProductionRunLogger organizationId={slug} recipes={recipes} inventory={inventory} onDone={() => { setShowForm(false); onDone(); }} />
           </div>
         ) : (
           runs?.length === 0 || !runs ? (
