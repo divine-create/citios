@@ -21,7 +21,7 @@ export default function MenuManager({ slug, menu, settings }: { slug: string; me
   });
 
   const handleToggleAvailable = async (id: string, currentlyAvailable: boolean) => {
-    await toggleMenuItemAvailability({ menuItemId: id, organizationId: slug, isAvailable: !currentlyAvailable });
+    await toggleMenuItemAvailability(id);
     router.refresh();
   };
 

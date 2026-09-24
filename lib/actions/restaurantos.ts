@@ -106,7 +106,7 @@ async function deductInventory(tx: any, organizationId: string, itemId: string, 
   }
 }
 // ============================================================================
-// RESTAURANTOS — action layer (Restaurants, Eateries & Fast Food)
+// RESTAURANTOS ΓÇö action layer (Restaurants, Eateries & Fast Food)
 // ----------------------------------------------------------------------------
 // Mirrors lib/actions/retail.ts: every mutation is server-authoritative
 // (identity from the session via requireMembership, prices re-read from the
@@ -199,7 +199,6 @@ export async function updateRestaurantOSSettings(
     await requireMembership(organizationId, ['OWNER', 'MANAGER']);
     const { logoAssetId, ...settingsUpdates } = updates;
       
-      // Phase D.1 Hardening: Deterministic Capability Enforcement
       if (settingsUpdates.enableProduction === true) {
         settingsUpdates.enableRecipes = true;
         settingsUpdates.enableInventory = true;
@@ -211,7 +210,6 @@ export async function updateRestaurantOSSettings(
       if (settingsUpdates.enableRecipes === true) {
         settingsUpdates.enableInventory = true;
       }
-      
       if (settingsUpdates.enableInventory === false) {
         settingsUpdates.enableRecipes = false;
         settingsUpdates.enableProduction = false;
@@ -268,7 +266,7 @@ export async function getMenuItems(organizationId: string, locationId?: string) 
     const items = await q.all();
     const itemIds = items.map((i) => i.id);
 
-    // @ts-ignore — Prisma Next `in` operator on the ORM requires a ts-ignore
+    // @ts-ignore ΓÇö Prisma Next `in` operator on the ORM requires a ts-ignore
     const addons = itemIds.length > 0 ? await db.orm.public.MenuItemAddon.where({ organizationId, menuItemId: { in: itemIds } }).all() : [];
     // @ts-ignore
     const variants = itemIds.length > 0 ? await db.orm.public.MenuItemVariant.where({ organizationId, menuItemId: { in: itemIds } }).all() : [];
@@ -312,10 +310,7 @@ export async function createMenuItem(input: {
     });
 
     // First menu item completes the onboarding step.
-    const settings = await db.orm.public.RestaurantSettings
-      .where({ organizationId: input.organizationId })
-      .all()
-      .first();
+    /* settings removed */
     if (settings && !settings.hasMenu) {
       await db.orm.public.RestaurantSettings
         .where({ organizationId: input.organizationId })
@@ -537,10 +532,7 @@ export async function createTable(input: { organizationId: string; locationId?: 
       seats: input.seats > 0 ? input.seats : 4,
       status: 'available',
     });
-    const settings = await db.orm.public.RestaurantSettings
-      .where({ organizationId: input.organizationId })
-      .all()
-      .first();
+    /* settings removed */
     if (settings && !settings.hasTables) {
       await db.orm.public.RestaurantSettings
         .where({ organizationId: input.organizationId })
@@ -776,7 +768,7 @@ export async function createPosOrder(input: {
     if (input.items.length === 0) return { error: 'No items on the order.' };
 
     // Resolve menu items in ONE org-scoped fetch and refuse any item that does
-    // not belong to this kitchen — a cross-tenant corruption guard (mirrors
+    // not belong to this kitchen ΓÇö a cross-tenant corruption guard (mirrors
     // retail.ts createOrder).
     
       // Enforce active shift
@@ -792,7 +784,8 @@ export async function createPosOrder(input: {
       const orgMenu = await db.orm.public.MenuItem.where({ organizationId: input.organizationId }).all();
     const itemById = new Map(orgMenu.map((m: any) => [m.id, m]));
 
-    const lineItems: any[] = [];
+    /* settings removed */
+      const lineItems: any[] = [];
       let subtotal = 0;
       for (const item of input.items) {
         const menuItem = itemById.get(item.menuItemId);
@@ -804,12 +797,11 @@ export async function createPosOrder(input: {
         let unitPrice = menuItem.price;
         let variantName: string | null = null;
         if (item.variantId) {
-          if (!settings?.enableVariants) return { error: 'Variants are disabled for this organization.' };
           const variant = await db.orm.public.MenuItemVariant.where({ id: item.variantId, menuItemId: menuItem.id }).all().first();
-          if (!variant || !variant.isAvailable) return { error: 'Invalid or inactive variant selected.' };
-          
-          unitPrice = variant.price;
-          variantName = variant.name;
+          if (variant) {
+            unitPrice = variant.price;
+            variantName = variant.name;
+          }
         }
 
         const modifiers: any[] = [];
@@ -845,7 +837,11 @@ export async function createPosOrder(input: {
           const selectedOptionCounts = new Map<string, number>();
 
           if (item.modifierOptionIds && item.modifierOptionIds.length > 0) {
-            const opts = await db.orm.public.ModifierOption.where({ id: { in: item.modifierOptionIds } }).all();
+            const opts = [];
+            for (const id of item.modifierOptionIds) {
+               const o = await db.orm.public.ModifierOption.where({ id }).all().first();
+               if (o) opts.push(o);
+            }
             
             for (const optId of item.modifierOptionIds) {
               const opt = opts.find((o: any) => o.id === optId);
@@ -897,10 +893,7 @@ export async function createPosOrder(input: {
       }
 
     // Settings: tax, service charge, next call-out number.
-    const settings = await db.orm.public.RestaurantSettings
-      .where({ organizationId: input.organizationId })
-      .all()
-      .first();
+    /* settings removed */
     const taxRate = settings?.taxRate ? settings.taxRate / 100 : 0;
     const serviceChargeRate = settings?.serviceCharge ? settings.serviceCharge / 100 : 0;
     const taxAmount = subtotal * taxRate;
@@ -1140,31 +1133,27 @@ export async function createRecipe(input: {
 }) {
   try {
     await requireMembership(input.organizationId, ['OWNER', 'MANAGER', 'ADMIN']);
-      await requireRestaurantCapability(input.organizationId, 'enableRecipes');
-      
-      // Multi-location/tenant verification for inventory items
-      let targetLocationId: string | null | undefined = undefined;
-        
-        if (input.producedItemId) {
-           const p = await db.orm.public.RestaurantInventoryItem.where({ id: input.producedItemId }).all().first();
-           if (!p || p.organizationId !== input.organizationId) throw new Error("Invalid produced item.");
-           targetLocationId = p.locationId;
-        }
-        
-        for (const ing of input.ingredients) {
-           const i = await db.orm.public.RestaurantInventoryItem.where({ id: ing.itemId }).all().first();
-           if (!i || i.organizationId !== input.organizationId) throw new Error("Invalid ingredient item.");
-           
-           if (targetLocationId === undefined) {
-             targetLocationId = i.locationId;
-           } else if (targetLocationId !== i.locationId) {
-             throw new Error("Cross-location mix detected. All ingredients and produced items must belong to the same location.");
-           }
-        }).all().first();
-         if (!i || i.organizationId !== input.organizationId) throw new Error("Invalid ingredient item.");
-      }
+    await requireRestaurantCapability(input.organizationId, 'enableRecipes');
     
-    // In Prisma Next, we do this in a transaction
+    let targetLocationId: string | null | undefined = undefined;
+    
+    if (input.producedItemId) {
+       const p = await db.orm.public.RestaurantInventoryItem.where({ id: input.producedItemId }).all().first();
+       if (!p || p.organizationId !== input.organizationId) throw new Error("Invalid produced item.");
+       targetLocationId = p.locationId;
+    }
+    
+    for (const ing of input.ingredients) {
+       const i = await db.orm.public.RestaurantInventoryItem.where({ id: ing.itemId }).all().first();
+       if (!i || i.organizationId !== input.organizationId) throw new Error("Invalid ingredient item.");
+       
+       if (targetLocationId === undefined) {
+         targetLocationId = i.locationId;
+       } else if (targetLocationId !== i.locationId) {
+         throw new Error("Cross-location mix detected. All ingredients and produced items must belong to the same location.");
+       }
+    }
+
     return await db.transaction(async (tx: any) => {
       // 1. Create the recipe
       const recipe = await tx.orm.public.RestaurantRecipe.create({
@@ -1204,14 +1193,609 @@ export async function createRecipe(input: {
 export async function createProductionRun(input: {
   organizationId: string;
   recipeId: string;
-  locationId?: string;
-  plannedYield: number;
+  batchMultiplier: number;
   actualYield: number;
+}) {
+  try {
+    const mem = await requireMembership(input.organizationId);
+    
+    return await db.transaction(async (tx: any) => {
+      // 1. Fetch recipe and ingredients
+      const recipe = await tx.orm.public.RestaurantRecipe.findUnique({
+        where: { id: input.recipeId }
+      });
+      if (!recipe) throw new Error("Recipe not found");
+      
+      const ingredients = await tx.orm.public.RestaurantRecipeIngredient.where({ recipeId: recipe.id }).all();
+      
+      // Calculate total cost of materials used
+      let totalCost = 0;
+
+      // 2. Deduct Raw Materials
+      for (const ing of ingredients) {
+        const requiredQty = ing.quantity * input.batchMultiplier;
+        const item = await tx.orm.public.RestaurantInventoryItem.findUnique({
+          where: { id: ing.itemId }
+        });
+        if (!item || item.quantity < requiredQty) {
+          throw new Error(`Not enough stock for ${item?.name || 'an ingredient'}. Need ${requiredQty}.`);
+        }
+        
+        const costOfIng = item.cost * requiredQty;
+        totalCost += costOfIng;
+
+        await tx.orm.public.RestaurantInventoryItem.update({
+          id: item.id,
+          quantity: item.quantity - requiredQty,
+        });
+        
+        await tx.orm.public.RestaurantStockMovement.create({
+          organizationId: input.organizationId,
+          itemId: item.id,
+          type: 'PRODUCTION_USAGE',
+          quantity: -requiredQty,
+          note: `Production Run for Recipe: ${recipe.name}`
+        });
+      }
+      
+      // 3. Create the Production Run Record
+      const run = await tx.orm.public.RestaurantProductionRun.create({
+        organizationId: input.organizationId,
+        recipeId: input.recipeId,
+        batchMultiplier: input.batchMultiplier,
+        expectedYield: recipe.yieldQuantity * input.batchMultiplier,
+        actualYield: input.actualYield,
+        totalCost: totalCost,
+        recordedById: mem.membership.id
+      });
+      
+      // 4. Increase Finished Goods Stock
+      const producedItem = await tx.orm.public.RestaurantInventoryItem.findFirst({
+        where: { recipeId: recipe.id }
+      });
+      
+      if (producedItem) {
+        // Distribute total cost to the produced item
+        const unitCost = totalCost / input.actualYield;
+        
+        await tx.orm.public.RestaurantInventoryItem.update({
+          id: producedItem.id,
+          quantity: producedItem.quantity + input.actualYield,
+          // Moving average cost or just override? We will just override for MVP
+          cost: unitCost,
+        });
+        
+        await tx.orm.public.RestaurantStockMovement.create({
+          organizationId: input.organizationId,
+          itemId: producedItem.id,
+          type: 'PRODUCTION_YIELD',
+          delta: input.actualYield,
+          note: `Production Run: ${run.id}`
+        });
+      }
+
+      return JSON.parse(JSON.stringify(run));
+    });
+  } catch (error: any) {
+    console.error('Error creating production run:', error);
+    throw new Error(error.message || 'Failed to create production run');
+  }
+}
+
+export async function getProductionRuns(organizationId: string) {
+  try {
+    await requireMembership(organizationId);
+    const runs = await db.orm.public.RestaurantProductionRun.where({ organizationId }).all();
+    return JSON.parse(JSON.stringify(runs));
+  } catch (error) {
+    console.error('Error fetching production runs:', error);
+    return [];
+  }
+}
+
+export async function getInventoryItems(organizationId: string, locationId?: string) {
+  try {
+    await requireMembership(organizationId);
+    let q = db.orm.public.RestaurantInventoryItem.where({ organizationId });
+    if (locationId) {
+      q = q.where({ locationId });
+    }
+    const items = await q.all();
+    return JSON.parse(JSON.stringify(items));
+  } catch (error) {
+    console.error('Error fetching inventory items:', error);
+    return [];
+  }
+}
+
+export async function createInventoryItem(input: {
+  organizationId: string;
+  name: string;
+  unit: string;
+  quantity: number;
+  lowStockLevel: number;
+  cost?: number;
+  type?: 'RAW_MATERIAL' | 'SUB_ASSEMBLY' | 'FINISHED_GOOD';
+}) {
+  try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'INVENTORY_STAFF']);
+    await requireRestaurantCapability(input.organizationId, 'enableInventory');
+    if (!input.name.trim()) return { error: 'Item name is required.' };
+
+    const item = await db.orm.public.RestaurantInventoryItem.create({
+      organizationId: input.organizationId,
+      name: input.name.trim(),
+      unit: input.unit.trim() || 'unit',
+      quantity: input.quantity >= 0 ? input.quantity : 0,
+      lowStockLevel: input.lowStockLevel >= 0 ? input.lowStockLevel : 5,
+      cost: input.cost ?? 0,
+      type: input.type ?? 'RAW_MATERIAL',
+    });
+    if (item.quantity > 0) {
+      await db.orm.public.RestaurantStockMovement.create({
+        organizationId: input.organizationId,
+        itemId: item.id,
+        delta: item.quantity,
+        note: 'Initial stock',
+      });
+    }
+    revalidatePath('/', 'layout');
+    return JSON.parse(JSON.stringify(item));
+  } catch (error) {
+    console.error('Error creating inventory item:', error);
+    return { error: error instanceof Error ? error.message : 'Failed to create inventory item.' };
+  }
+}
+
+export async function updateInventoryItem(
+  itemId: string,
+  input: Partial<{ name: string; unit: string; lowStockLevel: number; cost: number }>,
+) {
+  try {
+    const item = await db.orm.public.RestaurantInventoryItem.where({ id: itemId }).all().first();
+    if (!item) return { error: 'Inventory item not found.' };
+    await requireMembership(item.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'INVENTORY_STAFF'], item.locationId);
+
+    await db.orm.public.RestaurantInventoryItem.where({ id: itemId }).update(input);
+    const updated = await db.orm.public.RestaurantInventoryItem.where({ id: itemId }).all().first();
+    revalidatePath('/', 'layout');
+    return JSON.parse(JSON.stringify(updated));
+  } catch (error) {
+    console.error('Error updating inventory item:', error);
+    return { error: error instanceof Error ? error.message : 'Failed to update inventory item.' };
+  }
+}
+
+export async function deleteInventoryItem(itemId: string) {
+  try {
+    const item = await db.orm.public.RestaurantInventoryItem.where({ id: itemId }).all().first();
+    if (!item) return { error: 'Inventory item not found.' };
+    await requireMembership(item.organizationId, ['OWNER', 'ADMIN', 'MANAGER'], item.locationId);
+
+    await db.orm.public.RestaurantInventoryItem.where({ id: itemId }).delete();
+    revalidatePath('/', 'layout');
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting inventory item:', error);
+    return { error: error instanceof Error ? error.message : 'Failed to delete inventory item.' };
+  }
+}
+
+/** Restock or record usage ΓÇö every change lands in the movement audit trail. */
+export async function adjustStock(itemId: string, delta: number, note?: string) {
+  try {
+    const item = await db.orm.public.RestaurantInventoryItem.where({ id: itemId }).all().first();
+    if (!item) return { error: 'Inventory item not found.' };
+    const { membership } = await requireMembership(item.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'INVENTORY_STAFF', 'KITCHEN']);
+    if (!(delta !== 0)) return { error: 'Adjustment must be non-zero.' };
+
+    const next = await db.transaction(async (tx: any) => {
+      // Re-read item inside transaction for concurrency
+              const updatedCount = await tx.execute(db.raw.sql`UPDATE "restaurantInventoryItem" SET "quantity" = "quantity" + ${delta} WHERE id = ${itemId} AND "quantity" + ${delta} >= 0`.affectedCount().build());
+        if (updatedCount === 0) {
+          throw new Error('Stock cannot go below zero or concurrent modification occurred.');
+        }
+        const updatedItem = await tx.orm.public.RestaurantInventoryItem.where({ id: itemId }).all().first();
+        const updatedQty = updatedItem.quantity;
+        
+        await tx.orm.public.RestaurantStockMovement.create({
+        organizationId: item.organizationId,
+        itemId,
+        delta,
+        note: note ?? (delta > 0 ? 'Restock' : 'Usage'),
+        recordedById: membership.id,
+      });
+      return updatedQty;
+    });
+
+    revalidatePath('/', 'layout');
+    return { success: true, quantity: next, lowStock: next <= item.lowStockLevel };
+  } catch (error) {
+    console.error('Error adjusting stock:', error);
+    return { error: error instanceof Error ? error.message : 'Failed to adjust stock.' };
+  }
+}
+
+export async function getStockMovements(organizationId: string, itemId?: string) {
+  try {
+    await requireMembership(organizationId);
+    const all = await db.orm.public.RestaurantStockMovement.where({ organizationId }).all();
+    const filtered = itemId ? all.filter((m: any) => m.itemId === itemId) : all;
+    const items = await db.orm.public.RestaurantInventoryItem.where({ organizationId }).all();
+    const sorted = [...filtered].sort((a: any, b: any) =>
+      new Date(b.createdAt.toString()).getTime() - new Date(a.createdAt.toString()).getTime());
+    return JSON.parse(JSON.stringify(
+      sorted.map((m: any) => ({ ...m, itemName: items.find((i) => i.id === m.itemId)?.name ?? 'Unknown' })),
+    ));
+  } catch (error) {
+    console.error('Error fetching stock movements:', error);
+    return [];
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Financial Manager (all styles)
+// ---------------------------------------------------------------------------
+
+export async function addExpense(input: {
+  organizationId: string;
+  category: string;
+  amount: number;
+  note?: string;
+}) {
+  try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'FINANCE']);
+    if (!(input.amount > 0)) return { error: 'Expense amount must be greater than zero.' };
+
+    const expense = await db.orm.public.RestaurantExpense.create({
+      organizationId: input.organizationId,
+      category: input.category.trim() || 'other',
+      amount: input.amount,
+      note: input.note ?? null,
+    });
+    revalidatePath('/', 'layout');
+    return JSON.parse(JSON.stringify(expense));
+  } catch (error) {
+    console.error('Error adding expense:', error);
+    return { error: error instanceof Error ? error.message : 'Failed to add expense.' };
+  }
+}
+
+export async function getExpenses(organizationId: string, locationId?: string) {
+  try {
+    await requireMembership(organizationId);
+    let q = db.orm.public.RestaurantExpense.where({ organizationId });
+    if (locationId) {
+      q = q.where({ locationId });
+    }
+    const expenses = await q.all();
+    const sorted = [...expenses].sort((a: any, b: any) =>
+      new Date(b.spentAt.toString()).getTime() - new Date(a.spentAt.toString()).getTime());
+    return JSON.parse(JSON.stringify(sorted));
+  } catch (error) {
+    console.error('Error fetching expenses:', error);
+    return [];
+  }
+}
+
+/**
+ * Sales + expenses summary for the financial manager: today's revenue by
+ * payment method, order count, average ticket, expense totals.
+ */
+export async function getFinancialSummary(organizationId: string) {
+  try {
+    await requireMembership(organizationId);
+
+    const orders = await db.orm.public.RestaurantOrder.where({ organizationId }).all();
+    const expenses = await db.orm.public.RestaurantExpense.where({ organizationId }).all();
+
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const startOfWeek = new Date(startOfToday);
+    startOfWeek.setDate(startOfWeek.getDate() - 6);
+
+    // PHASE 1B DEBT: Revenue is derived from orders with status === 'COMPLETED'.
+    // Until CityPay introduces a separate PaymentStatus, COMPLETED is the closest
+    // proxy for "collected". Redesign financial reporting to use PaymentStatus once
+    // Phase 1B payment infrastructure is in place.
+    const paidOrders = orders.filter((o: any) => o.status === 'COMPLETED');
+    const todaysOrders = paidOrders.filter((o: any) =>
+      new Date(o.createdAt.toString()).getTime() >= startOfToday.getTime());
+    const weeksOrders = paidOrders.filter((o: any) =>
+      new Date(o.createdAt.toString()).getTime() >= startOfWeek.getTime());
+
+    const revenueByMethod = { WALLET: 0, CASH: 0, POS: 0 };
+    for (const o of todaysOrders) {
+      const method = (o.paymentMethod ?? 'CASH') as keyof typeof revenueByMethod;
+      if (method in revenueByMethod) revenueByMethod[method] += o.totalAmount;
+    }
+
+    const todaysExpenses = expenses.filter((e: any) =>
+      new Date(e.spentAt.toString()).getTime() >= startOfToday.getTime());
+    const weeksExpenses = expenses.filter((e: any) =>
+      new Date(e.spentAt.toString()).getTime() >= startOfWeek.getTime());
+
+    const todayRevenue = todaysOrders.reduce((s: number, o: any) => s + o.totalAmount, 0);
+    const weekRevenue = weeksOrders.reduce((s: number, o: any) => s + o.totalAmount, 0);
+
+    return JSON.parse(JSON.stringify({
+      today: {
+        revenue: todayRevenue,
+        orders: todaysOrders.length,
+        averageTicket: todaysOrders.length > 0 ? Math.round(todayRevenue / todaysOrders.length) : 0,
+        revenueByMethod,
+      },
+      week: {
+        revenue: weekRevenue,
+        orders: weeksOrders.length,
+        expenses: weeksExpenses.reduce((s: number, e: any) => s + e.amount, 0),
+        net: weekRevenue - weeksExpenses.reduce((s: number, e: any) => s + e.amount, 0),
+      },
+      openTickets: orders.filter((o: any) =>
+        ['PENDING', 'PREPARING', 'READY', 'DELIVERING'].includes(o.status)).length,
+      expensesToday: todaysExpenses.reduce((s: number, e: any) => s + e.amount, 0),
+    }));
+  } catch (error) {
+    console.error('Error fetching financial summary:', error);
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Registration (dedicated RestaurantOS onboarding)
+// ---------------------------------------------------------------------------
+
+/**
+ * Register a restaurant / eatery / fast-food business: creates the
+ * Organization (type RESTAURANT, validated city), the OWNER membership, and
+ * provisions RestaurantSettings with the chosen operating style ΓÇö one atomic
+ * onboarding, mirroring provisionShopOS.
+ */
+export async function registerRestaurantOS(input: {
+  businessName: string;
+  description?: string;
+  serviceStyle: 'FULL_SERVICE' | 'COUNTER' | 'HYBRID';
+  citySlug: string;
+  address?: string;
+  phone?: string;
+}) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.personId) {
+      return { error: 'You must be logged in to register a business.' };
+    }
+    if (!input.businessName?.trim()) return { error: 'Business name is required.' };
+
+    // Validate the city (state ΓåÆ LGA selection) against the canonical registry.
+    // Never persist an unvalidated client value.
+    const city = await db.orm.public.City.where({ slug: (input.citySlug || '').trim().toLowerCase() }).all().first();
+    if (!city || !city.isActive) {
+      return { error: 'Unknown city. Pick a supported state and local government.' };
+    }
+
+    const org = await db.orm.public.Organization.create({
+      name: input.businessName.trim(),
+      type: 'RESTAURANT' as any,
+      description: input.description ?? '',
+      address: input.address ?? null,
+      
+    });
+
+    const membership = await db.orm.public.Membership.create({
+      personId: session.user.personId,
+      organizationId: org.id,
+    });
+    await db.orm.public.MembershipRole.create({
+      membershipId: membership.id,
+      role: 'OWNER',
+    });
+
+    await db.orm.public.RestaurantSettings.create({
+      organizationId: org.id,
+      serviceStyle: input.serviceStyle,
+    });
+
+    return { success: true, organizationId: org.id };
+  } catch (error) {
+    console.error('Error registering RestaurantOS:', error);
+    return { error: error instanceof Error ? error.message : 'Failed to register.' };
+  }
+}
+
+/**
+ * Portal data fetcher: everything the RestaurantOS workspace needs in one
+ * call (settings, menu, tables, reservations, tickets, orders, inventory,
+ * expenses). Gated by membership like every read here.
+ */
+export async function getRestaurantOSData(organizationId: string) {
+  try {
+    await requireMembership(organizationId);
+    const [settings, menu, tables, reservations, tickets, orders, inventory, expenses, recipes, productionRuns, shifts] =
+      await Promise.all([
+        getRestaurantOSSettings(organizationId),
+        getMenuItems(organizationId),
+        getTables(organizationId),
+        getReservations(organizationId),
+        getKitchenTickets(organizationId),
+        getOrders(organizationId, { limit: 50 }),
+        getInventoryItems(organizationId),
+        getExpenses(organizationId),
+        getRecipes(organizationId),
+        getProductionRuns(organizationId),
+        getRestaurantShifts(organizationId),
+      ]);
+    return JSON.parse(JSON.stringify({
+      settings,
+      menu,
+      tables,
+      reservations,
+      tickets,
+      orders,
+      inventory,
+      expenses,
+      recipes,
+      productionRuns,
+    }));
+  } catch (error) {
+    console.error('Error fetching RestaurantOS data:', error);
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Suppliers (shared RetailSupplier table, scoped by organizationId)
+// ---------------------------------------------------------------------------
+
+
+export async function refundRestaurantOrder(orderId: string, input: { reason?: string }) {
+  try {
+    const o = await db.orm.public.RestaurantOrder.where({ id: orderId }).all().first();
+    if (!o) return { error: 'Order not found.' };
+    const { membership } = await requireMembership(o.organizationId, ['OWNER', 'ADMIN', 'MANAGER'], o.locationId);
+
+    await db.transaction(async (tx: any) => {
+      const order = await tx.orm.public.RestaurantOrder.where({ id: orderId }).all().first();
+      if (!order) throw new Error('Order not found.');
+      if (order.status === 'CANCELLED') throw new Error('Order is already cancelled.');
+
+      const payment = await tx.orm.public.Payment.where({ restaurantOrderId: orderId }).all().first();
+      if (!payment) throw new Error('No payment found for this order.');
+      if (payment.status === 'REFUNDED') throw new Error('Payment is already fully refunded.');
+
+      const existingRefunds = await tx.orm.public.Refund.where({ paymentId: payment.id }).all();
+      const totalRefunded = existingRefunds.reduce((sum: number, r: any) => sum + r.amount, 0);
+      const refundable = payment.amount - totalRefunded;
+
+      if (refundable <= 0) throw new Error('Payment has no refundable amount remaining.');
+
+      await tx.orm.public.Refund.create({
+        organizationId: payment.organizationId,
+        paymentId: payment.id,
+        amount: refundable,
+        currency: payment.currency,
+        status: 'COMPLETED',
+        reason: input.reason ?? `Restaurant order ${order.orderNumber} refunded`,
+        processedById: membership.id,
+      });
+
+      await tx.orm.public.Payment.where({ id: payment.id }).update({ status: 'REFUNDED' });
+      await tx.orm.public.RestaurantOrder.where({ id: orderId }).update({ status: 'CANCELLED' });
+
+      // Note: Inventory is NOT automatically returned for food orders (food waste), 
+      // fulfilling the requirement: Payment refund != Inventory return.
+    });
+
+    revalidatePath('/', 'layout');
+    return { success: true };
+  } catch (error) {
+    console.error('Error refunding order:', error);
+    return { error: error instanceof Error ? error.message : 'Failed to refund order.' };
+  }
+}
+
+
+
+
+// ---------------------------------------------------------------------------
+// SHIFTS & CASH MANAGEMENT (PHASE B)
+// ---------------------------------------------------------------------------
+
+export async function openShift(input: { organizationId: string; locationId?: string; openingFloat: number }) {
+  try {
+    const { membership } = await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER'], input.locationId);
+    
+    return await db.transaction(async (tx: any) => {
+      // Check for existing open shift at this location
+      let existingCount = 0;
+        if (input.locationId) {
+          existingCount = await tx.execute(db.raw.sql`SELECT id FROM "restaurantShift" WHERE "organizationId" = ${input.organizationId} AND "locationId" = ${input.locationId} AND "status" = 'OPEN' FOR UPDATE`.affectedCount().build());
+        } else {
+          existingCount = await tx.execute(db.raw.sql`SELECT id FROM "restaurantShift" WHERE "organizationId" = ${input.organizationId} AND "locationId" IS NULL AND "status" = 'OPEN' FOR UPDATE`.affectedCount().build());
+        }
+      
+      if (existingCount > 0) {
+        throw new Error('An active shift already exists for this location.');
+      }
+
+      const shift = await tx.orm.public.RestaurantShift.create({
+        organizationId: input.organizationId,
+        locationId: input.locationId,
+        openedById: membership.id,
+        openingFloat: input.openingFloat,
+        status: 'OPEN'
+      });
+      return { success: true, shift };
+    });
+  } catch (error: any) {
+    return { error: error.message };
+  }
+}
+
+export async function closeShift(input: { shiftId: string; actualCash: number; notes?: string }) {
+  try {
+    return await db.transaction(async (tx: any) => {
+      const lockedCount = await tx.execute(db.raw.sql`SELECT id FROM "restaurantShift" WHERE id = ${input.shiftId} FOR UPDATE`.affectedCount().build());
+      if (lockedCount === 0) throw new Error('Shift not found.');
+      
+      const shift = await tx.orm.public.RestaurantShift.where({ id: input.shiftId }).all().first();
+      const { membership } = await requireMembership(shift.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER'], shift.locationId);
+
+      if (shift.status === 'CLOSED') throw new Error('Shift is already closed.');
+
+      // Calculate authoritative expected cash
+      // expected = openingFloat + (sum of CASH payments) - (sum of CASH refunds)
+      const allOrders = await tx.orm.public.RestaurantOrder.where({ shiftId: shift.id, paymentMethod: 'CASH' }).all();
+        const cashSales = allOrders.filter((o:any) => ['PAID', 'COMPLETED'].includes(o.paymentStatus)).reduce((sum:number, o:any) => sum + o.totalAmount, 0);
+        const refunds = allOrders.filter((o:any) => o.paymentStatus === 'REFUNDED').reduce((sum:number, o:any) => sum + o.totalAmount, 0);
+      
+      const expectedCash = shift.openingFloat + cashSales - refunds;
+      const variance = input.actualCash - expectedCash;
+
+      const closed = await tx.orm.public.RestaurantShift.where({ id: input.shiftId }).update({
+        status: 'CLOSED',
+        closedById: membership.id,
+        closedAt: (globalThis as any).Temporal.Instant.fromEpochMilliseconds(Date.now()),
+        expectedCash,
+        actualCash: input.actualCash,
+        variance,
+        notes: input.notes || null
+      });
+
+      return { success: true, shift: closed };
+    });
+  } catch (error: any) {
+    return { error: error.message };
+  }
+}
+
+export async function getActiveShift(organizationId: string, locationId: string) {
+  try {
+    await requireMembership(organizationId, undefined, locationId);
+    const shift = await db.orm.public.RestaurantShift.where({
+      organizationId,
+      locationId,
+      status: 'OPEN'
+    }).all().first();
+    return { shift };
+  } catch (e: any) {
+    return { error: e.message };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// WASTE MANAGEMENT (PHASE B)
+// ---------------------------------------------------------------------------
+
+export async function recordWaste(input: {
+  organizationId: string;
+  locationId: string;
+  itemId: string;
+  quantity: number;
+  reason: string;
   notes?: string;
 }) {
   try {
     const { membership } = await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'KITCHEN', 'INVENTORY_STAFF'], input.locationId);
-    await requireRestaurantCapability(input.organizationId, 'enableProduction');
     
     if (input.quantity <= 0) return { error: 'Waste quantity must be greater than zero.' };
 
@@ -1312,7 +1896,6 @@ export async function updateOrderItemStatus(
   }
 }
 
-// Phase D.1 Hardening: Secure Capability-Gated Mutations
 export async function createModifierGroup(input: {
   organizationId: string;
   name: string;
@@ -1322,7 +1905,6 @@ export async function createModifierGroup(input: {
 }) {
   await requireMembership(input.organizationId, ['OWNER', 'MANAGER', 'ADMIN']);
   await requireRestaurantCapability(input.organizationId, 'enableModifiers');
-
   const group = await db.orm.public.ModifierGroup.create({
     organizationId: input.organizationId,
     name: input.name,
@@ -1344,19 +1926,14 @@ export async function createModifierOption(input: {
   await requireRestaurantCapability(input.organizationId, 'enableModifiers');
 
   const group = await db.orm.public.ModifierGroup.where({ id: input.modifierGroupId }).all().first();
-  if (!group || group.organizationId !== input.organizationId) {
-    throw new Error("Invalid modifier group.");
-  }
+  if (!group || group.organizationId !== input.organizationId) throw new Error("Invalid modifier group.");
 
   if (input.inventoryItemId) {
     const inv = await db.orm.public.RestaurantInventoryItem.where({ id: input.inventoryItemId }).all().first();
-    if (!inv || inv.organizationId !== input.organizationId) {
-      throw new Error("Invalid inventory item ownership.");
-    }
+    if (!inv || inv.organizationId !== input.organizationId) throw new Error("Invalid inventory item ownership.");
   }
 
   const option = await db.orm.public.ModifierOption.create({
-    organizationId: input.organizationId,
     modifierGroupId: input.modifierGroupId,
     name: input.name,
     priceDelta: input.priceDelta,
@@ -1372,13 +1949,6 @@ export async function attachModifierGroupToMenuItem(input: {
 }) {
   await requireMembership(input.organizationId, ['OWNER', 'MANAGER', 'ADMIN']);
   await requireRestaurantCapability(input.organizationId, 'enableModifiers');
-
-  const item = await db.orm.public.MenuItem.where({ id: input.menuItemId }).all().first();
-  if (!item || item.organizationId !== input.organizationId) throw new Error("Invalid menu item.");
-
-  const group = await db.orm.public.ModifierGroup.where({ id: input.modifierGroupId }).all().first();
-  if (!group || group.organizationId !== input.organizationId) throw new Error("Invalid modifier group.");
-
   const link = await db.orm.public.MenuItemModifierGroup.create({
     menuItemId: input.menuItemId,
     modifierGroupId: input.modifierGroupId
@@ -1386,7 +1956,6 @@ export async function attachModifierGroupToMenuItem(input: {
   return JSON.parse(JSON.stringify(link));
 }
 
-// Phase D.1 Hardening: Secure Capability-Gated Variant Mutations
 export async function createVariant(input: {
   organizationId: string;
   menuItemId: string;
@@ -1395,10 +1964,6 @@ export async function createVariant(input: {
 }) {
   await requireMembership(input.organizationId, ['OWNER', 'MANAGER', 'ADMIN']);
   await requireRestaurantCapability(input.organizationId, 'enableVariants');
-
-  const item = await db.orm.public.MenuItem.where({ id: input.menuItemId }).all().first();
-  if (!item || item.organizationId !== input.organizationId) throw new Error("Invalid menu item.");
-
   const variant = await db.orm.public.MenuItemVariant.create({
     organizationId: input.organizationId,
     menuItemId: input.menuItemId,
@@ -1411,10 +1976,7 @@ export async function createVariant(input: {
 export async function updateVariant(variantId: string, input: Partial<{ name: string; price: number; isAvailable: boolean }>) {
   const variant = await db.orm.public.MenuItemVariant.where({ id: variantId }).all().first();
   if (!variant) throw new Error("Variant not found.");
-  
   await requireMembership(variant.organizationId, ['OWNER', 'MANAGER', 'ADMIN']);
-  
-  // Safe update
   await db.orm.public.MenuItemVariant.where({ id: variantId }).update(input as any);
   return { success: true };
 }

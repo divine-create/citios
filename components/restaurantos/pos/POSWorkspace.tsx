@@ -189,6 +189,19 @@ export default function POSWorkspace({ initialMenu, initialTables, settings, act
   }, [menu, activeCategory, searchQuery]);
 
   // Actions
+    const handleModifierSelection = (item: any, qty: number, selectedVariant: any, mods: any[], notes: string) => {
+    setPosLines(prev => {
+      const cartItemId = item.id + '-' + (selectedVariant?.id || 'base') + '-' + mods.map(m => m.id).join('-');
+      const ex = prev.find(p => p.cartItemId === cartItemId);
+      if (ex) return prev.map(p => p.cartItemId === cartItemId ? { ... p, qty: p.qty + qty } : p);
+      const price = (selectedVariant?.price || item.price) + mods.reduce((sum, m) => sum + m.priceDelta, 0);
+      return [...prev, { 
+        cartItemId, menuItemId: item.id, name: item.name, variantId: selectedVariant?.id, variantName: selectedVariant?.name, price, qty, notes, modifiers: mods.map(m => ({ optionId: m.id, name: m.name, priceDelta: m.priceDelta }))
+      }];
+    });
+    setModifierSelectionItem(null);
+  };
+
   const posAdd = (item: any) => {
     if (!item.isAvailable) return;
     setPosLines(prev => {
@@ -512,7 +525,7 @@ export default function POSWorkspace({ initialMenu, initialTables, settings, act
         <ModifierSelectionModal 
           item={modifierSelectionItem}
           onCancel={() => setModifierSelectionItem(null)}
-          onAdd={handleAddWithModifiers}
+          onAdd={handleModifierSelection}
         />
       )}
       {checkoutMode && (

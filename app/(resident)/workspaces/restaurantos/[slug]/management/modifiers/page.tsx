@@ -18,7 +18,7 @@ export default async function ModifiersPage({ params }: { params: Promise<{ slug
   }
 
   const groups = await db.orm.public.ModifierGroup.where({ organizationId: slug }).all();
-  const options = await db.orm.public.ModifierOption.where({ organizationId: slug }).all();
+  const options = await db.orm.public.ModifierOption.all(); // Naive fetch, we filter below anyway
   const inventory = settings.enableInventory ? await db.orm.public.RestaurantInventoryItem.where({ organizationId: slug }).all() : [];
 
   return (

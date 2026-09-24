@@ -72,8 +72,8 @@ export default function CostingDashboard({ slug, menu, recipes, ingredients, inv
           <div className="flex items-center gap-2">
             <Percent className="text-emerald-400" size={24} />
             <h2 className="text-2xl font-black text-white">
-              {costedMenu.filter(m => m.costState === 'AVAILABLE').length > 0 
-                ? (costedMenu.filter(m => m.costState === 'AVAILABLE').reduce((s, m) => s + m.costPercent, 0) / costedMenu.filter(m => m.costState === 'AVAILABLE').length).toFixed(1) + '%'
+              {costedMenu.filter((m: any) => m.costState === 'AVAILABLE').length > 0 
+                ? (costedMenu.filter((m: any) => m.costState === 'AVAILABLE').reduce((s: number, m: any) => s + m.costPercent, 0) / costedMenu.filter((m: any) => m.costState === 'AVAILABLE').length).toFixed(1) + '%'
                 : '--%'}
             </h2>
           </div>
