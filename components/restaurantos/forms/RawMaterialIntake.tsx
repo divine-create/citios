@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Button, Input } from '@/components/ui';
 import { createInventoryItem } from '@/lib/actions/restaurantos';
+import { POPULAR_UOMS } from './UOMConstants';
 
 export function RawMaterialIntake({ organizationId, onDone }: any) {
   const [name, setName] = useState('');
@@ -48,12 +49,7 @@ export function RawMaterialIntake({ organizationId, onDone }: any) {
         <div className="space-y-1.5">
           <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Unit of Measure</label>
           <select className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none" value={unit} onChange={e => setUnit(e.target.value)}>
-            <option>KG</option>
-            <option>LITERS</option>
-            <option>PIECES</option>
-            <option>GRAMS</option>
-            <option>BAGS</option>
-            <option>BOXES</option>
+            {POPULAR_UOMS.map(u => <option key={u} value={u}>{u}</option>)}
           </select>
         </div>
       </div>
