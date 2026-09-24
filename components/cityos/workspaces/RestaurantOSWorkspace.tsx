@@ -57,6 +57,38 @@ import {
 import { type PrintableReceiptData } from "@/lib/receiptUtils";
 import { Button, Badge, Input } from "@/components/ui";
 
+const MENU_CATEGORIES = ['Rice Dishes','Soups & Stews','Snacks & Sides','Swallow & Fufu','Breakfast','Drinks & Beverages','Desserts','Beans & Legumes','Yam Dishes','Chicken','Beef & Meat','Fish & Seafood','Plantain'];
+const FOOD_LIBRARY = [
+  { name: 'Jollof Rice & Chicken', category: 'Rice Dishes', image: 'https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Fried Rice', category: 'Rice Dishes', image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Ofada Rice & Stew', category: 'Rice Dishes', image: 'https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Egusi Soup & Pounded Yam', category: 'Soups & Stews', image: 'https://images.unsplash.com/photo-1548502632-6b93092aad0b?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Edikaikong Soup', category: 'Soups & Stews', image: 'https://images.unsplash.com/photo-1633504581786-316c8002b1b9?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Afang Soup', category: 'Soups & Stews', image: 'https://images.unsplash.com/photo-1574653853027-5382a3d23a15?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Ogbono Soup', category: 'Soups & Stews', image: 'https://images.unsplash.com/photo-1608897013039-887f21d8c804?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Banga Soup', category: 'Soups & Stews', image: 'https://images.unsplash.com/photo-1542528180-0c79567c66de?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Amala & Ewedu', category: 'Swallow & Fufu', image: 'https://images.unsplash.com/photo-1588691516089-9b4e54817a03?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Eba & Okro Soup', category: 'Swallow & Fufu', image: 'https://images.unsplash.com/photo-1572449043416-55f4685c9bb7?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Asun (Spicy Goat Meat)', category: 'Beef & Meat', image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Beef Suya', category: 'Snacks & Sides', image: 'https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Chicken Suya', category: 'Snacks & Sides', image: 'https://images.unsplash.com/photo-1598514982205-f36b96d1e8d4?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Nkwobi', category: 'Beef & Meat', image: 'https://images.unsplash.com/photo-1615870216519-2f9fa575fa5c?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Isi Ewu', category: 'Beef & Meat', image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Catfish Pepper Soup', category: 'Soups & Stews', image: 'https://images.unsplash.com/photo-1512489816562-b91c01e6ef84?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Goat Meat Pepper Soup', category: 'Soups & Stews', image: 'https://images.unsplash.com/photo-1563379926898-05f452098679?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Moi Moi', category: 'Beans & Legumes', image: 'https://images.unsplash.com/photo-1598515322588-46741b6bfd41?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Akara (Bean Cakes)', category: 'Breakfast', image: 'https://images.unsplash.com/photo-1605333396914-2c67cf761a20?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Ewa Agoyin', category: 'Beans & Legumes', image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Fried Plantain (Dodo)', category: 'Plantain', image: 'https://images.unsplash.com/photo-1541525997-6a75f284d7be?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Roasted Plantain (Boli)', category: 'Plantain', image: 'https://images.unsplash.com/photo-1559181567-c1648b125320?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Yam Porridge (Asaro)', category: 'Yam Dishes', image: 'https://images.unsplash.com/photo-1580879207865-c3f2d25032b4?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Shawarma', category: 'Snacks & Sides', image: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Burger & Fries', category: 'Snacks & Sides', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Chapman Drink', category: 'Drinks & Beverages', image: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Zobo Drink', category: 'Drinks & Beverages', image: 'https://images.unsplash.com/photo-1589146141384-ad4b97148ff6?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Malt Drink', category: 'Drinks & Beverages', image: 'https://images.unsplash.com/photo-1596700858169-d7c71f3074f0?auto=format&fit=crop&q=80&w=600' },
+  { name: 'Palm Wine', category: 'Drinks & Beverages', image: 'https://images.unsplash.com/photo-1575037614876-c3852d2427df?auto=format&fit=crop&q=80&w=600' },
+];
 export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
   const { fmt } = useMoney();
   const { switchToPersonal } = useAccountSwitcher();
@@ -110,10 +142,10 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
     {
       label: "Service",
       items: [
-        { label: "POS Terminal", icon: ShoppingCart },
+        { label: "POS Terminal", icon: ShoppingCart, href: `/workspaces/restaurantos/${slug}/pos` },
         { label: "Orders", icon: Receipt },
           { label: "Shift History", icon: CalendarDays },
-        { label: "Kitchen Board", icon: Flame, hidden: !showKitchen },
+        { label: "Kitchen Board", icon: Flame, hidden: !showKitchen, href: `/workspaces/restaurantos/${slug}/kds` },
       ],
     },
     {
@@ -310,10 +342,10 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
           <div className={activeMenu === "POS Terminal" ? "h-full" : "p-4 sm:p-6 lg:p-8"}>
             {activeMenu === "Dashboard" && <TabDashboard finance={finance} orders={orders} tickets={tickets} setActiveMenu={setActiveMenu} showTables={showTables} tables={tables} org={org} />}
             {activeMenu === "Reports" && <TabReports finance={finance} orders={orders} expenses={expenses} />}
-            {activeMenu === "POS Terminal" && <TabPOS menu={menu} tables={tables} showTables={showTables} slug={slug} onDone={loadData} org={org} settings={settings} customers={customers} activeShift={activeShift} />}
+            
               {activeMenu === "Shift History" && <TabShiftHistory shifts={shifts} activeShift={activeShift} />}
             {activeMenu === "Orders" && <TabOrders orders={orders} />}
-            {activeMenu === "Kitchen Board" && <TabKitchen tickets={tickets} slug={slug} onDone={loadData} org={org} />}
+            
             {activeMenu === "Menu Items" && <TabMenu menu={menu} slug={slug} onDone={loadData} />}
             {activeMenu === "Recipes" && <TabRecipes recipes={recipes} inventory={inventory} slug={slug} onDone={loadData} org={org} />}
             {activeMenu === "Kitchen Prep & Batches" && <TabProductionRuns runs={productionRuns} recipes={recipes} slug={slug} onDone={loadData} org={org} />}
@@ -478,135 +510,6 @@ function TabReports({ finance, orders, expenses }: any) {
   );
 }
 
-function TabPOS({ menu, tables, showTables, slug, onDone, org, settings, customers }: any) {
-  const { fmt } = useMoney();
-  const [posLines, setPosLines] = useState<any[]>([]);
-  const [posType, setPosType] = useState<"DINE_IN" | "TAKEOUT">("TAKEOUT");
-  const [posTableId, setPosTableId] = useState("");
-  const [posPayment, setPosPayment] = useState<"WALLET" | "CASH" | "POS" | "">("CASH");
-    const [posCustomerId, setPosCustomerId] = useState("");
-  const [posBusy, setPosBusy] = useState(false);
-  const [posMsg, setPosMsg] = useState<string | null>(null);
-  const [receiptModalData, setReceiptModalData] = useState<PrintableReceiptData | null>(null);
-
-  const posTotal = posLines.reduce((s, l) => s + l.price * l.qty, 0);
-  const posTax = Math.round(posTotal * ((settings?.taxRate ?? 0) / 100));
-  const posService = Math.round(posTotal * ((settings?.serviceCharge ?? 0) / 100));
-  const totalAmount = posTotal + posTax + posService;
-
-  function posAdd(item: any) {
-    if (item.isAvailable === false) return;
-    setPosLines(prev => {
-      const ex = prev.find(l => l.menuItemId === item.id);
-      if (ex) return prev.map(l => l.menuItemId === item.id ? { ...l, qty: l.qty + 1 } : l);
-      return [...prev, { menuItemId: item.id, name: item.name, price: item.price, qty: 1 }];
-    });
-  }
-
-  function posQty(id: string, qty: number) {
-    setPosLines(prev => qty <= 0 ? prev.filter(l => l.menuItemId !== id) : prev.map(l => l.menuItemId === id ? { ...l, qty } : l));
-  }
-
-  async function placeOrder() {
-    if (posLines.length === 0 || posBusy) return;
-    setPosBusy(true); setPosMsg(null);
-    const res = await createPosOrder({
-      organizationId: slug,
-      items: posLines.map(l => ({ menuItemId: l.menuItemId, quantity: l.qty })),
-      type: posType,
-      tableId: posType === "DINE_IN" && posTableId ? posTableId : undefined,
-      paymentMethod: posPayment ? (posPayment as any) : undefined,
-        customerDataId: posCustomerId || undefined,
-    });
-    setPosBusy(false);
-    if ("error" in res && res.error) { setPosMsg(res.error); return; }
-    playCashRegisterChime();
-    setReceiptModalData({
-      orderId: (res as any).orderId,
-      orderNumber: String((res as any).orderNumber),
-      storeName: org?.name,
-      date: new Date(),
-      cashierName: "POS",
-      orderType: posType as any,
-      tableName: tables.find((t:any) => t.id === posTableId)?.name,
-      items: posLines.map(l => ({ name: l.name, quantity: l.qty, unitPrice: l.price, subtotal: l.price * l.qty })),
-      subtotal: posTotal,
-      taxAmount: posTax,
-      serviceCharge: posService,
-      totalAmount: (res as any).totalAmount ?? totalAmount,
-      paymentMethod: posPayment || "UNPAID",
-      currencySymbol: "₦"
-    });
-    setPosLines([]);
-    setPosMsg(`Order #${(res as any).orderNumber} placed`);
-    await onDone();
-  }
-
-  return (
-    <div className="flex flex-col lg:flex-row h-full">
-      <div className="flex-1 p-4 lg:p-6 overflow-y-auto">
-        <PageHeader title="POS Terminal" subtitle="Tap items to add" />
-        <div className="mt-6 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-          {menu.map((m: any) => (
-            <button key={m.id} onClick={() => posAdd(m)} disabled={m.isAvailable === false} className={cn("p-4 rounded-xl border text-left transition-all flex flex-col justify-between min-h-[100px]", m.isAvailable === false ? "bg-slate-50 border-slate-200 opacity-50" : "bg-white border-slate-200 hover:border-orange-400 hover:shadow-md active:scale-95")}>
-              <div className="flex justify-between items-start w-full gap-2">
-                <div>
-                  <p className="text-sm font-bold text-slate-900 line-clamp-2">{m.name}</p>
-                  <p className="text-xs text-slate-500 mt-1">{m.category}</p>
-                </div>
-                {m.imageAssetId && (
-                  <img src={`/api/assets/${m.imageAssetId}`} alt={m.name} className="w-10 h-10 rounded-lg object-cover shrink-0 shadow-sm ring-1 ring-black/5" />
-                )}
-              </div>
-              <p className="text-sm font-bold text-orange-600 mt-2">{fmt(m.price)}</p>
-            </button>
-          ))}
-          {menu.length === 0 && <p className="col-span-full text-slate-500">No menu items available.</p>}
-        </div>
-      </div>
-      <div className="w-full lg:w-96 bg-white border-l border-slate-200 flex flex-col flex-shrink-0 relative">
-        <div className="p-4 border-b border-slate-100">
-           <PillTabs tabs={[{value:'TAKEOUT', label:'Takeout'}, {value:'DINE_IN', label:'Dine-in'}]} active={posType} onChange={(v:any) => setPosType(v)} className="w-full justify-center flex" />
-           {posType === 'DINE_IN' && showTables && (
-             <select value={posTableId} onChange={e => setPosTableId(e.target.value)} className={selectCls + " mt-3"}>
-               <option value="">Select table...</option>
-               {tables.map((t:any) => <option key={t.id} value={t.id}>{t.name}</option>)}
-             </select>
-           )}
-        </div>
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {posLines.map(l => (
-            <div key={l.menuItemId} className="flex items-center gap-2 bg-slate-50 p-2 rounded-lg">
-              <span className="flex-1 text-sm font-bold truncate">{l.name}</span>
-              <button onClick={() => posQty(l.menuItemId, l.qty - 1)} className="p-1 bg-white rounded shadow-sm text-slate-500"><Minus size={14}/></button>
-              <span className="text-sm font-bold w-6 text-center">{l.qty}</span>
-              <button onClick={() => posQty(l.menuItemId, l.qty + 1)} className="p-1 bg-white rounded shadow-sm text-slate-500"><Plus size={14}/></button>
-              <span className="text-sm font-bold text-orange-600 w-16 text-right">{fmt(l.price * l.qty)}</span>
-            </div>
-          ))}
-          {posLines.length === 0 && <div className="text-center text-slate-400 py-10">Order is empty</div>}
-        </div>
-        <div className="p-4 border-t border-slate-100 bg-slate-50 space-y-2">
-           <div className="flex justify-between text-sm text-slate-500"><span>Subtotal</span><span>{fmt(posTotal)}</span></div>
-           {posTax > 0 && <div className="flex justify-between text-sm text-slate-500"><span>Tax</span><span>{fmt(posTax)}</span></div>}
-           {posService > 0 && <div className="flex justify-between text-sm text-slate-500"><span>Service</span><span>{fmt(posService)}</span></div>}
-           <div className="flex justify-between font-bold text-lg text-slate-900 border-t border-slate-200 pt-2"><span>Total</span><span className="text-orange-600">{fmt(totalAmount)}</span></div>
-           <div className="flex gap-2 pt-2">
-             {["CASH","POS","WALLET"].map(p => (
-               <button key={p} onClick={() => setPosPayment(posPayment === p ? "" : p as any)} className={cn("flex-1 py-2 rounded-lg text-xs font-bold transition-colors border", posPayment === p ? "bg-orange-600 text-white border-orange-600" : "bg-white text-slate-600 border-slate-200")}>{p}</button>
-             ))}
-           </div>
-           <button onClick={placeOrder} disabled={posLines.length === 0 || posBusy} className={btnPrimary + " w-full mt-2 h-12 text-base"}>
-             {posBusy ? <Loader2 className="animate-spin" size={18}/> : "Place Order"}
-           </button>
-           {posMsg && <p className="text-xs text-center text-emerald-600 font-bold">{posMsg}</p>}
-        </div>
-      </div>
-      {receiptModalData && <ThermalReceiptModal initialData={receiptModalData} onClose={() => setReceiptModalData(null)} />}
-    </div>
-  );
-}
-
 function TabOrders({ orders }: any) {
   const { fmt } = useMoney();
   return (
@@ -632,125 +535,6 @@ function TabOrders({ orders }: any) {
     </div>
   );
 }
-
-function TabKitchen({ tickets, slug, onDone, org }: any) {
-  const { fmt } = useMoney();
-  const [receiptData, setReceiptData] = useState<any>(null);
-  const STATUS_COLORS: any = { PENDING: 'orange', PREPARING: 'orange', READY: 'blue', COMPLETED: 'green' };
-  const [activeStation, setActiveStation] = useState('All Stations');
-  
-  const STATIONS = ['All Stations', 'Main Kitchen', 'Bar', 'Grill', 'Salad Station', 'Dessert'];
-  
-  // Filter items in each ticket, and drop tickets that end up empty
-  const filteredTickets = tickets.map((t: any) => ({
-    ...t,
-    items: activeStation === 'All Stations' ? t.items : t.items.filter((i: any) => i.kitchenStation === activeStation)
-  })).filter((t: any) => t.items.length > 0);
-
-  return (
-    <div className="space-y-6">
-      <PageHeader title="Kitchen Display System" subtitle="Live active tickets" />
-        <div className="flex gap-2 pb-2 overflow-x-auto">
-          {STATIONS.map(s => (
-            <button key={s} onClick={() => setActiveStation(s)} className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${activeStation === s ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
-              {s}
-            </button>
-          ))}
-        </div>
-      {filteredTickets.length === 0 ? (
-         <EmptyState icon={CheckCircle2} title="All caught up" message="No pending orders." />
-      ) : (
-         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-           {filteredTickets.map((t:any) => {
-             const minutesOld = Math.floor((new Date().getTime() - new Date(t.createdAt).getTime()) / 60000);
-             const timeColor = minutesOld > 15 ? "text-red-600" : minutesOld > 5 ? "text-amber-600" : "text-emerald-600";
-             return (
-               <Card key={t.id} className="p-4 flex flex-col border-t-4 border-t-orange-500">
-                 <div className="flex justify-between items-start mb-2">
-                   <div>
-                     <h3 className="font-black text-xl text-slate-900">#{t.orderNumber}</h3>
-                     <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t.type} {t.tableName && `• ${t.tableName}`}</p>
-                   </div>
-                   <div className="text-right">
-                     <StatusPill tone={STATUS_COLORS[t.status]}>{t.status}</StatusPill>
-                     <p className={`text-xs font-bold mt-1 ${timeColor}`}>{minutesOld}m ago</p>
-                   </div>
-                 </div>
-                 <div className="flex-1 py-3 border-y border-slate-100 my-2 space-y-1">
-                   {t.items.map((i:any) => (
-                     <div key={i.id} className="flex justify-between text-sm">
-                       <span className="font-bold text-slate-800">{i.quantity}x {i.itemName}</span>
-                       {i.notes && <span className="text-xs text-amber-600">{i.notes}</span>}
-                     </div>
-                   ))}
-                 </div>
-                 <div className="flex flex-wrap gap-2 mt-2">
-                    {t.status === 'PENDING' && <button onClick={async () => { await updateOrderStatus(t.id, 'PREPARING'); onDone(); }} className={btnPrimary + " flex-1 py-1.5 text-xs"}>Start</button>}
-                    {t.status === 'PREPARING' && <button onClick={async () => { await updateOrderStatus(t.id, 'READY'); onDone(); }} className="flex-1 py-1.5 text-xs bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700">Ready</button>}
-                    {t.status === 'READY' && <button onClick={async () => { await updateOrderStatus(t.id, 'COMPLETED'); onDone(); }} className="flex-1 py-1.5 text-xs bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700">Serve</button>}
-                    <button onClick={() => setReceiptData({
-                          orderId: t.id, orderNumber: String(t.orderNumber), storeName: org?.name, date: new Date(),
-                          orderType: t.type as any, tableName: t.tableName, items: t.items.map((i:any) => ({ name: i.itemName, quantity: i.quantity, unitPrice: i.unitPrice, subtotal: i.unitPrice*i.quantity })),
-                          subtotal: t.totalAmount, totalAmount: t.totalAmount, paymentMethod: t.paymentMethod || 'UNPAID', currencySymbol: '₦', footerMessage: 'Kitchen Ticket'
-                    })} className={btnOutline + " py-1.5 px-2"}><Printer size={14}/></button>
-                 </div>
-               </Card>
-             );
-           })}
-         </div>
-      )}
-      {receiptData && <ThermalReceiptModal initialData={receiptData} onClose={() => setReceiptData(null)} />}
-    </div>
-  );
-}
-
-const MENU_CATEGORIES = [
-  "Rice Dishes",
-  "Soups & Stews",
-  "Snacks & Sides",
-  "Swallow & Fufu",
-  "Breakfast",
-  "Drinks & Beverages",
-  "Desserts",
-  "Beans & Legumes",
-  "Yam Dishes",
-  "Chicken",
-  "Beef & Meat",
-  "Fish & Seafood",
-  "Plantain"
-];
-
-const FOOD_LIBRARY = [
-  { name: 'Jollof Rice & Chicken', category: 'Rice Dishes', image: 'https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Fried Rice', category: 'Rice Dishes', image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Ofada Rice & Stew', category: 'Rice Dishes', image: 'https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Egusi Soup & Pounded Yam', category: 'Soups & Stews', image: 'https://images.unsplash.com/photo-1548502632-6b93092aad0b?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Edikaikong Soup', category: 'Soups & Stews', image: 'https://images.unsplash.com/photo-1633504581786-316c8002b1b9?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Afang Soup', category: 'Soups & Stews', image: 'https://images.unsplash.com/photo-1574653853027-5382a3d23a15?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Ogbono Soup', category: 'Soups & Stews', image: 'https://images.unsplash.com/photo-1608897013039-887f21d8c804?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Banga Soup', category: 'Soups & Stews', image: 'https://images.unsplash.com/photo-1542528180-0c79567c66de?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Amala & Ewedu', category: 'Swallow & Fufu', image: 'https://images.unsplash.com/photo-1588691516089-9b4e54817a03?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Eba & Okro Soup', category: 'Swallow & Fufu', image: 'https://images.unsplash.com/photo-1572449043416-55f4685c9bb7?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Asun (Spicy Goat Meat)', category: 'Beef & Meat', image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Beef Suya', category: 'Snacks & Sides', image: 'https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Chicken Suya', category: 'Snacks & Sides', image: 'https://images.unsplash.com/photo-1598514982205-f36b96d1e8d4?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Nkwobi', category: 'Beef & Meat', image: 'https://images.unsplash.com/photo-1615870216519-2f9fa575fa5c?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Isi Ewu', category: 'Beef & Meat', image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Catfish Pepper Soup', category: 'Soups & Stews', image: 'https://images.unsplash.com/photo-1512489816562-b91c01e6ef84?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Goat Meat Pepper Soup', category: 'Soups & Stews', image: 'https://images.unsplash.com/photo-1563379926898-05f452098679?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Moi Moi', category: 'Beans & Legumes', image: 'https://images.unsplash.com/photo-1598515322588-46741b6bfd41?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Akara (Bean Cakes)', category: 'Breakfast', image: 'https://images.unsplash.com/photo-1605333396914-2c67cf761a20?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Ewa Agoyin', category: 'Beans & Legumes', image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Fried Plantain (Dodo)', category: 'Plantain', image: 'https://images.unsplash.com/photo-1541525997-6a75f284d7be?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Roasted Plantain (Boli)', category: 'Plantain', image: 'https://images.unsplash.com/photo-1559181567-c1648b125320?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Yam Porridge (Asaro)', category: 'Yam Dishes', image: 'https://images.unsplash.com/photo-1580879207865-c3f2d25032b4?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Shawarma', category: 'Snacks & Sides', image: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Burger & Fries', category: 'Snacks & Sides', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Chapman Drink', category: 'Drinks & Beverages', image: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Zobo Drink', category: 'Drinks & Beverages', image: 'https://images.unsplash.com/photo-1589146141384-ad4b97148ff6?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Malt Drink', category: 'Drinks & Beverages', image: 'https://images.unsplash.com/photo-1596700858169-d7c71f3074f0?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Palm Wine', category: 'Drinks & Beverages', image: 'https://images.unsplash.com/photo-1575037614876-c3852d2427df?auto=format&fit=crop&q=80&w=600' },
-];
 
 function TabMenu({ menu, slug, onDone }: any) {
   const { fmt } = useMoney();

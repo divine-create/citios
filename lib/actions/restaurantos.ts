@@ -1617,7 +1617,7 @@ export async function recordWaste(input: {
 export async function getRestaurantShifts(organizationId: string) {
   try {
     await requireMembership(organizationId);
-    const shifts = await db.orm.public.RestaurantShift.where({ organizationId }).orderBy('createdAt', 'desc').all();
+    const shifts = await db.orm.public.RestaurantShift.where({ organizationId }).orderBy((s) => s.createdAt.desc()).all();
     return shifts;
   } catch(e) {
     return [];

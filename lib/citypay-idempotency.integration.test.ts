@@ -58,7 +58,7 @@ test('CityPay Merchant Payout Idempotency', async (t) => {
   await t.test('second successful payment for same merchant', async () => {
     const order2 = await db.orm.public.RetailOrder.create({
       organizationId: org.id,
-      customerDataId: customer.id,
+      customerDataId: null,
       cashierId: 'ONLINE',
       totalAmount: 3000,
       paymentMethod: 'CARD',
