@@ -98,7 +98,7 @@ export default function POSWorkspace({ initialMenu, initialTables, settings, act
   const handleOpenShift = async () => {
     if (!org) return;
     setShiftBusy(true);
-    const res = await openShift({ organizationId: org.id, locationId: org.locations?.[0]?.id || org.id, openingFloat: parseFloat(openingFloat) || 0 });
+    const res: any = await openShift({ organizationId: org.id, locationId: org.locations?.[0]?.id || org.id, openingFloat: parseFloat(openingFloat) || 0 });
     if (res.error) alert(res.error);
     else setActiveShift(res.shift);
     setShiftBusy(false);
@@ -107,7 +107,7 @@ export default function POSWorkspace({ initialMenu, initialTables, settings, act
   const handleCloseShift = async () => {
     if (!activeShift) return;
     setShiftBusy(true);
-    const res = await closeShift({ shiftId: activeShift.id, actualCash: parseFloat(actualCash) || 0 });
+    const res: any = await closeShift({ shiftId: activeShift.id, actualCash: parseFloat(actualCash) || 0 });
     if (res.error) {
       alert(res.error);
     } else {
