@@ -310,7 +310,7 @@ export async function createMenuItem(input: {
     });
 
     // First menu item completes the onboarding step.
-    /* settings removed */
+    const settings = await db.orm.public.RestaurantSettings.where({ organizationId: input.organizationId }).all().first();
     if (settings && !settings.hasMenu) {
       await db.orm.public.RestaurantSettings
         .where({ organizationId: input.organizationId })
@@ -532,7 +532,7 @@ export async function createTable(input: { organizationId: string; locationId?: 
       seats: input.seats > 0 ? input.seats : 4,
       status: 'available',
     });
-    /* settings removed */
+    const settings = await db.orm.public.RestaurantSettings.where({ organizationId: input.organizationId }).all().first();
     if (settings && !settings.hasTables) {
       await db.orm.public.RestaurantSettings
         .where({ organizationId: input.organizationId })
@@ -784,7 +784,7 @@ export async function createPosOrder(input: {
       const orgMenu = await db.orm.public.MenuItem.where({ organizationId: input.organizationId }).all();
     const itemById = new Map(orgMenu.map((m: any) => [m.id, m]));
 
-    /* settings removed */
+    const settings = await db.orm.public.RestaurantSettings.where({ organizationId: input.organizationId }).all().first();
       const lineItems: any[] = [];
       let subtotal = 0;
       for (const item of input.items) {
@@ -892,8 +892,7 @@ export async function createPosOrder(input: {
         subtotal += unitPrice * quantity;
       }
 
-    // Settings: tax, service charge, next call-out number.
-    /* settings removed */
+    // Settings: tax, service charge, next call-out number. (moved up)
     const taxRate = settings?.taxRate ? settings.taxRate / 100 : 0;
     const serviceChargeRate = settings?.serviceCharge ? settings.serviceCharge / 100 : 0;
     const taxAmount = subtotal * taxRate;
