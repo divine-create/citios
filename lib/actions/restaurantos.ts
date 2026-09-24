@@ -482,9 +482,9 @@ export async function createReservation(input: {
           WHERE id = ${input.tableId}
             AND "organizationId" = ${input.organizationId}
           FOR UPDATE
-        `.returnsRow({ id: 'string' }).build());
+        `.affectedCount().build());
 
-        if (tableLockCount === 0) {
+        if (tableLock === 0) {
           throw new Error('Table not found or could not be locked.');
         }
 
@@ -499,9 +499,9 @@ export async function createReservation(input: {
             AND "status" IN ('pending', 'confirmed', 'seated')
             AND "scheduledAt" > ${minTime}::timestamp
             AND "scheduledAt" < ${maxTime}::timestamp
-        `.returnsRow({ id: 'string' }).build());
+        `.affectedCount().build());
         
-        if (overlapsCount > 0) {
+        if (overlaps > 0) {
           throw new Error('Table is already reserved for this time block.');
         }
       }
@@ -750,7 +750,7 @@ export async function processRestaurantPayment(orderId: string, paymentMethod: '
   try {
     return await db.transaction(async (tx: any) => {
       const lockedCount = await tx.execute(db.raw.sql`SELECT id FROM "RestaurantOrder" WHERE id = ${orderId} FOR UPDATE`.affectedCount().build());
-      if (lockedCount === 0) throw new Error('Order not found.');
+      if (locked === 0) throw new Error('Order not found.');
       
       const order = await tx.orm.public.RestaurantOrder.where({ id: orderId }).all().first();
       await requireMembership(order.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER'], order.locationId);
@@ -778,7 +778,7 @@ export async function updateOrderStatus(
   try {
     const updatedOrder = await db.transaction(async (tx: any) => {
       const lockedCount = await tx.execute(db.raw.sql`SELECT id FROM "RestaurantOrder" WHERE id = ${orderId} FOR UPDATE`.affectedCount().build());
-      if (lockedCount === 0) throw new Error('Order not found.');
+      if (locked === 0) throw new Error('Order not found.');
 
       const order = await tx.orm.public.RestaurantOrder.where({ id: orderId }).all().first();
       if (!order) throw new Error('Order not found.');
@@ -793,7 +793,7 @@ export async function updateOrderStatus(
           const menuItem = await tx.orm.public.MenuItem.where({ id: line.menuItemId }).all().first();
           if (menuItem && menuItem.inventoryItemId) {
             const lockedInvCount = await tx.execute(db.raw.sql`SELECT id FROM "RestaurantInventoryItem" WHERE id = ${menuItem.inventoryItemId} FOR UPDATE`.affectedCount().build());
-            if (lockedInvCount > 0) {
+            if (lockedInv > 0) {
               const invItem = await tx.orm.public.RestaurantInventoryItem.where({ id: menuItem.inventoryItemId }).all().first();
               await tx.execute(db.raw.sql`
                 UPDATE "RestaurantInventoryItem"
@@ -822,7 +822,7 @@ export async function updateOrderStatus(
           const menuItem = await tx.orm.public.MenuItem.where({ id: line.menuItemId }).all().first();
           if (menuItem && menuItem.inventoryItemId) {
             const lockedInvCount = await tx.execute(db.raw.sql`SELECT id FROM "RestaurantInventoryItem" WHERE id = ${menuItem.inventoryItemId} FOR UPDATE`.affectedCount().build());
-            if (lockedInvCount > 0) {
+            if (lockedInv > 0) {
               const invItem = await tx.orm.public.RestaurantInventoryItem.where({ id: menuItem.inventoryItemId }).all().first();
               await tx.execute(db.raw.sql`
                 UPDATE "RestaurantInventoryItem"
@@ -1479,7 +1479,7 @@ export async function openShift(input: { organizationId: string; locationId: str
       // Check for existing open shift at this location
       const existingCount = await tx.execute(db.raw.sql`SELECT id FROM "RestaurantShift" WHERE "organizationId" = ${input.organizationId} AND "locationId" = ${input.locationId} AND "status" = 'OPEN' FOR UPDATE`.affectedCount().build());
       
-      if (existingCount > 0) {
+      if (existing > 0) {
         throw new Error('An active shift already exists for this location.');
       }
 
@@ -1501,7 +1501,7 @@ export async function closeShift(input: { shiftId: string; actualCash: number; n
   try {
     return await db.transaction(async (tx: any) => {
       const lockedCount = await tx.execute(db.raw.sql`SELECT id FROM "RestaurantShift" WHERE id = ${input.shiftId} FOR UPDATE`.affectedCount().build());
-      if (lockedCount === 0) throw new Error('Shift not found.');
+      if (locked === 0) throw new Error('Shift not found.');
       
       const shift = await tx.orm.public.RestaurantShift.where({ id: input.shiftId }).all().first();
       const { membership } = await requireMembership(shift.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER'], shift.locationId);
@@ -1567,7 +1567,7 @@ export async function recordWaste(input: {
 
     return await db.transaction(async (tx: any) => {
       const lockedCount = await tx.execute(db.raw.sql`SELECT id FROM "RestaurantInventoryItem" WHERE id = ${input.itemId} FOR UPDATE`.affectedCount().build());
-      if (lockedCount === 0) throw new Error('Item not found.');
+      if (locked === 0) throw new Error('Item not found.');
 
       const item = await tx.orm.public.RestaurantInventoryItem.where({ id: input.itemId }).all().first();
       if (item.locationId && item.locationId !== input.locationId) {
