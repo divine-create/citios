@@ -1481,13 +1481,18 @@ export async function refundRestaurantOrder(orderId: string, input: { reason?: s
 // SHIFTS & CASH MANAGEMENT (PHASE B)
 // ---------------------------------------------------------------------------
 
-export async function openShift(input: { organizationId: string; locationId: string; openingFloat: number }) {
+export async function openShift(input: { organizationId: string; locationId?: string; openingFloat: number }) {
   try {
     const { membership } = await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER'], input.locationId);
     
     return await db.transaction(async (tx: any) => {
       // Check for existing open shift at this location
-      const existingCount = await tx.execute(db.raw.sql`SELECT id FROM "restaurantShift" WHERE "organizationId" = ${input.organizationId} AND "locationId" = ${input.locationId} AND "status" = 'OPEN' FOR UPDATE`.affectedCount().build());
+      let existingCount = 0;
+        if (input.locationId) {
+          existingCount = await tx.execute(db.raw.sql`SELECT id FROM "restaurantShift" WHERE "organizationId" = ${input.organizationId} AND "locationId" = ${input.locationId} AND "status" = 'OPEN' FOR UPDATE`.affectedCount().build());
+        } else {
+          existingCount = await tx.execute(db.raw.sql`SELECT id FROM "restaurantShift" WHERE "organizationId" = ${input.organizationId} AND "locationId" IS NULL AND "status" = 'OPEN' FOR UPDATE`.affectedCount().build());
+        }
       
       if (existingCount > 0) {
         throw new Error('An active shift already exists for this location.');
