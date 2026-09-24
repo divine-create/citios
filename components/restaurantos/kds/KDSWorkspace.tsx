@@ -10,6 +10,8 @@ type Item = {
   id: string;
   qty: number;
   itemName: string;
+  variantName?: string | null;
+  modifiers?: any[];
   notes: string | null;
   kitchenStation: string;
   kitchenStatus: 'PENDING' | 'PREPARING' | 'READY' | 'COMPLETED' | 'CANCELLED';

@@ -180,7 +180,13 @@ export async function updateRestaurantOSSettings(
     hasMenu: boolean;
     hasTables: boolean;
     logoAssetId: string | null;
-  }>,
+    enableVariants: boolean;
+    enableModifiers: boolean;
+    enableRecipes: boolean;
+    enableInventory: boolean;
+    enableFoodCosting: boolean;
+    enableProduction: boolean;
+  }>
 ) {
   try {
     await requireMembership(organizationId, ['OWNER', 'MANAGER']);
@@ -776,16 +782,75 @@ export async function createPosOrder(input: {
         }
 
         const modifiers: any[] = [];
-        if (item.modifierOptionIds && item.modifierOptionIds.length > 0) {
-          const opts = await db.orm.public.ModifierOption.where({ id: { in: item.modifierOptionIds } }).all();
-          for (const optId of item.modifierOptionIds) {
-            const opt = opts.find((o: any) => o.id === optId);
-            if (opt) {
-              unitPrice += opt.priceDelta;
-              modifiers.push({ optionId: opt.id, name: opt.name, priceDelta: opt.priceDelta });
+        let unitCost = 0;
+
+        // Base Item Unit Cost
+        const recipe = await db.orm.public.RestaurantRecipe.where({ menuItemId: menuItem.id }).all().first();
+        if (recipe) {
+          const ingredients = await db.orm.public.RestaurantRecipeIngredient.where({ recipeId: recipe.id }).all();
+          for (const ing of ingredients) {
+            const inv = await db.orm.public.RestaurantInventoryItem.where({ id: ing.itemId }).all().first();
+            if (inv) {
+              unitCost += (inv.cost * ing.quantity) / (recipe.yieldQuantity || 1);
             }
           }
+        } else if (menuItem.inventoryItemId) {
+          const inv = await db.orm.public.RestaurantInventoryItem.where({ id: menuItem.inventoryItemId }).all().first();
+          if (inv) unitCost += inv.cost;
         }
+
+        
+        // Validate Modifiers
+        if (settings?.enableModifiers) {
+          const links = await db.orm.public.MenuItemModifierGroup.where({ menuItemId: menuItem.id }).all();
+          const requiredGroups = new Set();
+          for (const link of links) {
+            const group = await db.orm.public.ModifierGroup.where({ id: link.modifierGroupId }).all().first();
+            if (group && group.isActive && group.isRequired) {
+              requiredGroups.add(group.id);
+            }
+          }
+
+          const selectedOptionCounts = new Map<string, number>();
+
+          if (item.modifierOptionIds && item.modifierOptionIds.length > 0) {
+            const opts = await db.orm.public.ModifierOption.where({ id: { in: item.modifierOptionIds } }).all();
+            
+            for (const optId of item.modifierOptionIds) {
+              const opt = opts.find((o: any) => o.id === optId);
+              if (!opt || !opt.isActive) return { error: `Invalid or inactive modifier selected.` };
+              
+              const groupId = opt.modifierGroupId;
+              selectedOptionCounts.set(groupId, (selectedOptionCounts.get(groupId) || 0) + 1);
+
+              unitPrice += opt.priceDelta;
+              modifiers.push({ optionId: opt.id, name: opt.name, priceDelta: opt.priceDelta });
+
+              if (opt.inventoryItemId && opt.inventoryQuantity) {
+                const inv = await db.orm.public.RestaurantInventoryItem.where({ id: opt.inventoryItemId }).all().first();
+                if (inv) unitCost += inv.cost * opt.inventoryQuantity;
+              }
+            }
+          }
+
+          // Check min/max and required
+          for (const link of links) {
+            const group = await db.orm.public.ModifierGroup.where({ id: link.modifierGroupId }).all().first();
+            if (!group || !group.isActive) continue;
+
+            const count = selectedOptionCounts.get(group.id) || 0;
+            if (group.isRequired && count === 0) return { error: `Missing required modifier selection for ${group.name}.` };
+            if (group.minSelections > 0 && count < group.minSelections) return { error: `Please select at least ${group.minSelections} for ${group.name}.` };
+            if (group.maxSelections && group.maxSelections > 0 && count > group.maxSelections) return { error: `Too many selections for ${group.name} (max ${group.maxSelections}).` };
+            
+            requiredGroups.delete(group.id);
+          }
+
+          if (requiredGroups.size > 0) return { error: `Missing required modifier selection.` };
+        } else if (item.modifierOptionIds && item.modifierOptionIds.length > 0) {
+           return { error: 'Modifiers are not enabled for this restaurant.' };
+        }
+
 
         lineItems.push({ 
           menuItemId: menuItem.id, 
@@ -841,14 +906,28 @@ export async function createPosOrder(input: {
         servedByMembershipId: membership.id,
       });
       for (const line of lineItems) {
-        await tx.orm.public.OrderItem.create({
-          orderId: created.id,
-          menuItemId: line.menuItemId,
-          quantity: line.quantity,
-          unitPrice: line.unitPrice,
-          notes: line.notes,
-        });
-      }
+          const oi = await tx.orm.public.OrderItem.create({
+            orderId: created.id,
+            menuItemId: line.menuItemId,
+            menuItemName: line.menuItemName,
+            variantId: line.variantId,
+            variantName: line.variantName,
+            quantity: line.quantity,
+            unitPrice: line.unitPrice,
+            unitCost: line.unitCost || 0,
+            notes: line.notes,
+          });
+          if (line.modifiers && line.modifiers.length > 0) {
+            for (const mod of line.modifiers) {
+              await tx.orm.public.OrderItemModifier.create({
+                orderItemId: oi.id,
+                modifierOptionId: mod.optionId,
+                name: mod.name,
+                priceDelta: mod.priceDelta
+              });
+            }
+          }
+        }
       // Advance the call-out counter (same transaction as the order).
       await tx.orm.public.RestaurantSettings
           .where({ organizationId: input.organizationId })
