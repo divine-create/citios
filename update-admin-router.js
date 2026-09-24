@@ -1,4 +1,6 @@
-import { requireOrgAccess, resolveTenantOrg } from '@/lib/rbac';
+﻿import fs from 'fs';
+
+let code = `import { requireOrgAccess, resolveTenantOrg } from '@/lib/rbac';
 import { redirect } from 'next/navigation';
 
 export default async function RestaurantOSPage({ searchParams }: { searchParams: Promise<{ org?: string }> }) {
@@ -11,5 +13,7 @@ export default async function RestaurantOSPage({ searchParams }: { searchParams:
     await requireOrgAccess(orgId);
   }
 
-  redirect(`/workspaces/restaurantos/${orgId}/management/overview`);
-}
+  redirect(\`/workspaces/restaurantos/\${orgId}/management/overview\`);
+}`;
+
+fs.writeFileSync('app/(admin)/restaurantos/page.tsx', code);

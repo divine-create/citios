@@ -64,10 +64,20 @@ export default async function WorkspacePage({ params }: { params: Promise<{ os: 
 
   if (!userRole) return null;
 
+  if (os === 'restaurantos') {
+    const { redirect } = await import('next/navigation');
+    redirect(`/workspaces/restaurantos/${slug}/management/overview`);
+  }
+
   if (os === 'shopos') {
     return (
       <ShopDashboard
         organizationId={slug}
+        userRole={userRole}
+        currentUserId={currentUserId}
+      />
+    );
+  }
         userRole={userRole}
         currentUserId={currentUserId}
       />
@@ -78,7 +88,7 @@ export default async function WorkspacePage({ params }: { params: Promise<{ os: 
     <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6 w-full h-full bg-[#F4F7FC]">
       <div className="max-w-7xl mx-auto">
         {os === 'serviceos' && <ServiceOSWorkspace slug={slug} />}
-        {os === 'restaurantos' && <RestaurantOSWorkspace slug={slug} />}
+        
         {os === 'schoolos' && <SchoolOSWorkspace slug={slug} />}
       </div>
     </div>
