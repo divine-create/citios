@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { Button, Input } from '@/components/ui';
 import { createProductionRun } from '@/lib/actions/restaurantos';
 
-export function ProductionRunLogger({ recipes, organizationId, onComplete, onCancel }: any) {
+export function ProductionRunLogger({ recipes, organizationId, onDone }: any) {
   const [recipeId, setRecipeId] = useState(recipes[0]?.id || '');
   const [batchMultiplier, setBatchMultiplier] = useState(1);
   const [actualYield, setActualYield] = useState(recipes[0]?.yieldQuantity || 1);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const selectedRecipe = recipes.find((r: any) => r.id === recipeId);
 
@@ -20,10 +21,10 @@ export function ProductionRunLogger({ recipes, organizationId, onComplete, onCan
         batchMultiplier,
         actualYield,
       });
-      onComplete();
+      if (onDone) onDone();
     } catch (e: any) {
       console.error(e);
-      alert(e.message);
+      setError(e.message);
     } finally {
       setLoading(false);
     }
@@ -33,7 +34,7 @@ export function ProductionRunLogger({ recipes, organizationId, onComplete, onCan
     return (
       <div className="bg-white rounded-2xl border border-slate-100 p-6 text-center">
         <p className="text-slate-500 mb-4">You need to create Recipes before logging a Production Run.</p>
-        <Button onClick={onCancel}>Close</Button>
+        <Button onClick={onDone}>Close</Button>
       </div>
     );
   }
@@ -42,7 +43,7 @@ export function ProductionRunLogger({ recipes, organizationId, onComplete, onCan
     <div className="bg-white rounded-2xl border border-slate-100 p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-xl font-black">Log Production Run</h3>
-        <button onClick={onCancel} className="text-slate-400 hover:text-slate-600">✕</button>
+        <button onClick={onDone} className="text-slate-400 hover:text-slate-600">✕</button>
       </div>
 
       <div className="space-y-2">
@@ -94,7 +95,7 @@ export function ProductionRunLogger({ recipes, organizationId, onComplete, onCan
       )}
 
       <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
-        <Button variant="ghost" onClick={onCancel}>Cancel</Button>
+        <Button variant="ghost" onClick={onDone}>Cancel</Button>
         <Button onClick={handleSave} isLoading={loading}>Log Run & Deduct Stock</Button>
       </div>
     </div>

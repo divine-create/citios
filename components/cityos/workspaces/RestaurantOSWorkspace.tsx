@@ -1,12 +1,15 @@
 "use client";
 
+import { TabTeam } from "@/components/cityos/workspaces/TabTeam";
+import { ReceiveStockForm } from "@/components/restaurantos/forms/ReceiveStockForm";
+import { FinishedGoodForm } from "@/components/restaurantos/forms/FinishedGoodForm";
 import { RawMaterialIntake } from "@/components/restaurantos/forms/RawMaterialIntake";
 import { RecipeBuilder } from "@/components/restaurantos/forms/RecipeBuilder";
 import { ProductionRunLogger } from "@/components/restaurantos/forms/ProductionRunLogger";
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
-  UtensilsCrossed, LayoutDashboard, BarChart3, ShoppingCart, Receipt, Flame,
+  Users, UtensilsCrossed, LayoutDashboard, BarChart3, ShoppingCart, Receipt, Flame,
   Package, Truck, ClipboardList, Trash2, Grid3x3, CalendarDays, DollarSign,
   SettingsIcon, Menu, Bell, Search, X, Plus, Minus, ArrowRightLeft, Loader2, Printer, CheckCircle2, Circle, TrendingUp, Upload, UploadCloud, ImageIcon
 } from "lucide-react";
@@ -29,6 +32,7 @@ import {
   
 } from "@/lib/actions/restaurantos";
 import { uploadAsset } from "@/lib/actions/microsite";
+import { getCustomers } from "@/lib/actions/retail";
 import { getSuppliers, createSupplier, deleteSupplier, getPurchaseOrders, createPurchaseOrder, updatePurchaseOrderStatus } from "@/lib/actions/procurement";
 
 function fileToBase64(file: File): Promise<{ base64: string; mimeType: string }> {
@@ -72,6 +76,7 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
   const [orders, setOrders] = useState<any[]>([]);
   const [inventory, setInventory] = useState<any[]>([]);
   const [expenses, setExpenses] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
   const [finance, setFinance] = useState<any | null>(null);
   const [recipes, setRecipes] = useState<any[]>([]);
   const [productionRuns, setProductionRuns] = useState<any[]>([]);
@@ -122,12 +127,11 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
     },
     {
       label: "Inventory & Supply",
-      items: [
-        { label: "Raw Materials", icon: Package },
-        { label: "Finished Goods", icon: Package },
-        { label: "Suppliers", icon: Truck },
-        { label: "Purchase Orders", icon: ClipboardList },
-      ],
+        items: [
+          { label: "Raw Materials", icon: Package },
+          { label: "Finished Goods", icon: Package },
+          { label: "Receive Stock", icon: Truck },
+        ],
     },
     {
       label: "Floor",
@@ -145,9 +149,10 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
     },
     {
       label: "Settings",
-      items: [
-        { label: "Settings", icon: SettingsIcon },
-      ],
+        items: [
+          { label: "Settings", icon: SettingsIcon },
+          { label: "Team", icon: Users },
+        ],
     },
   ].filter(g => !g.hidden);
 
@@ -167,6 +172,7 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
       setRecipes(d.recipes ?? []);
       setProductionRuns(d.productionRuns ?? []);
       setExpenses(d.expenses ?? []);
+        setCustomers(d.customers ?? []);
     }
     setFinance(f);
   };
@@ -297,7 +303,7 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
           <div className={activeMenu === "POS Terminal" ? "h-full" : "p-4 sm:p-6 lg:p-8"}>
             {activeMenu === "Dashboard" && <TabDashboard finance={finance} orders={orders} tickets={tickets} setActiveMenu={setActiveMenu} showTables={showTables} tables={tables} org={org} />}
             {activeMenu === "Reports" && <TabReports finance={finance} orders={orders} expenses={expenses} />}
-            {activeMenu === "POS Terminal" && <TabPOS menu={menu} tables={tables} showTables={showTables} slug={slug} onDone={loadData} org={org} settings={settings} />}
+            {activeMenu === "POS Terminal" && <TabPOS menu={menu} tables={tables} showTables={showTables} slug={slug} onDone={loadData} org={org} settings={settings} customers={customers} />}
             {activeMenu === "Orders" && <TabOrders orders={orders} />}
             {activeMenu === "Kitchen Board" && <TabKitchen tickets={tickets} slug={slug} onDone={loadData} org={org} />}
             {activeMenu === "Menu Items" && <TabMenu menu={menu} slug={slug} onDone={loadData} />}
@@ -464,12 +470,13 @@ function TabReports({ finance, orders, expenses }: any) {
   );
 }
 
-function TabPOS({ menu, tables, showTables, slug, onDone, org, settings }: any) {
+function TabPOS({ menu, tables, showTables, slug, onDone, org, settings, customers }: any) {
   const { fmt } = useMoney();
   const [posLines, setPosLines] = useState<any[]>([]);
   const [posType, setPosType] = useState<"DINE_IN" | "TAKEOUT">("TAKEOUT");
   const [posTableId, setPosTableId] = useState("");
   const [posPayment, setPosPayment] = useState<"WALLET" | "CASH" | "POS" | "">("CASH");
+    const [posCustomerId, setPosCustomerId] = useState("");
   const [posBusy, setPosBusy] = useState(false);
   const [posMsg, setPosMsg] = useState<string | null>(null);
   const [receiptModalData, setReceiptModalData] = useState<PrintableReceiptData | null>(null);
@@ -501,6 +508,7 @@ function TabPOS({ menu, tables, showTables, slug, onDone, org, settings }: any) 
       type: posType,
       tableId: posType === "DINE_IN" && posTableId ? posTableId : undefined,
       paymentMethod: posPayment ? (posPayment as any) : undefined,
+        customerDataId: posCustomerId || undefined,
     });
     setPosBusy(false);
     if ("error" in res && res.error) { setPosMsg(res.error); return; }
@@ -1320,8 +1328,8 @@ function TabRawMaterials({ inventory, slug, onDone }: any) {
                     {rawMaterials.map((r:any) => (
                       <tr key={r.id}>
                         <td className="px-4 py-3 font-bold text-slate-800">{r.name}</td>
-                        <td className="px-4 py-3 text-slate-500">{r.unitOfMeasure}</td>
-                        <td className="px-4 py-3 font-medium">{r.currentStock}</td>
+                        <td className="px-4 py-3 text-slate-500">{r.unit}</td>
+                        <td className="px-4 py-3 font-medium">{r.quantity}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1335,11 +1343,63 @@ function TabRawMaterials({ inventory, slug, onDone }: any) {
   }
 
 function TabFinishedGoods({ inventory, slug, onDone }: any) {
-  const finishedGoods = inventory.filter((i:any) => i.type === 'FINISHED_GOOD');
+    const finishedGoods = inventory.filter((i:any) => i.type === 'FINISHED_GOOD');
+    const [showForm, setShowForm] = useState(false);
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Finished Goods (WIP)" />
+        {showForm ? (
+          <div>
+            <button onClick={() => setShowForm(false)} className="mb-4 text-xs font-bold text-slate-500 hover:text-slate-800">&larr; Back to Finished Goods</button>
+            <FinishedGoodForm organizationId={slug} onDone={() => { setShowForm(false); onDone(); }} />
+          </div>
+        ) : (
+          finishedGoods.length === 0 ? (
+            <EmptyState icon={Package} title="Finished Goods" message="Track pre-cooked batches and ready-to-sell items." action={<button onClick={() => setShowForm(true)} className="px-4 py-2 bg-orange-600 text-white font-bold rounded-lg mt-4 hover:bg-orange-700">Add Item</button>} className="bg-white rounded-2xl border border-slate-100 py-24" />
+          ) : (
+            <div className="space-y-4">
+              <div className="flex justify-end">
+                <button onClick={() => setShowForm(true)} className="px-4 py-2 bg-orange-600 text-white font-bold rounded-lg hover:bg-orange-700">Add Finished Good</button>
+              </div>
+              <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                    <tr><th className="px-4 py-3">Item</th><th className="px-4 py-3">UOM</th><th className="px-4 py-3">Stock Level</th><th className="px-4 py-3">Cost Price</th></tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {finishedGoods.map((r:any) => (
+                      <tr key={r.id}>
+                        <td className="px-4 py-3 font-bold text-slate-800">{r.name}</td>
+                        <td className="px-4 py-3 text-slate-500">{r.unit}</td>
+                        <td className="px-4 py-3 font-medium">{r.quantity}</td>
+                        <td className="px-4 py-3 text-slate-500">{r.cost || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )
+        )}
+      </div>
+    );
+  }
+
+function TabReceiveStock({ inventory, slug, onDone }: any) {
+  const [showForm, setShowForm] = useState(false);
+  const rawMaterials = inventory.filter((i:any) => i.type === 'RAW_MATERIAL');
+
   return (
     <div className="space-y-6">
-      <PageHeader title="Finished Goods (WIP)" />
-      <EmptyState icon={Package} title="Finished Goods" message="Track pre-cooked batches and ready-to-sell items." action={<button className="px-4 py-2 bg-orange-600 text-white font-bold rounded-lg mt-4 hover:bg-orange-700">Add Item</button>} className="bg-white rounded-2xl border border-slate-100 py-24" />
+      <PageHeader title="Receive Stock (Purchases)" />
+      {showForm ? (
+        <div>
+          <button onClick={() => setShowForm(false)} className="mb-4 text-xs font-bold text-slate-500 hover:text-slate-800">&larr; Back to Stock Receipts</button>
+          <ReceiveStockForm organizationId={slug} rawMaterials={rawMaterials} onDone={() => { setShowForm(false); onDone(); }} />
+        </div>
+      ) : (
+        <EmptyState icon={Package} title="No Stock Received" message="Log incoming raw materials to increase your inventory stock." action={<button onClick={() => setShowForm(true)} className="px-4 py-2 bg-orange-600 text-white font-bold rounded-lg mt-4 hover:bg-orange-700">Receive Stock</button>} className="bg-white rounded-2xl border border-slate-100 py-24" />
+      )}
     </div>
   );
 }
