@@ -412,6 +412,10 @@
       "model": "RestaurantSettings",
       "namespace": "public"
     },
+    "restaurantShift": {
+      "model": "RestaurantShift",
+      "namespace": "public"
+    },
     "restaurantStockMovement": {
       "model": "RestaurantStockMovement",
       "namespace": "public"
@@ -7218,6 +7222,21 @@
                   "namespace": "public"
                 }
               },
+              "restaurantShifts": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "locationId"
+                  ]
+                },
+                "to": {
+                  "model": "RestaurantShift",
+                  "namespace": "public"
+                }
+              },
               "restaurantTables": {
                 "cardinality": "1:N",
                 "on": {
@@ -10241,6 +10260,13 @@
                   "kind": "scalar"
                 }
               },
+              "unitCost": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
               "unitPrice": {
                 "nullable": false,
                 "type": {
@@ -10297,6 +10323,9 @@
                 },
                 "quantity": {
                   "column": "quantity"
+                },
+                "unitCost": {
+                  "column": "unitCost"
                 },
                 "unitPrice": {
                   "column": "unitPrice"
@@ -10841,6 +10870,21 @@
                 },
                 "to": {
                   "model": "RestaurantSettings",
+                  "namespace": "public"
+                }
+              },
+              "restaurantShifts": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "organizationId"
+                  ]
+                },
+                "to": {
+                  "model": "RestaurantShift",
                   "namespace": "public"
                 }
               },
@@ -15150,6 +15194,13 @@
                   "kind": "scalar"
                 }
               },
+              "inventoryConsumed": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
               "locationId": {
                 "nullable": true,
                 "type": {
@@ -15185,7 +15236,27 @@
                   "kind": "scalar"
                 }
               },
+              "paymentStatus": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "PaymentStatus",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
               "servedByMembershipId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "shiftId": {
                 "nullable": true,
                 "type": {
                   "codecId": "pg/text@1",
@@ -15338,6 +15409,21 @@
                   "namespace": "public"
                 }
               },
+              "shift": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "shiftId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "RestaurantShift",
+                  "namespace": "public"
+                }
+              },
               "table": {
                 "cardinality": "N:1",
                 "on": {
@@ -15365,6 +15451,9 @@
                 "id": {
                   "column": "id"
                 },
+                "inventoryConsumed": {
+                  "column": "inventoryConsumed"
+                },
                 "locationId": {
                   "column": "locationId"
                 },
@@ -15380,8 +15469,14 @@
                 "paymentMethod": {
                   "column": "paymentMethod"
                 },
+                "paymentStatus": {
+                  "column": "paymentStatus"
+                },
                 "servedByMembershipId": {
                   "column": "servedByMembershipId"
+                },
+                "shiftId": {
+                  "column": "shiftId"
                 },
                 "status": {
                   "column": "status"
@@ -16179,6 +16274,213 @@
               },
               "namespaceId": "public",
               "table": "restaurantSettings"
+            }
+          },
+          "RestaurantShift": {
+            "fields": {
+              "actualCash": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
+              "closedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "closedById": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "expectedCash": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "locationId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "notes": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "openedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "openedById": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "openingFloat": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
+              "organizationId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "status": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "variance": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "location": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "locationId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Location",
+                  "namespace": "public"
+                }
+              },
+              "orders": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "shiftId"
+                  ]
+                },
+                "to": {
+                  "model": "RestaurantOrder",
+                  "namespace": "public"
+                }
+              },
+              "organization": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "organizationId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Organization",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "actualCash": {
+                  "column": "actualCash"
+                },
+                "closedAt": {
+                  "column": "closedAt"
+                },
+                "closedById": {
+                  "column": "closedById"
+                },
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "expectedCash": {
+                  "column": "expectedCash"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "locationId": {
+                  "column": "locationId"
+                },
+                "notes": {
+                  "column": "notes"
+                },
+                "openedAt": {
+                  "column": "openedAt"
+                },
+                "openedById": {
+                  "column": "openedById"
+                },
+                "openingFloat": {
+                  "column": "openingFloat"
+                },
+                "organizationId": {
+                  "column": "organizationId"
+                },
+                "status": {
+                  "column": "status"
+                },
+                "updatedAt": {
+                  "column": "updatedAt"
+                },
+                "variance": {
+                  "column": "variance"
+                }
+              },
+              "namespaceId": "public",
+              "table": "restaurantShift"
             }
           },
           "RestaurantStockMovement": {
@@ -32566,6 +32868,15 @@
                   "nativeType": "int4",
                   "nullable": false
                 },
+                "unitCost": {
+                  "codecId": "pg/float8@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "float8",
+                  "nullable": false
+                },
                 "unitPrice": {
                   "codecId": "pg/float8@1",
                   "nativeType": "float8",
@@ -35629,6 +35940,11 @@
             "restaurantOrder": {
               "checks": [
                 {
+                  "expression": "\"paymentStatus\" IN ('INITIATED', 'PENDING', 'AUTHORIZED', 'COMPLETED', 'FAILED', 'CANCELLED', 'REFUNDED', 'PARTIALLY_REFUNDED', 'MANUAL_REFUND_NEEDED')",
+                  "name": "restaurantOrder_paymentStatus_check_8f21801a",
+                  "prefix": "restaurantOrder_paymentStatus_check"
+                },
+                {
                   "expression": "\"status\" IN ('PENDING', 'PREPARING', 'READY', 'DELIVERING', 'COMPLETED', 'CANCELLED')",
                   "name": "restaurantOrder_status_check_fa723382",
                   "prefix": "restaurantOrder_status_check"
@@ -35659,6 +35975,15 @@
                   "nativeType": "text",
                   "nullable": false
                 },
+                "inventoryConsumed": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": false
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
                 "locationId": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -35684,7 +36009,27 @@
                   "nativeType": "text",
                   "nullable": true
                 },
+                "paymentStatus": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "PENDING"
+                  },
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "PaymentStatus",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
                 "servedByMembershipId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "shiftId": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": true
@@ -35762,6 +36107,22 @@
                   }
                 },
                 {
+                  "source": {
+                    "columns": [
+                      "shiftId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "restaurantOrder"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "restaurantShift"
+                  }
+                },
+                {
                   "onDelete": "cascade",
                   "source": {
                     "columns": [
@@ -35834,6 +36195,14 @@
                   ],
                   "name": "restaurantOrder_organizationId_idx_2e17ef41",
                   "prefix": "restaurantOrder_organizationId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "shiftId"
+                  ],
+                  "name": "restaurantOrder_shiftId_idx_fee8a58d",
+                  "prefix": "restaurantOrder_shiftId_idx",
                   "unique": false
                 },
                 {
@@ -36532,6 +36901,164 @@
                   ]
                 }
               ]
+            },
+            "restaurantShift": {
+              "columns": {
+                "actualCash": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
+                  "nullable": true
+                },
+                "closedAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": true
+                },
+                "closedById": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "createdAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "expectedCash": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
+                  "nullable": true
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "locationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "notes": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "openedAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "openedById": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "openingFloat": {
+                  "codecId": "pg/float8@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "float8",
+                  "nullable": false
+                },
+                "organizationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "status": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "OPEN"
+                  },
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "updatedAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "variance": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
+                  "nullable": true
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "organizationId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "restaurantShift"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "organization"
+                  }
+                },
+                {
+                  "source": {
+                    "columns": [
+                      "locationId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "restaurantShift"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "location"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "locationId"
+                  ],
+                  "name": "restaurantShift_locationId_idx_7aae3038",
+                  "prefix": "restaurantShift_locationId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "organizationId"
+                  ],
+                  "name": "restaurantShift_organizationId_idx_2e17ef41",
+                  "prefix": "restaurantShift_organizationId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
             },
             "restaurantStockMovement": {
               "checks": [
@@ -44247,10 +44774,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "92635ef7ce8617c6474f0ba0434f442afbe9a14fdf9d7184a6af1e5d42eb36fa"
+    "storageHash": "f634bc7bb403001cdcb573d4265339bf6235afda3e5023f2a949fdba1611df2b"
   },
   "execution": {
-    "executionHash": "d0f0ce95c03a01af345fa7cdd1eb64e7f0645db2c19a130e2f6af0a7bc9feccf",
+    "executionHash": "f180232303a8bdd983773ae90753193b5b30143485161986b54c86af11d4f953",
     "mutations": {
       "defaults": [
         {
@@ -45373,6 +45900,17 @@
             "column": "id",
             "namespace": "public",
             "table": "restaurantSettings"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "restaurantShift"
           }
         },
         {

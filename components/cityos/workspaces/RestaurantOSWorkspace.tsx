@@ -31,6 +31,7 @@ import {
   getFinancialSummary, addExpense, getExpenses,
   
 } from "@/lib/actions/restaurantos";
+import { recordWaste, openShift, closeShift } from "@/lib/actions/restaurantos";
 import { uploadAsset } from "@/lib/actions/microsite";
 import { getCustomers } from "@/lib/actions/retail";
 import { getSuppliers, createSupplier, deleteSupplier, getPurchaseOrders, createPurchaseOrder, updatePurchaseOrderStatus } from "@/lib/actions/procurement";
@@ -54,6 +55,7 @@ import {
   Modal, SectionCard, EmptyState, Kbd
 } from "@/components/restaurant/RestaurantUI";
 import { type PrintableReceiptData } from "@/lib/receiptUtils";
+import { Button, Badge, Input } from "@/components/ui";
 
 export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
   const { fmt } = useMoney();
@@ -80,6 +82,8 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
   const [finance, setFinance] = useState<any | null>(null);
   const [recipes, setRecipes] = useState<any[]>([]);
   const [productionRuns, setProductionRuns] = useState<any[]>([]);
+    const [shifts, setShifts] = useState<any[]>([]);
+    const [activeShift, setActiveShift] = useState<any | null>(null);
 
   const style = settings?.serviceStyle ?? "HYBRID";
   const showTables = style === "FULL_SERVICE" || style === "HYBRID";
@@ -108,6 +112,7 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
       items: [
         { label: "POS Terminal", icon: ShoppingCart },
         { label: "Orders", icon: Receipt },
+          { label: "Shift History", icon: CalendarDays },
         { label: "Kitchen Board", icon: Flame, hidden: !showKitchen },
       ],
     },
@@ -171,6 +176,8 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
       setInventory(d.inventory ?? []);
       setRecipes(d.recipes ?? []);
       setProductionRuns(d.productionRuns ?? []);
+        setShifts(d.shifts ?? []);
+        setActiveShift(d.activeShift ?? null);
       setExpenses(d.expenses ?? []);
         setCustomers(d.customers ?? []);
     }
@@ -303,7 +310,8 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
           <div className={activeMenu === "POS Terminal" ? "h-full" : "p-4 sm:p-6 lg:p-8"}>
             {activeMenu === "Dashboard" && <TabDashboard finance={finance} orders={orders} tickets={tickets} setActiveMenu={setActiveMenu} showTables={showTables} tables={tables} org={org} />}
             {activeMenu === "Reports" && <TabReports finance={finance} orders={orders} expenses={expenses} />}
-            {activeMenu === "POS Terminal" && <TabPOS menu={menu} tables={tables} showTables={showTables} slug={slug} onDone={loadData} org={org} settings={settings} customers={customers} />}
+            {activeMenu === "POS Terminal" && <TabPOS menu={menu} tables={tables} showTables={showTables} slug={slug} onDone={loadData} org={org} settings={settings} customers={customers} activeShift={activeShift} />}
+              {activeMenu === "Shift History" && <TabShiftHistory shifts={shifts} activeShift={activeShift} />}
             {activeMenu === "Orders" && <TabOrders orders={orders} />}
             {activeMenu === "Kitchen Board" && <TabKitchen tickets={tickets} slug={slug} onDone={loadData} org={org} />}
             {activeMenu === "Menu Items" && <TabMenu menu={menu} slug={slug} onDone={loadData} />}
@@ -1036,11 +1044,74 @@ function POsView({ purchaseOrders, setPurchaseOrders, suppliers, inventory }: an
   );
 }
 
+
+
+
 function WasteView({ inventory }: any) {
+  const [itemId, setItemId] = useState("");
+  const [quantity, setQuantity] = useState("");
+  const [reason, setReason] = useState("SPOILAGE");
+  const [notes, setNotes] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const handleSubmit = async (e: any) => {
+    e.preventDefault();
+    setLoading(true); setError(""); setSuccess("");
+    const item = inventory.find((i:any) => i.id === itemId);
+    if (!item) { setLoading(false); return; }
+    
+    const res = await recordWaste({
+      organizationId: item.organizationId,
+      locationId: item.locationId || "",
+      itemId: item.id,
+      quantity: Number(quantity),
+      reason,
+      notes
+    });
+
+    if (res.error) setError(res.error);
+    else {
+      setSuccess("Waste recorded.");
+      setItemId(""); setQuantity(""); setNotes("");
+    }
+    setLoading(false);
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <SectionCard>
-        <EmptyState icon={Trash2} title="Waste Log" message="Waste is recorded via the Stock tab's [-] Waste action. Detailed historical logs coming soon." />
+        <h3 className="font-bold text-slate-800 mb-4">Record Waste</h3>
+        {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+        {success && <p className="text-emerald-500 text-sm mb-4">{success}</p>}
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end">
+          <div className="md:col-span-2">
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Item</label>
+            <select className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" value={itemId} onChange={e => setItemId(e.target.value)} required>
+              <option value="">Select Item...</option>
+              {inventory.map((i: any) => (
+                <option key={i.id} value={i.id}>{i.name} (Stock: {i.quantity} {i.unitOfMeasurement})</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Quantity</label>
+            <input type="number" step="0.01" className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" value={quantity} onChange={e => setQuantity(e.target.value)} required />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Reason</label>
+            <select className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" value={reason} onChange={e => setReason(e.target.value)}>
+              <option value="SPOILAGE">Spoilage</option>
+              <option value="DAMAGE">Damage</option>
+              <option value="EXPIRY">Expiry</option>
+              <option value="PREPARATION_WASTE">Prep Waste</option>
+              <option value="OVERPRODUCTION">Overproduction</option>
+              <option value="OTHER">Other</option>
+            </select>
+          </div>
+          <Button type="submit" disabled={loading} isLoading={loading} className="w-full h-10">Record</Button>
+        </form>
       </SectionCard>
     </div>
   );
@@ -1400,6 +1471,78 @@ function TabReceiveStock({ inventory, slug, onDone }: any) {
       ) : (
         <EmptyState icon={Package} title="No Stock Received" message="Log incoming raw materials to increase your inventory stock." action={<button onClick={() => setShowForm(true)} className="px-4 py-2 bg-orange-600 text-white font-bold rounded-lg mt-4 hover:bg-orange-700">Receive Stock</button>} className="bg-white rounded-2xl border border-slate-100 py-24" />
       )}
+    </div>
+  );
+}
+
+
+// ---------------------------------------------------------------------------
+// SHIFT UI
+// ---------------------------------------------------------------------------
+
+function TabShiftHistory({ shifts, activeShift }: any) {
+  const { fmt } = useMoney();
+  return (
+    <div className="space-y-6">
+      <PageHeader title="Shift History" />
+      
+      {activeShift && (
+        <SectionCard>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-bold text-slate-800">Active Shift</h3>
+            <Badge variant="success">OPEN</Badge>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div><p className="text-slate-500">Opened At</p><p className="font-bold">{new Date(activeShift.openedAt).toLocaleString()}</p></div>
+            <div><p className="text-slate-500">Opened By</p><p className="font-bold">{activeShift.openedById.slice(0, 8)}</p></div>
+            <div><p className="text-slate-500">Opening Float</p><p className="font-bold">{fmt(activeShift.openingFloat)}</p></div>
+          </div>
+        </SectionCard>
+      )}
+      
+      <SectionCard>
+        <h3 className="font-bold text-slate-800 mb-4">Past Shifts</h3>
+        {shifts.length === 0 ? (
+          <EmptyState title="No shifts" message="No shift history found." />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[800px]">
+              <thead>
+                <tr className="border-b border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  <th className="py-3 px-4">Opened</th>
+                  <th className="py-3 px-4">Closed</th>
+                  <th className="py-3 px-4">Float</th>
+                  <th className="py-3 px-4">Expected</th>
+                  <th className="py-3 px-4">Actual</th>
+                  <th className="py-3 px-4">Variance</th>
+                  <th className="py-3 px-4">Status</th>
+                </tr>
+              </thead>
+              <tbody className="text-sm font-medium">
+                {shifts.map((s: any) => (
+                  <tr key={s.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                    <td className="py-3 px-4 text-slate-700">{new Date(s.openedAt).toLocaleString()}</td>
+                    <td className="py-3 px-4 text-slate-700">{s.closedAt ? new Date(s.closedAt).toLocaleString() : '-'}</td>
+                    <td className="py-3 px-4 text-slate-700">{fmt(s.openingFloat)}</td>
+                    <td className="py-3 px-4 text-slate-700">{s.expectedCash !== null ? fmt(s.expectedCash) : '-'}</td>
+                    <td className="py-3 px-4 text-slate-700">{s.actualCash !== null ? fmt(s.actualCash) : '-'}</td>
+                    <td className="py-3 px-4">
+                      {s.variance !== null ? (
+                        <span className={s.variance < 0 ? "text-red-500" : (s.variance > 0 ? "text-emerald-500" : "text-slate-500")}>
+                          {fmt(s.variance)}
+                        </span>
+                      ) : '-'}
+                    </td>
+                    <td className="py-3 px-4">
+                      <Badge variant={s.status === 'OPEN' ? 'success' : 'default'}>{s.status}</Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </SectionCard>
     </div>
   );
 }

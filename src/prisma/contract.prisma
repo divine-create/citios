@@ -297,6 +297,7 @@ model Location {
   // RestaurantOS Location Relations
   restaurantMenuItems MenuItem[]      @relation("LocationMenuItems")
   restaurantOrders    RestaurantOrder[] @relation("LocationRestaurantOrders")
+    restaurantShifts    RestaurantShift[] @relation("LocationRestaurantShifts")
   restaurantTables    RestaurantTable[] @relation("LocationRestaurantTables")
   restaurantReservations RestaurantReservation[] @relation("LocationRestaurantReservations")
   restaurantInventory RestaurantInventoryItem[] @relation("LocationRestaurantInventory")
@@ -437,6 +438,7 @@ model Organization {
   nightAudits NightAuditReport[]   @relation("HotelNightAudits")
   menuItems   MenuItem[]           @relation("RestaurantMenuItems")
   restaurantOrders RestaurantOrder[] @relation("RestaurantOrders")
+    restaurantShifts RestaurantShift[] @relation("OrgRestaurantShifts")
   events      Event[]              @relation("OrganizationEvents")
   rentalResources RentalResource[] @relation("OrganizationRentalResources")
   appointments Appointment[]       @relation("ClinicAppointments")
@@ -1952,9 +1954,13 @@ model RestaurantOrder {
   orderNumber    Int?         // sequential, called out at the counter
   tableId        String?
   table          RestaurantTable? @relation("TableOrders", fields: [tableId], references: [id])
+    paymentStatus  PaymentStatus @default(PENDING)
   paymentMethod  String?      // WALLET | CASH | POS
   paidAt         DateTime?
+    inventoryConsumed Boolean   @default(false)
   servedByMembershipId String?
+    shiftId        String?
+    shift          RestaurantShift? @relation("ShiftRestaurantOrders", fields: [shiftId], references: [id])
   
   organizationId String
   customerDataId     String?      // The user who placed the order
@@ -1976,6 +1982,7 @@ model OrderItem {
   id             String          @id @default(uuid())
   quantity       Int             @default(1)
   unitPrice      Float
+    unitCost       Float           @default(0) // Historical cost at time of sale
   notes          String?         // Special instructions
   
   orderId        String
@@ -2177,7 +2184,36 @@ model RestaurantProductionRun {
 }
 
 
-model RestaurantExpense {
+
+  model RestaurantShift {
+    id             String       @id @default(uuid())
+    organizationId String
+    locationId     String?
+    
+    organization   Organization @relation("OrgRestaurantShifts", fields: [organizationId], references: [id], onDelete: Cascade)
+    location       Location?    @relation("LocationRestaurantShifts", fields: [locationId], references: [id])
+    
+    openedById     String       // Membership ID of cashier
+    closedById     String?      // Membership ID
+    
+    openedAt       DateTime     @default(now())
+    closedAt       DateTime?
+    
+    openingFloat   Float        @default(0)
+    expectedCash   Float?
+    actualCash     Float?
+    variance       Float?
+    notes          String?
+    
+    status         String       @default("OPEN") // OPEN, CLOSED
+    
+    orders         RestaurantOrder[] @relation("ShiftRestaurantOrders")
+    
+    createdAt      DateTime     @default(now())
+    updatedAt      DateTime     @default(now())
+  }
+
+  model RestaurantExpense {
   id             String       @id @default(uuid())
   organizationId String
   organization   Organization @relation("OrgRestaurantExpenses", fields: [organizationId], references: [id], onDelete: Cascade)
