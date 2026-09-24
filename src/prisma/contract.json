@@ -392,6 +392,18 @@
       "model": "RestaurantOrder",
       "namespace": "public"
     },
+    "restaurantProductionRun": {
+      "model": "RestaurantProductionRun",
+      "namespace": "public"
+    },
+    "restaurantRecipe": {
+      "model": "RestaurantRecipe",
+      "namespace": "public"
+    },
+    "restaurantRecipeIngredient": {
+      "model": "RestaurantRecipeIngredient",
+      "namespace": "public"
+    },
     "restaurantReservation": {
       "model": "RestaurantReservation",
       "namespace": "public"
@@ -721,6 +733,23 @@
               }
             ]
           },
+          "InventoryItemType": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "RAW_MATERIAL",
+                "value": "RAW_MATERIAL"
+              },
+              {
+                "name": "SUB_ASSEMBLY",
+                "value": "SUB_ASSEMBLY"
+              },
+              {
+                "name": "FINISHED_GOOD",
+                "value": "FINISHED_GOOD"
+              }
+            ]
+          },
           "MaintenanceTicketPriority": {
             "codecId": "pg/text@1",
             "members": [
@@ -871,6 +900,22 @@
               {
                 "name": "KITCHEN",
                 "value": "KITCHEN"
+              },
+              {
+                "name": "CHEF",
+                "value": "CHEF"
+              },
+              {
+                "name": "HOST",
+                "value": "HOST"
+              },
+              {
+                "name": "STOREKEEPER",
+                "value": "STOREKEEPER"
+              },
+              {
+                "name": "DELIVERY_DRIVER",
+                "value": "DELIVERY_DRIVER"
               }
             ]
           },
@@ -1159,6 +1204,35 @@
               {
                 "name": "CANCELLED",
                 "value": "CANCELLED"
+              }
+            ]
+          },
+          "StockMovementType": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "MANUAL_ADJUSTMENT",
+                "value": "MANUAL_ADJUSTMENT"
+              },
+              {
+                "name": "PURCHASE_RECEIPT",
+                "value": "PURCHASE_RECEIPT"
+              },
+              {
+                "name": "PRODUCTION_YIELD",
+                "value": "PRODUCTION_YIELD"
+              },
+              {
+                "name": "PRODUCTION_USAGE",
+                "value": "PRODUCTION_USAGE"
+              },
+              {
+                "name": "POS_SALE",
+                "value": "POS_SALE"
+              },
+              {
+                "name": "WASTE",
+                "value": "WASTE"
               }
             ]
           },
@@ -7114,6 +7188,21 @@
                   "namespace": "public"
                 }
               },
+              "restaurantProductionRuns": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "locationId"
+                  ]
+                },
+                "to": {
+                  "model": "RestaurantProductionRun",
+                  "namespace": "public"
+                }
+              },
               "restaurantReservations": {
                 "cardinality": "1:N",
                 "on": {
@@ -7833,6 +7922,13 @@
                   "kind": "scalar"
                 }
               },
+              "inventoryItemId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "isAvailable": {
                 "nullable": false,
                 "type": {
@@ -7897,6 +7993,21 @@
                 },
                 "to": {
                   "model": "MenuItemComboItem",
+                  "namespace": "public"
+                }
+              },
+              "inventoryItem": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "inventoryItemId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "RestaurantInventoryItem",
                   "namespace": "public"
                 }
               },
@@ -7974,6 +8085,9 @@
                 },
                 "imageUrl": {
                   "column": "imageUrl"
+                },
+                "inventoryItemId": {
+                  "column": "inventoryItemId"
                 },
                 "isAvailable": {
                   "column": "isAvailable"
@@ -10657,6 +10771,36 @@
                 },
                 "to": {
                   "model": "RestaurantOrder",
+                  "namespace": "public"
+                }
+              },
+              "restaurantProductionRuns": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "organizationId"
+                  ]
+                },
+                "to": {
+                  "model": "RestaurantProductionRun",
+                  "namespace": "public"
+                }
+              },
+              "restaurantRecipes": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "organizationId"
+                  ]
+                },
+                "to": {
+                  "model": "RestaurantRecipe",
                   "namespace": "public"
                 }
               },
@@ -14748,7 +14892,7 @@
           "RestaurantInventoryItem": {
             "fields": {
               "cost": {
-                "nullable": true,
+                "nullable": false,
                 "type": {
                   "codecId": "pg/float8@1",
                   "kind": "scalar"
@@ -14803,6 +14947,26 @@
                   "kind": "scalar"
                 }
               },
+              "recipeId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "type": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "InventoryItemType",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
               "unit": {
                 "nullable": false,
                 "type": {
@@ -14831,6 +14995,21 @@
                 },
                 "to": {
                   "model": "Location",
+                  "namespace": "public"
+                }
+              },
+              "menuItems": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "inventoryItemId"
+                  ]
+                },
+                "to": {
+                  "model": "MenuItem",
                   "namespace": "public"
                 }
               },
@@ -14863,6 +15042,36 @@
                   "model": "Organization",
                   "namespace": "public"
                 }
+              },
+              "recipe": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "recipeId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "RestaurantRecipe",
+                  "namespace": "public"
+                }
+              },
+              "recipeIngredients": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "itemId"
+                  ]
+                },
+                "to": {
+                  "model": "RestaurantRecipeIngredient",
+                  "namespace": "public"
+                }
               }
             },
             "storage": {
@@ -14890,6 +15099,12 @@
                 },
                 "quantity": {
                   "column": "quantity"
+                },
+                "recipeId": {
+                  "column": "recipeId"
+                },
+                "type": {
+                  "column": "type"
                 },
                 "unit": {
                   "column": "unit"
@@ -15179,6 +15394,392 @@
               },
               "namespaceId": "public",
               "table": "restaurantOrder"
+            }
+          },
+          "RestaurantProductionRun": {
+            "fields": {
+              "actualYield": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
+              "batchMultiplier": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "expectedYield": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "locationId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "organizationId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "recipeId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "recordedById": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "status": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "totalCost": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "location": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "locationId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Location",
+                  "namespace": "public"
+                }
+              },
+              "organization": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "organizationId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Organization",
+                  "namespace": "public"
+                }
+              },
+              "recipe": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "recipeId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "RestaurantRecipe",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "actualYield": {
+                  "column": "actualYield"
+                },
+                "batchMultiplier": {
+                  "column": "batchMultiplier"
+                },
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "expectedYield": {
+                  "column": "expectedYield"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "locationId": {
+                  "column": "locationId"
+                },
+                "organizationId": {
+                  "column": "organizationId"
+                },
+                "recipeId": {
+                  "column": "recipeId"
+                },
+                "recordedById": {
+                  "column": "recordedById"
+                },
+                "status": {
+                  "column": "status"
+                },
+                "totalCost": {
+                  "column": "totalCost"
+                }
+              },
+              "namespaceId": "public",
+              "table": "restaurantProductionRun"
+            }
+          },
+          "RestaurantRecipe": {
+            "fields": {
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "instructions": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "name": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "organizationId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "yieldQuantity": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "ingredients": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "recipeId"
+                  ]
+                },
+                "to": {
+                  "model": "RestaurantRecipeIngredient",
+                  "namespace": "public"
+                }
+              },
+              "organization": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "organizationId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Organization",
+                  "namespace": "public"
+                }
+              },
+              "producedItem": {
+                "cardinality": "1:1",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "recipeId"
+                  ]
+                },
+                "to": {
+                  "model": "RestaurantInventoryItem",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "instructions": {
+                  "column": "instructions"
+                },
+                "name": {
+                  "column": "name"
+                },
+                "organizationId": {
+                  "column": "organizationId"
+                },
+                "updatedAt": {
+                  "column": "updatedAt"
+                },
+                "yieldQuantity": {
+                  "column": "yieldQuantity"
+                }
+              },
+              "namespaceId": "public",
+              "table": "restaurantRecipe"
+            }
+          },
+          "RestaurantRecipeIngredient": {
+            "fields": {
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "itemId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "quantity": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
+              "recipeId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "item": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "itemId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "RestaurantInventoryItem",
+                  "namespace": "public"
+                }
+              },
+              "recipe": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "recipeId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "RestaurantRecipe",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "itemId": {
+                  "column": "itemId"
+                },
+                "quantity": {
+                  "column": "quantity"
+                },
+                "recipeId": {
+                  "column": "recipeId"
+                }
+              },
+              "namespaceId": "public",
+              "table": "restaurantRecipeIngredient"
             }
           },
           "RestaurantReservation": {
@@ -15620,6 +16221,26 @@
                   "codecId": "pg/text@1",
                   "kind": "scalar"
                 }
+              },
+              "type": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "StockMovementType",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "unitCost": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
               }
             },
             "relations": {
@@ -15676,6 +16297,12 @@
                 },
                 "recordedById": {
                   "column": "recordedById"
+                },
+                "type": {
+                  "column": "type"
+                },
+                "unitCost": {
+                  "column": "unitCost"
                 }
               },
               "namespaceId": "public",
@@ -30022,6 +30649,11 @@
                   "nativeType": "text",
                   "nullable": true
                 },
+                "inventoryItemId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "isAvailable": {
                   "codecId": "pg/bool@1",
                   "default": {
@@ -30085,9 +30717,33 @@
                     "namespaceId": "public",
                     "tableName": "location"
                   }
+                },
+                {
+                  "source": {
+                    "columns": [
+                      "inventoryItemId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "menuItem"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "restaurantInventoryItem"
+                  }
                 }
               ],
               "indexes": [
+                {
+                  "columns": [
+                    "inventoryItemId"
+                  ],
+                  "name": "menuItem_inventoryItemId_idx_ddbb7ccf",
+                  "prefix": "menuItem_inventoryItemId_idx",
+                  "unique": false
+                },
                 {
                   "columns": [
                     "locationId"
@@ -34766,11 +35422,22 @@
               "uniques": []
             },
             "restaurantInventoryItem": {
+              "checks": [
+                {
+                  "expression": "\"type\" IN ('RAW_MATERIAL', 'SUB_ASSEMBLY', 'FINISHED_GOOD')",
+                  "name": "restaurantInventoryItem_type_check_d846b1ae",
+                  "prefix": "restaurantInventoryItem_type_check"
+                }
+              ],
               "columns": {
                 "cost": {
                   "codecId": "pg/float8@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
                   "nativeType": "float8",
-                  "nullable": true
+                  "nullable": false
                 },
                 "createdAt": {
                   "codecId": "pg/timestamptz-temporal@1",
@@ -34818,6 +35485,26 @@
                   },
                   "nativeType": "float8",
                   "nullable": false
+                },
+                "recipeId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "type": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "RAW_MATERIAL"
+                  },
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "InventoryItemType",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
                 },
                 "unit": {
                   "codecId": "pg/text@1",
@@ -34871,6 +35558,22 @@
                     "namespaceId": "public",
                     "tableName": "location"
                   }
+                },
+                {
+                  "source": {
+                    "columns": [
+                      "recipeId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "restaurantInventoryItem"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "restaurantRecipe"
+                  }
                 }
               ],
               "indexes": [
@@ -34896,7 +35599,13 @@
                   "id"
                 ]
               },
-              "uniques": []
+              "uniques": [
+                {
+                  "columns": [
+                    "recipeId"
+                  ]
+                }
+              ]
             },
             "restaurantOrder": {
               "checks": [
@@ -35114,6 +35823,335 @@
                   ],
                   "name": "restaurantOrder_tableId_idx_f5c39e5c",
                   "prefix": "restaurantOrder_tableId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
+            },
+            "restaurantProductionRun": {
+              "columns": {
+                "actualYield": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
+                  "nullable": false
+                },
+                "batchMultiplier": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
+                  "nullable": false
+                },
+                "createdAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "expectedYield": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "locationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "organizationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "recipeId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "recordedById": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "status": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "COMPLETED"
+                  },
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "totalCost": {
+                  "codecId": "pg/float8@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "float8",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "organizationId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "restaurantProductionRun"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "organization"
+                  }
+                },
+                {
+                  "source": {
+                    "columns": [
+                      "locationId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "restaurantProductionRun"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "location"
+                  }
+                },
+                {
+                  "source": {
+                    "columns": [
+                      "recipeId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "restaurantProductionRun"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "restaurantRecipe"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "locationId"
+                  ],
+                  "name": "restaurantProductionRun_locationId_idx_7aae3038",
+                  "prefix": "restaurantProductionRun_locationId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "organizationId"
+                  ],
+                  "name": "restaurantProductionRun_organizationId_idx_2e17ef41",
+                  "prefix": "restaurantProductionRun_organizationId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "recipeId"
+                  ],
+                  "name": "restaurantProductionRun_recipeId_idx_037d8d32",
+                  "prefix": "restaurantProductionRun_recipeId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
+            },
+            "restaurantRecipe": {
+              "columns": {
+                "createdAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "instructions": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "name": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "organizationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "updatedAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "yieldQuantity": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "organizationId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "restaurantRecipe"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "organization"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "organizationId"
+                  ],
+                  "name": "restaurantRecipe_organizationId_idx_2e17ef41",
+                  "prefix": "restaurantRecipe_organizationId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
+            },
+            "restaurantRecipeIngredient": {
+              "columns": {
+                "createdAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "itemId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "quantity": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
+                  "nullable": false
+                },
+                "recipeId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "recipeId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "restaurantRecipeIngredient"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "restaurantRecipe"
+                  }
+                },
+                {
+                  "onDelete": "restrict",
+                  "source": {
+                    "columns": [
+                      "itemId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "restaurantRecipeIngredient"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "restaurantInventoryItem"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "itemId"
+                  ],
+                  "name": "restaurantRecipeIngredient_itemId_idx_41357140",
+                  "prefix": "restaurantRecipeIngredient_itemId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "recipeId"
+                  ],
+                  "name": "restaurantRecipeIngredient_recipeId_idx_037d8d32",
+                  "prefix": "restaurantRecipeIngredient_recipeId_idx",
                   "unique": false
                 }
               ],
@@ -35477,6 +36515,13 @@
               ]
             },
             "restaurantStockMovement": {
+              "checks": [
+                {
+                  "expression": "\"type\" IN ('MANUAL_ADJUSTMENT', 'PURCHASE_RECEIPT', 'PRODUCTION_YIELD', 'PRODUCTION_USAGE', 'POS_SALE', 'WASTE')",
+                  "name": "restaurantStockMovement_type_check_e8958272",
+                  "prefix": "restaurantStockMovement_type_check"
+                }
+              ],
               "columns": {
                 "createdAt": {
                   "codecId": "pg/timestamptz-temporal@1",
@@ -35516,6 +36561,30 @@
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": true
+                },
+                "type": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "MANUAL_ADJUSTMENT"
+                  },
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "StockMovementType",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "unitCost": {
+                  "codecId": "pg/float8@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "float8",
+                  "nullable": false
                 }
               },
               "foreignKeys": [
@@ -42922,6 +43991,14 @@
                 "MAINTENANCE"
               ]
             },
+            "InventoryItemType": {
+              "kind": "valueSet",
+              "values": [
+                "RAW_MATERIAL",
+                "SUB_ASSEMBLY",
+                "FINISHED_GOOD"
+              ]
+            },
             "MaintenanceTicketPriority": {
               "kind": "valueSet",
               "values": [
@@ -42976,7 +44053,11 @@
                 "CASHIER",
                 "INVENTORY_STAFF",
                 "WAITER",
-                "KITCHEN"
+                "KITCHEN",
+                "CHEF",
+                "HOST",
+                "STOREKEEPER",
+                "DELIVERY_DRIVER"
               ]
             },
             "OrgType": {
@@ -43096,6 +44177,17 @@
                 "CANCELLED"
               ]
             },
+            "StockMovementType": {
+              "kind": "valueSet",
+              "values": [
+                "MANUAL_ADJUSTMENT",
+                "PURCHASE_RECEIPT",
+                "PRODUCTION_YIELD",
+                "PRODUCTION_USAGE",
+                "POS_SALE",
+                "WASTE"
+              ]
+            },
             "SyllabusTopicStatus": {
               "kind": "valueSet",
               "values": [
@@ -43136,10 +44228,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "0968625fce39750630a94ce373d0e8154c4a77be9d755a85d92fc5ef11a0cad8"
+    "storageHash": "50321e5cd87df4b04dd6f58f3e69066b47542c46db329da525822cdae73ec34a"
   },
   "execution": {
-    "executionHash": "8ffe4abe549eee59d8014cc6ba66d7aa7f1e6b28e81a55c99e3f0de420286778",
+    "executionHash": "d0f0ce95c03a01af345fa7cdd1eb64e7f0645db2c19a130e2f6af0a7bc9feccf",
     "mutations": {
       "defaults": [
         {
@@ -44207,6 +45299,39 @@
             "column": "id",
             "namespace": "public",
             "table": "restaurantOrder"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "restaurantProductionRun"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "restaurantRecipe"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "restaurantRecipeIngredient"
           }
         },
         {

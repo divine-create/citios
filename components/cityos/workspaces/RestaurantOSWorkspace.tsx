@@ -70,6 +70,8 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
   const [inventory, setInventory] = useState<any[]>([]);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [finance, setFinance] = useState<any | null>(null);
+  const [recipes, setRecipes] = useState<any[]>([]);
+  const [productionRuns, setProductionRuns] = useState<any[]>([]);
 
   const style = settings?.serviceStyle ?? "HYBRID";
   const showTables = style === "FULL_SERVICE" || style === "HYBRID";
@@ -102,18 +104,26 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
       ],
     },
     {
-      label: "Menu",
+      label: "Menu & Pricing",
       items: [
         { label: "Menu Items", icon: UtensilsCrossed },
       ],
     },
     {
-      label: "Inventory",
+      label: "Production & Recipes",
       items: [
-        { label: "Stock & Ingredients", icon: Package },
+        { label: "Recipes", icon: ClipboardList },
+        { label: "Kitchen Prep & Batches", icon: Flame },
+        { label: "Waste Log", icon: Trash2 },
+      ],
+    },
+    {
+      label: "Inventory & Supply",
+      items: [
+        { label: "Raw Materials", icon: Package },
+        { label: "Finished Goods", icon: Package },
         { label: "Suppliers", icon: Truck },
         { label: "Purchase Orders", icon: ClipboardList },
-        { label: "Waste Log", icon: Trash2 },
       ],
     },
     {
@@ -151,6 +161,8 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
       setKitchenTickets(d.tickets ?? []);
       setOrders(d.orders ?? []);
       setInventory(d.inventory ?? []);
+      setRecipes(d.recipes ?? []);
+      setProductionRuns(d.productionRuns ?? []);
       setExpenses(d.expenses ?? []);
     }
     setFinance(f);
@@ -286,10 +298,13 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
             {activeMenu === "Orders" && <TabOrders orders={orders} />}
             {activeMenu === "Kitchen Board" && <TabKitchen tickets={tickets} slug={slug} onDone={loadData} org={org} />}
             {activeMenu === "Menu Items" && <TabMenu menu={menu} slug={slug} onDone={loadData} />}
-            {activeMenu === "Stock & Ingredients" && <TabInventory inventory={inventory} slug={slug} onDone={loadData} subTab="Stock" />}
-            {activeMenu === "Suppliers" && <TabInventory inventory={inventory} slug={slug} onDone={loadData} subTab="Suppliers" />}
-            {activeMenu === "Purchase Orders" && <TabInventory inventory={inventory} slug={slug} onDone={loadData} subTab="POs" />}
-            {activeMenu === "Waste Log" && <TabInventory inventory={inventory} slug={slug} onDone={loadData} subTab="Waste" />}
+            {activeMenu === "Recipes" && <TabRecipes recipes={recipes} inventory={inventory} slug={slug} onDone={loadData} org={org} />}
+            {activeMenu === "Kitchen Prep & Batches" && <TabProductionRuns runs={productionRuns} recipes={recipes} slug={slug} onDone={loadData} org={org} />}
+            {activeMenu === "Raw Materials" && <TabRawMaterials inventory={inventory} slug={slug} onDone={loadData} org={org} />}
+            {activeMenu === "Finished Goods" && <TabFinishedGoods inventory={inventory} slug={slug} onDone={loadData} org={org} />}
+            {activeMenu === "Suppliers" && <EmptyState icon={Package} title="Suppliers" message="Manage your vendors and catalogs." className="mt-20" />}
+            {activeMenu === "Purchase Orders" && <EmptyState icon={Package} title="Purchase Orders" message="Draft and send POs to CityMart suppliers." className="mt-20" />}
+            {activeMenu === "Waste Log" && <EmptyState icon={Package} title="Waste Log" message="Track spoiled or dropped ingredients." className="mt-20" />}
             {activeMenu === "Tables" && showTables && <TabTables tables={tables} slug={slug} onDone={loadData} />}
             {activeMenu === "Reservations" && showTables && <TabReservations reservations={reservations} tables={tables} slug={slug} onDone={loadData} />}
             {activeMenu === "Finance" && <TabFinance finance={finance} expenses={expenses} slug={slug} onDone={loadData} />}
@@ -1172,3 +1187,45 @@ function TabSettings({ settings, slug, onDone }: any) {
 
 
 
+
+// ---------------------------------------------------------------------
+// GRAND INVENTORY & PRODUCTION TABS
+// ---------------------------------------------------------------------
+
+function TabRecipes({ recipes, slug, onDone }: any) {
+  return (
+    <div className="space-y-6">
+      <PageHeader title="Recipes & BOM" />
+      <EmptyState icon={Package} title="No recipes configured" message="Build recipes to track precise ingredient depletion." action={<button className="px-4 py-2 bg-orange-600 text-white font-bold rounded-lg mt-4 hover:bg-orange-700">Create Recipe</button>} className="bg-white rounded-2xl border border-slate-100 py-24" />
+    </div>
+  );
+}
+
+function TabProductionRuns({ runs, slug, onDone }: any) {
+  return (
+    <div className="space-y-6">
+      <PageHeader title="Kitchen Prep & Batches" />
+      <EmptyState icon={Package} title="No active production runs" message="Log batch cooking to deduct raw materials and add to finished goods." action={<button className="px-4 py-2 bg-orange-600 text-white font-bold rounded-lg mt-4 hover:bg-orange-700">Start Production Run</button>} className="bg-white rounded-2xl border border-slate-100 py-24" />
+    </div>
+  );
+}
+
+function TabRawMaterials({ inventory, slug, onDone }: any) {
+  const rawMaterials = inventory.filter((i:any) => i.type === 'RAW_MATERIAL');
+  return (
+    <div className="space-y-6">
+      <PageHeader title="Raw Materials" />
+      <EmptyState icon={Package} title="Raw Materials" message="Track bulk ingredients purchased from suppliers." action={<button className="px-4 py-2 bg-orange-600 text-white font-bold rounded-lg mt-4 hover:bg-orange-700">Add Item</button>} className="bg-white rounded-2xl border border-slate-100 py-24" />
+    </div>
+  );
+}
+
+function TabFinishedGoods({ inventory, slug, onDone }: any) {
+  const finishedGoods = inventory.filter((i:any) => i.type === 'FINISHED_GOOD');
+  return (
+    <div className="space-y-6">
+      <PageHeader title="Finished Goods (WIP)" />
+      <EmptyState icon={Package} title="Finished Goods" message="Track pre-cooked batches and ready-to-sell items." action={<button className="px-4 py-2 bg-orange-600 text-white font-bold rounded-lg mt-4 hover:bg-orange-700">Add Item</button>} className="bg-white rounded-2xl border border-slate-100 py-24" />
+    </div>
+  );
+}

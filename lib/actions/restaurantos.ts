@@ -790,6 +790,181 @@ export async function updateOrderStatus(
 // Inventory (all styles)
 // ---------------------------------------------------------------------------
 
+
+// ---------------------------------------------------------------------------
+// Grand Inventory & Production Engine Actions
+// ---------------------------------------------------------------------------
+
+export async function getRecipes(organizationId: string) {
+  try {
+    await requireMembership(organizationId);
+    const recipes = await db.orm.public.RestaurantRecipe.where({ organizationId }).all();
+    const ingredients = await db.orm.public.RestaurantRecipeIngredient.all(); // Naive fetch for now
+    
+    // Attach ingredients
+    const result = recipes.map((r: any) => ({
+      ...r,
+      ingredients: ingredients.filter((i: any) => i.recipeId === r.id)
+    }));
+    return JSON.parse(JSON.stringify(result));
+  } catch (error) {
+    console.error('Error fetching recipes:', error);
+    return [];
+  }
+}
+
+
+export async function createRecipe(input: {
+  organizationId: string;
+  name: string;
+  yieldQuantity: number;
+  instructions?: string;
+  producedItemId?: string;
+  ingredients: { itemId: string; quantity: number }[];
+}) {
+  try {
+    await requireMembership(input.organizationId);
+    
+    // In Prisma Next, we do this in a transaction
+    return await db.transaction(async (tx: any) => {
+      // 1. Create the recipe
+      const recipe = await tx.orm.public.RestaurantRecipe.create({
+        organizationId: input.organizationId,
+        name: input.name,
+        yieldQuantity: input.yieldQuantity,
+        instructions: input.instructions ?? null,
+      });
+
+      // 2. Add ingredients
+      for (const ing of input.ingredients) {
+        await tx.orm.public.RestaurantRecipeIngredient.create({
+          recipeId: recipe.id,
+          itemId: ing.itemId,
+          quantity: ing.quantity,
+        });
+      }
+      
+      // 3. Link produced item if given
+      if (input.producedItemId) {
+        // Find item and link it
+        // Wait, the relation is on RestaurantInventoryItem: recipeId
+        await tx.orm.public.RestaurantInventoryItem.update({
+          id: input.producedItemId,
+          recipeId: recipe.id
+        });
+      }
+
+      return JSON.parse(JSON.stringify(recipe));
+    });
+  } catch (error) {
+    console.error('Error creating recipe:', error);
+    throw new Error('Failed to create recipe');
+  }
+}
+
+export async function createProductionRun(input: {
+  organizationId: string;
+  recipeId: string;
+  batchMultiplier: number;
+  actualYield: number;
+}) {
+  try {
+    const mem = await requireMembership(input.organizationId);
+    
+    return await db.transaction(async (tx: any) => {
+      // 1. Fetch recipe and ingredients
+      const recipe = await tx.orm.public.RestaurantRecipe.findUnique({
+        where: { id: input.recipeId }
+      });
+      if (!recipe) throw new Error("Recipe not found");
+      
+      const ingredients = await tx.orm.public.RestaurantRecipeIngredient.where({ recipeId: recipe.id }).all();
+      
+      // Calculate total cost of materials used
+      let totalCost = 0;
+
+      // 2. Deduct Raw Materials
+      for (const ing of ingredients) {
+        const requiredQty = ing.quantity * input.batchMultiplier;
+        const item = await tx.orm.public.RestaurantInventoryItem.findUnique({
+          where: { id: ing.itemId }
+        });
+        if (!item || item.quantity < requiredQty) {
+          throw new Error(`Not enough stock for ${item?.name || 'an ingredient'}. Need ${requiredQty}.`);
+        }
+        
+        const costOfIng = item.cost * requiredQty;
+        totalCost += costOfIng;
+
+        await tx.orm.public.RestaurantInventoryItem.update({
+          id: item.id,
+          quantity: item.quantity - requiredQty,
+        });
+        
+        await tx.orm.public.RestaurantStockMovement.create({
+          organizationId: input.organizationId,
+          itemId: item.id,
+          type: 'PRODUCTION_USAGE',
+          quantity: -requiredQty,
+          note: `Production Run for Recipe: ${recipe.name}`
+        });
+      }
+      
+      // 3. Create the Production Run Record
+      const run = await tx.orm.public.RestaurantProductionRun.create({
+        organizationId: input.organizationId,
+        recipeId: input.recipeId,
+        batchMultiplier: input.batchMultiplier,
+        expectedYield: recipe.yieldQuantity * input.batchMultiplier,
+        actualYield: input.actualYield,
+        totalCost: totalCost,
+        recordedById: mem.membership.id
+      });
+      
+      // 4. Increase Finished Goods Stock
+      const producedItem = await tx.orm.public.RestaurantInventoryItem.findFirst({
+        where: { recipeId: recipe.id }
+      });
+      
+      if (producedItem) {
+        // Distribute total cost to the produced item
+        const unitCost = totalCost / input.actualYield;
+        
+        await tx.orm.public.RestaurantInventoryItem.update({
+          id: producedItem.id,
+          quantity: producedItem.quantity + input.actualYield,
+          // Moving average cost or just override? We will just override for MVP
+          cost: unitCost,
+        });
+        
+        await tx.orm.public.RestaurantStockMovement.create({
+          organizationId: input.organizationId,
+          itemId: producedItem.id,
+          type: 'PRODUCTION_YIELD',
+          quantity: input.actualYield,
+          note: `Production Run: ${run.id}`
+        });
+      }
+
+      return JSON.parse(JSON.stringify(run));
+    });
+  } catch (error: any) {
+    console.error('Error creating production run:', error);
+    throw new Error(error.message || 'Failed to create production run');
+  }
+}
+
+export async function getProductionRuns(organizationId: string) {
+  try {
+    await requireMembership(organizationId);
+    const runs = await db.orm.public.RestaurantProductionRun.where({ organizationId }).all();
+    return JSON.parse(JSON.stringify(runs));
+  } catch (error) {
+    console.error('Error fetching production runs:', error);
+    return [];
+  }
+}
+
 export async function getInventoryItems(organizationId: string, locationId?: string) {
   try {
     await requireMembership(organizationId);
@@ -812,6 +987,7 @@ export async function createInventoryItem(input: {
   quantity: number;
   lowStockLevel: number;
   cost?: number;
+  type?: 'RAW_MATERIAL' | 'SUB_ASSEMBLY' | 'FINISHED_GOOD';
 }) {
   try {
     await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'INVENTORY_STAFF']);
@@ -823,7 +999,8 @@ export async function createInventoryItem(input: {
       unit: input.unit.trim() || 'unit',
       quantity: input.quantity >= 0 ? input.quantity : 0,
       lowStockLevel: input.lowStockLevel >= 0 ? input.lowStockLevel : 5,
-      cost: input.cost ?? null,
+      cost: input.cost ?? 0,
+      type: input.type ?? 'RAW_MATERIAL',
     });
     if (item.quantity > 0) {
       await db.orm.public.RestaurantStockMovement.create({
@@ -1108,7 +1285,7 @@ export async function registerRestaurantOS(input: {
 export async function getRestaurantOSData(organizationId: string) {
   try {
     await requireMembership(organizationId);
-    const [settings, menu, tables, reservations, tickets, orders, inventory, expenses] =
+    const [settings, menu, tables, reservations, tickets, orders, inventory, expenses, recipes, productionRuns] =
       await Promise.all([
         getRestaurantOSSettings(organizationId),
         getMenuItems(organizationId),
@@ -1118,6 +1295,8 @@ export async function getRestaurantOSData(organizationId: string) {
         getOrders(organizationId, { limit: 50 }),
         getInventoryItems(organizationId),
         getExpenses(organizationId),
+        getRecipes(organizationId),
+        getProductionRuns(organizationId),
       ]);
     return JSON.parse(JSON.stringify({
       settings,
@@ -1128,6 +1307,8 @@ export async function getRestaurantOSData(organizationId: string) {
       orders,
       inventory,
       expenses,
+      recipes,
+      productionRuns,
     }));
   } catch (error) {
     console.error('Error fetching RestaurantOS data:', error);
