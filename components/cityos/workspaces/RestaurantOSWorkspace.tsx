@@ -1071,7 +1071,7 @@ function WasteView({ inventory }: any) {
       notes
     });
 
-    if (res.error) setError(res.error);
+    if ('error' in res) setError(res.error as string);
     else {
       setSuccess("Waste recorded.");
       setItemId(""); setQuantity(""); setNotes("");
