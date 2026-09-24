@@ -165,6 +165,7 @@ export default function POSWorkspace({ initialMenu, initialTables, settings, act
   const [checkoutMode, setCheckoutMode] = useState(false);
   const [receiptModalData, setReceiptModalData] = useState<any>(null);
   const [editingNotesForId, setEditingNotesForId] = useState<string | null>(null);
+  const [modifierSelectionItem, setModifierSelectionItem] = useState<any>(null);
 
   // Shift Gate State
   const [openingFloat, setOpeningFloat] = useState("0");
