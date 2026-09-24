@@ -477,12 +477,12 @@ export async function createReservation(input: {
     const reservation = await db.transaction(async (tx: any) => {
       if (input.tableId) {
         // 1. Lock the table row to serialize concurrent requests for this exact table
-        const tableLock = await tx.sql`
+        const tableLock = await tx.execute(db.raw.sql`
           SELECT id FROM "RestaurantTable"
           WHERE id = ${input.tableId}
             AND "organizationId" = ${input.organizationId}
           FOR UPDATE
-        `;
+        `.returnsRow({ id: 'string' }).build());
 
         if (!tableLock || tableLock.length === 0) {
           throw new Error('Table not found or could not be locked.');
@@ -493,13 +493,13 @@ export async function createReservation(input: {
         const minTime = new Date(scheduled.getTime() - windowMs).toISOString();
         const maxTime = new Date(scheduled.getTime() + windowMs).toISOString();
         
-        const overlaps = await tx.sql`
+        const overlaps = await tx.execute(db.raw.sql`
           SELECT id FROM "RestaurantReservation"
           WHERE "tableId" = ${input.tableId}
             AND "status" IN ('pending', 'confirmed', 'seated')
             AND "scheduledAt" > ${minTime}::timestamp
             AND "scheduledAt" < ${maxTime}::timestamp
-        `;
+        `.returnsRow({ id: 'string' }).build());
         
         if (overlaps && overlaps.length > 0) {
           throw new Error('Table is already reserved for this time block.');
@@ -749,7 +749,7 @@ export async function createPosOrder(input: {
 export async function processRestaurantPayment(orderId: string, paymentMethod: 'CASH'|'POS'|'WALLET') {
   try {
     return await db.transaction(async (tx: any) => {
-      const locked = await tx.sql`SELECT id FROM "RestaurantOrder" WHERE id = ${orderId} FOR UPDATE`;
+      const locked = await tx.execute(db.raw.sql`SELECT id FROM "RestaurantOrder" WHERE id = ${orderId} FOR UPDATE`.returnsRow({ id: 'string' }).build());
       if (!locked || locked.length === 0) throw new Error('Order not found.');
       
       const order = await tx.orm.public.RestaurantOrder.where({ id: orderId }).all().first();
@@ -777,7 +777,7 @@ export async function updateOrderStatus(
 ) {
   try {
     const updatedOrder = await db.transaction(async (tx: any) => {
-      const locked = await tx.sql`SELECT id FROM "RestaurantOrder" WHERE id = ${orderId} FOR UPDATE`;
+      const locked = await tx.execute(db.raw.sql`SELECT id FROM "RestaurantOrder" WHERE id = ${orderId} FOR UPDATE`.returnsRow({ id: 'string' }).build());
       if (!locked || locked.length === 0) throw new Error('Order not found.');
 
       const order = await tx.orm.public.RestaurantOrder.where({ id: orderId }).all().first();
@@ -792,14 +792,14 @@ export async function updateOrderStatus(
         for (const line of items) {
           const menuItem = await tx.orm.public.MenuItem.where({ id: line.menuItemId }).all().first();
           if (menuItem && menuItem.inventoryItemId) {
-            const lockedInv = await tx.sql`SELECT id FROM "RestaurantInventoryItem" WHERE id = ${menuItem.inventoryItemId} FOR UPDATE`;
+            const lockedInv = await tx.execute(db.raw.sql`SELECT id FROM "RestaurantInventoryItem" WHERE id = ${menuItem.inventoryItemId} FOR UPDATE`.returnsRow({ id: 'string' }).build());
             if (lockedInv && lockedInv.length > 0) {
               const invItem = await tx.orm.public.RestaurantInventoryItem.where({ id: menuItem.inventoryItemId }).all().first();
-              await tx.sql`
+              await tx.execute(db.raw.sql`
                 UPDATE "RestaurantInventoryItem"
                 SET "quantity" = "quantity" - ${line.quantity}
                 WHERE id = ${invItem.id}
-              `;
+              `.affectedCount().build());
               await tx.orm.public.RestaurantStockMovement.create({
                 organizationId: order.organizationId,
                 itemId: invItem.id,
@@ -821,14 +821,14 @@ export async function updateOrderStatus(
         for (const line of items) {
           const menuItem = await tx.orm.public.MenuItem.where({ id: line.menuItemId }).all().first();
           if (menuItem && menuItem.inventoryItemId) {
-            const lockedInv = await tx.sql`SELECT id FROM "RestaurantInventoryItem" WHERE id = ${menuItem.inventoryItemId} FOR UPDATE`;
+            const lockedInv = await tx.execute(db.raw.sql`SELECT id FROM "RestaurantInventoryItem" WHERE id = ${menuItem.inventoryItemId} FOR UPDATE`.returnsRow({ id: 'string' }).build());
             if (lockedInv && lockedInv.length > 0) {
               const invItem = await tx.orm.public.RestaurantInventoryItem.where({ id: menuItem.inventoryItemId }).all().first();
-              await tx.sql`
+              await tx.execute(db.raw.sql`
                 UPDATE "RestaurantInventoryItem"
                 SET "quantity" = "quantity" + ${line.quantity}
                 WHERE id = ${invItem.id}
-              `;
+              `.affectedCount().build());
               await tx.orm.public.RestaurantStockMovement.create({
                 organizationId: order.organizationId,
                 itemId: invItem.id,
@@ -1162,12 +1162,12 @@ export async function adjustStock(itemId: string, delta: number, note?: string) 
 
     const next = await db.transaction(async (tx: any) => {
       // Re-read item inside transaction for concurrency
-              const updated = await tx.sql`
+              const updated = await tx.execute(db.raw.sql`
           UPDATE "RestaurantInventoryItem"
           SET "quantity" = "quantity" + ${delta}
           WHERE id = ${itemId} AND "quantity" + ${delta} >= 0
           RETURNING "quantity"
-        `;
+        `.affectedCount().build());
         if (!updated || updated.length === 0) {
           throw new Error('Stock cannot go below zero or concurrent modification occurred.');
         }
@@ -1481,7 +1481,7 @@ export async function openShift(input: { organizationId: string; locationId: str
     
     return await db.transaction(async (tx: any) => {
       // Check for existing open shift at this location
-      const existing = await tx.sql`SELECT id FROM "RestaurantShift" WHERE "organizationId" = ${input.organizationId} AND "locationId" = ${input.locationId} AND "status" = 'OPEN' FOR UPDATE`;
+      const existing = await tx.execute(db.raw.sql`SELECT id FROM "RestaurantShift" WHERE "organizationId" = ${input.organizationId} AND "locationId" = ${input.locationId} AND "status" = 'OPEN' FOR UPDATE`.returnsRow({ id: 'string' }).build());
       
       if (existing && existing.length > 0) {
         throw new Error('An active shift already exists for this location.');
@@ -1504,7 +1504,7 @@ export async function openShift(input: { organizationId: string; locationId: str
 export async function closeShift(input: { shiftId: string; actualCash: number; notes?: string }) {
   try {
     return await db.transaction(async (tx: any) => {
-      const locked = await tx.sql`SELECT id FROM "RestaurantShift" WHERE id = ${input.shiftId} FOR UPDATE`;
+      const locked = await tx.execute(db.raw.sql`SELECT id FROM "RestaurantShift" WHERE id = ${input.shiftId} FOR UPDATE`.returnsRow({ id: 'string' }).build());
       if (!locked || locked.length === 0) throw new Error('Shift not found.');
       
       const shift = await tx.orm.public.RestaurantShift.where({ id: input.shiftId }).all().first();
@@ -1514,17 +1514,17 @@ export async function closeShift(input: { shiftId: string; actualCash: number; n
 
       // Calculate authoritative expected cash
       // expected = openingFloat + (sum of CASH payments) - (sum of CASH refunds)
-      const cashPayments = await tx.sql`
+      const cashPayments = await tx.execute(db.raw.sql`
         SELECT COALESCE(SUM("totalAmount"), 0) as "cashSales"
         FROM "RestaurantOrder"
         WHERE "shiftId" = ${shift.id} AND "paymentMethod" = 'CASH' AND "paymentStatus" IN ('PAID', 'COMPLETED')
-      `;
+      `.returnsRow({ cashSales: 'number' }).build());
       
-      const cashRefunds = await tx.sql`
+      const cashRefunds = await tx.execute(db.raw.sql`
         SELECT COALESCE(SUM("totalAmount"), 0) as "cashRefunds"
         FROM "RestaurantOrder"
         WHERE "shiftId" = ${shift.id} AND "paymentMethod" = 'CASH' AND "paymentStatus" = 'REFUNDED'
-      `;
+      `.returnsRow({ cashRefunds: 'number' }).build());
 
       const cashSales = cashPayments[0]?.cashSales || 0;
       const refunds = cashRefunds[0]?.cashRefunds || 0;
@@ -1581,7 +1581,7 @@ export async function recordWaste(input: {
     if (input.quantity <= 0) return { error: 'Waste quantity must be greater than zero.' };
 
     return await db.transaction(async (tx: any) => {
-      const locked = await tx.sql`SELECT id FROM "RestaurantInventoryItem" WHERE id = ${input.itemId} FOR UPDATE`;
+      const locked = await tx.execute(db.raw.sql`SELECT id FROM "RestaurantInventoryItem" WHERE id = ${input.itemId} FOR UPDATE`.returnsRow({ id: 'string' }).build());
       if (!locked || locked.length === 0) throw new Error('Item not found.');
 
       const item = await tx.orm.public.RestaurantInventoryItem.where({ id: input.itemId }).all().first();
@@ -1590,11 +1590,11 @@ export async function recordWaste(input: {
       }
       
       // We allow negative stock per existing policy (if it was allowed), but usually waste is from positive stock.
-      await tx.sql`
+      await tx.execute(db.raw.sql`
         UPDATE "RestaurantInventoryItem"
         SET "quantity" = "quantity" - ${input.quantity}
         WHERE id = ${input.itemId}
-      `;
+      `.affectedCount().build());
 
       const movement = await tx.orm.public.RestaurantStockMovement.create({
         organizationId: input.organizationId,
