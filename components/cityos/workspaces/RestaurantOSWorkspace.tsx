@@ -1,5 +1,8 @@
 "use client";
 
+import { RawMaterialIntake } from "@/components/restaurantos/forms/RawMaterialIntake";
+import { RecipeBuilder } from "@/components/restaurantos/forms/RecipeBuilder";
+import { ProductionRunLogger } from "@/components/restaurantos/forms/ProductionRunLogger";
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
@@ -618,15 +621,31 @@ function TabKitchen({ tickets, slug, onDone, org }: any) {
   const { fmt } = useMoney();
   const [receiptData, setReceiptData] = useState<any>(null);
   const STATUS_COLORS: any = { PENDING: 'orange', PREPARING: 'orange', READY: 'blue', COMPLETED: 'green' };
+  const [activeStation, setActiveStation] = useState('All Stations');
+  
+  const STATIONS = ['All Stations', 'Main Kitchen', 'Bar', 'Grill', 'Salad Station', 'Dessert'];
+  
+  // Filter items in each ticket, and drop tickets that end up empty
+  const filteredTickets = tickets.map((t: any) => ({
+    ...t,
+    items: activeStation === 'All Stations' ? t.items : t.items.filter((i: any) => i.kitchenStation === activeStation)
+  })).filter((t: any) => t.items.length > 0);
 
   return (
     <div className="space-y-6">
       <PageHeader title="Kitchen Display System" subtitle="Live active tickets" />
-      {tickets.length === 0 ? (
+        <div className="flex gap-2 pb-2 overflow-x-auto">
+          {STATIONS.map(s => (
+            <button key={s} onClick={() => setActiveStation(s)} className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${activeStation === s ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+              {s}
+            </button>
+          ))}
+        </div>
+      {filteredTickets.length === 0 ? (
          <EmptyState icon={CheckCircle2} title="All caught up" message="No pending orders." />
       ) : (
          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-           {tickets.map((t:any) => {
+           {filteredTickets.map((t:any) => {
              const minutesOld = Math.floor((new Date().getTime() - new Date(t.createdAt).getTime()) / 60000);
              const timeColor = minutesOld > 15 ? "text-red-600" : minutesOld > 5 ? "text-amber-600" : "text-emerald-600";
              return (
@@ -724,13 +743,14 @@ function TabMenu({ menu, slug, onDone }: any) {
   const [price, setPrice] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [category, setCategory] = useState(MENU_CATEGORIES[0]);
+  const [kitchenStation, setKitchenStation] = useState("Main Kitchen");
   const [busy, setBusy] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   async function save() {
     setBusy(true);
-    await createMenuItem({ organizationId: slug, name, price: Number(price) || 0, category, imageUrl: imageUrl.trim() || undefined });
+    await createMenuItem({ organizationId: slug, name, price: Number(price) || 0, category, kitchenStation, imageUrl: imageUrl.trim() || undefined });
     setBusy(false);
     setModalOpen(false);
     onDone();
@@ -842,11 +862,17 @@ function TabMenu({ menu, slug, onDone }: any) {
                    )}
                  </div>
                  <div>
-                   <label className="block text-xs font-bold text-slate-500 mb-1">Category</label>
-                   <select className={selectCls} value={category} onChange={e=>setCategory(e.target.value)}>
-                     {MENU_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                   </select>
-                 </div>
+                     <label className="block text-xs font-bold text-slate-500 mb-1">Category</label>
+                     <select className={selectCls} value={category} onChange={e=>setCategory(e.target.value)}>
+                       {MENU_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                     </select>
+                   </div>
+                   <div>
+                     <label className="block text-xs font-bold text-slate-500 mb-1">Kitchen Station</label>
+                     <select className={selectCls} value={kitchenStation} onChange={e=>setKitchenStation(e.target.value)}>
+                       {['Main Kitchen', 'Bar', 'Grill', 'Salad Station', 'Dessert'].map(s => <option key={s} value={s}>{s}</option>)}
+                     </select>
+                   </div>
                </>
              )}
           </div>
@@ -1192,33 +1218,121 @@ function TabSettings({ settings, slug, onDone }: any) {
 // GRAND INVENTORY & PRODUCTION TABS
 // ---------------------------------------------------------------------
 
-function TabRecipes({ recipes, slug, onDone }: any) {
-  return (
-    <div className="space-y-6">
-      <PageHeader title="Recipes & BOM" />
-      <EmptyState icon={Package} title="No recipes configured" message="Build recipes to track precise ingredient depletion." action={<button className="px-4 py-2 bg-orange-600 text-white font-bold rounded-lg mt-4 hover:bg-orange-700">Create Recipe</button>} className="bg-white rounded-2xl border border-slate-100 py-24" />
-    </div>
-  );
-}
+function TabRecipes({ recipes, inventory, slug, onDone }: any) {
+    const [showForm, setShowForm] = useState(false);
+    // recipes usually needs rawMaterials to pick from
+    const rawMaterials = inventory.filter((i:any) => i.type === 'RAW_MATERIAL');
 
-function TabProductionRuns({ runs, slug, onDone }: any) {
-  return (
-    <div className="space-y-6">
-      <PageHeader title="Kitchen Prep & Batches" />
-      <EmptyState icon={Package} title="No active production runs" message="Log batch cooking to deduct raw materials and add to finished goods." action={<button className="px-4 py-2 bg-orange-600 text-white font-bold rounded-lg mt-4 hover:bg-orange-700">Start Production Run</button>} className="bg-white rounded-2xl border border-slate-100 py-24" />
-    </div>
-  );
-}
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Recipes & BOM" />
+        {showForm ? (
+          <div>
+            <button onClick={() => setShowForm(false)} className="mb-4 text-xs font-bold text-slate-500 hover:text-slate-800">&larr; Back to Recipes</button>
+            <RecipeBuilder organizationId={slug} inventory={rawMaterials} onDone={() => { setShowForm(false); onDone(); }} />
+          </div>
+        ) : (
+          recipes?.length === 0 || !recipes ? (
+            <EmptyState icon={Package} title="No recipes configured" message="Build recipes to track precise ingredient depletion." action={<button onClick={() => setShowForm(true)} className="px-4 py-2 bg-orange-600 text-white font-bold rounded-lg mt-4 hover:bg-orange-700">Create Recipe</button>} className="bg-white rounded-2xl border border-slate-100 py-24" />
+          ) : (
+            <div className="space-y-4">
+              <div className="flex justify-end">
+                <button onClick={() => setShowForm(true)} className="px-4 py-2 bg-orange-600 text-white font-bold rounded-lg hover:bg-orange-700">Create Recipe</button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {recipes.map((r:any) => (
+                  <div key={r.id} className="bg-white p-4 rounded-2xl border border-slate-100">
+                    <h3 className="font-bold text-lg">{r.name}</h3>
+                    <p className="text-sm text-slate-500">Yields: {r.yieldQuantity}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        )}
+      </div>
+    );
+  }
+
+function TabProductionRuns({ runs, recipes, slug, onDone }: any) {
+    const [showForm, setShowForm] = useState(false);
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Kitchen Prep & Batches" />
+        {showForm ? (
+          <div>
+            <button onClick={() => setShowForm(false)} className="mb-4 text-xs font-bold text-slate-500 hover:text-slate-800">&larr; Back to Production Runs</button>
+            <ProductionRunLogger organizationId={slug} recipes={recipes} onDone={() => { setShowForm(false); onDone(); }} />
+          </div>
+        ) : (
+          runs?.length === 0 || !runs ? (
+            <EmptyState icon={Package} title="No active production runs" message="Log batch cooking to deduct raw materials and add to finished goods." action={<button onClick={() => setShowForm(true)} className="px-4 py-2 bg-orange-600 text-white font-bold rounded-lg mt-4 hover:bg-orange-700">Start Production Run</button>} className="bg-white rounded-2xl border border-slate-100 py-24" />
+          ) : (
+            <div className="space-y-4">
+              <div className="flex justify-end">
+                <button onClick={() => setShowForm(true)} className="px-4 py-2 bg-orange-600 text-white font-bold rounded-lg hover:bg-orange-700">Start Production Run</button>
+              </div>
+              <div className="space-y-2">
+                {runs.map((run:any) => (
+                  <div key={run.id} className="bg-white p-4 rounded-xl border border-slate-100 flex justify-between items-center">
+                    <div>
+                      <p className="font-bold text-slate-800">{new Date(run.createdAt).toLocaleString()}</p>
+                      <p className="text-sm text-slate-500">Multiplier: {run.batchMultiplier}x</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-emerald-600">Yield: {run.actualYield}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        )}
+      </div>
+    );
+  }
 
 function TabRawMaterials({ inventory, slug, onDone }: any) {
-  const rawMaterials = inventory.filter((i:any) => i.type === 'RAW_MATERIAL');
-  return (
-    <div className="space-y-6">
-      <PageHeader title="Raw Materials" />
-      <EmptyState icon={Package} title="Raw Materials" message="Track bulk ingredients purchased from suppliers." action={<button className="px-4 py-2 bg-orange-600 text-white font-bold rounded-lg mt-4 hover:bg-orange-700">Add Item</button>} className="bg-white rounded-2xl border border-slate-100 py-24" />
-    </div>
-  );
-}
+    const rawMaterials = inventory.filter((i:any) => i.type === 'RAW_MATERIAL');
+    const [showForm, setShowForm] = useState(false);
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Raw Materials" />
+        {showForm ? (
+          <div>
+            <button onClick={() => setShowForm(false)} className="mb-4 text-xs font-bold text-slate-500 hover:text-slate-800">&larr; Back to Raw Materials</button>
+            <RawMaterialIntake organizationId={slug} onDone={() => { setShowForm(false); onDone(); }} />
+          </div>
+        ) : (
+          rawMaterials.length === 0 ? (
+            <EmptyState icon={Package} title="Raw Materials" message="Track bulk ingredients purchased from suppliers." action={<button onClick={() => setShowForm(true)} className="px-4 py-2 bg-orange-600 text-white font-bold rounded-lg mt-4 hover:bg-orange-700">Add Item</button>} className="bg-white rounded-2xl border border-slate-100 py-24" />
+          ) : (
+            <div className="space-y-4">
+              <div className="flex justify-end">
+                <button onClick={() => setShowForm(true)} className="px-4 py-2 bg-orange-600 text-white font-bold rounded-lg hover:bg-orange-700">Add Raw Material</button>
+              </div>
+              <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                    <tr><th className="px-4 py-3">Item</th><th className="px-4 py-3">UOM</th><th className="px-4 py-3">Stock Level</th></tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {rawMaterials.map((r:any) => (
+                      <tr key={r.id}>
+                        <td className="px-4 py-3 font-bold text-slate-800">{r.name}</td>
+                        <td className="px-4 py-3 text-slate-500">{r.unitOfMeasure}</td>
+                        <td className="px-4 py-3 font-medium">{r.currentStock}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )
+        )}
+      </div>
+    );
+  }
 
 function TabFinishedGoods({ inventory, slug, onDone }: any) {
   const finishedGoods = inventory.filter((i:any) => i.type === 'FINISHED_GOOD');

@@ -1851,6 +1851,7 @@ model MenuItem {
   category       String       // e.g. Appetizers, Mains, Drinks
   imageUrl       String?
   isAvailable    Boolean      @default(true)
+    kitchenStation String?      @default("Main Kitchen")
   
   organizationId String
   organization   Organization @relation("RestaurantMenuItems", fields: [organizationId], references: [id], onDelete: Cascade)

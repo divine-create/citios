@@ -33,7 +33,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'50321e5cd87df4b04dd6f58f3e69066b47542c46db329da525822cdae73ec34a'>;
+  StorageHashBase<'92635ef7ce8617c6474f0ba0434f442afbe9a14fdf9d7184a6af1e5d42eb36fa'>;
 export type ExecutionHash =
   ExecutionHashBase<'d0f0ce95c03a01af345fa7cdd1eb64e7f0645db2c19a130e2f6af0a7bc9feccf'>;
 export type ProfileHash =
@@ -728,6 +728,7 @@ export type FieldOutputTypes = {
       readonly category: CodecTypes['pg/text@1']['output'];
       readonly imageUrl: CodecTypes['pg/text@1']['output'] | null;
       readonly isAvailable: CodecTypes['pg/bool@1']['output'];
+      readonly kitchenStation: CodecTypes['pg/text@1']['output'] | null;
       readonly organizationId: CodecTypes['pg/text@1']['output'];
       readonly locationId: CodecTypes['pg/text@1']['output'] | null;
       readonly inventoryItemId: CodecTypes['pg/text@1']['output'] | null;
@@ -2456,6 +2457,7 @@ export type FieldInputTypes = {
       readonly category: CodecTypes['pg/text@1']['input'];
       readonly imageUrl: CodecTypes['pg/text@1']['input'] | null;
       readonly isAvailable: CodecTypes['pg/bool@1']['input'];
+      readonly kitchenStation: CodecTypes['pg/text@1']['input'] | null;
       readonly organizationId: CodecTypes['pg/text@1']['input'];
       readonly locationId: CodecTypes['pg/text@1']['input'] | null;
       readonly inventoryItemId: CodecTypes['pg/text@1']['input'] | null;
@@ -4183,6 +4185,7 @@ export type StorageColumnTypes = {
       readonly imageUrl: CodecTypes['pg/text@1']['output'] | null;
       readonly inventoryItemId: CodecTypes['pg/text@1']['output'] | null;
       readonly isAvailable: CodecTypes['pg/bool@1']['output'];
+      readonly kitchenStation: CodecTypes['pg/text@1']['output'] | null;
       readonly locationId: CodecTypes['pg/text@1']['output'] | null;
       readonly name: CodecTypes['pg/text@1']['output'];
       readonly organizationId: CodecTypes['pg/text@1']['output'];
@@ -5911,6 +5914,7 @@ export type StorageColumnInputTypes = {
       readonly imageUrl: CodecTypes['pg/text@1']['input'] | null;
       readonly inventoryItemId: CodecTypes['pg/text@1']['input'] | null;
       readonly isAvailable: CodecTypes['pg/bool@1']['input'];
+      readonly kitchenStation: CodecTypes['pg/text@1']['input'] | null;
       readonly locationId: CodecTypes['pg/text@1']['input'] | null;
       readonly name: CodecTypes['pg/text@1']['input'];
       readonly organizationId: CodecTypes['pg/text@1']['input'];
@@ -11387,6 +11391,15 @@ type ContractBase = Omit<
                   readonly default: {
                     readonly kind: 'literal';
                     readonly value: DefaultLiteralValue<'pg/bool@1', true>;
+                  };
+                };
+                readonly kitchenStation: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/text@1', 'Main Kitchen'>;
                   };
                 };
                 readonly organizationId: {
@@ -26934,6 +26947,10 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/bool@1' };
               };
+              readonly kitchenStation: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
               readonly organizationId: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
@@ -27037,6 +27054,7 @@ type ContractBase = Omit<
                 readonly category: { readonly column: 'category' };
                 readonly imageUrl: { readonly column: 'imageUrl' };
                 readonly isAvailable: { readonly column: 'isAvailable' };
+                readonly kitchenStation: { readonly column: 'kitchenStation' };
                 readonly organizationId: { readonly column: 'organizationId' };
                 readonly locationId: { readonly column: 'locationId' };
                 readonly inventoryItemId: { readonly column: 'inventoryItemId' };

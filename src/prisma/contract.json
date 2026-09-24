@@ -7936,6 +7936,13 @@
                   "kind": "scalar"
                 }
               },
+              "kitchenStation": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "locationId": {
                 "nullable": true,
                 "type": {
@@ -8091,6 +8098,9 @@
                 },
                 "isAvailable": {
                   "column": "isAvailable"
+                },
+                "kitchenStation": {
+                  "column": "kitchenStation"
                 },
                 "locationId": {
                   "column": "locationId"
@@ -30663,6 +30673,15 @@
                   "nativeType": "bool",
                   "nullable": false
                 },
+                "kitchenStation": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "Main Kitchen"
+                  },
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "locationId": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -44228,7 +44247,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "50321e5cd87df4b04dd6f58f3e69066b47542c46db329da525822cdae73ec34a"
+    "storageHash": "92635ef7ce8617c6474f0ba0434f442afbe9a14fdf9d7184a6af1e5d42eb36fa"
   },
   "execution": {
     "executionHash": "d0f0ce95c03a01af345fa7cdd1eb64e7f0645db2c19a130e2f6af0a7bc9feccf",

@@ -152,6 +152,7 @@ export async function createMenuItem(input: {
   price: number;
   category: string;
   imageUrl?: string;
+  kitchenStation?: string;
 }) {
   try {
     await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
@@ -165,6 +166,7 @@ export async function createMenuItem(input: {
       price: input.price,
       category: input.category.trim() || 'Mains',
       imageUrl: input.imageUrl ?? null,
+      kitchenStation: input.kitchenStation ?? 'Main Kitchen',
       isAvailable: true,
     });
 
@@ -579,6 +581,7 @@ async function enrichOrders(organizationId: string, orders: any[]) {
       items: items.map((i: any) => ({
         ...i,
         itemName: menuItems.find((m) => m.id === i.menuItemId)?.name ?? 'Unknown',
+          kitchenStation: menuItems.find((m) => m.id === i.menuItemId)?.kitchenStation ?? 'Main Kitchen',
       })),
     };
   }));
