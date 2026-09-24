@@ -360,7 +360,7 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
             
             {activeMenu === "Menu Items" && <TabMenu menu={menu} slug={slug} onDone={loadData} />}
             {activeMenu === "Recipes" && <TabRecipes recipes={recipes} inventory={inventory} slug={slug} onDone={loadData} org={org} />}
-            {activeMenu === "Kitchen Prep & Batches" && <TabProductionRuns runs={productionRuns} recipes={recipes} slug={slug} onDone={loadData} org={org} />}
+            {activeMenu === "Kitchen Prep & Batches" && <TabProductionRuns runs={productionRuns} recipes={recipes} inventory={inventory} slug={slug} onDone={loadData} org={org} />}
             {activeMenu === "Raw Materials" && <TabRawMaterials inventory={inventory} slug={slug} onDone={loadData} org={org} />}
             {activeMenu === "Finished Goods" && <TabFinishedGoods inventory={inventory} slug={slug} onDone={loadData} org={org} />}
             {activeMenu === "Suppliers" && <EmptyState icon={Package} title="Suppliers" message="Manage your vendors and catalogs." className="mt-20" />}
@@ -1129,7 +1129,7 @@ function TabRecipes({ recipes, inventory, slug, onDone }: any) {
     );
   }
 
-function TabProductionRuns({ runs, recipes, slug, onDone }: any) {
+function TabProductionRuns({ runs, recipes, inventory, slug, onDone }: any) {
     const [showForm, setShowForm] = useState(false);
     return (
       <div className="space-y-6">
