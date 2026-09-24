@@ -98,7 +98,7 @@ export default function POSWorkspace({ initialMenu, initialTables, settings, act
   const handleOpenShift = async () => {
     if (!org) return;
     setShiftBusy(true);
-    const res: any = await openShift({ organizationId: org.id, locationId: org.locations?.[0]?.id || undefined, openingFloat: parseFloat(openingFloat) || 0 });
+    const res: any = await openShift({ organizationId: org.id, ...(org.locations?.[0]?.id ? { locationId: org.locations[0].id } : {}), openingFloat: parseFloat(openingFloat) || 0 });
     if (res.error) alert(res.error);
     else setActiveShift(res.shift);
     setShiftBusy(false);
@@ -122,8 +122,8 @@ export default function POSWorkspace({ initialMenu, initialTables, settings, act
     setPosBusy(true);
     const res: any = await createPosOrder({
       organizationId: org.id,
-      locationId: org.locations?.[0]?.id || undefined,
-      tableId: posType === 'DINE_IN' ? (posTableId || undefined) : undefined,
+      ...(org.locations?.[0]?.id ? { locationId: org.locations[0].id } : {}),
+      ...((posType === 'DINE_IN' && posTableId) ? { tableId: posTableId } : {}),
       type: posType,
       paymentMethod: method,
       items: posLines.map(l => ({ menuItemId: l.menuItemId, quantity: l.qty, notes: l.notes }))
