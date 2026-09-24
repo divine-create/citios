@@ -300,6 +300,7 @@ model Location {
   restaurantTables    RestaurantTable[] @relation("LocationRestaurantTables")
   restaurantReservations RestaurantReservation[] @relation("LocationRestaurantReservations")
   restaurantInventory RestaurantInventoryItem[] @relation("LocationRestaurantInventory")
+    restaurantProductionRuns RestaurantProductionRun[] @relation("LocationRestaurantProductionRuns")
   restaurantExpenses  RestaurantExpense[] @relation("LocationRestaurantExpenses")
 }
 
@@ -477,6 +478,8 @@ model Organization {
   restaurantReservations RestaurantReservation[]    @relation("OrgRestaurantReservations")
   restaurantInventory    RestaurantInventoryItem[] @relation("RestaurantInventory")
   restaurantStockMovements RestaurantStockMovement[] @relation("RestaurantStockMovements")
+    restaurantRecipes      RestaurantRecipe[]        @relation("RestaurantRecipes")
+    restaurantProductionRuns RestaurantProductionRun[] @relation("OrgRestaurantProductionRuns")
   restaurantExpenses     RestaurantExpense[]       @relation("OrgRestaurantExpenses")
   menuItemAddons         MenuItemAddon[]           @relation("OrgMenuItemAddons")
   menuItemVariants       MenuItemVariant[]         @relation("OrgMenuItemVariants")
@@ -505,8 +508,12 @@ enum OrgRole {
   INVENTORY_STAFF
   // RestaurantOS
   WAITER
-  KITCHEN
-}
+    KITCHEN
+    CHEF
+    HOST
+    STOREKEEPER
+    DELIVERY_DRIVER
+  }
 
 // ----------------------------------------------------------------------------
 // SHOPOS: RETAIL & GROCERY MANAGEMENT
@@ -1852,8 +1859,11 @@ model MenuItem {
   location       Location?    @relation("LocationMenuItems", fields: [locationId], references: [id])
   
   orderItems     OrderItem[]
-
-  // RestaurantOS menu enhancements
+  
+    inventoryItemId String?
+    inventoryItem   RestaurantInventoryItem? @relation(fields: [inventoryItemId], references: [id])
+  
+    // RestaurantOS menu enhancements
   addons         MenuItemAddon[]
   variants       MenuItemVariant[]
   combos         MenuItemComboItem[]
@@ -2050,6 +2060,13 @@ model RestaurantReservation {
 }
 
 
+
+enum InventoryItemType {
+  RAW_MATERIAL      // Flour, Salt, Raw Beef
+  SUB_ASSEMBLY      // Pizza Dough, Stew Base (Produced in-house, used in recipes)
+  FINISHED_GOOD     // A ready-to-sell item (e.g. Bottled Water, or 1 Plate of Jollof prepped in bulk)
+}
+
 model RestaurantInventoryItem {
   id             String       @id @default(uuid())
   organizationId String
@@ -2057,32 +2074,107 @@ model RestaurantInventoryItem {
   locationId     String?
   location       Location?    @relation("LocationRestaurantInventory", fields: [locationId], references: [id])
 
-  name           String       // "Rice (bag)", "Groundnut Oil (litre)", "Chicken (crate)"
-  unit           String       @default("unit") // kg, crate, litre, bag, carton
-  quantity       Float        @default(0)
+  name           String
+  type           InventoryItemType @default(RAW_MATERIAL)
+  unit           String       @default("unit") // The base unit: grams, ml, pcs
+  
+  quantity       Float        @default(0) // Current stock level
   lowStockLevel  Float        @default(5)
-  cost           Float?       // per-unit cost, for expense accounting
+  cost           Float        @default(0) // Moving Average Cost (MAC) per unit
+
+  // If this item is a SUB_ASSEMBLY or FINISHED_GOOD, it can have a Recipe to produce it
+  recipeId       String?      @unique
+  recipe         RestaurantRecipe? @relation("ItemRecipe", fields: [recipeId], references: [id])
 
   movements      RestaurantStockMovement[]
+  recipeIngredients RestaurantRecipeIngredient[] @relation("IngredientItem")
+  menuItems      MenuItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
+}
+
+model RestaurantRecipe {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("RestaurantRecipes", fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  name           String       // e.g., "1 Cooler of Jollof Rice"
+  yieldQuantity  Float        // e.g., 50 (portions)
+  instructions   String?
+  
+  ingredients    RestaurantRecipeIngredient[]
+  
+  // The inventory item this recipe produces (e.g., 50 Portions of Jollof Rice)
+  producedItem   RestaurantInventoryItem? @relation("ItemRecipe")
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+}
+
+model RestaurantRecipeIngredient {
+  id             String       @id @default(uuid())
+  recipeId       String
+  recipe         RestaurantRecipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  
+  itemId         String
+  item           RestaurantInventoryItem @relation("IngredientItem", fields: [itemId], references: [id], onDelete: Restrict)
+  
+  quantity       Float        // Amount of this item required for the recipe yield
+  
+  createdAt DateTime @default(now())
+}
+
+enum StockMovementType {
+  MANUAL_ADJUSTMENT
+  PURCHASE_RECEIPT    // GRN
+  PRODUCTION_YIELD    // Added to stock via production run
+  PRODUCTION_USAGE    // Deducted from stock to produce a batch
+  POS_SALE            // Deducted because a waiter sold it
+  WASTE               // Dropped, burnt, expired
 }
 
 model RestaurantStockMovement {
   id             String       @id @default(uuid())
   organizationId String
   organization   Organization @relation("RestaurantStockMovements", fields: [organizationId], references: [id], onDelete: Cascade)
-
+  
   itemId         String
   item           RestaurantInventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
-
+  
+  type           StockMovementType @default(MANUAL_ADJUSTMENT)
   delta          Float        // positive = restock, negative = usage
+  unitCost       Float        @default(0) // The cost of the item at the time of movement
   note           String?
-  recordedById   String?      // Membership id that caused the movement
+  
+  recordedById   String?      // Membership id
 
   createdAt DateTime @default(now())
 }
+
+model RestaurantProductionRun {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation("OrgRestaurantProductionRuns", fields: [organizationId], references: [id], onDelete: Cascade)
+  locationId     String?
+  location       Location?    @relation("LocationRestaurantProductionRuns", fields: [locationId], references: [id])
+  
+  recipeId       String
+  recipe         RestaurantRecipe @relation(fields: [recipeId], references: [id])
+  
+  batchMultiplier Float       // e.g., 2 = double the recipe
+  expectedYield   Float
+  actualYield     Float       // Chef enters what they actually got (handles shrinkage)
+  
+  totalCost       Float       @default(0) // The calculated cost of all raw materials used
+  
+  status         String       @default("COMPLETED") // PENDING, COMPLETED, CANCELLED
+  
+  recordedById   String?
+
+  createdAt DateTime @default(now())
+}
+
 
 model RestaurantExpense {
   id             String       @id @default(uuid())
