@@ -1104,7 +1104,7 @@ function TabRecipes({ recipes, inventory, slug, onDone }: any) {
         {showForm ? (
           <div>
             <button onClick={() => setShowForm(false)} className="mb-4 text-xs font-bold text-slate-500 hover:text-slate-800">&larr; Back to Recipes</button>
-            <RecipeBuilder organizationId={slug} inventory={rawMaterials} onDone={() => { setShowForm(false); onDone(); }} />
+            <RecipeBuilder organizationId={slug} inventory={rawMaterials} onComplete={() => { setShowForm(false); onDone(); }} />
           </div>
         ) : (
           recipes?.length === 0 || !recipes ? (
