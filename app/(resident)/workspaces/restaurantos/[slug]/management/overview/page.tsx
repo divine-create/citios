@@ -12,7 +12,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ slug:
 
   const [finance, orders] = await Promise.all([
     getFinancialSummary(slug),
-    getOrders(slug, 50)
+    getOrders(slug, { limit: 50 })
   ]);
 
   const settings = await db.orm.public.RestaurantSettings.where({ organizationId: slug }).all().first();
