@@ -33,7 +33,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'f634bc7bb403001cdcb573d4265339bf6235afda3e5023f2a949fdba1611df2b'>;
+  StorageHashBase<'39b8c5cf22a757f336468aa11683fdca65c5ccd616b3817c956727c93dc8bcc0'>;
 export type ExecutionHash =
   ExecutionHashBase<'f180232303a8bdd983773ae90753193b5b30143485161986b54c86af11d4f953'>;
 export type ProfileHash =
@@ -904,6 +904,8 @@ export type FieldOutputTypes = {
       readonly unitPrice: CodecTypes['pg/float8@1']['output'];
       readonly unitCost: CodecTypes['pg/float8@1']['output'];
       readonly notes: CodecTypes['pg/text@1']['output'] | null;
+      readonly kitchenStatus:
+        'PENDING' | 'PREPARING' | 'READY' | 'DELIVERING' | 'COMPLETED' | 'CANCELLED';
       readonly orderId: CodecTypes['pg/text@1']['output'];
       readonly menuItemId: CodecTypes['pg/text@1']['output'];
     };
@@ -1226,6 +1228,8 @@ export type FieldOutputTypes = {
       readonly organizationId: CodecTypes['pg/text@1']['output'];
       readonly customerDataId: CodecTypes['pg/text@1']['output'] | null;
       readonly locationId: CodecTypes['pg/text@1']['output'] | null;
+      readonly kitchenStartedAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
+      readonly kitchenCompletedAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
     };
@@ -2663,6 +2667,8 @@ export type FieldInputTypes = {
       readonly unitPrice: CodecTypes['pg/float8@1']['input'];
       readonly unitCost: CodecTypes['pg/float8@1']['input'];
       readonly notes: CodecTypes['pg/text@1']['input'] | null;
+      readonly kitchenStatus:
+        'PENDING' | 'PREPARING' | 'READY' | 'DELIVERING' | 'COMPLETED' | 'CANCELLED';
       readonly orderId: CodecTypes['pg/text@1']['input'];
       readonly menuItemId: CodecTypes['pg/text@1']['input'];
     };
@@ -2985,6 +2991,8 @@ export type FieldInputTypes = {
       readonly organizationId: CodecTypes['pg/text@1']['input'];
       readonly customerDataId: CodecTypes['pg/text@1']['input'] | null;
       readonly locationId: CodecTypes['pg/text@1']['input'] | null;
+      readonly kitchenStartedAt: CodecTypes['pg/timestamptz-temporal@1']['input'] | null;
+      readonly kitchenCompletedAt: CodecTypes['pg/timestamptz-temporal@1']['input'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
     };
@@ -4418,6 +4426,8 @@ export type StorageColumnTypes = {
     };
     readonly orderItem: {
       readonly id: CodecTypes['pg/text@1']['output'];
+      readonly kitchenStatus:
+        'PENDING' | 'PREPARING' | 'READY' | 'DELIVERING' | 'COMPLETED' | 'CANCELLED';
       readonly menuItemId: CodecTypes['pg/text@1']['output'];
       readonly notes: CodecTypes['pg/text@1']['output'] | null;
       readonly orderId: CodecTypes['pg/text@1']['output'];
@@ -4723,6 +4733,8 @@ export type StorageColumnTypes = {
       readonly customerDataId: CodecTypes['pg/text@1']['output'] | null;
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly inventoryConsumed: CodecTypes['pg/bool@1']['output'];
+      readonly kitchenCompletedAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
+      readonly kitchenStartedAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
       readonly locationId: CodecTypes['pg/text@1']['output'] | null;
       readonly orderNumber: CodecTypes['pg/int4@1']['output'] | null;
       readonly organizationId: CodecTypes['pg/text@1']['output'];
@@ -6177,6 +6189,8 @@ export type StorageColumnInputTypes = {
     };
     readonly orderItem: {
       readonly id: CodecTypes['pg/text@1']['input'];
+      readonly kitchenStatus:
+        'PENDING' | 'PREPARING' | 'READY' | 'DELIVERING' | 'COMPLETED' | 'CANCELLED';
       readonly menuItemId: CodecTypes['pg/text@1']['input'];
       readonly notes: CodecTypes['pg/text@1']['input'] | null;
       readonly orderId: CodecTypes['pg/text@1']['input'];
@@ -6482,6 +6496,8 @@ export type StorageColumnInputTypes = {
       readonly customerDataId: CodecTypes['pg/text@1']['input'] | null;
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly inventoryConsumed: CodecTypes['pg/bool@1']['input'];
+      readonly kitchenCompletedAt: CodecTypes['pg/timestamptz-temporal@1']['input'] | null;
+      readonly kitchenStartedAt: CodecTypes['pg/timestamptz-temporal@1']['input'] | null;
       readonly locationId: CodecTypes['pg/text@1']['input'] | null;
       readonly orderNumber: CodecTypes['pg/int4@1']['input'] | null;
       readonly organizationId: CodecTypes['pg/text@1']['input'];
@@ -13060,6 +13076,15 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/text@1';
                   readonly nullable: true;
                 };
+                readonly kitchenStatus: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/text@1', 'PENDING'>;
+                  };
+                };
                 readonly orderId: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
@@ -15483,6 +15508,16 @@ type ContractBase = Omit<
                 readonly locationId: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly kitchenStartedAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly nullable: true;
+                };
+                readonly kitchenCompletedAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
                   readonly nullable: true;
                 };
                 readonly createdAt: {
@@ -28731,6 +28766,10 @@ type ContractBase = Omit<
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
+              readonly kitchenStatus: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
               readonly orderId: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
@@ -28773,6 +28812,7 @@ type ContractBase = Omit<
                 readonly unitPrice: { readonly column: 'unitPrice' };
                 readonly unitCost: { readonly column: 'unitCost' };
                 readonly notes: { readonly column: 'notes' };
+                readonly kitchenStatus: { readonly column: 'kitchenStatus' };
                 readonly orderId: { readonly column: 'orderId' };
                 readonly menuItemId: { readonly column: 'menuItemId' };
               };
@@ -32004,6 +32044,20 @@ type ContractBase = Omit<
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
+              readonly kitchenStartedAt: {
+                readonly nullable: true;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                };
+              };
+              readonly kitchenCompletedAt: {
+                readonly nullable: true;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                };
+              };
               readonly createdAt: {
                 readonly nullable: false;
                 readonly type: {
@@ -32129,6 +32183,8 @@ type ContractBase = Omit<
                 readonly organizationId: { readonly column: 'organizationId' };
                 readonly customerDataId: { readonly column: 'customerDataId' };
                 readonly locationId: { readonly column: 'locationId' };
+                readonly kitchenStartedAt: { readonly column: 'kitchenStartedAt' };
+                readonly kitchenCompletedAt: { readonly column: 'kitchenCompletedAt' };
                 readonly createdAt: { readonly column: 'createdAt' };
                 readonly updatedAt: { readonly column: 'updatedAt' };
               };

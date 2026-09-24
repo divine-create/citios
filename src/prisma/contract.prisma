@@ -1974,7 +1974,9 @@ model RestaurantOrder {
   
   payment        Payment?
   delivery       DeliveryJob?
-  createdAt      DateTime     @default(now())
+  kitchenStartedAt DateTime?
+    kitchenCompletedAt DateTime?
+    createdAt      DateTime     @default(now())
   updatedAt      DateTime     @default(now())
 }
 
@@ -1984,6 +1986,7 @@ model OrderItem {
   unitPrice      Float
     unitCost       Float           @default(0) // Historical cost at time of sale
   notes          String?         // Special instructions
+    kitchenStatus  OrderStatus     @default(PENDING) // Added for KDS
   
   orderId        String
   menuItemId     String

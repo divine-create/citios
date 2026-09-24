@@ -10232,6 +10232,19 @@
                   "kind": "scalar"
                 }
               },
+              "kitchenStatus": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "OrderStatus",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
               "menuItemId": {
                 "nullable": false,
                 "type": {
@@ -10311,6 +10324,9 @@
               "fields": {
                 "id": {
                   "column": "id"
+                },
+                "kitchenStatus": {
+                  "column": "kitchenStatus"
                 },
                 "menuItemId": {
                   "column": "menuItemId"
@@ -15201,6 +15217,20 @@
                   "kind": "scalar"
                 }
               },
+              "kitchenCompletedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "kitchenStartedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
               "locationId": {
                 "nullable": true,
                 "type": {
@@ -15453,6 +15483,12 @@
                 },
                 "inventoryConsumed": {
                   "column": "inventoryConsumed"
+                },
+                "kitchenCompletedAt": {
+                  "column": "kitchenCompletedAt"
+                },
+                "kitchenStartedAt": {
+                  "column": "kitchenStartedAt"
                 },
                 "locationId": {
                   "column": "locationId"
@@ -32838,11 +32874,33 @@
               "uniques": []
             },
             "orderItem": {
+              "checks": [
+                {
+                  "expression": "\"kitchenStatus\" IN ('PENDING', 'PREPARING', 'READY', 'DELIVERING', 'COMPLETED', 'CANCELLED')",
+                  "name": "orderItem_kitchenStatus_check_cd0ddb0e",
+                  "prefix": "orderItem_kitchenStatus_check"
+                }
+              ],
               "columns": {
                 "id": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": false
+                },
+                "kitchenStatus": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "PENDING"
+                  },
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "OrderStatus",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
                 },
                 "menuItemId": {
                   "codecId": "pg/text@1",
@@ -35983,6 +36041,16 @@
                   },
                   "nativeType": "bool",
                   "nullable": false
+                },
+                "kitchenCompletedAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": true
+                },
+                "kitchenStartedAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": true
                 },
                 "locationId": {
                   "codecId": "pg/text@1",
@@ -44774,7 +44842,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "f634bc7bb403001cdcb573d4265339bf6235afda3e5023f2a949fdba1611df2b"
+    "storageHash": "39b8c5cf22a757f336468aa11683fdca65c5ccd616b3817c956727c93dc8bcc0"
   },
   "execution": {
     "executionHash": "f180232303a8bdd983773ae90753193b5b30143485161986b54c86af11d4f953",
