@@ -1,3 +1,108 @@
+
+async function consumeInventoryForOrder(tx: any, orderId: string, organizationId: string, settings: any) {
+  const order = await tx.orm.public.RestaurantOrder.where({ id: orderId }).all().first();
+  if (!order || order.inventoryConsumed) return;
+
+  const enableInventory = settings?.enableInventory ?? false;
+  const enableRecipes = settings?.enableRecipes ?? false;
+
+  if (enableInventory) {
+    const items = await tx.orm.public.OrderItem.where({ orderId: orderId }).all();
+    for (const line of items) {
+      const menuItem = await tx.orm.public.MenuItem.where({ id: line.menuItemId }).all().first();
+      if (!menuItem) continue;
+
+      if (menuItem.inventoryItemId) {
+        await deductInventory(tx, organizationId, menuItem.inventoryItemId, -line.quantity, 'POS_SALE');
+      }
+
+      if (enableRecipes && menuItem.recipeId) {
+        const recipe = await tx.orm.public.RestaurantRecipe.where({ id: menuItem.recipeId }).all().first();
+        if (recipe) {
+          const ingredients = await tx.orm.public.RestaurantRecipeIngredient.where({ recipeId: recipe.id }).all();
+          const portionMultiplier = line.quantity / (recipe.yieldQuantity || 1);
+          for (const ing of ingredients) {
+            await deductInventory(tx, organizationId, ing.itemId, -(ing.quantity * portionMultiplier), 'POS_SALE');
+          }
+        }
+      }
+
+      const modifiers = await tx.orm.public.OrderItemModifier.where({ orderItemId: line.id }).all();
+      for (const mod of modifiers) {
+        if (mod.modifierOptionId) {
+          const opt = await tx.orm.public.ModifierOption.where({ id: mod.modifierOptionId }).all().first();
+          if (opt && opt.inventoryItemId && opt.inventoryQuantity) {
+            await deductInventory(tx, organizationId, opt.inventoryItemId, -(opt.inventoryQuantity * line.quantity), 'POS_SALE');
+          }
+        }
+      }
+    }
+  }
+  await tx.orm.public.RestaurantOrder.where({ id: orderId }).update({ inventoryConsumed: true });
+}
+
+async function reverseInventoryForOrder(tx: any, orderId: string, organizationId: string, settings: any) {
+  const order = await tx.orm.public.RestaurantOrder.where({ id: orderId }).all().first();
+  if (!order || !order.inventoryConsumed) return;
+
+  const enableInventory = settings?.enableInventory ?? false;
+  const enableRecipes = settings?.enableRecipes ?? false;
+
+  if (enableInventory) {
+    const items = await tx.orm.public.OrderItem.where({ orderId: orderId }).all();
+    for (const line of items) {
+      const menuItem = await tx.orm.public.MenuItem.where({ id: line.menuItemId }).all().first();
+      if (!menuItem) continue;
+
+      if (menuItem.inventoryItemId) {
+        await deductInventory(tx, organizationId, menuItem.inventoryItemId, line.quantity, 'MANUAL_ADJUSTMENT');
+      }
+
+      if (enableRecipes && menuItem.recipeId) {
+        const recipe = await tx.orm.public.RestaurantRecipe.where({ id: menuItem.recipeId }).all().first();
+        if (recipe) {
+          const ingredients = await tx.orm.public.RestaurantRecipeIngredient.where({ recipeId: recipe.id }).all();
+          const portionMultiplier = line.quantity / (recipe.yieldQuantity || 1);
+          for (const ing of ingredients) {
+            await deductInventory(tx, organizationId, ing.itemId, (ing.quantity * portionMultiplier), 'MANUAL_ADJUSTMENT');
+          }
+        }
+      }
+
+      const modifiers = await tx.orm.public.OrderItemModifier.where({ orderItemId: line.id }).all();
+      for (const mod of modifiers) {
+        if (mod.modifierOptionId) {
+          const opt = await tx.orm.public.ModifierOption.where({ id: mod.modifierOptionId }).all().first();
+          if (opt && opt.inventoryItemId && opt.inventoryQuantity) {
+            await deductInventory(tx, organizationId, opt.inventoryItemId, (opt.inventoryQuantity * line.quantity), 'MANUAL_ADJUSTMENT');
+          }
+        }
+      }
+    }
+  }
+  await tx.orm.public.RestaurantOrder.where({ id: orderId }).update({ inventoryConsumed: false });
+}
+
+async function deductInventory(tx: any, organizationId: string, itemId: string, delta: number, type: string) {
+  const lockedInvCount = await tx.execute(db.raw.sql`SELECT id FROM "restaurantInventoryItem" WHERE id = ${itemId} FOR UPDATE`.affectedCount().build());
+  if (lockedInvCount > 0) {
+    const invItem = await tx.orm.public.RestaurantInventoryItem.where({ id: itemId }).all().first();
+    if (invItem) {
+      await tx.execute(db.raw.sql`
+        UPDATE "restaurantInventoryItem" 
+        SET "quantity" = "quantity" + ${delta}
+        WHERE id = ${invItem.id}
+      `.affectedCount().build());
+      await tx.orm.public.RestaurantStockMovement.create({
+        organizationId,
+        itemId: invItem.id,
+        type,
+        delta,
+        unitCost: invItem.cost,
+      });
+    }
+  }
+}
 'use server';
 
 // ============================================================================
@@ -623,7 +728,7 @@ export async function getKitchenTickets(organizationId: string, locationId?: str
 
 export async function createPosOrder(input: {
   organizationId: string;
-  items: { menuItemId: string; quantity: number; notes?: string }[];
+  items: { menuItemId: string; quantity: number; notes?: string; variantId?: string; modifierOptionIds?: string[] }[];
   type?: 'DINE_IN' | 'TAKEOUT' | 'DELIVERY';
     locationId?: string;
   tableId?: string;
@@ -651,18 +756,49 @@ export async function createPosOrder(input: {
       const orgMenu = await db.orm.public.MenuItem.where({ organizationId: input.organizationId }).all();
     const itemById = new Map(orgMenu.map((m: any) => [m.id, m]));
 
-    const lineItems: { menuItemId: string; quantity: number; unitPrice: number; notes: string | null }[] = [];
-    let subtotal = 0;
-    for (const item of input.items) {
-      const menuItem = itemById.get(item.menuItemId);
-      if (!menuItem) return { error: "An item on the order is not on this kitchen's menu." };
-      if (menuItem.isAvailable === false) return { error: `86'd item: ${menuItem.name} is unavailable.` };
-      const quantity = item.quantity;
-      if (!(quantity > 0)) return { error: 'Item quantities must be greater than zero.' };
-      const unitPrice = menuItem.price; // server-authoritative, never client price
-      lineItems.push({ menuItemId: menuItem.id, quantity, unitPrice, notes: item.notes ?? null });
-      subtotal += unitPrice * quantity;
-    }
+    const lineItems: any[] = [];
+      let subtotal = 0;
+      for (const item of input.items) {
+        const menuItem = itemById.get(item.menuItemId);
+        if (!menuItem) return { error: "An item on the order is not on this kitchen's menu." };
+        if (menuItem.isAvailable === false) return { error: `86'd item: ${menuItem.name} is unavailable.` };
+        const quantity = item.quantity;
+        if (!(quantity > 0)) return { error: 'Item quantities must be greater than zero.' };
+        
+        let unitPrice = menuItem.price;
+        let variantName: string | null = null;
+        if (item.variantId) {
+          const variant = await db.orm.public.MenuItemVariant.where({ id: item.variantId, menuItemId: menuItem.id }).all().first();
+          if (variant) {
+            unitPrice = variant.price;
+            variantName = variant.name;
+          }
+        }
+
+        const modifiers: any[] = [];
+        if (item.modifierOptionIds && item.modifierOptionIds.length > 0) {
+          const opts = await db.orm.public.ModifierOption.where({ id: { in: item.modifierOptionIds } }).all();
+          for (const optId of item.modifierOptionIds) {
+            const opt = opts.find((o: any) => o.id === optId);
+            if (opt) {
+              unitPrice += opt.priceDelta;
+              modifiers.push({ optionId: opt.id, name: opt.name, priceDelta: opt.priceDelta });
+            }
+          }
+        }
+
+        lineItems.push({ 
+          menuItemId: menuItem.id, 
+          menuItemName: menuItem.name,
+          variantId: item.variantId ?? null,
+          variantName,
+          quantity, 
+          unitPrice, 
+          notes: item.notes ?? null,
+          modifiers 
+        });
+        subtotal += unitPrice * quantity;
+      }
 
     // Settings: tax, service charge, next call-out number.
     const settings = await db.orm.public.RestaurantSettings
@@ -715,9 +851,14 @@ export async function createPosOrder(input: {
       }
       // Advance the call-out counter (same transaction as the order).
       await tx.orm.public.RestaurantSettings
-        .where({ organizationId: input.organizationId })
-        .update({ nextOrderNumber: orderNumber + 1 });
-      return created;
+          .where({ organizationId: input.organizationId })
+          .update({ nextOrderNumber: orderNumber + 1 });
+        
+        if (created.status === 'COMPLETED') {
+          await consumeInventoryForOrder(tx, created.id, input.organizationId, settings);
+        }
+        
+        return created;
     });
 
     revalidatePath('/admin/restaurantos');
@@ -798,60 +939,15 @@ export async function updateOrderStatus(
 
       // P0-A: Sales -> Inventory Consumption (Transactional, Idempotent)
       if (status === 'COMPLETED' && !order.inventoryConsumed) {
-        const items = await tx.orm.public.OrderItem.where({ orderId: orderId }).all();
-        for (const line of items) {
-          const menuItem = await tx.orm.public.MenuItem.where({ id: line.menuItemId }).all().first();
-          if (menuItem && menuItem.inventoryItemId) {
-            const lockedInvCount = await tx.execute(db.raw.sql`SELECT id FROM "restaurantInventoryItem" WHERE id = ${menuItem.inventoryItemId} FOR UPDATE`.affectedCount().build());
-            if (lockedInvCount > 0) {
-              const invItem = await tx.orm.public.RestaurantInventoryItem.where({ id: menuItem.inventoryItemId }).all().first();
-              await tx.execute(db.raw.sql`
-                UPDATE "restaurantInventoryItem"
-                SET "quantity" = "quantity" - ${line.quantity}
-                WHERE id = ${invItem.id}
-              `.affectedCount().build());
-              await tx.orm.public.RestaurantStockMovement.create({
-                organizationId: order.organizationId,
-                itemId: invItem.id,
-                type: 'POS_SALE',
-                delta: -line.quantity,
-                unitCost: invItem.cost,
-                note: `Consumed for Order ${order.orderNumber || orderId}`
-              });
-              await tx.orm.public.OrderItem.where({ id: line.id }).update({ unitCost: invItem.cost });
-            }
-          }
+          const settings = await tx.orm.public.RestaurantSettings.where({ organizationId: order.organizationId }).all().first();
+          await consumeInventoryForOrder(tx, orderId, order.organizationId, settings);
         }
-        await tx.orm.public.RestaurantOrder.where({ id: orderId }).update({ inventoryConsumed: true });
-      }
 
       // Reversal on CANCELLED
       if (status === 'CANCELLED' && order.inventoryConsumed) {
-        const items = await tx.orm.public.OrderItem.where({ orderId: orderId }).all();
-        for (const line of items) {
-          const menuItem = await tx.orm.public.MenuItem.where({ id: line.menuItemId }).all().first();
-          if (menuItem && menuItem.inventoryItemId) {
-            const lockedInvCount = await tx.execute(db.raw.sql`SELECT id FROM "restaurantInventoryItem" WHERE id = ${menuItem.inventoryItemId} FOR UPDATE`.affectedCount().build());
-            if (lockedInvCount > 0) {
-              const invItem = await tx.orm.public.RestaurantInventoryItem.where({ id: menuItem.inventoryItemId }).all().first();
-              await tx.execute(db.raw.sql`
-                UPDATE "restaurantInventoryItem"
-                SET "quantity" = "quantity" + ${line.quantity}
-                WHERE id = ${invItem.id}
-              `.affectedCount().build());
-              await tx.orm.public.RestaurantStockMovement.create({
-                organizationId: order.organizationId,
-                itemId: invItem.id,
-                type: 'MANUAL_ADJUSTMENT',
-                delta: line.quantity,
-                unitCost: line.unitCost || invItem.cost,
-                note: `Reversed cancellation for Order ${order.orderNumber || orderId}`
-              });
-            }
-          }
+          const settings = await tx.orm.public.RestaurantSettings.where({ organizationId: order.organizationId }).all().first();
+          await reverseInventoryForOrder(tx, orderId, order.organizationId, settings);
         }
-        await tx.orm.public.RestaurantOrder.where({ id: orderId }).update({ inventoryConsumed: false });
-      }
 
       // Reversal of payment status (if cancelling an already paid order)
       if (status === 'CANCELLED' && (order.paymentStatus === 'PAID' || order.paymentStatus === 'COMPLETED')) {

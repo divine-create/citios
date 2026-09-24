@@ -251,9 +251,23 @@ export default function KDSWorkspace({ initialTickets, org, slug }: { initialTic
                             <p className={`font-bold text-lg leading-tight ${isItemReady ? 'text-emerald-400 line-through' : 'text-white'}`}>
                               {i.itemName}
                             </p>
+                            {i.variantName && (
+                              <p className={`text-sm font-semibold ${isItemReady ? 'text-emerald-500' : 'text-slate-300'}`}>
+                                {i.variantName}
+                              </p>
+                            )}
+                            {i.modifiers && i.modifiers.length > 0 && (
+                              <div className="mt-1 space-y-0.5">
+                                {i.modifiers.map((m: any) => (
+                                  <p key={m.id} className={`text-sm font-bold uppercase ${isItemReady ? 'text-emerald-600' : 'text-amber-400'}`}>
+                                    + {m.name}
+                                  </p>
+                                ))}
+                              </div>
+                            )}
                             {i.notes && (
                               <p className={`text-sm font-bold uppercase mt-1 ${isItemReady ? 'text-emerald-600' : 'text-red-400'}`}>
-                                {i.notes}
+                                ! {i.notes}
                               </p>
                             )}
                             {isExpo && (

@@ -224,6 +224,10 @@
       "model": "MenuItemComboItem",
       "namespace": "public"
     },
+    "menuItemModifierGroup": {
+      "model": "MenuItemModifierGroup",
+      "namespace": "public"
+    },
     "menuItemVariant": {
       "model": "MenuItemVariant",
       "namespace": "public"
@@ -256,6 +260,14 @@
       "model": "MicrositeSection",
       "namespace": "public"
     },
+    "modifierGroup": {
+      "model": "ModifierGroup",
+      "namespace": "public"
+    },
+    "modifierOption": {
+      "model": "ModifierOption",
+      "namespace": "public"
+    },
     "nightAuditReport": {
       "model": "NightAuditReport",
       "namespace": "public"
@@ -274,6 +286,10 @@
     },
     "orderItem": {
       "model": "OrderItem",
+      "namespace": "public"
+    },
+    "orderItemModifier": {
+      "model": "OrderItemModifier",
       "namespace": "public"
     },
     "organization": {
@@ -8052,6 +8068,21 @@
                   "namespace": "public"
                 }
               },
+              "modifierGroups": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "menuItemId"
+                  ]
+                },
+                "to": {
+                  "model": "MenuItemModifierGroup",
+                  "namespace": "public"
+                }
+              },
               "orderItems": {
                 "cardinality": "1:N",
                 "on": {
@@ -8079,6 +8110,21 @@
                 },
                 "to": {
                   "model": "Organization",
+                  "namespace": "public"
+                }
+              },
+              "recipe": {
+                "cardinality": "1:1",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "menuItemId"
+                  ]
+                },
+                "to": {
+                  "model": "RestaurantRecipe",
                   "namespace": "public"
                 }
               },
@@ -8452,6 +8498,88 @@
               },
               "namespaceId": "public",
               "table": "menuItemComboItem"
+            }
+          },
+          "MenuItemModifierGroup": {
+            "fields": {
+              "displayOrder": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "menuItemId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "modifierGroupId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "group": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "modifierGroupId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "ModifierGroup",
+                  "namespace": "public"
+                }
+              },
+              "menuItem": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "menuItemId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "MenuItem",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "displayOrder": {
+                  "column": "displayOrder"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "menuItemId": {
+                  "column": "menuItemId"
+                },
+                "modifierGroupId": {
+                  "column": "modifierGroupId"
+                }
+              },
+              "namespaceId": "public",
+              "table": "menuItemModifierGroup"
             }
           },
           "MenuItemVariant": {
@@ -9710,6 +9838,305 @@
               "table": "micrositeSection"
             }
           },
+          "ModifierGroup": {
+            "fields": {
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "description": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "displayOrder": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "isActive": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
+              "isRequired": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
+              "maxSelections": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "minSelections": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "name": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "organizationId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "menuItems": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "modifierGroupId"
+                  ]
+                },
+                "to": {
+                  "model": "MenuItemModifierGroup",
+                  "namespace": "public"
+                }
+              },
+              "options": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "modifierGroupId"
+                  ]
+                },
+                "to": {
+                  "model": "ModifierOption",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "description": {
+                  "column": "description"
+                },
+                "displayOrder": {
+                  "column": "displayOrder"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "isActive": {
+                  "column": "isActive"
+                },
+                "isRequired": {
+                  "column": "isRequired"
+                },
+                "maxSelections": {
+                  "column": "maxSelections"
+                },
+                "minSelections": {
+                  "column": "minSelections"
+                },
+                "name": {
+                  "column": "name"
+                },
+                "organizationId": {
+                  "column": "organizationId"
+                }
+              },
+              "namespaceId": "public",
+              "table": "modifierGroup"
+            }
+          },
+          "ModifierOption": {
+            "fields": {
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "description": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "displayOrder": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "inventoryItemId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "inventoryQuantity": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
+              "isActive": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
+              "modifierGroupId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "name": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "priceDelta": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "group": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "modifierGroupId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "ModifierGroup",
+                  "namespace": "public"
+                }
+              },
+              "inventoryItem": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "inventoryItemId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "RestaurantInventoryItem",
+                  "namespace": "public"
+                }
+              },
+              "orderItemModifiers": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "modifierOptionId"
+                  ]
+                },
+                "to": {
+                  "model": "OrderItemModifier",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "description": {
+                  "column": "description"
+                },
+                "displayOrder": {
+                  "column": "displayOrder"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "inventoryItemId": {
+                  "column": "inventoryItemId"
+                },
+                "inventoryQuantity": {
+                  "column": "inventoryQuantity"
+                },
+                "isActive": {
+                  "column": "isActive"
+                },
+                "modifierGroupId": {
+                  "column": "modifierGroupId"
+                },
+                "name": {
+                  "column": "name"
+                },
+                "priceDelta": {
+                  "column": "priceDelta"
+                }
+              },
+              "namespaceId": "public",
+              "table": "modifierOption"
+            }
+          },
           "NightAuditReport": {
             "fields": {
               "auditDate": {
@@ -10252,6 +10679,13 @@
                   "kind": "scalar"
                 }
               },
+              "menuItemName": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "notes": {
                 "nullable": true,
                 "type": {
@@ -10286,6 +10720,20 @@
                   "codecId": "pg/float8@1",
                   "kind": "scalar"
                 }
+              },
+              "variantId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "variantName": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
               }
             },
             "relations": {
@@ -10301,6 +10749,21 @@
                 },
                 "to": {
                   "model": "MenuItem",
+                  "namespace": "public"
+                }
+              },
+              "modifiers": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "orderItemId"
+                  ]
+                },
+                "to": {
+                  "model": "OrderItemModifier",
                   "namespace": "public"
                 }
               },
@@ -10331,6 +10794,9 @@
                 "menuItemId": {
                   "column": "menuItemId"
                 },
+                "menuItemName": {
+                  "column": "menuItemName"
+                },
                 "notes": {
                   "column": "notes"
                 },
@@ -10345,10 +10811,108 @@
                 },
                 "unitPrice": {
                   "column": "unitPrice"
+                },
+                "variantId": {
+                  "column": "variantId"
+                },
+                "variantName": {
+                  "column": "variantName"
                 }
               },
               "namespaceId": "public",
               "table": "orderItem"
+            }
+          },
+          "OrderItemModifier": {
+            "fields": {
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "modifierOptionId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "name": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "orderItemId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "priceDelta": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "option": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "modifierOptionId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "ModifierOption",
+                  "namespace": "public"
+                }
+              },
+              "orderItem": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "orderItemId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "OrderItem",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "id": {
+                  "column": "id"
+                },
+                "modifierOptionId": {
+                  "column": "modifierOptionId"
+                },
+                "name": {
+                  "column": "name"
+                },
+                "orderItemId": {
+                  "column": "orderItemId"
+                },
+                "priceDelta": {
+                  "column": "priceDelta"
+                }
+              },
+              "namespaceId": "public",
+              "table": "orderItemModifier"
             }
           },
           "Organization": {
@@ -15727,6 +16291,13 @@
                   "kind": "scalar"
                 }
               },
+              "menuItemId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "name": {
                 "nullable": false,
                 "type": {
@@ -15772,6 +16343,21 @@
                   "namespace": "public"
                 }
               },
+              "menuItem": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "menuItemId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "MenuItem",
+                  "namespace": "public"
+                }
+              },
               "organization": {
                 "cardinality": "N:1",
                 "on": {
@@ -15813,6 +16399,9 @@
                 },
                 "instructions": {
                   "column": "instructions"
+                },
+                "menuItemId": {
+                  "column": "menuItemId"
                 },
                 "name": {
                   "column": "name"
@@ -16148,6 +16737,48 @@
                   "kind": "scalar"
                 }
               },
+              "enableFoodCosting": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
+              "enableInventory": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
+              "enableModifiers": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
+              "enableProduction": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
+              "enableRecipes": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
+              "enableVariants": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
               "hasMenu": {
                 "nullable": false,
                 "type": {
@@ -16267,6 +16898,24 @@
                 },
                 "createdAt": {
                   "column": "createdAt"
+                },
+                "enableFoodCosting": {
+                  "column": "enableFoodCosting"
+                },
+                "enableInventory": {
+                  "column": "enableInventory"
+                },
+                "enableModifiers": {
+                  "column": "enableModifiers"
+                },
+                "enableProduction": {
+                  "column": "enableProduction"
+                },
+                "enableRecipes": {
+                  "column": "enableRecipes"
+                },
+                "enableVariants": {
+                  "column": "enableVariants"
                 },
                 "hasMenu": {
                   "column": "hasMenu"
@@ -31410,6 +32059,101 @@
               },
               "uniques": []
             },
+            "menuItemModifierGroup": {
+              "columns": {
+                "displayOrder": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "menuItemId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "modifierGroupId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "menuItemId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "menuItemModifierGroup"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "menuItem"
+                  }
+                },
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "modifierGroupId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "menuItemModifierGroup"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "modifierGroup"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "menuItemId"
+                  ],
+                  "name": "menuItemModifierGroup_menuItemId_idx_715cce4c",
+                  "prefix": "menuItemModifierGroup_menuItemId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "modifierGroupId"
+                  ],
+                  "name": "menuItemModifierGroup_modifierGroupId_idx_4a0521d7",
+                  "prefix": "menuItemModifierGroup_modifierGroupId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "menuItemId",
+                    "modifierGroupId"
+                  ]
+                }
+              ]
+            },
             "menuItemVariant": {
               "columns": {
                 "createdAt": {
@@ -32428,6 +33172,217 @@
               },
               "uniques": []
             },
+            "modifierGroup": {
+              "columns": {
+                "createdAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "description": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "displayOrder": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "isActive": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": true
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
+                "isRequired": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": false
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
+                "maxSelections": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": true
+                },
+                "minSelections": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "name": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "organizationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [],
+              "indexes": [],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
+            },
+            "modifierOption": {
+              "columns": {
+                "createdAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "description": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "displayOrder": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "inventoryItemId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "inventoryQuantity": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
+                  "nullable": true
+                },
+                "isActive": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": true
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
+                "modifierGroupId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "name": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "priceDelta": {
+                  "codecId": "pg/float8@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "float8",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "modifierGroupId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "modifierOption"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "modifierGroup"
+                  }
+                },
+                {
+                  "source": {
+                    "columns": [
+                      "inventoryItemId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "modifierOption"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "restaurantInventoryItem"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "inventoryItemId"
+                  ],
+                  "name": "modifierOption_inventoryItemId_idx_ddbb7ccf",
+                  "prefix": "modifierOption_inventoryItemId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "modifierGroupId"
+                  ],
+                  "name": "modifierOption_modifierGroupId_idx_4a0521d7",
+                  "prefix": "modifierOption_modifierGroupId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
+            },
             "nightAuditReport": {
               "columns": {
                 "auditDate": {
@@ -32907,6 +33862,11 @@
                   "nativeType": "text",
                   "nullable": false
                 },
+                "menuItemName": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "notes": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -32939,6 +33899,16 @@
                   "codecId": "pg/float8@1",
                   "nativeType": "float8",
                   "nullable": false
+                },
+                "variantId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "variantName": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
                 }
               },
               "foreignKeys": [
@@ -32992,6 +33962,99 @@
                   ],
                   "name": "orderItem_orderId_idx_d284871b",
                   "prefix": "orderItem_orderId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
+            },
+            "orderItemModifier": {
+              "columns": {
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "modifierOptionId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "name": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "orderItemId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "priceDelta": {
+                  "codecId": "pg/float8@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "float8",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "orderItemId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "orderItemModifier"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "orderItem"
+                  }
+                },
+                {
+                  "onDelete": "setNull",
+                  "source": {
+                    "columns": [
+                      "modifierOptionId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "orderItemModifier"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "modifierOption"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "modifierOptionId"
+                  ],
+                  "name": "orderItemModifier_modifierOptionId_idx_d5644f4f",
+                  "prefix": "orderItemModifier_modifierOptionId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "orderItemId"
+                  ],
+                  "name": "orderItemModifier_orderItemId_idx_99e2d9f7",
+                  "prefix": "orderItemModifier_orderItemId_idx",
                   "unique": false
                 }
               ],
@@ -36464,6 +37527,11 @@
                   "nativeType": "text",
                   "nullable": true
                 },
+                "menuItemId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "name": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -36506,6 +37574,22 @@
                     "namespaceId": "public",
                     "tableName": "organization"
                   }
+                },
+                {
+                  "source": {
+                    "columns": [
+                      "menuItemId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "restaurantRecipe"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "menuItem"
+                  }
                 }
               ],
               "indexes": [
@@ -36523,7 +37607,13 @@
                   "id"
                 ]
               },
-              "uniques": []
+              "uniques": [
+                {
+                  "columns": [
+                    "menuItemId"
+                  ]
+                }
+              ]
             },
             "restaurantRecipeIngredient": {
               "columns": {
@@ -36833,6 +37923,60 @@
                     "kind": "function"
                   },
                   "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "enableFoodCosting": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": false
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
+                "enableInventory": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": false
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
+                "enableModifiers": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": false
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
+                "enableProduction": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": false
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
+                "enableRecipes": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": false
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
+                "enableVariants": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": false
+                  },
+                  "nativeType": "bool",
                   "nullable": false
                 },
                 "hasMenu": {
@@ -44842,10 +45986,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "39b8c5cf22a757f336468aa11683fdca65c5ccd616b3817c956727c93dc8bcc0"
+    "storageHash": "55e0f19c2bbf24f84e154dec4e5aa6e12db5305e9c321231c8e15d63d6edad5f"
   },
   "execution": {
-    "executionHash": "f180232303a8bdd983773ae90753193b5b30143485161986b54c86af11d4f953",
+    "executionHash": "aef877be06dc34da60d964a1abcb3a7935aa4467e547c231a1d3ff3a2d799994",
     "mutations": {
       "defaults": [
         {
@@ -45461,6 +46605,17 @@
           "ref": {
             "column": "id",
             "namespace": "public",
+            "table": "menuItemModifierGroup"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
             "table": "menuItemVariant"
           }
         },
@@ -45549,6 +46704,28 @@
           "ref": {
             "column": "id",
             "namespace": "public",
+            "table": "modifierGroup"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "modifierOption"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
             "table": "nightAuditReport"
           }
         },
@@ -45594,6 +46771,17 @@
             "column": "id",
             "namespace": "public",
             "table": "orderItem"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "orderItemModifier"
           }
         },
         {
