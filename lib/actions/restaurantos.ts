@@ -1,3 +1,5 @@
+'use server';
+
 
 async function consumeInventoryForOrder(tx: any, orderId: string, organizationId: string, settings: any) {
   const order = await tx.orm.public.RestaurantOrder.where({ id: orderId }).all().first();
@@ -103,8 +105,6 @@ async function deductInventory(tx: any, organizationId: string, itemId: string, 
     }
   }
 }
-'use server';
-
 // ============================================================================
 // RESTAURANTOS — action layer (Restaurants, Eateries & Fast Food)
 // ----------------------------------------------------------------------------
