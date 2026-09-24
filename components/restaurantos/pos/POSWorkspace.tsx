@@ -144,7 +144,8 @@ export default function POSWorkspace({ initialMenu, initialTables, settings, act
           orderId: res.orderId,
           orderNumber: String(res.orderNumber),
           storeName: org?.name,
-          items: posLines.map((l: any) => ({ name: l.name, qty: l.qty, price: l.price })),
+          items: posLines.map((l: any) => ({ name: l.name, quantity: l.qty, unitPrice: l.price, subtotal: l.qty * l.price })),
+            subtotal: posSubtotal,
           totalAmount: res.totalAmount,
           paymentMethod: method,
         });
