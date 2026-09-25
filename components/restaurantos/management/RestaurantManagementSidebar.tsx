@@ -78,7 +78,7 @@ export default function RestaurantManagementSidebar({ slug, settings, orgName }:
   ];
 
   return (
-    <div className="w-64 bg-white border-r border-slate-200 h-full flex flex-col overflow-y-auto hidden md:flex">
+    <div className="w-64 bg-white border-r border-slate-200 h-full flex flex-col overflow-y-auto ">
       <div className="p-6">
         <h2 className="text-xl font-black text-slate-900 tracking-tight">{orgName}</h2>
         <Badge variant="teal" className="mt-2">RestaurantOS</Badge>
