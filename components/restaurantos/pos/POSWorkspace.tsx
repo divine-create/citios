@@ -162,6 +162,7 @@ export default function POSWorkspace({ initialMenu, initialTables, settings, act
   const [posMsg, setPosMsg] = useState("");
   
   // Modals
+  const [mobileCartOpen, setMobileCartOpen] = useState(false);
   const [checkoutMode, setCheckoutMode] = useState(false);
   const [receiptModalData, setReceiptModalData] = useState<any>(null);
   const [editingNotesForId, setEditingNotesForId] = useState<string | null>(null);
@@ -433,10 +434,14 @@ export default function POSWorkspace({ initialMenu, initialTables, settings, act
       </div>
 
       {/* RIGHT PANEL - CART */}
-      <div className="w-[420px] bg-white border-l border-slate-200 flex flex-col shrink-0 shadow-2xl z-20">
+      <div className={cn('bg-white border-l border-slate-200 flex flex-col shrink-0 shadow-2xl z-40 transition-transform duration-300', 'fixed inset-0 lg:static lg:w-[420px] lg:flex lg:translate-x-0', mobileCartOpen ? 'translate-x-0' : 'translate-x-full')}>
         
         {/* Cart Header / Order Context */}
         <div className="p-5 border-b border-slate-100 bg-slate-50/50 shrink-0">
+           <div className="flex justify-between items-center lg:hidden mb-4">
+             <h3 className="font-black text-lg text-slate-900">Current Order</h3>
+             <button onClick={() => setMobileCartOpen(false)} className="p-2 bg-slate-200 text-slate-600 rounded-xl font-bold">Close</button>
+           </div>
            <PillTabs 
              tabs={[{value:'TAKEOUT', label:'Takeout'}, {value:'DINE_IN', label:'Dine-in'}]} 
              active={posType} 

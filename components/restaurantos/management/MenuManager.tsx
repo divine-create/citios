@@ -4,7 +4,8 @@ import React, { useState } from 'react';
 import { Button, Badge, Input } from '@/components/ui';
 import { Plus, Search, MoreHorizontal, Edit2, Trash2 } from 'lucide-react';
 import { formatNaira } from '@/lib/utils';
-import { toggleMenuItemAvailability } from '@/lib/actions/restaurantos';
+import { toggleMenuItemAvailability, createMenuItem } from '@/lib/actions/restaurantos';
+import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
 export default function MenuManager({ slug, menu, settings }: { slug: string; menu: any[]; settings: any }) {
@@ -23,6 +24,34 @@ export default function MenuManager({ slug, menu, settings }: { slug: string; me
   const handleToggleAvailable = async (id: string, currentlyAvailable: boolean) => {
     await toggleMenuItemAvailability(id);
     router.refresh();
+  };
+
+  const [isCreating, setIsCreating] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [newItem, setNewItem] = useState({ name: '', description: '', price: '', category: '' });
+
+  const handleCreate = async () => {
+    if (!newItem.name || !newItem.price || !newItem.category) {
+      return toast.error("Name, price, and category are required");
+    }
+    setLoading(true);
+    const res: any = await createMenuItem({
+      organizationId: slug,
+      name: newItem.name,
+      description: newItem.description,
+      price: parseFloat(newItem.price),
+      category: newItem.category
+    });
+    setLoading(false);
+    
+    if (res?.error) {
+      toast.error(res.error);
+    } else {
+      toast.success("Menu item created!");
+      setIsCreating(false);
+      setNewItem({ name: '', description: '', price: '', category: '' });
+      router.refresh();
+    }
   };
 
   return (
@@ -44,8 +73,27 @@ export default function MenuManager({ slug, menu, settings }: { slug: string; me
             {categories.map((c: any) => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
-        <Button leftIcon={<Plus size={16} />}>Create Menu Item</Button>
+        <Button onClick={() => setIsCreating(true)} leftIcon={<Plus size={16} />}>Create Menu Item</Button>
       </div>
+
+      {isCreating && (
+        <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl">
+          <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider mb-4">Create New Item</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <Input label="Name" value={newItem.name} onChange={(e: any) => setNewItem({...newItem, name: e.target.value})} />
+            <Input label="Category (e.g. Mains, Drinks)" value={newItem.category} onChange={(e: any) => setNewItem({...newItem, category: e.target.value})} list="cat-list" />
+            <datalist id="cat-list">
+              {categories.map((c: any) => <option key={c} value={c} />)}
+            </datalist>
+            <Input label="Price (₦)" type="number" value={newItem.price} onChange={(e: any) => setNewItem({...newItem, price: e.target.value})} />
+            <Input label="Description (Optional)" value={newItem.description} onChange={(e: any) => setNewItem({...newItem, description: e.target.value})} />
+          </div>
+          <div className="flex gap-2 justify-end">
+            <Button variant="ghost" onClick={() => setIsCreating(false)}>Cancel</Button>
+            <Button onClick={handleCreate} isLoading={loading}>Save Item</Button>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
         <table className="w-full text-left text-sm">
