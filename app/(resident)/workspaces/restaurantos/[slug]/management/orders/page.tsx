@@ -3,7 +3,7 @@ import { requireMembership } from '@/lib/actions/tenant';
 import { getOrders } from '@/lib/actions/restaurantos';
 import { Badge, EmptyState } from '@/components/ui';
 import { ShoppingBag, Search, Filter } from 'lucide-react';
-import { formatNaira, formatDateTime } from '@/lib/utils';
+import { formatNaira } from '@/lib/utils';
 import Link from 'next/link';
 
 export const metadata = {
