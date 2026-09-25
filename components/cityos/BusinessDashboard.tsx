@@ -56,7 +56,7 @@ export default function BusinessDashboard() {
     RESTAURANT: { href: currentBusiness ? `/workspaces/restaurantos/${currentBusiness.id}` : '/admin/restaurantos', label: 'Full RestaurantOS' },
     RETAIL: { href: currentBusiness ? `/workspaces/shopos/${currentBusiness.id}` : '/admin/grocery', label: 'Full ShopOS' },
     SERVICES: { href: currentBusiness ? `/workspaces/serviceos/${currentBusiness.id}` : '/admin/service', label: 'Full ServiceOS' },
-    SCHOOL: { href: currentBusiness ? `/workspaces/schoolos/${currentBusiness.id}` : '/admin/school', label: 'Full EduOS' },
+    SCHOOL: { href: currentBusiness ? `/school/admin?org=${currentBusiness.id}` : '/school/admin', label: 'Full EduOS' },
     HOTEL: { href: '/hotel/manager', label: 'Full HotelOS admin' },
     EVENT_ORGANIZER: { href: '/admin/events', label: 'Full EventsOS admin' },
   };
