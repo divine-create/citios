@@ -442,7 +442,7 @@ export default async function OverviewPage({
               <div>
                 <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Opened</p>
                 <p className="font-black text-slate-900 text-sm">
-                  {new Date(shift.openedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                  {new Date(String(shift.openedAt)).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>
               <div>
@@ -497,7 +497,7 @@ export default async function OverviewPage({
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-bold text-indigo-700">
-                        {new Date(r.scheduledAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(String(r.scheduledAt)).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                       </p>
                       <Badge variant={r.status === 'confirmed' ? 'success' : 'warning'}>{r.status}</Badge>
                     </div>
