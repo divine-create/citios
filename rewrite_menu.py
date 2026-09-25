@@ -1,4 +1,4 @@
-﻿"use client";
+﻿content = '''"use client";
 
 import React, { useState } from 'react';
 import { Button, Badge, Input } from '@/components/ui';
@@ -131,7 +131,7 @@ export default function MenuManager({ slug, menu, settings }: { slug: string; me
                 {datalistCategories.map((c: string) => <option key={c} value={c} />)}
               </datalist>
             </div>
-            <Input label="Price (₦)" type="number" value={newItem.price} onChange={(e: any) => setNewItem({...newItem, price: e.target.value})} />
+            <Input label="Price (,)" type="number" value={newItem.price} onChange={(e: any) => setNewItem({...newItem, price: e.target.value})} />
             <Input label="Description (Optional)" value={newItem.description} onChange={(e: any) => setNewItem({...newItem, description: e.target.value})} />
             <Input label="Image URL (Optional)" value={(newItem as any).imageUrl || ""} onChange={(e: any) => setNewItem({...newItem, imageUrl: e.target.value} as any)} />
           </div>
@@ -177,7 +177,7 @@ export default function MenuManager({ slug, menu, settings }: { slug: string; me
                     onClick={() => handleToggleAvailable(item.id, item.isAvailable)}
                     className={inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wide }
                   >
-                    {item.isAvailable ? 'Available' : '86'd'}
+                    {item.isAvailable ? 'Available' : '86\'d'}
                   </button>
                 </td>
                 {settings?.enableRecipes && (
@@ -206,3 +206,7 @@ export default function MenuManager({ slug, menu, settings }: { slug: string; me
     </div>
   );
 }
+'''
+
+with open('components/restaurantos/management/MenuManager.tsx', 'w', encoding='utf-8') as f:
+    f.write(content)
