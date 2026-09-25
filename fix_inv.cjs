@@ -1,4 +1,6 @@
+﻿const fs = require('fs');
 
+let content = `
 "use client";
 
 import React, { useState } from 'react';
@@ -247,3 +249,6 @@ export default function InventoryManager({ slug, items, movements }: { slug: str
     </div>
   );
 }
+`;
+
+fs.writeFileSync('components/restaurantos/management/InventoryManager.tsx', content);
