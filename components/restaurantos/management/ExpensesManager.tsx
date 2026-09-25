@@ -55,7 +55,7 @@ export function ExpensesManager({
     }
   };
 
-  const filtered = expenses.filter(e => 
+  const filtered = expenses.filter((e: any) => 
     e.category.toLowerCase().includes(search.toLowerCase()) || 
     (e.note && e.note.toLowerCase().includes(search.toLowerCase()))
   );

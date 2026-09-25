@@ -74,7 +74,7 @@ export function ReservationsManager({
     if (res.error) {
       toast.error(res.error);
     } else {
-      setReservations(reservations.map(r => r.id === id ? { ...r, status } : r));
+      setReservations(reservations.map((r: any) => r.id === id ? { ...r, status } : r));
       toast.success(`Reservation marked as ${status}`);
       router.refresh();
     }
@@ -107,7 +107,7 @@ export function ReservationsManager({
               className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500/20"
             >
               <option value="">Any Available Table</option>
-              {tables.map(t => (
+              {tables.map((t: any) => (
                 <option key={t.id} value={t.id}>{t.name} ({t.seats} seats)</option>
               ))}
             </select>
@@ -126,7 +126,7 @@ export function ReservationsManager({
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
-          {sorted.filter(r => ['pending', 'confirmed', 'seated'].includes(r.status)).map(r => (
+          {sorted.filter((r: any) => ['pending', 'confirmed', 'seated'].includes(r.status)).map((r: any) => (
             <div key={r.id} className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:shadow-sm">
               <div className="flex gap-4 items-start">
                 <div className="w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
@@ -175,7 +175,7 @@ export function ReservationsManager({
               </div>
             </div>
           ))}
-          {sorted.filter(r => ['pending', 'confirmed', 'seated'].includes(r.status)).length === 0 && !isCreating && (
+          {sorted.filter((r: any) => ['pending', 'confirmed', 'seated'].includes(r.status)).length === 0 && !isCreating && (
             <div className="text-center py-12 text-slate-500 border border-dashed border-slate-200 rounded-2xl">
               No upcoming reservations.
             </div>
@@ -185,7 +185,7 @@ export function ReservationsManager({
         <div>
           <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Past & Cancelled</h3>
           <div className="space-y-3">
-            {sorted.filter(r => ['completed', 'cancelled'].includes(r.status)).slice(0, 5).map(r => (
+            {sorted.filter((r: any) => ['completed', 'cancelled'].includes(r.status)).slice(0, 5).map((r: any) => (
               <div key={r.id} className="bg-slate-50 border border-slate-100 rounded-xl p-4">
                 <div className="flex justify-between items-start">
                   <span className="font-bold text-slate-700 text-sm">{r.customerName}</span>

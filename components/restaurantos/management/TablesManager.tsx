@@ -52,13 +52,13 @@ export function TablesManager({
     if (res.error) {
       toast.error(res.error);
     } else {
-      setTables(tables.map(t => t.id === id ? { ...t, status } : t));
+      setTables(tables.map((t: any) => t.id === id ? { ...t, status } : t));
       toast.success(`Table marked as ${status}`);
       router.refresh();
     }
   };
 
-  const filtered = tables.filter(t => t.name.toLowerCase().includes(search.toLowerCase()));
+  const filtered = tables.filter((t: any) => t.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div className="space-y-6">

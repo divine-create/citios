@@ -21,7 +21,7 @@ export default async function ShiftsPage({
   await requireMembership(slug, ['OWNER', 'ADMIN', 'MANAGER'], locationId);
   
   const shifts = await getRestaurantShifts(slug);
-  const locationShifts = locationId ? shifts.filter(s => s.locationId === locationId) : shifts;
+  const locationShifts = locationId ? shifts.filter((s: any) => s.locationId === locationId) : shifts;
 
   return (
     <div className="space-y-6">

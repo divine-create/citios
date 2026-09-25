@@ -12,9 +12,9 @@ export default function MenuManager({ slug, menu, settings }: { slug: string; me
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
 
-  const categories = ['All', ...Array.from(new Set(menu.map(m => m.category))).filter(Boolean)] as string[];
+  const categories = ['All', ...Array.from(new Set(menu.map((m: any) => m.category))).filter(Boolean)] as string[];
 
-  const filtered = menu.filter(m => {
+  const filtered = menu.filter((m: any) => {
     if (categoryFilter !== 'All' && m.category !== categoryFilter) return false;
     if (search && !m.name.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
@@ -41,7 +41,7 @@ export default function MenuManager({ slug, menu, settings }: { slug: string; me
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
           >
-            {categories.map(c => <option key={c} value={c}>{c}</option>)}
+            {categories.map((c: any) => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
         <Button leftIcon={<Plus size={16} />}>Create Menu Item</Button>

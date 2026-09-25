@@ -64,7 +64,7 @@ export function ShiftsManager({
       toast.error(res.error);
     } else if (res.shift) {
       toast.success('Shift closed successfully');
-      setShifts(shifts.map(s => s.id === isClosingId ? res.shift : s));
+      setShifts(shifts.map((s: any) => s.id === isClosingId ? res.shift : s));
       setIsClosingId(null);
       setActualCash(0);
       setNotes('');
@@ -173,14 +173,14 @@ export function ShiftsManager({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {shifts.filter(s => s.status !== 'OPEN').length === 0 ? (
+              {shifts.filter((s: any) => s.status !== 'OPEN').length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-5 py-8 text-center text-slate-500 font-medium">
                     No closed shifts recorded yet.
                   </td>
                 </tr>
               ) : (
-                shifts.filter(s => s.status !== 'OPEN').map(shift => {
+                shifts.filter((s: any) => s.status !== 'OPEN').map(shift => {
                   const variance = (shift.actualCash || 0) - (shift.expectedCash || 0);
                   return (
                     <tr key={shift.id} className="hover:bg-slate-50 transition-colors group">
