@@ -74,7 +74,7 @@ export async function getOverviewAlerts(
   for (const o of allOrders as any[]) {
     if (
       ['PENDING', 'PREPARING'].includes(o.status) &&
-      new Date(o.createdAt) < overdueThreshold
+      new Date(String(o.createdAt)) < overdueThreshold
     ) {
       overdueTickets++;
     }
@@ -171,7 +171,7 @@ export async function getOverviewSales(organizationId: string, locationId?: stri
   const completedOrderIds: string[] = [];
 
   for (const o of allOrders as any[]) {
-    const d = new Date(o.createdAt);
+    const d = new Date(String(o.createdAt));
     if (d >= start && d <= end && o.status === 'COMPLETED') {
       orderCount++;
       grossSales += o.totalAmount ?? 0;
@@ -258,7 +258,7 @@ export async function getOverviewInventory(organizationId: string, locationId?: 
 
   for (const m of allMovements as any[]) {
     if (m.type !== 'WASTE') continue;
-    const d = new Date(m.createdAt);
+    const d = new Date(String(m.createdAt));
     if (d < start || d > end) continue;
     // Location filter via the inventory-item membership set
     if (locationId && !invIds.has(m.itemId)) continue;
@@ -303,7 +303,7 @@ export async function getOverviewReservations(organizationId: string, locationId
   const arrivingSoon: any[] = [];
 
   for (const r of reservations as any[]) {
-    const scheduledAt = new Date(r.scheduledAt);
+    const scheduledAt = new Date(String(r.scheduledAt));
     if (
       scheduledAt >= now &&
       scheduledAt <= end &&
@@ -339,7 +339,7 @@ export async function getOverviewShift(organizationId: string, locationId?: stri
     .all();
 
   const sorted = (allShifts as any[]).sort(
-    (a, b) => new Date(b.openedAt).getTime() - new Date(a.openedAt).getTime(),
+    (a, b) => new Date(String(b.openedAt)).getTime() - new Date(String(a.openedAt)).getTime(),
   );
 
   const activeShift = sorted.find((s) => s.status === 'OPEN');
