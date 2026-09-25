@@ -1,4 +1,4 @@
-'use client';
+﻿content = ''''use client';
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -105,3 +105,7 @@ export default function GeneralSettings({ organizationId, initialSettings }: { o
     </div>
   );
 }
+'''
+
+with open('components/restaurantos/management/GeneralSettings.tsx', 'w', encoding='utf-8') as f:
+    f.write(content)
