@@ -30,6 +30,7 @@ declare module 'next-auth' {
       memberships?: OrgMembership[];
       isCourier?: boolean;
       onboardingComplete?: boolean;
+      isSystemAdmin?: boolean;
     };
   }
 }
@@ -41,5 +42,6 @@ declare module 'next-auth/jwt' {
     memberships?: OrgMembership[];
     isCourier?: boolean;
     onboardingComplete?: boolean;
+      isSystemAdmin?: boolean;
   }
 }
