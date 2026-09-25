@@ -1,9 +1,13 @@
 import React from 'react';
 import { requireMembership } from '@/lib/actions/tenant';
-import { EmptyState } from '@/components/ui';
-import { CalendarDays } from 'lucide-react';
+import { getReservations, getTables } from '@/lib/actions/restaurantos';
+import { ReservationsManager } from '@/components/restaurantos/management/ReservationsManager';
 
-export default async function Page({
+export const metadata = {
+  title: 'Reservations - RestaurantOS',
+};
+
+export default async function ReservationsPage({
   params,
   searchParams,
 }: {
@@ -15,6 +19,11 @@ export default async function Page({
   const locationId = sp.location;
 
   await requireMembership(slug, ['OWNER', 'ADMIN', 'MANAGER'], locationId);
+  
+  const [reservations, tables] = await Promise.all([
+    getReservations(slug, locationId),
+    getTables(slug, locationId)
+  ]);
 
   return (
     <div className="space-y-6">
@@ -27,13 +36,12 @@ export default async function Page({
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border shadow-sm p-16">
-        <EmptyState 
-          icon={<CalendarDays size={32} />}
-          title="Coming Soon"
-          description="This module is scheduled for the next development phase. Stay tuned!"
-        />
-      </div>
+      <ReservationsManager 
+        organizationId={slug}
+        locationId={locationId}
+        initialReservations={reservations}
+        tables={tables}
+      />
     </div>
   );
 }
