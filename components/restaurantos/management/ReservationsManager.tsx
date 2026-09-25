@@ -40,7 +40,7 @@ export function ReservationsManager({
     const scheduledAt = new Date(`${dateStr}T${timeStr}:00`).toISOString();
 
     setLoading(true);
-    const res = await createReservation({
+    const res: any = await createReservation({
       organizationId,
       locationId,
       customerName: name,
@@ -70,7 +70,7 @@ export function ReservationsManager({
   };
 
   const handleStatusChange = async (id: string, status: 'pending' | 'confirmed' | 'seated' | 'completed' | 'cancelled') => {
-    const res = await updateReservationStatus(id, status);
+    const res: any = await updateReservationStatus(id, status);
     if (res.error) {
       toast.error(res.error);
     } else {

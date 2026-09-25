@@ -28,7 +28,7 @@ export function TablesManager({
   const handleCreate = async () => {
     if (!newName.trim()) return toast.error('Table name is required');
     setLoading(true);
-    const res = await createTable({
+    const res: any = await createTable({
       organizationId,
       locationId,
       name: newName,
@@ -48,7 +48,7 @@ export function TablesManager({
   };
 
   const handleStatusChange = async (id: string, status: 'available' | 'occupied' | 'reserved') => {
-    const res = await updateTableStatus(id, status);
+    const res: any = await updateTableStatus(id, status);
     if (res.error) {
       toast.error(res.error);
     } else {

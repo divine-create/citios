@@ -82,7 +82,7 @@ export default function CapabilityManager({ organizationId, initialSettings }: {
         }
       }
 
-      const res = await updateRestaurantOSSettings(organizationId, updates);
+      const res: any = await updateRestaurantOSSettings(organizationId, updates);
       if (res?.error) {
         alert(res.error);
       } else {

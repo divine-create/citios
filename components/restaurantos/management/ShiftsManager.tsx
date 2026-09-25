@@ -32,7 +32,7 @@ export function ShiftsManager({
 
   const handleOpenShift = async () => {
     setLoading(true);
-    const res = await openShift({
+    const res: any = await openShift({
       organizationId,
       locationId,
       openingFloat
@@ -53,7 +53,7 @@ export function ShiftsManager({
   const handleCloseShift = async () => {
     if (!isClosingId) return;
     setLoading(true);
-    const res = await closeShift({
+    const res: any = await closeShift({
       shiftId: isClosingId,
       actualCash,
       notes

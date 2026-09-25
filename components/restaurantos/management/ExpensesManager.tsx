@@ -33,7 +33,7 @@ export function ExpensesManager({
     if (!category.trim()) return toast.error('Category is required');
 
     setLoading(true);
-    const res = await addExpense({
+    const res: any = await addExpense({
       organizationId,
       locationId,
       amount,
