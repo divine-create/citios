@@ -1,7 +1,7 @@
-import React from 'react';
-import { requireMembership } from '@/lib/actions/tenant';
-import { EmptyState } from '@/components/ui';
-import { Users } from 'lucide-react';
+﻿import React from 'react';
+import { requireMembership, getTeamMembers } from '@/lib/actions/tenant';
+import TeamManager from '@/components/restaurantos/management/TeamManager';
+import { db } from '@/src/prisma/db';
 
 export default async function Page({
   params,
@@ -16,8 +16,11 @@ export default async function Page({
 
   await requireMembership(slug, ['OWNER', 'ADMIN', 'MANAGER'], locationId);
 
+  const team = await getTeamMembers(slug);
+  const locations = await db.orm.public.Location.where({ organizationId: slug }).all();
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">Team & Roles</h1>
@@ -27,13 +30,11 @@ export default async function Page({
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border shadow-sm p-16">
-        <EmptyState 
-          icon={<Users size={32} />}
-          title="Coming Soon"
-          description="This module is scheduled for the next development phase. Stay tuned!"
-        />
-      </div>
+      <TeamManager 
+        slug={slug} 
+        members={JSON.parse(JSON.stringify(team))} 
+        locations={JSON.parse(JSON.stringify(locations))} 
+      />
     </div>
   );
 }
