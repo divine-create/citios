@@ -33,3 +33,11 @@ export async function requireCourierAccess() {
   if (!session?.user?.isCourier) redirect("/");
   return session;
 }
+
+export async function requireSystemAdmin() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.isSystemAdmin) {
+    redirect("/");
+  }
+  return session;
+}

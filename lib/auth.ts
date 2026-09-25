@@ -129,6 +129,7 @@ export const authOptions: NextAuthOptions = {
             token.isCourier = !!gigProfile;
             token.role = memberships.length > 0 ? "PROVIDER" : gigProfile ? "COURIER" : "RESIDENT";
             token.onboardingComplete = residentProfile?.onboardingComplete ?? false;
+            token.isSystemAdmin = dbPerson.isSystemAdmin ?? false;
           }
         } catch (error) {
           console.error("Error resolving RBAC roles:", error);
@@ -161,6 +162,7 @@ export const authOptions: NextAuthOptions = {
         session.user.memberships = token.memberships ?? [];
         session.user.isCourier = !!token.isCourier;
         session.user.onboardingComplete = (token.onboardingComplete as boolean | undefined) ?? false;
+        session.user.isSystemAdmin = (token.isSystemAdmin as boolean | undefined) ?? false;
       }
       return session;
     },

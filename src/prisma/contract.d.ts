@@ -33,7 +33,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'55e0f19c2bbf24f84e154dec4e5aa6e12db5305e9c321231c8e15d63d6edad5f'>;
+  StorageHashBase<'906786685a69545b33d1c436e762a1d6b16dc57ea376eeb9df491b1a2a558f9a'>;
 export type ExecutionHash =
   ExecutionHashBase<'aef877be06dc34da60d964a1abcb3a7935aa4467e547c231a1d3ff3a2d799994'>;
 export type ProfileHash =
@@ -1050,6 +1050,7 @@ export type FieldOutputTypes = {
       readonly firstName: CodecTypes['pg/text@1']['output'];
       readonly lastName: CodecTypes['pg/text@1']['output'];
       readonly dateOfBirth: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
+      readonly isSystemAdmin: CodecTypes['pg/bool@1']['output'];
       readonly homeCityId: CodecTypes['pg/text@1']['output'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
@@ -2860,6 +2861,7 @@ export type FieldInputTypes = {
       readonly firstName: CodecTypes['pg/text@1']['input'];
       readonly lastName: CodecTypes['pg/text@1']['input'];
       readonly dateOfBirth: CodecTypes['pg/timestamptz-temporal@1']['input'] | null;
+      readonly isSystemAdmin: CodecTypes['pg/bool@1']['input'];
       readonly homeCityId: CodecTypes['pg/text@1']['input'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
@@ -4671,6 +4673,7 @@ export type StorageColumnTypes = {
       readonly firstName: CodecTypes['pg/text@1']['output'];
       readonly homeCityId: CodecTypes['pg/text@1']['output'] | null;
       readonly id: CodecTypes['pg/text@1']['output'];
+      readonly isSystemAdmin: CodecTypes['pg/bool@1']['output'];
       readonly lastName: CodecTypes['pg/text@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
     };
@@ -6481,6 +6484,7 @@ export type StorageColumnInputTypes = {
       readonly firstName: CodecTypes['pg/text@1']['input'];
       readonly homeCityId: CodecTypes['pg/text@1']['input'] | null;
       readonly id: CodecTypes['pg/text@1']['input'];
+      readonly isSystemAdmin: CodecTypes['pg/bool@1']['input'];
       readonly lastName: CodecTypes['pg/text@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
     };
@@ -14298,6 +14302,15 @@ type ContractBase = Omit<
                   readonly nativeType: 'timestamptz';
                   readonly codecId: 'pg/timestamptz-temporal@1';
                   readonly nullable: true;
+                };
+                readonly isSystemAdmin: {
+                  readonly nativeType: 'bool';
+                  readonly codecId: 'pg/bool@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/bool@1', false>;
+                  };
                 };
                 readonly homeCityId: {
                   readonly nativeType: 'text';
@@ -31082,6 +31095,10 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/timestamptz-temporal@1';
                 };
               };
+              readonly isSystemAdmin: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/bool@1' };
+              };
               readonly homeCityId: {
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
@@ -31355,6 +31372,7 @@ type ContractBase = Omit<
                 readonly firstName: { readonly column: 'firstName' };
                 readonly lastName: { readonly column: 'lastName' };
                 readonly dateOfBirth: { readonly column: 'dateOfBirth' };
+                readonly isSystemAdmin: { readonly column: 'isSystemAdmin' };
                 readonly homeCityId: { readonly column: 'homeCityId' };
                 readonly createdAt: { readonly column: 'createdAt' };
                 readonly updatedAt: { readonly column: 'updatedAt' };

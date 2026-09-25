@@ -12847,6 +12847,13 @@
                   "kind": "scalar"
                 }
               },
+              "isSystemAdmin": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
               "lastName": {
                 "nullable": false,
                 "type": {
@@ -13225,6 +13232,9 @@
                 },
                 "id": {
                   "column": "id"
+                },
+                "isSystemAdmin": {
+                  "column": "isSystemAdmin"
                 },
                 "lastName": {
                   "column": "lastName"
@@ -34917,6 +34927,15 @@
                   "nativeType": "text",
                   "nullable": false
                 },
+                "isSystemAdmin": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": false
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
                 "lastName": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -45986,7 +46005,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "55e0f19c2bbf24f84e154dec4e5aa6e12db5305e9c321231c8e15d63d6edad5f"
+    "storageHash": "906786685a69545b33d1c436e762a1d6b16dc57ea376eeb9df491b1a2a558f9a"
   },
   "execution": {
     "executionHash": "aef877be06dc34da60d964a1abcb3a7935aa4467e547c231a1d3ff3a2d799994",

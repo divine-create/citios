@@ -4,6 +4,7 @@ model Person {
   firstName      String
   lastName       String
   dateOfBirth    DateTime?
+  isSystemAdmin  Boolean            @default(false)
   
   account        Account?           
   identifiers    PersonIdentifier[]
