@@ -72,7 +72,7 @@ export default function RestaurantManagementSidebar({ slug, settings, orgName }:
       title: 'ADMINISTRATION',
       items: [
         { label: 'Team Roles', href: `/workspaces/restaurantos/${slug}/management/team`, icon: <Users size={18} /> },
-        { label: 'Capabilities', href: `/workspaces/restaurantos/${slug}/management/capabilities`, icon: <Settings size={18} /> },
+        { label: 'Tables', href: `/workspaces/restaurantos/${slug}/management/tables`, icon: <LayoutDashboard size={18} /> },`n        { label: 'Capabilities', href: `/workspaces/restaurantos/${slug}/management/capabilities`, icon: <Settings size={18} /> },
       ]
     }
   ];
