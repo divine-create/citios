@@ -1,9 +1,13 @@
 import React from 'react';
 import { requireMembership } from '@/lib/actions/tenant';
-import { EmptyState } from '@/components/ui';
-import { CreditCard } from 'lucide-react';
+import { getExpenses } from '@/lib/actions/restaurantos';
+import { ExpensesManager } from '@/components/restaurantos/management/ExpensesManager';
 
-export default async function Page({
+export const metadata = {
+  title: 'Expenses - RestaurantOS',
+};
+
+export default async function ExpensesPage({
   params,
   searchParams,
 }: {
@@ -14,7 +18,9 @@ export default async function Page({
   const sp = await searchParams;
   const locationId = sp.location;
 
-  await requireMembership(slug, ['OWNER', 'ADMIN', 'MANAGER'], locationId);
+  await requireMembership(slug, ['OWNER', 'ADMIN', 'MANAGER', 'FINANCE'], locationId);
+  
+  const expenses = await getExpenses(slug, locationId);
 
   return (
     <div className="space-y-6">
@@ -27,13 +33,11 @@ export default async function Page({
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border shadow-sm p-16">
-        <EmptyState 
-          icon={<CreditCard size={32} />}
-          title="Coming Soon"
-          description="This module is scheduled for the next development phase. Stay tuned!"
-        />
-      </div>
+      <ExpensesManager 
+        organizationId={slug}
+        locationId={locationId}
+        initialExpenses={expenses}
+      />
     </div>
   );
 }

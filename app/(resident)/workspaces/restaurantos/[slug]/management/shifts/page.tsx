@@ -1,9 +1,13 @@
 import React from 'react';
 import { requireMembership } from '@/lib/actions/tenant';
-import { EmptyState } from '@/components/ui';
-import { Clock } from 'lucide-react';
+import { getRestaurantShifts } from '@/lib/actions/restaurantos';
+import { ShiftsManager } from '@/components/restaurantos/management/ShiftsManager';
 
-export default async function Page({
+export const metadata = {
+  title: 'Shift Management - RestaurantOS',
+};
+
+export default async function ShiftsPage({
   params,
   searchParams,
 }: {
@@ -15,6 +19,9 @@ export default async function Page({
   const locationId = sp.location;
 
   await requireMembership(slug, ['OWNER', 'ADMIN', 'MANAGER'], locationId);
+  
+  const shifts = await getRestaurantShifts(slug);
+  const locationShifts = locationId ? shifts.filter(s => s.locationId === locationId) : shifts;
 
   return (
     <div className="space-y-6">
@@ -27,13 +34,11 @@ export default async function Page({
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border shadow-sm p-16">
-        <EmptyState 
-          icon={<Clock size={32} />}
-          title="Coming Soon"
-          description="This module is scheduled for the next development phase. Stay tuned!"
-        />
-      </div>
+      <ShiftsManager 
+        organizationId={slug}
+        locationId={locationId}
+        initialShifts={locationShifts}
+      />
     </div>
   );
 }

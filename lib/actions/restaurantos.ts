@@ -289,6 +289,7 @@ export async function createMenuItem(input: {
   name: string;
   description?: string;
   price: number;
+  locationId?: string;
   category: string;
   imageUrl?: string;
   kitchenStation?: string;
@@ -327,7 +328,8 @@ export async function createMenuItem(input: {
 
 export async function updateMenuItem(
   menuItemId: string,
-  input: Partial<{ name: string; description: string; price: number; category: string; imageUrl: string }>,
+  input: Partial<{ name: string; description: string; price: number; locationId?: string;
+  category: string; imageUrl: string }>,
 ) {
   try {
     const menuItem = await db.orm.public.MenuItem.where({ id: menuItemId }).all().first();
@@ -1438,6 +1440,7 @@ export async function getStockMovements(organizationId: string, itemId?: string)
 
 export async function addExpense(input: {
   organizationId: string;
+  locationId?: string;
   category: string;
   amount: number;
   note?: string;
@@ -1450,6 +1453,7 @@ export async function addExpense(input: {
       organizationId: input.organizationId,
       category: input.category.trim() || 'other',
       amount: input.amount,
+      locationId: input.locationId ?? null,
       note: input.note ?? null,
     });
     revalidatePath('/', 'layout');
@@ -1775,7 +1779,7 @@ export async function getActiveShift(organizationId: string, locationId: string)
       locationId,
       status: 'OPEN'
     }).all().first();
-    return { shift };
+    return { shift: shift ? JSON.parse(JSON.stringify(shift)) : null };
   } catch (e: any) {
     return { error: e.message };
   }
@@ -1836,7 +1840,7 @@ export async function getRestaurantShifts(organizationId: string) {
   try {
     await requireMembership(organizationId);
     const shifts = await db.orm.public.RestaurantShift.where({ organizationId }).orderBy((s) => s.createdAt.desc()).all();
-    return shifts;
+    return JSON.parse(JSON.stringify(shifts));
   } catch(e) {
     return [];
   }
