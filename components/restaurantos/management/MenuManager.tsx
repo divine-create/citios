@@ -40,7 +40,8 @@ export default function MenuManager({ slug, menu, settings }: { slug: string; me
       name: newItem.name,
       description: newItem.description,
       price: parseFloat(newItem.price),
-      category: newItem.category
+      category: newItem.category,
+      imageUrl: (newItem as any).imageUrl || undefined
     });
     setLoading(false);
     
@@ -87,6 +88,7 @@ export default function MenuManager({ slug, menu, settings }: { slug: string; me
             </datalist>
             <Input label="Price (₦)" type="number" value={newItem.price} onChange={(e: any) => setNewItem({...newItem, price: e.target.value})} />
             <Input label="Description (Optional)" value={newItem.description} onChange={(e: any) => setNewItem({...newItem, description: e.target.value})} />
+            <Input label="Image URL (Optional)" value={(newItem as any).imageUrl || ''} onChange={(e: any) => setNewItem({...newItem, imageUrl: e.target.value} as any)} />
           </div>
           <div className="flex gap-2 justify-end">
             <Button variant="ghost" onClick={() => setIsCreating(false)}>Cancel</Button>
@@ -111,8 +113,17 @@ export default function MenuManager({ slug, menu, settings }: { slug: string; me
             {filtered.map(item => (
               <tr key={item.id} className="hover:bg-slate-50 transition-colors">
                 <td className="px-6 py-4">
-                  <p className="font-bold text-slate-900">{item.name}</p>
-                  {item.description && <p className="text-xs text-slate-500 truncate max-w-[200px]">{item.description}</p>}
+                  <div className="flex items-center gap-3">
+                    {item.imageUrl ? (
+                      <img src={item.imageUrl} alt={item.name} className="w-10 h-10 rounded-lg object-cover shrink-0 ring-1 ring-black/5 bg-slate-100" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-lg bg-slate-100 ring-1 ring-black/5 shrink-0" />
+                    )}
+                    <div>
+                      <p className="font-bold text-slate-900">{item.name}</p>
+                      {item.description && <p className="text-xs text-slate-500 truncate max-w-[200px]">{item.description}</p>}
+                    </div>
+                  </div>
                 </td>
                 <td className="px-6 py-4 text-slate-600">{item.category}</td>
                 <td className="px-6 py-4 font-black text-slate-900">{formatNaira(item.price)}</td>

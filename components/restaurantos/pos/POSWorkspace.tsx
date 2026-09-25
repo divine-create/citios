@@ -412,8 +412,8 @@ export default function POSWorkspace({ initialMenu, initialTables, settings, act
                 >
                   <div className="flex justify-between gap-3 w-full items-start">
                     <span className="font-bold text-slate-800 text-sm leading-snug line-clamp-3">{m.name}</span>
-                    {m.imageAssetId && (
-                      <img src={`/api/assets/${m.imageAssetId}`} alt={m.name} className="w-12 h-12 rounded-xl object-cover shrink-0 shadow-sm ring-1 ring-black/5 bg-slate-100" />
+                    {m.imageUrl && (
+                      <img src={m.imageUrl} alt={m.name} className="w-12 h-12 rounded-xl object-cover shrink-0 shadow-sm ring-1 ring-black/5 bg-slate-100" />
                     )}
                   </div>
                   <div className="mt-auto pt-4 flex items-end justify-between">
