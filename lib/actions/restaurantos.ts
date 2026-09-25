@@ -1485,12 +1485,16 @@ export async function getExpenses(organizationId: string, locationId?: string) {
  * Sales + expenses summary for the financial manager: today's revenue by
  * payment method, order count, average ticket, expense totals.
  */
-export async function getFinancialSummary(organizationId: string) {
+export async function getFinancialSummary(organizationId: string, locationId?: string) {
   try {
     await requireMembership(organizationId);
 
-    const orders = await db.orm.public.RestaurantOrder.where({ organizationId }).all();
-    const expenses = await db.orm.public.RestaurantExpense.where({ organizationId }).all();
+    let oQ = db.orm.public.RestaurantOrder.where({ organizationId });
+    if (locationId) oQ = oQ.where({ locationId });
+    const orders = await oQ.all();
+    let eQ = db.orm.public.RestaurantExpense.where({ organizationId });
+    if (locationId) eQ = eQ.where({ locationId });
+    const expenses = await eQ.all();
 
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
