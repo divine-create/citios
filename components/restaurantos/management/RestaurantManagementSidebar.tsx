@@ -48,16 +48,16 @@ export default function RestaurantManagementSidebar({ slug, settings, orgName }:
       title: 'MENU',
       items: [
         { label: 'Menu Items', href: `/workspaces/restaurantos/${slug}/management/menu`, icon: <MenuSquare size={18} /> },
-        ...(settings?.enableVariants ? [{ label: 'Variants', href: `/workspaces/restaurantos/${slug}/management/variants`, icon: <Layers size={18} /> }] : []),
-        ...(settings?.enableModifiers ? [{ label: 'Modifiers', href: `/workspaces/restaurantos/${slug}/management/modifiers`, icon: <SlidersHorizontal size={18} /> }] : []),
+        ...(settings?.enableVariants !== false ? [{ label: 'Variants', href: `/workspaces/restaurantos/${slug}/management/variants`, icon: <Layers size={18} /> }] : []),
+        ...(settings?.enableModifiers !== false ? [{ label: 'Modifiers', href: `/workspaces/restaurantos/${slug}/management/modifiers`, icon: <SlidersHorizontal size={18} /> }] : []),
       ]
     },
-    ...(settings?.enableInventory ? [{
+    ...(settings?.enableInventory !== false ? [{
       title: 'INVENTORY',
       items: [
         { label: 'Stock Levels', href: `/workspaces/restaurantos/${slug}/management/inventory`, icon: <PackageSearch size={18} /> },
-        ...(settings?.enableRecipes ? [{ label: 'Recipes', href: `/workspaces/restaurantos/${slug}/management/recipes`, icon: <BookOpen size={18} /> }] : []),
-        ...(settings?.enableProduction ? [{ label: 'Production', href: `/workspaces/restaurantos/${slug}/management/production`, icon: <ChefHat size={18} /> }] : []),
+        ...(settings?.enableRecipes !== false ? [{ label: 'Recipes', href: `/workspaces/restaurantos/${slug}/management/recipes`, icon: <BookOpen size={18} /> }] : []),
+        ...(settings?.enableProduction !== false ? [{ label: 'Production', href: `/workspaces/restaurantos/${slug}/management/production`, icon: <ChefHat size={18} /> }] : []),
       ]
     }] : []),
     {
@@ -65,7 +65,7 @@ export default function RestaurantManagementSidebar({ slug, settings, orgName }:
       items: [
         { label: 'Revenue', href: `/workspaces/restaurantos/${slug}/management/revenue`, icon: <LineChart size={18} /> },
         { label: 'Expenses', href: `/workspaces/restaurantos/${slug}/management/expenses`, icon: <CreditCard size={18} /> },
-        ...(settings?.enableFoodCosting ? [{ label: 'Food Cost', href: `/workspaces/restaurantos/${slug}/management/costing`, icon: <Percent size={18} /> }] : []),
+        ...(settings?.enableFoodCosting !== false ? [{ label: 'Food Cost', href: `/workspaces/restaurantos/${slug}/management/costing`, icon: <Percent size={18} /> }] : []),
       ]
     },
     {
