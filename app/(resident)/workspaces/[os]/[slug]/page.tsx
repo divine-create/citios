@@ -1,6 +1,6 @@
 ﻿import ShopDashboard from '@/components/retail/ShopDashboard';
 import ServiceOSWorkspace from '@/components/cityos/workspaces/ServiceOSWorkspace';
-import SchoolOSWorkspace from '@/components/cityos/workspaces/SchoolOSWorkspace';
+
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/src/prisma/db';
@@ -61,6 +61,11 @@ export default async function WorkspacePage({ params }: { params: Promise<{ os: 
 
   if (!userRole) return null;
 
+  if (os === 'schoolos') {
+    const { redirect } = await import('next/navigation');
+    redirect(`/school/admin?org=${slug}`);
+  }
+
   if (os === 'restaurantos') {
     const { redirect } = await import('next/navigation');
     redirect(`/workspaces/restaurantos/${slug}/management/overview`);
@@ -80,7 +85,7 @@ export default async function WorkspacePage({ params }: { params: Promise<{ os: 
     <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6 w-full h-full bg-[#F4F7FC]">
       <div className="max-w-7xl mx-auto">
         {os === 'serviceos' && <ServiceOSWorkspace slug={slug} />}
-        {os === 'schoolos' && <SchoolOSWorkspace slug={slug} />}
+        
       </div>
     </div>
   );

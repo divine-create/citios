@@ -54,7 +54,7 @@ export default function SchoolRegisterForm({ isLoggedIn }: { isLoggedIn: boolean
       } catch {}
 
       const orgId = result.organizationId;
-      const destination = orgId ? `/workspaces/schoolos/${orgId}` : '/school/admin';
+      const destination = orgId ? `/school/admin?org=${orgId}` : '/school/admin';
       try {
         if (orgId) {
           localStorage.setItem('cityconnect_active_business_id', orgId);
