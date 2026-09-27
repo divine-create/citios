@@ -1,9 +1,9 @@
-import React from 'react';
+﻿import React from 'react';
 import { db } from '@/src/prisma/db';
 import { requireSystemAdmin } from '@/lib/rbac';
-import { Building, Search, ShieldAlert, CheckCircle, XCircle, MoreVertical } from 'lucide-react';
-import Link from 'next/link';
+import { Building, Search } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
+import TenantActions from '@/components/hq/TenantActions';
 
 export default async function HQTenantsPage() {
   await requireSystemAdmin();
@@ -58,12 +58,14 @@ export default async function HQTenantsPage() {
                   <Badge variant="default" className="bg-slate-800 text-slate-300">{org.type}</Badge>
                 </td>
                 <td className="px-6 py-4">
-                  <Badge variant="success" className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Active</Badge>
+                  {org.status === 'SUSPENDED' ? (
+                    <Badge variant="error" className="bg-red-500/10 text-red-400 border border-red-500/20">Suspended</Badge>
+                  ) : (
+                    <Badge variant="success" className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Active</Badge>
+                  )}
                 </td>
                 <td className="px-6 py-4 text-right">
-                  <button className="p-2 rounded-lg hover:bg-slate-800 text-slate-400 transition-colors">
-                    <MoreVertical className="w-4 h-4" />
-                  </button>
+                  <TenantActions orgId={org.id} status={org.status} />
                 </td>
               </tr>
             ))}

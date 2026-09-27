@@ -20,6 +20,7 @@ model Person {
   guardianLinks  FamilyLink[]       @relation("GuardianToWard")
   wardLinks      FamilyLink[]       @relation("WardToGuardian")
   wallets        Wallet[]
+  hqAuditEvents  HQAuditEvent[]
 
   gigProfile     GigWorkerProfile?
   requestedTasks Task[]             @relation("TaskRequester")
@@ -398,6 +399,11 @@ model City {
 // ORGANIZATIONS & RBAC (The SaaS Admin Portals)
 // ----------------------------------------------------------------------------
 
+enum OrganizationStatus {
+  ACTIVE
+  SUSPENDED
+}
+
 enum OrgType {
   GOVERNMENT
   SCHOOL
@@ -421,7 +427,8 @@ model Organization {
   description String?
   address     String?
   logoAssetId String?
-  createdAt   DateTime @default(now())
+  status      OrganizationStatus @default(ACTIVE)
+    createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now())
 
 
@@ -3417,4 +3424,17 @@ model OrderItemModifier {
   
   name             String
   priceDelta       Float           @default(0)
+}
+
+
+model HQAuditEvent {
+  id            String   @id @default(uuid())
+  actorPersonId String
+  action        String
+  targetType    String
+  targetId      String
+  metadata      Json?
+  createdAt     DateTime @default(now())
+
+  actor         Person   @relation(fields: [actorPersonId], references: [id])
 }

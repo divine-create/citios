@@ -1,22 +1,19 @@
-import React from 'react';
+﻿import React from 'react';
 import { db } from '@/src/prisma/db';
 import { requireSystemAdmin } from '@/lib/rbac';
-import { Activity, Users, Building, Truck, Wallet } from 'lucide-react';
+import { getHQMetrics } from '@/lib/actions/hq';
+import { Activity, Users, Building, Truck, Wallet, ShieldAlert } from 'lucide-react';
 
 export default async function HQDashboardPage() {
   await requireSystemAdmin();
 
+  const metrics = await getHQMetrics();
+  
   const [
-    totalUsers,
-    totalOrgs,
-    totalOrders,
     totalCouriers,
     systemWallet
   ] = await Promise.all([
-    db.orm.public.Person.all().then(r => r.length),
-    db.orm.public.Organization.all().then(r => r.length),
-    db.orm.public.RetailOrder.all().then(r => r.length), // Just a proxy for now
-    db.orm.public.GigWorkerProfile.all().then(r => r.length),
+    db.orm.public.GigWorkerProfile.count(),
     db.orm.public.Wallet.where({ organizationId: null, personId: null }).all().first()
   ]);
 
@@ -27,13 +24,13 @@ export default async function HQDashboardPage() {
         <p className="text-slate-400 mt-2">Overview of the entire CityOS ecosystem.</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
           <div className="flex items-center gap-3 text-slate-400 mb-4">
             <Users className="w-5 h-5 text-blue-500" />
             <h3 className="text-xs font-bold uppercase tracking-widest">Total Citizens</h3>
           </div>
-          <p className="text-4xl font-black text-white">{totalUsers}</p>
+          <p className="text-4xl font-black text-white">{metrics.users.total}</p>
         </div>
         
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
@@ -41,7 +38,15 @@ export default async function HQDashboardPage() {
             <Building className="w-5 h-5 text-emerald-500" />
             <h3 className="text-xs font-bold uppercase tracking-widest">Active Tenants</h3>
           </div>
-          <p className="text-4xl font-black text-white">{totalOrgs}</p>
+          <p className="text-4xl font-black text-white">{metrics.organizations.active}</p>
+        </div>
+
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+          <div className="flex items-center gap-3 text-slate-400 mb-4">
+            <ShieldAlert className="w-5 h-5 text-red-500" />
+            <h3 className="text-xs font-bold uppercase tracking-widest">Suspended Orgs</h3>
+          </div>
+          <p className="text-4xl font-black text-white">{metrics.organizations.suspended}</p>
         </div>
 
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
@@ -57,7 +62,7 @@ export default async function HQDashboardPage() {
             <Wallet className="w-5 h-5 text-purple-500" />
             <h3 className="text-xs font-bold uppercase tracking-widest">Platform Wallet</h3>
           </div>
-          <p className="text-4xl font-black text-white">₦{systemWallet?.balance?.toFixed(2) || '0.00'}</p>
+          <p className="text-4xl font-black text-white">&#8358;{systemWallet?.balance?.toFixed(2) || '0.00'}</p>
         </div>
       </div>
 

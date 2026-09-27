@@ -36,7 +36,13 @@ export async function requireAuthenticatedAccount() {
 export async function requireMembership(organizationId: string, allowedRoles?: string[], locationId?: string | null) {
   const { session, person, account } = await requireAuthenticatedAccount();
 
-  const membership = await db.orm.public.Membership.where({ 
+  
+  const org = await db.orm.public.Organization.where({ id: organizationId }).all().first();
+  if (org && org.status === 'SUSPENDED') {
+    throw new Error('FORBIDDEN: Organization has been suspended by the platform.');
+  }
+
+const membership = await db.orm.public.Membership.where({ 
     personId: person.id, 
     organizationId 
   }).all().first();
