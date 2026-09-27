@@ -29,6 +29,9 @@ export default async function HQLayout({ children }: { children: React.ReactNode
           <Link href="/hq/users" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-sm font-medium text-slate-300 hover:text-white transition-colors">
             <Users className="w-4 h-4" /> Citizens & Users
           </Link>
+          <Link href="/hq/activity" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-sm font-medium text-slate-300 hover:text-white transition-colors">
+            <ShieldAlert className="w-4 h-4" /> Governance Audit
+          </Link>
           <Link href="/hq/ledger" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-sm font-medium text-slate-300 hover:text-white transition-colors">
             <FileText className="w-4 h-4" /> Master Ledger
           </Link>
