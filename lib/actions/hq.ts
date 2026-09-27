@@ -96,7 +96,6 @@ export async function getHQMetrics() {
     }
   };
 }
-import { requireSystemAdmin } from '@/lib/rbac';
 
 export async function inspectOrganization(organizationId: string) {
   await requireSystemAdmin();

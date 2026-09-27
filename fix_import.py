@@ -1,14 +1,18 @@
 ﻿import os
 
-f_path = 'app/(resident)/workspaces/[os]/[slug]/page.tsx'
-with open(f_path, 'r', encoding='utf-8') as f:
-    c = f.read()
+f = 'lib/actions/hq.ts'
+with open(f, 'r', encoding='utf-8') as file:
+    lines = file.readlines()
 
-c = c.replace("import SchoolOSWorkspace from '@/components/cityos/workspaces/SchoolOSWorkspace';", "")
+out = []
+seen_import = False
+for line in lines:
+    if "import { requireSystemAdmin } from '@/lib/rbac';" in line:
+        if seen_import:
+            continue
+        else:
+            seen_import = True
+    out.append(line)
 
-with open(f_path, 'w', encoding='utf-8') as f:
-    f.write(c)
-
-os.remove('components/cityos/workspaces/SchoolOSWorkspace.tsx')
-
-print("Cleaned up SchoolOSWorkspace.")
+with open(f, 'w', encoding='utf-8') as file:
+    file.writelines(out)
