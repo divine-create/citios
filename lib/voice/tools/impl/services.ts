@@ -120,7 +120,7 @@ export const confirmServiceRequest: VoiceToolDefinition = {
     `.affectedCount().build();
     const consume = await db.runtime().execute(plan);
     
-    if (consume.affectedCount === 0) {
+    if (consume.affectedRows === 0) {
       return { ok: false, error: { code: 'INVALID_CONFIRMATION', message: 'Confirmation already processed or invalid.' } };
     }
 
