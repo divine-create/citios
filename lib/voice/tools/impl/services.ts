@@ -118,7 +118,7 @@ export const confirmServiceRequest: VoiceToolDefinition = {
       WHERE "personId" = ${session.user.personId}
         AND data->'pendingAction'->>'confirmationId' = ${confirmationId}
       RETURNING id;
-    `;
+    `.returnsRow({ id: 'varchar' }).build();
     const consume = await db.runtime().execute(plan);
     
     if (!consume || consume.length === 0) {
