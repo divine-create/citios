@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
@@ -14,13 +16,11 @@ export async function GET() {
       return NextResponse.json({ error: 'Voice configuration error' }, { status: 500 });
     }
 
-    const res = await fetch('https://api.assemblyai.com/v1/token', {
-      method: 'POST',
+    const res = await fetch('https://agents.assemblyai.com/v1/token?expires_in_seconds=600', {
+      method: 'GET',
       headers: {
-        'Authorization': process.env.ASSEMBLYAI_API_KEY,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ expires_in_seconds: 3600 })
+        'Authorization': process.env.ASSEMBLYAI_API_KEY
+      }
     });
 
     if (!res.ok) {
