@@ -680,6 +680,10 @@
       "model": "VoiceCheckout",
       "namespace": "public"
     },
+    "voiceContext": {
+      "model": "VoiceContext",
+      "namespace": "public"
+    },
     "waitlistEntry": {
       "model": "WaitlistEntry",
       "namespace": "public"
@@ -26567,6 +26571,73 @@
               "table": "voiceCheckout"
             }
           },
+          "VoiceContext": {
+            "fields": {
+              "data": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/json@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "personId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "person": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "personId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Person",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "data": {
+                  "column": "data"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "personId": {
+                  "column": "personId"
+                },
+                "updatedAt": {
+                  "column": "updatedAt"
+                }
+              },
+              "namespaceId": "public",
+              "table": "voiceContext"
+            }
+          },
           "WaitlistEntry": {
             "fields": {
               "addedAt": {
@@ -46451,6 +46522,66 @@
                 }
               ]
             },
+            "voiceContext": {
+              "columns": {
+                "data": {
+                  "codecId": "pg/json@1",
+                  "nativeType": "json",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "personId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "updatedAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "personId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "voiceContext"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "person"
+                  }
+                }
+              ],
+              "indexes": [],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "personId"
+                  ]
+                }
+              ]
+            },
             "waitlistEntry": {
               "columns": {
                 "addedAt": {
@@ -46958,10 +47089,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "ef0ceeac85b6051f55150dd19d0897d0e3185251e18135521d080d1f65643f1b"
+    "storageHash": "3ede521ab5904190c8ec96a3b124478253fddf8bea02fe5e83d5ee7a6418c9ff"
   },
   "execution": {
-    "executionHash": "f72f61a02f89648fb085360a63a5862c5f9475eb893be2c779cc229c901f7dc2",
+    "executionHash": "599cedcdecfa9c7628fafc7657860a18846df22a31269c31a7ac022961babd40",
     "mutations": {
       "defaults": [
         {
@@ -48821,6 +48952,17 @@
             "column": "id",
             "namespace": "public",
             "table": "voiceCheckout"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "voiceContext"
           }
         },
         {

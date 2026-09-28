@@ -1,0 +1,150 @@
+import { VoiceToolDefinition } from '../../policy';
+import { getVoiceCart, addVoiceCartItem, updateVoiceCartQuantity, removeVoiceCartItem, prepareVoiceCheckout, confirmVoiceCheckout } from '@/lib/voice/cart';
+import { getVoiceContext, updateVoiceContext } from '../../context/manager';
+
+export const getCart: VoiceToolDefinition = {
+  name: 'get_cart',
+  description: 'View the resident\'s voice shopping cart.',
+  riskLevel: 'read',
+  requiresConfirmation: false,
+  execute: async (args, session) => {
+    const { cart, subtotal } = await getVoiceCart(session.user.personId);
+    return {
+      ok: true,
+      data: {
+        itemCount: cart.items.length,
+        subtotal,
+        items: cart.items.map((i: any) => ({
+          productId: i.productId,
+          name: i.product?.name || 'Unknown',
+          price: i.product?.price || 0,
+          quantity: i.quantity,
+        })),
+        pendingCheckout: !!cart.checkout
+      }
+    };
+  }
+};
+
+export const addToCart: VoiceToolDefinition = {
+  name: 'add_to_cart',
+  description: 'Add a product to the cart. Requires product_id.',
+  riskLevel: 'reversible',
+  requiresConfirmation: false,
+  execute: async (args, session) => {
+    const qty = args.quantity ? parseInt(args.quantity) : 1;
+    let productId = args.product_id;
+    
+    if (!productId) {
+      const ctx = await getVoiceContext(session.user.personId);
+      if (ctx.recentEntities && ctx.recentEntities.length > 0) {
+        const prod = ctx.recentEntities.find(e => e.type === 'PRODUCT');
+        if (prod) productId = prod.id;
+      }
+    }
+    
+    if (!productId) return { ok: false, error: { code: 'INVALID_ARGUMENT', message: 'Product ID is missing or unclear.' } };
+
+    const res = await addVoiceCartItem(session.user.personId, productId, qty);
+    return { ok: true, data: { message: 'Item added.', newSubtotal: res.subtotal } };
+  }
+};
+
+export const updateCartQuantity: VoiceToolDefinition = {
+  name: 'update_cart_quantity',
+  description: 'Update the quantity of an item in the cart.',
+  riskLevel: 'reversible',
+  requiresConfirmation: false,
+  execute: async (args, session) => {
+    let productId = args.product_id;
+    if (!productId) {
+      const ctx = await getVoiceContext(session.user.personId);
+      if (ctx.recentEntities && ctx.recentEntities.length > 0) {
+        const prod = ctx.recentEntities.find(e => e.type === 'PRODUCT');
+        if (prod) productId = prod.id;
+      }
+    }
+
+    if (!productId) return { ok: false, error: { code: 'INVALID_ARGUMENT', message: 'Product ID is missing or unclear.' } };
+    
+    const qty = parseInt(args.quantity);
+    if (isNaN(qty)) return { ok: false, error: { code: 'INVALID_ARGUMENT', message: 'Quantity is invalid.' } };
+    
+    const res = await updateVoiceCartQuantity(session.user.personId, productId, qty);
+    return { ok: true, data: { message: 'Quantity updated.', newSubtotal: res.subtotal } };
+  }
+};
+
+export const removeFromCart: VoiceToolDefinition = {
+  name: 'remove_from_cart',
+  description: 'Remove an item from the cart.',
+  riskLevel: 'reversible',
+  requiresConfirmation: false,
+  execute: async (args, session) => {
+    let productId = args.product_id;
+    if (!productId) {
+      const ctx = await getVoiceContext(session.user.personId);
+      if (ctx.recentEntities && ctx.recentEntities.length > 0) {
+        const prod = ctx.recentEntities.find(e => e.type === 'PRODUCT');
+        if (prod) productId = prod.id;
+      }
+    }
+
+    if (!productId) return { ok: false, error: { code: 'INVALID_ARGUMENT', message: 'Product ID is missing or unclear.' } };
+
+    const res = await removeVoiceCartItem(session.user.personId, productId);
+    return { ok: true, data: { message: 'Item removed.', newSubtotal: res.subtotal } };
+  }
+};
+
+export const prepareCheckout: VoiceToolDefinition = {
+  name: 'prepare_checkout',
+  description: 'Calculates the final cart total and prepares for confirmation.',
+  riskLevel: 'read',
+  requiresConfirmation: false, // The prepare step itself doesn't require confirmation, it TEES UP confirmation
+  execute: async (args, session) => {
+    const res = await prepareVoiceCheckout(session.user.personId);
+    
+    // Explicitly update the context so we know what we're confirming
+    await updateVoiceContext(session.user.personId, {
+      pendingAction: {
+        action: 'confirm_checkout',
+        confirmationId: res.checkoutId,
+        expiresAt: new Date(Date.now() + 15 * 60000).toISOString()
+      }
+    });
+
+    return { 
+      ok: true, 
+      data: {
+        checkoutId: res.checkoutId, 
+        totalAmount: res.totalAmount,
+        instruction: 'State the total amount and ask the user to explicitly confirm they want to place this order.' 
+      }
+    };
+  }
+};
+
+export const confirmCheckout: VoiceToolDefinition = {
+  name: 'confirm_checkout',
+  description: 'Confirm and execute a pending checkout.',
+  riskLevel: 'financial',
+  requiresConfirmation: true, // Requires the policy engine to know this is a protected step
+  execute: async (args, session) => {
+    const ctx = await getVoiceContext(session.user.personId);
+    let checkoutId = args.checkout_id;
+
+    if (!checkoutId && ctx.pendingAction?.action === 'confirm_checkout') {
+      checkoutId = ctx.pendingAction.confirmationId;
+    }
+
+    if (!checkoutId) return { ok: false, error: { code: 'MISSING_CHECKOUT_ID', message: 'Checkout ID is required.' } };
+    
+    const res = await confirmVoiceCheckout(session.user.personId, checkoutId);
+    
+    // Clear pending action
+    await updateVoiceContext(session.user.personId, { pendingAction: undefined });
+    
+    return { ok: true, data: { message: 'Order placed successfully.', orderData: res } };
+  }
+};

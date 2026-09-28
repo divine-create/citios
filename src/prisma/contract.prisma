@@ -3489,3 +3489,11 @@ model VoiceCheckout {
   idempotencyKey String @unique
   createdAt DateTime @default(now())
 }
+
+model VoiceContext {
+  id        String   @id @default(uuid())
+  personId  String   @unique
+  person    Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  data      Json
+  updatedAt DateTime @default(now())
+}

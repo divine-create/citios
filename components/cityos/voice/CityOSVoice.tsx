@@ -217,10 +217,9 @@ export function CityOSVoice({ onTranscript, onClose }: CityOSVoiceProps) {
               parameters: {
                 type: "object",
                 properties: {
-                  product_id: { type: "string", description: "The ID of the product to add" },
+                  product_id: { type: "string", description: "Optional. The ID of the product. Omit if it's clear from context." },
                   quantity: { type: "number", description: "The quantity to add" }
-                },
-                required: ["product_id"]
+                }
               }
             },
             {
@@ -230,10 +229,10 @@ export function CityOSVoice({ onTranscript, onClose }: CityOSVoiceProps) {
               parameters: {
                 type: "object",
                 properties: {
-                  product_id: { type: "string", description: "The ID of the product" },
+                  product_id: { type: "string", description: "Optional. The ID of the product." },
                   quantity: { type: "number", description: "The new quantity (0 to remove)" }
                 },
-                required: ["product_id", "quantity"]
+                required: ["quantity"]
               }
             },
             {
@@ -243,9 +242,8 @@ export function CityOSVoice({ onTranscript, onClose }: CityOSVoiceProps) {
               parameters: {
                 type: "object",
                 properties: {
-                  product_id: { type: "string", description: "The ID of the product to remove" }
-                },
-                required: ["product_id"]
+                  product_id: { type: "string", description: "Optional. The ID of the product to remove." }
+                }
               }
             },
             {
@@ -264,9 +262,51 @@ export function CityOSVoice({ onTranscript, onClose }: CityOSVoiceProps) {
               parameters: {
                 type: "object",
                 properties: {
-                  checkout_id: { type: "string", description: "The checkout ID obtained from prepare_checkout" }
-                },
-                required: ["checkout_id"]
+                  checkout_id: { type: "string", description: "Optional. The checkout ID." }
+                }
+              }
+            },
+            {
+              type: "function",
+              name: "search_services",
+              description: "Search for available CityOS services (e.g. plumbers, streetlights).",
+              parameters: {
+                type: "object",
+                properties: {
+                  query: { type: "string", description: "The service to search for." }
+                }
+              }
+            },
+            {
+              type: "function",
+              name: "get_my_service_requests",
+              description: "View the resident's recent service requests.",
+              parameters: {
+                type: "object",
+                properties: {}
+              }
+            },
+            {
+              type: "function",
+              name: "prepare_service_request",
+              description: "Prepares a service request. You MUST run this to collect notes before confirmation.",
+              parameters: {
+                type: "object",
+                properties: {
+                  service_id: { type: "string", description: "Optional. The service ID." },
+                  notes: { type: "string", description: "Optional notes for the service professional." }
+                }
+              }
+            },
+            {
+              type: "function",
+              name: "confirm_service_request",
+              description: "Confirms and actually submits the prepared service request. ONLY run this AFTER the user explicitly confirmed the request.",
+              parameters: {
+                type: "object",
+                properties: {
+                  confirmation_id: { type: "string", description: "Optional. The confirmation ID." }
+                }
               }
             }
           ]
