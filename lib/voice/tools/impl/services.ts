@@ -112,13 +112,14 @@ export const confirmServiceRequest: VoiceToolDefinition = {
 
     // ATOMIC CONSUMPTION to prevent race conditions
     // If two concurrent requests hit this, only one will successfully clear the pendingAction.
-    const consume = await db.sql`
+    const plan = db.raw.sql`
       UPDATE "VoiceContext"
       SET data = data - 'pendingAction' - 'pendingServiceId' - 'pendingServiceNotes'
       WHERE "personId" = ${session.user.personId}
         AND data->'pendingAction'->>'confirmationId' = ${confirmationId}
       RETURNING id;
     `;
+    const consume = await db.runtime().execute(plan);
     
     if (!consume || consume.length === 0) {
       return { ok: false, error: { code: 'INVALID_CONFIRMATION', message: 'Confirmation already processed or invalid.' } };
