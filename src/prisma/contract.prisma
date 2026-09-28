@@ -3438,3 +3438,54 @@ model HQAuditEvent {
 
   actor         Person   @relation(fields: [actorPersonId], references: [id])
 }
+
+model MeasurementEvent {
+    id             String   @id @default(uuid())
+    eventType      String   
+    occurredAt     DateTime @default(now())
+
+    personId       String?
+    organizationId String?
+    locationId     String?
+    vertical       String?
+
+    entityType     String?
+    entityId       String?
+
+    metadata       Json?
+
+    @@index([eventType])
+    @@index([occurredAt])
+    @@index([personId])
+    @@index([organizationId])
+    @@index([vertical])
+}
+
+// Phase 3: Voice Action Gateway Session State
+model VoiceCart {
+  id        String   @id @default(uuid())
+  personId  String   @unique
+  person    Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  items     VoiceCartItem[]
+  checkout  VoiceCheckout?
+  updatedAt DateTime @default(now())
+}
+
+model VoiceCartItem {
+  id        String   @id @default(uuid())
+  cartId    String
+  cart      VoiceCart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId String
+  product   RetailProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int
+}
+
+model VoiceCheckout {
+  id        String   @id @default(uuid())
+  cartId    String   @unique
+  cart      VoiceCart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  totalAmount Float
+  expiresAt DateTime
+  idempotencyKey String @unique
+  createdAt DateTime @default(now())
+}

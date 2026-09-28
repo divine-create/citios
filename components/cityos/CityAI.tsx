@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Sparkles, Send, Bot } from 'lucide-react';
+import { Sparkles, Send, Bot, Mic } from 'lucide-react';
 import { Pill } from '@/components/cityos/CityUI';
 import { VerifiedBadge } from '@/components/cityos/CityUI';
+import { CityOSVoice } from '@/components/cityos/voice/CityOSVoice';
 
 interface Msg {
   role: 'user' | 'cityos';
@@ -25,6 +26,7 @@ export default function CityAI() {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [typing, setTyping] = useState(false);
   const [input, setInput] = useState('');
+  const [voiceMode, setVoiceMode] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -32,6 +34,13 @@ export default function CityAI() {
       scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
     }
   }, [msgs, typing]);
+
+  const handleVoiceTranscript = (role: 'user' | 'cityos', text: string, isFinal: boolean) => {
+    // For simplicity in Phase 1, we only append final transcripts
+    if (isFinal) {
+      setMsgs((m) => [...m, { role, text }]);
+    }
+  };
 
   const answer = (q: string): string => {
     const text = q.toLowerCase();
@@ -125,36 +134,50 @@ export default function CityAI() {
         </div>
 
         <div className="border-t border-slate-100 p-3 bg-white">
-          <div className="flex gap-2">
-            <div className="flex-1 relative">
-              <input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && ask(input)}
-                placeholder="Ask CityOS…"
-                className="w-full bg-slate-50 rounded-xl pl-4 pr-4 py-3 text-[13px] font-medium text-slate-700 outline-none focus:ring-2 ring-brand-200 placeholder:text-slate-400"
-              />
-            </div>
-            <button
-              onClick={() => ask(input)}
-              disabled={!input.trim() || typing}
-              className="w-11 h-11 rounded-xl bg-gradient-to-br from-brand-600 to-brand-800 text-white flex items-center justify-center disabled:opacity-40 transition-all hover:shadow-md"
-            >
-              <Send className="w-4 h-4 -translate-x-px" />
-            </button>
-          </div>
-          <div className="flex gap-2 overflow-x-auto pt-2.5 [&::-webkit-scrollbar]:hidden">
-            {SUGGESTIONS.map((s) => (
-              <button
-                key={s}
-                onClick={() => ask(s)}
-                className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-brand-50 text-brand-900 ring-1 ring-brand-100 text-[11px] font-bold hover:bg-brand-100 transition-colors"
-              >
-                <Sparkles className="w-3 h-3" />
-                {s}
-              </button>
-            ))}
-          </div>
+          {voiceMode ? (
+            <CityOSVoice onTranscript={handleVoiceTranscript} onClose={() => setVoiceMode(false)} />
+          ) : (
+            <>
+              <div className="flex gap-2">
+                <div className="flex-1 relative">
+                  <input
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && ask(input)}
+                    placeholder="Ask CityOS…"
+                    className="w-full bg-slate-50 rounded-xl pl-4 pr-4 py-3 text-[13px] font-medium text-slate-700 outline-none focus:ring-2 ring-brand-200 placeholder:text-slate-400"
+                  />
+                </div>
+                <button
+                  onClick={() => ask(input)}
+                  disabled={!input.trim() || typing}
+                  className="w-11 h-11 rounded-xl bg-gradient-to-br from-brand-600 to-brand-800 text-white flex items-center justify-center disabled:opacity-40 transition-all hover:shadow-md shrink-0"
+                >
+                  <Send className="w-4 h-4 -translate-x-px" />
+                </button>
+              </div>
+              <div className="flex gap-2 overflow-x-auto pt-2.5 pb-1 [&::-webkit-scrollbar]:hidden items-center">
+                <button
+                  onClick={() => setVoiceMode(true)}
+                  className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-teal-800 text-white text-[11px] font-bold hover:bg-teal-700 transition-colors shadow-sm"
+                >
+                  <Mic className="w-3.5 h-3.5" />
+                  Talk to CityOS
+                </button>
+                <div className="w-px h-4 bg-slate-200 mx-1"></div>
+                {SUGGESTIONS.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => ask(s)}
+                    className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-brand-50 text-brand-900 ring-1 ring-brand-100 text-[11px] font-bold hover:bg-brand-100 transition-colors"
+                  >
+                    <Sparkles className="w-3 h-3" />
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
 

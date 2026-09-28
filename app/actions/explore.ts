@@ -2,6 +2,7 @@
 
 import { db } from '@/src/prisma/db';
 import { getCurrentCity, getCityBySlug } from '@/lib/city';
+import { trackEvent } from '@/lib/actions/analytics';
 
 export async function searchCityExplore(citySlug: string | undefined, query: string, cat: string) {
   const city = citySlug ? await getCityBySlug(citySlug) : await getCurrentCity();

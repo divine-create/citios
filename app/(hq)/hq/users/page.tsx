@@ -30,7 +30,7 @@ export default async function HQUsersPage({ searchParams }: { searchParams: Prom
   // To avoid N+1, ideally we'd join, but Prisma 8 makes this tricky without raw sql if we don't have the relations easily available.
   // Given we are bounded to 100, we can do parallel counts.
   const membershipsCounts = await Promise.all(
-    users.map(u => db.orm.public.Membership.where({ personId: u.id }).count())
+    users.map(u => db.orm.public.Membership.where({ personId: u.id }).all().then(r => r.length))
   );
 
   return (

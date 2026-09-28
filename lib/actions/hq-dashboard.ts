@@ -13,7 +13,7 @@ export async function getHQCommandCenterData() {
     recentAudits,
     recentTransactions,
   ] = await Promise.all([
-    db.orm.public.GigWorkerProfile.count(),
+    db.orm.public.GigWorkerProfile.all().then(r => r.length),
     db.orm.public.Wallet.where({ organizationId: null, personId: null }).all().first(),
     db.orm.public.Organization.all().then(list => list.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5)),
     db.orm.public.HQAuditEvent.all().then(list => list.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5)),

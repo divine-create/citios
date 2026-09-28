@@ -76,10 +76,10 @@ export async function getHQMetrics() {
     totalPeople,
     totalLocations,
   ] = await Promise.all([
-    db.orm.public.Organization.count(),
-    db.orm.public.Organization.where({ status: 'SUSPENDED' }).count(),
-    db.orm.public.Person.count(),
-    db.orm.public.Location.count(),
+    db.orm.public.Organization.all().then(r => r.length),
+    db.orm.public.Organization.where({ status: 'SUSPENDED' }).all().then(r => r.length),
+    db.orm.public.Person.all().then(r => r.length),
+    db.orm.public.Location.all().then(r => r.length),
   ]);
 
   return {
@@ -103,16 +103,16 @@ export async function inspectOrganization(organizationId: string) {
   const org = await db.orm.public.Organization.where({ id: organizationId }).all().first();
   if (!org) throw new Error("Organization not found");
 
-  const [
-    memberships,
-    locations,
-    transactions,
-    orders,
-    auditEvents
-  ] = await Promise.all([
+  const [ memberships, locations, wallets, transactions, orders, auditEvents ] = await Promise.all([
     db.orm.public.Membership.where({ organizationId }).all(),
     db.orm.public.Location.where({ organizationId }).all(),
-    db.orm.public.Transaction.where({ organizationId }).all(),
+      db.orm.public.Wallet.where({ organizationId }).all(),
+    db.orm.public.Wallet.where({ organizationId }).all().then(async wallets => {
+      if (!wallets.length) return [];
+      const walletIds = wallets.map(w => w.id);
+      const entries = await db.orm.public.LedgerEntry.where((le) => le.walletId.in(walletIds)).include('transaction').orderBy((le) => le.createdAt.desc()).limit(10).all();
+      return entries.map(e => e.transaction).filter(Boolean);
+    }),
     db.orm.public.RetailOrder.where({ organizationId }).all(),
     db.orm.public.HQAuditEvent.where({ targetId: organizationId }).all()
   ]);
@@ -129,6 +129,7 @@ export async function inspectOrganization(organizationId: string) {
     organization: org,
     memberships: enrichedMemberships,
     locations,
+      wallets,
     recentTransactions: transactions.slice(-10),
     recentOrders: orders.slice(-10),
     recentAuditEvents: auditEvents.slice(-10),
