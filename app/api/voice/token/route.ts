@@ -14,7 +14,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Voice configuration error' }, { status: 500 });
     }
 
-    const res = await fetch('https://streaming.assemblyai.com/v3/token', {
+    const res = await fetch('https://api.assemblyai.com/v1/token', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.ASSEMBLYAI_API_KEY}`,
