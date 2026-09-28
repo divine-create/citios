@@ -110,6 +110,20 @@ export const confirmServiceRequest: VoiceToolDefinition = {
       return { ok: false, error: { code: 'INVALID_CONFIRMATION', message: 'Invalid or expired confirmation ID.' } };
     }
 
+    // ATOMIC CONSUMPTION to prevent race conditions
+    // If two concurrent requests hit this, only one will successfully clear the pendingAction.
+    const consume = await db.sql`
+      UPDATE "VoiceContext"
+      SET data = data - 'pendingAction' - 'pendingServiceId' - 'pendingServiceNotes'
+      WHERE "personId" = ${session.user.personId}
+        AND data->'pendingAction'->>'confirmationId' = ${confirmationId}
+      RETURNING id;
+    `;
+    
+    if (!consume || consume.length === 0) {
+      return { ok: false, error: { code: 'INVALID_CONFIRMATION', message: 'Confirmation already processed or invalid.' } };
+    }
+
     const srvCtx = ctx as any;
     const serviceId = srvCtx.pendingServiceId;
     const notes = srvCtx.pendingServiceNotes;
@@ -118,12 +132,6 @@ export const confirmServiceRequest: VoiceToolDefinition = {
 
     // Use existing server action to execute
     const res = await requestServiceJob({ serviceId, notes });
-
-    // Clear context
-    await updateVoiceContext(session.user.personId, {
-      pendingAction: undefined,
-      ...({ pendingServiceId: undefined, pendingServiceNotes: undefined } as any)
-    });
 
     return { ok: true, data: { message: 'Service request submitted successfully.', reference: res.jobId.split('-')[0].toUpperCase() } };
   }

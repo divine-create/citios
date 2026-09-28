@@ -49,19 +49,20 @@ export async function addVoiceCartItem(personId: string, productId: string, quan
   if (!product.isWeighed && !Number.isInteger(quantity)) throw new Error('Product cannot be bought in fractions.');
   if ((product.stockQuantity || 0) < quantity) throw new Error('Insufficient stock.');
 
-  // Check if item exists in cart
-  const existingItem = cart.items.find((item) => item.productId === productId);
-  if (existingItem) {
-    await db.orm.public.VoiceCartItem.where({ id: existingItem.id as string }).update({
-      quantity: (existingItem.quantity as number) + quantity
-    });
-  } else {
-    await db.orm.public.VoiceCartItem.create({
-      cartId: cart.id as string,
-      productId,
-      quantity
-    });
-  }
+  await db.transaction(async (tx) => {
+    const existingItem = await tx.orm.public.VoiceCartItem.where({ cartId: cart.id as string, productId }).all().first();
+    if (existingItem) {
+      await tx.orm.public.VoiceCartItem.where({ id: existingItem.id as string }).update({
+        quantity: (existingItem.quantity as number) + quantity
+      });
+    } else {
+      await tx.orm.public.VoiceCartItem.create({
+        cartId: cart.id as string,
+        productId,
+        quantity
+      });
+    }
+  });
 
   // Clear any pending checkout since cart changed
   if (cart.checkout) {
@@ -98,18 +99,20 @@ export async function updateVoiceCartQuantity(personId: string, productId: strin
   if (!product.isWeighed && !Number.isInteger(quantity)) throw new Error('Product cannot be bought in fractions.');
   if ((product.stockQuantity || 0) < quantity) throw new Error('Insufficient stock.');
 
-  const existingItem = cart.items.find((item) => item.productId === productId);
-  if (existingItem) {
-    await db.orm.public.VoiceCartItem.where({ id: existingItem.id as string }).update({
-      quantity
-    });
-  } else {
-    await db.orm.public.VoiceCartItem.create({
-      cartId: cart.id as string,
-      productId,
-      quantity
-    });
-  }
+  await db.transaction(async (tx) => {
+    const existingItem = await tx.orm.public.VoiceCartItem.where({ cartId: cart.id as string, productId }).all().first();
+    if (existingItem) {
+      await tx.orm.public.VoiceCartItem.where({ id: existingItem.id as string }).update({
+        quantity
+      });
+    } else {
+      await tx.orm.public.VoiceCartItem.create({
+        cartId: cart.id as string,
+        productId,
+        quantity
+      });
+    }
+  });
 
   // Clear pending checkout
   if (cart.checkout) {
@@ -177,13 +180,18 @@ export async function confirmVoiceCheckout(personId: string, checkoutId: string)
   const result = await placeRetailOrder({
     items: itemsPayload,
     method: 'bank_transfer',
-    idempotencyKey: checkout.idempotencyKey as string
+    idempotencyKey: checkout.idempotencyKey as string,
+    expectedTotal: checkout.totalAmount as number
   });
 
-  for (const item of cart.items) {
-    await db.orm.public.VoiceCartItem.where({ id: item.id as string }).delete();
+  try {
+    for (const item of cart.items) {
+      await db.orm.public.VoiceCartItem.where({ id: item.id as string }).delete();
+    }
+    await db.orm.public.VoiceCheckout.where({ id: checkoutId }).delete();
+  } catch (err) {
+    // Ignore errors if already deleted by a concurrent confirmation
   }
-  await db.orm.public.VoiceCheckout.where({ id: checkoutId }).delete();
 
   return result;
 }

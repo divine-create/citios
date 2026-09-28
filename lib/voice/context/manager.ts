@@ -4,17 +4,22 @@ import { VoiceContextData } from './types';
 export async function getVoiceContext(personId: string): Promise<VoiceContextData> {
   const ctx = await db.orm.public.VoiceContext.where({ personId }).first();
   if (!ctx || !ctx.data) return {};
+
+  // Enforce global 30-minute TTL for short-lived conversational context
+  if (Date.now() - ctx.updatedAt.getTime() > 30 * 60 * 1000) {
+    return {};
+  }
+
   return ctx.data as VoiceContextData;
 }
 
 export async function updateVoiceContext(personId: string, partialData: Partial<VoiceContextData>): Promise<VoiceContextData> {
-  const ctx = await db.orm.public.VoiceContext.where({ personId }).first();
-  
-  const currentData = (ctx?.data as VoiceContextData) || {};
+  const currentData = await getVoiceContext(personId);
   const newData = { ...currentData, ...partialData };
   
+  const ctx = await db.orm.public.VoiceContext.where({ personId }).first();
   if (ctx) {
-    await db.orm.public.VoiceContext.where({ id: ctx.id }).update({ data: newData as any });
+    await db.orm.public.VoiceContext.where({ id: ctx.id }).update({ data: newData as any, updatedAt: new Date() });
   } else {
     await db.orm.public.VoiceContext.create({
       personId,

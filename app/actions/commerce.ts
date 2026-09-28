@@ -21,6 +21,7 @@ export async function placeRetailOrder(input: {
   method: string;
   paymentReference?: string;
   idempotencyKey?: string;
+  expectedTotal?: number;
 }) {
   const session = await getServerSession(authOptions);
 
@@ -79,7 +80,13 @@ export async function placeRetailOrder(input: {
 
   const orderIds: string[] = [];
   let grandTotal = 0;
+  for (const group of orgGroups.values()) grandTotal += group.total;
 
+  if (input.expectedTotal !== undefined && Math.abs(grandTotal - input.expectedTotal) > 0.01) {
+    throw new Error('PRICE_CHANGED: The order total has changed due to price updates. Please review the new total.');
+  }
+  
+  grandTotal = 0;
   for (const [orgId, group] of orgGroups) {
     // Verify org exists
     const org = await db.orm.public.Organization.where({ id: orgId }).all().first();
@@ -103,9 +110,10 @@ export async function placeRetailOrder(input: {
       const isWallet = false; if (input.method === 'wallet') throw new Error('Wallet payment temporarily disabled for retail');
       const orderStatus = isWallet ? 'COMPLETED' : 'PENDING';
 
+      const orderIdempKey = input.idempotencyKey ? `${input.idempotencyKey}-${orgId}` : undefined;
       // Idempotency check for duplicate creation
-      if (input.idempotencyKey) {
-        const existingOrder = await tx.orm.public.RetailOrder.where({ idempotencyKey: input.idempotencyKey }).all().first();
+      if (orderIdempKey) {
+        const existingOrder = await tx.orm.public.RetailOrder.where({ idempotencyKey: orderIdempKey }).all().first();
         if (existingOrder) {
           // If we find an existing order, we return it safely
           return existingOrder;
@@ -120,7 +128,7 @@ export async function placeRetailOrder(input: {
         totalAmount: group.total,
         paymentMethod: isWallet ? 'WALLET' : input.method === 'card' ? 'CARD' : 'BANK_TRANSFER',
         status: orderStatus,
-        idempotencyKey: input.idempotencyKey,
+        idempotencyKey: orderIdempKey,
       });
         
       await tx.orm.public.Payment.create({
