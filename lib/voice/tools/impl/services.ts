@@ -117,11 +117,10 @@ export const confirmServiceRequest: VoiceToolDefinition = {
       SET data = data - 'pendingAction' - 'pendingServiceId' - 'pendingServiceNotes'
       WHERE "personId" = ${session.user.personId}
         AND data->'pendingAction'->>'confirmationId' = ${confirmationId}
-      RETURNING id;
-    `.returnsRow({ id: 'varchar' }).build();
+    `.affectedCount().build();
     const consume = await db.runtime().execute(plan);
     
-    if (!consume || consume.length === 0) {
+    if (consume === 0) {
       return { ok: false, error: { code: 'INVALID_CONFIRMATION', message: 'Confirmation already processed or invalid.' } };
     }
 
