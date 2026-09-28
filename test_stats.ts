@@ -1,1 +1,0 @@
-import { db } from './src/prisma/db'; async function t() { const p = db.raw.sql`UPDATE "Organization" SET name='xyz' WHERE 1=0`.affectedCount().build(); const res = await db.runtime().execute(p); console.log(Object.keys(res), res); } t();
