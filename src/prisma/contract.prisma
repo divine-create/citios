@@ -3461,29 +3461,37 @@ model MeasurementEvent {
     @@index([vertical])
 }
 
-// Phase 3: Voice Action Gateway Session State
-model VoiceCart {
+// Phase 3 & 5: Global Cart State
+model Cart {
   id        String   @id @default(uuid())
   personId  String   @unique
   person    Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
-  items     VoiceCartItem[]
-  checkout  VoiceCheckout?
+  citySlug  String?
+  items     CartItem[]
+  checkout  CartCheckout?
   updatedAt DateTime @default(now())
 }
 
-model VoiceCartItem {
-  id        String   @id @default(uuid())
-  cartId    String
-  cart      VoiceCart @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  productId String
-  product   RetailProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
-  quantity  Int
+model CartItem {
+  id              String   @id @default(uuid())
+  cartId          String
+  cart            Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  
+  kind            String // "retail" | "food"
+  
+  retailProductId String?
+  product         RetailProduct? @relation(fields: [retailProductId], references: [id], onDelete: Cascade)
+  
+  menuItemId      String?
+  menuItem        MenuItem? @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  
+  quantity        Int
 }
 
-model VoiceCheckout {
+model CartCheckout {
   id        String   @id @default(uuid())
   cartId    String   @unique
-  cart      VoiceCart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  cart      Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
   totalAmount Float
   expiresAt DateTime
   idempotencyKey String @unique

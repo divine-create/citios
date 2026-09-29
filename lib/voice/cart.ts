@@ -3,25 +3,29 @@ import { placeRetailOrder } from '@/app/actions/commerce';
 
 interface VoiceCartItemType {
   id: string;
-  productId: string;
+  retailProductId?: string | null;
+  menuItemId?: string | null;
   quantity: number;
-  product?: { name: string; price: number };
+  product?: { name: string; price: number } | null;
+  menuItem?: { name: string; price: number } | null;
+  kind: string;
 }
 
-// Gets or creates a VoiceCart for a person
+// Gets or creates a Cart for a person
 export async function getVoiceCart(personId: string) {
-  let cart = await db.orm.public.VoiceCart
+  let cart = await db.orm.public.Cart
     .where({ personId })
-    .select('id', 'personId', 'updatedAt')
+    .select('id', 'personId', 'updatedAt', 'citySlug')
     .include('items', (i) => i
-      .select('id', 'productId', 'quantity')
+      .select('id', 'retailProductId', 'menuItemId', 'quantity', 'kind')
       .include('product', (p) => p.select('id', 'name', 'price', 'stockQuantity'))
+      .include('menuItem', (m) => m.select('id', 'name', 'price'))
     )
     .include('checkout', (c) => c.select('id', 'totalAmount', 'expiresAt', 'idempotencyKey'))
     .first();
 
   if (!cart) {
-    cart = await db.orm.public.VoiceCart.select('id', 'personId', 'updatedAt').create({ personId }) as any;
+    cart = await db.orm.public.Cart.select('id', 'personId', 'updatedAt', 'citySlug').create({ personId }) as any;
     cart!.items = [];
     cart!.checkout = null;
   }
@@ -30,43 +34,54 @@ export async function getVoiceCart(personId: string) {
 
   // Calculate totals
   let subtotal = 0;
-  items.forEach((item) => {
-    subtotal += (item.product?.price || 0) * item.quantity;
+  items.forEach((item: any) => {
+    if (item.kind === 'retail') {
+      subtotal += (item.product?.price || 0) * item.quantity;
+    } else {
+      subtotal += (item.menuItem?.price || 0) * item.quantity;
+    }
   });
 
   return { cart: { ...cart, items }, subtotal };
 }
 
-export async function addVoiceCartItem(personId: string, productId: string, quantity: number) {
+export async function addVoiceCartItem(personId: string, productId: string, quantity: number, kind: 'retail' | 'food' = 'retail') {
   if (typeof quantity !== 'number' || isNaN(quantity) || quantity <= 0) {
     throw new Error('Invalid quantity.');
   }
   const { cart } = await getVoiceCart(personId);
   
-  // Find product
-  const product = await db.orm.public.RetailProduct.where({ id: productId }).first();
-  if (!product) throw new Error('Product not found.');
-  if (!product.isWeighed && !Number.isInteger(quantity)) throw new Error('Product cannot be bought in fractions.');
-  if ((product.stockQuantity || 0) < quantity) throw new Error('Insufficient stock.');
+  if (kind === 'retail') {
+    const product = await db.orm.public.RetailProduct.where({ id: productId }).first();
+    if (!product) throw new Error('Product not found.');
+    if (!product.isWeighed && !Number.isInteger(quantity)) throw new Error('Product cannot be bought in fractions.');
+    if ((product.stockQuantity || 0) < quantity) throw new Error('Insufficient stock.');
+  } else {
+    const menuItem = await db.orm.public.MenuItem.where({ id: productId }).first();
+    if (!menuItem) throw new Error('Item not found.');
+  }
 
   await db.transaction(async (tx) => {
-    const existingItem = await tx.orm.public.VoiceCartItem.where({ cartId: cart.id as string, productId }).all().first();
+    const condition = kind === 'retail' ? { cartId: cart.id as string, retailProductId: productId } : { cartId: cart.id as string, menuItemId: productId };
+    const existingItem = await tx.orm.public.CartItem.where(condition).all().first();
     if (existingItem) {
-      await tx.orm.public.VoiceCartItem.where({ id: existingItem.id as string }).update({
+      await tx.orm.public.CartItem.where({ id: existingItem.id as string }).update({
         quantity: (existingItem.quantity as number) + quantity
       });
     } else {
-      await tx.orm.public.VoiceCartItem.create({
+      await tx.orm.public.CartItem.create({
         cartId: cart.id as string,
-        productId,
-        quantity
+        retailProductId: kind === 'retail' ? productId : undefined,
+        menuItemId: kind === 'food' ? productId : undefined,
+        quantity,
+        kind
       });
     }
   });
 
   // Clear any pending checkout since cart changed
   if (cart.checkout) {
-    await db.orm.public.VoiceCheckout.where({ id: (cart.checkout as any).id as string }).delete();
+    await db.orm.public.CartCheckout.where({ id: (cart.checkout as any).id as string }).delete();
   }
 
   return getVoiceCart(personId);
@@ -75,48 +90,53 @@ export async function addVoiceCartItem(personId: string, productId: string, quan
 export async function removeVoiceCartItem(personId: string, productId: string) {
   const { cart } = await getVoiceCart(personId);
   
-  const existingItem = cart.items.find((item) => item.productId === productId);
+  const existingItem = cart.items.find((item: any) => item.retailProductId === productId || item.menuItemId === productId);
   if (existingItem) {
-    await db.orm.public.VoiceCartItem.where({ id: existingItem.id as string }).delete();
+    await db.orm.public.CartItem.where({ id: existingItem.id as string }).delete();
   }
 
   // Clear pending checkout
   if (cart.checkout) {
-    await db.orm.public.VoiceCheckout.where({ id: (cart.checkout as any).id as string }).delete();
+    await db.orm.public.CartCheckout.where({ id: (cart.checkout as any).id as string }).delete();
   }
 
   return getVoiceCart(personId);
 }
 
-export async function updateVoiceCartQuantity(personId: string, productId: string, quantity: number) {
+export async function updateVoiceCartQuantity(personId: string, productId: string, quantity: number, kind: 'retail' | 'food' = 'retail') {
   if (typeof quantity !== 'number' || isNaN(quantity)) throw new Error('Invalid quantity.');
   if (quantity <= 0) return removeVoiceCartItem(personId, productId);
   
   const { cart } = await getVoiceCart(personId);
   
-  const product = await db.orm.public.RetailProduct.where({ id: productId }).first();
-  if (!product) throw new Error('Product not found.');
-  if (!product.isWeighed && !Number.isInteger(quantity)) throw new Error('Product cannot be bought in fractions.');
-  if ((product.stockQuantity || 0) < quantity) throw new Error('Insufficient stock.');
+  if (kind === 'retail') {
+    const product = await db.orm.public.RetailProduct.where({ id: productId }).first();
+    if (!product) throw new Error('Product not found.');
+    if (!product.isWeighed && !Number.isInteger(quantity)) throw new Error('Product cannot be bought in fractions.');
+    if ((product.stockQuantity || 0) < quantity) throw new Error('Insufficient stock.');
+  }
 
   await db.transaction(async (tx) => {
-    const existingItem = await tx.orm.public.VoiceCartItem.where({ cartId: cart.id as string, productId }).all().first();
+    const condition = kind === 'retail' ? { cartId: cart.id as string, retailProductId: productId } : { cartId: cart.id as string, menuItemId: productId };
+    const existingItem = await tx.orm.public.CartItem.where(condition).all().first();
     if (existingItem) {
-      await tx.orm.public.VoiceCartItem.where({ id: existingItem.id as string }).update({
+      await tx.orm.public.CartItem.where({ id: existingItem.id as string }).update({
         quantity
       });
     } else {
-      await tx.orm.public.VoiceCartItem.create({
+      await tx.orm.public.CartItem.create({
         cartId: cart.id as string,
-        productId,
-        quantity
+        retailProductId: kind === 'retail' ? productId : undefined,
+        menuItemId: kind === 'food' ? productId : undefined,
+        quantity,
+        kind
       });
     }
   });
 
   // Clear pending checkout
   if (cart.checkout) {
-    await db.orm.public.VoiceCheckout.where({ id: (cart.checkout as any).id as string }).delete();
+    await db.orm.public.CartCheckout.where({ id: (cart.checkout as any).id as string }).delete();
   }
 
   return getVoiceCart(personId);
@@ -129,22 +149,20 @@ export async function prepareVoiceCheckout(personId: string) {
 
   // Validate stock again
   for (const item of cart.items) {
-    if ((item.product?.price || 0) === 0) {
-       // Just a safe check
-    }
-    // We already know it's validated at addition, but let's re-check
-    const prod = await db.orm.public.RetailProduct.where({ id: item.productId as string }).first();
-    if (!prod || (prod.stockQuantity || 0) < item.quantity) {
-      throw new Error(`Item ${item.product?.name} no longer has sufficient stock.`);
+    if (item.kind === 'retail') {
+      const prod = await db.orm.public.RetailProduct.where({ id: item.retailProductId as string }).first();
+      if (!prod || (prod.stockQuantity || 0) < item.quantity) {
+        throw new Error(`Item ${item.product?.name} no longer has sufficient stock.`);
+      }
     }
   }
 
   // Create pending checkout
   if (cart.checkout) {
-    await db.orm.public.VoiceCheckout.where({ id: (cart.checkout as any).id as string }).delete();
+    await db.orm.public.CartCheckout.where({ id: (cart.checkout as any).id as string }).delete();
   }
 
-  const checkout = await db.orm.public.VoiceCheckout.create({
+  const checkout = await db.orm.public.CartCheckout.create({
     cartId: cart.id as string,
     totalAmount: subtotal,
     expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 mins
@@ -167,14 +185,14 @@ export async function confirmVoiceCheckout(personId: string, checkoutId: string)
   }
 
   if (new Date() > (checkout.expiresAt as Date)) {
-    await db.orm.public.VoiceCheckout.where({ id: checkoutId }).delete();
+    await db.orm.public.CartCheckout.where({ id: checkoutId }).delete();
     throw new Error('Checkout expired.');
   }
 
-  const itemsPayload = cart.items.map((i) => ({
-    productId: i.productId as string,
+  const itemsPayload = cart.items.map((i: any) => ({
+    productId: i.retailProductId || i.menuItemId || '',
     qty: i.quantity as number,
-    name: i.product?.name || 'Unknown Item'
+    name: i.kind === 'retail' ? (i.product?.name || 'Unknown Item') : (i.menuItem?.name || 'Unknown Item')
   }));
 
   const result = await placeRetailOrder({
@@ -186,9 +204,9 @@ export async function confirmVoiceCheckout(personId: string, checkoutId: string)
 
   try {
     for (const item of cart.items) {
-      await db.orm.public.VoiceCartItem.where({ id: item.id as string }).delete();
+      await db.orm.public.CartItem.where({ id: item.id as string }).delete();
     }
-    await db.orm.public.VoiceCheckout.where({ id: checkoutId }).delete();
+    await db.orm.public.CartCheckout.where({ id: checkoutId }).delete();
   } catch (err) {
     // Ignore errors if already deleted by a concurrent confirmation
   }

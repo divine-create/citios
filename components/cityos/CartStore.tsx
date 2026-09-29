@@ -1,3 +1,4 @@
+import { addCartItemAction, removeCartItemAction, updateCartItemQuantityAction, fetchUserCart } from '@/app/actions/cart';
 'use client';
 
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
@@ -97,10 +98,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       return [...prev, line];
     });
     setLastAddedId(line.productId);
+    addCartItemAction(line.productId, line.qty, line.kind).catch(() => {});
   }, [lines, currentCitySlug]);
 
   const remove = useCallback((id: string) => {
     setLines((prev) => prev.filter((x) => x.productId !== id));
+    removeCartItemAction(id).catch(() => {});
   }, []);
 
   const setQty = useCallback((id: string, qty: number) => {
@@ -109,6 +112,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     setLines((prev) => prev.map((x) => (x.productId === id ? { ...x, qty } : x)));
+    const line = lines.find(x => x.productId === id);
+    if (line) updateCartItemQuantityAction(id, qty, line.kind).catch(() => {});
   }, [remove]);
 
   const clear = useCallback(() => setLines([]), []);
