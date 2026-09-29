@@ -95,14 +95,18 @@ export const prepareServiceRequest: VoiceToolDefinition = {
 
     const confirmationId = crypto.randomUUID();
 
+    const { startWorkflow } = await import('../../core/context');
+    await startWorkflow(session.user.personId, confirmationId, {
+      workflowId: confirmationId,
+      action: 'confirm_service_request',
+      domain: 'services',
+      confirmationId: confirmationId,
+      expiresAt: new Date(Date.now() + 15 * 60000).toISOString(),
+      contextData: { pendingServiceNotes: args.notes || '', pendingServiceId: serviceId }
+    });
+    
     await updateVoiceContext(session.user.personId, {
-      pendingAction: {
-        action: 'confirm_service_request',
-        confirmationId: confirmationId,
-        expiresAt: new Date(Date.now() + 15 * 60000).toISOString()
-      },
-      // Note: we'll cast via any since we didn't add these specific fields to VoiceContextData strictly
-      ...({ pendingServiceNotes: args.notes || '', pendingServiceId: serviceId } as any)
+      taskState: { status: 'AWAITING_CONFIRMATION', currentWorkflowId: confirmationId }
     });
 
     return { 
@@ -131,24 +135,33 @@ export const confirmServiceRequest: VoiceToolDefinition = {
     }
   },
   execute: async (args, session) => {
+    const { endWorkflow } = await import('../../core/context');
     const ctx = await getVoiceContext(session.user.personId);
     let confirmationId = args.confirmation_id;
 
-    if (!confirmationId && false === 'confirm_service_request') {
-      confirmationId = null;
+    let workflow = null;
+    if (!confirmationId && ctx.activeWorkflows) {
+      for (const key of Object.keys(ctx.activeWorkflows)) {
+        if (ctx.activeWorkflows[key].action === 'confirm_service_request') {
+          confirmationId = ctx.activeWorkflows[key].confirmationId;
+          workflow = ctx.activeWorkflows[key];
+          break;
+        }
+      }
+    } else if (confirmationId && ctx.activeWorkflows) {
+       workflow = ctx.activeWorkflows[confirmationId];
     }
 
-    if (!confirmationId || null !== confirmationId) {
+    if (!confirmationId || !workflow) {
       return { ok: false, error: { code: 'INVALID_CONFIRMATION', message: 'Invalid or expired confirmation ID.' } };
     }
 
-    // ATOMIC CONSUMPTION to prevent race conditions
-    // If two concurrent requests hit this, only one will successfully clear the pendingAction.
+    // ATOMIC CONSUMPTION to prevent race conditions for activeWorkflows
     const plan = db.raw.sql`
       UPDATE "VoiceContext"
-      SET data = data - 'pendingAction' - 'pendingServiceId' - 'pendingServiceNotes'
+      SET data = jsonb_set(data, '{activeWorkflows}', (data->'activeWorkflows') - ${confirmationId}::text)
       WHERE "personId" = ${session.user.personId}
-        AND data->'pendingAction'->>'confirmationId' = ${confirmationId}
+        AND data->'activeWorkflows' ? ${confirmationId}
     `.affectedCount().build();
     const consume = await db.runtime().execute(plan);
     
@@ -156,14 +169,17 @@ export const confirmServiceRequest: VoiceToolDefinition = {
       return { ok: false, error: { code: 'INVALID_CONFIRMATION', message: 'Confirmation already processed or invalid.' } };
     }
 
-    const srvCtx = ctx as any;
-    const serviceId = srvCtx.pendingServiceId;
-    const notes = srvCtx.pendingServiceNotes;
+    const serviceId = workflow.contextData?.pendingServiceId;
+    const notes = workflow.contextData?.pendingServiceNotes;
 
     if (!serviceId) return { ok: false, error: { code: 'INVALID_STATE', message: 'No pending service found in context.' } };
 
     // Use existing server action to execute
     const res = await requestServiceJob({ serviceId, notes });
+
+    await updateVoiceContext(session.user.personId, {
+      taskState: { status: 'COMPLETED' }
+    });
 
     return { ok: true, data: { message: 'Service request submitted successfully.', reference: res.jobId.split('-')[0].toUpperCase() } };
   }

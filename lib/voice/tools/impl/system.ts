@@ -1,6 +1,7 @@
 import { VoiceToolDefinition } from '../../core/policy';
 import { updateVoiceContext } from '../../core/context';
 import { db } from '@/src/prisma/db';
+import { getVoiceCart } from '@/lib/voice/cart';
 
 export const rememberPreference: VoiceToolDefinition = {
   name: 'remember_preference',
@@ -19,9 +20,6 @@ export const rememberPreference: VoiceToolDefinition = {
     }
   },
   execute: async (args, session) => {
-    // In a real CityOS implementation, this would save to a formal 'ResidentPreferences' table.
-    // For now, we update the existing ResidentProfile model's 'interests' field conceptually,
-    // or store it in a safe JSON column if added to the schema.
     const profile = await db.orm.public.ResidentProfile.where({ personId: session.user.personId }).all().first();
     
     if (profile) {
@@ -112,7 +110,7 @@ export const cancelWorkflow: VoiceToolDefinition = {
     if (workflow) {
       // Cleanup capability based on domain
       if (workflow.domain === 'commerce' || workflow.action === 'confirm_checkout') {
-         const cart = await db.orm.public.Cart.where({ personId: session.user.personId }).first();
+         const { cart } = await getVoiceCart(session.user.personId);
          if (cart) {
            await db.orm.public.CartCheckout.where({ cartId: cart.id }).delete();
          }
@@ -151,7 +149,7 @@ export const getOperationStatus: VoiceToolDefinition = {
   execute: async (args, session) => {
     // Phase 6 Reconciliation logic
     // Check Orders for idempotency
-    const order = await db.orm.public.RetailOrder.where({ idempotencyKey: args.operation_id, personId: session.user.personId }).first();
+    const order = await db.orm.public.RetailOrder.where({ idempotencyKey: args.operation_id }).first();
     if (order) {
       return { ok: true, data: { status: 'COMPLETED', safeToRetry: false, message: 'The transaction was successfully processed.' } };
     }
