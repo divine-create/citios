@@ -189,26 +189,53 @@ export async function confirmVoiceCheckout(personId: string, checkoutId: string)
     throw new Error('Checkout expired.');
   }
 
-  const itemsPayload = cart.items.map((i: any) => ({
-    productId: i.retailProductId || i.menuItemId || '',
-    qty: i.quantity as number,
-    name: i.kind === 'retail' ? (i.product?.name || 'Unknown Item') : (i.menuItem?.name || 'Unknown Item')
+  const retailItems = cart.items.filter((i: any) => i.kind === 'retail').map((i: any) => ({
+    productId: i.retailProductId,
+    qty: i.quantity,
+    name: i.product?.name || 'Unknown Item'
   }));
 
-  const result = await placeRetailOrder({
-    items: itemsPayload,
-    method: 'bank_transfer',
-    idempotencyKey: checkout.idempotencyKey as string,
-    expectedTotal: checkout.totalAmount as number
-  });
+  const foodItems = cart.items.filter((i: any) => i.kind === 'food').map((i: any) => ({
+    menuItemId: i.menuItemId,
+    qty: i.quantity,
+    name: i.menuItem?.name || 'Unknown Item'
+  }));
+
+  let result = null;
+
+  if (retailItems.length > 0) {
+    result = await placeRetailOrder({
+      items: retailItems,
+      method: 'bank_transfer',
+      idempotencyKey: checkout.idempotencyKey as string + '_retail',
+      expectedTotal: cart.items.filter((i:any) => i.kind === 'retail').reduce((acc:any, i:any) => acc + (i.product?.price || 0) * i.quantity, 0)
+    });
+  }
+
+  if (foodItems.length > 0) {
+    const { placeRestaurantOrder } = await import('@/app/actions/food');
+    
+    const firstFoodItem = cart.items.find((i: any) => i.kind === 'food');
+    let locationId = '';
+    if (firstFoodItem?.menuItem?.organizationId) {
+      const loc = await db.orm.public.Location.where({ organizationId: firstFoodItem.menuItem.organizationId }).all().first();
+      if (loc) locationId = loc.id as string;
+    }
+
+    result = await placeRestaurantOrder({
+      locationId,
+      items: foodItems,
+      type: 'TAKEOUT',
+      method: 'bank_transfer',
+      paymentReference: checkout.idempotencyKey as string + '_food'
+    });
+  }
 
   try {
-    for (const item of cart.items) {
-      await db.orm.public.CartItem.where({ id: item.id as string }).delete();
-    }
+    await db.orm.public.CartItem.where({ cartId: cart.id as string }).delete();
     await db.orm.public.CartCheckout.where({ id: checkoutId }).delete();
   } catch (err) {
-    // Ignore errors if already deleted by a concurrent confirmation
+    console.error('Error clearing cart after checkout', err);
   }
 
   return result;
