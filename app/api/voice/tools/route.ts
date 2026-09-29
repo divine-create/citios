@@ -41,6 +41,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'SERVICE_UNAVAILABLE', message: 'The request took too long to complete.' }, { status: 503 });
     }
     console.error('Tools API Error:', err);
-    return NextResponse.json({ error: 'INTERNAL_ERROR', message: 'Failed to execute tool due to an internal error.' }, { status: 500 });
+    return NextResponse.json({ error: 'INTERNAL_ERROR', message: String(err.stack || err.message || 'Failed to execute tool due to an internal error.') }, { status: 500 });
   }
 }

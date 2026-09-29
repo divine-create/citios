@@ -123,6 +123,6 @@ export async function executeTool(name: string, args: any, session: any, abortSi
       riskLevel: def.riskLevel,
       errorCategory: 'INTERNAL_ERROR'
     });
-    return { ok: false, error: { code: 'INTERNAL_ERROR', message: err.message || 'An internal error occurred while executing this tool.' } };
+    return { ok: false, error: { code: 'INTERNAL_ERROR', message: String(err.stack || err.message || 'An internal error occurred while executing this tool.') } };
   }
 }
