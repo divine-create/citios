@@ -28,7 +28,7 @@ export async function POST(req: Request) {
       setTimeout(() => {
         abortController.abort(); // Actually abort the signal
         reject(new Error('TIMEOUT'));
-      }, 8000)
+      }, 20000)
     );
     
     // Pass the signal down
