@@ -70,8 +70,6 @@ test('Voice Security & Reliability Audit', async (t) => {
     const ctx = await getVoiceContext(dummySession.user.personId);
     assert.ok(!ctx.recentEntities?.some(e => e.id === 'hacker-data'));
   });
-});
-
   await t.test('6. Phase 6: Workflow-Specific Cancellation Isolation', async () => {
     await updateVoiceContext(dummySession.user.personId, {
       activeWorkflows: {
