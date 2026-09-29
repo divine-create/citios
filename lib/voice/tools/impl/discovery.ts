@@ -53,7 +53,17 @@ export const searchProducts: VoiceToolDefinition = {
   execute: async (args, session) => {
     const query = typeof args.query === 'string' ? args.query.toLowerCase() : '';
     const cat = typeof args.category === 'string' ? args.category : 'All';
-    const products = await getCityMartProducts(undefined, cat);
+    
+    // Explicitly fetch the resident's home city since we are in a headless API context
+    const { db } = await import('@/src/prisma/db');
+    const person = await db.orm.public.Person.where({ id: session.user.personId }).first();
+    let citySlug: string | undefined = undefined;
+    if (person?.homeCityId) {
+      const city = await db.orm.public.City.where({ id: person.homeCityId }).first();
+      if (city) citySlug = city.slug;
+    }
+
+    const products = await getCityMartProducts(citySlug, cat);
     
     const filtered = query ? products.filter((p: any) => 
       p.name.toLowerCase().includes(query) || 

@@ -44,18 +44,6 @@
       "model": "Booking",
       "namespace": "public"
     },
-    "cart": {
-      "model": "Cart",
-      "namespace": "public"
-    },
-    "cartCheckout": {
-      "model": "CartCheckout",
-      "namespace": "public"
-    },
-    "cartItem": {
-      "model": "CartItem",
-      "namespace": "public"
-    },
     "city": {
       "model": "City",
       "namespace": "public"
@@ -678,6 +666,18 @@
     },
     "truancyAlert": {
       "model": "TruancyAlert",
+      "namespace": "public"
+    },
+    "voiceCart": {
+      "model": "Cart",
+      "namespace": "public"
+    },
+    "voiceCartItem": {
+      "model": "CartItem",
+      "namespace": "public"
+    },
+    "voiceCheckout": {
+      "model": "CartCheckout",
       "namespace": "public"
     },
     "voiceContext": {
@@ -2737,7 +2737,7 @@
                 }
               },
               "namespaceId": "public",
-              "table": "cart"
+              "table": "voiceCart"
             }
           },
           "CartCheckout": {
@@ -2824,7 +2824,7 @@
                 }
               },
               "namespaceId": "public",
-              "table": "cartCheckout"
+              "table": "voiceCheckout"
             }
           },
           "CartItem": {
@@ -2941,7 +2941,7 @@
                 }
               },
               "namespaceId": "public",
-              "table": "cartItem"
+              "table": "voiceCartItem"
             }
           },
           "City": {
@@ -28041,260 +28041,6 @@
               },
               "uniques": []
             },
-            "cart": {
-              "columns": {
-                "citySlug": {
-                  "codecId": "pg/text@1",
-                  "nativeType": "text",
-                  "nullable": true
-                },
-                "id": {
-                  "codecId": "pg/text@1",
-                  "nativeType": "text",
-                  "nullable": false
-                },
-                "personId": {
-                  "codecId": "pg/text@1",
-                  "nativeType": "text",
-                  "nullable": false
-                },
-                "updatedAt": {
-                  "codecId": "pg/timestamptz-temporal@1",
-                  "default": {
-                    "expression": "now()",
-                    "kind": "function"
-                  },
-                  "nativeType": "timestamptz",
-                  "nullable": false
-                }
-              },
-              "foreignKeys": [
-                {
-                  "onDelete": "cascade",
-                  "source": {
-                    "columns": [
-                      "personId"
-                    ],
-                    "namespaceId": "public",
-                    "tableName": "cart"
-                  },
-                  "target": {
-                    "columns": [
-                      "id"
-                    ],
-                    "namespaceId": "public",
-                    "tableName": "person"
-                  }
-                }
-              ],
-              "indexes": [],
-              "primaryKey": {
-                "columns": [
-                  "id"
-                ]
-              },
-              "uniques": [
-                {
-                  "columns": [
-                    "personId"
-                  ]
-                }
-              ]
-            },
-            "cartCheckout": {
-              "columns": {
-                "cartId": {
-                  "codecId": "pg/text@1",
-                  "nativeType": "text",
-                  "nullable": false
-                },
-                "createdAt": {
-                  "codecId": "pg/timestamptz-temporal@1",
-                  "default": {
-                    "expression": "now()",
-                    "kind": "function"
-                  },
-                  "nativeType": "timestamptz",
-                  "nullable": false
-                },
-                "expiresAt": {
-                  "codecId": "pg/timestamptz-temporal@1",
-                  "nativeType": "timestamptz",
-                  "nullable": false
-                },
-                "id": {
-                  "codecId": "pg/text@1",
-                  "nativeType": "text",
-                  "nullable": false
-                },
-                "idempotencyKey": {
-                  "codecId": "pg/text@1",
-                  "nativeType": "text",
-                  "nullable": false
-                },
-                "totalAmount": {
-                  "codecId": "pg/float8@1",
-                  "nativeType": "float8",
-                  "nullable": false
-                }
-              },
-              "foreignKeys": [
-                {
-                  "onDelete": "cascade",
-                  "source": {
-                    "columns": [
-                      "cartId"
-                    ],
-                    "namespaceId": "public",
-                    "tableName": "cartCheckout"
-                  },
-                  "target": {
-                    "columns": [
-                      "id"
-                    ],
-                    "namespaceId": "public",
-                    "tableName": "cart"
-                  }
-                }
-              ],
-              "indexes": [],
-              "primaryKey": {
-                "columns": [
-                  "id"
-                ]
-              },
-              "uniques": [
-                {
-                  "columns": [
-                    "cartId"
-                  ]
-                },
-                {
-                  "columns": [
-                    "idempotencyKey"
-                  ]
-                }
-              ]
-            },
-            "cartItem": {
-              "columns": {
-                "cartId": {
-                  "codecId": "pg/text@1",
-                  "nativeType": "text",
-                  "nullable": false
-                },
-                "id": {
-                  "codecId": "pg/text@1",
-                  "nativeType": "text",
-                  "nullable": false
-                },
-                "kind": {
-                  "codecId": "pg/text@1",
-                  "nativeType": "text",
-                  "nullable": false
-                },
-                "menuItemId": {
-                  "codecId": "pg/text@1",
-                  "nativeType": "text",
-                  "nullable": true
-                },
-                "quantity": {
-                  "codecId": "pg/int4@1",
-                  "nativeType": "int4",
-                  "nullable": false
-                },
-                "retailProductId": {
-                  "codecId": "pg/text@1",
-                  "nativeType": "text",
-                  "nullable": true
-                }
-              },
-              "foreignKeys": [
-                {
-                  "onDelete": "cascade",
-                  "source": {
-                    "columns": [
-                      "cartId"
-                    ],
-                    "namespaceId": "public",
-                    "tableName": "cartItem"
-                  },
-                  "target": {
-                    "columns": [
-                      "id"
-                    ],
-                    "namespaceId": "public",
-                    "tableName": "cart"
-                  }
-                },
-                {
-                  "onDelete": "cascade",
-                  "source": {
-                    "columns": [
-                      "retailProductId"
-                    ],
-                    "namespaceId": "public",
-                    "tableName": "cartItem"
-                  },
-                  "target": {
-                    "columns": [
-                      "id"
-                    ],
-                    "namespaceId": "public",
-                    "tableName": "retailProduct"
-                  }
-                },
-                {
-                  "onDelete": "cascade",
-                  "source": {
-                    "columns": [
-                      "menuItemId"
-                    ],
-                    "namespaceId": "public",
-                    "tableName": "cartItem"
-                  },
-                  "target": {
-                    "columns": [
-                      "id"
-                    ],
-                    "namespaceId": "public",
-                    "tableName": "menuItem"
-                  }
-                }
-              ],
-              "indexes": [
-                {
-                  "columns": [
-                    "cartId"
-                  ],
-                  "name": "cartItem_cartId_idx_79939295",
-                  "prefix": "cartItem_cartId_idx",
-                  "unique": false
-                },
-                {
-                  "columns": [
-                    "menuItemId"
-                  ],
-                  "name": "cartItem_menuItemId_idx_715cce4c",
-                  "prefix": "cartItem_menuItemId_idx",
-                  "unique": false
-                },
-                {
-                  "columns": [
-                    "retailProductId"
-                  ],
-                  "name": "cartItem_retailProductId_idx_b6539ddc",
-                  "prefix": "cartItem_retailProductId_idx",
-                  "unique": false
-                }
-              ],
-              "primaryKey": {
-                "columns": [
-                  "id"
-                ]
-              },
-              "uniques": []
-            },
             "city": {
               "columns": {
                 "country": {
@@ -46607,6 +46353,260 @@
               },
               "uniques": []
             },
+            "voiceCart": {
+              "columns": {
+                "citySlug": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "personId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "updatedAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "personId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "voiceCart"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "person"
+                  }
+                }
+              ],
+              "indexes": [],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "personId"
+                  ]
+                }
+              ]
+            },
+            "voiceCartItem": {
+              "columns": {
+                "cartId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "kind": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "menuItemId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "quantity": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "retailProductId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "cartId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "voiceCartItem"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "voiceCart"
+                  }
+                },
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "retailProductId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "voiceCartItem"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "retailProduct"
+                  }
+                },
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "menuItemId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "voiceCartItem"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "menuItem"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "cartId"
+                  ],
+                  "name": "voiceCartItem_cartId_idx_79939295",
+                  "prefix": "voiceCartItem_cartId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "menuItemId"
+                  ],
+                  "name": "voiceCartItem_menuItemId_idx_715cce4c",
+                  "prefix": "voiceCartItem_menuItemId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "retailProductId"
+                  ],
+                  "name": "voiceCartItem_retailProductId_idx_b6539ddc",
+                  "prefix": "voiceCartItem_retailProductId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
+            },
+            "voiceCheckout": {
+              "columns": {
+                "cartId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "createdAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "expiresAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "idempotencyKey": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "totalAmount": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "cartId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "voiceCheckout"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "voiceCart"
+                  }
+                }
+              ],
+              "indexes": [],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "cartId"
+                  ]
+                },
+                {
+                  "columns": [
+                    "idempotencyKey"
+                  ]
+                }
+              ]
+            },
             "voiceContext": {
               "columns": {
                 "data": {
@@ -47174,10 +47174,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "12a719ebd6976fe105d0e39b48d62c383a270cd08404a2d1eec9db510e83f6c0"
+    "storageHash": "eb73a6a92eed0e6fc38720d211083797da003930c25eb26547a798b0254a782e"
   },
   "execution": {
-    "executionHash": "9072d2961e3e0558fbe4a347445810a44fb96f697316689809c61ba7a46851c6",
+    "executionHash": "599cedcdecfa9c7628fafc7657860a18846df22a31269c31a7ac022961babd40",
     "mutations": {
       "defaults": [
         {
@@ -47288,39 +47288,6 @@
             "column": "id",
             "namespace": "public",
             "table": "booking"
-          }
-        },
-        {
-          "onCreate": {
-            "id": "uuidv4",
-            "kind": "generator"
-          },
-          "ref": {
-            "column": "id",
-            "namespace": "public",
-            "table": "cart"
-          }
-        },
-        {
-          "onCreate": {
-            "id": "uuidv4",
-            "kind": "generator"
-          },
-          "ref": {
-            "column": "id",
-            "namespace": "public",
-            "table": "cartCheckout"
-          }
-        },
-        {
-          "onCreate": {
-            "id": "uuidv4",
-            "kind": "generator"
-          },
-          "ref": {
-            "column": "id",
-            "namespace": "public",
-            "table": "cartItem"
           }
         },
         {
@@ -49037,6 +49004,39 @@
             "column": "id",
             "namespace": "public",
             "table": "truancyAlert"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "voiceCart"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "voiceCartItem"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "voiceCheckout"
           }
         },
         {
