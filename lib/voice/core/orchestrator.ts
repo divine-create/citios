@@ -7,6 +7,8 @@ import { DiscoveryModule } from '../modules/discovery';
 import { CommerceModule } from '../modules/commerce';
 import { ServicesModule } from '../modules/services';
 import { SystemModule } from '../modules/system';
+import { logisticsModule } from '../modules/logistics';
+import { assertRateLimit } from './rate-limit';
 
 // Explicitly register enabled modules
 moduleRegistry.registerModule(AccountModule);
@@ -14,6 +16,7 @@ moduleRegistry.registerModule(DiscoveryModule);
 moduleRegistry.registerModule(CommerceModule);
 moduleRegistry.registerModule(ServicesModule);
 moduleRegistry.registerModule(SystemModule);
+moduleRegistry.registerModule(logisticsModule);
 
 export function getRegisteredTools() {
   const tools = [];
@@ -28,10 +31,20 @@ export function getRegisteredTools() {
   return tools;
 }
 
-export async function executeTool(name: string, args: any, session: any) {
+export async function executeTool(name: string, args: any, session: any, abortSignal?: AbortSignal) {
   const def = getToolDefinition(name);
   if (!def) {
     return { ok: false, error: { code: 'INVALID_TOOL', message: `Tool ${name} is not registered.` } };
+  }
+  
+  try {
+    let limitType: 'global' | 'expensive' | 'confirmation' = 'global';
+    if (def.requiresConfirmation) limitType = 'confirmation';
+    else if (def.riskLevel === 'irreversible' || def.riskLevel === 'financial') limitType = 'expensive';
+    
+    assertRateLimit(session.user.personId, limitType);
+  } catch (e) {
+    return { ok: false, error: { code: 'RATE_LIMITED', message: 'You are performing actions too quickly. Please wait a moment.' } };
   }
 
   // Intent / Clarification Engine Check
@@ -41,7 +54,7 @@ export async function executeTool(name: string, args: any, session: any) {
       taskState: {
         status: 'AWAITING_CLARIFICATION',
         missingFields: clarificationCheck.missingFields,
-        currentWorkflow: name
+        currentWorkflowId: name
       }
     });
     
@@ -86,7 +99,7 @@ export async function executeTool(name: string, args: any, session: any) {
 
   try {
     const startTime = Date.now();
-    const result = await def.execute(args, session);
+    const result = await def.execute(args, session, abortSignal);
     const latency = Date.now() - startTime;
     
     telemetry.log({

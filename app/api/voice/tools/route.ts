@@ -21,12 +21,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'INVALID_ARGUMENT', message: 'Tool name is required' }, { status: 400 });
     }
 
-    // Add a strict timeout to prevent hanging the voice session
+    // Phase 7: Real cancellation via AbortController
+    const abortController = new AbortController();
+    
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('TIMEOUT')), 8000)
+      setTimeout(() => {
+        abortController.abort(); // Actually abort the signal
+        reject(new Error('TIMEOUT'));
+      }, 8000)
     );
     
-    const executionPromise = executeTool(name, args || {}, session);
+    // Pass the signal down
+    const executionPromise = executeTool(name, args || {}, session, abortController.signal);
     const result = await Promise.race([executionPromise, timeoutPromise]);
     
     return NextResponse.json(result);

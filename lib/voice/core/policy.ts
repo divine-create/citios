@@ -13,13 +13,14 @@ export type VoiceToolDefinition = {
   idempotencyBehavior?: 'idempotent' | 'non-idempotent' | 'generates-idempotency-key';
   authorizationRequirements?: string[];
   orchestrationEligible: boolean; // whether it can participate in orchestration
-  execute: (args: any, session: any) => Promise<any>;
+  execute: (args: any, session: any, abortSignal?: AbortSignal) => Promise<any>;
 };
 
 export type VoiceModule = {
   id: string;
   name: string;
   description: string;
+  version?: string;
   tools: VoiceToolDefinition[];
   // Future capabilities could go here:
   // canHandleIntent?: (intent: any) => boolean;

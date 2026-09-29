@@ -1,5 +1,5 @@
 import { VoiceModule } from '../../core/policy';
-import { getProfile, getOrderStatus, getDeliveryStatus } from '../../tools/impl/account';
+import { getProfile, getOrderStatus } from '../../tools/impl/account';
 
 export const AccountModule: VoiceModule = {
   id: 'account',
