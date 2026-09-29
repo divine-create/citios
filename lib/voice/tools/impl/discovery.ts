@@ -4,6 +4,19 @@ import { getCityMartProducts, getCityMartStores } from '@/app/actions/commerce';
 import { getCityFood } from '@/app/actions/food';
 import { pushRecentEntity } from '../../core/context';
 
+
+// Helper to extract citySlug
+async function getResidentCitySlug(session: any): Promise<string | undefined> {
+  if (!session?.user?.personId) return undefined;
+  const { db } = await import('@/src/prisma/db');
+  const person = await db.orm.public.Person.where({ id: session.user.personId }).first();
+  if (person?.homeCityId) {
+    const city = await db.orm.public.City.where({ id: person.homeCityId }).first();
+    if (city) return city.slug;
+  }
+  return undefined;
+}
+
 export const searchCity: VoiceToolDefinition = {
   name: 'search_city',
   description: 'Search across CityOS discovery to find organizations, services, or local places.',
@@ -22,7 +35,8 @@ export const searchCity: VoiceToolDefinition = {
   },
   execute: async (args, session) => {
     // searchCityExplore signature: (citySlug: string | undefined, query: string, cat: string)
-    const res = await searchCityExplore(undefined, args.query || '', 'All');
+    const citySlug = await getResidentCitySlug(session);
+    const res = await searchCityExplore(citySlug, args.query || '', 'All');
     
     // Combine organizations and products up to 5 items
     const combined = [
@@ -54,14 +68,7 @@ export const searchProducts: VoiceToolDefinition = {
     const query = typeof args.query === 'string' ? args.query.toLowerCase() : '';
     const cat = typeof args.category === 'string' ? args.category : 'All';
     
-    // Explicitly fetch the resident's home city since we are in a headless API context
-    const { db } = await import('@/src/prisma/db');
-    const person = await db.orm.public.Person.where({ id: session.user.personId }).first();
-    let citySlug: string | undefined = undefined;
-    if (person?.homeCityId) {
-      const city = await db.orm.public.City.where({ id: person.homeCityId }).first();
-      if (city) citySlug = city.slug;
-    }
+    const citySlug = await getResidentCitySlug(session);
 
     const products = await getCityMartProducts(citySlug, cat);
     
@@ -107,7 +114,8 @@ export const searchBusinesses: VoiceToolDefinition = {
   },
   execute: async (args, session) => {
     const query = typeof args.query === 'string' ? args.query.toLowerCase() : '';
-    const stores = await getCityMartStores();
+    const citySlug = await getResidentCitySlug(session);
+    const stores = await getCityMartStores(citySlug);
     const filtered = query ? stores.filter((s: any) => 
       s.name.toLowerCase().includes(query) || 
       (s.description || '').toLowerCase().includes(query)
@@ -139,7 +147,8 @@ export const searchRestaurants: VoiceToolDefinition = {
   },
   execute: async (args, session) => {
     const query = typeof args.query === 'string' ? args.query.toLowerCase() : '';
-    const res = await getCityFood();
+    const citySlug = await getResidentCitySlug(session);
+    const res = await getCityFood(citySlug);
     
     const filtered = query ? res.restaurants.filter((r: any) => 
       r.name.toLowerCase().includes(query) || 
@@ -175,7 +184,8 @@ export const searchFoodItems: VoiceToolDefinition = {
   },
   execute: async (args, session) => {
     const query = typeof args.query === 'string' ? args.query.toLowerCase() : '';
-    const res = await getCityFood();
+    const citySlug = await getResidentCitySlug(session);
+    const res = await getCityFood(citySlug);
     
     const filtered = query ? res.menuItems.filter((m: any) => 
       m.name.toLowerCase().includes(query) || 
