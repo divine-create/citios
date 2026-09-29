@@ -204,7 +204,7 @@ export function CityOSVoice({ onTranscript, onClose }: CityOSVoiceProps) {
             break;
 
           case 'tool.call': {
-            const toolCallId = msg.tool_call_id;
+            const callId = msg.call_id || msg.tool_call_id;
             const toolName = msg.name;
             const toolArgs = typeof msg.arguments === 'string' ? JSON.parse(msg.arguments || '{}') : (msg.arguments || {});
 
@@ -221,7 +221,7 @@ export function CityOSVoice({ onTranscript, onClose }: CityOSVoiceProps) {
               if (wsRef.current?.readyState === WebSocket.OPEN) {
                 wsRef.current.send(JSON.stringify({
                   type: 'tool.result',
-                  tool_call_id: toolCallId,
+                  call_id: callId,
                   result: typeof data === 'string' ? data : JSON.stringify(data)
                 }));
               }
@@ -232,7 +232,7 @@ export function CityOSVoice({ onTranscript, onClose }: CityOSVoiceProps) {
               if (wsRef.current?.readyState === WebSocket.OPEN) {
                 wsRef.current.send(JSON.stringify({
                   type: 'tool.result',
-                  tool_call_id: toolCallId,
+                  call_id: callId,
                   result: JSON.stringify({ error: 'INTERNAL_ERROR', message: 'Failed to execute tool on the server.' })
                 }));
               }
