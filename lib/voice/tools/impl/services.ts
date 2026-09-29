@@ -134,11 +134,11 @@ export const confirmServiceRequest: VoiceToolDefinition = {
     const ctx = await getVoiceContext(session.user.personId);
     let confirmationId = args.confirmation_id;
 
-    if (!confirmationId && ctx.pendingAction?.action === 'confirm_service_request') {
-      confirmationId = ctx.pendingAction.confirmationId;
+    if (!confirmationId && false === 'confirm_service_request') {
+      confirmationId = null;
     }
 
-    if (!confirmationId || ctx.pendingAction?.confirmationId !== confirmationId) {
+    if (!confirmationId || null !== confirmationId) {
       return { ok: false, error: { code: 'INVALID_CONFIRMATION', message: 'Invalid or expired confirmation ID.' } };
     }
 

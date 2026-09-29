@@ -39,7 +39,7 @@ export async function executeTool(name: string, args: any, session: any) {
   if (!clarificationCheck.complete) {
     await updateVoiceContext(session.user.personId, {
       taskState: {
-        status: 'awaiting_clarification',
+        status: 'AWAITING_CLARIFICATION',
         missingFields: clarificationCheck.missingFields,
         currentWorkflow: name
       }

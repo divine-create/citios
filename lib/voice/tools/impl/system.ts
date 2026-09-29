@@ -151,7 +151,7 @@ export const getOperationStatus: VoiceToolDefinition = {
   execute: async (args, session) => {
     // Phase 6 Reconciliation logic
     // Check Orders for idempotency
-    const order = await db.orm.public.Order.where({ idempotencyKey: args.operation_id, personId: session.user.personId }).first();
+    const order = await db.orm.public.RetailOrder.where({ idempotencyKey: args.operation_id, personId: session.user.personId }).first();
     if (order) {
       return { ok: true, data: { status: 'COMPLETED', safeToRetry: false, message: 'The transaction was successfully processed.' } };
     }

@@ -19,10 +19,11 @@ export const getCart: VoiceToolDefinition = {
         itemCount: cart.items.length,
         subtotal,
         items: cart.items.map((i: any) => ({
-          productId: i.productId,
-          name: i.product?.name || 'Unknown',
-          price: i.product?.price || 0,
+          productId: i.retailProductId || i.menuItemId,
+          name: (i.kind === 'retail' ? i.product?.name : i.menuItem?.name) || 'Unknown',
+          price: (i.kind === 'retail' ? i.product?.price : i.menuItem?.price) || 0,
           quantity: i.quantity,
+          kind: i.kind
         })),
         pendingCheckout: !!cart.checkout
       }
@@ -42,7 +43,8 @@ export const addToCart: VoiceToolDefinition = {
     type: "object",
     properties: {
       product_id: { type: "string", description: "Optional. The ID of the product. Omit if it's clear from context." },
-      quantity: { type: "number", description: "The quantity to add" }
+      quantity: { type: "number", description: "The quantity to add" },
+      kind: { type: "string", description: "The type of product: 'retail' or 'food'. Defaults to 'retail'." }
     }
   },
   execute: async (args, session) => {
@@ -59,7 +61,8 @@ export const addToCart: VoiceToolDefinition = {
     
     if (!productId) return { ok: false, error: { code: 'INVALID_ARGUMENT', message: 'Product ID is missing or unclear.' } };
 
-    const res = await addVoiceCartItem(session.user.personId, productId, qty);
+    const kind = args.kind === 'food' ? 'food' : 'retail';
+    const res = await addVoiceCartItem(session.user.personId, productId, qty, kind);
     return { ok: true, data: { message: 'Item added.', newSubtotal: res.subtotal } };
   }
 };
@@ -76,7 +79,8 @@ export const updateCartQuantity: VoiceToolDefinition = {
     type: "object",
     properties: {
       product_id: { type: "string", description: "Optional. The ID of the product." },
-      quantity: { type: "number", description: "The new quantity (0 to remove)" }
+      quantity: { type: "number", description: "The new quantity (0 to remove)" },
+      kind: { type: "string", description: "The type of product: 'retail' or 'food'. Defaults to 'retail'." }
     },
     required: ["quantity"]
   },
@@ -95,7 +99,8 @@ export const updateCartQuantity: VoiceToolDefinition = {
     const qty = parseInt(args.quantity);
     if (isNaN(qty)) return { ok: false, error: { code: 'INVALID_ARGUMENT', message: 'Quantity is invalid.' } };
     
-    const res = await updateVoiceCartQuantity(session.user.personId, productId, qty);
+    const kind = args.kind === 'food' ? 'food' : 'retail';
+    const res = await updateVoiceCartQuantity(session.user.personId, productId, qty, kind);
     return { ok: true, data: { message: 'Quantity updated.', newSubtotal: res.subtotal } };
   }
 };
@@ -111,7 +116,8 @@ export const removeFromCart: VoiceToolDefinition = {
   inputSchema: {
     type: "object",
     properties: {
-      product_id: { type: "string", description: "Optional. The ID of the product to remove." }
+      product_id: { type: "string", description: "Optional. The ID of the product to remove." },
+      kind: { type: "string", description: "The type of product: 'retail' or 'food'. Defaults to 'retail'." }
     }
   },
   execute: async (args, session) => {
@@ -126,6 +132,7 @@ export const removeFromCart: VoiceToolDefinition = {
 
     if (!productId) return { ok: false, error: { code: 'INVALID_ARGUMENT', message: 'Product ID is missing or unclear.' } };
 
+    const kind = args.kind === 'food' ? 'food' : 'retail';
     const res = await removeVoiceCartItem(session.user.personId, productId);
     return { ok: true, data: { message: 'Item removed.', newSubtotal: res.subtotal } };
   }
