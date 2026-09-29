@@ -1,9 +1,17 @@
 import { VoiceToolDefinition } from '../../core/policy';
-import { searchCityExplore } from '@/app/actions/explore';
-import { getCityMartProducts, getCityMartStores } from '@/app/actions/commerce';
-import { getCityFood } from '@/app/actions/food';
 import { pushRecentEntity } from '../../core/context';
+import { GoogleGenAI } from '@google/genai';
 
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+async function getQueryEmbedding(query: string): Promise<number[]> {
+  const result = await ai.models.embedContent({
+    model: 'gemini-embedding-001',
+    contents: [query]
+  });
+  const vector = result.embeddings?.[0]?.values;
+  return vector ? vector.slice(0, 768) : new Array(768).fill(0);
+}
 
 // Helper to extract citySlug
 export async function getResidentCitySlug(session: any): Promise<string | undefined> {
@@ -35,21 +43,23 @@ export const searchCity: VoiceToolDefinition = {
     required: ["query"]
   },
   execute: async (args, session) => {
-    // searchCityExplore signature: (citySlug: string | undefined, query: string, cat: string)
-    const citySlug = await getResidentCitySlug(session);
-    let query = (args.query || '').toLowerCase().trim();
-    if (['restaurant', 'restaurants', 'business', 'businesses', 'store', 'stores', 'food', 'foods', 'place', 'places'].includes(query)) query = '';
-    const cat = typeof args.category === 'string' ? args.category : 'All';
-    const res = await searchCityExplore(citySlug, query, cat);
-    
-    // Combine organizations and products up to 5 items
-    const combined = [
-      ...res.organizations.map((o: any) => ({ type: 'Org', name: o.name, desc: o.description })),
-      ...res.products.map((p: any) => ({ type: 'Product', name: p.name, desc: p.storeName }))
-    ];
-    
+    const { db } = await import('@/src/prisma/db');
+    let query = (args.query || '').trim();
     const limit = Math.min(typeof args.limit === 'number' ? args.limit : 5, 10);
-    return { ok: true, data: combined.slice(0, limit) };
+    
+    let orgs;
+    if (query.length > 2) {
+      const qVec = await getQueryEmbedding(query);
+      orgs = await db.orm.public.Organization
+        .orderBy((f) => f.embedding.cosineDistance(qVec).asc())
+        .limit(limit)
+        .all();
+    } else {
+      orgs = await db.orm.public.Organization.limit(limit).all();
+    }
+    
+    const combined = orgs.map((o: any) => ({ type: 'Org', name: o.name, desc: o.description }));
+    return { ok: true, data: combined };
   }
 };
 
@@ -70,21 +80,26 @@ export const searchProducts: VoiceToolDefinition = {
     required: ["query"]
   },
   execute: async (args, session) => {
-    let query = typeof args.query === 'string' ? args.query.toLowerCase().trim() : '';
-    const genericTerms = ['restaurant', 'restaurants', 'business', 'businesses', 'store', 'stores', 'food', 'foods', 'place', 'places', 'shop', 'shops', 'market', 'markets'];
-    if (genericTerms.includes(query)) query = '';
-    const cat = typeof args.category === 'string' ? args.category : 'All';
+    const { db } = await import('@/src/prisma/db');
+    let query = typeof args.query === 'string' ? args.query.trim() : '';
+    const limit = 5;
     
-    const citySlug = await getResidentCitySlug(session);
+    let products;
+    if (query.length > 2) {
+      const qVec = await getQueryEmbedding(query);
+      products = await db.orm.public.RetailProduct
+        .where(f => f.stockQuantity.gt(0)) // out-of-sale handling
+        .orderBy((f) => f.embedding.cosineDistance(qVec).asc())
+        .limit(limit)
+        .all();
+    } else {
+      products = await db.orm.public.RetailProduct
+        .where(f => f.stockQuantity.gt(0))
+        .limit(limit)
+        .all();
+    }
 
-    const products = await getCityMartProducts(citySlug, cat);
-    
-    const filtered = query ? products.filter((p: any) => 
-      p.name.toLowerCase().includes(query) || 
-      (p.description || '').toLowerCase().includes(query)
-    ) : products;
-
-    const data = filtered.slice(0, 5).map((p: any) => ({
+    const data = products.map((p: any) => ({
       id: p.id,
       name: p.name,
       price: p.price,
@@ -121,18 +136,26 @@ export const searchBusinesses: VoiceToolDefinition = {
     required: ["query"]
   },
   execute: async (args, session) => {
-    let query = typeof args.query === 'string' ? args.query.toLowerCase().trim() : '';
-    const genericTerms = ['restaurant', 'restaurants', 'business', 'businesses', 'store', 'stores', 'food', 'foods', 'place', 'places', 'shop', 'shops', 'market', 'markets'];
-    if (genericTerms.includes(query)) query = '';
-    const citySlug = await getResidentCitySlug(session);
-    const stores = await getCityMartStores(citySlug);
+    const { db } = await import('@/src/prisma/db');
+    let query = typeof args.query === 'string' ? args.query.trim() : '';
     const limit = Math.min(typeof args.limit === "number" ? args.limit : 5, 10);
-    const filtered = query ? stores.filter((s: any) => 
-      s.name.toLowerCase().includes(query) || 
-      (s.description || '').toLowerCase().includes(query)
-    ) : stores;
+    
+    let stores;
+    if (query.length > 2) {
+      const qVec = await getQueryEmbedding(query);
+      stores = await db.orm.public.Organization
+        .where(f => f.type.eq('RETAIL'))
+        .orderBy((f) => f.embedding.cosineDistance(qVec).asc())
+        .limit(limit)
+        .all();
+    } else {
+      stores = await db.orm.public.Organization
+        .where(f => f.type.eq('RETAIL'))
+        .limit(limit)
+        .all();
+    }
 
-    return { ok: true, data: filtered.slice(0, limit).map((s: any) => ({
+    return { ok: true, data: stores.map((s: any) => ({
       id: s.id,
       name: s.name,
       description: s.description,
@@ -157,18 +180,26 @@ export const searchRestaurants: VoiceToolDefinition = {
     required: ["query"]
   },
   execute: async (args, session) => {
-    let query = typeof args.query === 'string' ? args.query.toLowerCase().trim() : '';
-    const genericTerms = ['restaurant', 'restaurants', 'business', 'businesses', 'store', 'stores', 'food', 'foods', 'place', 'places', 'shop', 'shops', 'market', 'markets'];
-    if (genericTerms.includes(query)) query = '';
-    const citySlug = await getResidentCitySlug(session);
-    const res = await getCityFood(citySlug);
+    const { db } = await import('@/src/prisma/db');
+    let query = typeof args.query === 'string' ? args.query.trim() : '';
+    const limit = 5;
     
-    const filtered = query ? res.restaurants.filter((r: any) => 
-      r.name.toLowerCase().includes(query) || 
-      (r.description || '').toLowerCase().includes(query)
-    ) : res.restaurants;
+    let restaurants;
+    if (query.length > 2) {
+      const qVec = await getQueryEmbedding(query);
+      restaurants = await db.orm.public.Organization
+        .where(f => f.type.eq('RESTAURANT'))
+        .orderBy((f) => f.embedding.cosineDistance(qVec).asc())
+        .limit(limit)
+        .all();
+    } else {
+      restaurants = await db.orm.public.Organization
+        .where(f => f.type.eq('RESTAURANT'))
+        .limit(limit)
+        .all();
+    }
 
-    const data = filtered.slice(0, 5).map((r: any) => ({
+    const data = restaurants.map((r: any) => ({
       id: r.id,
       name: r.name,
       description: r.description,
@@ -196,18 +227,26 @@ export const searchFoodItems: VoiceToolDefinition = {
     required: ["query"]
   },
   execute: async (args, session) => {
-    let query = typeof args.query === 'string' ? args.query.toLowerCase().trim() : '';
-    const genericTerms = ['restaurant', 'restaurants', 'business', 'businesses', 'store', 'stores', 'food', 'foods', 'place', 'places', 'shop', 'shops', 'market', 'markets'];
-    if (genericTerms.includes(query)) query = '';
-    const citySlug = await getResidentCitySlug(session);
-    const res = await getCityFood(citySlug);
+    const { db } = await import('@/src/prisma/db');
+    let query = typeof args.query === 'string' ? args.query.trim() : '';
+    const limit = 5;
     
-    const filtered = query ? res.menuItems.filter((m: any) => 
-      m.name.toLowerCase().includes(query) || 
-      (m.description || '').toLowerCase().includes(query)
-    ) : res.menuItems;
+    let menuItems;
+    if (query.length > 2) {
+      const qVec = await getQueryEmbedding(query);
+      menuItems = await db.orm.public.MenuItem
+        .where(f => f.isAvailable.eq(true)) // out-of-sale handling
+        .orderBy((f) => f.embedding.cosineDistance(qVec).asc())
+        .limit(limit)
+        .all();
+    } else {
+      menuItems = await db.orm.public.MenuItem
+        .where(f => f.isAvailable.eq(true))
+        .limit(limit)
+        .all();
+    }
 
-    const data = filtered.slice(0, 5).map((m: any) => ({
+    const data = menuItems.map((m: any) => ({
       id: m.id,
       name: m.name,
       price: m.price,

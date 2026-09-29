@@ -8489,6 +8489,16 @@
                   "kind": "scalar"
                 }
               },
+              "embedding": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/vector@1",
+                  "kind": "scalar",
+                  "typeParams": {
+                    "length": 768
+                  }
+                }
+              },
               "id": {
                 "nullable": false,
                 "type": {
@@ -8697,6 +8707,9 @@
                 },
                 "description": {
                   "column": "description"
+                },
+                "embedding": {
+                  "column": "embedding"
                 },
                 "id": {
                   "column": "id"
@@ -11484,6 +11497,16 @@
                   "kind": "scalar"
                 }
               },
+              "embedding": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/vector@1",
+                  "kind": "scalar",
+                  "typeParams": {
+                    "length": 768
+                  }
+                }
+              },
               "id": {
                 "nullable": false,
                 "type": {
@@ -12428,6 +12451,9 @@
                 },
                 "description": {
                   "column": "description"
+                },
+                "embedding": {
+                  "column": "embedding"
                 },
                 "id": {
                   "column": "id"
@@ -19203,6 +19229,16 @@
                   "kind": "scalar"
                 }
               },
+              "embedding": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/vector@1",
+                  "kind": "scalar",
+                  "typeParams": {
+                    "length": 768
+                  }
+                }
+              },
               "globalCategory": {
                 "nullable": true,
                 "type": {
@@ -19381,6 +19417,9 @@
                 },
                 "description": {
                   "column": "description"
+                },
+                "embedding": {
+                  "column": "embedding"
                 },
                 "globalCategory": {
                   "column": "globalCategory"
@@ -32474,6 +32513,14 @@
                   "nativeType": "text",
                   "nullable": true
                 },
+                "embedding": {
+                  "codecId": "pg/vector@1",
+                  "nativeType": "vector",
+                  "nullable": true,
+                  "typeParams": {
+                    "length": 768
+                  }
+                },
                 "id": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -34935,6 +34982,14 @@
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": true
+                },
+                "embedding": {
+                  "codecId": "pg/vector@1",
+                  "nativeType": "vector",
+                  "nullable": true,
+                  "typeParams": {
+                    "length": 768
+                  }
                 },
                 "id": {
                   "codecId": "pg/text@1",
@@ -40392,6 +40447,14 @@
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": true
+                },
+                "embedding": {
+                  "codecId": "pg/vector@1",
+                  "nativeType": "vector",
+                  "nullable": true,
+                  "typeParams": {
+                    "length": 768
+                  }
                 },
                 "globalCategory": {
                   "codecId": "pg/text@1",
@@ -47174,7 +47237,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "eb73a6a92eed0e6fc38720d211083797da003930c25eb26547a798b0254a782e"
+    "storageHash": "12882941978a8c5084baccbdcae43de73fb448d5ccf1ab59b2625b1431d5d1ab"
   },
   "execution": {
     "executionHash": "599cedcdecfa9c7628fafc7657860a18846df22a31269c31a7ac022961babd40",
@@ -49082,6 +49145,7 @@
       "lateral": true,
       "limit": true,
       "orderBy": true,
+      "pgvector.cosine": true,
       "returning": true
     },
     "sql": {
@@ -49093,7 +49157,58 @@
       "scalarList": true
     }
   },
-  "extensions": {},
+  "extensions": {
+    "pgvector": {
+      "capabilities": {
+        "postgres": {
+          "pgvector.cosine": true
+        }
+      },
+      "familyId": "sql",
+      "id": "pgvector",
+      "kind": "extension",
+      "targetId": "postgres",
+      "types": {
+        "codecTypes": {
+          "import": {
+            "alias": "PgVectorTypes",
+            "named": "CodecTypes",
+            "package": "@internal/extension-pgvector/codec-types"
+          },
+          "typeImports": [
+            {
+              "alias": "Vector",
+              "named": "Vector",
+              "package": "@internal/extension-pgvector/codec-types"
+            }
+          ]
+        },
+        "operationTypes": {
+          "import": {
+            "alias": "PgVectorOperationTypes",
+            "named": "OperationTypes",
+            "package": "@internal/extension-pgvector/operation-types"
+          }
+        },
+        "queryOperationTypes": {
+          "import": {
+            "alias": "PgVectorQueryOperationTypes",
+            "named": "QueryOperationTypes",
+            "package": "@internal/extension-pgvector/operation-types"
+          }
+        },
+        "storage": [
+          {
+            "familyId": "sql",
+            "nativeType": "vector",
+            "targetId": "postgres",
+            "typeId": "pg/vector@1"
+          }
+        ]
+      },
+      "version": "0.0.1"
+    }
+  },
   "meta": {},
   "_generated": {
     "warning": "⚠️  GENERATED FILE - DO NOT EDIT",

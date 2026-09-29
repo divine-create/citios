@@ -420,6 +420,7 @@ enum OrgType {
 }
 
 model Organization {
+  embedding pgvector.Vector(length: 768)?
   id          String   @id @default(uuid())
   name        String
   type        OrgType
@@ -1854,6 +1855,7 @@ model SchoolEvent {
 // ----------------------------------------------------------------------------
 
 model MenuItem {
+  embedding pgvector.Vector(length: 768)?
   id             String       @id @default(uuid())
   name           String
   description    String?
@@ -2503,6 +2505,7 @@ model RetailCategory {
 }
 
 model RetailProduct {
+  embedding pgvector.Vector(length: 768)?
   id             String       @id @default(uuid())
   organizationId String
   organization   Organization @relation("OrgRetailProducts", fields: [organizationId], references: [id], onDelete: Cascade)
