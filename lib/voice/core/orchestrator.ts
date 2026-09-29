@@ -8,6 +8,7 @@ import { CommerceModule } from '../modules/commerce';
 import { ServicesModule } from '../modules/services';
 import { SystemModule } from '../modules/system';
 import { logisticsModule } from '../modules/logistics';
+import { HotelModule } from '../modules/hotels';
 import { assertRateLimit } from './rate-limit';
 
 // Explicitly register enabled modules
@@ -17,6 +18,7 @@ moduleRegistry.registerModule(CommerceModule);
 moduleRegistry.registerModule(ServicesModule);
 moduleRegistry.registerModule(SystemModule);
 moduleRegistry.registerModule(logisticsModule);
+moduleRegistry.registerModule(HotelModule);
 
 export function getRegisteredTools() {
   const tools = [];

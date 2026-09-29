@@ -6,7 +6,7 @@ import { pushRecentEntity } from '../../core/context';
 
 
 // Helper to extract citySlug
-async function getResidentCitySlug(session: any): Promise<string | undefined> {
+export async function getResidentCitySlug(session: any): Promise<string | undefined> {
   if (!session?.user?.personId) return undefined;
   const { db } = await import('@/src/prisma/db');
   const person = await db.orm.public.Person.where({ id: session.user.personId }).first();
@@ -29,7 +29,8 @@ export const searchCity: VoiceToolDefinition = {
     type: "object",
     properties: {
       query: { type: "string", description: "The search term" },
-      category: { type: "string", description: "Optional category" }
+      limit: { type: "number", description: "Optional number of results to return (default 5, max 10)" },
+      category: { type: "string", description: "Optional category. Allowed values: GOVERNMENT, SCHOOL, HEALTHCARE, RETAIL, RESTAURANT, REAL_ESTATE, SERVICES, LOGISTICS, HOTEL, EVENT_ORGANIZER, PUBLISHER, PHARMACY" }
     },
     required: ["query"]
   },
@@ -38,7 +39,8 @@ export const searchCity: VoiceToolDefinition = {
     const citySlug = await getResidentCitySlug(session);
     let query = (args.query || '').toLowerCase().trim();
     if (['restaurant', 'restaurants', 'business', 'businesses', 'store', 'stores', 'food', 'foods', 'place', 'places'].includes(query)) query = '';
-    const res = await searchCityExplore(citySlug, query, 'All');
+    const cat = typeof args.category === 'string' ? args.category : 'All';
+    const res = await searchCityExplore(citySlug, query, cat);
     
     // Combine organizations and products up to 5 items
     const combined = [
@@ -46,7 +48,8 @@ export const searchCity: VoiceToolDefinition = {
       ...res.products.map((p: any) => ({ type: 'Product', name: p.name, desc: p.storeName }))
     ];
     
-    return { ok: true, data: combined.slice(0, 5) };
+    const limit = Math.min(typeof args.limit === 'number' ? args.limit : 5, 10);
+    return { ok: true, data: combined.slice(0, limit) };
   }
 };
 
