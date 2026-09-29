@@ -1,9 +1,22 @@
-import { getToolDefinition, requiresConfirmation } from '../policy';
+import { getToolDefinition, requiresConfirmation, toolsRegistry } from '../policy';
 import { getVoiceContext } from '../context/manager';
 import { initializeToolRegistry } from './registry';
 
 // Initialize the registry
 initializeToolRegistry();
+
+export function getRegisteredTools() {
+  const tools = [];
+  for (const [_, def] of toolsRegistry.entries()) {
+    tools.push({
+      type: "function",
+      name: def.name,
+      description: def.description,
+      parameters: def.inputSchema
+    });
+  }
+  return tools;
+}
 
 export async function executeTool(name: string, args: any, session: any) {
   const def = getToolDefinition(name);
@@ -27,10 +40,32 @@ export async function executeTool(name: string, args: any, session: any) {
   }
 
   try {
+    const startTime = Date.now();
     const result = await def.execute(args, session);
+    const latency = Date.now() - startTime;
+    
+    // Audit Logging
+    console.log(JSON.stringify({
+      timestamp: new Date().toISOString(),
+      event: 'VOICE_TOOL_EXECUTED',
+      residentId: session.user.personId,
+      tool: name,
+      riskLevel: def.riskLevel,
+      success: result.ok,
+      latencyMs: latency
+    }));
+    
     return result;
   } catch (err: any) {
     console.error(`Tool execution error [${name}]:`, err);
+    console.log(JSON.stringify({
+      timestamp: new Date().toISOString(),
+      event: 'VOICE_TOOL_FAILED',
+      residentId: session.user.personId,
+      tool: name,
+      riskLevel: def.riskLevel,
+      errorCategory: 'INTERNAL_ERROR'
+    }));
     return { ok: false, error: { code: 'INTERNAL_ERROR', message: err.message || 'An internal error occurred while executing this tool.' } };
   }
 }

@@ -3,8 +3,16 @@ export type RiskLevel = 'read' | 'reversible' | 'financial' | 'irreversible' | '
 export type VoiceToolDefinition = {
   name: string;
   description: string;
+  domain: 'commerce' | 'services' | 'logistics' | 'account' | 'discovery' | 'system';
   riskLevel: RiskLevel;
   requiresConfirmation: boolean;
+  requiresAuthentication: boolean;
+  inputSchema: any; // JSON Schema for the input
+  outputSchema?: any; // JSON Schema for the output (optional, mostly for docs/validation)
+  timeout?: number; // Timeout in milliseconds
+  idempotencyBehavior?: 'idempotent' | 'non-idempotent' | 'generates-idempotency-key';
+  authorizationRequirements?: string[];
+  orchestrationEligible: boolean; // whether it can participate in orchestration
   execute: (args: any, session: any) => Promise<any>;
 };
 

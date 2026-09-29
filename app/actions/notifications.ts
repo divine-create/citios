@@ -41,10 +41,12 @@ export async function getMyNotifications(): Promise<{
   if (!personId) return { notifications: [], unreadCount: 0 };
 
   const rows = await db.orm.public.Notification.where({ personId }).all();
-  rows.sort(
-    (a: any, b: any) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  );
+  
+  rows.sort((a: any, b: any) => {
+    const aMs = typeof a.createdAt === 'string' ? new Date(a.createdAt).getTime() : a.createdAt.epochMilliseconds;
+    const bMs = typeof b.createdAt === 'string' ? new Date(b.createdAt).getTime() : b.createdAt.epochMilliseconds;
+    return bMs - aMs;
+  });
 
   const notifications: ResidentNotification[] = rows.slice(0, PAGE_SIZE).map((n: any) => ({
     id: n.id,
@@ -53,7 +55,7 @@ export async function getMyNotifications(): Promise<{
     body: n.body ?? null,
     href: n.href ?? null,
     isRead: n.isRead,
-    createdAt: typeof n.createdAt === 'string' ? n.createdAt : new Date(n.createdAt).toISOString(),
+    createdAt: typeof n.createdAt === 'string' ? n.createdAt : n.createdAt.toString(),
   }));
 
   return {

@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
-import { executeTool } from '@/lib/voice/tools';
+import { executeTool, getRegisteredTools } from '@/lib/voice/tools';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+
+export async function GET() {
+  const tools = getRegisteredTools();
+  return NextResponse.json({ tools });
+}
 
 export async function POST(req: Request) {
   try {

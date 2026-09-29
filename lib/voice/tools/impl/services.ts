@@ -7,8 +7,17 @@ import { getVoiceContext, updateVoiceContext, pushRecentEntity } from '../../con
 export const searchServices: VoiceToolDefinition = {
   name: 'search_services',
   description: 'Search for available CityOS services (e.g. plumbers, streetlights).',
+  domain: 'services',
   riskLevel: 'read',
   requiresConfirmation: false,
+  requiresAuthentication: false,
+  orchestrationEligible: true,
+  inputSchema: {
+    type: "object",
+    properties: {
+      query: { type: "string", description: "The service to search for." }
+    }
+  },
   execute: async (args, session) => {
     const query = typeof args.query === 'string' ? args.query.toLowerCase() : '';
     
@@ -42,8 +51,12 @@ export const searchServices: VoiceToolDefinition = {
 export const getMyServiceRequests: VoiceToolDefinition = {
   name: 'get_my_service_requests',
   description: 'View the resident\'s service requests.',
+  domain: 'services',
   riskLevel: 'read',
   requiresConfirmation: false,
+  requiresAuthentication: true,
+  orchestrationEligible: true,
+  inputSchema: { type: "object", properties: {} },
   execute: async (args, session) => {
     const jobs = await fetchMyServiceJobs();
     return { ok: true, data: jobs.slice(0, 5) };
@@ -53,8 +66,18 @@ export const getMyServiceRequests: VoiceToolDefinition = {
 export const prepareServiceRequest: VoiceToolDefinition = {
   name: 'prepare_service_request',
   description: 'Prepares a service request. Collects notes/details before confirmation.',
+  domain: 'services',
   riskLevel: 'read',
   requiresConfirmation: false,
+  requiresAuthentication: true,
+  orchestrationEligible: true,
+  inputSchema: {
+    type: "object",
+    properties: {
+      service_id: { type: "string", description: "Optional. The service ID." },
+      notes: { type: "string", description: "Optional notes for the service professional." }
+    }
+  },
   execute: async (args, session) => {
     let serviceId = args.service_id;
     if (!serviceId) {
@@ -96,8 +119,17 @@ export const prepareServiceRequest: VoiceToolDefinition = {
 export const confirmServiceRequest: VoiceToolDefinition = {
   name: 'confirm_service_request',
   description: 'Confirms and actually submits the service request.',
+  domain: 'services',
   riskLevel: 'irreversible',
   requiresConfirmation: true,
+  requiresAuthentication: true,
+  orchestrationEligible: false,
+  inputSchema: {
+    type: "object",
+    properties: {
+      confirmation_id: { type: "string", description: "Optional. The confirmation ID." }
+    }
+  },
   execute: async (args, session) => {
     const ctx = await getVoiceContext(session.user.personId);
     let confirmationId = args.confirmation_id;

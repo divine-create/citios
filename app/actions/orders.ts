@@ -62,9 +62,11 @@ export async function fetchMyOrders() {
     return { ...order, org, items: enrichedItems, payment, delivery };
   }));
 
-  // Sort both by createdAt descending
-  enrichedRetail.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  enrichedRestaurant.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  // Sort both by createdAt descending safely handling Temporal Instant
+  const getMs = (dateObj: any) => typeof dateObj === 'string' ? new Date(dateObj).getTime() : dateObj.epochMilliseconds;
+  
+  enrichedRetail.sort((a, b) => getMs(b.createdAt) - getMs(a.createdAt));
+  enrichedRestaurant.sort((a, b) => getMs(b.createdAt) - getMs(a.createdAt));
 
   return JSON.parse(JSON.stringify({
     retail: enrichedRetail,

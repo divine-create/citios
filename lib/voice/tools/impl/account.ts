@@ -6,8 +6,12 @@ import { getVoiceContext, pushRecentEntity } from '../../context/manager';
 export const getProfile: VoiceToolDefinition = {
   name: 'get_profile',
   description: 'Get resident profile and interests.',
+  domain: 'account',
   riskLevel: 'read',
   requiresConfirmation: false,
+  requiresAuthentication: true,
+  orchestrationEligible: true,
+  inputSchema: { type: "object", properties: {} },
   execute: async (args, session) => {
     const person = await db.orm.public.Person.where({ id: session.user.personId }).all().first();
     const profile = await db.orm.public.ResidentProfile.where({ personId: session.user.personId }).all().first();
@@ -28,8 +32,17 @@ export const getProfile: VoiceToolDefinition = {
 export const getOrderStatus: VoiceToolDefinition = {
   name: 'get_order_status',
   description: 'Get status of recent or specific orders.',
+  domain: 'commerce',
   riskLevel: 'read',
   requiresConfirmation: false,
+  requiresAuthentication: true,
+  orchestrationEligible: true,
+  inputSchema: {
+    type: "object",
+    properties: {
+      order_id: { type: "string", description: "Optional specific order ID. If omitted, returns recent orders." }
+    }
+  },
   execute: async (args, session) => {
     const orders = await fetchMyOrders();
     const ctx = await getVoiceContext(session.user.personId);
@@ -83,8 +96,17 @@ export const getOrderStatus: VoiceToolDefinition = {
 export const getDeliveryStatus: VoiceToolDefinition = {
   name: 'get_delivery_status',
   description: 'Get delivery tracking status for an order.',
+  domain: 'logistics',
   riskLevel: 'read',
   requiresConfirmation: false,
+  requiresAuthentication: true,
+  orchestrationEligible: true,
+  inputSchema: {
+    type: "object",
+    properties: {
+      order_id: { type: "string", description: "Optional specific order ID. If omitted, returns recent active deliveries." }
+    }
+  },
   execute: async (args, session) => {
     const orders = await fetchMyOrders();
     const ctx = await getVoiceContext(session.user.personId);

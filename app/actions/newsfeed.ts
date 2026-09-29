@@ -124,9 +124,9 @@ export async function fetchFeed(
 
   const posts = rawPosts.map((post: any) => mapPost(post, myLikedPostIds, myReactions, personId, myOrgIds));
   const nextCursor = rawPosts.length === limit
-    ? rawPosts[rawPosts.length - 1].createdAt instanceof Date
-      ? rawPosts[rawPosts.length - 1].createdAt.toISOString()
-      : new Date(rawPosts[rawPosts.length - 1].createdAt).toISOString()
+    ? typeof rawPosts[rawPosts.length - 1].createdAt === 'string'
+      ? new Date(rawPosts[rawPosts.length - 1].createdAt).toISOString()
+      : rawPosts[rawPosts.length - 1].createdAt.toString()
     : null;
 
   return { posts, nextCursor };

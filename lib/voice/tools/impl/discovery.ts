@@ -7,8 +7,19 @@ import { pushRecentEntity } from '../../context/manager';
 export const searchCity: VoiceToolDefinition = {
   name: 'search_city',
   description: 'Search across CityOS discovery to find organizations, services, or local places.',
+  domain: 'discovery',
   riskLevel: 'read',
   requiresConfirmation: false,
+  requiresAuthentication: false,
+  orchestrationEligible: true,
+  inputSchema: {
+    type: "object",
+    properties: {
+      query: { type: "string", description: "The search term" },
+      category: { type: "string", description: "Optional category" }
+    },
+    required: ["query"]
+  },
   execute: async (args, session) => {
     // searchCityExplore signature: (citySlug: string | undefined, query: string, cat: string)
     const res = await searchCityExplore(undefined, args.query || '', 'All');
@@ -26,8 +37,19 @@ export const searchCity: VoiceToolDefinition = {
 export const searchProducts: VoiceToolDefinition = {
   name: 'search_products',
   description: 'Discover actual CityMart/ShopOS products like groceries, electronics, and goods.',
+  domain: 'commerce',
   riskLevel: 'read',
   requiresConfirmation: false,
+  requiresAuthentication: false,
+  orchestrationEligible: true,
+  inputSchema: {
+    type: "object",
+    properties: {
+      query: { type: "string", description: "The product name to search for" },
+      category: { type: "string", description: "Optional category of product" }
+    },
+    required: ["query"]
+  },
   execute: async (args, session) => {
     const query = typeof args.query === 'string' ? args.query.toLowerCase() : '';
     const cat = typeof args.category === 'string' ? args.category : 'All';
@@ -61,8 +83,18 @@ export const searchProducts: VoiceToolDefinition = {
 export const searchBusinesses: VoiceToolDefinition = {
   name: 'search_businesses',
   description: 'Search for CityOS businesses or merchants.',
+  domain: 'discovery',
   riskLevel: 'read',
   requiresConfirmation: false,
+  requiresAuthentication: false,
+  orchestrationEligible: true,
+  inputSchema: {
+    type: "object",
+    properties: {
+      query: { type: "string", description: "The name or type of business" }
+    },
+    required: ["query"]
+  },
   execute: async (args, session) => {
     const query = typeof args.query === 'string' ? args.query.toLowerCase() : '';
     const stores = await getCityMartStores();
@@ -83,8 +115,18 @@ export const searchBusinesses: VoiceToolDefinition = {
 export const searchRestaurants: VoiceToolDefinition = {
   name: 'search_restaurants',
   description: 'Search for restaurants in CityFood.',
+  domain: 'commerce',
   riskLevel: 'read',
   requiresConfirmation: false,
+  requiresAuthentication: false,
+  orchestrationEligible: true,
+  inputSchema: {
+    type: "object",
+    properties: {
+      query: { type: "string", description: "The restaurant name, cuisine, or food item to search for" }
+    },
+    required: ["query"]
+  },
   execute: async (args, session) => {
     const query = typeof args.query === 'string' ? args.query.toLowerCase() : '';
     const res = await getCityFood();

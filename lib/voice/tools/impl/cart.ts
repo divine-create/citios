@@ -5,8 +5,12 @@ import { getVoiceContext, updateVoiceContext } from '../../context/manager';
 export const getCart: VoiceToolDefinition = {
   name: 'get_cart',
   description: 'View the resident\'s voice shopping cart.',
+  domain: 'commerce',
   riskLevel: 'read',
   requiresConfirmation: false,
+  requiresAuthentication: true,
+  orchestrationEligible: true,
+  inputSchema: { type: "object", properties: {} },
   execute: async (args, session) => {
     const { cart, subtotal } = await getVoiceCart(session.user.personId);
     return {
@@ -29,8 +33,18 @@ export const getCart: VoiceToolDefinition = {
 export const addToCart: VoiceToolDefinition = {
   name: 'add_to_cart',
   description: 'Add a product to the cart. Requires product_id.',
+  domain: 'commerce',
   riskLevel: 'reversible',
   requiresConfirmation: false,
+  requiresAuthentication: true,
+  orchestrationEligible: true,
+  inputSchema: {
+    type: "object",
+    properties: {
+      product_id: { type: "string", description: "Optional. The ID of the product. Omit if it's clear from context." },
+      quantity: { type: "number", description: "The quantity to add" }
+    }
+  },
   execute: async (args, session) => {
     const qty = args.quantity ? parseInt(args.quantity) : 1;
     let productId = args.product_id;
@@ -53,8 +67,19 @@ export const addToCart: VoiceToolDefinition = {
 export const updateCartQuantity: VoiceToolDefinition = {
   name: 'update_cart_quantity',
   description: 'Update the quantity of an item in the cart.',
+  domain: 'commerce',
   riskLevel: 'reversible',
   requiresConfirmation: false,
+  requiresAuthentication: true,
+  orchestrationEligible: true,
+  inputSchema: {
+    type: "object",
+    properties: {
+      product_id: { type: "string", description: "Optional. The ID of the product." },
+      quantity: { type: "number", description: "The new quantity (0 to remove)" }
+    },
+    required: ["quantity"]
+  },
   execute: async (args, session) => {
     let productId = args.product_id;
     if (!productId) {
@@ -78,8 +103,17 @@ export const updateCartQuantity: VoiceToolDefinition = {
 export const removeFromCart: VoiceToolDefinition = {
   name: 'remove_from_cart',
   description: 'Remove an item from the cart.',
+  domain: 'commerce',
   riskLevel: 'reversible',
   requiresConfirmation: false,
+  requiresAuthentication: true,
+  orchestrationEligible: true,
+  inputSchema: {
+    type: "object",
+    properties: {
+      product_id: { type: "string", description: "Optional. The ID of the product to remove." }
+    }
+  },
   execute: async (args, session) => {
     let productId = args.product_id;
     if (!productId) {
@@ -100,8 +134,12 @@ export const removeFromCart: VoiceToolDefinition = {
 export const prepareCheckout: VoiceToolDefinition = {
   name: 'prepare_checkout',
   description: 'Calculates the final cart total and prepares for confirmation.',
+  domain: 'commerce',
   riskLevel: 'read',
-  requiresConfirmation: false, // The prepare step itself doesn't require confirmation, it TEES UP confirmation
+  requiresConfirmation: false,
+  requiresAuthentication: true,
+  orchestrationEligible: true,
+  inputSchema: { type: "object", properties: {} },
   execute: async (args, session) => {
     const res = await prepareVoiceCheckout(session.user.personId);
     
@@ -128,8 +166,17 @@ export const prepareCheckout: VoiceToolDefinition = {
 export const confirmCheckout: VoiceToolDefinition = {
   name: 'confirm_checkout',
   description: 'Confirm and execute a pending checkout.',
+  domain: 'commerce',
   riskLevel: 'financial',
   requiresConfirmation: true, // Requires the policy engine to know this is a protected step
+  requiresAuthentication: true,
+  orchestrationEligible: false, // Cannot be loosely orchestrated, it's a strict confirmation step
+  inputSchema: {
+    type: "object",
+    properties: {
+      checkout_id: { type: "string", description: "Optional. The checkout ID." }
+    }
+  },
   execute: async (args, session) => {
     const ctx = await getVoiceContext(session.user.personId);
     let checkoutId = args.checkout_id;

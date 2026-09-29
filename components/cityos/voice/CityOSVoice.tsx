@@ -15,6 +15,7 @@ export function CityOSVoice({ onTranscript, onClose }: CityOSVoiceProps) {
   const [state, setState] = useState<VoiceState>('idle');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isExecutingTool, setIsExecutingTool] = useState(false);
 
   const wsRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -109,7 +110,12 @@ export function CityOSVoice({ onTranscript, onClose }: CityOSVoiceProps) {
       if (!tokenRes.ok) throw new Error("We couldn't start CityOS Voice. Please try again.");
       const { token } = await tokenRes.json();
 
-      // 3. Setup WebSocket
+      // 3. Get Tools dynamically
+      const toolsRes = await fetch('/api/voice/tools');
+      const toolsData = await toolsRes.json();
+      const dynamicTools = toolsData.tools || [];
+
+      // 4. Setup WebSocket
       const ws = new WebSocket(`wss://agents.assemblyai.com/v1/ws?token=${token}`);
       wsRef.current = ws;
 
@@ -119,197 +125,7 @@ export function CityOSVoice({ onTranscript, onClose }: CityOSVoiceProps) {
           system_prompt: "You are CityOS Voice, the voice interface for CityOS. You help residents interact with CityOS naturally through conversation. You are concise, conversational, helpful, and clear. You have tools to search the city, products, businesses, and restaurants. Use them whenever a resident asks for information instead of inventing answers. If a search fails, explain the failure. If an ambiguous request is made, ask a clarification question. Maintain context across tool calls. You also have tools to check order and delivery statuses.",
           greeting: "Hi, I'm CityOS. How can I help?",
           output: { type: "audio" },
-          tools: [
-            {
-              type: "function",
-              name: "search_city",
-              description: "Allow the resident to search across CityOS discovery to find organizations, services, or local places.",
-              parameters: {
-                type: "object",
-                properties: {
-                  query: { type: "string", description: "The search term" },
-                  category: { type: "string", description: "Optional category" }
-                },
-                required: ["query"]
-              }
-            },
-            {
-              type: "function",
-              name: "search_products",
-              description: "Allow residents to discover actual CityMart/ShopOS products like groceries, electronics, and goods.",
-              parameters: {
-                type: "object",
-                properties: {
-                  query: { type: "string", description: "The product name to search for" },
-                  category: { type: "string", description: "Optional category of product" }
-                },
-                required: ["query"]
-              }
-            },
-            {
-              type: "function",
-              name: "search_businesses",
-              description: "Find businesses and organizations within CityOS.",
-              parameters: {
-                type: "object",
-                properties: {
-                  query: { type: "string", description: "The name or type of business" }
-                },
-                required: ["query"]
-              }
-            },
-            {
-              type: "function",
-              name: "search_restaurants",
-              description: "Allow residents to discover restaurants and food items through natural conversation.",
-              parameters: {
-                type: "object",
-                properties: {
-                  query: { type: "string", description: "The restaurant name, cuisine, or food item to search for" }
-                },
-                required: ["query"]
-              }
-            },
-            {
-              type: "function",
-              name: "get_order_status",
-              description: "Get the status of orders placed by the current resident.",
-              parameters: {
-                type: "object",
-                properties: {
-                  order_id: { type: "string", description: "Optional specific order ID. If omitted, returns recent orders." }
-                }
-              }
-            },
-            {
-              type: "function",
-              name: "get_delivery_status",
-              description: "Check the delivery status of an order for the current resident.",
-              parameters: {
-                type: "object",
-                properties: {
-                  order_id: { type: "string", description: "Optional specific order ID. If omitted, returns recent active deliveries." }
-                }
-              }
-            },
-            {
-              type: "function",
-              name: "get_profile",
-              description: "Retrieve the current resident's profile information.",
-              parameters: {
-                type: "object",
-                properties: {}
-              }
-            },
-            {
-              type: "function",
-              name: "get_cart",
-              description: "View the resident's current shopping cart and subtotal.",
-              parameters: {
-                type: "object",
-                properties: {}
-              }
-            },
-            {
-              type: "function",
-              name: "add_to_cart",
-              description: "Add a product to the resident's shopping cart.",
-              parameters: {
-                type: "object",
-                properties: {
-                  product_id: { type: "string", description: "Optional. The ID of the product. Omit if it's clear from context." },
-                  quantity: { type: "number", description: "The quantity to add" }
-                }
-              }
-            },
-            {
-              type: "function",
-              name: "update_cart_quantity",
-              description: "Update the quantity of a product in the resident's shopping cart.",
-              parameters: {
-                type: "object",
-                properties: {
-                  product_id: { type: "string", description: "Optional. The ID of the product." },
-                  quantity: { type: "number", description: "The new quantity (0 to remove)" }
-                },
-                required: ["quantity"]
-              }
-            },
-            {
-              type: "function",
-              name: "remove_from_cart",
-              description: "Remove a product from the resident's shopping cart.",
-              parameters: {
-                type: "object",
-                properties: {
-                  product_id: { type: "string", description: "Optional. The ID of the product to remove." }
-                }
-              }
-            },
-            {
-              type: "function",
-              name: "prepare_checkout",
-              description: "Prepare the cart for checkout. You MUST run this and relay the instruction and final price to the user before they can confirm.",
-              parameters: {
-                type: "object",
-                properties: {}
-              }
-            },
-            {
-              type: "function",
-              name: "confirm_checkout",
-              description: "Confirm and place the pending checkout order. ONLY run this AFTER the user has explicitly confirmed they want to place the order with the final price.",
-              parameters: {
-                type: "object",
-                properties: {
-                  checkout_id: { type: "string", description: "Optional. The checkout ID." }
-                }
-              }
-            },
-            {
-              type: "function",
-              name: "search_services",
-              description: "Search for available CityOS services (e.g. plumbers, streetlights).",
-              parameters: {
-                type: "object",
-                properties: {
-                  query: { type: "string", description: "The service to search for." }
-                }
-              }
-            },
-            {
-              type: "function",
-              name: "get_my_service_requests",
-              description: "View the resident's recent service requests.",
-              parameters: {
-                type: "object",
-                properties: {}
-              }
-            },
-            {
-              type: "function",
-              name: "prepare_service_request",
-              description: "Prepares a service request. You MUST run this to collect notes before confirmation.",
-              parameters: {
-                type: "object",
-                properties: {
-                  service_id: { type: "string", description: "Optional. The service ID." },
-                  notes: { type: "string", description: "Optional notes for the service professional." }
-                }
-              }
-            },
-            {
-              type: "function",
-              name: "confirm_service_request",
-              description: "Confirms and actually submits the prepared service request. ONLY run this AFTER the user explicitly confirmed the request.",
-              parameters: {
-                type: "object",
-                properties: {
-                  confirmation_id: { type: "string", description: "Optional. The confirmation ID." }
-                }
-              }
-            }
-          ]
+          tools: dynamicTools
         };
         ws.send(JSON.stringify({ type: 'session.update', session: config }));
       };
@@ -392,6 +208,8 @@ export function CityOSVoice({ onTranscript, onClose }: CityOSVoiceProps) {
             const toolName = msg.name;
             const toolArgs = typeof msg.arguments === 'string' ? JSON.parse(msg.arguments || '{}') : (msg.arguments || {});
 
+            setIsExecutingTool(true);
+            
             fetch('/api/voice/tools', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -399,6 +217,7 @@ export function CityOSVoice({ onTranscript, onClose }: CityOSVoiceProps) {
             })
             .then(res => res.json())
             .then(data => {
+              setIsExecutingTool(false);
               if (wsRef.current?.readyState === WebSocket.OPEN) {
                 wsRef.current.send(JSON.stringify({
                   type: 'tool.result',
@@ -409,11 +228,12 @@ export function CityOSVoice({ onTranscript, onClose }: CityOSVoiceProps) {
             })
             .catch(err => {
               console.error('Tool execution failed client-side:', err);
+              setIsExecutingTool(false);
               if (wsRef.current?.readyState === WebSocket.OPEN) {
                 wsRef.current.send(JSON.stringify({
                   type: 'tool.result',
                   tool_call_id: toolCallId,
-                  result: { error: 'INTERNAL_ERROR', message: 'Failed to execute tool on the server.' }
+                  result: JSON.stringify({ error: 'INTERNAL_ERROR', message: 'Failed to execute tool on the server.' })
                 }));
               }
             });
@@ -520,7 +340,7 @@ export function CityOSVoice({ onTranscript, onClose }: CityOSVoiceProps) {
           
           <div className="text-center">
             <p className="text-sm font-black text-ink">
-              {isSpeaking ? 'CityOS is speaking...' : 'Listening...'}
+              {isExecutingTool ? 'Thinking...' : isSpeaking ? 'CityOS is speaking...' : 'Listening...'}
             </p>
             <p className="text-xs text-slate-400 mt-1">
               You can interrupt at any time
