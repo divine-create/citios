@@ -88,6 +88,12 @@ export const cancelWorkflow: VoiceToolDefinition = {
     properties: {}
   },
   execute: async (args, session) => {
+    // Delete any pending VoiceCheckout from the database
+    const cart = await db.orm.public.VoiceCart.where({ personId: session.user.personId }).first();
+    if (cart) {
+      await db.orm.public.VoiceCheckout.where({ cartId: cart.id }).delete();
+    }
+
     await updateVoiceContext(session.user.personId, {
       taskState: {
         status: 'cancelled'
