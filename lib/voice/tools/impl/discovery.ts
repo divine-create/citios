@@ -36,7 +36,9 @@ export const searchCity: VoiceToolDefinition = {
   execute: async (args, session) => {
     // searchCityExplore signature: (citySlug: string | undefined, query: string, cat: string)
     const citySlug = await getResidentCitySlug(session);
-    const res = await searchCityExplore(citySlug, args.query || '', 'All');
+    let query = (args.query || '').toLowerCase().trim();
+    if (['restaurant', 'restaurants', 'business', 'businesses', 'store', 'stores', 'food', 'foods', 'place', 'places'].includes(query)) query = '';
+    const res = await searchCityExplore(citySlug, query, 'All');
     
     // Combine organizations and products up to 5 items
     const combined = [
@@ -65,7 +67,9 @@ export const searchProducts: VoiceToolDefinition = {
     required: ["query"]
   },
   execute: async (args, session) => {
-    const query = typeof args.query === 'string' ? args.query.toLowerCase() : '';
+    let query = typeof args.query === 'string' ? args.query.toLowerCase().trim() : '';
+    const genericTerms = ['restaurant', 'restaurants', 'business', 'businesses', 'store', 'stores', 'food', 'foods', 'place', 'places', 'shop', 'shops', 'market', 'markets'];
+    if (genericTerms.includes(query)) query = '';
     const cat = typeof args.category === 'string' ? args.category : 'All';
     
     const citySlug = await getResidentCitySlug(session);
@@ -108,20 +112,24 @@ export const searchBusinesses: VoiceToolDefinition = {
   inputSchema: {
     type: "object",
     properties: {
-      query: { type: "string", description: "The name or type of business" }
+      query: { type: "string", description: "The name or type of business" },
+      limit: { type: "number", description: "Optional number of results to return (default 5, max 10)" }
     },
     required: ["query"]
   },
   execute: async (args, session) => {
-    const query = typeof args.query === 'string' ? args.query.toLowerCase() : '';
+    let query = typeof args.query === 'string' ? args.query.toLowerCase().trim() : '';
+    const genericTerms = ['restaurant', 'restaurants', 'business', 'businesses', 'store', 'stores', 'food', 'foods', 'place', 'places', 'shop', 'shops', 'market', 'markets'];
+    if (genericTerms.includes(query)) query = '';
     const citySlug = await getResidentCitySlug(session);
     const stores = await getCityMartStores(citySlug);
+    const limit = Math.min(typeof args.limit === "number" ? args.limit : 5, 10);
     const filtered = query ? stores.filter((s: any) => 
       s.name.toLowerCase().includes(query) || 
       (s.description || '').toLowerCase().includes(query)
     ) : stores;
 
-    return { ok: true, data: filtered.slice(0, 5).map((s: any) => ({
+    return { ok: true, data: filtered.slice(0, limit).map((s: any) => ({
       id: s.id,
       name: s.name,
       description: s.description,
@@ -146,7 +154,9 @@ export const searchRestaurants: VoiceToolDefinition = {
     required: ["query"]
   },
   execute: async (args, session) => {
-    const query = typeof args.query === 'string' ? args.query.toLowerCase() : '';
+    let query = typeof args.query === 'string' ? args.query.toLowerCase().trim() : '';
+    const genericTerms = ['restaurant', 'restaurants', 'business', 'businesses', 'store', 'stores', 'food', 'foods', 'place', 'places', 'shop', 'shops', 'market', 'markets'];
+    if (genericTerms.includes(query)) query = '';
     const citySlug = await getResidentCitySlug(session);
     const res = await getCityFood(citySlug);
     
@@ -183,7 +193,9 @@ export const searchFoodItems: VoiceToolDefinition = {
     required: ["query"]
   },
   execute: async (args, session) => {
-    const query = typeof args.query === 'string' ? args.query.toLowerCase() : '';
+    let query = typeof args.query === 'string' ? args.query.toLowerCase().trim() : '';
+    const genericTerms = ['restaurant', 'restaurants', 'business', 'businesses', 'store', 'stores', 'food', 'foods', 'place', 'places', 'shop', 'shops', 'market', 'markets'];
+    if (genericTerms.includes(query)) query = '';
     const citySlug = await getResidentCitySlug(session);
     const res = await getCityFood(citySlug);
     
