@@ -1,5 +1,5 @@
-import { addCartItemAction, removeCartItemAction, updateCartItemQuantityAction, fetchUserCart } from '@/app/actions/cart';
 'use client';
+import { addCartItemAction, removeCartItemAction, updateCartItemQuantityAction, fetchUserCart } from '@/app/actions/cart';
 
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
 import { useCity } from '@/components/cityos/CityProvider';
