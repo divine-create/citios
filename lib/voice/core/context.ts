@@ -50,3 +50,19 @@ export async function pushRecentEntity(personId: string, entity: { type: string;
   
   await updateVoiceContext(personId, { recentEntities: filtered });
 }
+
+
+export async function startWorkflow(personId: string, workflowId: string, workflowData: any) {
+  const data = await getVoiceContext(personId);
+  const activeWorkflows = data.activeWorkflows || {};
+  activeWorkflows[workflowId] = workflowData;
+  await updateVoiceContext(personId, { activeWorkflows });
+}
+
+export async function endWorkflow(personId: string, workflowId: string) {
+  const data = await getVoiceContext(personId);
+  if (data.activeWorkflows && data.activeWorkflows[workflowId]) {
+    delete data.activeWorkflows[workflowId];
+    await updateVoiceContext(personId, { activeWorkflows: data.activeWorkflows });
+  }
+}

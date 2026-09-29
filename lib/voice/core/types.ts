@@ -5,20 +5,27 @@ export type VoiceContextData = {
   activeOrder?: { id: string; reference: string };
   activeServiceRequest?: { id: string; reference: string };
   activeServiceJob?: { id: string; reference: string };
-  pendingAction?: {
+  
+  // Phase 6: Multi-workflow tracking
+  activeWorkflows?: Record<string, {
+    workflowId: string;
     action: string;
+    domain: string;
     confirmationId?: string;
-    expiresAt?: string; // ISO date
-  };
+    expiresAt?: string;
+    contextData?: any; // To store workflow-specific state (like pendingServiceNotes)
+  }>;
+  
   recentEntities?: Array<{
     type: string;
     id: string;
     label: string;
   }>;
+  
   taskState?: {
-    status: 'idle' | 'resolving_intent' | 'awaiting_clarification' | 'awaiting_confirmation' | 'executing' | 'error' | 'completed' | 'cancelled';
+    status: 'IDLE' | 'CONNECTING' | 'LISTENING' | 'THINKING' | 'TOOL_EXECUTING' | 'AWAITING_CLARIFICATION' | 'AWAITING_CONFIRMATION' | 'SPEAKING' | 'INTERRUPTED' | 'RECOVERING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
     missingFields?: string[];
-    currentWorkflow?: string;
+    currentWorkflowId?: string;
   };
 };
 

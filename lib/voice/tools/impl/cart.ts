@@ -143,13 +143,18 @@ export const prepareCheckout: VoiceToolDefinition = {
   execute: async (args, session) => {
     const res = await prepareVoiceCheckout(session.user.personId);
     
-    // Explicitly update the context so we know what we're confirming
+    // Phase 6: Explicitly start workflow
+    const { startWorkflow } = await import('../../core/context');
+    await startWorkflow(session.user.personId, res.checkoutId, {
+      workflowId: res.checkoutId,
+      action: 'confirm_checkout',
+      domain: 'commerce',
+      confirmationId: res.checkoutId,
+      expiresAt: new Date(Date.now() + 15 * 60000).toISOString()
+    });
+    
     await updateVoiceContext(session.user.personId, {
-      pendingAction: {
-        action: 'confirm_checkout',
-        confirmationId: res.checkoutId,
-        expiresAt: new Date(Date.now() + 15 * 60000).toISOString()
-      }
+      taskState: { status: 'AWAITING_CONFIRMATION', currentWorkflowId: res.checkoutId }
     });
 
     return { 
@@ -178,19 +183,28 @@ export const confirmCheckout: VoiceToolDefinition = {
     }
   },
   execute: async (args, session) => {
+    const { endWorkflow } = await import('../../core/context');
     const ctx = await getVoiceContext(session.user.personId);
     let checkoutId = args.checkout_id;
 
-    if (!checkoutId && ctx.pendingAction?.action === 'confirm_checkout') {
-      checkoutId = ctx.pendingAction.confirmationId;
+    if (!checkoutId && ctx.activeWorkflows) {
+      for (const key of Object.keys(ctx.activeWorkflows)) {
+        if (ctx.activeWorkflows[key].action === 'confirm_checkout') {
+          checkoutId = ctx.activeWorkflows[key].confirmationId;
+          break;
+        }
+      }
     }
 
     if (!checkoutId) return { ok: false, error: { code: 'MISSING_CHECKOUT_ID', message: 'Checkout ID is required.' } };
     
     const res = await confirmVoiceCheckout(session.user.personId, checkoutId);
     
-    // Clear pending action
-    await updateVoiceContext(session.user.personId, { pendingAction: undefined });
+    // Cleanup workflow
+    await endWorkflow(session.user.personId, checkoutId);
+    await updateVoiceContext(session.user.personId, {
+      taskState: { status: 'COMPLETED' }
+    });
     
     return { ok: true, data: { message: 'Order placed successfully.', orderData: res } };
   }

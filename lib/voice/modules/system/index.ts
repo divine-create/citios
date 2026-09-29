@@ -1,5 +1,5 @@
 import { VoiceModule } from '../../core/policy';
-import { rememberPreference, forgetPreference, cancelWorkflow } from '../../tools/impl/system';
+import { rememberPreference, forgetPreference, cancelWorkflow, getOperationStatus } from '../../tools/impl/system';
 
 export const SystemModule: VoiceModule = {
   id: 'system',
