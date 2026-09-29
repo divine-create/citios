@@ -1,7 +1,7 @@
-import { VoiceToolDefinition } from '../../policy';
+import { VoiceToolDefinition } from '../../core/policy';
 import { db } from '@/src/prisma/db';
 import { requestServiceJob, fetchMyServiceJobs } from '@/app/actions/service';
-import { getVoiceContext, updateVoiceContext, pushRecentEntity } from '../../context/manager';
+import { getVoiceContext, updateVoiceContext, pushRecentEntity } from '../../core/context';
 
 
 export const searchServices: VoiceToolDefinition = {

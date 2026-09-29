@@ -1,8 +1,8 @@
-import { VoiceToolDefinition } from '../../policy';
+import { VoiceToolDefinition } from '../../core/policy';
 import { searchCityExplore } from '@/app/actions/explore';
 import { getCityMartProducts, getCityMartStores } from '@/app/actions/commerce';
 import { getCityFood } from '@/app/actions/food';
-import { pushRecentEntity } from '../../context/manager';
+import { pushRecentEntity } from '../../core/context';
 
 export const searchCity: VoiceToolDefinition = {
   name: 'search_city',

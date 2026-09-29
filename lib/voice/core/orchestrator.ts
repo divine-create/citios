@@ -1,13 +1,23 @@
-import { getToolDefinition, requiresConfirmation, toolsRegistry } from '../policy';
-import { getVoiceContext } from '../context/manager';
-import { initializeToolRegistry } from './registry';
+import { getToolDefinition, moduleRegistry } from './registry';
+import { getVoiceContext, updateVoiceContext } from './context';
+import { intentResolver } from './resolver';
+import { telemetry } from './telemetry';
+import { AccountModule } from '../modules/account';
+import { DiscoveryModule } from '../modules/discovery';
+import { CommerceModule } from '../modules/commerce';
+import { ServicesModule } from '../modules/services';
+import { SystemModule } from '../modules/system';
 
-// Initialize the registry
-initializeToolRegistry();
+// Explicitly register enabled modules
+moduleRegistry.registerModule(AccountModule);
+moduleRegistry.registerModule(DiscoveryModule);
+moduleRegistry.registerModule(CommerceModule);
+moduleRegistry.registerModule(ServicesModule);
+moduleRegistry.registerModule(SystemModule);
 
 export function getRegisteredTools() {
   const tools = [];
-  for (const [_, def] of toolsRegistry.entries()) {
+  for (const def of moduleRegistry.getAllTools()) {
     tools.push({
       type: "function",
       name: def.name,
@@ -22,6 +32,26 @@ export async function executeTool(name: string, args: any, session: any) {
   const def = getToolDefinition(name);
   if (!def) {
     return { ok: false, error: { code: 'INVALID_TOOL', message: `Tool ${name} is not registered.` } };
+  }
+
+  // Intent / Clarification Engine Check
+  const clarificationCheck = intentResolver.evaluateToolClarification(def, args);
+  if (!clarificationCheck.complete) {
+    await updateVoiceContext(session.user.personId, {
+      taskState: {
+        status: 'awaiting_clarification',
+        missingFields: clarificationCheck.missingFields,
+        currentWorkflow: name
+      }
+    });
+    
+    return { 
+      ok: false, 
+      error: { 
+        code: 'MISSING_INFORMATION', 
+        message: `I need more information to proceed. Missing: ${clarificationCheck.missingFields.join(', ')}.` 
+      } 
+    };
   }
 
   // Safety check: ensure policy enforcement
@@ -44,8 +74,7 @@ export async function executeTool(name: string, args: any, session: any) {
     const result = await def.execute(args, session);
     const latency = Date.now() - startTime;
     
-    // Audit Logging
-    console.log(JSON.stringify({
+    telemetry.log({
       timestamp: new Date().toISOString(),
       event: 'VOICE_TOOL_EXECUTED',
       residentId: session.user.personId,
@@ -53,19 +82,19 @@ export async function executeTool(name: string, args: any, session: any) {
       riskLevel: def.riskLevel,
       success: result.ok,
       latencyMs: latency
-    }));
+    });
     
     return result;
   } catch (err: any) {
     console.error(`Tool execution error [${name}]:`, err);
-    console.log(JSON.stringify({
+    telemetry.log({
       timestamp: new Date().toISOString(),
       event: 'VOICE_TOOL_FAILED',
       residentId: session.user.personId,
       tool: name,
       riskLevel: def.riskLevel,
       errorCategory: 'INTERNAL_ERROR'
-    }));
+    });
     return { ok: false, error: { code: 'INTERNAL_ERROR', message: err.message || 'An internal error occurred while executing this tool.' } };
   }
 }

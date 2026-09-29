@@ -1,6 +1,6 @@
-import { VoiceToolDefinition } from '../../policy';
+import { VoiceToolDefinition } from '../../core/policy';
 import { getVoiceCart, addVoiceCartItem, updateVoiceCartQuantity, removeVoiceCartItem, prepareVoiceCheckout, confirmVoiceCheckout } from '@/lib/voice/cart';
-import { getVoiceContext, updateVoiceContext } from '../../context/manager';
+import { getVoiceContext, updateVoiceContext } from '../../core/context';
 
 export const getCart: VoiceToolDefinition = {
   name: 'get_cart',

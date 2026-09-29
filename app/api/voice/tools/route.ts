@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { executeTool, getRegisteredTools } from '@/lib/voice/tools';
+import { executeTool, getRegisteredTools } from '@/lib/voice/core/orchestrator';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 

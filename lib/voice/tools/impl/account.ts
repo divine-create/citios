@@ -1,7 +1,7 @@
-import { VoiceToolDefinition } from '../../policy';
+import { VoiceToolDefinition } from '../../core/policy';
 import { db } from '@/src/prisma/db';
 import { fetchMyOrders } from '@/app/actions/orders';
-import { getVoiceContext, pushRecentEntity } from '../../context/manager';
+import { getVoiceContext, pushRecentEntity } from '../../core/context';
 
 export const getProfile: VoiceToolDefinition = {
   name: 'get_profile',
