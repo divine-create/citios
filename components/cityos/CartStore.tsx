@@ -1,5 +1,5 @@
 'use client';
-import { addCartItemAction, removeCartItemAction, updateCartItemQuantityAction, fetchUserCart } from '@/app/actions/cart';
+import { addCartItemAction, removeCartItemAction, updateCartItemQuantityAction, fetchUserCart, clearCartAction } from '@/app/actions/cart';
 
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
 import { useCity } from '@/components/cityos/CityProvider';
@@ -62,11 +62,24 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [pendingCityLine, setPendingCityLine] = useState<CartLine | null>(null);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(KEY);
-      if (saved) setLines(JSON.parse(saved));
-    } catch {}
-    setHydrated(true);
+    async function load() {
+      try {
+        const res = await fetchUserCart();
+        if (res && res.lines && res.lines.length > 0) {
+          setLines(res.lines);
+          setHydrated(true);
+          return;
+        }
+      } catch (e) {
+        console.error('Failed to fetch server cart', e);
+      }
+      try {
+        const saved = localStorage.getItem(KEY);
+        if (saved) setLines(JSON.parse(saved));
+      } catch {}
+      setHydrated(true);
+    }
+    load();
   }, []);
 
   useEffect(() => {
@@ -116,7 +129,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (line) updateCartItemQuantityAction(id, qty, line.kind).catch(() => {});
   }, [remove]);
 
-  const clear = useCallback(() => setLines([]), []);
+  const clear = useCallback(() => {
+    setLines([]);
+    setPendingCityLine(null);
+    setLastAddedId(null);
+    clearCartAction().catch(() => {});
+  }, []);
 
   /** Start a new bag in the pending line's city (the old bag is replaced). */
   const confirmPendingCity = useCallback(() => {

@@ -18,8 +18,8 @@ export async function getVoiceCart(personId: string) {
     .select('id', 'personId', 'updatedAt', 'citySlug')
     .include('items', (i) => i
       .select('id', 'retailProductId', 'menuItemId', 'quantity', 'kind')
-      .include('product', (p) => p.select('id', 'name', 'price', 'stockQuantity'))
-      .include('menuItem', (m) => m.select('id', 'name', 'price'))
+      .include('product', (p) => p.select('id', 'name', 'price', 'stockQuantity', 'organizationId').include('organization', o => o.select('name')))
+      .include('menuItem', (m) => m.select('id', 'name', 'price', 'organizationId').include('organization', o => o.select('name')))
     )
     .include('checkout', (c) => c.select('id', 'totalAmount', 'expiresAt', 'idempotencyKey'))
     .first();
@@ -212,4 +212,12 @@ export async function confirmVoiceCheckout(personId: string, checkoutId: string)
   }
 
   return result;
+}
+
+export async function clearVoiceCart(personId: string) {
+  const cart = await db.orm.public.Cart.where({ personId }).first();
+  if (cart) {
+    await db.orm.public.CartItem.where({ cartId: cart.id as string }).deleteMany();
+    await db.orm.public.CartCheckout.where({ cartId: cart.id as string }).deleteMany();
+  }
 }
