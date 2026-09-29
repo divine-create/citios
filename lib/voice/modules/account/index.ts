@@ -5,5 +5,5 @@ export const AccountModule: VoiceModule = {
   id: 'account',
   name: 'Account & Logistics Module',
   description: 'Handles resident profiles, orders, and delivery tracking.',
-  tools: [getProfile, getOrderStatus, getDeliveryStatus] // Temporarily using existing implementations
+  tools: [getProfile, getOrderStatus] // Temporarily using existing implementations
 };
