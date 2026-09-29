@@ -49,17 +49,14 @@ export async function getCityFood(citySlug?: string) {
   const orgIdsWithLoc = locs.map((l) => l.organizationId);
   if (orgIdsWithLoc.length === 0) return { restaurants: [], menuItems: [] };
 
-  // @ts-ignore
-  const orgs = await db.orm.public.Organization.where({ 
-    // @ts-ignore
-    id: { in: orgIdsWithLoc },
-    type: 'RESTAURANT'
-  }).all();
+  const allOrgs = await db.orm.public.Organization.where({ type: 'RESTAURANT' }).all();
+  const orgs = allOrgs.filter((o: any) => orgIdsWithLoc.includes(o.id));
   const orgIds = orgs.map((o) => o.id);
   if (orgIds.length === 0) return { restaurants: [], menuItems: [] };
 
   // @ts-ignore — Prisma Next `in` operator on the ORM requires a ts-ignore
-  const menus = await db.orm.public.MenuItem.where({ organizationId: { in: orgIds } }).all();
+  const allMenus = await db.orm.public.MenuItem.all();
+  const menus = allMenus.filter((m: any) => orgIds.includes(m.organizationId));
   const availableMenus = menus.filter((m: any) => m.isAvailable);
 
   return {
