@@ -16,7 +16,7 @@ export type VoiceContextData = {
     label: string;
   }>;
   taskState?: {
-    status: 'idle' | 'resolving_intent' | 'awaiting_clarification' | 'awaiting_confirmation' | 'executing' | 'error' | 'completed';
+    status: 'idle' | 'resolving_intent' | 'awaiting_clarification' | 'awaiting_confirmation' | 'executing' | 'error' | 'completed' | 'cancelled';
     missingFields?: string[];
     currentWorkflow?: string;
   };
