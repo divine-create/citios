@@ -217,7 +217,7 @@ export async function confirmVoiceCheckout(personId: string, checkoutId: string)
 export async function clearVoiceCart(personId: string) {
   const cart = await db.orm.public.Cart.where({ personId }).first();
   if (cart) {
-    await db.orm.public.CartItem.where({ cartId: cart.id as string }).deleteMany();
-    await db.orm.public.CartCheckout.where({ cartId: cart.id as string }).deleteMany();
+    await db.orm.public.CartItem.where({ cartId: cart.id as string }).delete();
+    await db.orm.public.CartCheckout.where({ cartId: cart.id as string }).delete();
   }
 }
