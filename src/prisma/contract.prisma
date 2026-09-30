@@ -3511,3 +3511,34 @@ model VoiceContext {
   data      Json
   updatedAt DateTime @default(now())
 }
+
+model VoiceMemory {
+  id        String   @id @default(uuid())
+  personId  String
+  person    Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  category  String
+  key       String
+  value     String
+  source    String   @default("VOICE")
+  confidence Float   @default(1.0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+  expiresAt DateTime?
+
+  @@unique([personId, category, key])
+}
+
+model VoiceReminder {
+  id              String   @id @default(uuid())
+  personId        String
+  person          Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  title           String
+  description     String?
+  dueAt           DateTime?
+  status          String   @default("PENDING") // PENDING, TRIGGERED, COMPLETED, CANCELLED
+  source          String   @default("VOICE")
+  entityType      String?
+  entityReference String?
+  createdAt       DateTime @default(now())
+  completedAt     DateTime?
+}
