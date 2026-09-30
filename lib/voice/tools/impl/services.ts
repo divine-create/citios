@@ -121,7 +121,7 @@ export const prepareServiceRequest: VoiceToolDefinition = {
 };
 
 export const confirmServiceRequest: VoiceToolDefinition = {
-  name: 'confirm_service_request',
+  name: 'services.confirm_request', aliases: ['confirm_service_request'],
   description: 'Confirms and actually submits the service request.',
   domain: 'services',
   riskLevel: 'irreversible',

@@ -3,7 +3,7 @@ import { getMyDeliveries } from '@/app/actions/logistics';
 import { getVoiceContext, pushRecentEntity } from '../../core/context';
 
 export const listMyDeliveries: VoiceToolDefinition = {
-  name: 'list_my_deliveries',
+  name: 'logistics.list_deliveries', aliases: ['list_my_deliveries'],
   description: "Lists the resident's ongoing or past deliveries and shipments.",
   domain: 'logistics',
   riskLevel: 'read',
@@ -30,7 +30,7 @@ export const listMyDeliveries: VoiceToolDefinition = {
 };
 
 export const getDeliveryStatus: VoiceToolDefinition = {
-  name: 'get_delivery_status',
+  name: 'logistics.get_delivery_status', aliases: ['get_delivery_status'],
   description: 'Track or check the exact status, ETA, and driver of a specific delivery.',
   domain: 'logistics',
   riskLevel: 'read',

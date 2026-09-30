@@ -26,7 +26,7 @@ export async function getResidentCitySlug(session: any): Promise<string | undefi
 }
 
 export const searchCity: VoiceToolDefinition = {
-  name: 'search_city',
+  name: 'discovery.search', aliases: ['search_city'],
   description: 'Search across CityOS discovery to find organizations, services, or local places.',
   domain: 'discovery',
   riskLevel: 'read',
@@ -64,7 +64,7 @@ export const searchCity: VoiceToolDefinition = {
 };
 
 export const searchProducts: VoiceToolDefinition = {
-  name: 'search_products',
+  name: 'commerce.search_products', aliases: ['search_products'],
   description: 'Discover actual CityMart/ShopOS products like groceries, electronics, and goods.',
   domain: 'commerce',
   riskLevel: 'read',
@@ -120,7 +120,7 @@ export const searchProducts: VoiceToolDefinition = {
 };
 
 export const searchBusinesses: VoiceToolDefinition = {
-  name: 'search_businesses',
+  name: 'discovery.search_businesses', aliases: ['search_businesses'],
   description: 'Search for CityOS businesses or merchants.',
   domain: 'discovery',
   riskLevel: 'read',
@@ -165,7 +165,7 @@ export const searchBusinesses: VoiceToolDefinition = {
 };
 
 export const searchRestaurants: VoiceToolDefinition = {
-  name: 'search_restaurants',
+  name: 'restaurants.search', aliases: ['search_restaurants'],
   description: 'Search for restaurants in CityFood.',
   domain: 'commerce',
   riskLevel: 'read',
@@ -212,7 +212,7 @@ export const searchRestaurants: VoiceToolDefinition = {
 };
 
 export const searchFoodItems: VoiceToolDefinition = {
-  name: 'search_food_items',
+  name: 'restaurants.get_menu', aliases: ['search_food_items'],
   description: 'Search for specific food or menu items across CityFood restaurants.',
   domain: 'commerce',
   riskLevel: 'read',

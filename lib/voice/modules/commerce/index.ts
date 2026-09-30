@@ -2,6 +2,7 @@ import { VoiceModule } from '../../core/policy';
 import { getCart, addToCart, updateCartQuantity, removeFromCart, prepareCheckout, confirmCheckout } from '../../tools/impl/cart';
 
 export const CommerceModule: VoiceModule = {
+  version: '1.0.0',
   id: 'commerce',
   name: 'Commerce & Cart Module',
   description: 'Manage shopping cart and checkout processes.',

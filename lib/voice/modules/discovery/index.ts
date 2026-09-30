@@ -2,6 +2,7 @@ import { VoiceModule } from '../../core/policy';
 import { searchCity, searchProducts, searchBusinesses, searchRestaurants, searchFoodItems } from '../../tools/impl/discovery';
 
 export const DiscoveryModule: VoiceModule = {
+  version: '1.0.0',
   id: 'discovery',
   name: 'Discovery & Search Module',
   description: 'Find organizations, services, products, and restaurants across the city.',

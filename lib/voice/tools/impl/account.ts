@@ -4,7 +4,7 @@ import { fetchMyOrders } from '@/app/actions/orders';
 import { getVoiceContext, pushRecentEntity } from '../../core/context';
 
 export const getProfile: VoiceToolDefinition = {
-  name: 'get_profile',
+  name: 'account.get_profile', aliases: ['get_profile'],
   description: 'Get resident profile and interests.',
   domain: 'account',
   riskLevel: 'read',

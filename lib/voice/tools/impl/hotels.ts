@@ -2,7 +2,7 @@ import { VoiceToolDefinition } from '../../core/policy';
 import { getResidentCitySlug } from './discovery';
 
 export const checkRoomAvailability: VoiceToolDefinition = {
-  name: 'check_room_availability',
+  name: 'hotels.search', aliases: ['check_room_availability'],
   description: 'Check hotel room availability and rates for a specific hotel.',
   domain: 'commerce',
   riskLevel: 'read',
@@ -69,7 +69,7 @@ export const checkRoomAvailability: VoiceToolDefinition = {
 };
 
 export const bookHotelRoom: VoiceToolDefinition = {
-  name: 'book_hotel_room',
+  name: 'hotels.book', aliases: ['book_hotel_room'],
   description: 'Book a hotel room.',
   domain: 'commerce',
   riskLevel: 'irreversible',

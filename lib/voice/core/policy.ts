@@ -2,6 +2,7 @@ export type RiskLevel = 'read' | 'reversible' | 'financial' | 'irreversible' | '
 
 export type VoiceToolDefinition = {
   name: string;
+  aliases?: string[]; // Preserves backward compatibility for renamed tools
   description: string;
   domain: string; // e.g. 'commerce', 'services', 'logistics'
   riskLevel: RiskLevel;
@@ -20,10 +21,9 @@ export type VoiceModule = {
   id: string;
   name: string;
   description: string;
-  version?: string;
+  version: string;
+  enabled?: boolean;
   tools: VoiceToolDefinition[];
-  // Future capabilities could go here:
-  // canHandleIntent?: (intent: any) => boolean;
-  // initialize?: () => Promise<void>;
-  // metadata?: any;
+  authorize?: (session: any) => Promise<boolean>;
+  mapError?: (err: any) => { code: string; message: string };
 };

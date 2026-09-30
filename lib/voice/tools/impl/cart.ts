@@ -3,7 +3,7 @@ import { getVoiceCart, addVoiceCartItem, updateVoiceCartQuantity, removeVoiceCar
 import { getVoiceContext, updateVoiceContext } from '../../core/context';
 
 export const getCart: VoiceToolDefinition = {
-  name: 'get_cart',
+  name: 'commerce.get_cart', aliases: ['get_cart'],
   description: 'View the resident\'s voice shopping cart.',
   domain: 'commerce',
   riskLevel: 'read',
@@ -32,7 +32,7 @@ export const getCart: VoiceToolDefinition = {
 };
 
 export const addToCart: VoiceToolDefinition = {
-  name: 'add_to_cart',
+  name: 'commerce.add_to_cart', aliases: ['add_to_cart'],
   description: 'Add a product to the cart. Requires product_id.',
   domain: 'commerce',
   riskLevel: 'reversible',
@@ -68,7 +68,7 @@ export const addToCart: VoiceToolDefinition = {
 };
 
 export const updateCartQuantity: VoiceToolDefinition = {
-  name: 'update_cart_quantity',
+  name: 'commerce.update_cart_quantity', aliases: ['update_cart_quantity'],
   description: 'Update the quantity of an item in the cart.',
   domain: 'commerce',
   riskLevel: 'reversible',
@@ -106,7 +106,7 @@ export const updateCartQuantity: VoiceToolDefinition = {
 };
 
 export const removeFromCart: VoiceToolDefinition = {
-  name: 'remove_from_cart',
+  name: 'commerce.remove_from_cart', aliases: ['remove_from_cart'],
   description: 'Remove an item from the cart.',
   domain: 'commerce',
   riskLevel: 'reversible',
@@ -139,7 +139,7 @@ export const removeFromCart: VoiceToolDefinition = {
 };
 
 export const prepareCheckout: VoiceToolDefinition = {
-  name: 'prepare_checkout',
+  name: 'commerce.prepare_checkout', aliases: ['prepare_checkout'],
   description: 'Calculates the final cart total and prepares for confirmation.',
   domain: 'commerce',
   riskLevel: 'read',
@@ -176,7 +176,7 @@ export const prepareCheckout: VoiceToolDefinition = {
 };
 
 export const confirmCheckout: VoiceToolDefinition = {
-  name: 'confirm_checkout',
+  name: 'commerce.confirm_checkout', aliases: ['confirm_checkout'],
   description: 'Confirm and execute a pending checkout.',
   domain: 'commerce',
   riskLevel: 'financial',

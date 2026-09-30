@@ -7,6 +7,8 @@ import { DiscoveryModule } from '../modules/discovery';
 import { CommerceModule } from '../modules/commerce';
 import { ServicesModule } from '../modules/services';
 import { SystemModule } from '../modules/system';
+import { EventsModule } from '../modules/events';
+import { JobsModule } from '../modules/jobs';
 import { logisticsModule } from '../modules/logistics';
 import { HotelModule } from '../modules/hotels';
 import { assertRateLimit } from './rate-limit';
@@ -17,6 +19,8 @@ moduleRegistry.registerModule(DiscoveryModule);
 moduleRegistry.registerModule(CommerceModule);
 moduleRegistry.registerModule(ServicesModule);
 moduleRegistry.registerModule(SystemModule);
+moduleRegistry.registerModule(EventsModule);
+moduleRegistry.registerModule(JobsModule);
 moduleRegistry.registerModule(logisticsModule);
 moduleRegistry.registerModule(HotelModule);
 

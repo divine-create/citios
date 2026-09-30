@@ -74,7 +74,7 @@ export const forgetPreference: VoiceToolDefinition = {
 };
 
 export const cancelWorkflow: VoiceToolDefinition = {
-  name: 'cancel_workflow',
+  name: 'system.cancel_workflow', aliases: ['cancel_workflow'],
   description: 'Cancels a specific ongoing workflow or pending confirmation.',
   domain: 'system',
   riskLevel: 'read',
@@ -132,7 +132,7 @@ export const cancelWorkflow: VoiceToolDefinition = {
 };
 
 export const getOperationStatus: VoiceToolDefinition = {
-  name: 'get_operation_status',
+  name: 'system.get_operation_status', aliases: ['get_operation_status'],
   description: 'Checks the reconciliation status of a previously initiated operation (e.g., checkout, service request) if a timeout or unknown result occurred.',
   domain: 'system',
   riskLevel: 'read',

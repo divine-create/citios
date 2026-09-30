@@ -38,6 +38,13 @@ class VoiceModuleRegistry {
     this.modules.set(mod.id, mod);
     for (const tool of mod.tools) {
       this.tools.set(tool.name, tool);
+      if (tool.aliases) {
+        for (const alias of tool.aliases) {
+          if (!this.tools.has(alias)) {
+            this.tools.set(alias, tool);
+          }
+        }
+      }
     }
   }
 
