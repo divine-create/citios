@@ -42,6 +42,7 @@ test('Voice Security & Reliability Audit', async (t) => {
     moduleRegistry.registerModule({
       id: 'test_module',
       name: 'Test',
+      version: '1.0.0',
       description: 'Test',
       tools: [secureTool]
     });
