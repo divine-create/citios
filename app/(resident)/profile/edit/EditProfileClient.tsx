@@ -179,7 +179,7 @@ export default function EditProfileClient({
         setError(result.error);
         return;
       }
-      router.push('/profile');
+      router.push('/');
       router.refresh();
     } catch (err: any) {
       setError(err.message || 'Something went wrong');
@@ -240,7 +240,7 @@ export default function EditProfileClient({
       {/* Personal Info Card */}
       <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-          <Link href="/profile" className="p-2 -ml-2 rounded-full hover:bg-slate-50 text-slate-500">
+          <Link href="/" className="p-2 -ml-2 rounded-full hover:bg-slate-50 text-slate-500">
             <ChevronLeft className="w-5 h-5" />
           </Link>
           <h1 className="text-[15px] font-black text-ink">Personal Information</h1>
