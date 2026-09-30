@@ -41,18 +41,20 @@ test('Voice Session Bootstrap & Context Safety', async (t) => {
   await t.test('Active workflow is restored to prompt', async () => {
     await db.orm.public.VoiceContext.create({
       personId,
-      activeWorkflow: 'checkout',
-      state: 'WAITING_FOR_INPUT',
-      missingInformation: ['deliveryAddress'],
-      contextData: {},
-      stepHistory: [],
+      data: {
+        activeWorkflows: {
+          'checkout-123': {
+            workflowId: 'checkout-123',
+            action: 'checkout',
+            domain: 'commerce'
+          }
+        }
+      },
       updatedAt: (globalThis as any).Temporal.Instant.fromEpochMilliseconds(Date.now())
     });
 
     const { systemPrompt } = await buildVoiceSessionBootstrap(personId);
     
     assert.ok(systemPrompt.includes('ACTIVE WORKFLOW: You are currently in the middle of a workflow: "checkout"'));
-    assert.ok(systemPrompt.includes('WAITING_FOR_INPUT'));
-    assert.ok(systemPrompt.includes('deliveryAddress'));
   });
 });

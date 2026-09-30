@@ -8,12 +8,14 @@ export async function buildVoiceSessionBootstrap(personId: string): Promise<{ sy
   const intelligence = await buildResidentContext(personId);
   const voiceContext = await getVoiceContext(personId); // Phase 9 active workflow context
 
-  const activeWorkflowStr = voiceContext?.activeWorkflow
-    ? `ACTIVE WORKFLOW: You are currently in the middle of a workflow: "${voiceContext.activeWorkflow}". 
-    State: ${voiceContext.state}. 
-    Missing info: ${voiceContext.missingInformation?.join(', ') || 'none'}.
-    If the user answers missing info, use system.clarify_workflow.`
-    : 'No active workflow.';
+  const activeWorkflowsCount = voiceContext?.activeWorkflows ? Object.keys(voiceContext.activeWorkflows).length : 0;
+  let activeWorkflowStr = 'No active workflow.';
+  
+  if (activeWorkflowsCount > 0) {
+    const firstWorkflow = Object.values(voiceContext.activeWorkflows!)[0];
+    activeWorkflowStr = `ACTIVE WORKFLOW: You are currently in the middle of a workflow: "${firstWorkflow.action}" (Domain: ${firstWorkflow.domain}). 
+    If the user answers missing info, use system.clarify_workflow.`;
+  }
 
   const unreadCount = intelligence.unreadNotifications.length;
   const deliveryStr = intelligence.activeDeliveries.length > 0
