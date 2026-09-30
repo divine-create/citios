@@ -1,47 +1,17 @@
-import { moduleRegistry } from './registry';
-import { validateJsonSchema } from './validator';
-import { getVoiceContext, updateVoiceContext } from './context';
-import { intentResolver } from './resolver';
-import { telemetry } from './telemetry';
-import { AccountModule } from '../modules/account';
-import { DiscoveryModule } from '../modules/discovery';
-import { CommerceModule } from '../modules/commerce';
-import { ServicesModule } from '../modules/services';
-import { SystemModule } from '../modules/system';
-import { EventsModule } from '../modules/events';
-import { JobsModule } from '../modules/jobs';
-import { logisticsModule } from '../modules/logistics';
-import { HotelModule } from '../modules/hotels';
-import { assertRateLimit } from './rate-limit';
+const fs = require('fs');
+let code = fs.readFileSync('lib/voice/core/orchestrator.ts', 'utf8');
 
-// Explicitly register enabled modules
-moduleRegistry.registerModule(AccountModule);
-moduleRegistry.registerModule(DiscoveryModule);
-moduleRegistry.registerModule(CommerceModule);
-moduleRegistry.registerModule(ServicesModule);
-moduleRegistry.registerModule(SystemModule);
-moduleRegistry.registerModule(EventsModule);
-moduleRegistry.registerModule(JobsModule);
-moduleRegistry.registerModule(logisticsModule);
-moduleRegistry.registerModule(HotelModule);
+// Replace the imports to include validator and new registry getter
+code = code.replace(
+  "import { getToolDefinition, moduleRegistry } from './registry';",
+  "import { moduleRegistry } from './registry';\nimport { validateJsonSchema } from './validator';"
+);
 
-export function getRegisteredTools() {
-  const tools = [];
-  for (const def of moduleRegistry.getAllTools()) {
-    tools.push({
-      type: "function",
-      name: def.name,
-      description: def.description,
-      parameters: def.inputSchema
-    });
-  }
-  return tools;
-}
-
-export async function executeTool(name: string, args: any, session: any, abortSignal?: AbortSignal) {
+// Replace the execution block
+const newExecute = `export async function executeTool(name: string, args: any, session: any, abortSignal?: AbortSignal) {
   const registered = moduleRegistry.getToolOwner(name);
   if (!registered) {
-    return { ok: false, error: { code: 'INVALID_TOOL', message: `Tool ${name} is not registered.` } };
+    return { ok: false, error: { code: 'INVALID_TOOL', message: \`Tool \${name} is not registered.\` } };
   }
   
   const { module, tool: def } = registered;
@@ -58,7 +28,7 @@ export async function executeTool(name: string, args: any, session: any, abortSi
     try {
       const isAuthorized = await module.authorize(session);
       if (!isAuthorized) {
-        return { ok: false, error: { code: 'FORBIDDEN', message: `You do not have permission to use the ${module.name} module.` } };
+        return { ok: false, error: { code: 'FORBIDDEN', message: \`You do not have permission to use the \${module.name} module.\` } };
       }
     } catch (err) {
       return { ok: false, error: { code: 'FORBIDDEN', message: 'Authorization check failed.' } };
@@ -98,7 +68,7 @@ export async function executeTool(name: string, args: any, session: any, abortSi
       ok: false, 
       error: { 
         code: 'MISSING_INFORMATION', 
-        message: `I need more information to proceed. Missing: ${clarificationCheck.missingFields.join(', ')}.` 
+        message: \`I need more information to proceed. Missing: \${clarificationCheck.missingFields.join(', ')}.\` 
       } 
     };
   }
@@ -155,7 +125,7 @@ export async function executeTool(name: string, args: any, session: any, abortSi
     
     return result;
   } catch (err: any) {
-    console.error(`Tool execution error [${name}]:`, err);
+    console.error(\`Tool execution error [\${name}]:\`, err);
     telemetry.log({
       timestamp: new Date().toISOString(),
       event: 'VOICE_TOOL_FAILED',
@@ -172,4 +142,10 @@ export async function executeTool(name: string, args: any, session: any, abortSi
     
     return { ok: false, error: { code: 'INTERNAL_ERROR', message: 'An internal error occurred while executing this tool.' } };
   }
-}
+}`;
+
+const oldExecuteRegex = /export async function executeTool[\s\S]*?(?=\n$|$)/;
+code = code.replace(oldExecuteRegex, newExecute);
+
+fs.writeFileSync('lib/voice/core/orchestrator.ts', code);
+console.log("Patched orchestrator.ts successfully");
