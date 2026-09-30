@@ -39,7 +39,7 @@ export async function generateRecommendations(ctx: ResidentIntelligenceContext):
   }
 
   // Suggest reviewing completed services
-  const completedServices = await db.orm.public.Notification.where({ personId: ctx.personId, type: 'SERVICE_COMPLETED', isRead: false }).many();
+  const completedServices = await db.orm.public.Notification.where({ personId: ctx.personId, type: 'SERVICE_COMPLETED', isRead: false }).all();
   if (completedServices.length > 0) {
     recommendations.push({
       id: 'rec-service-review',
