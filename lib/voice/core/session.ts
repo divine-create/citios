@@ -17,22 +17,22 @@ export async function buildVoiceSessionBootstrap(personId: string): Promise<{ sy
     If the user answers missing info, use system.clarify_workflow.`;
   }
 
-  const unreadCount = intelligence.unreadNotifications.length;
-  const deliveryStr = intelligence.activeDeliveries.length > 0
+  const unreadCount = intelligence.recentChanges?.length || 0;
+  const deliveryStr = intelligence.activeDeliveries?.length > 0
     ? `Active deliveries: ${intelligence.activeDeliveries.length}`
     : 'No active deliveries.';
   
-  const servicesStr = intelligence.activeServices.length > 0
-    ? `Active services: ${intelligence.activeServices.length}`
+  const servicesStr = intelligence.activeServiceRequests?.length > 0
+    ? `Active services: ${intelligence.activeServiceRequests.length}`
     : 'No active services.';
 
-  const safePreferences = intelligence.preferences
-    .filter(p => p.category === 'PREFERENCE' || p.category === 'ROUTINE')
-    .map(p => `- ${p.key}: ${p.value}`)
+  const safePreferences = (intelligence.preferences || [])
+    .filter((p: any) => p.category === 'PREFERENCE' || p.category === 'ROUTINE')
+    .map((p: any) => `- ${p.key}: ${p.value}`)
     .join('\n');
 
-  const pendingReminders = intelligence.pendingReminders
-    .map(r => `- ${r.title}`)
+  const pendingReminders = (intelligence.reminders || [])
+    .map((r: any) => `- ${r.title}`)
     .join('\n');
 
   const prompt = `You are CityOS Voice, a fully integrated, voice-native conversational assistant for the resident. 
