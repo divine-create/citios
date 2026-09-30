@@ -176,7 +176,7 @@ export async function prepareVoiceCheckout(personId: string) {
   };
 }
 
-export async function confirmVoiceCheckout(personId: string, checkoutId: string) {
+export async function confirmVoiceCheckout(personId: string, checkoutId: string, deliveryAddress?: string) {
   const { cart } = await getVoiceCart(personId);
   const checkout = cart.checkout as any;
   
@@ -201,7 +201,7 @@ export async function confirmVoiceCheckout(personId: string, checkoutId: string)
     name: i.menuItem?.name || 'Unknown Item'
   }));
 
-  let result = null;
+  let result: any = null;
 
   if (retailItems.length > 0) {
     result = await placeRetailOrder({
@@ -222,13 +222,28 @@ export async function confirmVoiceCheckout(personId: string, checkoutId: string)
       if (loc) locationId = loc.id as string;
     }
 
+    const orderType = deliveryAddress ? 'DELIVERY' : 'TAKEOUT';
+
     result = await placeRestaurantOrder({
       locationId,
       items: foodItems,
-      type: 'TAKEOUT',
+      type: orderType === 'DELIVERY' ? 'TAKEOUT' : 'TAKEOUT', // backend accepts TAKEOUT; we track delivery via DeliveryJob
       method: 'bank_transfer',
       paymentReference: checkout.idempotencyKey as string + '_food'
     });
+
+    // Create a DeliveryJob if this is a delivery order
+    if (deliveryAddress && result?.orderId) {
+      try {
+        await db.orm.public.DeliveryJob.create({
+          status: 'PENDING',
+          dropoffAddress: deliveryAddress,
+          restaurantOrderId: result.orderId
+        });
+      } catch (err) {
+        console.error('[Voice] Failed to create DeliveryJob — order placed but delivery not dispatched:', err);
+      }
+    }
   }
 
   try {

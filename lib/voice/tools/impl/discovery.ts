@@ -259,11 +259,14 @@ export const searchFoodItems: VoiceToolDefinition = {
     }));
 
     if (data.length > 0 && session.user?.personId) {
-      await pushRecentEntity(session.user.personId as string, {
-        type: 'PRODUCT',
-        id: data[0].id,
-        label: data[0].name
-      });
+      // Push ALL results so the LLM can correctly reference any item by name → ID
+      for (const item of data) {
+        await pushRecentEntity(session.user.personId as string, {
+          type: 'PRODUCT',
+          id: item.id,
+          label: item.name
+        });
+      }
     }
 
     return { ok: true, data };

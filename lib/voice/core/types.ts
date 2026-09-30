@@ -13,6 +13,7 @@ export type VoiceContextData = {
     domain: string;
     confirmationId?: string;
     expiresAt?: string;
+    deliveryAddress?: string; // Phase 12: delivery address for food orders
     contextData?: any; // To store workflow-specific state (like pendingServiceNotes)
   }>;
   

@@ -33,7 +33,7 @@ export const getCart: VoiceToolDefinition = {
 
 export const addToCart: VoiceToolDefinition = {
   name: 'commerce.add_to_cart', aliases: ['add_to_cart'],
-  description: 'Add a product to the cart. Requires product_id.',
+  description: 'Add a food menu item or retail product to the cart. Always pass the product_id from the most recent search result. Also pass kind: "food" for restaurant items or "retail" for shop products.',
   domain: 'commerce',
   riskLevel: 'reversible',
   requiresConfirmation: false,
@@ -42,28 +42,28 @@ export const addToCart: VoiceToolDefinition = {
   inputSchema: {
     type: "object",
     properties: {
-      product_id: { type: "string", description: "Optional. The ID of the product. Omit if it's clear from context." },
-      quantity: { type: "number", description: "The quantity to add" },
-      kind: { type: "string", description: "The type of product: 'retail' or 'food'. Defaults to 'retail'." }
-    }
+      product_id: { type: "string", description: "The ID of the product or menu item from the search result." },
+      quantity: { type: "number", description: "The quantity to add. Defaults to 1." },
+      kind: { type: "string", enum: ["retail", "food"], description: "Required. 'food' for restaurant menu items, 'retail' for shop products." }
+    },
+    required: ["product_id", "kind"]
   },
   execute: async (args, session) => {
     const qty = args.quantity ? parseInt(args.quantity) : 1;
-    let productId = args.product_id;
-    
-    if (!productId) {
-      const ctx = await getVoiceContext(session.user.personId);
-      if (ctx.recentEntities && ctx.recentEntities.length > 0) {
-        const prod = ctx.recentEntities.find(e => e.type === 'PRODUCT');
-        if (prod) productId = prod.id;
-      }
-    }
-    
-    if (!productId) return { ok: false, error: { code: 'INVALID_ARGUMENT', message: 'Product ID is missing or unclear.' } };
+    const productId = args.product_id;
 
-    const kind = args.kind === 'food' ? 'food' : 'retail';
+    if (!productId) return { ok: false, error: { code: 'INVALID_ARGUMENT', message: 'product_id is required. Run a search first to get the item ID.' } };
+
+    // Auto-detect kind from DB if LLM fails to provide it
+    let kind: 'retail' | 'food' = args.kind === 'food' ? 'food' : 'retail';
+    if (!args.kind) {
+      const { db } = await import('@/src/prisma/db');
+      const menuItem = await db.orm.public.MenuItem.where({ id: productId }).first();
+      if (menuItem) kind = 'food';
+    }
+
     const res = await addVoiceCartItem(session.user.personId, productId, qty, kind);
-    return { ok: true, data: { message: 'Item added.', newSubtotal: res.subtotal } };
+    return { ok: true, data: { message: `Item added to cart (${kind}).`, newSubtotal: res.subtotal } };
   }
 };
 
@@ -140,15 +140,21 @@ export const removeFromCart: VoiceToolDefinition = {
 
 export const prepareCheckout: VoiceToolDefinition = {
   name: 'commerce.prepare_checkout', aliases: ['prepare_checkout'],
-  description: 'Calculates the final cart total and prepares for confirmation.',
+  description: 'Calculates the final cart total and prepares for confirmation. If the user wants delivery, also pass delivery_address.',
   domain: 'commerce',
   riskLevel: 'read',
   requiresConfirmation: false,
   requiresAuthentication: true,
   orchestrationEligible: true,
-  inputSchema: { type: "object", properties: {} },
+  inputSchema: {
+    type: "object",
+    properties: {
+      delivery_address: { type: "string", description: "Optional. The full delivery address if the resident wants the order delivered." }
+    }
+  },
   execute: async (args, session) => {
     const res = await prepareVoiceCheckout(session.user.personId);
+    const deliveryAddress: string | undefined = typeof args.delivery_address === 'string' ? args.delivery_address.trim() : undefined;
     
     // Phase 6: Explicitly start workflow
     const { startWorkflow } = await import('../../core/context');
@@ -157,6 +163,7 @@ export const prepareCheckout: VoiceToolDefinition = {
       action: 'confirm_checkout',
       domain: 'commerce',
       confirmationId: res.checkoutId,
+      deliveryAddress,
       expiresAt: new Date(Date.now() + 15 * 60000).toISOString()
     });
     
@@ -164,12 +171,15 @@ export const prepareCheckout: VoiceToolDefinition = {
       taskState: { status: 'AWAITING_CONFIRMATION', currentWorkflowId: res.checkoutId }
     });
 
+    const deliveryNote = deliveryAddress ? ` Delivery to: ${deliveryAddress}.` : ' Pickup/Takeout order.';
     return { 
       ok: true, 
       data: {
         checkoutId: res.checkoutId, 
         totalAmount: res.totalAmount,
-        instruction: 'State the total amount and ask the user to explicitly confirm they want to place this order.' 
+        itemCount: res.itemCount,
+        deliveryAddress: deliveryAddress || null,
+        instruction: `State the total of ${res.totalAmount} and ask the user to confirm.${deliveryNote}` 
       }
     };
   }
@@ -193,11 +203,14 @@ export const confirmCheckout: VoiceToolDefinition = {
     const { endWorkflow } = await import('../../core/context');
     const ctx = await getVoiceContext(session.user.personId);
     let checkoutId = args.checkout_id;
+    let deliveryAddress: string | undefined;
 
-    if (!checkoutId && ctx.activeWorkflows) {
+    if (ctx.activeWorkflows) {
       for (const key of Object.keys(ctx.activeWorkflows)) {
-        if (ctx.activeWorkflows[key].action === 'confirm_checkout') {
-          checkoutId = ctx.activeWorkflows[key].confirmationId;
+        const wf = ctx.activeWorkflows[key];
+        if (wf.action === 'confirm_checkout') {
+          if (!checkoutId) checkoutId = wf.confirmationId;
+          if (wf.deliveryAddress) deliveryAddress = wf.deliveryAddress;
           break;
         }
       }
@@ -205,14 +218,15 @@ export const confirmCheckout: VoiceToolDefinition = {
 
     if (!checkoutId) return { ok: false, error: { code: 'MISSING_CHECKOUT_ID', message: 'Checkout ID is required.' } };
     
-    const res = await confirmVoiceCheckout(session.user.personId, checkoutId);
+    const res = await confirmVoiceCheckout(session.user.personId, checkoutId, deliveryAddress);
     
     // Cleanup workflow
     await endWorkflow(session.user.personId, checkoutId);
     await updateVoiceContext(session.user.personId, {
       taskState: { status: 'COMPLETED' }
     });
-    
-    return { ok: true, data: { message: 'Order placed successfully.', orderData: res } };
+
+    const deliveryMsg = deliveryAddress ? ` A delivery has been dispatched to ${deliveryAddress}.` : '';
+    return { ok: true, data: { message: `Order placed successfully.${deliveryMsg}`, orderData: res } };
   }
 };
