@@ -131,9 +131,8 @@ export async function executeTool(name: string, args: any, session: any, abortSi
             expired = true;
           } else {
             isAuthorized = true;
-            // Consume the token so it can't be replayed
-            delete ctx.activeWorkflows[key];
-            await updateVoiceContext(session.user.personId, { activeWorkflows: ctx.activeWorkflows });
+            // Do NOT consume the token here. The tool itself needs to read contextData 
+            // from the workflow during execution. The tool is responsible for cleanup.
             break;
           }
         }

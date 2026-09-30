@@ -156,18 +156,7 @@ export const confirmServiceRequest: VoiceToolDefinition = {
       return { ok: false, error: { code: 'INVALID_CONFIRMATION', message: 'Invalid or expired confirmation ID.' } };
     }
 
-    // ATOMIC CONSUMPTION to prevent race conditions for activeWorkflows
-    const plan = db.raw.sql`
-      UPDATE "voiceContext"
-      SET data = jsonb_set(data, '{activeWorkflows}', (data->'activeWorkflows') - ${confirmationId}::text)
-      WHERE "personId" = ${session.user.personId}
-        AND data->'activeWorkflows' ? ${confirmationId}
-    `.affectedCount().build();
-    const consume = await db.runtime().execute(plan);
-    
-    if (consume.affectedRows === 0) {
-      return { ok: false, error: { code: 'INVALID_CONFIRMATION', message: 'Confirmation already processed or invalid.' } };
-    }
+    await endWorkflow(session.user.personId, confirmationId);
 
     const serviceId = workflow.contextData?.pendingServiceId;
     const notes = workflow.contextData?.pendingServiceNotes;
