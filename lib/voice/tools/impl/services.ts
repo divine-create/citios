@@ -33,7 +33,7 @@ export const searchServices: VoiceToolDefinition = {
       id: s.id,
       name: s.name,
       description: s.description,
-      basePrice: s.basePrice
+      price: s.price
     }));
 
     if (data.length > 0) {

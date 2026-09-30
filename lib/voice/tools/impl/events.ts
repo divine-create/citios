@@ -29,7 +29,7 @@ export const searchEvents: VoiceToolDefinition = {
       data: filtered.map(e => ({
         id: e.id,
         title: e.title,
-        date: e.date.toISOString(),
+        date: e.date.toString(),
         location: e.location,
         price: e.price,
         capacity: e.capacity
@@ -69,11 +69,74 @@ export const getEvent: VoiceToolDefinition = {
         id: event.id,
         title: event.title,
         description: event.description,
-        date: event.date.toISOString(),
+        date: event.date.toString(),
         location: event.location,
         price: event.price,
         capacity: event.capacity,
         organizer: org?.name || 'Unknown Organizer'
+      }
+    };
+  }
+};
+
+export const registerEvent: VoiceToolDefinition = {
+  name: 'events.register', aliases: ['register_event', 'rsvp_event'],
+  description: 'Register or RSVP for an event in the city.',
+  domain: 'events',
+  riskLevel: 'irreversible',
+  requiresConfirmation: true,
+  requiresAuthentication: true,
+  orchestrationEligible: true,
+  inputSchema: {
+    type: 'object',
+    properties: {
+      eventName: { type: 'string', description: 'The name of the event to register for.' }
+    },
+    required: ['eventName']
+  },
+  execute: async (args, session) => {
+    const { db } = await import('@/src/prisma/db');
+    
+    const events = await db.orm.public.Event.all();
+    let eventId: string | null = null;
+    let eventTitle: string | null = null;
+    
+    for (const e of events) {
+      if (e.title.toLowerCase().includes(args.eventName.toLowerCase())) {
+        eventId = e.id;
+        eventTitle = e.title;
+        break;
+      }
+    }
+    
+    if (!eventId) {
+      return { ok: false, error: { code: 'NOT_FOUND', message: `Could not find an event matching '${args.eventName}'.` } };
+    }
+    
+    const personId = session.user.personId;
+    if (!personId) {
+        return { ok: false, error: { code: 'UNAUTHORIZED', message: 'Must be logged in to register.' } };
+    }
+    
+    // Check if already registered
+    const existing = await db.orm.public.EventRegistration.where({ personId, eventId }).all().first();
+    if (existing) {
+      return { ok: true, data: { message: `You are already registered for ${eventTitle}.`, eventTitle, status: existing.status } };
+    }
+    
+    // Register
+    await db.orm.public.EventRegistration.create({
+      eventId,
+      personId,
+      status: 'REGISTERED'
+    });
+    
+    return {
+      ok: true,
+      data: {
+        message: `Successfully registered for ${eventTitle}.`,
+        eventTitle,
+        status: 'REGISTERED'
       }
     };
   }

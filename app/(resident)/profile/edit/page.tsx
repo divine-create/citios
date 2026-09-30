@@ -13,7 +13,10 @@ export default async function EditProfilePage() {
   if (!session) redirect('/login?callbackUrl=/profile/edit');
 
   const profileData = await getProfileAndWallet();
-  if (!profileData) redirect('/');
+  if (!profileData) {
+    console.error('[EditProfilePage] getProfileAndWallet returned null. Redirecting to /');
+    redirect('/');
+  }
 
   const cities = await getActiveCities();
 

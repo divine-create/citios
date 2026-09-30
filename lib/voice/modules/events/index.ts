@@ -1,5 +1,5 @@
 import { VoiceModule } from '../../core/policy';
-import { searchEvents, getEvent } from '../../tools/impl/events';
+import { searchEvents, getEvent, registerEvent } from '../../tools/impl/events';
 
 export const EventsModule: VoiceModule = {
   id: 'events',
@@ -7,7 +7,7 @@ export const EventsModule: VoiceModule = {
   description: 'Discover and retrieve information about upcoming local events.',
   version: '1.0.0',
   enabled: true,
-  tools: [searchEvents, getEvent],
+  tools: [searchEvents, getEvent, registerEvent],
   authorize: async (session) => {
     // Basic module-level authorization.
     // Anyone with a valid session can browse public events.

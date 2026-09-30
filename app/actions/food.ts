@@ -124,7 +124,7 @@ export async function getCityFoodMenuItem(menuItemId: string) {
  */
 export async function placeRestaurantOrder(input: {
   orgId?: string;
-  locationId: string;
+  locationId?: string; // Optional - voice orders may not have a location
   items: { menuItemId: string; qty: number; name: string }[];
   type?: 'DINE_IN' | 'TAKEOUT';
   tableNumber?: string;
@@ -202,7 +202,7 @@ export async function placeRestaurantOrder(input: {
       const order = await db.transaction(async (tx: any) => {
         const created = await tx.orm.public.RestaurantOrder.create({
           organizationId: orgId,
-          locationId: input.locationId,
+          locationId: input.locationId || undefined,
           customerDataId: customer.id,
           totalAmount: group.total,
           type: orderType,

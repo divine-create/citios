@@ -234,12 +234,13 @@ export async function confirmVoiceCheckout(personId: string, checkoutId: string,
     });
 
     // Create a DeliveryJob if this is a delivery order
-    if (deliveryAddress && result?.orderId) {
+    const firstOrderId = result?.orderIds?.[0];
+    if (deliveryAddress && firstOrderId) {
       try {
         await db.orm.public.DeliveryJob.create({
           status: 'PENDING',
           dropoffAddress: deliveryAddress,
-          restaurantOrderId: result.orderId
+          restaurantOrderId: firstOrderId
         });
       } catch (err) {
         console.error('[Voice] Failed to create DeliveryJob — order placed but delivery not dispatched:', err);
