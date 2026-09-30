@@ -38,7 +38,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'341d4e30fdee23f2aa33ee285a0ff8aae0b2f1d7553d6211491cbc3573da5f62'>;
+  StorageHashBase<'7f4cfc38bfd75701f5c7ff0ccd352c7fb6d410390c576a345040c105e743e8bc'>;
 export type ExecutionHash =
   ExecutionHashBase<'11822ac6db6aec93fa857a57f8a965c773de48bbd3b281d982f1ec9e42b6246d'>;
 export type ProfileHash =
@@ -1269,6 +1269,7 @@ export type FieldOutputTypes = {
       readonly timezone: CodecTypes['pg/text@1']['output'];
       readonly onboardingComplete: CodecTypes['pg/bool@1']['output'];
       readonly phone: CodecTypes['pg/text@1']['output'] | null;
+      readonly defaultDeliveryAddress: CodecTypes['pg/text@1']['output'] | null;
       readonly interests: CodecTypes['pg/text@1']['output'] | null;
     };
     readonly RestaurantExpense: {
@@ -3158,6 +3159,7 @@ export type FieldInputTypes = {
       readonly timezone: CodecTypes['pg/text@1']['input'];
       readonly onboardingComplete: CodecTypes['pg/bool@1']['input'];
       readonly phone: CodecTypes['pg/text@1']['input'] | null;
+      readonly defaultDeliveryAddress: CodecTypes['pg/text@1']['input'] | null;
       readonly interests: CodecTypes['pg/text@1']['input'] | null;
     };
     readonly RestaurantExpense: {
@@ -5020,6 +5022,7 @@ export type StorageColumnTypes = {
     };
     readonly residentProfile: {
       readonly avatarUrl: CodecTypes['pg/text@1']['output'] | null;
+      readonly defaultDeliveryAddress: CodecTypes['pg/text@1']['output'] | null;
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly interests: CodecTypes['pg/text@1']['output'] | null;
       readonly onboardingComplete: CodecTypes['pg/bool@1']['output'];
@@ -6909,6 +6912,7 @@ export type StorageColumnInputTypes = {
     };
     readonly residentProfile: {
       readonly avatarUrl: CodecTypes['pg/text@1']['input'] | null;
+      readonly defaultDeliveryAddress: CodecTypes['pg/text@1']['input'] | null;
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly interests: CodecTypes['pg/text@1']['input'] | null;
       readonly onboardingComplete: CodecTypes['pg/bool@1']['input'];
@@ -16190,6 +16194,11 @@ type ContractBase = Omit<
                   };
                 };
                 readonly phone: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly defaultDeliveryAddress: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
                   readonly nullable: true;
@@ -34002,6 +34011,10 @@ type ContractBase = Omit<
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
+              readonly defaultDeliveryAddress: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
               readonly interests: {
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
@@ -34030,6 +34043,7 @@ type ContractBase = Omit<
                 readonly timezone: { readonly column: 'timezone' };
                 readonly onboardingComplete: { readonly column: 'onboardingComplete' };
                 readonly phone: { readonly column: 'phone' };
+                readonly defaultDeliveryAddress: { readonly column: 'defaultDeliveryAddress' };
                 readonly interests: { readonly column: 'interests' };
               };
             };

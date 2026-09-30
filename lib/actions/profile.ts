@@ -104,6 +104,7 @@ export async function updateFullProfile(input: {
   dateOfBirth?: string;
   homeCityId?: string;
   phone?: string;
+  defaultDeliveryAddress?: string;
   interests?: string[];
 }) {
   try {
@@ -146,6 +147,7 @@ export async function updateFullProfile(input: {
       const existing = await tx.orm.public.ResidentProfile.where({ personId }).all().first();
       const profileData = {
         phone,
+        defaultDeliveryAddress: input.defaultDeliveryAddress?.trim() || null,
         interests: JSON.stringify(Array.isArray(input.interests) ? input.interests : []),
         ...(input.avatarUrl !== undefined && { avatarUrl: input.avatarUrl || null }),
       };

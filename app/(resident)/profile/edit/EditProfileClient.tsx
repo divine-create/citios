@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   ShieldCheck,
   Phone,
+  MapPin,
 } from 'lucide-react';
 import Link from 'next/link';
 import StateLgaSelect, { CityOption } from '@/components/cityos/StateLgaSelect';
@@ -57,6 +58,7 @@ export default function EditProfileClient({
       ? new Date(initialData.dateOfBirth).toISOString().split('T')[0]
       : '',
     phone: initialData.residentProfile?.phone || '',
+    defaultDeliveryAddress: (initialData.residentProfile as any)?.defaultDeliveryAddress || '',
     interests: parsedInterests as string[],
   });
 
@@ -350,6 +352,24 @@ export default function EditProfileClient({
             />
             <p className="text-[11px] text-slate-400">
               Required for service bookings, marketplace orders, and account verification.
+            </p>
+          </div>
+
+          {/* Default Delivery Address (Phase 12) */}
+          <div className="space-y-1.5">
+            <label className="text-[12px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-teal-700" />
+              Default Delivery Address
+            </label>
+            <input
+              type="text"
+              value={form.defaultDeliveryAddress}
+              onChange={(e) => setForm({ ...form, defaultDeliveryAddress: e.target.value })}
+              className="w-full px-4 py-3 rounded-xl bg-slate-50 border-0 ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-inset focus:ring-teal-500 text-[14px] font-bold text-ink"
+              placeholder="e.g. 42 Hacker Way, San Francisco"
+            />
+            <p className="text-[11px] text-slate-400">
+              CityOS Voice will automatically use this address when you order food or products.
             </p>
           </div>
 

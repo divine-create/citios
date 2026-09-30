@@ -15934,6 +15934,13 @@
                   "kind": "scalar"
                 }
               },
+              "defaultDeliveryAddress": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "id": {
                 "nullable": false,
                 "type": {
@@ -15998,6 +16005,9 @@
               "fields": {
                 "avatarUrl": {
                   "column": "avatarUrl"
+                },
+                "defaultDeliveryAddress": {
+                  "column": "defaultDeliveryAddress"
                 },
                 "id": {
                   "column": "id"
@@ -37879,6 +37889,11 @@
                   "nativeType": "text",
                   "nullable": true
                 },
+                "defaultDeliveryAddress": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "id": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -47728,7 +47743,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "341d4e30fdee23f2aa33ee285a0ff8aae0b2f1d7553d6211491cbc3573da5f62"
+    "storageHash": "7f4cfc38bfd75701f5c7ff0ccd352c7fb6d410390c576a345040c105e743e8bc"
   },
   "execution": {
     "executionHash": "11822ac6db6aec93fa857a57f8a965c773de48bbd3b281d982f1ec9e42b6246d",
