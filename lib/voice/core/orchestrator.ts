@@ -96,14 +96,13 @@ export async function executeTool(name: string, args: any, session: any, abortSi
     };
   }
 
-  
   // 4. Central Schema Validation
   const validationError = validateJsonSchema(args, def.inputSchema);
   if (validationError) {
     return { ok: false, error: { code: 'INVALID_INPUT', message: validationError } };
   }
 
-// Safety check: ensure policy enforcement
+  // Safety check: ensure policy enforcement
   if (def.requiresConfirmation) {
     if (!session?.user?.personId) {
       return { ok: false, error: { code: 'UNAUTHENTICATED', message: 'You must be logged in to confirm actions.' } };
@@ -114,14 +113,25 @@ export async function executeTool(name: string, args: any, session: any, abortSi
     let expired = false;
     
     if (ctx.activeWorkflows) {
+      // Build a set of names to match against:
+      // - the full tool name (e.g. 'commerce.confirm_checkout')
+      // - any defined aliases (e.g. 'confirm_checkout')
+      // - the short suffix after the last '.' (e.g. 'confirm_checkout' from 'commerce.confirm_checkout')
+      const toolAliases: string[] = def.aliases || [];
+      const shortName = name.includes('.') ? name.split('.').pop()! : name;
+
       for (const key of Object.keys(ctx.activeWorkflows)) {
         const wf = ctx.activeWorkflows[key];
-        if (wf.action === name) {
+        const actionMatches =
+          wf.action === name ||
+          wf.action === shortName ||
+          toolAliases.includes(wf.action);
+        if (actionMatches) {
           if (wf.expiresAt && new Date(wf.expiresAt) < new Date()) {
             expired = true;
           } else {
             isAuthorized = true;
-            // Optionally, delete or consume the token here so it can't be replayed!
+            // Consume the token so it can't be replayed
             delete ctx.activeWorkflows[key];
             await updateVoiceContext(session.user.personId, { activeWorkflows: ctx.activeWorkflows });
             break;
