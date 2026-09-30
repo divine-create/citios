@@ -11,7 +11,7 @@ test('Voice Contract Hardening & Registry Tests', async (t) => {
     const modA: VoiceModule = {
       id: 'modA', name: 'Module A', description: '', version: '1.0.0',
       tools: [{
-        name: 'test.duplicate',
+        description: 'test', name: 'test.duplicate',
         domain: 'test',
         riskLevel: 'read',
         requiresConfirmation: false,
@@ -24,7 +24,7 @@ test('Voice Contract Hardening & Registry Tests', async (t) => {
     const modB: VoiceModule = {
       id: 'modB', name: 'Module B', description: '', version: '1.0.0',
       tools: [{
-        name: 'test.duplicate',
+        description: 'test', name: 'test.duplicate',
         domain: 'test',
         riskLevel: 'read',
         requiresConfirmation: false,
@@ -43,7 +43,7 @@ test('Voice Contract Hardening & Registry Tests', async (t) => {
     const modC: VoiceModule = {
       id: 'modC', name: 'Module C', description: '', version: '1.0.0',
       tools: [{
-        name: 'test.new_tool',
+        description: 'test', name: 'test.new_tool',
         aliases: ['test.duplicate'], // Collides with modA
         domain: 'test',
         riskLevel: 'read',
@@ -61,7 +61,7 @@ test('Voice Contract Hardening & Registry Tests', async (t) => {
     const modDisabled: VoiceModule = {
       id: 'modDisabled', name: 'Disabled Module', description: '', version: '1.0.0', enabled: false,
       tools: [{
-        name: 'test.disabled_tool',
+        description: 'test', name: 'test.disabled_tool',
         domain: 'test',
         riskLevel: 'read',
         requiresConfirmation: false,
@@ -85,7 +85,7 @@ test('Orchestrator Execution Contract', async (t) => {
     },
     tools: [
       {
-        name: 'test.protected',
+        description: 'test', name: 'test.protected',
         domain: 'test',
         riskLevel: 'read',
         requiresConfirmation: false,
@@ -95,7 +95,7 @@ test('Orchestrator Execution Contract', async (t) => {
         execute: async () => ({ ok: true })
       },
       {
-        name: 'test.public',
+        description: 'test', name: 'test.public',
         domain: 'test',
         riskLevel: 'read',
         requiresConfirmation: false,

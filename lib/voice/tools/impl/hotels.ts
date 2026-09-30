@@ -127,7 +127,7 @@ export const bookHotelRoom: VoiceToolDefinition = {
     }
     
     const personId = session.user.personId;
-    if (personId && resResult.reservationId) {
+    if (personId && (resResult as any).reservationId) {
       let rel = await db.orm.public.Relationship.where({ personId, organizationId: hotelId }).all().first();
       if (!rel) {
         rel = await db.orm.public.Relationship.create({
@@ -137,13 +137,13 @@ export const bookHotelRoom: VoiceToolDefinition = {
         });
       }
       
-      await db.orm.public.Reservation.where({ id: resResult.reservationId }).update({
+      await db.orm.public.Reservation.where({ id: (resResult as any).reservationId }).update({
         guestRelationshipId: rel.id
       });
     }
     
     return { ok: true, data: {
-      reservationId: resResult.reservationId || 'unknown',
+      reservationId: (resResult as any).reservationId || 'unknown',
       hotel: hotelName,
       roomType: selectedRoom.type,
       roomNumber: selectedRoom.roomNumber,
