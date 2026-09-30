@@ -91,8 +91,7 @@ export async function executeTool(name: string, args: any, session: any, abortSi
     return { 
       ok: false, 
       error: { 
-        code: 'MISSING_INFORMATION', 
-        message: `I need more information to proceed. Missing: ${clarificationCheck.missingFields.join(', ')}.` 
+        code: 'MISSING_INFORMATION', message: `I need more information to proceed. Missing: ${clarificationCheck.missingFields.join(', ')}.`, missingFields: clarificationCheck.missingFields 
       } 
     };
   }
