@@ -154,8 +154,17 @@ export const prepareCheckout: VoiceToolDefinition = {
   },
   execute: async (args, session) => {
     const res = await prepareVoiceCheckout(session.user.personId);
-    const deliveryAddress: string | undefined = typeof args.delivery_address === 'string' ? args.delivery_address.trim() : undefined;
+    let deliveryAddress: string | undefined = typeof args.delivery_address === 'string' ? args.delivery_address.trim() : undefined;
     
+    // Auto-fetch from profile if not explicitly passed
+    if (!deliveryAddress) {
+      const { db } = await import('@/src/prisma/db');
+      const profile = await db.orm.public.ResidentProfile.where({ personId: session.user.personId }).all().first();
+      if (profile?.defaultDeliveryAddress) {
+        deliveryAddress = profile.defaultDeliveryAddress;
+      }
+    }
+
     // Phase 6: Explicitly start workflow
     const { startWorkflow } = await import('../../core/context');
     await startWorkflow(session.user.personId, res.checkoutId, {

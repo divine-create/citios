@@ -89,6 +89,7 @@ model ResidentProfile {
   // Onboarding
   onboardingComplete Boolean @default(false)
   phone              String?
+  defaultDeliveryAddress String?
   interests          String? // JSON array of interest tags e.g. ["Foodie","Gaming"]
   
   person    Person  @relation(fields: [personId], references: [id], onDelete: Cascade)
