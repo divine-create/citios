@@ -91,11 +91,13 @@ export const searchProducts: VoiceToolDefinition = {
         .where(f => f.stockQuantity.gt(0)) // out-of-sale handling
         .orderBy((f) => f.embedding.cosineDistance(qVec).asc())
         .limit(limit)
+        .include({ organization: true })
         .all();
     } else {
       products = await db.orm.public.RetailProduct
         .where(f => f.stockQuantity.gt(0))
         .limit(limit)
+        .include({ organization: true })
         .all();
     }
 
@@ -103,7 +105,7 @@ export const searchProducts: VoiceToolDefinition = {
       id: p.id,
       name: p.name,
       price: p.price,
-      storeName: p.storeName,
+      storeName: p.organization?.name || 'Unknown',
       category: p.globalCategory
     }));
 
@@ -238,11 +240,13 @@ export const searchFoodItems: VoiceToolDefinition = {
         .where(f => f.isAvailable.eq(true)) // out-of-sale handling
         .orderBy((f) => f.embedding.cosineDistance(qVec).asc())
         .limit(limit)
+        .include({ organization: true })
         .all();
     } else {
       menuItems = await db.orm.public.MenuItem
         .where(f => f.isAvailable.eq(true))
         .limit(limit)
+        .include({ organization: true })
         .all();
     }
 
@@ -250,7 +254,8 @@ export const searchFoodItems: VoiceToolDefinition = {
       id: m.id,
       name: m.name,
       price: m.price,
-      description: m.description
+      description: m.description,
+      restaurantName: m.organization?.name || 'Unknown'
     }));
 
     if (data.length > 0 && session.user?.personId) {
