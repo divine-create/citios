@@ -165,7 +165,7 @@ export async function prepareVoiceCheckout(personId: string) {
   const checkout = await db.orm.public.CartCheckout.create({
     cartId: cart.id as string,
     totalAmount: subtotal,
-    expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 mins
+    expiresAt: (globalThis as any).Temporal.Instant.fromEpochMilliseconds(Date.now() + 15 * 60 * 1000), // 15 mins
     idempotencyKey: Math.random().toString(36).substring(2, 15)
   });
 
@@ -184,7 +184,8 @@ export async function confirmVoiceCheckout(personId: string, checkoutId: string,
     throw new Error('Checkout session invalid or expired.');
   }
 
-  if (new Date() > (checkout.expiresAt as Date)) {
+  const expiresMs = Number(checkout.expiresAt?.epochMilliseconds || checkout.expiresAt);
+  if (Date.now() > expiresMs) {
     await db.orm.public.CartCheckout.where({ id: checkoutId }).delete();
     throw new Error('Checkout expired.');
   }
