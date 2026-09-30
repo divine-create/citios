@@ -91,13 +91,13 @@ export const searchProducts: VoiceToolDefinition = {
         .where(f => f.stockQuantity.gt(0)) // out-of-sale handling
         .orderBy((f) => f.embedding.cosineDistance(qVec).asc())
         .limit(limit)
-        .include({ organization: true })
+        .include('organization')
         .all();
     } else {
       products = await db.orm.public.RetailProduct
         .where(f => f.stockQuantity.gt(0))
         .limit(limit)
-        .include({ organization: true })
+        .include('organization')
         .all();
     }
 
@@ -240,13 +240,13 @@ export const searchFoodItems: VoiceToolDefinition = {
         .where(f => f.isAvailable.eq(true)) // out-of-sale handling
         .orderBy((f) => f.embedding.cosineDistance(qVec).asc())
         .limit(limit)
-        .include({ organization: true })
+        .include('organization')
         .all();
     } else {
       menuItems = await db.orm.public.MenuItem
         .where(f => f.isAvailable.eq(true))
         .limit(limit)
-        .include({ organization: true })
+        .include('organization')
         .all();
     }
 
