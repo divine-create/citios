@@ -32,7 +32,7 @@ export function getRegisteredTools() {
       type: "function",
       name: def.name,
       description: def.description,
-      parameters: def.inputSchema
+      parameters: def.inputSchema, orchestrationEligible: def.orchestrationEligible
     });
   }
   return tools;

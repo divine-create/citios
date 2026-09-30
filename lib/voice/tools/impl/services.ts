@@ -158,7 +158,7 @@ export const confirmServiceRequest: VoiceToolDefinition = {
 
     // ATOMIC CONSUMPTION to prevent race conditions for activeWorkflows
     const plan = db.raw.sql`
-      UPDATE "VoiceContext"
+      UPDATE "voiceContext"
       SET data = jsonb_set(data, '{activeWorkflows}', (data->'activeWorkflows') - ${confirmationId}::text)
       WHERE "personId" = ${session.user.personId}
         AND data->'activeWorkflows' ? ${confirmationId}
