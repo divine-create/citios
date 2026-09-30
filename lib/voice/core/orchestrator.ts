@@ -65,12 +65,6 @@ export async function executeTool(name: string, args: any, session: any, abortSi
     }
   }
 
-  // 3. Central Schema Validation
-  const validationError = validateJsonSchema(args, def.inputSchema);
-  if (validationError) {
-    return { ok: false, error: { code: 'INVALID_INPUT', message: validationError } };
-  }
-
   try {
     let limitType: 'global' | 'expensive' | 'confirmation' = 'global';
     if (def.requiresConfirmation) limitType = 'confirmation';
@@ -103,7 +97,14 @@ export async function executeTool(name: string, args: any, session: any, abortSi
     };
   }
 
-  // Safety check: ensure policy enforcement
+  
+  // 4. Central Schema Validation
+  const validationError = validateJsonSchema(args, def.inputSchema);
+  if (validationError) {
+    return { ok: false, error: { code: 'INVALID_INPUT', message: validationError } };
+  }
+
+// Safety check: ensure policy enforcement
   if (def.requiresConfirmation) {
     if (!session?.user?.personId) {
       return { ok: false, error: { code: 'UNAUTHENTICATED', message: 'You must be logged in to confirm actions.' } };
