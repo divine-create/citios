@@ -215,7 +215,7 @@ export const searchRestaurants: VoiceToolDefinition = {
 
 export const searchFoodItems: VoiceToolDefinition = {
   name: 'restaurants.get_menu', aliases: ['search_food_items'],
-  description: 'Search for specific food or menu items across CityFood restaurants.',
+  description: 'Search for specific food, OR fetch the menu for a specific restaurant (e.g. query: "City Burgers menu").',
   domain: 'commerce',
   riskLevel: 'read',
   requiresConfirmation: false,
@@ -231,7 +231,7 @@ export const searchFoodItems: VoiceToolDefinition = {
   execute: async (args, session) => {
     const { db } = await import('@/src/prisma/db');
     let query = typeof args.query === 'string' ? args.query.trim() : '';
-    const limit = 5;
+    const limit = 10;
     
     let menuItems;
     if (query.length > 2) {
