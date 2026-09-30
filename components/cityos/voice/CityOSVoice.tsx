@@ -108,7 +108,7 @@ export function CityOSVoice({ onTranscript, onClose }: CityOSVoiceProps) {
       setState('connecting');
       const tokenRes = await fetch('/api/voice/token');
       if (!tokenRes.ok) throw new Error("We couldn't start CityOS Voice. Please try again.");
-      const { token } = await tokenRes.json();
+      const { token, systemPrompt } = await tokenRes.json();
 
       // 3. Get Tools dynamically
       const toolsRes = await fetch('/api/voice/tools');
@@ -122,13 +122,7 @@ export function CityOSVoice({ onTranscript, onClose }: CityOSVoiceProps) {
       ws.onopen = () => {
         // Send session.update
         const config: AgentSessionConfig = {
-          system_prompt: `You are CityOS Voice.
-CRITICAL RULES:
-1. NEVER hallucinate, invent, or guess any data, businesses, restaurants, products, or services.
-2. ALWAYS use your tools to fetch data. If a tool returns an empty list, you MUST reply: "I couldn't find any [items] in the system."
-3. DO NOT offer generic advice or generic examples. Only mention real entities returned by your tools.
-4. Keep answers conversational but strictly grounded in the tool results.
-5. If the user asks for "shops around me", use search_businesses. If it returns nothing, admit you found nothing.`,
+          system_prompt: systemPrompt || "You are CityOS Voice. NEVER hallucinate. ALWAYS use tools.",
           greeting: "Hi, I'm CityOS. How can I help?",
           output: { type: "audio" },
           tools: dynamicTools
