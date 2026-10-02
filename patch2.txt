@@ -1,0 +1,7 @@
+enum DeliveryQuoteStatus {
+  CALCULATED
+  OFFERED
+  ACCEPTED
+  EXPIRED
+  CANCELLED
+}

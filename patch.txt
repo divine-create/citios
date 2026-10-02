@@ -1,0 +1,55 @@
+enum QuoteStatus {
+  CALCULATED
+  OFFERED
+  ACCEPTED
+  EXPIRED
+  CANCELLED
+}
+
+model DeliveryPricingRule {
+  id                String       @id @default(uuid())
+  providerId        String
+  version           Int          @default(1)
+  
+  currency          String       @default("USD")
+  baseFee           Decimal
+  perKmRate         Decimal
+  perKgRate         Decimal      @default(0)
+  prioritySurcharge Decimal      @default(0)
+
+  isActive          Boolean      @default(true)
+  createdAt         DateTime     @default(now())
+
+  provider          Organization @relation("ProviderPricingRules", fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, version])
+}
+
+model DeliveryQuote {
+  id              String       @id @default(uuid())
+  deliveryJobId   String
+  providerId      String
+  
+  status          QuoteStatus  @default(CALCULATED)
+  pricingVersion  Int
+  
+  baseCharge      Decimal
+  distanceCharge  Decimal
+  weightCharge    Decimal      @default(0)
+  serviceCharge   Decimal      @default(0)
+  
+  subtotal        Decimal
+  tax             Decimal      @default(0)
+  total           Decimal
+  currency        String
+  
+  idempotencyKey  String?
+  expiresAt       DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  deliveryJob     DeliveryJob  @relation(fields: [deliveryJobId], references: [id], onDelete: Cascade)
+  provider        Organization @relation("ProviderQuotes", fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, idempotencyKey])
+}
