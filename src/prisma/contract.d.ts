@@ -38,7 +38,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'b739368bf288b8f61e7d604ea00366c3b1dcdc2fb8cf5d45b213a9c18e61af4f'>;
+  StorageHashBase<'5d630454c930ff1b70dff2c00797505876c04d004b2bf88793abae1bd0d9fd02'>;
 export type ExecutionHash =
   ExecutionHashBase<'90ace67d21173f4f70aef5accb4c1ac386158493c49cfec46f0d79776cf37069'>;
 export type ProfileHash =
@@ -9934,6 +9934,12 @@ type ContractBase = Omit<
                   readonly columns: readonly ['vehicleId'];
                   readonly unique: false;
                 },
+                {
+                  readonly name: 'deliveryAssignment_status_idx_e98638ab';
+                  readonly prefix: 'deliveryAssignment_status_idx';
+                  readonly columns: readonly ['status'];
+                  readonly unique: false;
+                },
               ];
               foreignKeys: readonly [
                 {
@@ -10080,6 +10086,18 @@ type ContractBase = Omit<
                   readonly name: 'deliveryDispatch_providerId_idx_d1904c54';
                   readonly prefix: 'deliveryDispatch_providerId_idx';
                   readonly columns: readonly ['providerId'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'deliveryDispatch_status_idx_e98638ab';
+                  readonly prefix: 'deliveryDispatch_status_idx';
+                  readonly columns: readonly ['status'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'deliveryDispatch_createdAt_idx_9575dbd7';
+                  readonly prefix: 'deliveryDispatch_createdAt_idx';
+                  readonly columns: readonly ['createdAt'];
                   readonly unique: false;
                 },
                 {
@@ -10237,6 +10255,30 @@ type ContractBase = Omit<
                   readonly name: 'deliveryJob_providerId_idx_d1904c54';
                   readonly prefix: 'deliveryJob_providerId_idx';
                   readonly columns: readonly ['providerId'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'deliveryJob_sourceType_sourceId_idx_9b8c3bc3';
+                  readonly prefix: 'deliveryJob_sourceType_sourceId_idx';
+                  readonly columns: readonly ['sourceType', 'sourceId'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'deliveryJob_status_idx_e98638ab';
+                  readonly prefix: 'deliveryJob_status_idx';
+                  readonly columns: readonly ['status'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'deliveryJob_providerId_status_idx_31ed689d';
+                  readonly prefix: 'deliveryJob_providerId_status_idx';
+                  readonly columns: readonly ['providerId', 'status'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'deliveryJob_createdAt_idx_9575dbd7';
+                  readonly prefix: 'deliveryJob_createdAt_idx';
+                  readonly columns: readonly ['createdAt'];
                   readonly unique: false;
                 },
               ];
@@ -10583,6 +10625,12 @@ type ContractBase = Omit<
                   readonly name: 'deliveryTrackingEvent_driverProfileId_idx_95b2e011';
                   readonly prefix: 'deliveryTrackingEvent_driverProfileId_idx';
                   readonly columns: readonly ['driverProfileId'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'deliveryTrackingEvent_recordedAt_idx_fd5b4732';
+                  readonly prefix: 'deliveryTrackingEvent_recordedAt_idx';
+                  readonly columns: readonly ['recordedAt'];
                   readonly unique: false;
                 },
               ];
@@ -13477,6 +13525,24 @@ type ContractBase = Omit<
                   readonly name: 'logisticsSettlement_providerId_idx_d1904c54';
                   readonly prefix: 'logisticsSettlement_providerId_idx';
                   readonly columns: readonly ['providerId'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'logisticsSettlement_status_idx_e98638ab';
+                  readonly prefix: 'logisticsSettlement_status_idx';
+                  readonly columns: readonly ['status'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'logisticsSettlement_providerId_status_idx_31ed689d';
+                  readonly prefix: 'logisticsSettlement_providerId_status_idx';
+                  readonly columns: readonly ['providerId', 'status'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'logisticsSettlement_createdAt_idx_9575dbd7';
+                  readonly prefix: 'logisticsSettlement_createdAt_idx';
+                  readonly columns: readonly ['createdAt'];
                   readonly unique: false;
                 },
               ];

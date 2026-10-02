@@ -31535,6 +31535,14 @@
                 },
                 {
                   "columns": [
+                    "status"
+                  ],
+                  "name": "deliveryAssignment_status_idx_e98638ab",
+                  "prefix": "deliveryAssignment_status_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
                     "vehicleId"
                   ],
                   "name": "deliveryAssignment_vehicleId_idx_e2df58fc",
@@ -31727,6 +31735,14 @@
               "indexes": [
                 {
                   "columns": [
+                    "createdAt"
+                  ],
+                  "name": "deliveryDispatch_createdAt_idx_9575dbd7",
+                  "prefix": "deliveryDispatch_createdAt_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
                     "deliveryJobId"
                   ],
                   "name": "deliveryDispatch_deliveryJobId_idx_48e54933",
@@ -31747,6 +31763,14 @@
                   ],
                   "name": "deliveryDispatch_providerId_idx_d1904c54",
                   "prefix": "deliveryDispatch_providerId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "status"
+                  ],
+                  "name": "deliveryDispatch_status_idx_e98638ab",
+                  "prefix": "deliveryDispatch_status_idx",
                   "unique": false
                 },
                 {
@@ -31903,10 +31927,44 @@
               "indexes": [
                 {
                   "columns": [
+                    "createdAt"
+                  ],
+                  "name": "deliveryJob_createdAt_idx_9575dbd7",
+                  "prefix": "deliveryJob_createdAt_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
                     "providerId"
                   ],
                   "name": "deliveryJob_providerId_idx_d1904c54",
                   "prefix": "deliveryJob_providerId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "providerId",
+                    "status"
+                  ],
+                  "name": "deliveryJob_providerId_status_idx_31ed689d",
+                  "prefix": "deliveryJob_providerId_status_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "sourceType",
+                    "sourceId"
+                  ],
+                  "name": "deliveryJob_sourceType_sourceId_idx_9b8c3bc3",
+                  "prefix": "deliveryJob_sourceType_sourceId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "status"
+                  ],
+                  "name": "deliveryJob_status_idx_e98638ab",
+                  "prefix": "deliveryJob_status_idx",
                   "unique": false
                 }
               ],
@@ -32384,6 +32442,14 @@
                   ],
                   "name": "deliveryTrackingEvent_providerId_idx_d1904c54",
                   "prefix": "deliveryTrackingEvent_providerId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "recordedAt"
+                  ],
+                  "name": "deliveryTrackingEvent_recordedAt_idx_fd5b4732",
+                  "prefix": "deliveryTrackingEvent_recordedAt_idx",
                   "unique": false
                 }
               ],
@@ -36056,10 +36122,35 @@
               "indexes": [
                 {
                   "columns": [
+                    "createdAt"
+                  ],
+                  "name": "logisticsSettlement_createdAt_idx_9575dbd7",
+                  "prefix": "logisticsSettlement_createdAt_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
                     "providerId"
                   ],
                   "name": "logisticsSettlement_providerId_idx_d1904c54",
                   "prefix": "logisticsSettlement_providerId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "providerId",
+                    "status"
+                  ],
+                  "name": "logisticsSettlement_providerId_status_idx_31ed689d",
+                  "prefix": "logisticsSettlement_providerId_status_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "status"
+                  ],
+                  "name": "logisticsSettlement_status_idx_e98638ab",
+                  "prefix": "logisticsSettlement_status_idx",
                   "unique": false
                 }
               ],
@@ -51944,7 +52035,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "b739368bf288b8f61e7d604ea00366c3b1dcdc2fb8cf5d45b213a9c18e61af4f"
+    "storageHash": "5d630454c930ff1b70dff2c00797505876c04d004b2bf88793abae1bd0d9fd02"
   },
   "execution": {
     "executionHash": "90ace67d21173f4f70aef5accb4c1ac386158493c49cfec46f0d79776cf37069",

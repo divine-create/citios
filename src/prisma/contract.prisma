@@ -3420,6 +3420,11 @@ model DeliveryJob {
 
   // Ensure provider-scoped idempotency
   @@unique([providerId, idempotencyKey], map: "uniq_provider_idem_1")
+  @@index([providerId])
+  @@index([sourceType, sourceId])
+  @@index([status])
+  @@index([providerId, status])
+  @@index([createdAt])
 }
 
 model DeliveryAssignment {
@@ -3443,6 +3448,10 @@ model DeliveryAssignment {
   // The invariant "one active assignment per delivery/driver/vehicle" 
   // MUST be enforced via transactional read-then-write in application logic.
  
+  @@index([deliveryJobId])
+  @@index([driverProfileId])
+  @@index([vehicleId])
+  @@index([status])
 }
 
 model DeliveryTrackingEvent {
@@ -3464,6 +3473,10 @@ model DeliveryTrackingEvent {
   driverProfile   LogisticsDriverProfile? @relation(fields: [driverProfileId], references: [id])
 
   @@unique([providerId, deliveryJobId, idempotencyKey])
+  @@index([deliveryJobId])
+  @@index([providerId])
+  @@index([driverProfileId])
+  @@index([recordedAt])
 }
 
 model ProofOfDelivery {
@@ -3484,6 +3497,7 @@ model ProofOfDelivery {
   provider        Organization @relation(fields: [providerId], references: [id], onDelete: Cascade)
 
   @@unique([providerId, idempotencyKey], map: "uniq_pod_provider_idem")
+  @@index([providerId])
 }
 
 enum DeliveryQuoteStatus {
@@ -3573,6 +3587,10 @@ model DeliveryDispatch {
 
   // Ensure provider-scoped idempotency
   @@unique([providerId, idempotencyKey], map: "uniq_provider_idem_3")
+  @@index([deliveryJobId])
+  @@index([providerId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 
@@ -3893,6 +3911,10 @@ model LogisticsSettlement {
   transaction     Transaction? @relation(fields: [transactionId], references: [id])
   
   @@unique([providerId, idempotencyKey], map: "uniq_provider_idem_settlement")
+  @@index([providerId])
+  @@index([status])
+  @@index([providerId, status])
+  @@index([createdAt])
 }
 
 model LogisticsSettings {
