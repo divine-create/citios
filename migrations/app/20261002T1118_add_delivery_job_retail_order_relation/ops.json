@@ -1,0 +1,452 @@
+[
+  {
+    "id": "table.voiceMemory",
+    "label": "Create table \"voiceMemory\"",
+    "summary": "Creates table \"voiceMemory\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "voiceMemory"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"voiceMemory\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"voiceMemory\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"voiceMemory\"",
+        "sql": "CREATE TABLE \"public\".\"voiceMemory\" (\n  \"category\" text NOT NULL,\n  \"confidence\" float8 DEFAULT 1 NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"expiresAt\" timestamptz,\n  \"id\" text NOT NULL,\n  \"key\" text NOT NULL,\n  \"personId\" text NOT NULL,\n  \"source\" text DEFAULT 'VOICE' NOT NULL,\n  \"updatedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"value\" text NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"voiceMemory\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"voiceMemory\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.voiceReminder",
+    "label": "Create table \"voiceReminder\"",
+    "summary": "Creates table \"voiceReminder\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "voiceReminder"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"voiceReminder\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"voiceReminder\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"voiceReminder\"",
+        "sql": "CREATE TABLE \"public\".\"voiceReminder\" (\n  \"completedAt\" timestamptz,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"description\" text,\n  \"dueAt\" timestamptz,\n  \"entityReference\" text,\n  \"entityType\" text,\n  \"id\" text NOT NULL,\n  \"personId\" text NOT NULL,\n  \"source\" text DEFAULT 'VOICE' NOT NULL,\n  \"status\" text DEFAULT 'PENDING' NOT NULL,\n  \"title\" text NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"voiceReminder\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"voiceReminder\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.deliveryJob.retailOrderId",
+    "label": "Add column \"retailOrderId\" to \"deliveryJob\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "retailOrderId",
+        "table": "deliveryJob"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"retailOrderId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "deliveryJob",
+          "retailOrderId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"retailOrderId\"",
+        "sql": "ALTER TABLE \"public\".\"deliveryJob\" ADD COLUMN \"retailOrderId\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"retailOrderId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "deliveryJob",
+          "retailOrderId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.residentProfile.defaultDeliveryAddress",
+    "label": "Add column \"defaultDeliveryAddress\" to \"residentProfile\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "defaultDeliveryAddress",
+        "table": "residentProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"defaultDeliveryAddress\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "residentProfile",
+          "defaultDeliveryAddress"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"defaultDeliveryAddress\"",
+        "sql": "ALTER TABLE \"public\".\"residentProfile\" ADD COLUMN \"defaultDeliveryAddress\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"defaultDeliveryAddress\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "residentProfile",
+          "defaultDeliveryAddress"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.deliveryJob.deliveryJob_retailOrderId_key",
+    "label": "Add unique constraint on \"deliveryJob\" (retailOrderId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "deliveryJob_retailOrderId_key",
+        "table": "deliveryJob"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"deliveryJob_retailOrderId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "deliveryJob_retailOrderId_key",
+          "public",
+          "\"public\".\"deliveryJob\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"deliveryJob_retailOrderId_key\"",
+        "sql": "ALTER TABLE \"public\".\"deliveryJob\" ADD CONSTRAINT \"deliveryJob_retailOrderId_key\" UNIQUE (\"retailOrderId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"deliveryJob_retailOrderId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "deliveryJob_retailOrderId_key",
+          "public",
+          "\"public\".\"deliveryJob\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.voiceMemory.voiceMemory_personId_category_key_key",
+    "label": "Add unique constraint on \"voiceMemory\" (personId, category, key)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "voiceMemory_personId_category_key_key",
+        "table": "voiceMemory"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"voiceMemory_personId_category_key_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "voiceMemory_personId_category_key_key",
+          "public",
+          "\"public\".\"voiceMemory\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"voiceMemory_personId_category_key_key\"",
+        "sql": "ALTER TABLE \"public\".\"voiceMemory\" ADD CONSTRAINT \"voiceMemory_personId_category_key_key\" UNIQUE (\"personId\", \"category\", \"key\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"voiceMemory_personId_category_key_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "voiceMemory_personId_category_key_key",
+          "public",
+          "\"public\".\"voiceMemory\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.voiceMemory.voiceMemory_personId_idx_e5e06b80",
+    "label": "Create index \"voiceMemory_personId_idx_e5e06b80\" on \"voiceMemory\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "voiceMemory_personId_idx_e5e06b80",
+        "table": "voiceMemory"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"voiceMemory_personId_idx_e5e06b80\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"voiceMemory_personId_idx_e5e06b80\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"voiceMemory_personId_idx_e5e06b80\"",
+        "sql": "CREATE INDEX \"voiceMemory_personId_idx_e5e06b80\" ON \"public\".\"voiceMemory\" (\"personId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"voiceMemory_personId_idx_e5e06b80\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"voiceMemory_personId_idx_e5e06b80\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.voiceReminder.voiceReminder_personId_idx_e5e06b80",
+    "label": "Create index \"voiceReminder_personId_idx_e5e06b80\" on \"voiceReminder\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "voiceReminder_personId_idx_e5e06b80",
+        "table": "voiceReminder"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"voiceReminder_personId_idx_e5e06b80\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"voiceReminder_personId_idx_e5e06b80\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"voiceReminder_personId_idx_e5e06b80\"",
+        "sql": "CREATE INDEX \"voiceReminder_personId_idx_e5e06b80\" ON \"public\".\"voiceReminder\" (\"personId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"voiceReminder_personId_idx_e5e06b80\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"voiceReminder_personId_idx_e5e06b80\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.deliveryJob.deliveryJob_retailOrderId_fkey",
+    "label": "Add foreign key \"deliveryJob_retailOrderId_fkey\" on \"deliveryJob\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "deliveryJob_retailOrderId_fkey",
+        "table": "deliveryJob"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"deliveryJob_retailOrderId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "deliveryJob_retailOrderId_fkey",
+          "public",
+          "\"public\".\"deliveryJob\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"deliveryJob_retailOrderId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"deliveryJob\"\nADD CONSTRAINT \"deliveryJob_retailOrderId_fkey\"\nFOREIGN KEY (\"retailOrderId\")\nREFERENCES \"public\".\"retailOrder\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"deliveryJob_retailOrderId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "deliveryJob_retailOrderId_fkey",
+          "public",
+          "\"public\".\"deliveryJob\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.voiceMemory.voiceMemory_personId_fkey",
+    "label": "Add foreign key \"voiceMemory_personId_fkey\" on \"voiceMemory\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "voiceMemory_personId_fkey",
+        "table": "voiceMemory"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"voiceMemory_personId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "voiceMemory_personId_fkey",
+          "public",
+          "\"public\".\"voiceMemory\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"voiceMemory_personId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"voiceMemory\"\nADD CONSTRAINT \"voiceMemory_personId_fkey\"\nFOREIGN KEY (\"personId\")\nREFERENCES \"public\".\"person\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"voiceMemory_personId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "voiceMemory_personId_fkey",
+          "public",
+          "\"public\".\"voiceMemory\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.voiceReminder.voiceReminder_personId_fkey",
+    "label": "Add foreign key \"voiceReminder_personId_fkey\" on \"voiceReminder\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "voiceReminder_personId_fkey",
+        "table": "voiceReminder"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"voiceReminder_personId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "voiceReminder_personId_fkey",
+          "public",
+          "\"public\".\"voiceReminder\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"voiceReminder_personId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"voiceReminder\"\nADD CONSTRAINT \"voiceReminder_personId_fkey\"\nFOREIGN KEY (\"personId\")\nREFERENCES \"public\".\"person\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"voiceReminder_personId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "voiceReminder_personId_fkey",
+          "public",
+          "\"public\".\"voiceReminder\""
+        ]
+      }
+    ]
+  }
+]

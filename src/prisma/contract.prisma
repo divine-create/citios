@@ -209,19 +209,14 @@ model StudentData {
 }
 
 model CustomerData {
-  restaurantOrders RestaurantOrder[] @relation("CustomerRestaurantOrders")
-  id             String       @id @default(uuid())
-  relationshipId String       @unique
-  loyaltyPoints  Int          @default(0)
+  id             String  @id @default(dbgenerated("uuid_generate_v7()"))
+  personId       String? @unique
+  relationshipId String? @unique
+  relationship   Relationship? @relation(fields: [relationshipId], references: [id])
+  loyaltyPoints  Float   @default(0)
   notes          String?
-  
-  relationship   Relationship @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
-
-  retailOrders   RetailOrder[]
-  appointments   ServiceAppointment[]
-  jobs           ServiceJob[]
-  quotes         ServiceJobQuote[]
-  invoices       ServiceInvoice[]
+  orders         RetailOrder[]
+  restaurantOrders RestaurantOrder[]
 }
 
 model PatientData {
@@ -2517,6 +2512,7 @@ model RetailProduct {
   sku            String?
   
   price          Float
+  compareAtPrice Float?
   cost           Float?       // Used for COGS
   stockQuantity  Float        @default(0) // DEPRECATED: Use RetailLocationStock
   lowStockLevel  Float?       // Reorder trigger
@@ -2528,6 +2524,10 @@ model RetailProduct {
 
   categoryId     String?
   category       RetailCategory? @relation(fields: [categoryId], references: [id])
+  parentId       String?
+  parent         RetailProduct? @relation("ProductVariants", fields: [parentId], references: [id], onDelete: Cascade)
+  variants       RetailProduct[] @relation("ProductVariants")
+  variantName    String?
   
   orderItems     RetailOrderItem[]
   poItems        RetailPurchaseOrderItem[] @relation("ProductPOItems")
@@ -2928,7 +2928,7 @@ model ServiceAppointment {
 
   startTime      DateTime
   endTime        DateTime
-  status         String       @default("PENDING") // PENDING, CONFIRMED, CHECKED_IN, IN_PROGRESS, COMPLETED, CANCELLED, NO_SHOW
+  status            String  @default("REQUESTED") // PENDING, CONFIRMED, CHECKED_IN, IN_PROGRESS, COMPLETED, CANCELLED, NO_SHOW
   
   price          Float
   deposit        Float        @default(0)
@@ -3241,24 +3241,18 @@ model PaymentEvent {
 }
 
 model DeliveryJob {
-  id                String       @id @default(uuid())
-  status            String       @default("PENDING") // PENDING, ASSIGNED, PICKED_UP, DELIVERED
-  
-  // Who is delivering?
-  driverId          String?
-  driver            Person?      @relation(fields: [driverId], references: [id])
-  
-  // Delivery coordinates / address
-  dropoffAddress    String
-  dropoffLat        Float?
-  dropoffLng        Float?
-  
-  // Link to order
-  restaurantOrderId String?      @unique
+  id                String  @id @default(dbgenerated("uuid_generate_v7()"))
+  organizationId    String?
+  locationId        String?
+  retailOrderId     String? @unique
+  retailOrder       RetailOrder? @relation(fields: [retailOrderId], references: [id])
+  restaurantOrderId String? @unique
   restaurantOrder   RestaurantOrder? @relation(fields: [restaurantOrderId], references: [id])
-  
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @default(now())
+  status            String  @default("PENDING")
+  pickupAddress     String?
+  dropoffAddress    String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now())
 }
 
 // ============================================================================

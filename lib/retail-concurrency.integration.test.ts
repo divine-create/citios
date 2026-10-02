@@ -114,6 +114,9 @@ test('RetailOS Integration Concurrency Tests', async (t) => {
         failCount++;
         console.log('res1 error:', (res1.value as any).error);
       }
+    } else {
+      failCount++;
+      console.log('res1 rejected:', res1.reason);
     }
     if (res2.status === 'fulfilled') {
       if (res2.value.success) successCount++;
@@ -121,6 +124,9 @@ test('RetailOS Integration Concurrency Tests', async (t) => {
         failCount++;
         console.log('res2 error:', (res2.value as any).error);
       }
+    } else {
+      failCount++;
+      console.log('res2 rejected:', res2.reason);
     }
 
     assert.strictEqual(successCount, 1, 'Exactly one order should succeed');

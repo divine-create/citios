@@ -1,4 +1,4 @@
-﻿'use server'
+'use server'
 
 import '@js-temporal/polyfill'
 import { db } from '@/src/prisma/db'
@@ -2212,3 +2212,178 @@ export async function updateFulfillmentStatus(orderId: string, status: 'UNFULFIL
   }
 }
 
+
+export async function cancelOrder(orderId: string, input: { reason?: string }) {
+  try {
+    const o = await db.orm.public.RetailOrder.where({ id: orderId }).all().first();
+    if (!o) return { error: 'Order not found.' };
+    const { membership } = await requireMembership(o.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
+
+    await db.transaction(async (tx: any) => {
+      const plan = db.raw.sql`
+        UPDATE "retailOrder"
+        SET "status" = 'CANCELLED', "fulfillmentStatus" = 'CANCELLED'
+        WHERE id = ${orderId} AND "status" != 'CANCELLED'
+      RETURNING "id"
+    `.returnsRow({ id: 'pg/text@1' }).build();
+      const updated = await tx.execute(plan);
+      if (Array.isArray(updated) && updated.length === 0) throw new Error('Order is already cancelled or cannot be cancelled.');
+      
+      const order = await tx.orm.public.RetailOrder.where({ id: orderId }).all().first();
+      const items = await tx.orm.public.RetailOrderItem.where({ orderId }).all();
+      for (const item of items) {
+        const product = await tx.orm.public.RetailProduct.where({ id: item.productId }).all().first();
+        if (product && !product.isWeighed && order.locationId) {
+          const stock = await tx.orm.public.RetailLocationStock.where({ organizationId: product.organizationId, locationId: order.locationId, productId: product.id }).all().first();
+          if (stock) {
+            const plan3 = db.raw.sql`
+              UPDATE "retailLocationStock"
+              SET "stockQuantity" = "stockQuantity" + ${item.quantity}
+              WHERE id = ${stock.id}
+            RETURNING "id"
+    `.returnsRow({ id: 'pg/text@1' }).build();
+            await tx.execute(plan3);
+            const afterQty = stock.stockQuantity + item.quantity;
+            await tx.orm.public.RetailStockMovement.create({
+              organizationId: product.organizationId,
+              locationId: stock.locationId,
+              productId: product.id,
+              delta: item.quantity,
+              beforeQty: stock.stockQuantity,
+              afterQty: afterQty,
+              reason: 'CANCELLATION',
+              referenceType: 'CANCELLATION',
+              referenceId: item.id,
+              note: input.reason ?? `Order ${order.id.slice(0, 8)} cancelled`,
+              recordedById: membership.id,
+            });
+          }
+        }
+      }
+    });
+    revalidatePath('/orders');
+    return { success: true };
+  } catch (error: any) {
+    return { error: error.message || 'Cancellation failed.' };
+  }
+}
+
+export async function fulfillRetailOrderInventory(tx: any, orderId: string) {
+  const order = await tx.orm.public.RetailOrder.where({ id: orderId }).all().first();
+  if (!order) throw new Error('Order not found');
+  const items = await tx.orm.public.RetailOrderItem.where({ orderId: order.id }).all();
+  
+  for (const item of items) {
+      const product = await tx.orm.public.RetailProduct.where({ id: item.productId }).all().first();
+      if (product && !product.isWeighed) {
+          if (order.locationId) {
+              let stock = await tx.orm.public.RetailLocationStock.where({ locationId: order.locationId, productId: item.productId }).all().first();
+              if (!stock) {
+                 stock = await tx.orm.public.RetailLocationStock.create({ organizationId: order.organizationId, locationId: order.locationId, productId: item.productId, stockQuantity: 0 });
+              }
+              const plan = db.raw.sql`
+                  UPDATE "retailLocationStock"
+                  SET "stockQuantity" = "stockQuantity" - ${item.quantity}
+                  WHERE id = ${stock.id} AND "stockQuantity" >= ${item.quantity}
+              RETURNING "id"
+    `.returnsRow({ id: 'pg/text@1' }).build();
+              const updated = await tx.execute(plan);
+              if (Array.isArray(updated) && updated.length === 0) {
+                  throw new Error('OVERSELL');
+              }
+              const afterQty = stock.stockQuantity - item.quantity;
+              await tx.orm.public.RetailStockMovement.create({
+                  organizationId: order.organizationId,
+                  locationId: stock.locationId,
+                  productId: item.productId,
+                  delta: -item.quantity,
+                  beforeQty: stock.stockQuantity,
+                  afterQty: afterQty,
+                  reason: 'SALE',
+                  referenceType: 'SALE',
+                  referenceId: item.id,
+                  note: `Order ${order.id.slice(0, 8)}`
+              });
+          } else {
+              const plan2 = db.raw.sql`
+                  UPDATE "retailProduct"
+                  SET "stockQuantity" = "stockQuantity" - ${item.quantity}
+                  WHERE id = ${product.id} AND "stockQuantity" >= ${item.quantity}
+              RETURNING "id"
+    `.returnsRow({ id: 'pg/text@1' }).build();
+              const updated = await tx.execute(plan2);
+              if (Array.isArray(updated) && updated.length === 0) {
+                  throw new Error('OVERSELL');
+              }
+              const afterQty = product.stockQuantity - item.quantity;
+              await tx.orm.public.RetailStockMovement.create({
+                  organizationId: product.organizationId,
+                  productId: product.id,
+                  delta: -item.quantity,
+                  beforeQty: product.stockQuantity,
+                  afterQty: afterQty,
+                  reason: 'SALE',
+                  referenceType: 'SALE',
+                  referenceId: item.id,
+                  note: `Order ${order.id.slice(0, 8)}`
+              });
+          }
+      }
+  }
+}
+
+export async function requestRetailFulfillment(orderId: string, locationId?: string) {
+  const order = await db.orm.public.RetailOrder.where({ id: orderId }).all().first();
+  if (!order) throw new Error('Order not found');
+  if (order.status !== 'CONFIRMED') throw new Error('Order must be confirmed');
+  
+  const existingJob = await db.orm.public.DeliveryJob.where({ retailOrderId: order.id }).all().first();
+  if (existingJob) return { success: true, deliveryJobId: existingJob.id, status: existingJob.status };
+
+  const job = await db.orm.public.DeliveryJob.create({
+    organizationId: order.organizationId,
+    retailOrderId: order.id,
+    locationId: locationId || order.locationId,
+    status: 'REQUESTED',
+    pickupAddress: 'Store',
+    dropoffAddress: 'Customer'
+  });
+  
+  await db.orm.public.RetailOrder.where({ id: order.id }).update({ fulfillmentStatus: 'PROCESSING' });
+  return { success: true, deliveryJobId: job.id, status: job.status };
+}
+
+export async function syncLogisticsStatusToShopOS(jobId: string) {
+  const job = await db.orm.public.DeliveryJob.where({ id: jobId }).all().first();
+  if (!job || !job.retailOrderId) return;
+  const deliveryStatus = job.status;
+  if (deliveryStatus === 'DELIVERED') {
+      await db.orm.public.RetailOrder.where({ id: job.retailOrderId }).update({ fulfillmentStatus: 'FULFILLED' });
+  } else {
+      await db.orm.public.RetailOrder.where({ id: job.retailOrderId }).update({ fulfillmentStatus: 'READY' });
+  }
+}
+
+export async function getShopAnalytics(organizationId: string) {
+  try {
+    await requireMembership(organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
+    const orders = await db.orm.public.RetailOrder.where({ organizationId }).all();
+    const completedOrders = orders.filter((o: any) => o.status === 'COMPLETED');
+    const refundedOrders = orders.filter((o: any) => o.refundedAt != null);
+    
+    const grossSales = completedOrders.reduce((sum: number, o: any) => sum + o.totalAmount, 0);
+    const refundsAmount = refundedOrders.reduce((sum: number, o: any) => sum + o.totalAmount, 0);
+    const netSales = grossSales - refundsAmount;
+
+    return {
+      grossSales,
+      netSales,
+      refundsAmount,
+      totalOrders: orders.length,
+      completedOrders: completedOrders.length,
+      refundedOrders: refundedOrders.length,
+    };
+  } catch (error) {
+    return { grossSales: 0, netSales: 0, refundsAmount: 0, totalOrders: 0, completedOrders: 0, refundedOrders: 0 };
+  }
+}

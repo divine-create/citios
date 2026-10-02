@@ -39,8 +39,8 @@ export default function CityProfile() {
       .catch(console.error);
 
     fetchMyOrders()
-      .then(orders => { setRealOrders(orders); setOrdersError(false); })
-      .catch(err => { console.error(err); setOrdersError(true); });
+      .then((orders: any) => { setRealOrders(orders); setOrdersError(false); })
+      .catch((err: any) => { console.error(err); setOrdersError(true); });
   }, []);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

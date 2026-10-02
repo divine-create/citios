@@ -116,6 +116,9 @@ export default function CityMarket() {
                         <h3 className="text-xs font-bold text-ink leading-tight line-clamp-2">{p.name}</h3>
                         <div className="flex items-center justify-between pt-0.5">
                           <div className="text-sm font-black text-teal-900">{fmt(p.price)}</div>
+                          {p.compareAtPrice && p.compareAtPrice > p.price && (
+                            <div className="text-xs font-bold text-slate-400 line-through">{fmt(p.compareAtPrice)}</div>
+                          )}
                           {isOutOfStock ? (
                             <span className="text-[10px] font-bold text-slate-400">Out of stock</span>
                           ) : isLowStock ? (

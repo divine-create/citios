@@ -38,9 +38,9 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'f8e7ca8a6690e2134cfdd30ce838f5210d0a65a54086dd839366728494fe239a'>;
+  StorageHashBase<'14d8b0318f81cae0c530c1f4c5a7b59d97db7821dee970562946646d1f865ce5'>;
 export type ExecutionHash =
-  ExecutionHashBase<'1ae2693d2e2efd33c2b92ef9f2c63bfdf688c5994c43776c5b1d92517a503ec4'>;
+  ExecutionHashBase<'11822ac6db6aec93fa857a57f8a965c773de48bbd3b281d982f1ec9e42b6246d'>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
 
@@ -415,20 +415,19 @@ export type FieldOutputTypes = {
     };
     readonly CustomerData: {
       readonly id: CodecTypes['pg/text@1']['output'];
-      readonly personId: CodecTypes['pg/text@1']['output'] | null;
-      readonly relationshipId: CodecTypes['pg/text@1']['output'] | null;
-      readonly loyaltyPoints: CodecTypes['pg/float8@1']['output'];
+      readonly relationshipId: CodecTypes['pg/text@1']['output'];
+      readonly loyaltyPoints: CodecTypes['pg/int4@1']['output'];
       readonly notes: CodecTypes['pg/text@1']['output'] | null;
     };
     readonly DeliveryJob: {
       readonly id: CodecTypes['pg/text@1']['output'];
-      readonly organizationId: CodecTypes['pg/text@1']['output'] | null;
-      readonly locationId: CodecTypes['pg/text@1']['output'] | null;
-      readonly retailOrderId: CodecTypes['pg/text@1']['output'] | null;
-      readonly restaurantOrderId: CodecTypes['pg/text@1']['output'] | null;
       readonly status: CodecTypes['pg/text@1']['output'];
-      readonly pickupAddress: CodecTypes['pg/text@1']['output'] | null;
-      readonly dropoffAddress: CodecTypes['pg/text@1']['output'] | null;
+      readonly driverId: CodecTypes['pg/text@1']['output'] | null;
+      readonly dropoffAddress: CodecTypes['pg/text@1']['output'];
+      readonly dropoffLat: CodecTypes['pg/float8@1']['output'] | null;
+      readonly dropoffLng: CodecTypes['pg/float8@1']['output'] | null;
+      readonly restaurantOrderId: CodecTypes['pg/text@1']['output'] | null;
+      readonly retailOrderId: CodecTypes['pg/text@1']['output'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
     };
@@ -1540,7 +1539,6 @@ export type FieldOutputTypes = {
       readonly barcode: CodecTypes['pg/text@1']['output'] | null;
       readonly sku: CodecTypes['pg/text@1']['output'] | null;
       readonly price: CodecTypes['pg/float8@1']['output'];
-      readonly compareAtPrice: CodecTypes['pg/float8@1']['output'] | null;
       readonly cost: CodecTypes['pg/float8@1']['output'] | null;
       readonly stockQuantity: CodecTypes['pg/float8@1']['output'];
       readonly lowStockLevel: CodecTypes['pg/float8@1']['output'] | null;
@@ -1549,8 +1547,6 @@ export type FieldOutputTypes = {
       readonly imageAssetId: CodecTypes['pg/text@1']['output'] | null;
       readonly globalCategory: CodecTypes['pg/text@1']['output'] | null;
       readonly categoryId: CodecTypes['pg/text@1']['output'] | null;
-      readonly parentId: CodecTypes['pg/text@1']['output'] | null;
-      readonly variantName: CodecTypes['pg/text@1']['output'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
     };
@@ -2310,20 +2306,19 @@ export type FieldInputTypes = {
     };
     readonly CustomerData: {
       readonly id: CodecTypes['pg/text@1']['input'];
-      readonly personId: CodecTypes['pg/text@1']['input'] | null;
-      readonly relationshipId: CodecTypes['pg/text@1']['input'] | null;
-      readonly loyaltyPoints: CodecTypes['pg/float8@1']['input'];
+      readonly relationshipId: CodecTypes['pg/text@1']['input'];
+      readonly loyaltyPoints: CodecTypes['pg/int4@1']['input'];
       readonly notes: CodecTypes['pg/text@1']['input'] | null;
     };
     readonly DeliveryJob: {
       readonly id: CodecTypes['pg/text@1']['input'];
-      readonly organizationId: CodecTypes['pg/text@1']['input'] | null;
-      readonly locationId: CodecTypes['pg/text@1']['input'] | null;
-      readonly retailOrderId: CodecTypes['pg/text@1']['input'] | null;
-      readonly restaurantOrderId: CodecTypes['pg/text@1']['input'] | null;
       readonly status: CodecTypes['pg/text@1']['input'];
-      readonly pickupAddress: CodecTypes['pg/text@1']['input'] | null;
-      readonly dropoffAddress: CodecTypes['pg/text@1']['input'] | null;
+      readonly driverId: CodecTypes['pg/text@1']['input'] | null;
+      readonly dropoffAddress: CodecTypes['pg/text@1']['input'];
+      readonly dropoffLat: CodecTypes['pg/float8@1']['input'] | null;
+      readonly dropoffLng: CodecTypes['pg/float8@1']['input'] | null;
+      readonly restaurantOrderId: CodecTypes['pg/text@1']['input'] | null;
+      readonly retailOrderId: CodecTypes['pg/text@1']['input'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
     };
@@ -3435,7 +3430,6 @@ export type FieldInputTypes = {
       readonly barcode: CodecTypes['pg/text@1']['input'] | null;
       readonly sku: CodecTypes['pg/text@1']['input'] | null;
       readonly price: CodecTypes['pg/float8@1']['input'];
-      readonly compareAtPrice: CodecTypes['pg/float8@1']['input'] | null;
       readonly cost: CodecTypes['pg/float8@1']['input'] | null;
       readonly stockQuantity: CodecTypes['pg/float8@1']['input'];
       readonly lowStockLevel: CodecTypes['pg/float8@1']['input'] | null;
@@ -3444,8 +3438,6 @@ export type FieldInputTypes = {
       readonly imageAssetId: CodecTypes['pg/text@1']['input'] | null;
       readonly globalCategory: CodecTypes['pg/text@1']['input'] | null;
       readonly categoryId: CodecTypes['pg/text@1']['input'] | null;
-      readonly parentId: CodecTypes['pg/text@1']['input'] | null;
-      readonly variantName: CodecTypes['pg/text@1']['input'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
     };
@@ -4183,18 +4175,17 @@ export type StorageColumnTypes = {
     };
     readonly customerData: {
       readonly id: CodecTypes['pg/text@1']['output'];
-      readonly loyaltyPoints: CodecTypes['pg/float8@1']['output'];
+      readonly loyaltyPoints: CodecTypes['pg/int4@1']['output'];
       readonly notes: CodecTypes['pg/text@1']['output'] | null;
-      readonly personId: CodecTypes['pg/text@1']['output'] | null;
-      readonly relationshipId: CodecTypes['pg/text@1']['output'] | null;
+      readonly relationshipId: CodecTypes['pg/text@1']['output'];
     };
     readonly deliveryJob: {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
-      readonly dropoffAddress: CodecTypes['pg/text@1']['output'] | null;
+      readonly driverId: CodecTypes['pg/text@1']['output'] | null;
+      readonly dropoffAddress: CodecTypes['pg/text@1']['output'];
+      readonly dropoffLat: CodecTypes['pg/float8@1']['output'] | null;
+      readonly dropoffLng: CodecTypes['pg/float8@1']['output'] | null;
       readonly id: CodecTypes['pg/text@1']['output'];
-      readonly locationId: CodecTypes['pg/text@1']['output'] | null;
-      readonly organizationId: CodecTypes['pg/text@1']['output'] | null;
-      readonly pickupAddress: CodecTypes['pg/text@1']['output'] | null;
       readonly restaurantOrderId: CodecTypes['pg/text@1']['output'] | null;
       readonly retailOrderId: CodecTypes['pg/text@1']['output'] | null;
       readonly status: CodecTypes['pg/text@1']['output'];
@@ -5302,7 +5293,6 @@ export type StorageColumnTypes = {
     readonly retailProduct: {
       readonly barcode: CodecTypes['pg/text@1']['output'] | null;
       readonly categoryId: CodecTypes['pg/text@1']['output'] | null;
-      readonly compareAtPrice: CodecTypes['pg/float8@1']['output'] | null;
       readonly cost: CodecTypes['pg/float8@1']['output'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly description: CodecTypes['pg/text@1']['output'] | null;
@@ -5314,13 +5304,11 @@ export type StorageColumnTypes = {
       readonly lowStockLevel: CodecTypes['pg/float8@1']['output'] | null;
       readonly name: CodecTypes['pg/text@1']['output'];
       readonly organizationId: CodecTypes['pg/text@1']['output'];
-      readonly parentId: CodecTypes['pg/text@1']['output'] | null;
       readonly price: CodecTypes['pg/float8@1']['output'];
       readonly sku: CodecTypes['pg/text@1']['output'] | null;
       readonly stockQuantity: CodecTypes['pg/float8@1']['output'];
       readonly unit: CodecTypes['pg/text@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
-      readonly variantName: CodecTypes['pg/text@1']['output'] | null;
     };
     readonly retailPurchaseOrder: {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
@@ -6078,18 +6066,17 @@ export type StorageColumnInputTypes = {
     };
     readonly customerData: {
       readonly id: CodecTypes['pg/text@1']['input'];
-      readonly loyaltyPoints: CodecTypes['pg/float8@1']['input'];
+      readonly loyaltyPoints: CodecTypes['pg/int4@1']['input'];
       readonly notes: CodecTypes['pg/text@1']['input'] | null;
-      readonly personId: CodecTypes['pg/text@1']['input'] | null;
-      readonly relationshipId: CodecTypes['pg/text@1']['input'] | null;
+      readonly relationshipId: CodecTypes['pg/text@1']['input'];
     };
     readonly deliveryJob: {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
-      readonly dropoffAddress: CodecTypes['pg/text@1']['input'] | null;
+      readonly driverId: CodecTypes['pg/text@1']['input'] | null;
+      readonly dropoffAddress: CodecTypes['pg/text@1']['input'];
+      readonly dropoffLat: CodecTypes['pg/float8@1']['input'] | null;
+      readonly dropoffLng: CodecTypes['pg/float8@1']['input'] | null;
       readonly id: CodecTypes['pg/text@1']['input'];
-      readonly locationId: CodecTypes['pg/text@1']['input'] | null;
-      readonly organizationId: CodecTypes['pg/text@1']['input'] | null;
-      readonly pickupAddress: CodecTypes['pg/text@1']['input'] | null;
       readonly restaurantOrderId: CodecTypes['pg/text@1']['input'] | null;
       readonly retailOrderId: CodecTypes['pg/text@1']['input'] | null;
       readonly status: CodecTypes['pg/text@1']['input'];
@@ -7197,7 +7184,6 @@ export type StorageColumnInputTypes = {
     readonly retailProduct: {
       readonly barcode: CodecTypes['pg/text@1']['input'] | null;
       readonly categoryId: CodecTypes['pg/text@1']['input'] | null;
-      readonly compareAtPrice: CodecTypes['pg/float8@1']['input'] | null;
       readonly cost: CodecTypes['pg/float8@1']['input'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly description: CodecTypes['pg/text@1']['input'] | null;
@@ -7209,13 +7195,11 @@ export type StorageColumnInputTypes = {
       readonly lowStockLevel: CodecTypes['pg/float8@1']['input'] | null;
       readonly name: CodecTypes['pg/text@1']['input'];
       readonly organizationId: CodecTypes['pg/text@1']['input'];
-      readonly parentId: CodecTypes['pg/text@1']['input'] | null;
       readonly price: CodecTypes['pg/float8@1']['input'];
       readonly sku: CodecTypes['pg/text@1']['input'] | null;
       readonly stockQuantity: CodecTypes['pg/float8@1']['input'];
       readonly unit: CodecTypes['pg/text@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
-      readonly variantName: CodecTypes['pg/text@1']['input'] | null;
     };
     readonly retailPurchaseOrder: {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
@@ -9146,28 +9130,19 @@ type ContractBase = Omit<
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
                   readonly nullable: false;
-                  readonly default: {
-                    readonly kind: 'function';
-                    readonly expression: 'uuid_generate_v7()';
-                  };
-                };
-                readonly personId: {
-                  readonly nativeType: 'text';
-                  readonly codecId: 'pg/text@1';
-                  readonly nullable: true;
                 };
                 readonly relationshipId: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
-                  readonly nullable: true;
+                  readonly nullable: false;
                 };
                 readonly loyaltyPoints: {
-                  readonly nativeType: 'float8';
-                  readonly codecId: 'pg/float8@1';
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
                   readonly nullable: false;
                   readonly default: {
                     readonly kind: 'literal';
-                    readonly value: DefaultLiteralValue<'pg/float8@1', 0>;
+                    readonly value: DefaultLiteralValue<'pg/int4@1', 0>;
                   };
                 };
                 readonly notes: {
@@ -9177,10 +9152,7 @@ type ContractBase = Omit<
                 };
               };
               primaryKey: { readonly columns: readonly ['id'] };
-              uniques: readonly [
-                { readonly columns: readonly ['personId'] },
-                { readonly columns: readonly ['relationshipId'] },
-              ];
+              uniques: readonly [{ readonly columns: readonly ['relationshipId'] }];
               indexes: readonly [];
               foreignKeys: readonly [
                 {
@@ -9203,30 +9175,6 @@ type ContractBase = Omit<
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
                   readonly nullable: false;
-                  readonly default: {
-                    readonly kind: 'function';
-                    readonly expression: 'uuid_generate_v7()';
-                  };
-                };
-                readonly organizationId: {
-                  readonly nativeType: 'text';
-                  readonly codecId: 'pg/text@1';
-                  readonly nullable: true;
-                };
-                readonly locationId: {
-                  readonly nativeType: 'text';
-                  readonly codecId: 'pg/text@1';
-                  readonly nullable: true;
-                };
-                readonly retailOrderId: {
-                  readonly nativeType: 'text';
-                  readonly codecId: 'pg/text@1';
-                  readonly nullable: true;
-                };
-                readonly restaurantOrderId: {
-                  readonly nativeType: 'text';
-                  readonly codecId: 'pg/text@1';
-                  readonly nullable: true;
                 };
                 readonly status: {
                   readonly nativeType: 'text';
@@ -9237,12 +9185,32 @@ type ContractBase = Omit<
                     readonly value: DefaultLiteralValue<'pg/text@1', 'PENDING'>;
                   };
                 };
-                readonly pickupAddress: {
+                readonly driverId: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
                   readonly nullable: true;
                 };
                 readonly dropoffAddress: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly dropoffLat: {
+                  readonly nativeType: 'float8';
+                  readonly codecId: 'pg/float8@1';
+                  readonly nullable: true;
+                };
+                readonly dropoffLng: {
+                  readonly nativeType: 'float8';
+                  readonly codecId: 'pg/float8@1';
+                  readonly nullable: true;
+                };
+                readonly restaurantOrderId: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly retailOrderId: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
                   readonly nullable: true;
@@ -9262,20 +9230,27 @@ type ContractBase = Omit<
               };
               primaryKey: { readonly columns: readonly ['id'] };
               uniques: readonly [
-                { readonly columns: readonly ['retailOrderId'] },
                 { readonly columns: readonly ['restaurantOrderId'] },
+                { readonly columns: readonly ['retailOrderId'] },
               ];
-              indexes: readonly [];
+              indexes: readonly [
+                {
+                  readonly name: 'deliveryJob_driverId_idx_8eed3317';
+                  readonly prefix: 'deliveryJob_driverId_idx';
+                  readonly columns: readonly ['driverId'];
+                  readonly unique: false;
+                },
+              ];
               foreignKeys: readonly [
                 {
                   readonly source: {
                     readonly namespaceId: 'public' & NamespaceId;
                     readonly tableName: 'deliveryJob';
-                    readonly columns: readonly ['retailOrderId'];
+                    readonly columns: readonly ['driverId'];
                   };
                   readonly target: {
                     readonly namespaceId: 'public' & NamespaceId;
-                    readonly tableName: 'retailOrder';
+                    readonly tableName: 'person';
                     readonly columns: readonly ['id'];
                   };
                 },
@@ -9288,6 +9263,18 @@ type ContractBase = Omit<
                   readonly target: {
                     readonly namespaceId: 'public' & NamespaceId;
                     readonly tableName: 'restaurantOrder';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'deliveryJob';
+                    readonly columns: readonly ['retailOrderId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'retailOrder';
                     readonly columns: readonly ['id'];
                   };
                 },
@@ -18486,11 +18473,6 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/float8@1';
                   readonly nullable: false;
                 };
-                readonly compareAtPrice: {
-                  readonly nativeType: 'float8';
-                  readonly codecId: 'pg/float8@1';
-                  readonly nullable: true;
-                };
                 readonly cost: {
                   readonly nativeType: 'float8';
                   readonly codecId: 'pg/float8@1';
@@ -18543,16 +18525,6 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/text@1';
                   readonly nullable: true;
                 };
-                readonly parentId: {
-                  readonly nativeType: 'text';
-                  readonly codecId: 'pg/text@1';
-                  readonly nullable: true;
-                };
-                readonly variantName: {
-                  readonly nativeType: 'text';
-                  readonly codecId: 'pg/text@1';
-                  readonly nullable: true;
-                };
                 readonly createdAt: {
                   readonly nativeType: 'timestamptz';
                   readonly codecId: 'pg/timestamptz-temporal@1';
@@ -18581,12 +18553,6 @@ type ContractBase = Omit<
                   readonly columns: readonly ['categoryId'];
                   readonly unique: false;
                 },
-                {
-                  readonly name: 'retailProduct_parentId_idx_6a68f597';
-                  readonly prefix: 'retailProduct_parentId_idx';
-                  readonly columns: readonly ['parentId'];
-                  readonly unique: false;
-                },
               ];
               foreignKeys: readonly [
                 {
@@ -18610,18 +18576,6 @@ type ContractBase = Omit<
                   readonly target: {
                     readonly namespaceId: 'public' & NamespaceId;
                     readonly tableName: 'retailCategory';
-                    readonly columns: readonly ['id'];
-                  };
-                },
-                {
-                  readonly source: {
-                    readonly namespaceId: 'public' & NamespaceId;
-                    readonly tableName: 'retailProduct';
-                    readonly columns: readonly ['parentId'];
-                  };
-                  readonly target: {
-                    readonly namespaceId: 'public' & NamespaceId;
-                    readonly tableName: 'retailProduct';
                     readonly columns: readonly ['id'];
                   };
                 },
@@ -20413,7 +20367,7 @@ type ContractBase = Omit<
                   readonly nullable: false;
                   readonly default: {
                     readonly kind: 'literal';
-                    readonly value: DefaultLiteralValue<'pg/text@1', 'REQUESTED'>;
+                    readonly value: DefaultLiteralValue<'pg/text@1', 'PENDING'>;
                   };
                 };
                 readonly price: {
@@ -26100,17 +26054,13 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
-              readonly personId: {
-                readonly nullable: true;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
-              };
               readonly relationshipId: {
-                readonly nullable: true;
+                readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
               readonly loyaltyPoints: {
                 readonly nullable: false;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/float8@1' };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
               };
               readonly notes: {
                 readonly nullable: true;
@@ -26118,10 +26068,43 @@ type ContractBase = Omit<
               };
             };
             readonly relations: {
-              readonly orders: {
+              readonly appointments: {
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;
-                  readonly model: 'RetailOrder';
+                  readonly model: 'ServiceAppointment';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['customerDataId'];
+                };
+              };
+              readonly invoices: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'ServiceInvoice';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['customerDataId'];
+                };
+              };
+              readonly jobs: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'ServiceJob';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['customerDataId'];
+                };
+              };
+              readonly quotes: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'ServiceJobQuote';
                 };
                 readonly cardinality: '1:N';
                 readonly on: {
@@ -26151,13 +26134,23 @@ type ContractBase = Omit<
                   readonly targetFields: readonly ['customerDataId'];
                 };
               };
+              readonly retailOrders: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'RetailOrder';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['customerDataId'];
+                };
+              };
             };
             readonly storage: {
               readonly table: 'customerData';
               readonly namespaceId: 'public';
               readonly fields: {
                 readonly id: { readonly column: 'id' };
-                readonly personId: { readonly column: 'personId' };
                 readonly relationshipId: { readonly column: 'relationshipId' };
                 readonly loyaltyPoints: { readonly column: 'loyaltyPoints' };
                 readonly notes: { readonly column: 'notes' };
@@ -26170,31 +26163,31 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
-              readonly organizationId: {
+              readonly status: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly driverId: {
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
-              readonly locationId: {
-                readonly nullable: true;
+              readonly dropoffAddress: {
+                readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
-              readonly retailOrderId: {
+              readonly dropoffLat: {
                 readonly nullable: true;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/float8@1' };
+              };
+              readonly dropoffLng: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/float8@1' };
               };
               readonly restaurantOrderId: {
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
-              readonly status: {
-                readonly nullable: false;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
-              };
-              readonly pickupAddress: {
-                readonly nullable: true;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
-              };
-              readonly dropoffAddress: {
+              readonly retailOrderId: {
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
@@ -26214,6 +26207,17 @@ type ContractBase = Omit<
               };
             };
             readonly relations: {
+              readonly driver: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'Person';
+                };
+                readonly cardinality: 'N:1';
+                readonly on: {
+                  readonly localFields: readonly ['driverId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
               readonly restaurantOrder: {
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;
@@ -26242,13 +26246,13 @@ type ContractBase = Omit<
               readonly namespaceId: 'public';
               readonly fields: {
                 readonly id: { readonly column: 'id' };
-                readonly organizationId: { readonly column: 'organizationId' };
-                readonly locationId: { readonly column: 'locationId' };
-                readonly retailOrderId: { readonly column: 'retailOrderId' };
-                readonly restaurantOrderId: { readonly column: 'restaurantOrderId' };
                 readonly status: { readonly column: 'status' };
-                readonly pickupAddress: { readonly column: 'pickupAddress' };
+                readonly driverId: { readonly column: 'driverId' };
                 readonly dropoffAddress: { readonly column: 'dropoffAddress' };
+                readonly dropoffLat: { readonly column: 'dropoffLat' };
+                readonly dropoffLng: { readonly column: 'dropoffLng' };
+                readonly restaurantOrderId: { readonly column: 'restaurantOrderId' };
+                readonly retailOrderId: { readonly column: 'retailOrderId' };
                 readonly createdAt: { readonly column: 'createdAt' };
                 readonly updatedAt: { readonly column: 'updatedAt' };
               };
@@ -35931,6 +35935,17 @@ type ContractBase = Omit<
                   readonly targetFields: readonly ['id'];
                 };
               };
+              readonly delivery: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'DeliveryJob';
+                };
+                readonly cardinality: '1:1';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['retailOrderId'];
+                };
+              };
               readonly items: {
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;
@@ -36115,10 +36130,6 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/float8@1' };
               };
-              readonly compareAtPrice: {
-                readonly nullable: true;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/float8@1' };
-              };
               readonly cost: {
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/float8@1' };
@@ -36148,14 +36159,6 @@ type ContractBase = Omit<
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
               readonly categoryId: {
-                readonly nullable: true;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
-              };
-              readonly parentId: {
-                readonly nullable: true;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
-              };
-              readonly variantName: {
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
@@ -36208,17 +36211,6 @@ type ContractBase = Omit<
                   readonly targetFields: readonly ['id'];
                 };
               };
-              readonly parent: {
-                readonly to: {
-                  readonly namespace: 'public' & NamespaceId;
-                  readonly model: 'RetailProduct';
-                };
-                readonly cardinality: 'N:1';
-                readonly on: {
-                  readonly localFields: readonly ['parentId'];
-                  readonly targetFields: readonly ['id'];
-                };
-              };
               readonly poItems: {
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;
@@ -36241,17 +36233,6 @@ type ContractBase = Omit<
                   readonly targetFields: readonly ['productId'];
                 };
               };
-              readonly variants: {
-                readonly to: {
-                  readonly namespace: 'public' & NamespaceId;
-                  readonly model: 'RetailProduct';
-                };
-                readonly cardinality: '1:N';
-                readonly on: {
-                  readonly localFields: readonly ['id'];
-                  readonly targetFields: readonly ['parentId'];
-                };
-              };
             };
             readonly storage: {
               readonly table: 'retailProduct';
@@ -36265,7 +36246,6 @@ type ContractBase = Omit<
                 readonly barcode: { readonly column: 'barcode' };
                 readonly sku: { readonly column: 'sku' };
                 readonly price: { readonly column: 'price' };
-                readonly compareAtPrice: { readonly column: 'compareAtPrice' };
                 readonly cost: { readonly column: 'cost' };
                 readonly stockQuantity: { readonly column: 'stockQuantity' };
                 readonly lowStockLevel: { readonly column: 'lowStockLevel' };
@@ -36274,8 +36254,6 @@ type ContractBase = Omit<
                 readonly imageAssetId: { readonly column: 'imageAssetId' };
                 readonly globalCategory: { readonly column: 'globalCategory' };
                 readonly categoryId: { readonly column: 'categoryId' };
-                readonly parentId: { readonly column: 'parentId' };
-                readonly variantName: { readonly column: 'variantName' };
                 readonly createdAt: { readonly column: 'createdAt' };
                 readonly updatedAt: { readonly column: 'updatedAt' };
               };
@@ -41711,6 +41689,22 @@ type ContractBase = Omit<
           readonly ref: {
             readonly namespace: 'public';
             readonly table: 'comment';
+            readonly column: 'id';
+          };
+          readonly onCreate: { readonly kind: 'generator'; readonly id: 'uuidv4' };
+        },
+        {
+          readonly ref: {
+            readonly namespace: 'public';
+            readonly table: 'customerData';
+            readonly column: 'id';
+          };
+          readonly onCreate: { readonly kind: 'generator'; readonly id: 'uuidv4' };
+        },
+        {
+          readonly ref: {
+            readonly namespace: 'public';
+            readonly table: 'deliveryJob';
             readonly column: 'id';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'uuidv4' };
