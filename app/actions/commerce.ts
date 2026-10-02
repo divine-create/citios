@@ -149,11 +149,20 @@ export async function placeRetailOrder(input: {
             // using location logic if possible
           if (input.locationId) {
                const locStock = await tx.orm.public.RetailLocationStock.where({ locationId: input.locationId, productId: verifiedItem.productId }).all().first();
-               if (!locStock || locStock.stockQuantity < verifiedItem.quantity) {
+               if (!locStock) {
+                   throw new Error(`Insufficient stock for item at this location.`);
+               }
+               const plan = db.raw.sql`
+                   UPDATE "retailLocationStock"
+                   SET "stockQuantity" = "stockQuantity" - ${verifiedItem.quantity}
+                   WHERE id = ${locStock.id} AND "stockQuantity" >= ${verifiedItem.quantity}
+                   RETURNING "stockQuantity"
+    `.returnsRow({ stockQuantity: 'pg/int4@1' }).build();
+               const updated = await tx.execute(plan);
+               if ((updated && updated.affectedRows === 0) || (Array.isArray(updated) && updated.length === 0) || !updated) {
                    throw new Error(`Insufficient stock for item at this location.`);
                }
                const nextStock = locStock.stockQuantity - verifiedItem.quantity;
-               await tx.orm.public.RetailLocationStock.where({ locationId: input.locationId, productId: verifiedItem.productId }).update({ stockQuantity: nextStock });
                
                await tx.orm.public.RetailStockMovement.create({
                  organizationId: orgId,
@@ -168,11 +177,18 @@ export async function placeRetailOrder(input: {
             } else {
                const product = await tx.orm.public.RetailProduct.where({ id: verifiedItem.productId }).all().first();
                if (product && !product.isWeighed) {
-                 const nextStock = product.stockQuantity - verifiedItem.quantity;
-                 if (nextStock < 0) {
+                 const plan = db.raw.sql`
+                   UPDATE "retailProduct"
+                   SET "stockQuantity" = "stockQuantity" - ${verifiedItem.quantity}
+                   WHERE id = ${product.id} AND "stockQuantity" >= ${verifiedItem.quantity}
+                   RETURNING "stockQuantity"
+                 RETURNING "stockQuantity"
+    `.returnsRow({ stockQuantity: 'pg/int4@1' }).build();
+                 const updated = await tx.execute(plan);
+                 if ((updated && updated.affectedRows === 0) || (Array.isArray(updated) && updated.length === 0) || !updated) {
                    throw new Error(`Item "${product.name}" has insufficient stock.`);
                  }
-                 await tx.orm.public.RetailProduct.where({ id: verifiedItem.productId }).update({ stockQuantity: nextStock });
+                 const nextStock = product.stockQuantity - verifiedItem.quantity;
                  
                  await tx.orm.public.RetailStockMovement.create({
                    organizationId: orgId,
@@ -215,11 +231,13 @@ export async function placeRetailOrder(input: {
     });
   }
 
-  revalidatePath('/workspaces/shopos');
-  revalidatePath('/market');
-  for (const item of input.items) {
-    revalidatePath(`/product/${item.productId}`);
-  }
+  try { 
+    revalidatePath('/workspaces/shopos'); 
+    revalidatePath('/market'); 
+    for(const item of input.items) { 
+      revalidatePath(`/product/${item.productId}`); 
+    } 
+  } catch(e) {}
   return { success: true, orderIds, total: grandTotal };
 }
 
@@ -240,6 +258,7 @@ export async function fetchRetailOrders(orgId: string) {
 
   return Promise.all(orders.map(async (o) => {
     const items = await db.orm.public.RetailOrderItem.where({ orderId: o.id }).all();
+      const delivery = await db.orm.public.DeliveryJob.where({ retailOrderId: o.id }).all().first();
     let customerName = 'Unknown';
     if (o.customerDataId) {
       const cust = await db.orm.public.CustomerData.where({ id: o.customerDataId }).all().first();
@@ -259,47 +278,9 @@ export async function fetchRetailOrders(orgId: string) {
       area: 'Local',
       items: items.map(i => `${i.quantity}x item`).join(', '),
       total: o.totalAmount,
-      status: o.status === 'CONFIRMED' ? 'packing' : 'delivered',
-    };
-  }));
-}
-
-export async function fetchMyOrders() {
-  const session = await getServerSession(authOptions);
-
-  if (!session || !session.user || !session.user.personId) {
-    return [];
-  }
-
-  const personId = session.user.personId;
-
-  // Find all CustomerData for this person
-  const relationships = await db.orm.public.Relationship.where({ personId }).all();
-  const relIds = relationships.map(r => r.id);
-
-  if (relIds.length === 0) return [];
-
-  const customers = await Promise.all(relIds.map(id => db.orm.public.CustomerData.where({ relationshipId: id }).all()));
-  const custIds = customers.flat().map(c => c.id);
-
-  if (custIds.length === 0) return [];
-
-  // Find all orders across all orgs for this person
-  const orders = await Promise.all(custIds.map(id => db.orm.public.RetailOrder.where({ customerDataId: id }).all()));
-  const flatOrders = orders.flat().sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-
-  return Promise.all(flatOrders.map(async (o) => {
-    const org = await db.orm.public.Organization.where({ id: o.organizationId }).all().first();
-    const items = await db.orm.public.RetailOrderItem.where({ orderId: o.id }).all();
-
-    return {
-      id: o.id,
-      ref: o.id.split('-')[0].toUpperCase(),
-      merchant: org?.name || 'CityOS Merchant',
-      items: items.map(i => `${i.quantity}x item`).join(', '),
-      total: o.totalAmount,
-      status: o.status === 'CONFIRMED' ? 'packing' : 'delivered',
-      time: o.createdAt.toLocaleTimeString(),
+      status: o.status === 'CANCELLED' ? 'CANCELLED' : o.fulfillmentStatus,
+        time: o.createdAt.toLocaleTimeString(),
+        deliveryJobId: null, // Will populate if delivery exists
     };
   }));
 }
@@ -318,7 +299,7 @@ export async function getCityMartProducts(citySlug?: string, cat: string = 'All'
   if (orgIds.length === 0) return [];
 
   const allProducts = await db.orm.public.RetailProduct.all();
-  const products = allProducts.filter((p: any) => orgIds.includes(p.organizationId) && (cat === 'All' || p.globalCategory === cat));
+  const products = allProducts.filter((p: any) => orgIds.includes(p.organizationId) && (cat === 'All' || p.globalCategory === cat) && !p.parentId);
   return products.map(p => {
     const org = orgs.find(o => o.id === p.organizationId);
     return {
@@ -342,7 +323,8 @@ export async function getCityMartStores(citySlug?: string) {
 }
 
 export async function getCityMartProduct(productId: string) {
-  const p = await db.orm.public.RetailProduct.where({ id: productId }).first();
+  // @ts-ignore
+    const p = await db.orm.public.RetailProduct.where({ id: productId }).include({ variants: true }).first();
   if (!p) return null;
   const org = await db.orm.public.Organization.where({ id: p.organizationId }).first();
 
@@ -368,3 +350,23 @@ export async function getCityMartProduct(productId: string) {
 
 
 
+
+export async function fetchMyOrders() {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.personId) return { error: 'Unauthorized' };
+    const cust = await db.orm.public.CustomerData.where({ personId: session.user.personId }).all().first();
+    if (!cust) return [];
+    // @ts-ignore
+      const orders = await db.orm.public.RetailOrder.where({ customerDataId: cust.id }).include({ delivery: true }).all();
+    orders.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return orders.map((o: any) => ({
+      ...o,
+      status: o.status === 'PENDING' ? 'pending' : 'completed',
+      fulfillmentStatus: o.fulfillmentStatus,
+      deliveryJobId: o.delivery?.id,
+    }));
+  } catch (error) {
+    return [];
+  }
+}

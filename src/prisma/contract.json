@@ -3609,7 +3609,7 @@
               "loyaltyPoints": {
                 "nullable": false,
                 "type": {
-                  "codecId": "pg/int4@1",
+                  "codecId": "pg/float8@1",
                   "kind": "scalar"
                 }
               },
@@ -3620,8 +3620,15 @@
                   "kind": "scalar"
                 }
               },
+              "personId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "relationshipId": {
-                "nullable": false,
+                "nullable": true,
                 "type": {
                   "codecId": "pg/text@1",
                   "kind": "scalar"
@@ -3629,7 +3636,7 @@
               }
             },
             "relations": {
-              "appointments": {
+              "orders": {
                 "cardinality": "1:N",
                 "on": {
                   "localFields": [
@@ -3640,52 +3647,7 @@
                   ]
                 },
                 "to": {
-                  "model": "ServiceAppointment",
-                  "namespace": "public"
-                }
-              },
-              "invoices": {
-                "cardinality": "1:N",
-                "on": {
-                  "localFields": [
-                    "id"
-                  ],
-                  "targetFields": [
-                    "customerDataId"
-                  ]
-                },
-                "to": {
-                  "model": "ServiceInvoice",
-                  "namespace": "public"
-                }
-              },
-              "jobs": {
-                "cardinality": "1:N",
-                "on": {
-                  "localFields": [
-                    "id"
-                  ],
-                  "targetFields": [
-                    "customerDataId"
-                  ]
-                },
-                "to": {
-                  "model": "ServiceJob",
-                  "namespace": "public"
-                }
-              },
-              "quotes": {
-                "cardinality": "1:N",
-                "on": {
-                  "localFields": [
-                    "id"
-                  ],
-                  "targetFields": [
-                    "customerDataId"
-                  ]
-                },
-                "to": {
-                  "model": "ServiceJobQuote",
+                  "model": "RetailOrder",
                   "namespace": "public"
                 }
               },
@@ -3718,21 +3680,6 @@
                   "model": "RestaurantOrder",
                   "namespace": "public"
                 }
-              },
-              "retailOrders": {
-                "cardinality": "1:N",
-                "on": {
-                  "localFields": [
-                    "id"
-                  ],
-                  "targetFields": [
-                    "customerDataId"
-                  ]
-                },
-                "to": {
-                  "model": "RetailOrder",
-                  "namespace": "public"
-                }
               }
             },
             "storage": {
@@ -3745,6 +3692,9 @@
                 },
                 "notes": {
                   "column": "notes"
+                },
+                "personId": {
+                  "column": "personId"
                 },
                 "relationshipId": {
                   "column": "relationshipId"
@@ -3763,31 +3713,10 @@
                   "kind": "scalar"
                 }
               },
-              "driverId": {
-                "nullable": true,
-                "type": {
-                  "codecId": "pg/text@1",
-                  "kind": "scalar"
-                }
-              },
               "dropoffAddress": {
-                "nullable": false,
+                "nullable": true,
                 "type": {
                   "codecId": "pg/text@1",
-                  "kind": "scalar"
-                }
-              },
-              "dropoffLat": {
-                "nullable": true,
-                "type": {
-                  "codecId": "pg/float8@1",
-                  "kind": "scalar"
-                }
-              },
-              "dropoffLng": {
-                "nullable": true,
-                "type": {
-                  "codecId": "pg/float8@1",
                   "kind": "scalar"
                 }
               },
@@ -3798,7 +3727,35 @@
                   "kind": "scalar"
                 }
               },
+              "locationId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "organizationId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "pickupAddress": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "restaurantOrderId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "retailOrderId": {
                 "nullable": true,
                 "type": {
                   "codecId": "pg/text@1",
@@ -3821,21 +3778,6 @@
               }
             },
             "relations": {
-              "driver": {
-                "cardinality": "N:1",
-                "on": {
-                  "localFields": [
-                    "driverId"
-                  ],
-                  "targetFields": [
-                    "id"
-                  ]
-                },
-                "to": {
-                  "model": "Person",
-                  "namespace": "public"
-                }
-              },
               "restaurantOrder": {
                 "cardinality": "N:1",
                 "on": {
@@ -3850,6 +3792,21 @@
                   "model": "RestaurantOrder",
                   "namespace": "public"
                 }
+              },
+              "retailOrder": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "retailOrderId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "RetailOrder",
+                  "namespace": "public"
+                }
               }
             },
             "storage": {
@@ -3857,23 +3814,26 @@
                 "createdAt": {
                   "column": "createdAt"
                 },
-                "driverId": {
-                  "column": "driverId"
-                },
                 "dropoffAddress": {
                   "column": "dropoffAddress"
-                },
-                "dropoffLat": {
-                  "column": "dropoffLat"
-                },
-                "dropoffLng": {
-                  "column": "dropoffLng"
                 },
                 "id": {
                   "column": "id"
                 },
+                "locationId": {
+                  "column": "locationId"
+                },
+                "organizationId": {
+                  "column": "organizationId"
+                },
+                "pickupAddress": {
+                  "column": "pickupAddress"
+                },
                 "restaurantOrderId": {
                   "column": "restaurantOrderId"
+                },
+                "retailOrderId": {
+                  "column": "retailOrderId"
                 },
                 "status": {
                   "column": "status"
@@ -19226,6 +19186,13 @@
                   "kind": "scalar"
                 }
               },
+              "compareAtPrice": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
               "cost": {
                 "nullable": true,
                 "type": {
@@ -19306,6 +19273,13 @@
                   "kind": "scalar"
                 }
               },
+              "parentId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "price": {
                 "nullable": false,
                 "type": {
@@ -19338,6 +19312,13 @@
                 "nullable": false,
                 "type": {
                   "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "variantName": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
                   "kind": "scalar"
                 }
               }
@@ -19388,6 +19369,21 @@
                   "namespace": "public"
                 }
               },
+              "parent": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "parentId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "RetailProduct",
+                  "namespace": "public"
+                }
+              },
               "poItems": {
                 "cardinality": "1:N",
                 "on": {
@@ -19417,6 +19413,21 @@
                   "model": "RetailStockMovement",
                   "namespace": "public"
                 }
+              },
+              "variants": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "parentId"
+                  ]
+                },
+                "to": {
+                  "model": "RetailProduct",
+                  "namespace": "public"
+                }
               }
             },
             "storage": {
@@ -19426,6 +19437,9 @@
                 },
                 "categoryId": {
                   "column": "categoryId"
+                },
+                "compareAtPrice": {
+                  "column": "compareAtPrice"
                 },
                 "cost": {
                   "column": "cost"
@@ -19460,6 +19474,9 @@
                 "organizationId": {
                   "column": "organizationId"
                 },
+                "parentId": {
+                  "column": "parentId"
+                },
                 "price": {
                   "column": "price"
                 },
@@ -19474,6 +19491,9 @@
                 },
                 "updatedAt": {
                   "column": "updatedAt"
+                },
+                "variantName": {
+                  "column": "variantName"
                 }
               },
               "namespaceId": "public",
@@ -28934,16 +28954,20 @@
               "columns": {
                 "id": {
                   "codecId": "pg/text@1",
+                  "default": {
+                    "expression": "uuid_generate_v7()",
+                    "kind": "function"
+                  },
                   "nativeType": "text",
                   "nullable": false
                 },
                 "loyaltyPoints": {
-                  "codecId": "pg/int4@1",
+                  "codecId": "pg/float8@1",
                   "default": {
                     "kind": "literal",
                     "value": 0
                   },
-                  "nativeType": "int4",
+                  "nativeType": "float8",
                   "nullable": false
                 },
                 "notes": {
@@ -28951,15 +28975,19 @@
                   "nativeType": "text",
                   "nullable": true
                 },
+                "personId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "relationshipId": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
-                  "nullable": false
+                  "nullable": true
                 }
               },
               "foreignKeys": [
                 {
-                  "onDelete": "cascade",
                   "source": {
                     "columns": [
                       "relationshipId"
@@ -28985,6 +29013,11 @@
               "uniques": [
                 {
                   "columns": [
+                    "personId"
+                  ]
+                },
+                {
+                  "columns": [
                     "relationshipId"
                   ]
                 }
@@ -29001,32 +29034,41 @@
                   "nativeType": "timestamptz",
                   "nullable": false
                 },
-                "driverId": {
-                  "codecId": "pg/text@1",
-                  "nativeType": "text",
-                  "nullable": true
-                },
                 "dropoffAddress": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
-                  "nullable": false
-                },
-                "dropoffLat": {
-                  "codecId": "pg/float8@1",
-                  "nativeType": "float8",
-                  "nullable": true
-                },
-                "dropoffLng": {
-                  "codecId": "pg/float8@1",
-                  "nativeType": "float8",
                   "nullable": true
                 },
                 "id": {
                   "codecId": "pg/text@1",
+                  "default": {
+                    "expression": "uuid_generate_v7()",
+                    "kind": "function"
+                  },
                   "nativeType": "text",
                   "nullable": false
                 },
+                "locationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "organizationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "pickupAddress": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "restaurantOrderId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "retailOrderId": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": true
@@ -29054,7 +29096,7 @@
                 {
                   "source": {
                     "columns": [
-                      "driverId"
+                      "retailOrderId"
                     ],
                     "namespaceId": "public",
                     "tableName": "deliveryJob"
@@ -29064,7 +29106,7 @@
                       "id"
                     ],
                     "namespaceId": "public",
-                    "tableName": "person"
+                    "tableName": "retailOrder"
                   }
                 },
                 {
@@ -29084,22 +29126,18 @@
                   }
                 }
               ],
-              "indexes": [
-                {
-                  "columns": [
-                    "driverId"
-                  ],
-                  "name": "deliveryJob_driverId_idx_8eed3317",
-                  "prefix": "deliveryJob_driverId_idx",
-                  "unique": false
-                }
-              ],
+              "indexes": [],
               "primaryKey": {
                 "columns": [
                   "id"
                 ]
               },
               "uniques": [
+                {
+                  "columns": [
+                    "retailOrderId"
+                  ]
+                },
                 {
                   "columns": [
                     "restaurantOrderId"
@@ -40716,6 +40754,11 @@
                   "nativeType": "text",
                   "nullable": true
                 },
+                "compareAtPrice": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
+                  "nullable": true
+                },
                 "cost": {
                   "codecId": "pg/float8@1",
                   "nativeType": "float8",
@@ -40782,6 +40825,11 @@
                   "nativeType": "text",
                   "nullable": false
                 },
+                "parentId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "price": {
                   "codecId": "pg/float8@1",
                   "nativeType": "float8",
@@ -40818,6 +40866,11 @@
                   },
                   "nativeType": "timestamptz",
                   "nullable": false
+                },
+                "variantName": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
                 }
               },
               "foreignKeys": [
@@ -40853,6 +40906,23 @@
                     "namespaceId": "public",
                     "tableName": "retailCategory"
                   }
+                },
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "parentId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "retailProduct"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "retailProduct"
+                  }
                 }
               ],
               "indexes": [
@@ -40870,6 +40940,14 @@
                   ],
                   "name": "retailProduct_organizationId_idx_2e17ef41",
                   "prefix": "retailProduct_organizationId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "parentId"
+                  ],
+                  "name": "retailProduct_parentId_idx_6a68f597",
+                  "prefix": "retailProduct_parentId_idx",
                   "unique": false
                 }
               ],
@@ -43081,7 +43159,7 @@
                   "codecId": "pg/text@1",
                   "default": {
                     "kind": "literal",
-                    "value": "PENDING"
+                    "value": "REQUESTED"
                   },
                   "nativeType": "text",
                   "nullable": false
@@ -47743,10 +47821,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "7f4cfc38bfd75701f5c7ff0ccd352c7fb6d410390c576a345040c105e743e8bc"
+    "storageHash": "f8e7ca8a6690e2134cfdd30ce838f5210d0a65a54086dd839366728494fe239a"
   },
   "execution": {
-    "executionHash": "11822ac6db6aec93fa857a57f8a965c773de48bbd3b281d982f1ec9e42b6246d",
+    "executionHash": "1ae2693d2e2efd33c2b92ef9f2c63bfdf688c5994c43776c5b1d92517a503ec4",
     "mutations": {
       "defaults": [
         {
@@ -47912,28 +47990,6 @@
             "column": "id",
             "namespace": "public",
             "table": "comment"
-          }
-        },
-        {
-          "onCreate": {
-            "id": "uuidv4",
-            "kind": "generator"
-          },
-          "ref": {
-            "column": "id",
-            "namespace": "public",
-            "table": "customerData"
-          }
-        },
-        {
-          "onCreate": {
-            "id": "uuidv4",
-            "kind": "generator"
-          },
-          "ref": {
-            "column": "id",
-            "namespace": "public",
-            "table": "deliveryJob"
           }
         },
         {

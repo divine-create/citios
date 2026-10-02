@@ -64,7 +64,7 @@ import InventoryManager from "./InventoryManager";
 import Settings from "./Settings";
 import ShopOnboardingWidget from "./ShopOnboardingWidget";
 import GlobalSearch from "./GlobalSearch";
-import { getShopDashboardData, getProducts, getCategories, getRegisters, openShift, closeShift, getShiftHistory, createRegister, getExpenses, createExpense, deleteExpense, getExpenseSummary, getOrders, refundOrder, getCustomers, getCustomer, createCustomer, deleteCustomer, adjustLoyaltyPoints, getLocations, createLocation, updateLocation, deleteLocation, getStaff, addStaffMember, updateStaffRole, removeStaffMember, getShopReports, getRetailSettings, getShopNotifications, markShopNotificationsRead, exportShopReport } from '@/lib/actions/retail'
+import { getShopDashboardData, getProducts, getCategories, getRegisters, openShift, closeShift, getShiftHistory, createRegister, getExpenses, createExpense, deleteExpense, getExpenseSummary, getOrders, refundOrder, cancelOrder, getCustomers, getCustomer, createCustomer, deleteCustomer, adjustLoyaltyPoints, getLocations, createLocation, updateLocation, deleteLocation, getStaff, addStaffMember, updateStaffRole, removeStaffMember, getShopReports, getRetailSettings, getShopNotifications, markShopNotificationsRead, exportShopReport } from '@/lib/actions/retail'
 import { getSuppliers, createSupplier, deleteSupplier, getPurchaseOrders, createPurchaseOrder, updatePurchaseOrderStatus } from '@/lib/actions/procurement';
 import { getCityRegistry } from "@/app/actions/city";
 import { uploadAsset } from "@/lib/actions/microsite";
@@ -96,6 +96,21 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
       return next;
     });
   const [salesShiftFilter, setSalesShiftFilter] = useState<string | null>(null);
+  const [orderActionLoading, setOrderActionLoading] = useState<string | null>(null);
+  
+  const handleCancelOrder = async (id: string) => {
+    setOrderActionLoading(id);
+    await cancelOrder(id, { reason: 'Merchant requested' });
+    setOrderActionLoading(null);
+    setDashboard({ ...dashboard, orders: dashboard.orders.map((o: any) => o.id === id ? { ...o, status: 'CANCELLED' } : o) });
+  };
+  
+  const handleRefundOrder = async (id: string) => {
+    setOrderActionLoading(id);
+    await refundOrder(id, { reason: 'Merchant requested' });
+    setOrderActionLoading(null);
+    setDashboard({ ...dashboard, orders: dashboard.orders.map((o: any) => o.id === id ? { ...o, refundedAt: new Date().toISOString() } : o) });
+  };
   const [dashboard, setDashboard] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);

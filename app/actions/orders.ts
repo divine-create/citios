@@ -38,6 +38,7 @@ export async function fetchMyOrders() {
     const org = await db.orm.public.Organization.where({ id: order.organizationId }).all().first();
     const items = await db.orm.public.RetailOrderItem.where({ orderId: order.id }).all();
     const payment = await db.orm.public.Payment.where({ retailOrderId: order.id }).all().first();
+    const delivery = await db.orm.public.DeliveryJob.where({ retailOrderId: order.id }).all().first();
     
     // Eagerly resolve product names for UI
     const enrichedItems = await Promise.all(items.map(async (item) => {
@@ -45,7 +46,7 @@ export async function fetchMyOrders() {
         return { ...item, product };
     }));
 
-    return { ...order, org, items: enrichedItems, payment };
+    return { ...order, org, items: enrichedItems, payment, delivery };
   }));
 
   const enrichedRestaurant = await Promise.all(restaurantOrders.map(async (order) => {

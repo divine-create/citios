@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/src/prisma/db';
+import { fulfillRetailOrderInventory } from '@/lib/actions/retail';
 import { getPaymentAdapter } from '@/lib/payments/factory';
 
 export async function POST(
@@ -94,39 +95,8 @@ export async function POST(
          await db.transaction(async (tx: any) => {
            // If Retail Order
            if (payment.retailOrderId) {
-              const order = await tx.orm.public.RetailOrder.where({ id: payment.retailOrderId }).all().first();
-              if (order) {
-                 const items = await tx.orm.public.RetailOrderItem.where({ orderId: order.id }).all();
-                 
-                 for (const item of items) {
-                    if (order.locationId) {
-                      const locStock = await tx.orm.public.RetailLocationStock.where({ locationId: order.locationId, productId: item.productId }).all().first();
-                      if (!locStock || locStock.quantity < item.quantity) {
-                         throw new Error('OVERSELL');
-                      }
-                      await tx.orm.public.RetailLocationStock.where({ id: locStock.id }).update({ quantity: locStock.quantity - item.quantity });
-                      
-                      await tx.orm.public.RetailStockMovement.create({
-                        organizationId: order.organizationId,
-                        locationId: order.locationId,
-                        productId: item.productId,
-                        delta: -item.quantity,
-                        beforeQty: locStock.quantity,
-                        afterQty: locStock.quantity - item.quantity,
-                        reason: 'SALE',
-                        note: `Online Order #${order.id.slice(0, 8)}`,
-                      });
-                    } else {
-                      // Fallback to global
-                      const product = await tx.orm.public.RetailProduct.where({ id: item.productId }).all().first();
-                      if (product && !product.isWeighed) {
-                         if (product.stockQuantity < item.quantity) throw new Error('OVERSELL');
-                         await tx.orm.public.RetailProduct.where({ id: product.id }).update({ stockQuantity: product.stockQuantity - item.quantity });
-                      }
-                    }
-                 }
-                 await tx.orm.public.RetailOrder.where({ id: order.id }).update({ status: 'CONFIRMED' });
-              }
+              await fulfillRetailOrderInventory(tx, payment.retailOrderId);
+              await tx.orm.public.RetailOrder.where({ id: payment.retailOrderId }).update({ status: 'CONFIRMED' });
            }
            
            // If Restaurant Order

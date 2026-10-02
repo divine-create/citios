@@ -42,7 +42,7 @@ interface Category {
   description?: string | null;
 }
 
-const EMPTY_FORM = { name: "", sku: "", categoryId: "", price: "", cost: "", stockQuantity: "", lowStockLevel: "", isWeighed: false, unit: "ea" };
+const EMPTY_FORM = { name: "", sku: "", categoryId: "", price: "", compareAtPrice: "", cost: "", stockQuantity: "", lowStockLevel: "", isWeighed: false, unit: "ea", variants: [] as any[] };
 
 export default function InventoryManager({ organizationId, locationId, products, categories, onChanged, symbol = "$" }: {
   organizationId: string;
@@ -132,7 +132,7 @@ export default function InventoryManager({ organizationId, locationId, products,
   const openAdd = () => {
     setEditId(null);
     const nextSku = generateUniqueSku(products.map((p) => p.sku ?? ""), "ITEM");
-    setForm({ ...EMPTY_FORM, sku: nextSku });
+    setForm({ ...EMPTY_FORM, sku: nextSku } as any);
     setImageAssetId(null);
     setError(null);
     setIsModalOpen(true);
@@ -150,6 +150,8 @@ export default function InventoryManager({ organizationId, locationId, products,
       lowStockLevel: p.lowStockLevel != null ? String(p.lowStockLevel) : "",
       isWeighed: p.isWeighed,
       unit: p.unit,
+      compareAtPrice: (p as any).compareAtPrice != null ? String((p as any).compareAtPrice) : "",
+      variants: (p as any).variants ?? [],
     });
     setImageAssetId(p.imageAssetId);
     setError(null);

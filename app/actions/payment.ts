@@ -121,7 +121,7 @@ export async function initiateCheckout(input: InitiateCheckoutInput) {
       method: input.method,
       locationId: input.locationId,
       idempotencyKey: input.idempotencyKey,
-      
+      paymentReference: reference,
     });
     // In our modified placeRetailOrder, if idempotency hits, it returns the order object
     // If newly created, it also returns the order object (since orderResult is the createdOrder)

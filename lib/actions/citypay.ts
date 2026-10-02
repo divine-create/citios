@@ -134,12 +134,9 @@ export async function handleFailedRetailPayment(prismaTx: any, retailOrderId: st
     if (product && !product.isWeighed) {
       const stock = await prismaTx.orm.public.RetailLocationStock.where({ organizationId: product.organizationId, locationId: order.locationId, productId: product.id }).all().first();
       if (stock) {
-        const updated = await prismaTx.sql`
-          UPDATE "RetailLocationStock"
-          SET "stockQuantity" = "stockQuantity" + ${item.quantity}
-          WHERE id = ${stock.id}
-          RETURNING "stockQuantity"
-        `;
+        await prismaTx.orm.public.RetailLocationStock.where({ id: stock.id }).update({
+          stockQuantity: stock.stockQuantity + item.quantity
+        });
         
         await prismaTx.orm.public.RetailStockMovement.create({
             organizationId: product.organizationId,
@@ -147,7 +144,7 @@ export async function handleFailedRetailPayment(prismaTx: any, retailOrderId: st
             productId: product.id,
             delta: item.quantity,
             beforeQty: stock.stockQuantity,
-            afterQty: updated[0].stockQuantity,
+            afterQty: stock.stockQuantity + item.quantity,
             reason: 'SALE_FAILED_REVERSAL',
             referenceType: 'SALE_FAILED_REVERSAL',
             referenceId: item.id, // Enforces exact-once reversal per item
