@@ -116,7 +116,7 @@ test('LogisticsOS Phase 5 Settlement Integration Tests', async (t) => {
     const { providerId, driverProfileId } = await setupProviderAndDriver();
     const job = await createDeliveryJob({
       providerId, sourceType: 'RESTAURANT_ORDER', sourceId: generateId(),
-      dropoffAddress: 'B'
+      dropoffAddress: 'B', idempotencyKey: 'idem123'
     });
 
     await assert.rejects(

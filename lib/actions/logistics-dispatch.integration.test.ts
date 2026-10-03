@@ -158,7 +158,7 @@ test('LogisticsOS Phase 2 Dispatch Integration Tests', async (t) => {
       providerId: provB.id // Wrong provider
     }).catch(e => ({ error: e.message }));
     
-    assert.ok(r1.error?.includes('Provider isolation violation'), 'Cross provider accept rejected');
+    assert.ok((r1 as any).error?.includes('Provider isolation violation'), 'Cross provider accept rejected');
   });
 
   await t.test('Test 5 — Concurrent Accept (Driver Contention)', async () => {
