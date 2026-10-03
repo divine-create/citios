@@ -28,7 +28,7 @@ async function setupAuth(orgId: string, locationId: string) {
   const testId = uuidv4().substring(0, 8);
   const email = `test-${testId}@example.com`;
   
-  const person = await db.orm.public.Person.create({ firstName: "Test", lastName: "User" });
+  const person = await db.orm.public.Person.create({ id: uuidv4(), firstName: "Test", lastName: "User" });
   await db.orm.public.PersonIdentifier.create({
     personId: person.id,
     type: 'EMAIL',

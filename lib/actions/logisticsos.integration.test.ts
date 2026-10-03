@@ -36,7 +36,7 @@ async function makeProvider(name: string) {
 }
 
 async function makePerson(firstName: string) {
-  return db.orm.public.Person.create({ firstName, lastName: 'Test' });
+  return db.orm.public.Person.create({ id: uuidv4(), firstName, lastName: 'Test' });
 }
 
 async function makeDriver(providerId: string, personId: string) {
