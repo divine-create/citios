@@ -1,4 +1,11 @@
 import { db } from '../../src/prisma/db';
+function getEpochMs(val: any): number {
+  if (!val) return Date.now();
+  if (typeof val === 'number') return val;
+  if (typeof val.epochMilliseconds === 'number') return val.epochMilliseconds;
+  return new Date(val.toString()).getTime();
+}
+
 import { LogisticsDomainError } from './logistics-domain';
 
 // --- Part A: Observability & Logging ---
@@ -39,13 +46,13 @@ export async function findStuckDeliveries(criteria: StuckDeliveryCriteria = {}) 
 
   for (const job of activeDeliveries) {
     // Determine last activity.
-    let lastActivityTs = new Date((job as any).updatedAt || (job as any).createdAt).getTime();
+    let lastActivityTs = getEpochMs((job as any).updatedAt || (job as any).createdAt);
 
     // Try to get latest tracking event
     const events = await db.orm.public.DeliveryTrackingEvent.where({ deliveryJobId: job.id }).all();
     if (events.length > 0) {
-      events.sort((a: any, b: any) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime());
-      lastActivityTs = new Date(events[0].recordedAt).getTime();
+      events.sort((a: any, b: any) => getEpochMs(b.recordedAt) - getEpochMs(a.recordedAt));
+      lastActivityTs = getEpochMs(events[0].recordedAt);
     }
 
     const elapsedMinutes = (now - lastActivityTs) / (1000 * 60);
@@ -150,12 +157,12 @@ export async function getProviderDeliveryOverview(providerId: string) {
     if (job.status === 'COMPLETED' || job.status === 'DELIVERED') {
       completedDeliveries++;
       // Determine delivery duration
-      const createdAt = new Date((job as any).createdAt).getTime();
+      const createdAt = getEpochMs((job as any).createdAt);
       const events = await db.orm.public.DeliveryTrackingEvent.where({ deliveryJobId: job.id }).all();
       const dropoffEvents = events.filter(e => e.eventType === 'DELIVERED');
       if (dropoffEvents.length > 0) {
-        dropoffEvents.sort((a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime());
-        const dropoffTime = new Date(dropoffEvents[0].recordedAt).getTime();
+        dropoffEvents.sort((a, b) => getEpochMs(a.recordedAt) - getEpochMs(b.recordedAt));
+        const dropoffTime = getEpochMs(dropoffEvents[0].recordedAt);
         totalTimeMs += (dropoffTime - createdAt);
       }
     }
@@ -223,3 +230,5 @@ export async function getLogisticsHealthCheck() {
 
   return status;
 }
+
+
