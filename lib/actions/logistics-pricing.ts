@@ -98,7 +98,7 @@ export async function offerQuote(quoteId: string, providerId: string) {
   return await db.transaction(async (ctx: any) => {
     const plan = ctx.sql.public.deliveryQuote
       .update({ status: 'OFFERED' })
-      .where((f, fns) => fns.and(
+      .where((f: any, fns: any) => fns.and(
         fns.eq(f.id, quoteId),
         fns.eq(f.providerId, providerId),
         fns.eq(f.status, 'CALCULATED')
@@ -119,7 +119,7 @@ export async function acceptQuote(quoteId: string, providerId: string) {
   return await db.transaction(async (ctx: any) => {
     const quotePlan = ctx.sql.public.deliveryQuote
       .update({ status: 'ACCEPTED' })
-      .where((f, fns) => fns.and(
+      .where((f: any, fns: any) => fns.and(
         fns.eq(f.id, quoteId),
         fns.eq(f.providerId, providerId),
         fns.eq(f.status, 'OFFERED')
@@ -141,7 +141,7 @@ export async function acceptQuote(quoteId: string, providerId: string) {
 
     const jobPlan = ctx.sql.public.deliveryJob
       .update({ status: 'PRICED' })
-      .where((f, fns) => fns.and(
+      .where((f: any, fns: any) => fns.and(
         fns.eq(f.id, quote!.deliveryJobId),
         fns.eq(f.status, 'REQUESTED')
       ))
@@ -160,7 +160,7 @@ export async function expireQuote(quoteId: string, providerId: string) {
   return await db.transaction(async (ctx: any) => {
     const plan = ctx.sql.public.deliveryQuote
       .update({ status: 'EXPIRED' })
-      .where((f, fns) => fns.and(
+      .where((f: any, fns: any) => fns.and(
         fns.eq(f.id, quoteId),
         fns.eq(f.providerId, providerId),
         fns.in(f.status, ['CALCULATED', 'OFFERED'])
