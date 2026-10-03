@@ -1,6 +1,6 @@
 
 model Person {
-  id             String             @id @default(uuid())
+  id String @id @default(dbgenerated("uuid_generate_v7()"))
   firstName      String
   lastName       String
   dateOfBirth    DateTime?
@@ -38,6 +38,9 @@ model Person {
   notifications  Notification[]     @relation("PersonNotifications")
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @default(now())
+
+  // LogisticsOS
+  logisticsDriverProfiles LogisticsDriverProfile[] @relation("PersonLogisticsDriver")
 }
 
 model PersonIdentifier {
@@ -329,6 +332,7 @@ model Transaction {
   entries        LedgerEntry[]
   
   payment        Payment?
+  logisticsSettlement LogisticsSettlement?
   createdAt      DateTime     @default(now())
 }
 
@@ -494,6 +498,15 @@ model Organization {
   listings    DiscoveryListing[]
   subscriptions Subscription[] @relation("OrgSubscriptions")
   bookings      Booking[]      @relation("OrgBookings")
+
+  // LogisticsOS
+  providerFleets       LogisticsFleet[]         @relation("ProviderFleets")
+  providerVehicles     LogisticsVehicle[]       @relation("ProviderVehicles")
+  providerDrivers      LogisticsDriverProfile[] @relation("ProviderDrivers")
+  providerDeliveryJobs DeliveryJob[]            @relation("ProviderDeliveryJobs")
+  providerDispatches   DeliveryDispatch[]       @relation("ProviderDispatches")
+  providerSettlements  LogisticsSettlement[]    @relation("ProviderSettlements")
+  logisticsSettings    LogisticsSettings?       @relation("OrgLogisticsSettings")
 }
 
 enum OrgRole {
@@ -3239,18 +3252,346 @@ model PaymentEvent {
   @@index([paymentId])
 }
 
-model DeliveryJob {
-  id                String  @id @default(dbgenerated("uuid_generate_v7()"))
-  providerId        String?
-  sourceType        String  @default("RETAIL_ORDER")
-  sourceId          String
-  status            String  @default("PENDING")
-  idempotencyKey    String?
-  pickupAddress     String?
-  dropoffAddress    String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @default(now())
+enum DeliverySourceType {
+  RESTAURANT_ORDER
+  RETAIL_ORDER
+  HOTEL_REQUEST
+  SERVICE_JOB
+  HEALTH_REQUEST
+  DIRECT_DELIVERY
 }
+
+enum DeliveryStatus {
+  REQUESTED
+  PRICED
+  CREATED
+  DISPATCHED
+  ASSIGNED
+  AT_PICKUP
+  PICKED_UP
+  IN_TRANSIT
+  AT_DROPOFF
+  DELIVERED
+  COMPLETED
+  CANCELLED
+  FAILED
+}
+
+enum AssignmentStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+  COMPLETED
+}
+
+enum TrackingEventType {
+  CREATED
+  DISPATCHED
+  ASSIGNED
+  AT_PICKUP
+  PICKED_UP
+  IN_TRANSIT
+  AT_DROPOFF
+  DELIVERED
+  COMPLETED
+  CANCELLED
+  FAILED
+  LOCATION_UPDATE
+}
+
+enum DispatchStatus {
+  PENDING
+  OFFERED
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  CANCELLED
+  FAILED
+}
+
+enum LogisticsDriverStatus {
+  OFFLINE
+  ONLINE
+  BUSY
+  SUSPENDED
+}
+
+enum VehicleStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+}
+
+model LogisticsFleet {
+  id              String       @id @default(uuid())
+  providerId      String       // Links to Organization where type = LOGISTICS
+  name            String
+  description     String?
+  isActive        Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @default(now())
+  
+  provider        Organization @relation("ProviderFleets", fields: [providerId], references: [id], onDelete: Cascade)
+  vehicles        LogisticsVehicle[]
+
+  // Structural provider isolation for fleets
+  @@unique([id, providerId])
+}
+
+model LogisticsVehicle {
+  id              String       @id @default(uuid())
+  providerId      String
+  fleetId         String?
+  type            String       // e.g., CAR, VAN, TRUCK, BIKE
+  licensePlate    String
+  capacityPayload Float?
+  capacityVolume  Float?
+  status          VehicleStatus @default(ACTIVE)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @default(now())
+
+  provider        Organization @relation("ProviderVehicles", fields: [providerId], references: [id], onDelete: Cascade)
+  fleet           LogisticsFleet? @relation(fields: [fleetId, providerId], references: [id, providerId])
+  assignments     DeliveryAssignment[]
+  drivers         LogisticsDriverProfile[]
+  dispatches      DeliveryDispatch[]
+}
+
+model LogisticsDriverProfile {
+  id              String       @id @default(uuid())
+  personId        String
+  providerId      String
+  status          LogisticsDriverStatus @default(OFFLINE)
+  onboardingComplete Boolean @default(false)
+  currentVehicleId String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @default(now())
+
+  person          Person       @relation("PersonLogisticsDriver", fields: [personId], references: [id], onDelete: Cascade)
+  provider        Organization @relation("ProviderDrivers", fields: [providerId], references: [id], onDelete: Cascade)
+  currentVehicle  LogisticsVehicle? @relation(fields: [currentVehicleId], references: [id])
+  assignments     DeliveryAssignment[]
+  dispatches      DeliveryDispatch[]
+}
+
+model DeliveryJob {
+  id              String       @id @default(uuid())
+  providerId      String?      // The logistics company owning the delivery (optional for legacy)
+  
+  // Delivery Source (Provider-Neutral)
+  sourceType      DeliverySourceType?
+  sourceId        String?      // e.g. restaurantOrderId or retailOrderId
+  
+  status          DeliveryStatus @default(REQUESTED)
+  
+  // Idempotency
+  idempotencyKey  String?
+
+    quotes          DeliveryQuote[]
+
+  pickupAddress   String?
+  pickupLat       Float?
+  pickupLng       Float?
+  
+  dropoffAddress  String
+  dropoffLat      Float?
+  dropoffLng      Float?
+  
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @default(now())
+
+  provider        Organization? @relation("ProviderDeliveryJobs", fields: [providerId], references: [id])
+  assignments     DeliveryAssignment[]
+  dispatches      DeliveryDispatch[]
+  trackingEvents  DeliveryTrackingEvent[]
+  proofOfDelivery ProofOfDelivery[]
+  settlement      LogisticsSettlement?
+  
+  
+  
+  
+  
+  
+  
+  // Keep string status for legacy if needed? We replaced it with DeliveryStatus enum.
+  // We'll let Prisma handle the type change (migration will require care, but acceptable for Phase 1 domain foundation).
+
+  // Ensure provider-scoped idempotency
+  @@unique([providerId, idempotencyKey], map: "uniq_provider_idem_1")
+  @@index([providerId])
+  @@index([sourceType, sourceId])
+  @@index([status])
+  @@index([providerId, status])
+  @@index([createdAt])
+}
+
+model DeliveryAssignment {
+  id              String       @id @default(uuid())
+  deliveryJobId   String
+  driverProfileId String
+  vehicleId       String?
+  status          AssignmentStatus @default(PENDING)
+  assignedAt      DateTime     @default(now())
+  respondedAt     DateTime?
+  completedAt     DateTime?
+  
+  deliveryJob     DeliveryJob  @relation(fields: [deliveryJobId], references: [id], onDelete: Cascade)
+  
+  driverProfile   LogisticsDriverProfile @relation(fields: [driverProfileId], references: [id])
+  vehicle         LogisticsVehicle? @relation(fields: [vehicleId], references: [id])
+
+  // Idempotency constraint to prevent duplicate active assignments
+  
+  // NOTE: Prisma schema lacks native partial indexes for active statuses.
+  // The invariant "one active assignment per delivery/driver/vehicle" 
+  // MUST be enforced via transactional read-then-write in application logic.
+ 
+  @@index([deliveryJobId])
+  @@index([driverProfileId])
+  @@index([vehicleId])
+  @@index([status])
+}
+
+model DeliveryTrackingEvent {
+  id              String       @id @default(uuid())
+  deliveryJobId   String
+  eventType       TrackingEventType
+  
+  providerId      String
+  driverProfileId String?
+  idempotencyKey  String?
+
+  latitude        Float?
+  longitude       Float?
+  notes           String?
+  recordedAt      DateTime     @default(now())
+
+  deliveryJob     DeliveryJob  @relation(fields: [deliveryJobId], references: [id], onDelete: Cascade)
+  provider        Organization @relation("ProviderTrackingEvents", fields: [providerId], references: [id], onDelete: Cascade)
+  driverProfile   LogisticsDriverProfile? @relation(fields: [driverProfileId], references: [id])
+
+  @@unique([providerId, deliveryJobId, idempotencyKey])
+  @@index([deliveryJobId])
+  @@index([providerId])
+  @@index([driverProfileId])
+  @@index([recordedAt])
+}
+
+model ProofOfDelivery {
+  id              String       @id @default(uuid())
+  deliveryJobId   String       @unique
+  providerId      String
+  idempotencyKey  String?
+  type            String       // e.g., SIGNATURE, PHOTO, PIN
+  evidenceUrl     String?      // Reference to Asset/Image
+  recipientName   String?
+  notes           String?
+  verifiedAt Timestamptz(3) @default(now())
+  latitude        Float?
+  longitude       Float?
+  createdAt Timestamptz(3) @default(now())
+
+  deliveryJob     DeliveryJob  @relation(fields: [deliveryJobId], references: [id], onDelete: Cascade)
+  provider        Organization @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, idempotencyKey], map: "uniq_pod_provider_idem")
+  @@index([providerId])
+}
+
+enum DeliveryQuoteStatus {
+  CALCULATED
+  OFFERED
+  ACCEPTED
+  EXPIRED
+  CANCELLED
+}
+
+
+model DeliveryPricingRule {
+  id                String       @id @default(uuid())
+  providerId        String
+  version           Int          @default(1)
+  
+  currency          String       @default("USD")
+  baseFee           Decimal
+  perKmRate         Decimal
+  perKgRate         Decimal      @default(0)
+  prioritySurcharge Decimal      @default(0)
+
+  isActive          Boolean      @default(true)
+  createdAt         DateTime     @default(now())
+
+  provider          Organization @relation("ProviderPricingRules", fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, version])
+}
+
+model DeliveryQuote {
+  id              String       @id @default(uuid())
+  deliveryJobId   String
+  providerId      String
+  
+  status          DeliveryQuoteStatus  @default(CALCULATED)
+  pricingVersion  Int
+  
+  baseCharge      Decimal
+  distanceCharge  Decimal
+  weightCharge    Decimal      @default(0)
+  serviceCharge   Decimal      @default(0)
+  
+  subtotal        Decimal
+  tax             Decimal      @default(0)
+  total           Decimal
+  currency        String
+  
+  idempotencyKey  String?
+  expiresAt       DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @default(now())
+
+  deliveryJob     DeliveryJob  @relation(fields: [deliveryJobId], references: [id], onDelete: Cascade)
+  provider        Organization @relation("ProviderQuotes", fields: [providerId], references: [id], onDelete: Cascade)
+  settlement      LogisticsSettlement?
+
+  @@unique([providerId, idempotencyKey], map: "uniq_provider_idem_2")
+}
+
+
+model DeliveryDispatch {
+  id              String       @id @default(uuid())
+  deliveryJobId   String
+  providerId      String
+  status          DispatchStatus @default(PENDING)
+  attempt         Int          @default(1)
+  
+  // Resources offered
+  driverProfileId String?
+  vehicleId       String?
+  
+  expiresAt       DateTime?
+  acceptedAt      DateTime?
+  rejectedAt      DateTime?
+  cancelledAt     DateTime?
+  failureReason   String?
+  idempotencyKey  String?
+  
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @default(now())
+  
+  deliveryJob     DeliveryJob  @relation(fields: [deliveryJobId], references: [id], onDelete: Cascade)
+  provider        Organization @relation("ProviderDispatches", fields: [providerId], references: [id], onDelete: Cascade)
+  driverProfile   LogisticsDriverProfile? @relation(fields: [driverProfileId], references: [id])
+  vehicle         LogisticsVehicle? @relation(fields: [vehicleId], references: [id])
+
+  // Ensure provider-scoped idempotency
+  @@unique([providerId, idempotencyKey], map: "uniq_provider_idem_3")
+  @@index([deliveryJobId])
+  @@index([providerId])
+  @@index([status])
+  @@index([createdAt])
+}
+
 
 // ============================================================================
 // RESIDENT NOTIFICATIONS
@@ -3533,4 +3874,56 @@ model VoiceReminder {
   entityReference String?
   createdAt       DateTime @default(now())
   completedAt     DateTime?
+}
+
+
+
+enum SettlementStatus {
+  PENDING
+  PROCESSING
+  SETTLED
+  FAILED
+}
+
+model LogisticsSettlement {
+  id              String       @id @default(uuid())
+  providerId      String
+  deliveryJobId   String       @unique
+  quoteId         String       @unique
+  
+  grossAmount     Decimal
+  fees            Decimal
+  providerAmount  Decimal
+  currency        String
+  
+  status          SettlementStatus @default(PENDING)
+  idempotencyKey  String?
+  
+  transactionId   String?      @unique
+  
+  createdAt       DateTime     @default(now())
+  settledAt       DateTime?
+
+  provider        Organization @relation("ProviderSettlements", fields: [providerId], references: [id])
+  deliveryJob     DeliveryJob  @relation(fields: [deliveryJobId], references: [id])
+  quote           DeliveryQuote @relation(fields: [quoteId], references: [id])
+  transaction     Transaction? @relation(fields: [transactionId], references: [id])
+  
+  @@unique([providerId, idempotencyKey], map: "uniq_provider_idem_settlement")
+  @@index([providerId])
+  @@index([status])
+  @@index([providerId, status])
+  @@index([createdAt])
+}
+
+model LogisticsSettings {
+  id              String       @id @default(uuid())
+  organizationId  String       @unique
+  
+  platformFeeRate Decimal      @default(0.10)
+  
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @default(now())
+
+  organization    Organization @relation("OrgLogisticsSettings", fields: [organizationId], references: [id], onDelete: Cascade)
 }

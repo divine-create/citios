@@ -68,8 +68,28 @@
       "model": "CustomerData",
       "namespace": "public"
     },
+    "deliveryAssignment": {
+      "model": "DeliveryAssignment",
+      "namespace": "public"
+    },
+    "deliveryDispatch": {
+      "model": "DeliveryDispatch",
+      "namespace": "public"
+    },
     "deliveryJob": {
       "model": "DeliveryJob",
+      "namespace": "public"
+    },
+    "deliveryPricingRule": {
+      "model": "DeliveryPricingRule",
+      "namespace": "public"
+    },
+    "deliveryQuote": {
+      "model": "DeliveryQuote",
+      "namespace": "public"
+    },
+    "deliveryTrackingEvent": {
+      "model": "DeliveryTrackingEvent",
       "namespace": "public"
     },
     "discoveryListing": {
@@ -194,6 +214,26 @@
     },
     "location": {
       "model": "Location",
+      "namespace": "public"
+    },
+    "logisticsDriverProfile": {
+      "model": "LogisticsDriverProfile",
+      "namespace": "public"
+    },
+    "logisticsFleet": {
+      "model": "LogisticsFleet",
+      "namespace": "public"
+    },
+    "logisticsSettings": {
+      "model": "LogisticsSettings",
+      "namespace": "public"
+    },
+    "logisticsSettlement": {
+      "model": "LogisticsSettlement",
+      "namespace": "public"
+    },
+    "logisticsVehicle": {
+      "model": "LogisticsVehicle",
       "namespace": "public"
     },
     "maintenanceTicket": {
@@ -374,6 +414,10 @@
     },
     "prescription": {
       "model": "Prescription",
+      "namespace": "public"
+    },
+    "proofOfDelivery": {
+      "model": "ProofOfDelivery",
       "namespace": "public"
     },
     "rateRule": {
@@ -722,6 +766,31 @@
               }
             ]
           },
+          "AssignmentStatus": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "PENDING",
+                "value": "PENDING"
+              },
+              {
+                "name": "ACCEPTED",
+                "value": "ACCEPTED"
+              },
+              {
+                "name": "REJECTED",
+                "value": "REJECTED"
+              },
+              {
+                "name": "CANCELLED",
+                "value": "CANCELLED"
+              },
+              {
+                "name": "COMPLETED",
+                "value": "COMPLETED"
+              }
+            ]
+          },
           "BookingStatus": {
             "codecId": "pg/text@1",
             "members": [
@@ -744,6 +813,150 @@
               {
                 "name": "CANCELLED",
                 "value": "CANCELLED"
+              }
+            ]
+          },
+          "DeliveryQuoteStatus": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "CALCULATED",
+                "value": "CALCULATED"
+              },
+              {
+                "name": "OFFERED",
+                "value": "OFFERED"
+              },
+              {
+                "name": "ACCEPTED",
+                "value": "ACCEPTED"
+              },
+              {
+                "name": "EXPIRED",
+                "value": "EXPIRED"
+              },
+              {
+                "name": "CANCELLED",
+                "value": "CANCELLED"
+              }
+            ]
+          },
+          "DeliverySourceType": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "RESTAURANT_ORDER",
+                "value": "RESTAURANT_ORDER"
+              },
+              {
+                "name": "RETAIL_ORDER",
+                "value": "RETAIL_ORDER"
+              },
+              {
+                "name": "HOTEL_REQUEST",
+                "value": "HOTEL_REQUEST"
+              },
+              {
+                "name": "SERVICE_JOB",
+                "value": "SERVICE_JOB"
+              },
+              {
+                "name": "HEALTH_REQUEST",
+                "value": "HEALTH_REQUEST"
+              },
+              {
+                "name": "DIRECT_DELIVERY",
+                "value": "DIRECT_DELIVERY"
+              }
+            ]
+          },
+          "DeliveryStatus": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "REQUESTED",
+                "value": "REQUESTED"
+              },
+              {
+                "name": "PRICED",
+                "value": "PRICED"
+              },
+              {
+                "name": "CREATED",
+                "value": "CREATED"
+              },
+              {
+                "name": "DISPATCHED",
+                "value": "DISPATCHED"
+              },
+              {
+                "name": "ASSIGNED",
+                "value": "ASSIGNED"
+              },
+              {
+                "name": "AT_PICKUP",
+                "value": "AT_PICKUP"
+              },
+              {
+                "name": "PICKED_UP",
+                "value": "PICKED_UP"
+              },
+              {
+                "name": "IN_TRANSIT",
+                "value": "IN_TRANSIT"
+              },
+              {
+                "name": "AT_DROPOFF",
+                "value": "AT_DROPOFF"
+              },
+              {
+                "name": "DELIVERED",
+                "value": "DELIVERED"
+              },
+              {
+                "name": "COMPLETED",
+                "value": "COMPLETED"
+              },
+              {
+                "name": "CANCELLED",
+                "value": "CANCELLED"
+              },
+              {
+                "name": "FAILED",
+                "value": "FAILED"
+              }
+            ]
+          },
+          "DispatchStatus": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "PENDING",
+                "value": "PENDING"
+              },
+              {
+                "name": "OFFERED",
+                "value": "OFFERED"
+              },
+              {
+                "name": "ACCEPTED",
+                "value": "ACCEPTED"
+              },
+              {
+                "name": "REJECTED",
+                "value": "REJECTED"
+              },
+              {
+                "name": "EXPIRED",
+                "value": "EXPIRED"
+              },
+              {
+                "name": "CANCELLED",
+                "value": "CANCELLED"
+              },
+              {
+                "name": "FAILED",
+                "value": "FAILED"
               }
             ]
           },
@@ -799,6 +1012,27 @@
               {
                 "name": "FINISHED_GOOD",
                 "value": "FINISHED_GOOD"
+              }
+            ]
+          },
+          "LogisticsDriverStatus": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "OFFLINE",
+                "value": "OFFLINE"
+              },
+              {
+                "name": "ONLINE",
+                "value": "ONLINE"
+              },
+              {
+                "name": "BUSY",
+                "value": "BUSY"
+              },
+              {
+                "name": "SUSPENDED",
+                "value": "SUSPENDED"
               }
             ]
           },
@@ -1272,6 +1506,27 @@
               }
             ]
           },
+          "SettlementStatus": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "PENDING",
+                "value": "PENDING"
+              },
+              {
+                "name": "PROCESSING",
+                "value": "PROCESSING"
+              },
+              {
+                "name": "SETTLED",
+                "value": "SETTLED"
+              },
+              {
+                "name": "FAILED",
+                "value": "FAILED"
+              }
+            ]
+          },
           "StockMovementType": {
             "codecId": "pg/text@1",
             "members": [
@@ -1361,6 +1616,76 @@
               {
                 "name": "SERVICE_DISPATCH",
                 "value": "SERVICE_DISPATCH"
+              }
+            ]
+          },
+          "TrackingEventType": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "CREATED",
+                "value": "CREATED"
+              },
+              {
+                "name": "DISPATCHED",
+                "value": "DISPATCHED"
+              },
+              {
+                "name": "ASSIGNED",
+                "value": "ASSIGNED"
+              },
+              {
+                "name": "AT_PICKUP",
+                "value": "AT_PICKUP"
+              },
+              {
+                "name": "PICKED_UP",
+                "value": "PICKED_UP"
+              },
+              {
+                "name": "IN_TRANSIT",
+                "value": "IN_TRANSIT"
+              },
+              {
+                "name": "AT_DROPOFF",
+                "value": "AT_DROPOFF"
+              },
+              {
+                "name": "DELIVERED",
+                "value": "DELIVERED"
+              },
+              {
+                "name": "COMPLETED",
+                "value": "COMPLETED"
+              },
+              {
+                "name": "CANCELLED",
+                "value": "CANCELLED"
+              },
+              {
+                "name": "FAILED",
+                "value": "FAILED"
+              },
+              {
+                "name": "LOCATION_UPDATE",
+                "value": "LOCATION_UPDATE"
+              }
+            ]
+          },
+          "VehicleStatus": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "ACTIVE",
+                "value": "ACTIVE"
+              },
+              {
+                "name": "INACTIVE",
+                "value": "INACTIVE"
+              },
+              {
+                "name": "MAINTENANCE",
+                "value": "MAINTENANCE"
               }
             ]
           },
@@ -3704,6 +4029,379 @@
               "table": "customerData"
             }
           },
+          "DeliveryAssignment": {
+            "fields": {
+              "assignedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "completedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "deliveryJobId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "driverProfileId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "respondedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "status": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "AssignmentStatus",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "vehicleId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "deliveryJob": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "deliveryJobId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "DeliveryJob",
+                  "namespace": "public"
+                }
+              },
+              "driverProfile": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "driverProfileId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "LogisticsDriverProfile",
+                  "namespace": "public"
+                }
+              },
+              "vehicle": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "vehicleId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "LogisticsVehicle",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "assignedAt": {
+                  "column": "assignedAt"
+                },
+                "completedAt": {
+                  "column": "completedAt"
+                },
+                "deliveryJobId": {
+                  "column": "deliveryJobId"
+                },
+                "driverProfileId": {
+                  "column": "driverProfileId"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "respondedAt": {
+                  "column": "respondedAt"
+                },
+                "status": {
+                  "column": "status"
+                },
+                "vehicleId": {
+                  "column": "vehicleId"
+                }
+              },
+              "namespaceId": "public",
+              "table": "deliveryAssignment"
+            }
+          },
+          "DeliveryDispatch": {
+            "fields": {
+              "acceptedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "attempt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "cancelledAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+<<<<<<< HEAD
+=======
+              "deliveryJobId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "driverProfileId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "expiresAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "failureReason": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "idempotencyKey": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "providerId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "rejectedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "status": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "DispatchStatus",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "vehicleId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "deliveryJob": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "deliveryJobId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "DeliveryJob",
+                  "namespace": "public"
+                }
+              },
+              "driverProfile": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "driverProfileId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "LogisticsDriverProfile",
+                  "namespace": "public"
+                }
+              },
+              "provider": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "providerId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Organization",
+                  "namespace": "public"
+                }
+              },
+              "vehicle": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "vehicleId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "LogisticsVehicle",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "acceptedAt": {
+                  "column": "acceptedAt"
+                },
+                "attempt": {
+                  "column": "attempt"
+                },
+                "cancelledAt": {
+                  "column": "cancelledAt"
+                },
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "deliveryJobId": {
+                  "column": "deliveryJobId"
+                },
+                "driverProfileId": {
+                  "column": "driverProfileId"
+                },
+                "expiresAt": {
+                  "column": "expiresAt"
+                },
+                "failureReason": {
+                  "column": "failureReason"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "idempotencyKey": {
+                  "column": "idempotencyKey"
+                },
+                "providerId": {
+                  "column": "providerId"
+                },
+                "rejectedAt": {
+                  "column": "rejectedAt"
+                },
+                "status": {
+                  "column": "status"
+                },
+                "updatedAt": {
+                  "column": "updatedAt"
+                },
+                "vehicleId": {
+                  "column": "vehicleId"
+                }
+              },
+              "namespaceId": "public",
+              "table": "deliveryDispatch"
+            }
+          },
           "DeliveryJob": {
             "fields": {
               "createdAt": {
@@ -3713,6 +4411,7 @@
                   "kind": "scalar"
                 }
               },
+>>>>>>> agent/logisticsos
               "dropoffAddress": {
                 "nullable": true,
                 "type": {
@@ -3741,6 +4440,23 @@
                   "kind": "scalar"
                 }
               },
+<<<<<<< HEAD
+=======
+              "pickupLat": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
+              "pickupLng": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
+>>>>>>> agent/logisticsos
               "providerId": {
                 "nullable": true,
                 "type": {
@@ -3749,17 +4465,34 @@
                 }
               },
               "sourceId": {
+<<<<<<< HEAD
                 "nullable": false,
+=======
+                "nullable": true,
+>>>>>>> agent/logisticsos
                 "type": {
                   "codecId": "pg/text@1",
                   "kind": "scalar"
                 }
               },
               "sourceType": {
+<<<<<<< HEAD
                 "nullable": false,
                 "type": {
                   "codecId": "pg/text@1",
                   "kind": "scalar"
+=======
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "DeliverySourceType",
+                  "namespaceId": "public",
+                  "plane": "domain"
+>>>>>>> agent/logisticsos
                 }
               },
               "status": {
@@ -3767,6 +4500,12 @@
                 "type": {
                   "codecId": "pg/text@1",
                   "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "DeliveryStatus",
+                  "namespaceId": "public",
+                  "plane": "domain"
                 }
               },
               "updatedAt": {
@@ -3777,7 +4516,117 @@
                 }
               }
             },
+<<<<<<< HEAD
             "relations": {},
+=======
+            "relations": {
+              "assignments": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "deliveryJobId"
+                  ]
+                },
+                "to": {
+                  "model": "DeliveryAssignment",
+                  "namespace": "public"
+                }
+              },
+              "dispatches": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "deliveryJobId"
+                  ]
+                },
+                "to": {
+                  "model": "DeliveryDispatch",
+                  "namespace": "public"
+                }
+              },
+              "proofOfDelivery": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "deliveryJobId"
+                  ]
+                },
+                "to": {
+                  "model": "ProofOfDelivery",
+                  "namespace": "public"
+                }
+              },
+              "provider": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "providerId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Organization",
+                  "namespace": "public"
+                }
+              },
+              "quotes": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "deliveryJobId"
+                  ]
+                },
+                "to": {
+                  "model": "DeliveryQuote",
+                  "namespace": "public"
+                }
+              },
+              "settlement": {
+                "cardinality": "1:1",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "deliveryJobId"
+                  ]
+                },
+                "to": {
+                  "model": "LogisticsSettlement",
+                  "namespace": "public"
+                }
+              },
+              "trackingEvents": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "deliveryJobId"
+                  ]
+                },
+                "to": {
+                  "model": "DeliveryTrackingEvent",
+                  "namespace": "public"
+                }
+              }
+            },
+>>>>>>> agent/logisticsos
             "storage": {
               "fields": {
                 "createdAt": {
@@ -3795,6 +4644,15 @@
                 "pickupAddress": {
                   "column": "pickupAddress"
                 },
+<<<<<<< HEAD
+=======
+                "pickupLat": {
+                  "column": "pickupLat"
+                },
+                "pickupLng": {
+                  "column": "pickupLng"
+                },
+>>>>>>> agent/logisticsos
                 "providerId": {
                   "column": "providerId"
                 },
@@ -3813,6 +4671,529 @@
               },
               "namespaceId": "public",
               "table": "deliveryJob"
+            }
+          },
+          "DeliveryPricingRule": {
+            "fields": {
+              "baseFee": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/numeric@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "currency": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "isActive": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
+              "perKgRate": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/numeric@1",
+                  "kind": "scalar"
+                }
+              },
+              "perKmRate": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/numeric@1",
+                  "kind": "scalar"
+                }
+              },
+              "prioritySurcharge": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/numeric@1",
+                  "kind": "scalar"
+                }
+              },
+              "providerId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "version": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "provider": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "providerId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Organization",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "baseFee": {
+                  "column": "baseFee"
+                },
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "currency": {
+                  "column": "currency"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "isActive": {
+                  "column": "isActive"
+                },
+                "perKgRate": {
+                  "column": "perKgRate"
+                },
+                "perKmRate": {
+                  "column": "perKmRate"
+                },
+                "prioritySurcharge": {
+                  "column": "prioritySurcharge"
+                },
+                "providerId": {
+                  "column": "providerId"
+                },
+                "version": {
+                  "column": "version"
+                }
+              },
+              "namespaceId": "public",
+              "table": "deliveryPricingRule"
+            }
+          },
+          "DeliveryQuote": {
+            "fields": {
+              "baseCharge": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/numeric@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "currency": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "deliveryJobId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "distanceCharge": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/numeric@1",
+                  "kind": "scalar"
+                }
+              },
+              "expiresAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "idempotencyKey": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "pricingVersion": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "providerId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "serviceCharge": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/numeric@1",
+                  "kind": "scalar"
+                }
+              },
+              "status": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "DeliveryQuoteStatus",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "subtotal": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/numeric@1",
+                  "kind": "scalar"
+                }
+              },
+              "tax": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/numeric@1",
+                  "kind": "scalar"
+                }
+              },
+              "total": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/numeric@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "weightCharge": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/numeric@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "deliveryJob": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "deliveryJobId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "DeliveryJob",
+                  "namespace": "public"
+                }
+              },
+              "provider": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "providerId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Organization",
+                  "namespace": "public"
+                }
+              },
+              "settlement": {
+                "cardinality": "1:1",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "quoteId"
+                  ]
+                },
+                "to": {
+                  "model": "LogisticsSettlement",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "baseCharge": {
+                  "column": "baseCharge"
+                },
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "currency": {
+                  "column": "currency"
+                },
+                "deliveryJobId": {
+                  "column": "deliveryJobId"
+                },
+                "distanceCharge": {
+                  "column": "distanceCharge"
+                },
+                "expiresAt": {
+                  "column": "expiresAt"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "idempotencyKey": {
+                  "column": "idempotencyKey"
+                },
+                "pricingVersion": {
+                  "column": "pricingVersion"
+                },
+                "providerId": {
+                  "column": "providerId"
+                },
+                "serviceCharge": {
+                  "column": "serviceCharge"
+                },
+                "status": {
+                  "column": "status"
+                },
+                "subtotal": {
+                  "column": "subtotal"
+                },
+                "tax": {
+                  "column": "tax"
+                },
+                "total": {
+                  "column": "total"
+                },
+                "updatedAt": {
+                  "column": "updatedAt"
+                },
+                "weightCharge": {
+                  "column": "weightCharge"
+                }
+              },
+              "namespaceId": "public",
+              "table": "deliveryQuote"
+            }
+          },
+          "DeliveryTrackingEvent": {
+            "fields": {
+              "deliveryJobId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "driverProfileId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "eventType": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "TrackingEventType",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "idempotencyKey": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "latitude": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
+              "longitude": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
+              "notes": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "providerId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "recordedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "deliveryJob": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "deliveryJobId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "DeliveryJob",
+                  "namespace": "public"
+                }
+              },
+              "driverProfile": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "driverProfileId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "LogisticsDriverProfile",
+                  "namespace": "public"
+                }
+              },
+              "provider": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "providerId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Organization",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "deliveryJobId": {
+                  "column": "deliveryJobId"
+                },
+                "driverProfileId": {
+                  "column": "driverProfileId"
+                },
+                "eventType": {
+                  "column": "eventType"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "idempotencyKey": {
+                  "column": "idempotencyKey"
+                },
+                "latitude": {
+                  "column": "latitude"
+                },
+                "longitude": {
+                  "column": "longitude"
+                },
+                "notes": {
+                  "column": "notes"
+                },
+                "providerId": {
+                  "column": "providerId"
+                },
+                "recordedAt": {
+                  "column": "recordedAt"
+                }
+              },
+              "namespaceId": "public",
+              "table": "deliveryTrackingEvent"
             }
           },
           "DiscoveryListing": {
@@ -7667,6 +9048,773 @@
               },
               "namespaceId": "public",
               "table": "location"
+            }
+          },
+          "LogisticsDriverProfile": {
+            "fields": {
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "currentVehicleId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "onboardingComplete": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
+              "personId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "providerId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "status": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "LogisticsDriverStatus",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "assignments": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "driverProfileId"
+                  ]
+                },
+                "to": {
+                  "model": "DeliveryAssignment",
+                  "namespace": "public"
+                }
+              },
+              "currentVehicle": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "currentVehicleId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "LogisticsVehicle",
+                  "namespace": "public"
+                }
+              },
+              "dispatches": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "driverProfileId"
+                  ]
+                },
+                "to": {
+                  "model": "DeliveryDispatch",
+                  "namespace": "public"
+                }
+              },
+              "person": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "personId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Person",
+                  "namespace": "public"
+                }
+              },
+              "provider": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "providerId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Organization",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "currentVehicleId": {
+                  "column": "currentVehicleId"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "onboardingComplete": {
+                  "column": "onboardingComplete"
+                },
+                "personId": {
+                  "column": "personId"
+                },
+                "providerId": {
+                  "column": "providerId"
+                },
+                "status": {
+                  "column": "status"
+                },
+                "updatedAt": {
+                  "column": "updatedAt"
+                }
+              },
+              "namespaceId": "public",
+              "table": "logisticsDriverProfile"
+            }
+          },
+          "LogisticsFleet": {
+            "fields": {
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "description": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "isActive": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
+              "name": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "providerId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "provider": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "providerId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Organization",
+                  "namespace": "public"
+                }
+              },
+              "vehicles": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id",
+                    "providerId"
+                  ],
+                  "targetFields": [
+                    "fleetId",
+                    "providerId"
+                  ]
+                },
+                "to": {
+                  "model": "LogisticsVehicle",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "description": {
+                  "column": "description"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "isActive": {
+                  "column": "isActive"
+                },
+                "name": {
+                  "column": "name"
+                },
+                "providerId": {
+                  "column": "providerId"
+                },
+                "updatedAt": {
+                  "column": "updatedAt"
+                }
+              },
+              "namespaceId": "public",
+              "table": "logisticsFleet"
+            }
+          },
+          "LogisticsSettings": {
+            "fields": {
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "organizationId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "platformFeeRate": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/numeric@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "organization": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "organizationId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Organization",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "organizationId": {
+                  "column": "organizationId"
+                },
+                "platformFeeRate": {
+                  "column": "platformFeeRate"
+                },
+                "updatedAt": {
+                  "column": "updatedAt"
+                }
+              },
+              "namespaceId": "public",
+              "table": "logisticsSettings"
+            }
+          },
+          "LogisticsSettlement": {
+            "fields": {
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "currency": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "deliveryJobId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "fees": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/numeric@1",
+                  "kind": "scalar"
+                }
+              },
+              "grossAmount": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/numeric@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "idempotencyKey": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "providerAmount": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/numeric@1",
+                  "kind": "scalar"
+                }
+              },
+              "providerId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "quoteId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "settledAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "status": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "SettlementStatus",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "transactionId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "deliveryJob": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "deliveryJobId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "DeliveryJob",
+                  "namespace": "public"
+                }
+              },
+              "provider": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "providerId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Organization",
+                  "namespace": "public"
+                }
+              },
+              "quote": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "quoteId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "DeliveryQuote",
+                  "namespace": "public"
+                }
+              },
+              "transaction": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "transactionId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Transaction",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "currency": {
+                  "column": "currency"
+                },
+                "deliveryJobId": {
+                  "column": "deliveryJobId"
+                },
+                "fees": {
+                  "column": "fees"
+                },
+                "grossAmount": {
+                  "column": "grossAmount"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "idempotencyKey": {
+                  "column": "idempotencyKey"
+                },
+                "providerAmount": {
+                  "column": "providerAmount"
+                },
+                "providerId": {
+                  "column": "providerId"
+                },
+                "quoteId": {
+                  "column": "quoteId"
+                },
+                "settledAt": {
+                  "column": "settledAt"
+                },
+                "status": {
+                  "column": "status"
+                },
+                "transactionId": {
+                  "column": "transactionId"
+                }
+              },
+              "namespaceId": "public",
+              "table": "logisticsSettlement"
+            }
+          },
+          "LogisticsVehicle": {
+            "fields": {
+              "capacityPayload": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
+              "capacityVolume": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "fleetId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "licensePlate": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "providerId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "status": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "VehicleStatus",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "type": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "assignments": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "vehicleId"
+                  ]
+                },
+                "to": {
+                  "model": "DeliveryAssignment",
+                  "namespace": "public"
+                }
+              },
+              "dispatches": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "vehicleId"
+                  ]
+                },
+                "to": {
+                  "model": "DeliveryDispatch",
+                  "namespace": "public"
+                }
+              },
+              "drivers": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "currentVehicleId"
+                  ]
+                },
+                "to": {
+                  "model": "LogisticsDriverProfile",
+                  "namespace": "public"
+                }
+              },
+              "fleet": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "fleetId",
+                    "providerId"
+                  ],
+                  "targetFields": [
+                    "id",
+                    "providerId"
+                  ]
+                },
+                "to": {
+                  "model": "LogisticsFleet",
+                  "namespace": "public"
+                }
+              },
+              "provider": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "providerId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Organization",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "capacityPayload": {
+                  "column": "capacityPayload"
+                },
+                "capacityVolume": {
+                  "column": "capacityVolume"
+                },
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "fleetId": {
+                  "column": "fleetId"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "licensePlate": {
+                  "column": "licensePlate"
+                },
+                "providerId": {
+                  "column": "providerId"
+                },
+                "status": {
+                  "column": "status"
+                },
+                "type": {
+                  "column": "type"
+                },
+                "updatedAt": {
+                  "column": "updatedAt"
+                }
+              },
+              "namespaceId": "public",
+              "table": "logisticsVehicle"
             }
           },
           "MaintenanceTicket": {
@@ -11627,6 +13775,21 @@
                   "namespace": "public"
                 }
               },
+              "logisticsSettings": {
+                "cardinality": "1:1",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "organizationId"
+                  ]
+                },
+                "to": {
+                  "model": "LogisticsSettings",
+                  "namespace": "public"
+                }
+              },
               "maintenanceTickets": {
                 "cardinality": "1:N",
                 "on": {
@@ -11819,6 +13982,96 @@
                 },
                 "to": {
                   "model": "Prescription",
+                  "namespace": "public"
+                }
+              },
+              "providerDeliveryJobs": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "providerId"
+                  ]
+                },
+                "to": {
+                  "model": "DeliveryJob",
+                  "namespace": "public"
+                }
+              },
+              "providerDispatches": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "providerId"
+                  ]
+                },
+                "to": {
+                  "model": "DeliveryDispatch",
+                  "namespace": "public"
+                }
+              },
+              "providerDrivers": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "providerId"
+                  ]
+                },
+                "to": {
+                  "model": "LogisticsDriverProfile",
+                  "namespace": "public"
+                }
+              },
+              "providerFleets": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "providerId"
+                  ]
+                },
+                "to": {
+                  "model": "LogisticsFleet",
+                  "namespace": "public"
+                }
+              },
+              "providerSettlements": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "providerId"
+                  ]
+                },
+                "to": {
+                  "model": "LogisticsSettlement",
+                  "namespace": "public"
+                }
+              },
+              "providerVehicles": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "providerId"
+                  ]
+                },
+                "to": {
+                  "model": "LogisticsVehicle",
                   "namespace": "public"
                 }
               },
@@ -13545,6 +15798,21 @@
                   "namespace": "public"
                 }
               },
+              "logisticsDriverProfiles": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "personId"
+                  ]
+                },
+                "to": {
+                  "model": "LogisticsDriverProfile",
+                  "namespace": "public"
+                }
+              },
               "memberships": {
                 "cardinality": "1:N",
                 "on": {
@@ -14943,6 +17211,174 @@
               },
               "namespaceId": "public",
               "table": "prescription"
+            }
+          },
+          "ProofOfDelivery": {
+            "fields": {
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar",
+                  "typeParams": {
+                    "precision": 3
+                  }
+                }
+              },
+              "deliveryJobId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "evidenceUrl": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "idempotencyKey": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "latitude": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
+              "longitude": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
+              "notes": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "providerId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "recipientName": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "type": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "verifiedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar",
+                  "typeParams": {
+                    "precision": 3
+                  }
+                }
+              }
+            },
+            "relations": {
+              "deliveryJob": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "deliveryJobId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "DeliveryJob",
+                  "namespace": "public"
+                }
+              },
+              "provider": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "providerId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Organization",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "deliveryJobId": {
+                  "column": "deliveryJobId"
+                },
+                "evidenceUrl": {
+                  "column": "evidenceUrl"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "idempotencyKey": {
+                  "column": "idempotencyKey"
+                },
+                "latitude": {
+                  "column": "latitude"
+                },
+                "longitude": {
+                  "column": "longitude"
+                },
+                "notes": {
+                  "column": "notes"
+                },
+                "providerId": {
+                  "column": "providerId"
+                },
+                "recipientName": {
+                  "column": "recipientName"
+                },
+                "type": {
+                  "column": "type"
+                },
+                "verifiedAt": {
+                  "column": "verifiedAt"
+                }
+              },
+              "namespaceId": "public",
+              "table": "proofOfDelivery"
             }
           },
           "RateRule": {
@@ -26467,6 +28903,21 @@
                   "namespace": "public"
                 }
               },
+              "logisticsSettlement": {
+                "cardinality": "1:1",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "transactionId"
+                  ]
+                },
+                "to": {
+                  "model": "LogisticsSettlement",
+                  "namespace": "public"
+                }
+              },
               "payment": {
                 "cardinality": "1:1",
                 "on": {
@@ -28977,7 +31428,417 @@
                 }
               ]
             },
+            "deliveryAssignment": {
+              "checks": [
+                {
+                  "expression": "\"status\" IN ('PENDING', 'ACCEPTED', 'REJECTED', 'CANCELLED', 'COMPLETED')",
+                  "name": "deliveryAssignment_status_check_fcf883e8",
+                  "prefix": "deliveryAssignment_status_check"
+                }
+              ],
+              "columns": {
+                "assignedAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "completedAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": true
+                },
+                "deliveryJobId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "driverProfileId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "respondedAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": true
+                },
+                "status": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "PENDING"
+                  },
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "AssignmentStatus",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "vehicleId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "deliveryJobId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "deliveryAssignment"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "deliveryJob"
+                  }
+                },
+                {
+                  "source": {
+                    "columns": [
+                      "driverProfileId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "deliveryAssignment"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "logisticsDriverProfile"
+                  }
+                },
+                {
+                  "source": {
+                    "columns": [
+                      "vehicleId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "deliveryAssignment"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "logisticsVehicle"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "deliveryJobId"
+                  ],
+                  "name": "deliveryAssignment_deliveryJobId_idx_48e54933",
+                  "prefix": "deliveryAssignment_deliveryJobId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "driverProfileId"
+                  ],
+                  "name": "deliveryAssignment_driverProfileId_idx_95b2e011",
+                  "prefix": "deliveryAssignment_driverProfileId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "status"
+                  ],
+                  "name": "deliveryAssignment_status_idx_e98638ab",
+                  "prefix": "deliveryAssignment_status_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "vehicleId"
+                  ],
+                  "name": "deliveryAssignment_vehicleId_idx_e2df58fc",
+                  "prefix": "deliveryAssignment_vehicleId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
+            },
+            "deliveryDispatch": {
+              "checks": [
+                {
+                  "expression": "\"status\" IN ('PENDING', 'OFFERED', 'ACCEPTED', 'REJECTED', 'EXPIRED', 'CANCELLED', 'FAILED')",
+                  "name": "deliveryDispatch_status_check_a10a30bf",
+                  "prefix": "deliveryDispatch_status_check"
+                }
+              ],
+              "columns": {
+                "acceptedAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": true
+                },
+                "attempt": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 1
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "cancelledAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": true
+                },
+                "createdAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+<<<<<<< HEAD
+=======
+                "deliveryJobId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "driverProfileId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "expiresAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": true
+                },
+                "failureReason": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "idempotencyKey": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "providerId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "rejectedAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": true
+                },
+                "status": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "PENDING"
+                  },
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "DispatchStatus",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "updatedAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "vehicleId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "deliveryJobId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "deliveryDispatch"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "deliveryJob"
+                  }
+                },
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "providerId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "deliveryDispatch"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "organization"
+                  }
+                },
+                {
+                  "source": {
+                    "columns": [
+                      "driverProfileId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "deliveryDispatch"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "logisticsDriverProfile"
+                  }
+                },
+                {
+                  "source": {
+                    "columns": [
+                      "vehicleId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "deliveryDispatch"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "logisticsVehicle"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "createdAt"
+                  ],
+                  "name": "deliveryDispatch_createdAt_idx_9575dbd7",
+                  "prefix": "deliveryDispatch_createdAt_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "deliveryJobId"
+                  ],
+                  "name": "deliveryDispatch_deliveryJobId_idx_48e54933",
+                  "prefix": "deliveryDispatch_deliveryJobId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "driverProfileId"
+                  ],
+                  "name": "deliveryDispatch_driverProfileId_idx_95b2e011",
+                  "prefix": "deliveryDispatch_driverProfileId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "providerId"
+                  ],
+                  "name": "deliveryDispatch_providerId_idx_d1904c54",
+                  "prefix": "deliveryDispatch_providerId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "status"
+                  ],
+                  "name": "deliveryDispatch_status_idx_e98638ab",
+                  "prefix": "deliveryDispatch_status_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "vehicleId"
+                  ],
+                  "name": "deliveryDispatch_vehicleId_idx_e2df58fc",
+                  "prefix": "deliveryDispatch_vehicleId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "providerId",
+                    "idempotencyKey"
+                  ],
+                  "name": "uniq_provider_idem_3"
+                }
+              ]
+            },
             "deliveryJob": {
+              "checks": [
+                {
+                  "expression": "\"sourceType\" IN ('RESTAURANT_ORDER', 'RETAIL_ORDER', 'HOTEL_REQUEST', 'SERVICE_JOB', 'HEALTH_REQUEST', 'DIRECT_DELIVERY')",
+                  "name": "deliveryJob_sourceType_check_70cac2a7",
+                  "prefix": "deliveryJob_sourceType_check"
+                },
+                {
+                  "expression": "\"status\" IN ('REQUESTED', 'PRICED', 'CREATED', 'DISPATCHED', 'ASSIGNED', 'AT_PICKUP', 'PICKED_UP', 'IN_TRANSIT', 'AT_DROPOFF', 'DELIVERED', 'COMPLETED', 'CANCELLED', 'FAILED')",
+                  "name": "deliveryJob_status_check_f97d15b0",
+                  "prefix": "deliveryJob_status_check"
+                }
+              ],
               "columns": {
                 "createdAt": {
                   "codecId": "pg/timestamptz-temporal@1",
@@ -28988,6 +31849,7 @@
                   "nativeType": "timestamptz",
                   "nullable": false
                 },
+>>>>>>> agent/logisticsos
                 "dropoffAddress": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -29012,6 +31874,19 @@
                   "nativeType": "text",
                   "nullable": true
                 },
+<<<<<<< HEAD
+=======
+                "pickupLat": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
+                  "nullable": true
+                },
+                "pickupLng": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
+                  "nullable": true
+                },
+>>>>>>> agent/logisticsos
                 "providerId": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -29020,6 +31895,7 @@
                 "sourceId": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
+<<<<<<< HEAD
                   "nullable": false
                 },
                 "sourceType": {
@@ -29030,15 +31906,35 @@
                   },
                   "nativeType": "text",
                   "nullable": false
+=======
+                  "nullable": true
+                },
+                "sourceType": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "DeliverySourceType",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+>>>>>>> agent/logisticsos
                 },
                 "status": {
                   "codecId": "pg/text@1",
                   "default": {
                     "kind": "literal",
-                    "value": "PENDING"
+                    "value": "REQUESTED"
                   },
                   "nativeType": "text",
-                  "nullable": false
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "DeliveryStatus",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
                 },
                 "updatedAt": {
                   "codecId": "pg/timestamptz-temporal@1",
@@ -29050,14 +31946,576 @@
                   "nullable": false
                 }
               },
+<<<<<<< HEAD
               "foreignKeys": [],
               "indexes": [],
+=======
+              "foreignKeys": [
+                {
+                  "source": {
+                    "columns": [
+                      "providerId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "deliveryJob"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "organization"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "createdAt"
+                  ],
+                  "name": "deliveryJob_createdAt_idx_9575dbd7",
+                  "prefix": "deliveryJob_createdAt_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "providerId"
+                  ],
+                  "name": "deliveryJob_providerId_idx_d1904c54",
+                  "prefix": "deliveryJob_providerId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "providerId",
+                    "status"
+                  ],
+                  "name": "deliveryJob_providerId_status_idx_31ed689d",
+                  "prefix": "deliveryJob_providerId_status_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "sourceType",
+                    "sourceId"
+                  ],
+                  "name": "deliveryJob_sourceType_sourceId_idx_9b8c3bc3",
+                  "prefix": "deliveryJob_sourceType_sourceId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "status"
+                  ],
+                  "name": "deliveryJob_status_idx_e98638ab",
+                  "prefix": "deliveryJob_status_idx",
+                  "unique": false
+                }
+              ],
+>>>>>>> agent/logisticsos
               "primaryKey": {
                 "columns": [
                   "id"
                 ]
               },
+<<<<<<< HEAD
               "uniques": []
+=======
+              "uniques": [
+                {
+                  "columns": [
+                    "providerId",
+                    "idempotencyKey"
+                  ],
+                  "name": "uniq_provider_idem_1"
+                }
+              ]
+            },
+            "deliveryPricingRule": {
+              "columns": {
+                "baseFee": {
+                  "codecId": "pg/numeric@1",
+                  "nativeType": "numeric",
+                  "nullable": false
+                },
+                "createdAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "currency": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "USD"
+                  },
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "isActive": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": true
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
+                "perKgRate": {
+                  "codecId": "pg/numeric@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "numeric",
+                  "nullable": false
+                },
+                "perKmRate": {
+                  "codecId": "pg/numeric@1",
+                  "nativeType": "numeric",
+                  "nullable": false
+                },
+                "prioritySurcharge": {
+                  "codecId": "pg/numeric@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "numeric",
+                  "nullable": false
+                },
+                "providerId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "version": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 1
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "providerId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "deliveryPricingRule"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "organization"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "providerId"
+                  ],
+                  "name": "deliveryPricingRule_providerId_idx_d1904c54",
+                  "prefix": "deliveryPricingRule_providerId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "providerId",
+                    "version"
+                  ]
+                }
+              ]
+            },
+            "deliveryQuote": {
+              "checks": [
+                {
+                  "expression": "\"status\" IN ('CALCULATED', 'OFFERED', 'ACCEPTED', 'EXPIRED', 'CANCELLED')",
+                  "name": "deliveryQuote_status_check_dda1dbcc",
+                  "prefix": "deliveryQuote_status_check"
+                }
+              ],
+              "columns": {
+                "baseCharge": {
+                  "codecId": "pg/numeric@1",
+                  "nativeType": "numeric",
+                  "nullable": false
+                },
+                "createdAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "currency": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "deliveryJobId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "distanceCharge": {
+                  "codecId": "pg/numeric@1",
+                  "nativeType": "numeric",
+                  "nullable": false
+                },
+                "expiresAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": true
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "idempotencyKey": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "pricingVersion": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "providerId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "serviceCharge": {
+                  "codecId": "pg/numeric@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "numeric",
+                  "nullable": false
+                },
+                "status": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "CALCULATED"
+                  },
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "DeliveryQuoteStatus",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "subtotal": {
+                  "codecId": "pg/numeric@1",
+                  "nativeType": "numeric",
+                  "nullable": false
+                },
+                "tax": {
+                  "codecId": "pg/numeric@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "numeric",
+                  "nullable": false
+                },
+                "total": {
+                  "codecId": "pg/numeric@1",
+                  "nativeType": "numeric",
+                  "nullable": false
+                },
+                "updatedAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "weightCharge": {
+                  "codecId": "pg/numeric@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "numeric",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "deliveryJobId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "deliveryQuote"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "deliveryJob"
+                  }
+                },
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "providerId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "deliveryQuote"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "organization"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "deliveryJobId"
+                  ],
+                  "name": "deliveryQuote_deliveryJobId_idx_48e54933",
+                  "prefix": "deliveryQuote_deliveryJobId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "providerId"
+                  ],
+                  "name": "deliveryQuote_providerId_idx_d1904c54",
+                  "prefix": "deliveryQuote_providerId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "providerId",
+                    "idempotencyKey"
+                  ],
+                  "name": "uniq_provider_idem_2"
+                }
+              ]
+            },
+            "deliveryTrackingEvent": {
+              "checks": [
+                {
+                  "expression": "\"eventType\" IN ('CREATED', 'DISPATCHED', 'ASSIGNED', 'AT_PICKUP', 'PICKED_UP', 'IN_TRANSIT', 'AT_DROPOFF', 'DELIVERED', 'COMPLETED', 'CANCELLED', 'FAILED', 'LOCATION_UPDATE')",
+                  "name": "deliveryTrackingEvent_eventType_check_41050252",
+                  "prefix": "deliveryTrackingEvent_eventType_check"
+                }
+              ],
+              "columns": {
+                "deliveryJobId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "driverProfileId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "eventType": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "TrackingEventType",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "idempotencyKey": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "latitude": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
+                  "nullable": true
+                },
+                "longitude": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
+                  "nullable": true
+                },
+                "notes": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "providerId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "recordedAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "deliveryJobId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "deliveryTrackingEvent"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "deliveryJob"
+                  }
+                },
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "providerId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "deliveryTrackingEvent"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "organization"
+                  }
+                },
+                {
+                  "source": {
+                    "columns": [
+                      "driverProfileId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "deliveryTrackingEvent"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "logisticsDriverProfile"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "deliveryJobId"
+                  ],
+                  "name": "deliveryTrackingEvent_deliveryJobId_idx_48e54933",
+                  "prefix": "deliveryTrackingEvent_deliveryJobId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "driverProfileId"
+                  ],
+                  "name": "deliveryTrackingEvent_driverProfileId_idx_95b2e011",
+                  "prefix": "deliveryTrackingEvent_driverProfileId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "providerId"
+                  ],
+                  "name": "deliveryTrackingEvent_providerId_idx_d1904c54",
+                  "prefix": "deliveryTrackingEvent_providerId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "recordedAt"
+                  ],
+                  "name": "deliveryTrackingEvent_recordedAt_idx_fd5b4732",
+                  "prefix": "deliveryTrackingEvent_recordedAt_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "providerId",
+                    "deliveryJobId",
+                    "idempotencyKey"
+                  ]
+                }
+              ]
+>>>>>>> agent/logisticsos
             },
             "discoveryListing": {
               "columns": {
@@ -32222,6 +35680,690 @@
                   ],
                   "name": "location_organizationId_idx_2e17ef41",
                   "prefix": "location_organizationId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
+            },
+            "logisticsDriverProfile": {
+              "checks": [
+                {
+                  "expression": "\"status\" IN ('OFFLINE', 'ONLINE', 'BUSY', 'SUSPENDED')",
+                  "name": "logisticsDriverProfile_status_check_2c70e348",
+                  "prefix": "logisticsDriverProfile_status_check"
+                }
+              ],
+              "columns": {
+                "createdAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "currentVehicleId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "onboardingComplete": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": false
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
+                "personId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "providerId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "status": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "OFFLINE"
+                  },
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "LogisticsDriverStatus",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "updatedAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "personId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "logisticsDriverProfile"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "person"
+                  }
+                },
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "providerId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "logisticsDriverProfile"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "organization"
+                  }
+                },
+                {
+                  "source": {
+                    "columns": [
+                      "currentVehicleId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "logisticsDriverProfile"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "logisticsVehicle"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "currentVehicleId"
+                  ],
+                  "name": "logisticsDriverProfile_currentVehicleId_idx_5884bf76",
+                  "prefix": "logisticsDriverProfile_currentVehicleId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "personId"
+                  ],
+                  "name": "logisticsDriverProfile_personId_idx_e5e06b80",
+                  "prefix": "logisticsDriverProfile_personId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "providerId"
+                  ],
+                  "name": "logisticsDriverProfile_providerId_idx_d1904c54",
+                  "prefix": "logisticsDriverProfile_providerId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
+            },
+            "logisticsFleet": {
+              "columns": {
+                "createdAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "description": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "isActive": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": true
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
+                "name": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "providerId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "updatedAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "providerId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "logisticsFleet"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "organization"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "providerId"
+                  ],
+                  "name": "logisticsFleet_providerId_idx_d1904c54",
+                  "prefix": "logisticsFleet_providerId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "id",
+                    "providerId"
+                  ]
+                }
+              ]
+            },
+            "logisticsSettings": {
+              "columns": {
+                "createdAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "organizationId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "platformFeeRate": {
+                  "codecId": "pg/numeric@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0.1
+                  },
+                  "nativeType": "numeric",
+                  "nullable": false
+                },
+                "updatedAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "organizationId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "logisticsSettings"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "organization"
+                  }
+                }
+              ],
+              "indexes": [],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "organizationId"
+                  ]
+                }
+              ]
+            },
+            "logisticsSettlement": {
+              "checks": [
+                {
+                  "expression": "\"status\" IN ('PENDING', 'PROCESSING', 'SETTLED', 'FAILED')",
+                  "name": "logisticsSettlement_status_check_541f7571",
+                  "prefix": "logisticsSettlement_status_check"
+                }
+              ],
+              "columns": {
+                "createdAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "currency": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "deliveryJobId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "fees": {
+                  "codecId": "pg/numeric@1",
+                  "nativeType": "numeric",
+                  "nullable": false
+                },
+                "grossAmount": {
+                  "codecId": "pg/numeric@1",
+                  "nativeType": "numeric",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "idempotencyKey": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "providerAmount": {
+                  "codecId": "pg/numeric@1",
+                  "nativeType": "numeric",
+                  "nullable": false
+                },
+                "providerId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "quoteId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "settledAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": true
+                },
+                "status": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "PENDING"
+                  },
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "SettlementStatus",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "transactionId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                }
+              },
+              "foreignKeys": [
+                {
+                  "source": {
+                    "columns": [
+                      "providerId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "logisticsSettlement"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "organization"
+                  }
+                },
+                {
+                  "source": {
+                    "columns": [
+                      "deliveryJobId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "logisticsSettlement"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "deliveryJob"
+                  }
+                },
+                {
+                  "source": {
+                    "columns": [
+                      "quoteId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "logisticsSettlement"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "deliveryQuote"
+                  }
+                },
+                {
+                  "source": {
+                    "columns": [
+                      "transactionId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "logisticsSettlement"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "transaction"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "createdAt"
+                  ],
+                  "name": "logisticsSettlement_createdAt_idx_9575dbd7",
+                  "prefix": "logisticsSettlement_createdAt_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "providerId"
+                  ],
+                  "name": "logisticsSettlement_providerId_idx_d1904c54",
+                  "prefix": "logisticsSettlement_providerId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "providerId",
+                    "status"
+                  ],
+                  "name": "logisticsSettlement_providerId_status_idx_31ed689d",
+                  "prefix": "logisticsSettlement_providerId_status_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "status"
+                  ],
+                  "name": "logisticsSettlement_status_idx_e98638ab",
+                  "prefix": "logisticsSettlement_status_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "deliveryJobId"
+                  ]
+                },
+                {
+                  "columns": [
+                    "quoteId"
+                  ]
+                },
+                {
+                  "columns": [
+                    "transactionId"
+                  ]
+                },
+                {
+                  "columns": [
+                    "providerId",
+                    "idempotencyKey"
+                  ],
+                  "name": "uniq_provider_idem_settlement"
+                }
+              ]
+            },
+            "logisticsVehicle": {
+              "checks": [
+                {
+                  "expression": "\"status\" IN ('ACTIVE', 'INACTIVE', 'MAINTENANCE')",
+                  "name": "logisticsVehicle_status_check_53a667b7",
+                  "prefix": "logisticsVehicle_status_check"
+                }
+              ],
+              "columns": {
+                "capacityPayload": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
+                  "nullable": true
+                },
+                "capacityVolume": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
+                  "nullable": true
+                },
+                "createdAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "fleetId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "licensePlate": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "providerId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "status": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "ACTIVE"
+                  },
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "VehicleStatus",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "type": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "updatedAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "providerId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "logisticsVehicle"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "organization"
+                  }
+                },
+                {
+                  "source": {
+                    "columns": [
+                      "fleetId",
+                      "providerId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "logisticsVehicle"
+                  },
+                  "target": {
+                    "columns": [
+                      "id",
+                      "providerId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "logisticsFleet"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "fleetId",
+                    "providerId"
+                  ],
+                  "name": "logisticsVehicle_fleetId_providerId_idx_fbc0faf4",
+                  "prefix": "logisticsVehicle_fleetId_providerId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "providerId"
+                  ],
+                  "name": "logisticsVehicle_providerId_idx_d1904c54",
+                  "prefix": "logisticsVehicle_providerId_idx",
                   "unique": false
                 }
               ],
@@ -37099,6 +41241,149 @@
                 ]
               },
               "uniques": []
+            },
+            "proofOfDelivery": {
+              "columns": {
+                "createdAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false,
+                  "typeParams": {
+                    "precision": 3
+                  }
+                },
+                "deliveryJobId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "evidenceUrl": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "idempotencyKey": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "latitude": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
+                  "nullable": true
+                },
+                "longitude": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
+                  "nullable": true
+                },
+                "notes": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "providerId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "recipientName": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "type": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "verifiedAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false,
+                  "typeParams": {
+                    "precision": 3
+                  }
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "deliveryJobId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "proofOfDelivery"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "deliveryJob"
+                  }
+                },
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "providerId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "proofOfDelivery"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "organization"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "providerId"
+                  ],
+                  "name": "proofOfDelivery_providerId_idx_d1904c54",
+                  "prefix": "proofOfDelivery_providerId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "deliveryJobId"
+                  ]
+                },
+                {
+                  "columns": [
+                    "providerId",
+                    "idempotencyKey"
+                  ],
+                  "name": "uniq_pod_provider_idem"
+                }
+              ]
             },
             "rateRule": {
               "checks": [
@@ -47464,6 +51749,16 @@
                 "CANCELLED"
               ]
             },
+            "AssignmentStatus": {
+              "kind": "valueSet",
+              "values": [
+                "PENDING",
+                "ACCEPTED",
+                "REJECTED",
+                "CANCELLED",
+                "COMPLETED"
+              ]
+            },
             "BookingStatus": {
               "kind": "valueSet",
               "values": [
@@ -47472,6 +51767,57 @@
                 "ACTIVE",
                 "COMPLETED",
                 "CANCELLED"
+              ]
+            },
+            "DeliveryQuoteStatus": {
+              "kind": "valueSet",
+              "values": [
+                "CALCULATED",
+                "OFFERED",
+                "ACCEPTED",
+                "EXPIRED",
+                "CANCELLED"
+              ]
+            },
+            "DeliverySourceType": {
+              "kind": "valueSet",
+              "values": [
+                "RESTAURANT_ORDER",
+                "RETAIL_ORDER",
+                "HOTEL_REQUEST",
+                "SERVICE_JOB",
+                "HEALTH_REQUEST",
+                "DIRECT_DELIVERY"
+              ]
+            },
+            "DeliveryStatus": {
+              "kind": "valueSet",
+              "values": [
+                "REQUESTED",
+                "PRICED",
+                "CREATED",
+                "DISPATCHED",
+                "ASSIGNED",
+                "AT_PICKUP",
+                "PICKED_UP",
+                "IN_TRANSIT",
+                "AT_DROPOFF",
+                "DELIVERED",
+                "COMPLETED",
+                "CANCELLED",
+                "FAILED"
+              ]
+            },
+            "DispatchStatus": {
+              "kind": "valueSet",
+              "values": [
+                "PENDING",
+                "OFFERED",
+                "ACCEPTED",
+                "REJECTED",
+                "EXPIRED",
+                "CANCELLED",
+                "FAILED"
               ]
             },
             "FolioChargeCategory": {
@@ -47497,6 +51843,15 @@
                 "RAW_MATERIAL",
                 "SUB_ASSEMBLY",
                 "FINISHED_GOOD"
+              ]
+            },
+            "LogisticsDriverStatus": {
+              "kind": "valueSet",
+              "values": [
+                "OFFLINE",
+                "ONLINE",
+                "BUSY",
+                "SUSPENDED"
               ]
             },
             "MaintenanceTicketPriority": {
@@ -47684,6 +52039,15 @@
                 "CANCELLED"
               ]
             },
+            "SettlementStatus": {
+              "kind": "valueSet",
+              "values": [
+                "PENDING",
+                "PROCESSING",
+                "SETTLED",
+                "FAILED"
+              ]
+            },
             "StockMovementType": {
               "kind": "valueSet",
               "values": [
@@ -47722,6 +52086,31 @@
                 "SERVICE_DISPATCH"
               ]
             },
+            "TrackingEventType": {
+              "kind": "valueSet",
+              "values": [
+                "CREATED",
+                "DISPATCHED",
+                "ASSIGNED",
+                "AT_PICKUP",
+                "PICKED_UP",
+                "IN_TRANSIT",
+                "AT_DROPOFF",
+                "DELIVERED",
+                "COMPLETED",
+                "CANCELLED",
+                "FAILED",
+                "LOCATION_UPDATE"
+              ]
+            },
+            "VehicleStatus": {
+              "kind": "valueSet",
+              "values": [
+                "ACTIVE",
+                "INACTIVE",
+                "MAINTENANCE"
+              ]
+            },
             "WalletType": {
               "kind": "valueSet",
               "values": [
@@ -47735,10 +52124,17 @@
         "kind": "postgres-schema"
       }
     },
+<<<<<<< HEAD
     "storageHash": "f5dabc40bae3889e8f0ddf37286c8ad5838cc94e7248f0f1805ce07c42445582"
   },
   "execution": {
     "executionHash": "1ae2693d2e2efd33c2b92ef9f2c63bfdf688c5994c43776c5b1d92517a503ec4",
+=======
+    "storageHash": "5d630454c930ff1b70dff2c00797505876c04d004b2bf88793abae1bd0d9fd02"
+  },
+  "execution": {
+    "executionHash": "90ace67d21173f4f70aef5accb4c1ac386158493c49cfec46f0d79776cf37069",
+>>>>>>> agent/logisticsos
     "mutations": {
       "defaults": [
         {
@@ -47914,6 +52310,86 @@
           "ref": {
             "column": "id",
             "namespace": "public",
+<<<<<<< HEAD
+=======
+            "table": "customerData"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "deliveryAssignment"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "deliveryDispatch"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "deliveryJob"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "deliveryPricingRule"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "deliveryQuote"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "deliveryTrackingEvent"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+>>>>>>> agent/logisticsos
             "table": "discoveryListing"
           }
         },
@@ -48245,6 +52721,61 @@
             "column": "id",
             "namespace": "public",
             "table": "location"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "logisticsDriverProfile"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "logisticsFleet"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "logisticsSettings"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "logisticsSettlement"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "logisticsVehicle"
           }
         },
         {
@@ -48740,6 +53271,17 @@
             "column": "id",
             "namespace": "public",
             "table": "prescription"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "proofOfDelivery"
           }
         },
         {
