@@ -218,7 +218,7 @@ export async function quickCreateBusiness(data: {
     return { error: "Business name is required." };
   }
 
-  const validTypes = ['RETAIL', 'RESTAURANT', 'SERVICES', 'SCHOOL', 'HOTEL', 'EVENT_ORGANIZER', 'HEALTHCARE'];
+  const validTypes = ['RETAIL', 'RESTAURANT', 'SERVICES', 'SCHOOL', 'HOTEL', 'EVENT_ORGANIZER', 'HEALTHCARE', 'LOGISTICS'];
   if (!validTypes.includes(data.type)) {
     return { error: "Invalid business category." };
   }
