@@ -2,7 +2,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/src/prisma/db';
-import { getDeliveryStatusForSource } from '../../../logisticsos/lib/actions/logistics-api';
+import { getDeliveryStatusForSource } from '@/lib/actions/logistics-api';
 
 export async function getMyDeliveries() {
   const session = await getServerSession(authOptions);

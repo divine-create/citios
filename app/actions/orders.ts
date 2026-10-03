@@ -1,6 +1,6 @@
 'use server';
 
-import { getDeliveryStatusForSource } from '../../../logisticsos/lib/actions/logistics-api';
+import { getDeliveryStatusForSource } from '@/lib/actions/logistics-api';
 
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';

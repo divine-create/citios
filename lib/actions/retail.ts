@@ -1,7 +1,7 @@
 'use server'
 
 import '@js-temporal/polyfill'
-import { createLogisticsDeliveryRequest, getDeliveryStatusForSource } from '../../../logisticsos/lib/actions/logistics-api'
+import { createLogisticsDeliveryRequest, getDeliveryStatusForSource } from '@/lib/actions/logistics-api'
 import { db } from '@/src/prisma/db'
 import { requireMembership } from '@/lib/actions/tenant'
 import { revalidatePath } from 'next/cache'

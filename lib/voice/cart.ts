@@ -1,6 +1,6 @@
 import { db } from '@/src/prisma/db';
 import { placeRetailOrder } from '@/app/actions/commerce';
-import { createLogisticsDeliveryRequest } from '../../../logisticsos/lib/actions/logistics-api';
+import { createLogisticsDeliveryRequest } from '@/lib/actions/logistics-api';
 
 interface VoiceCartItemType {
   id: string;
