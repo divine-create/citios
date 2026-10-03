@@ -9,7 +9,7 @@ import {
   GraduationCap,
   Building2,
   Ticket,
-  Stethoscope,
+  Stethoscope, Truck,
   Sparkles,
   ArrowRight,
   CheckCircle2,
@@ -119,6 +119,18 @@ export const VERTICAL_OPTIONS: VerticalOption[] = [
     badgeTone: 'bg-teal-50 text-teal-800 border-teal-200',
     placeholderName: 'e.g. Primus Family Health Center',
     placeholderBio: 'Comprehensive outpatient care, diagnostic tests, and specialist consultations.',
+  },
+  {
+    type: 'LOGISTICS',
+    title: 'Logistics & Courier',
+    osName: 'LogisticsOS',
+    tagline: 'Fleets, dispatch & tracking',
+    description: 'Manage delivery fleets, dispatch riders, track packages, and optimize courier routes.',
+    icon: Truck,
+    tone: 'from-blue-600 to-sky-500',
+    badgeTone: 'bg-blue-50 text-blue-800 border-blue-200',
+    placeholderName: 'e.g. Swift Logistics Co.',
+    placeholderBio: 'Fast, reliable, and secure delivery services for businesses and individuals.',
   },
 ];
 
@@ -423,3 +435,4 @@ export default function CreateBusinessModal() {
     </div>
   );
 }
+
