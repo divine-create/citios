@@ -121,9 +121,9 @@ export default async function LogisticsDashboardPage() {
                     <td colSpan={4} className="px-6 py-8 text-center text-slate-400">No active deliveries.</td>
                   </tr>
                 ) : (
-                  (overview as any).recentJobs || [].map((job) => (
-                    <tr key={job.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4 font-mono text-slate-600">{job.id.slice(0, 8)}...</td>
+                  (((overview as any).recentJobs as any[]) || []).map((job: any) => (
+                    <tr key={job?.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-6 py-4 font-mono text-slate-600">{job?.id.slice(0, 8)}...</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <PackageOpen className="w-4 h-4 text-slate-400" />
