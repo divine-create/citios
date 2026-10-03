@@ -17,7 +17,7 @@ export default async function LogisticsDashboardPage() {
   const overview = await getProviderDeliveryOverview(provider.id);
   
   // Find stuck/breached deliveries to alert the dispatcher
-  const stuckDeliveries = await findstuckDeliveries({ provider.id, hoursThreshold: 1 });
+  const stuckDeliveries = await findStuckDeliveries({ maxTransitMinutes: 60 });
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -116,12 +116,12 @@ export default async function LogisticsDashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {[] as any[].length === 0 ? (
+                {(overview as any).recentJobs || [].length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-6 py-8 text-center text-slate-400">No active deliveries.</td>
                   </tr>
                 ) : (
-                  [] as any[].map((job) => (
+                  (overview as any).recentJobs || [].map((job) => (
                     <tr key={job.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-4 font-mono text-slate-600">{job.id.slice(0, 8)}...</td>
                       <td className="px-6 py-4">
