@@ -89,7 +89,7 @@ export default function RegisterForm({ initialType, isLoggedIn }: { initialType:
           <option value="SERVICES">Service Business</option>
           <option value="RETAIL">Retail / Shop</option>
           <option value="HOTEL">Hotel / Hospitality</option>
-          <option value="HEALTHCARE">Healthcare Facility</option>
+          <option value="HEALTHCARE">Healthcare Facility</option>`n          <option value="LOGISTICS">Logistics / Courier Fleet</option>
         </select>
         <a
           href="/business/restaurantos/register"
