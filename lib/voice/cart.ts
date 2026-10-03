@@ -1,5 +1,6 @@
 import { db } from '@/src/prisma/db';
 import { placeRetailOrder } from '@/app/actions/commerce';
+import { createLogisticsDeliveryRequest } from '../../../logisticsos/lib/actions/logistics-api';
 
 interface VoiceCartItemType {
   id: string;
@@ -237,10 +238,12 @@ export async function confirmVoiceCheckout(personId: string, checkoutId: string,
     const firstOrderId = result?.orderIds?.[0];
     if (deliveryAddress && firstOrderId) {
       try {
-        await db.orm.public.DeliveryJob.create({
-          status: 'PENDING',
-          dropoffAddress: deliveryAddress,
-          restaurantOrderId: firstOrderId
+        await createLogisticsDeliveryRequest({
+          sourceType: 'RETAIL_ORDER',
+          sourceId: firstOrderId,
+          pickup: { address: 'Store' },
+          dropoff: { address: deliveryAddress },
+          idempotencyKey: 'voice-cart-' + firstOrderId
         });
       } catch (err) {
         console.error('[Voice] Failed to create DeliveryJob — order placed but delivery not dispatched:', err);

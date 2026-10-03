@@ -3727,14 +3727,7 @@
                   "kind": "scalar"
                 }
               },
-              "locationId": {
-                "nullable": true,
-                "type": {
-                  "codecId": "pg/text@1",
-                  "kind": "scalar"
-                }
-              },
-              "organizationId": {
+              "idempotencyKey": {
                 "nullable": true,
                 "type": {
                   "codecId": "pg/text@1",
@@ -3748,15 +3741,22 @@
                   "kind": "scalar"
                 }
               },
-              "restaurantOrderId": {
+              "providerId": {
                 "nullable": true,
                 "type": {
                   "codecId": "pg/text@1",
                   "kind": "scalar"
                 }
               },
-              "retailOrderId": {
-                "nullable": true,
+              "sourceId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "sourceType": {
+                "nullable": false,
                 "type": {
                   "codecId": "pg/text@1",
                   "kind": "scalar"
@@ -3777,38 +3777,7 @@
                 }
               }
             },
-            "relations": {
-              "restaurantOrder": {
-                "cardinality": "N:1",
-                "on": {
-                  "localFields": [
-                    "restaurantOrderId"
-                  ],
-                  "targetFields": [
-                    "id"
-                  ]
-                },
-                "to": {
-                  "model": "RestaurantOrder",
-                  "namespace": "public"
-                }
-              },
-              "retailOrder": {
-                "cardinality": "N:1",
-                "on": {
-                  "localFields": [
-                    "retailOrderId"
-                  ],
-                  "targetFields": [
-                    "id"
-                  ]
-                },
-                "to": {
-                  "model": "RetailOrder",
-                  "namespace": "public"
-                }
-              }
-            },
+            "relations": {},
             "storage": {
               "fields": {
                 "createdAt": {
@@ -3820,20 +3789,20 @@
                 "id": {
                   "column": "id"
                 },
-                "locationId": {
-                  "column": "locationId"
-                },
-                "organizationId": {
-                  "column": "organizationId"
+                "idempotencyKey": {
+                  "column": "idempotencyKey"
                 },
                 "pickupAddress": {
                   "column": "pickupAddress"
                 },
-                "restaurantOrderId": {
-                  "column": "restaurantOrderId"
+                "providerId": {
+                  "column": "providerId"
                 },
-                "retailOrderId": {
-                  "column": "retailOrderId"
+                "sourceId": {
+                  "column": "sourceId"
+                },
+                "sourceType": {
+                  "column": "sourceType"
                 },
                 "status": {
                   "column": "status"
@@ -16519,21 +16488,6 @@
                   "namespace": "public"
                 }
               },
-              "delivery": {
-                "cardinality": "1:1",
-                "on": {
-                  "localFields": [
-                    "id"
-                  ],
-                  "targetFields": [
-                    "restaurantOrderId"
-                  ]
-                },
-                "to": {
-                  "model": "DeliveryJob",
-                  "namespace": "public"
-                }
-              },
               "items": {
                 "cardinality": "1:N",
                 "on": {
@@ -29048,12 +29002,7 @@
                   "nativeType": "text",
                   "nullable": false
                 },
-                "locationId": {
-                  "codecId": "pg/text@1",
-                  "nativeType": "text",
-                  "nullable": true
-                },
-                "organizationId": {
+                "idempotencyKey": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": true
@@ -29063,15 +29012,24 @@
                   "nativeType": "text",
                   "nullable": true
                 },
-                "restaurantOrderId": {
+                "providerId": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": true
                 },
-                "retailOrderId": {
+                "sourceId": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
-                  "nullable": true
+                  "nullable": false
+                },
+                "sourceType": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "RETAIL_ORDER"
+                  },
+                  "nativeType": "text",
+                  "nullable": false
                 },
                 "status": {
                   "codecId": "pg/text@1",
@@ -29092,58 +29050,14 @@
                   "nullable": false
                 }
               },
-              "foreignKeys": [
-                {
-                  "source": {
-                    "columns": [
-                      "retailOrderId"
-                    ],
-                    "namespaceId": "public",
-                    "tableName": "deliveryJob"
-                  },
-                  "target": {
-                    "columns": [
-                      "id"
-                    ],
-                    "namespaceId": "public",
-                    "tableName": "retailOrder"
-                  }
-                },
-                {
-                  "source": {
-                    "columns": [
-                      "restaurantOrderId"
-                    ],
-                    "namespaceId": "public",
-                    "tableName": "deliveryJob"
-                  },
-                  "target": {
-                    "columns": [
-                      "id"
-                    ],
-                    "namespaceId": "public",
-                    "tableName": "restaurantOrder"
-                  }
-                }
-              ],
+              "foreignKeys": [],
               "indexes": [],
               "primaryKey": {
                 "columns": [
                   "id"
                 ]
               },
-              "uniques": [
-                {
-                  "columns": [
-                    "retailOrderId"
-                  ]
-                },
-                {
-                  "columns": [
-                    "restaurantOrderId"
-                  ]
-                }
-              ]
+              "uniques": []
             },
             "discoveryListing": {
               "columns": {
@@ -47821,7 +47735,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "f8e7ca8a6690e2134cfdd30ce838f5210d0a65a54086dd839366728494fe239a"
+    "storageHash": "f5dabc40bae3889e8f0ddf37286c8ad5838cc94e7248f0f1805ce07c42445582"
   },
   "execution": {
     "executionHash": "1ae2693d2e2efd33c2b92ef9f2c63bfdf688c5994c43776c5b1d92517a503ec4",

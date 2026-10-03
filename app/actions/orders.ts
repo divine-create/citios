@@ -1,5 +1,7 @@
 'use server';
 
+import { getDeliveryStatusForSource } from '../../../logisticsos/lib/actions/logistics-api';
+
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/src/prisma/db';
@@ -38,7 +40,7 @@ export async function fetchMyOrders() {
     const org = await db.orm.public.Organization.where({ id: order.organizationId }).all().first();
     const items = await db.orm.public.RetailOrderItem.where({ orderId: order.id }).all();
     const payment = await db.orm.public.Payment.where({ retailOrderId: order.id }).all().first();
-    const delivery = await db.orm.public.DeliveryJob.where({ retailOrderId: order.id }).all().first();
+    const delivery = await getDeliveryStatusForSource('RETAIL_ORDER', order.id);
     
     // Eagerly resolve product names for UI
     const enrichedItems = await Promise.all(items.map(async (item) => {
@@ -53,7 +55,7 @@ export async function fetchMyOrders() {
     const org = await db.orm.public.Organization.where({ id: order.organizationId }).all().first();
     const items = await db.orm.public.OrderItem.where({ orderId: order.id }).all();
     const payment = await db.orm.public.Payment.where({ restaurantOrderId: order.id }).all().first();
-    const delivery = await db.orm.public.DeliveryJob.where({ restaurantOrderId: order.id }).all().first();
+    const delivery = await getDeliveryStatusForSource('RESTAURANT_ORDER', order.id);
     
     const enrichedItems = await Promise.all(items.map(async (item) => {
         const product = await db.orm.public.MenuItem.where({ id: item.menuItemId }).all().first();

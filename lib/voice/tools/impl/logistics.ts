@@ -71,7 +71,7 @@ export const getDeliveryStatus: VoiceToolDefinition = {
       data: {
         id: delivery.id,
         status: delivery.status,
-        restaurantName: delivery.restaurantName,
+        storeName: delivery.storeName,
         dropoffAddress: delivery.dropoffAddress,
         driverName: delivery.driverName,
         message: `The authoritative status is ${delivery.status}. Driver is ${delivery.driverName}. ETA unavailable natively.`
