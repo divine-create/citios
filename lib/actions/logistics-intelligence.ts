@@ -152,7 +152,7 @@ export async function getProviderDeliveryOverview(providerId: string) {
       // Determine delivery duration
       const createdAt = new Date((job as any).createdAt).getTime();
       const events = await db.orm.public.DeliveryTrackingEvent.where({ deliveryJobId: job.id }).all();
-      const dropoffEvents = events.filter(e => e.eventType === 'DROPOFF_CONFIRMED');
+      const dropoffEvents = events.filter(e => e.eventType === 'DELIVERED');
       if (dropoffEvents.length > 0) {
         dropoffEvents.sort((a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime());
         const dropoffTime = new Date(dropoffEvents[0].recordedAt).getTime();

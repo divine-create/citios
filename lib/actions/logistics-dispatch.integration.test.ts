@@ -81,11 +81,11 @@ test('LogisticsOS Phase 2 Dispatch Integration Tests', async (t) => {
       deliveryJobId: job.id,
       providerId: prov.id
     }).catch(e => ({ error: e.message }));
-    assert.ok(r.error?.includes('active dispatch'), 'Cannot create second active dispatch');
+    assert.ok((r as any).error?.includes('active dispatch'), 'Cannot create second active dispatch');
     
     // Check job status
     const updatedJob = await db.orm.public.DeliveryJob.where({ id: job.id }).all().first();
-    assert.strictEqual(updatedJob.status, 'DISPATCHED');
+    assert.strictEqual(updatedJob!.status, 'DISPATCHED');
   });
 
   await t.test('Test 2 — Find eligible candidates and Accept dispatch', async () => {
@@ -116,7 +116,7 @@ test('LogisticsOS Phase 2 Dispatch Integration Tests', async (t) => {
     assert.strictEqual(assignment.driverProfileId, driver.id);
     
     const updatedJob = await db.orm.public.DeliveryJob.where({ id: job.id }).all().first();
-    assert.strictEqual(updatedJob.status, 'ASSIGNED');
+    assert.strictEqual(updatedJob!.status, 'ASSIGNED');
     
     // Find candidates again - driver should be excluded
     const candidates2 = await findEligibleCandidates({ deliveryJobId: job.id, providerId: prov.id });

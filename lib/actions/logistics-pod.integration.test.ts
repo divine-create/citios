@@ -39,7 +39,7 @@ async function setupDeliveryToDropoff() {
   
   const job = await createDeliveryJob({
     providerId, sourceType: 'RESTAURANT_ORDER', sourceId: generateId(),
-    pickupAddress: 'A', dropoffAddress: 'B', idempotencyKey: generateId()
+    dropoffAddress: 'B', idempotencyKey: generateId()
   });
 
   const dispatch = await dispatchDelivery({ deliveryJobId: job.id, providerId, idempotencyKey: generateId() });

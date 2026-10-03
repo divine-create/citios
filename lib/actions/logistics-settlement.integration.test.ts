@@ -33,7 +33,7 @@ async function setupProviderAndDriver() {
   // Add platform fee to 15%
   await db.orm.public.LogisticsSettings.create({
     organizationId: providerId,
-    platformFeeRate: 0.15
+    platformFeeRate: "0.15"
   });
 
   const fleetId = generateId();
@@ -59,7 +59,7 @@ async function setupCompletedDelivery() {
   
   const job = await createDeliveryJob({
     providerId, sourceType: 'RESTAURANT_ORDER', sourceId: generateId(),
-    pickupAddress: 'A', dropoffAddress: 'B', idempotencyKey: generateId()
+    dropoffAddress: 'B', idempotencyKey: generateId()
   });
 
   const quote = await calculateDeliveryQuote({
@@ -116,7 +116,7 @@ test('LogisticsOS Phase 5 Settlement Integration Tests', async (t) => {
     const { providerId, driverProfileId } = await setupProviderAndDriver();
     const job = await createDeliveryJob({
       providerId, sourceType: 'RESTAURANT_ORDER', sourceId: generateId(),
-      pickupAddress: 'A', dropoffAddress: 'B'
+      dropoffAddress: 'B'
     });
 
     await assert.rejects(

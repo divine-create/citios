@@ -22,10 +22,10 @@ async function makeProvider(name: string, active = true) {
   // Create default pricing rule so quotes succeed
   await db.orm.public.DeliveryPricingRule.create({
     providerId: p.id,
-    baseFee: 2.50,
-    perKmRate: 1.00,
-    perKgRate: 0.50,
-    prioritySurcharge: 5.00,
+    baseFee: "2.50",
+    perKmRate: "1.00",
+    perKgRate: "0.50",
+    prioritySurcharge: "5.00",
     isActive: true,
     version: 1
   });
