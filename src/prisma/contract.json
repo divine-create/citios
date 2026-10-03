@@ -4202,8 +4202,6 @@
                   "kind": "scalar"
                 }
               },
-<<<<<<< HEAD
-=======
               "deliveryJobId": {
                 "nullable": false,
                 "type": {
@@ -4411,11 +4409,24 @@
                   "kind": "scalar"
                 }
               },
->>>>>>> agent/logisticsos
               "dropoffAddress": {
-                "nullable": true,
+                "nullable": false,
                 "type": {
                   "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "dropoffLat": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
+              "dropoffLng": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/float8@1",
                   "kind": "scalar"
                 }
               },
@@ -4440,8 +4451,6 @@
                   "kind": "scalar"
                 }
               },
-<<<<<<< HEAD
-=======
               "pickupLat": {
                 "nullable": true,
                 "type": {
@@ -4456,7 +4465,6 @@
                   "kind": "scalar"
                 }
               },
->>>>>>> agent/logisticsos
               "providerId": {
                 "nullable": true,
                 "type": {
@@ -4465,23 +4473,13 @@
                 }
               },
               "sourceId": {
-<<<<<<< HEAD
-                "nullable": false,
-=======
                 "nullable": true,
->>>>>>> agent/logisticsos
                 "type": {
                   "codecId": "pg/text@1",
                   "kind": "scalar"
                 }
               },
               "sourceType": {
-<<<<<<< HEAD
-                "nullable": false,
-                "type": {
-                  "codecId": "pg/text@1",
-                  "kind": "scalar"
-=======
                 "nullable": true,
                 "type": {
                   "codecId": "pg/text@1",
@@ -4492,7 +4490,6 @@
                   "entityName": "DeliverySourceType",
                   "namespaceId": "public",
                   "plane": "domain"
->>>>>>> agent/logisticsos
                 }
               },
               "status": {
@@ -4516,9 +4513,6 @@
                 }
               }
             },
-<<<<<<< HEAD
-            "relations": {},
-=======
             "relations": {
               "assignments": {
                 "cardinality": "1:N",
@@ -4626,7 +4620,6 @@
                 }
               }
             },
->>>>>>> agent/logisticsos
             "storage": {
               "fields": {
                 "createdAt": {
@@ -4634,6 +4627,12 @@
                 },
                 "dropoffAddress": {
                   "column": "dropoffAddress"
+                },
+                "dropoffLat": {
+                  "column": "dropoffLat"
+                },
+                "dropoffLng": {
+                  "column": "dropoffLng"
                 },
                 "id": {
                   "column": "id"
@@ -4644,15 +4643,12 @@
                 "pickupAddress": {
                   "column": "pickupAddress"
                 },
-<<<<<<< HEAD
-=======
                 "pickupLat": {
                   "column": "pickupLat"
                 },
                 "pickupLng": {
                   "column": "pickupLng"
                 },
->>>>>>> agent/logisticsos
                 "providerId": {
                   "column": "providerId"
                 },
@@ -31621,8 +31617,6 @@
                   "nativeType": "timestamptz",
                   "nullable": false
                 },
-<<<<<<< HEAD
-=======
                 "deliveryJobId": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -31849,18 +31843,23 @@
                   "nativeType": "timestamptz",
                   "nullable": false
                 },
->>>>>>> agent/logisticsos
                 "dropoffAddress": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
+                  "nullable": false
+                },
+                "dropoffLat": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
+                  "nullable": true
+                },
+                "dropoffLng": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
                   "nullable": true
                 },
                 "id": {
                   "codecId": "pg/text@1",
-                  "default": {
-                    "expression": "uuid_generate_v7()",
-                    "kind": "function"
-                  },
                   "nativeType": "text",
                   "nullable": false
                 },
@@ -31874,8 +31873,6 @@
                   "nativeType": "text",
                   "nullable": true
                 },
-<<<<<<< HEAD
-=======
                 "pickupLat": {
                   "codecId": "pg/float8@1",
                   "nativeType": "float8",
@@ -31886,7 +31883,6 @@
                   "nativeType": "float8",
                   "nullable": true
                 },
->>>>>>> agent/logisticsos
                 "providerId": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -31895,18 +31891,6 @@
                 "sourceId": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
-<<<<<<< HEAD
-                  "nullable": false
-                },
-                "sourceType": {
-                  "codecId": "pg/text@1",
-                  "default": {
-                    "kind": "literal",
-                    "value": "RETAIL_ORDER"
-                  },
-                  "nativeType": "text",
-                  "nullable": false
-=======
                   "nullable": true
                 },
                 "sourceType": {
@@ -31919,7 +31903,6 @@
                     "namespaceId": "public",
                     "plane": "storage"
                   }
->>>>>>> agent/logisticsos
                 },
                 "status": {
                   "codecId": "pg/text@1",
@@ -31946,10 +31929,6 @@
                   "nullable": false
                 }
               },
-<<<<<<< HEAD
-              "foreignKeys": [],
-              "indexes": [],
-=======
               "foreignKeys": [
                 {
                   "source": {
@@ -32012,15 +31991,11 @@
                   "unique": false
                 }
               ],
->>>>>>> agent/logisticsos
               "primaryKey": {
                 "columns": [
                   "id"
                 ]
               },
-<<<<<<< HEAD
-              "uniques": []
-=======
               "uniques": [
                 {
                   "columns": [
@@ -32515,7 +32490,6 @@
                   ]
                 }
               ]
->>>>>>> agent/logisticsos
             },
             "discoveryListing": {
               "columns": {
@@ -40203,6 +40177,10 @@
                 },
                 "id": {
                   "codecId": "pg/text@1",
+                  "default": {
+                    "expression": "uuid_generate_v7()",
+                    "kind": "function"
+                  },
                   "nativeType": "text",
                   "nullable": false
                 },
@@ -52124,17 +52102,10 @@
         "kind": "postgres-schema"
       }
     },
-<<<<<<< HEAD
-    "storageHash": "f5dabc40bae3889e8f0ddf37286c8ad5838cc94e7248f0f1805ce07c42445582"
+    "storageHash": "e36250d89e649e967c78eb0b3d1ee1ebb67e6e9a349ec04a7df73694f50b8fec"
   },
   "execution": {
-    "executionHash": "1ae2693d2e2efd33c2b92ef9f2c63bfdf688c5994c43776c5b1d92517a503ec4",
-=======
-    "storageHash": "5d630454c930ff1b70dff2c00797505876c04d004b2bf88793abae1bd0d9fd02"
-  },
-  "execution": {
-    "executionHash": "90ace67d21173f4f70aef5accb4c1ac386158493c49cfec46f0d79776cf37069",
->>>>>>> agent/logisticsos
+    "executionHash": "f4f5bf5c1197ce87e3df76166b01721f89d39abaa5436b2ba9f1d73bc6f0a815",
     "mutations": {
       "defaults": [
         {
@@ -52310,19 +52281,6 @@
           "ref": {
             "column": "id",
             "namespace": "public",
-<<<<<<< HEAD
-=======
-            "table": "customerData"
-          }
-        },
-        {
-          "onCreate": {
-            "id": "uuidv4",
-            "kind": "generator"
-          },
-          "ref": {
-            "column": "id",
-            "namespace": "public",
             "table": "deliveryAssignment"
           }
         },
@@ -52389,7 +52347,6 @@
           "ref": {
             "column": "id",
             "namespace": "public",
->>>>>>> agent/logisticsos
             "table": "discoveryListing"
           }
         },
@@ -53150,17 +53107,6 @@
             "column": "id",
             "namespace": "public",
             "table": "paymentEvent"
-          }
-        },
-        {
-          "onCreate": {
-            "id": "uuidv4",
-            "kind": "generator"
-          },
-          "ref": {
-            "column": "id",
-            "namespace": "public",
-            "table": "person"
           }
         },
         {

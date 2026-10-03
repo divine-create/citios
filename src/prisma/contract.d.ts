@@ -38,15 +38,9 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-<<<<<<< HEAD
-  StorageHashBase<'f5dabc40bae3889e8f0ddf37286c8ad5838cc94e7248f0f1805ce07c42445582'>;
+  StorageHashBase<'e36250d89e649e967c78eb0b3d1ee1ebb67e6e9a349ec04a7df73694f50b8fec'>;
 export type ExecutionHash =
-  ExecutionHashBase<'1ae2693d2e2efd33c2b92ef9f2c63bfdf688c5994c43776c5b1d92517a503ec4'>;
-=======
-  StorageHashBase<'5d630454c930ff1b70dff2c00797505876c04d004b2bf88793abae1bd0d9fd02'>;
-export type ExecutionHash =
-  ExecutionHashBase<'90ace67d21173f4f70aef5accb4c1ac386158493c49cfec46f0d79776cf37069'>;
->>>>>>> agent/logisticsos
+  ExecutionHashBase<'f4f5bf5c1197ce87e3df76166b01721f89d39abaa5436b2ba9f1d73bc6f0a815'>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
 
@@ -457,14 +451,6 @@ export type FieldOutputTypes = {
     readonly DeliveryJob: {
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly providerId: CodecTypes['pg/text@1']['output'] | null;
-<<<<<<< HEAD
-      readonly sourceType: CodecTypes['pg/text@1']['output'];
-      readonly sourceId: CodecTypes['pg/text@1']['output'];
-      readonly status: CodecTypes['pg/text@1']['output'];
-      readonly idempotencyKey: CodecTypes['pg/text@1']['output'] | null;
-      readonly pickupAddress: CodecTypes['pg/text@1']['output'] | null;
-      readonly dropoffAddress: CodecTypes['pg/text@1']['output'] | null;
-=======
       readonly sourceType:
         | 'RESTAURANT_ORDER'
         | 'RETAIL_ORDER'
@@ -495,7 +481,6 @@ export type FieldOutputTypes = {
       readonly dropoffAddress: CodecTypes['pg/text@1']['output'];
       readonly dropoffLat: CodecTypes['pg/float8@1']['output'] | null;
       readonly dropoffLng: CodecTypes['pg/float8@1']['output'] | null;
->>>>>>> agent/logisticsos
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
     };
@@ -2535,14 +2520,6 @@ export type FieldInputTypes = {
     readonly DeliveryJob: {
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly providerId: CodecTypes['pg/text@1']['input'] | null;
-<<<<<<< HEAD
-      readonly sourceType: CodecTypes['pg/text@1']['input'];
-      readonly sourceId: CodecTypes['pg/text@1']['input'];
-      readonly status: CodecTypes['pg/text@1']['input'];
-      readonly idempotencyKey: CodecTypes['pg/text@1']['input'] | null;
-      readonly pickupAddress: CodecTypes['pg/text@1']['input'] | null;
-      readonly dropoffAddress: CodecTypes['pg/text@1']['input'] | null;
-=======
       readonly sourceType:
         | 'RESTAURANT_ORDER'
         | 'RETAIL_ORDER'
@@ -2573,7 +2550,6 @@ export type FieldInputTypes = {
       readonly dropoffAddress: CodecTypes['pg/text@1']['input'];
       readonly dropoffLat: CodecTypes['pg/float8@1']['input'] | null;
       readonly dropoffLng: CodecTypes['pg/float8@1']['input'] | null;
->>>>>>> agent/logisticsos
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
     };
@@ -4590,16 +4566,6 @@ export type StorageColumnTypes = {
     };
     readonly deliveryJob: {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
-<<<<<<< HEAD
-      readonly dropoffAddress: CodecTypes['pg/text@1']['output'] | null;
-      readonly id: CodecTypes['pg/text@1']['output'];
-      readonly idempotencyKey: CodecTypes['pg/text@1']['output'] | null;
-      readonly pickupAddress: CodecTypes['pg/text@1']['output'] | null;
-      readonly providerId: CodecTypes['pg/text@1']['output'] | null;
-      readonly sourceId: CodecTypes['pg/text@1']['output'];
-      readonly sourceType: CodecTypes['pg/text@1']['output'];
-      readonly status: CodecTypes['pg/text@1']['output'];
-=======
       readonly dropoffAddress: CodecTypes['pg/text@1']['output'];
       readonly dropoffLat: CodecTypes['pg/float8@1']['output'] | null;
       readonly dropoffLng: CodecTypes['pg/float8@1']['output'] | null;
@@ -4632,7 +4598,6 @@ export type StorageColumnTypes = {
         | 'COMPLETED'
         | 'CANCELLED'
         | 'FAILED';
->>>>>>> agent/logisticsos
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
     };
     readonly deliveryPricingRule: {
@@ -6670,16 +6635,6 @@ export type StorageColumnInputTypes = {
     };
     readonly deliveryJob: {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
-<<<<<<< HEAD
-      readonly dropoffAddress: CodecTypes['pg/text@1']['input'] | null;
-      readonly id: CodecTypes['pg/text@1']['input'];
-      readonly idempotencyKey: CodecTypes['pg/text@1']['input'] | null;
-      readonly pickupAddress: CodecTypes['pg/text@1']['input'] | null;
-      readonly providerId: CodecTypes['pg/text@1']['input'] | null;
-      readonly sourceId: CodecTypes['pg/text@1']['input'];
-      readonly sourceType: CodecTypes['pg/text@1']['input'];
-      readonly status: CodecTypes['pg/text@1']['input'];
-=======
       readonly dropoffAddress: CodecTypes['pg/text@1']['input'];
       readonly dropoffLat: CodecTypes['pg/float8@1']['input'] | null;
       readonly dropoffLng: CodecTypes['pg/float8@1']['input'] | null;
@@ -6712,7 +6667,6 @@ export type StorageColumnInputTypes = {
         | 'COMPLETED'
         | 'CANCELLED'
         | 'FAILED';
->>>>>>> agent/logisticsos
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
     };
     readonly deliveryPricingRule: {
@@ -9945,29 +9899,6 @@ type ContractBase = Omit<
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
                   readonly nullable: false;
-                  readonly default: {
-                    readonly kind: 'function';
-                    readonly expression: 'uuid_generate_v7()';
-                  };
-                };
-                readonly providerId: {
-                  readonly nativeType: 'text';
-                  readonly codecId: 'pg/text@1';
-                  readonly nullable: true;
-                };
-                readonly sourceType: {
-                  readonly nativeType: 'text';
-                  readonly codecId: 'pg/text@1';
-                  readonly nullable: false;
-                  readonly default: {
-                    readonly kind: 'literal';
-                    readonly value: DefaultLiteralValue<'pg/text@1', 'RETAIL_ORDER'>;
-                  };
-                };
-                readonly sourceId: {
-                  readonly nativeType: 'text';
-                  readonly codecId: 'pg/text@1';
-                  readonly nullable: false;
                 };
                 readonly deliveryJobId: {
                   readonly nativeType: 'text';
@@ -10103,21 +10034,6 @@ type ContractBase = Omit<
                     readonly value: DefaultLiteralValue<'pg/text@1', 'PENDING'>;
                   };
                 };
-<<<<<<< HEAD
-                readonly idempotencyKey: {
-                  readonly nativeType: 'text';
-                  readonly codecId: 'pg/text@1';
-                  readonly nullable: true;
-                };
-                readonly pickupAddress: {
-                  readonly nativeType: 'text';
-                  readonly codecId: 'pg/text@1';
-                  readonly nullable: true;
-                };
-                readonly dropoffAddress: {
-                  readonly nativeType: 'text';
-                  readonly codecId: 'pg/text@1';
-=======
                 readonly attempt: {
                   readonly nativeType: 'int4';
                   readonly codecId: 'pg/int4@1';
@@ -10165,7 +10081,6 @@ type ContractBase = Omit<
                 readonly idempotencyKey: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
->>>>>>> agent/logisticsos
                   readonly nullable: true;
                 };
                 readonly createdAt: {
@@ -10182,11 +10097,6 @@ type ContractBase = Omit<
                 };
               };
               primaryKey: { readonly columns: readonly ['id'] };
-<<<<<<< HEAD
-              uniques: readonly [];
-              indexes: readonly [];
-              foreignKeys: readonly [];
-=======
               uniques: readonly [
                 {
                   readonly columns: readonly ['providerId', 'idempotencyKey'];
@@ -10790,7 +10700,6 @@ type ContractBase = Omit<
                   };
                 },
               ];
->>>>>>> agent/logisticsos
             };
             readonly discoveryListing: {
               columns: {
@@ -16817,6 +16726,10 @@ type ContractBase = Omit<
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
                   readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'function';
+                    readonly expression: 'uuid_generate_v7()';
+                  };
                 };
                 readonly firstName: {
                   readonly nativeType: 'text';
@@ -28410,17 +28323,6 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
-<<<<<<< HEAD
-              readonly providerId: {
-                readonly nullable: true;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
-              };
-              readonly sourceType: {
-                readonly nullable: false;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
-              };
-              readonly sourceId: {
-=======
               readonly deliveryJobId: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
@@ -28520,7 +28422,6 @@ type ContractBase = Omit<
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
               readonly providerId: {
->>>>>>> agent/logisticsos
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
@@ -28528,17 +28429,6 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
-<<<<<<< HEAD
-              readonly idempotencyKey: {
-                readonly nullable: true;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
-              };
-              readonly pickupAddress: {
-                readonly nullable: true;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
-              };
-              readonly dropoffAddress: {
-=======
               readonly attempt: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
@@ -28584,7 +28474,6 @@ type ContractBase = Omit<
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
               readonly idempotencyKey: {
->>>>>>> agent/logisticsos
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
@@ -28603,9 +28492,6 @@ type ContractBase = Omit<
                 };
               };
             };
-<<<<<<< HEAD
-            readonly relations: Record<string, never>;
-=======
             readonly relations: {
               readonly deliveryJob: {
                 readonly to: {
@@ -28818,7 +28704,6 @@ type ContractBase = Omit<
                 };
               };
             };
->>>>>>> agent/logisticsos
             readonly storage: {
               readonly table: 'deliveryJob';
               readonly namespaceId: 'public';
@@ -28830,15 +28715,11 @@ type ContractBase = Omit<
                 readonly status: { readonly column: 'status' };
                 readonly idempotencyKey: { readonly column: 'idempotencyKey' };
                 readonly pickupAddress: { readonly column: 'pickupAddress' };
-<<<<<<< HEAD
-                readonly dropoffAddress: { readonly column: 'dropoffAddress' };
-=======
                 readonly pickupLat: { readonly column: 'pickupLat' };
                 readonly pickupLng: { readonly column: 'pickupLng' };
                 readonly dropoffAddress: { readonly column: 'dropoffAddress' };
                 readonly dropoffLat: { readonly column: 'dropoffLat' };
                 readonly dropoffLng: { readonly column: 'dropoffLng' };
->>>>>>> agent/logisticsos
                 readonly createdAt: { readonly column: 'createdAt' };
                 readonly updatedAt: { readonly column: 'updatedAt' };
               };
@@ -45407,16 +45288,6 @@ type ContractBase = Omit<
         {
           readonly ref: {
             readonly namespace: 'public';
-<<<<<<< HEAD
-=======
-            readonly table: 'customerData';
-            readonly column: 'id';
-          };
-          readonly onCreate: { readonly kind: 'generator'; readonly id: 'uuidv4' };
-        },
-        {
-          readonly ref: {
-            readonly namespace: 'public';
             readonly table: 'deliveryAssignment';
             readonly column: 'id';
           };
@@ -45465,7 +45336,6 @@ type ContractBase = Omit<
         {
           readonly ref: {
             readonly namespace: 'public';
->>>>>>> agent/logisticsos
             readonly table: 'discoveryListing';
             readonly column: 'id';
           };
@@ -46019,14 +45889,6 @@ type ContractBase = Omit<
           readonly ref: {
             readonly namespace: 'public';
             readonly table: 'paymentEvent';
-            readonly column: 'id';
-          };
-          readonly onCreate: { readonly kind: 'generator'; readonly id: 'uuidv4' };
-        },
-        {
-          readonly ref: {
-            readonly namespace: 'public';
-            readonly table: 'person';
             readonly column: 'id';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'uuidv4' };
