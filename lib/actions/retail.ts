@@ -1,6 +1,7 @@
 'use server'
 
 import '@js-temporal/polyfill'
+import { createLogisticsDeliveryRequest, getDeliveryStatusForSource } from '../../../logisticsos/lib/actions/logistics-api'
 import { db } from '@/src/prisma/db'
 import { requireMembership } from '@/lib/actions/tenant'
 import { revalidatePath } from 'next/cache'
@@ -2337,16 +2338,19 @@ export async function requestRetailFulfillment(orderId: string, locationId?: str
   if (!order) throw new Error('Order not found');
   if (order.status !== 'CONFIRMED') throw new Error('Order must be confirmed');
   
-  const existingJob = await db.orm.public.DeliveryJob.where({ retailOrderId: order.id }).all().first();
-  if (existingJob) return { success: true, deliveryJobId: existingJob.id, status: existingJob.status };
+  const existingJob = await getDeliveryStatusForSource('RETAIL_ORDER', order.id);
+  if (existingJob) return { success: true, deliveryJobId: existingJob.deliveryJobId, status: existingJob.status };
 
-  const job = await db.orm.public.DeliveryJob.create({
-    organizationId: order.organizationId,
-    retailOrderId: order.id,
-    locationId: locationId || order.locationId,
-    status: 'REQUESTED',
-    pickupAddress: 'Store',
-    dropoffAddress: 'Customer'
+  const job = await createLogisticsDeliveryRequest({
+    sourceType: 'RETAIL_ORDER',
+    sourceId: order.id,
+    pickup: {
+      address: 'Store'
+    },
+    dropoff: {
+      address: 'Customer'
+    },
+    idempotencyKey: `retail-fulfillment-${order.id}`
   });
   
   await db.orm.public.RetailOrder.where({ id: order.id }).update({ fulfillmentStatus: 'PROCESSING' });
@@ -2355,12 +2359,12 @@ export async function requestRetailFulfillment(orderId: string, locationId?: str
 
 export async function syncLogisticsStatusToShopOS(jobId: string) {
   const job = await db.orm.public.DeliveryJob.where({ id: jobId }).all().first();
-  if (!job || !job.retailOrderId) return;
+  if (!job || job.sourceType !== 'RETAIL_ORDER' || !job.sourceId) return;
   const deliveryStatus = job.status;
   if (deliveryStatus === 'DELIVERED') {
-      await db.orm.public.RetailOrder.where({ id: job.retailOrderId }).update({ fulfillmentStatus: 'FULFILLED' });
+      await db.orm.public.RetailOrder.where({ id: job.sourceId }).update({ fulfillmentStatus: 'FULFILLED' });
   } else {
-      await db.orm.public.RetailOrder.where({ id: job.retailOrderId }).update({ fulfillmentStatus: 'READY' });
+      await db.orm.public.RetailOrder.where({ id: job.sourceId }).update({ fulfillmentStatus: 'READY' });
   }
 }
 

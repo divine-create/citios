@@ -24,9 +24,9 @@ test('Fulfillment Integration Contract - Phase 2B', async (t) => {
   assert.strictEqual(res.success, true);
   
   // 3. Verify DeliveryJob was created
-  const job = await db.orm.public.DeliveryJob.where({ retailOrderId: order.id }).all().first();
+  const job = await db.orm.public.DeliveryJob.where({ sourceId: order.id, sourceType: 'RETAIL_ORDER' }).all().first();
   assert.ok(job);
-  assert.strictEqual(job.status, 'REQUESTED');
+  assert.strictEqual(job.status, 'CREATED');
 
   // 4. Test syncLogisticsStatusToShopOS
   await db.orm.public.DeliveryJob.where({ id: job.id }).update({ status: 'DELIVERED' });

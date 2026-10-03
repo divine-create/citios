@@ -1982,7 +1982,6 @@ model RestaurantOrder {
   items          OrderItem[]
   
   payment        Payment?
-  delivery       DeliveryJob?
   kitchenStartedAt DateTime?
     kitchenCompletedAt DateTime?
     createdAt      DateTime     @default(now())
@@ -3242,13 +3241,11 @@ model PaymentEvent {
 
 model DeliveryJob {
   id                String  @id @default(dbgenerated("uuid_generate_v7()"))
-  organizationId    String?
-  locationId        String?
-  retailOrderId     String? @unique
-  retailOrder       RetailOrder? @relation(fields: [retailOrderId], references: [id])
-  restaurantOrderId String? @unique
-  restaurantOrder   RestaurantOrder? @relation(fields: [restaurantOrderId], references: [id])
+  providerId        String?
+  sourceType        String  @default("RETAIL_ORDER")
+  sourceId          String
   status            String  @default("PENDING")
+  idempotencyKey    String?
   pickupAddress     String?
   dropoffAddress    String?
   createdAt         DateTime @default(now())

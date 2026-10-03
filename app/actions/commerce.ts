@@ -1,5 +1,7 @@
 'use server';
 
+import { getDeliveryStatusForSource } from '../../../logisticsos/lib/actions/logistics-api';
+
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/src/prisma/db';
@@ -258,7 +260,7 @@ export async function fetchRetailOrders(orgId: string) {
 
   return Promise.all(orders.map(async (o) => {
     const items = await db.orm.public.RetailOrderItem.where({ orderId: o.id }).all();
-      const delivery = await db.orm.public.DeliveryJob.where({ retailOrderId: o.id }).all().first();
+      const delivery = await getDeliveryStatusForSource('RETAIL_ORDER', o.id);
     let customerName = 'Unknown';
     if (o.customerDataId) {
       const cust = await db.orm.public.CustomerData.where({ id: o.customerDataId }).all().first();
@@ -280,7 +282,7 @@ export async function fetchRetailOrders(orgId: string) {
       total: o.totalAmount,
       status: o.status === 'CANCELLED' ? 'CANCELLED' : o.fulfillmentStatus,
         time: o.createdAt.toLocaleTimeString(),
-        deliveryJobId: null, // Will populate if delivery exists
+        deliveryJobId: delivery?.deliveryJobId || null,
     };
   }));
 }
@@ -358,14 +360,20 @@ export async function fetchMyOrders() {
     const cust = await db.orm.public.CustomerData.where({ personId: session.user.personId }).all().first();
     if (!cust) return [];
     // @ts-ignore
-      const orders = await db.orm.public.RetailOrder.where({ customerDataId: cust.id }).include({ delivery: true }).all();
+      const orders = await db.orm.public.RetailOrder.where({ customerDataId: cust.id }).all();
     orders.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    return orders.map((o: any) => ({
-      ...o,
-      status: o.status === 'PENDING' ? 'pending' : 'completed',
-      fulfillmentStatus: o.fulfillmentStatus,
-      deliveryJobId: o.delivery?.id,
+    
+    // Fetch delivery statuses efficiently
+    const ordersWithDelivery = await Promise.all(orders.map(async (o: any) => {
+      const delivery = await getDeliveryStatusForSource('RETAIL_ORDER', o.id);
+      return {
+        ...o,
+        status: o.status === 'PENDING' ? 'pending' : 'completed',
+        fulfillmentStatus: o.fulfillmentStatus,
+        deliveryJobId: delivery?.deliveryJobId || null,
+      };
     }));
+    return ordersWithDelivery;
   } catch (error) {
     return [];
   }
