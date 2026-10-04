@@ -241,8 +241,8 @@ export async function refundOrderPayment(reference: string, reason?: string) {
   const isMember = session.user.memberships?.some((m: any) => m.organizationId === orgId);
   if (!isMember) return { success: false, message: 'Unauthorized to refund this payment.' };
 
-  if (payment.status !== 'COMPLETED') {
-     return { success: false, message: 'Only COMPLETED payments can be refunded.' };
+  if (payment.status !== 'SUCCEEDED' && payment.status !== 'CONFIRMED') {
+     return { success: false, message: 'Only SUCCEEDED or CONFIRMED payments can be refunded.' };
   }
   
   if (!payment.providerReference || !payment.provider) {
