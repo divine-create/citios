@@ -24,7 +24,7 @@ export default function LogisticsLayout({ children }: { children: React.ReactNod
             <Map className="w-5 h-5" />
             Dispatch Map
           </Link>
-          <Link href="#" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 hover:text-white transition-colors">
+          <Link href="/business/logisticsos/fleet" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 hover:text-white transition-colors">
             <Users className="w-5 h-5" />
             Fleet & Drivers
           </Link>

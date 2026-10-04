@@ -51,8 +51,17 @@ export default function CartView() {
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6">
-        <div className="flex-1 space-y-3">
-          {lines.map((l) => (
+        <div className="flex-1 space-y-6">
+          {Object.entries(lines.reduce((acc, l) => {
+            if (!acc[l.orgName]) acc[l.orgName] = [];
+            acc[l.orgName].push(l);
+            return acc;
+          }, {} as Record<string, typeof lines>)).map(([orgName, orgLines]) => (
+            <div key={orgName} className="space-y-3">
+              <div className="flex items-center gap-2 border-b border-slate-100 pb-2 mb-3">
+                <h2 className="text-sm font-black text-ink tracking-wide">{orgName}</h2>
+              </div>
+              {orgLines.map((l) => (
             <div key={l.productId} className="bg-white rounded-2xl border border-slate-100 p-3.5 flex gap-4 items-center">
               <Link href={l.kind === 'food' ? `/food/item/${l.productId}` : `/product/${l.productId}`}>
                 <div className="w-20 h-20 rounded-xl overflow-hidden bg-slate-50 ring-1 ring-slate-200/50 relative">
@@ -96,6 +105,8 @@ export default function CartView() {
               <div className="font-black text-sm text-ink text-right min-w-[80px]">
                 {fmt(l.price * l.qty)}
               </div>
+            </div>
+              ))}
             </div>
           ))}
         </div>
