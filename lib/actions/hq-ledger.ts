@@ -99,7 +99,7 @@ export async function getPlatformEconomyOverview() {
 
   // Payments volume (Successful)
   const paymentAgg = await db.orm.public.Payment
-    .where({ status: 'SUCCEEDED' })
+    .where({ status: 'COMPLETED' })
     .aggregate((a: any) => ({ 
        count: a.count(), 
        volume: a.sum('amount') 
