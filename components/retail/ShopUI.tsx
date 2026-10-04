@@ -11,7 +11,7 @@ import { X } from "lucide-react";
 export const inputCls = "w-full px-4 py-2.5 bg-white border border-slate-200/80 rounded-xl text-sm text-ink shadow-sm placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-brand-500/10 focus:border-brand-500 transition-all appearance-none";
 export const selectCls = `${inputCls} cursor-pointer`;
 
-export const btnPrimary = "inline-flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold tracking-tight px-5 py-2.5 rounded-xl transition-all disabled:opacity-50 disabled:pointer-events-none shadow-sm shadow-brand-900/10 ring-1 ring-inset ring-black/10 active:scale-[0.98]";
+export const btnPrimary = "inline-flex items-center justify-center gap-2 bg-brand-600 bg-gradient-to-b from-brand-500 to-brand-600 hover:to-brand-700 text-white text-sm font-semibold tracking-tight px-5 py-2.5 rounded-xl transition-all disabled:opacity-50 disabled:pointer-events-none shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.15)] ring-1 ring-inset ring-black/10 active:scale-[0.98]";
 export const btnOutline = "inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-50 border border-slate-200 shadow-sm text-slate-700 text-sm font-semibold tracking-tight px-5 py-2.5 rounded-xl transition-all disabled:opacity-50 active:scale-[0.98]";
 export const btnDanger = "inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold tracking-tight px-5 py-2.5 rounded-xl transition-all disabled:opacity-50 shadow-sm shadow-red-900/10 ring-1 ring-inset ring-black/10 active:scale-[0.98]";
 export const btnDark =
