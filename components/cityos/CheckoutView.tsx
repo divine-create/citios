@@ -2,20 +2,19 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Wallet, CreditCard, Landmark, ShieldCheck, Loader2, ChevronRight, Truck, Lock, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
+import { Wallet, CreditCard, Landmark, ShieldCheck, Loader2, ArrowLeft, Truck, MapPin, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useMoney } from '@/components/cityos/CityProvider';
 import { useCart } from '@/components/cityos/CartStore';
-
-import { Money, Pill } from '@/components/cityos/CityUI';
 import { cn } from '@/lib/utils';
 import { initiateCheckout } from '@/app/actions/payment';
 
 const METHODS = [
-  { id: 'card', label: 'Debit / Credit Card', sub: 'Visa, Mastercard, Verve via Paystack', icon: CreditCard },
-  { id: 'transfer', label: 'Bank Transfer / USSD', sub: 'Direct bank transfer via Paystack', icon: Landmark },
+  { id: 'card', label: 'Debit or Credit Card', sub: 'Visa, Mastercard, Verve', icon: CreditCard },
+  { id: 'transfer', label: 'Bank Transfer / USSD', sub: 'Pay directly from your bank', icon: Landmark },
 ] as const;
 
-type MethodId = 'card' | 'card' | 'transfer';
+type MethodId = 'card' | 'transfer';
 
 export default function CheckoutView() {
   const { fmt } = useMoney();
@@ -27,45 +26,55 @@ export default function CheckoutView() {
   const [processing, setProcessing] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   
+  // Multi-step UI state
+  const [step, setStep] = useState<1 | 2>(1);
 
-  // Split the shared cart by line kind. Retail and food are different
-  // canonical order pipelines (RetailOrder vs RestaurantOrder), so a mixed
-  // cart cannot be checked out in one pass — the resident resolves it by
-  // checking out each kind separately.
+  // Split the shared cart by line kind
   const retailLines = lines.filter((l) => l.kind === 'retail');
   const foodLines = lines.filter((l) => l.kind === 'food');
   const foodOnly = foodLines.length > 0 && retailLines.length === 0;
   const hasMixed = retailLines.length > 0 && foodLines.length > 0;
+  const activeLines = foodOnly ? foodLines : retailLines;
+  const checkoutKind = foodOnly ? 'food' : 'retail';
 
   if (lines.length === 0 && !processing) {
     return (
-      <div className="max-w-lg mx-auto text-center py-20 space-y-4">
-        <div className="w-16 h-16 mx-auto rounded-3xl bg-teal-50 text-teal-800 flex items-center justify-center">
-          <Wallet className="w-7 h-7" />
+      <div className="max-w-md mx-auto text-center py-20 px-4">
+        <div className="w-20 h-20 mx-auto rounded-full bg-slate-50 flex items-center justify-center mb-6 shadow-sm border border-slate-100">
+          <Wallet className="w-8 h-8 text-slate-400" />
         </div>
-        <h1 className="text-lg font-black text-ink">Nothing to pay for</h1>
-        <p className="text-sm text-slate-500">Add a few items from the market first, then check out.</p>
+        <h1 className="text-2xl font-black text-slate-900 mb-2">Nothing to pay for</h1>
+        <p className="text-slate-500 mb-8">Add a few items from the market first, then check out.</p>
+        <Link href="/market" className="px-6 py-3 rounded-2xl bg-ink text-white font-black hover:bg-slate-800 transition-colors shadow-md">
+          Go to Market
+        </Link>
       </div>
     );
   }
 
-  const total = subtotal + deliveryFee;
-  
+  // Preview total
+  const previewTotal = subtotal + deliveryFee;
+
+  const handleNextStep = () => {
+    if (step === 1 && deliveryAddress.trim().length > 5) {
+      setStep(2);
+      setErrorMsg('');
+    } else if (step === 1) {
+      setErrorMsg('Please enter a complete delivery address.');
+    }
+  };
 
   const pay = async () => {
     if (processing || hasMixed) return;
 
-
     setProcessing(true);
+    setErrorMsg('');
 
     try {
-      const checkoutKind = foodOnly ? 'food' : 'retail';
-      const activeLines = foodOnly ? foodLines : retailLines;
-
       const res = await initiateCheckout({
         kind: checkoutKind,
         deliveryAddress,
-          items: activeLines.map((l) => ({
+        items: activeLines.map((l) => ({
           productId: l.productId,
           qty: l.qty,
           name: l.name,
@@ -82,7 +91,7 @@ export default function CheckoutView() {
       if (res.success && res.redirectUrl) {
         clear();
         if (res.redirectUrl.startsWith('http') && !res.redirectUrl.includes(window.location.host)) {
-          // External Paystack checkout URL
+          // External payment gateway redirect
           window.location.href = res.redirectUrl;
         } else {
           router.push(res.redirectUrl);
@@ -96,158 +105,212 @@ export default function CheckoutView() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-black text-ink">Checkout</h1>
+    <div className="max-w-5xl mx-auto space-y-6 md:space-y-8 animate-in fade-in duration-500 pb-20">
+      
+      {/* Header */}
+      <div>
+        <Link href="/cart" className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-500 hover:text-ink transition-colors mb-4">
+          <ArrowLeft className="w-4 h-4" /> Back to Cart
+        </Link>
+        <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">Checkout</h1>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-10 items-start">
-        <div className="lg:col-span-3 space-y-4">
-          <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-3">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Your items</p>
-            {hasMixed && (
-              <div className="mb-3 p-3 bg-amber-50 text-amber-900 text-xs font-medium rounded-xl flex gap-2 items-start leading-relaxed">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 opacity-70" />
-                <div>This cart mixes market items and food orders. They are placed with different merchants â€” check out each separately. Remove one type of item, or complete this checkout and come back.</div>
+      {hasMixed && (
+        <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex gap-3 items-start shadow-sm">
+          <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+          <div className="text-sm text-amber-900">
+            <p className="font-bold mb-1">Mixed Cart Detected</p>
+            <p>This cart contains both retail products and restaurant food. They are fulfilled by different systems. We will process your <strong>{checkoutKind}</strong> items first.</p>
+          </div>
+        </div>
+      )}
+
+      {errorMsg && (
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex gap-3 items-start shadow-sm animate-in slide-in-from-top-2">
+          <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+          <div className="text-sm text-rose-900 font-medium">{errorMsg}</div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        {/* MAIN CHECKOUT FLOW */}
+        <div className="lg:col-span-7 space-y-6">
+          
+          {/* STEP 1: DELIVERY */}
+          <div className={cn(
+            "bg-white rounded-3xl border shadow-sm overflow-hidden transition-all duration-300",
+            step === 1 ? "border-slate-300 shadow-md ring-1 ring-slate-100" : "border-slate-100 opacity-60"
+          )}>
+            <div className="p-6 flex items-center justify-between cursor-pointer" onClick={() => step > 1 && setStep(1)}>
+              <div className="flex items-center gap-4">
+                <div className={cn(
+                  "w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm",
+                  step === 1 ? "bg-ink text-white" : "bg-emerald-100 text-emerald-700"
+                )}>
+                  {step > 1 ? <CheckCircle2 className="w-5 h-5" /> : "1"}
+                </div>
+                <h2 className="text-lg font-black text-slate-900">Delivery Details</h2>
+              </div>
+              {step > 1 && <span className="text-sm font-bold text-ink hover:underline">Edit</span>}
+            </div>
+            
+            {step === 1 && (
+              <div className="p-6 pt-0 border-t border-slate-100/50 mt-2">
+                <label className="block text-sm font-bold text-slate-700 mb-2">Delivery Address</label>
+                <div className="relative">
+                  <MapPin className="absolute left-4 top-4 text-slate-400 w-5 h-5" />
+                  <textarea
+                    rows={3}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 pr-4 py-3 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-ink focus:ring-1 focus:ring-ink transition-all resize-none font-medium"
+                    placeholder="Enter your full street address, apartment, and any delivery instructions..."
+                    value={deliveryAddress}
+                    onChange={(e) => setDeliveryAddress(e.target.value)}
+                  />
+                </div>
+                <div className="mt-6 flex justify-end">
+                  <button 
+                    onClick={handleNextStep}
+                    className="px-8 py-3 bg-ink text-white font-black rounded-xl hover:bg-slate-800 transition-colors shadow-md"
+                  >
+                    Continue to Payment
+                  </button>
+                </div>
               </div>
             )}
-            {lines.map((l) => {
-              return (
-                <div key={l.productId} className="flex items-center gap-3 py-1.5">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs font-black text-ink line-clamp-1">{l.name}</div>
-                    <div className="text-[10px] font-medium text-slate-500">{l.orgName} â€¢ {l.qty}x</div>
-                  </div>
-                  <div className="text-xs font-bold text-ink whitespace-nowrap">
-                    {fmt(l.price * l.qty)}
-                  </div>
-                </div>
-              );
-            })}
+            
+            {step > 1 && (
+              <div className="px-6 pb-6 pt-0 ml-12 text-sm text-slate-600 font-medium">
+                {deliveryAddress}
+              </div>
+            )}
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-            <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
-              <h2 className="text-xs font-black text-slate-700 uppercase tracking-widest">Delivery Details</h2>
-              <Pill className="bg-emerald-50 text-emerald-800 text-[10px] border-0"><Truck className="w-3 h-3 mr-1" /> Today</Pill>
-            </div>
-            <div className="p-5 flex items-start gap-4">
-              <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
-                <Truck className="w-4 h-4 text-slate-400" />
+          {/* STEP 2: PAYMENT */}
+          <div className={cn(
+            "bg-white rounded-3xl border shadow-sm overflow-hidden transition-all duration-300",
+            step === 2 ? "border-slate-300 shadow-md ring-1 ring-slate-100" : "border-slate-100 opacity-60"
+          )}>
+            <div className="p-6 flex items-center gap-4">
+              <div className={cn(
+                "w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm",
+                step === 2 ? "bg-ink text-white" : "bg-slate-100 text-slate-400"
+              )}>
+                2
               </div>
-              {!foodOnly && (
-                <div>
-                <h3 className="font-bold text-sm text-ink leading-tight">Delivery Address</h3>
-                  <textarea className="w-full mt-2 p-2 border border-slate-200 rounded text-xs text-slate-700" placeholder="Enter your delivery address..." value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} required={!foodOnly} />
-              </div>
-              )}
+              <h2 className="text-lg font-black text-slate-900">Payment Method</h2>
             </div>
+            
+            {step === 2 && (
+              <div className="p-6 pt-0 border-t border-slate-100/50 mt-2 space-y-3">
+                {METHODS.map((m) => {
+                  const Icon = m.icon;
+                  const isActive = method === m.id;
+                  return (
+                    <button
+                      key={m.id}
+                      onClick={() => setMethod(m.id)}
+                      className={cn(
+                        "w-full flex items-center gap-4 p-4 rounded-2xl border-2 text-left transition-all",
+                        isActive 
+                          ? "border-ink bg-slate-50 shadow-sm" 
+                          : "border-slate-100 hover:border-slate-200 bg-white hover:bg-slate-50"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
+                        isActive ? "bg-ink text-white" : "bg-slate-100 text-slate-500"
+                      )}>
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <div className="flex-grow">
+                        <div className="font-bold text-slate-900">{m.label}</div>
+                        <div className="text-xs font-medium text-slate-500">{m.sub}</div>
+                      </div>
+                      <div className={cn(
+                        "w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0",
+                        isActive ? "border-ink" : "border-slate-200"
+                      )}>
+                        {isActive && <div className="w-2.5 h-2.5 rounded-full bg-ink" />}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
-          
-          <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-            <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <h2 className="text-xs font-black text-slate-700 uppercase tracking-widest">Payment Method</h2>
-            </div>
-            <div className="p-2 space-y-1">
-              {METHODS.map((m) => (
-                <button
-                  key={m.id}
-                  onClick={() => setMethod(m.id)}
-                  className={cn(
-                    "w-full flex items-center justify-between p-3 rounded-xl transition-all text-left",
-                    method === m.id ? "bg-teal-50 ring-1 ring-teal-200" : "hover:bg-slate-50"
-                  )}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={cn(
-                      "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
-                      method === m.id ? "bg-teal-800 text-white" : "bg-slate-100 text-slate-400"
-                    )}>
-                      <m.icon className="w-4 h-4" />
+
+        </div>
+
+        {/* ORDER SUMMARY SIDEBAR */}
+        <div className="lg:col-span-5">
+          <div className="bg-slate-50 rounded-3xl p-6 border border-slate-200/60 sticky top-6">
+            <h2 className="text-lg font-black text-slate-900 mb-6">Order Summary</h2>
+            
+            {/* ITEMS MINI-LIST */}
+            <div className="space-y-4 mb-6 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+              {activeLines.map((l) => (
+                <div key={l.productId} className="flex justify-between items-start gap-4 text-sm">
+                  <div className="flex gap-3 min-w-0">
+                    <div className="w-6 h-6 rounded bg-slate-200 flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-slate-600">
+                      {l.qty}x
                     </div>
-                    <div>
-                      <div className={cn("font-bold text-sm leading-tight", method === m.id ? "text-teal-900" : "text-slate-700")}>
-                        {m.label}
-                      </div>
-                      <div className={cn("text-xs", method === m.id ? "text-teal-700" : "text-slate-500")}>
-                        {m.sub}
-                      </div>
-                    </div>
+                    <span className="font-medium text-slate-700 truncate">{l.name}</span>
                   </div>
-                  <div className={cn(
-                    "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors",
-                    method === m.id ? "border-teal-600" : "border-slate-200"
-                  )}>
-                    {method === m.id && <div className="w-2.5 h-2.5 rounded-full bg-teal-600" />}
-                  </div>
-                </button>
+                  <span className="font-bold text-slate-900 shrink-0">{fmt(l.price * l.qty)}</span>
+                </div>
               ))}
             </div>
-          </div>
-        </div>
 
-        <div className="lg:col-span-2">
-          <div className="bg-slate-50 rounded-3xl p-6 space-y-6 sticky top-24">
-            <h2 className="text-sm font-black text-ink flex items-center gap-2">
-              Order summary
-            </h2>
-            
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between text-slate-600 font-medium">
+            {/* TOTALS */}
+            <div className="space-y-3 py-4 border-t border-b border-slate-200/80 mb-6 text-sm font-medium text-slate-600">
+              <div className="flex justify-between">
                 <span>Subtotal</span>
-                <span className="font-bold text-ink"><Money amount={subtotal} /></span>
+                <span className="text-slate-900">{fmt(subtotal)}</span>
               </div>
-              <div className="flex justify-between text-slate-600 font-medium">
-                <span>{foodOnly ? 'Pickup' : 'Delivery'}</span>
-                <span className="font-bold text-ink">
-                  {foodOnly
-                    ? <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">No delivery fee</span>
-                    : <Money amount={deliveryFee} />}
-                </span>
+              <div className="flex justify-between">
+                <span>Delivery Estimate</span>
+                <span className="text-slate-900">{deliveryFee > 0 ? fmt(deliveryFee) : 'Calculated automatically'}</span>
+              </div>
+              <div className="flex justify-between items-center text-xs text-slate-500 pt-1">
+                <span className="flex items-center gap-1"><Truck className="w-3.5 h-3.5" /> Fulfillment</span>
+                <span>Powered by LogisticsOS</span>
               </div>
             </div>
+
+            <div className="flex justify-between items-end mb-8">
+              <span className="font-bold text-slate-900">Total to Pay</span>
+              <span className="text-2xl font-black text-ink">{fmt(previewTotal)}</span>
+            </div>
+
+            {/* PAY BUTTON */}
+            <button
+              onClick={pay}
+              disabled={step !== 2 || processing || hasMixed}
+              className={cn(
+                "flex items-center justify-center gap-2 w-full py-4 rounded-2xl font-black transition-all outline-none",
+                step !== 2 || hasMixed
+                  ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                  : "bg-ink text-white shadow-lg shadow-ink/20 hover:bg-slate-800 hover:shadow-xl hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
+              )}
+            >
+              {processing ? (
+                <><Loader2 className="w-5 h-5 animate-spin" /> Authorizing...</>
+              ) : (
+                <><ShieldCheck className="w-5 h-5" /> Pay {fmt(previewTotal)} Securely</>
+              )}
+            </button>
             
-            <div className="pt-4 border-t border-slate-200 space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="font-black text-ink">Total</span>
-                <span className="text-2xl font-black text-teal-900"><Money amount={total} /></span>
-              </div>
-
-              
-
-              
-
-              <button 
-                onClick={pay}
-                disabled={processing || hasMixed}
-                className="w-full h-14 flex items-center justify-center gap-2 bg-teal-800 text-white rounded-xl text-sm font-black hover:bg-teal-900 transition-all disabled:opacity-50 disabled:active:scale-100 active:scale-[0.98] shadow-sm"
-              >
-                {processing ? <Loader2 className="w-5 h-5 animate-spin opacity-50" /> : <Lock className="w-4 h-4 opacity-70" />}
-                {processing ? 'Processing securely...' : `Pay ${fmt(total)}`}
-              </button>
-              <div className="text-center">
-                <p className="text-[10px] text-slate-400 font-medium px-4">Payments are secured by CityPay infrastructure.</p>
-              </div>
+            <div className="mt-4 flex items-center justify-center gap-2 text-xs font-semibold text-slate-400">
+              <ShieldCheck className="w-4 h-4" /> End-to-end encrypted
+            </div>
+            <div className="mt-2 text-[10px] text-center text-slate-400 font-medium leading-relaxed px-4">
+              By clicking pay, you agree that the server will authoritatively recalculate the final price and inventory availability before creating the order.
             </div>
           </div>
         </div>
+
       </div>
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

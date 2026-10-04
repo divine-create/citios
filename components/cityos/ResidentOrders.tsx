@@ -1,36 +1,38 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Package, UtensilsCrossed, Clock, CheckCircle2, ChevronRight, Truck, Printer, ShoppingBag } from 'lucide-react';
+import { Package, UtensilsCrossed, Clock, CheckCircle2, ChevronRight, Truck, Printer, ShoppingBag, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { fetchMyOrders } from '@/app/actions/orders';
-import { cancelOrder, refundOrder } from '@/lib/actions/retail';
-import { ChipButton, FallbackImg, OpenBadge } from '@/components/cityos/CityUI';
 import { useMoney } from '@/components/cityos/CityProvider';
 import ThermalReceiptModal from '@/components/common/ThermalReceiptModal';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { cn } from '@/lib/utils';
+import Link from 'next/link';
+import { cancelOrder, refundOrder } from '@/lib/actions/retail';
 
 export default function ResidentOrders() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>({ retail: [], restaurant: [] });
   const [tab, setTab] = useState<'ALL' | 'FOOD' | 'MARKET'>('ALL');
   const [receiptOrder, setReceiptOrder] = useState<any>(null);
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
   const { fmt } = useMoney();
-  
-  const handleCancel = async (id: string) => {
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const handleAction = async (action: 'cancel' | 'refund', id: string) => {
     setActionLoading(id);
-    await cancelOrder(id, { reason: 'User requested' });
-    const res = await fetchMyOrders();
-    setData(res);
-    setActionLoading(null);
-  };
-  
-  const handleRefund = async (id: string) => {
-    setActionLoading(id);
-    await refundOrder(id, { reason: 'User requested' });
-    const res = await fetchMyOrders();
-    setData(res);
-    setActionLoading(null);
+    try {
+      if (action === 'cancel') {
+        await cancelOrder(id, { reason: 'User requested' });
+      } else {
+        await refundOrder(id, { reason: 'User requested' });
+      }
+      const res = await fetchMyOrders();
+      setData(res);
+    } catch (e) {
+      console.error('Action failed:', e);
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   useEffect(() => {
@@ -60,157 +62,199 @@ export default function ResidentOrders() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-slate-400">
-        <div className="w-6 h-6 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin mb-4" />
-        <p className="text-sm font-bold">Loading your orders...</p>
+      <div className="flex flex-col items-center justify-center min-h-[50vh] text-slate-400">
+        <Loader2 className="w-8 h-8 animate-spin text-ink mb-4" />
+        <p className="text-sm font-semibold animate-pulse">Loading your orders...</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 max-w-2xl mx-auto">
-      <div className="flex items-center justify-between gap-4 py-2 px-1">
+    <div className="max-w-4xl mx-auto space-y-6 md:space-y-8 animate-in fade-in duration-500 pb-20">
+      
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-           <h1 className="text-xl font-black text-ink">My Orders</h1>
-           <p className="text-xs text-slate-500 font-medium mt-0.5">Track your purchases and deliveries</p>
+          <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">Order History</h1>
+          <p className="text-sm text-slate-500 font-medium mt-1">Track and manage your marketplace and food orders</p>
         </div>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1 px-1 [&::-webkit-scrollbar]:hidden">
-        <ChipButton className="rounded-full px-5 py-2 font-bold text-[13px]" active={tab === 'ALL'} onClick={() => setTab('ALL')}>All</ChipButton>
-        <ChipButton className="rounded-full px-5 py-2 font-bold text-[13px]" active={tab === 'FOOD'} onClick={() => setTab('FOOD')}>Food Delivery</ChipButton>
-        <ChipButton className="rounded-full px-5 py-2 font-bold text-[13px]" active={tab === 'MARKET'} onClick={() => setTab('MARKET')}>Marketplace</ChipButton>
+      <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 hide-scrollbar snap-x">
+        {['ALL', 'MARKET', 'FOOD'].map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t as any)}
+            className={cn(
+              "shrink-0 snap-start px-5 py-2.5 rounded-full text-xs font-bold transition-all",
+              tab === t 
+                ? "bg-ink text-white shadow-md" 
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+            )}
+          >
+            {t === 'ALL' ? 'All Orders' : t === 'MARKET' ? 'Marketplace' : 'Food Delivery'}
+          </button>
+        ))}
       </div>
 
-      <div className="flex flex-col gap-4">
-        {filtered.map((order: any) => {
-          const isFood = order.category === 'FOOD';
-          const icon = isFood ? <UtensilsCrossed className="w-5 h-5 text-orange-500" /> : <Package className="w-5 h-5 text-teal-600" />;
-          const statusColor = order.status === 'COMPLETED' ? 'text-green-600 bg-green-50 border-green-100' : 'text-amber-600 bg-amber-50 border-amber-100';
-          
-          return (
-            <div key={order.id} className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
-                    {icon}
-                  </div>
-                  <div>
-                    <h3 className="text-[15px] font-black text-ink">{order.org?.name || 'Unknown Business'}</h3>
-                    <p className="text-xs font-bold text-slate-400">{new Date(order.createdAt).toLocaleDateString()} at {new Date(order.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
-                  </div>
-                </div>
-                <div className={`px-2.5 py-1 rounded-lg border text-[10px] font-black uppercase tracking-wider ${statusColor}`}>
-                  {order.status}
-                </div>
-              </div>
-              
-              <div className="space-y-2 mb-4">
-                {order.items.map((item: any) => (
-                  <div key={item.id} className="flex justify-between items-center text-sm">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-slate-400">{item.quantity}x</span>
-                      <span className="font-medium text-slate-700 truncate max-w-[200px]">{item.product?.name || 'Item'}</span>
-                    </div>
-                    <span className="font-bold text-slate-800">{fmt(item.unitPrice * (item.quantity || 1))}</span>
-                  </div>
-                ))}
-              </div>
-
-              
-              <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
-                <div className="flex items-center gap-2.5">
-                  <span className="text-xs font-bold text-slate-500">
-                    {order.payment?.method === 'WALLET' ? 'Paid via Wallet' : order.payment ? 'Paid' : 'Payment Pending'}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setReceiptOrder(order)}
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-700 hover:text-teal-800 bg-slate-100 hover:bg-teal-50 px-2.5 py-1 rounded-lg transition-colors border border-slate-200"
-                  >
-                    <Printer className="w-3 h-3" />
-                    <span>Receipt</span>
-                  </button>
-                  {order.status === 'PENDING' && (
-                    <button
-                      onClick={() => handleCancel(order.id)}
-                      disabled={actionLoading === order.id}
-                      className="inline-flex items-center gap-1 text-[11px] font-bold text-red-700 hover:text-red-800 bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded-lg transition-colors border border-red-200 disabled:opacity-50"
-                    >
-                      {actionLoading === order.id ? 'Canceling...' : 'Cancel'}
-                    </button>
-                  )}
-                  {order.status === 'COMPLETED' && !order.refundedAt && (
-                    <button
-                      onClick={() => handleRefund(order.id)}
-                      disabled={actionLoading === order.id}
-                      className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded-lg transition-colors border border-amber-200 disabled:opacity-50"
-                    >
-                      {actionLoading === order.id ? 'Refunding...' : 'Request Refund'}
-                    </button>
-                  )}
-                </div>
-
-                <div className="text-base font-black text-ink">
-                  Total: {fmt(order.totalAmount)}
-                </div>
-              </div>
-
-              {order.category === 'MARKET' && order.fulfillmentStatus && (
-                <div className="mt-4 pt-4 border-t border-slate-100">
-                  <div className="flex items-center gap-3 text-xs font-bold text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                    <Package className="w-4 h-4" />
-                    <div className="flex-1">
-                      <span>Fulfillment: {order.fulfillmentStatus}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-              {order.delivery && (
-                <div className="mt-4 pt-4 border-t border-slate-100">
-                  <div className="flex items-center gap-3 text-xs font-bold text-blue-600 bg-blue-50/50 p-3 rounded-xl border border-blue-100/50">
-                    <Truck className="w-4 h-4" />
-                    <div className="flex-1">
-                      <span>Delivery Status: {order.delivery.status}</span>
-                      <p className="text-[10px] text-blue-500/80 font-medium mt-0.5 truncate">{order.delivery.dropoffAddress}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-
-        {filtered.length === 0 && (
+      {filtered.length === 0 ? (
+        <div className="py-10">
           <EmptyState
-            icon={<ShoppingBag className="w-7 h-7" />}
-            title="No orders yet"
-            description="When you place your first order, it'll appear here."
-            action={{ label: 'Browse the market', href: '/market' }}
+            icon={<ShoppingBag className="w-8 h-8" />}
+            title="No orders found"
+            description="You haven't placed any orders in this category yet."
+            action={{ label: "Go to Marketplace", href: "/market" }}
+            className="bg-white rounded-3xl border border-slate-100 shadow-sm"
           />
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {filtered.map((order: any) => {
+            const isFood = order.category === 'FOOD';
+            const icon = isFood ? <UtensilsCrossed className="w-5 h-5" /> : <Package className="w-5 h-5" />;
+            const isCancelable = order.status === 'PENDING' || order.status === 'ACCEPTED';
+            const isRefundable = order.payment?.status === 'SUCCESS' && (order.status === 'CANCELLED' || order.status === 'REJECTED');
+            
+            // Payment state logic
+            const payStatus = order.payment?.status || 'UNPAID';
+            const payColor = payStatus === 'SUCCESS' ? 'text-emerald-700 bg-emerald-50 border-emerald-200' 
+                           : payStatus === 'FAILED' ? 'text-rose-700 bg-rose-50 border-rose-200' 
+                           : 'text-amber-700 bg-amber-50 border-amber-200';
+
+            // Order state logic
+            const statusColor = order.status === 'COMPLETED' ? 'text-emerald-700 bg-emerald-50 border-emerald-200' 
+                              : order.status === 'CANCELLED' || order.status === 'REJECTED' ? 'text-slate-500 bg-slate-100 border-slate-200' 
+                              : 'text-sky-700 bg-sky-50 border-sky-200';
+
+            // Fulfillment/Delivery state logic
+            const fulfillmentState = order.fulfillmentStatus || 'UNFULFILLED';
+            const isDelivering = fulfillmentState === 'IN_TRANSIT' || fulfillmentState === 'OUT_FOR_DELIVERY';
+
+            return (
+              <div key={order.id} className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-all">
+                
+                {/* Header Area */}
+                <div className="p-5 md:p-6 border-b border-slate-50 bg-slate-50/50 flex flex-col md:flex-row md:items-start justify-between gap-4">
+                  <div className="flex items-start gap-4">
+                    <div className={cn(
+                      "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm border border-slate-100/50",
+                      isFood ? "bg-orange-50 text-orange-600" : "bg-teal-50 text-teal-600"
+                    )}>
+                      {icon}
+                    </div>
+                    <div>
+                      <h3 className="text-base font-black text-slate-900 leading-tight mb-1">
+                        {order.org?.name || 'Unknown Business'}
+                      </h3>
+                      <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+                        <span>{new Date(order.createdAt).toLocaleDateString()}</span>
+                        <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                        <span className="font-mono text-[10px] text-slate-400">#{order.id.slice(0, 8)}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 self-start">
+                    <button
+                      onClick={() => setReceiptOrder(order)}
+                      className="p-2 text-slate-400 hover:text-ink hover:bg-slate-100 rounded-xl transition-colors"
+                      title="View Receipt"
+                    >
+                      <Printer className="w-5 h-5" />
+                    </button>
+                    <div className="text-xl font-black text-slate-900">
+                      {fmt(order.totalAmount || order.total || 0)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Status Pillars Area */}
+                <div className="px-5 md:px-6 py-4 border-b border-slate-100 bg-white grid grid-cols-2 md:grid-cols-4 gap-4">
+                  
+                  <div>
+                    <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Payment</div>
+                    <div className={cn("inline-flex px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border", payColor)}>
+                      {payStatus}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Order</div>
+                    <div className={cn("inline-flex px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border", statusColor)}>
+                      {order.status}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Fulfillment</div>
+                    <div className="inline-flex px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border border-slate-200 bg-slate-50 text-slate-600">
+                      {fulfillmentState}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Delivery</div>
+                    <div className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600">
+                      {isDelivering ? (
+                        <><Truck className="w-3.5 h-3.5 text-blue-500" /> On the way</>
+                      ) : fulfillmentState === 'DELIVERED' ? (
+                        <><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Arrived</>
+                      ) : (
+                        <><Clock className="w-3.5 h-3.5 text-slate-400" /> Preparing</>
+                      )}
+                    </div>
+                  </div>
+
+                </div>
+                
+                {/* Items List Area */}
+                <div className="p-5 md:p-6 space-y-3">
+                  <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Items</div>
+                  {order.items.map((item: any) => (
+                    <div key={item.id} className="flex justify-between items-center text-sm">
+                      <div className="flex items-center gap-3">
+                        <span className="font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded-lg text-xs">{item.quantity}x</span>
+                        <span className="font-medium text-slate-700 truncate max-w-[200px] md:max-w-md">{item.product?.name || item.name || 'Item'}</span>
+                      </div>
+                      <span className="font-bold text-slate-800">{fmt((item.unitPrice || item.price) * (item.quantity || 1))}</span>
+                    </div>
+                  ))}
+                  
+                  {/* Actions */}
+                  {(isCancelable || isRefundable) && (
+                    <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end">
+                      {isCancelable && (
+                        <button
+                          disabled={actionLoading === order.id}
+                          onClick={() => handleAction('cancel', order.id)}
+                          className="px-4 py-2 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2"
+                        >
+                          {actionLoading === order.id && <Loader2 className="w-3 h-3 animate-spin" />}
+                          Cancel Order
+                        </button>
+                      )}
+                      {isRefundable && (
+                        <button
+                          disabled={actionLoading === order.id}
+                          onClick={() => handleAction('refund', order.id)}
+                          className="px-4 py-2 text-xs font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2"
+                        >
+                          {actionLoading === order.id && <Loader2 className="w-3 h-3 animate-spin" />}
+                          Request Refund
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {receiptOrder && (
         <ThermalReceiptModal
-          initialData={{
-            orderId: receiptOrder.id,
-            orderNumber: receiptOrder.orderNumber ? String(receiptOrder.orderNumber) : receiptOrder.id.slice(-8).toUpperCase(),
-            storeName: receiptOrder.org?.name || 'CityConnect Order',
-            date: receiptOrder.createdAt,
-            orderType: receiptOrder.category === 'FOOD' ? 'TAKEOUT' : 'STORE_SALE',
-            items: receiptOrder.items.map((i: any) => ({
-              name: i.product?.name || i.name || 'Item',
-              quantity: i.quantity || 1,
-              unitPrice: i.unitPrice || 0,
-              subtotal: (i.unitPrice || 0) * (i.quantity || 1),
-            })),
-            subtotal: receiptOrder.totalAmount,
-            totalAmount: receiptOrder.totalAmount,
-            paymentMethod: receiptOrder.payment?.method || 'COMPLETED',
-            currencySymbol: '₦',
-            footerMessage: 'Thank you for your order on CityConnect!',
-          }}
+          orderId={receiptOrder.id}
           onClose={() => setReceiptOrder(null)}
         />
       )}

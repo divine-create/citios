@@ -1,12 +1,49 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Plus, Search, Edit2, Trash2, ArrowUpDown, Package, AlertTriangle, X, Upload, Loader2, History, ArrowUpFromLine } from "lucide-react";
-import { createProduct, updateProduct, deleteProduct, getRetailSettings, adjustStock, getStockMovements } from "@/lib/actions/retail";
+import {
+  Package,
+  Search,
+  Plus,
+  AlertTriangle,
+  Upload,
+  Loader2,
+  Trash2,
+  History,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
+  CheckCircle2,
+  AlertCircle
+} from "lucide-react";
+import {
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  getRetailSettings,
+  adjustStock,
+  getStockMovements,
+} from "@/lib/actions/retail";
 import { uploadAsset } from "@/lib/actions/microsite";
-import { generateUniqueSku } from "@/lib/sku";
 import { DEFAULT_RETAIL_UNITS, normalizeRetailUnits } from "@/lib/defaultUnits";
-import { inputCls, selectCls } from "./ShopUI";
+import {
+  inputCls,
+  selectCls,
+  StatusPill,
+  btnPrimary,
+  btnOutline,
+  Modal,
+  PriceDisplay,
+  StockIndicator,
+  SearchInput,
+  FilterBar,
+  Skeleton,
+  ErrorState,
+  EmptyState,
+  SectionCard,
+  ActionCard,
+} from "./ShopUI";
 
 interface Product {
   id: string;
@@ -15,36 +52,43 @@ interface Product {
   categoryId: string | null;
   categoryName: string | null;
   price: number;
+  compareAtPrice: number | null;
   cost: number | null;
   stockQuantity: number;
   lowStockLevel: number | null;
   isWeighed: boolean;
   unit: string;
   imageAssetId: string | null;
-}
-
-function fileToBase64(file: File): Promise<{ base64: string; mimeType: string }> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      const [, base64] = result.split(",");
-      resolve({ base64, mimeType: file.type });
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+  parentId?: string | null;
+  variantName?: string | null;
 }
 
 interface Category {
   id: string;
   name: string;
-  description?: string | null;
 }
 
-const EMPTY_FORM = { name: "", sku: "", categoryId: "", price: "", compareAtPrice: "", cost: "", stockQuantity: "", lowStockLevel: "", isWeighed: false, unit: "ea", variants: [] as any[] };
+const EMPTY_FORM = {
+  name: "",
+  sku: "",
+  categoryId: "",
+  price: "",
+  compareAtPrice: "",
+  cost: "",
+  stockQuantity: "",
+  lowStockLevel: "",
+  isWeighed: false,
+  unit: "ea",
+};
 
-export default function InventoryManager({ organizationId, locationId, products, categories, onChanged, symbol = "$" }: {
+export default function InventoryManager({
+  organizationId,
+  locationId,
+  products,
+  categories,
+  onChanged,
+  symbol = "$",
+}: {
   organizationId: string;
   locationId?: string | null;
   products: Product[];
@@ -52,9 +96,39 @@ export default function InventoryManager({ organizationId, locationId, products,
   onChanged: () => void;
   symbol?: string;
 }) {
+  const [view, setView] = useState<"LIST" | "FORM">("LIST");
   const [search, setSearch] = useState("");
+  const [filterCategory, setFilterCategory] = useState<string>("ALL");
+  const [filterStock, setFilterStock] = useState<"ALL" | "LOW" | "OUT">("ALL");
+
   const [customUnits, setCustomUnits] = useState<string[]>([...DEFAULT_RETAIL_UNITS]);
   const [currencySymbol, setCurrencySymbol] = useState<string>(symbol);
+
+  // Form State
+  const [editId, setEditId] = useState<string | null>(null);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [imageAssetId, setImageAssetId] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Variant filtering (filter out children from main list, map to parents in detail view)
+  const parentProducts = products.filter((p) => !p.parentId);
+  const allVariants = products.filter((p) => p.parentId);
+
+  const filtered = parentProducts.filter((p) => {
+    if (filterCategory !== "ALL" && p.categoryId !== filterCategory) return false;
+    if (filterStock === "LOW" && (p.lowStockLevel === null || p.stockQuantity > p.lowStockLevel)) return false;
+    if (filterStock === "OUT" && p.stockQuantity > 0) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      return p.name.toLowerCase().includes(q) || (p.sku && p.sku.toLowerCase().includes(q));
+    }
+    return true;
+  });
+
+  const lowStockCount = parentProducts.filter((p) => p.lowStockLevel !== null && p.stockQuantity <= p.lowStockLevel).length;
+  const outOfStockCount = parentProducts.filter((p) => p.stockQuantity <= 0).length;
 
   useEffect(() => {
     async function loadSettings() {
@@ -69,111 +143,70 @@ export default function InventoryManager({ organizationId, locationId, products,
     loadSettings();
   }, [organizationId]);
 
-  // Product State
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [imageAssetId, setImageAssetId] = useState<string | null>(null);
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-
-  // Stock ledger state (Phase 3)
-  const [historyProduct, setHistoryProduct] = useState<Product | null>(null);
-  const [movements, setMovements] = useState<any[]>([]);
-  const [loadingMovements, setLoadingMovements] = useState(false);
-  const [adjustProduct, setAdjustProduct] = useState<Product | null>(null);
-  const [adjustDelta, setAdjustDelta] = useState("");
-  const [adjustNote, setAdjustNote] = useState("");
-  const [adjustError, setAdjustError] = useState<string | null>(null);
-  const [isAdjusting, setIsAdjusting] = useState(false);
-
-  const openHistory = async (p: Product) => {
-    setHistoryProduct(p);
-    setMovements([]);
-    setLoadingMovements(true);
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingImage(true);
+    setError(null);
     try {
-      const rows = await getStockMovements(organizationId, p.id);
-      setMovements(rows);
+      const { base64, mimeType } = await new Promise<{ base64: string; mimeType: string }>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const [, b64] = (reader.result as string).split(",");
+          resolve({ base64: b64, mimeType: file.type });
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const res = await uploadAsset(organizationId, { fileName: file.name, mimeType, base64Data: base64 });
+      if (res.error) throw new Error(res.error);
+      if (res.assetId) setImageAssetId(res.assetId);
+    } catch (err: any) {
+      setError(err.message || "Failed to upload image.");
     } finally {
-      setLoadingMovements(false);
+      setUploadingImage(false);
     }
   };
 
-  const openAdjust = (p: Product) => {
-    setAdjustProduct(p);
-    setAdjustDelta("");
-    setAdjustNote("");
-    setAdjustError(null);
-  };
-
-  const submitAdjust = async () => {
-    if (!adjustProduct) return;
-    setAdjustError(null);
-    const delta = parseFloat(adjustDelta);
-    if (isNaN(delta) || delta === 0) { setAdjustError("Enter a quantity change (+ receives, − removes)."); return; }
-    setIsAdjusting(true);
-    try {
-      const res = await adjustStock(adjustProduct.id, delta, adjustNote.trim() || undefined);
-      if (res && typeof res === 'object' && 'error' in res && res.error) { setAdjustError(res.error); return; }
-      setAdjustProduct(null);
-      onChanged();
-    } finally {
-      setIsAdjusting(false);
-    }
-  };
-
-  const filteredProducts = products.filter(
-    (p) =>
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.sku ?? "").toLowerCase().includes(search.toLowerCase())
-  );
-
-  const openAdd = () => {
+  const openCreate = () => {
     setEditId(null);
-    const nextSku = generateUniqueSku(products.map((p) => p.sku ?? ""), "ITEM");
-    setForm({ ...EMPTY_FORM, sku: nextSku } as any);
+    setForm(EMPTY_FORM);
     setImageAssetId(null);
     setError(null);
-    setIsModalOpen(true);
+    setView("FORM");
   };
 
   const openEdit = (p: Product) => {
     setEditId(p.id);
     setForm({
       name: p.name,
-      sku: p.sku ?? "",
-      categoryId: p.categoryId ?? "",
-      price: String(p.price),
-      cost: p.cost != null ? String(p.cost) : "",
-      stockQuantity: String(p.stockQuantity),
-      lowStockLevel: p.lowStockLevel != null ? String(p.lowStockLevel) : "",
+      sku: p.sku || "",
+      categoryId: p.categoryId || "",
+      price: p.price.toString(),
+      compareAtPrice: p.compareAtPrice ? p.compareAtPrice.toString() : "",
+      cost: p.cost ? p.cost.toString() : "",
+      stockQuantity: p.stockQuantity.toString(),
+      lowStockLevel: p.lowStockLevel !== null ? p.lowStockLevel.toString() : "",
       isWeighed: p.isWeighed,
       unit: p.unit,
-      compareAtPrice: (p as any).compareAtPrice != null ? String((p as any).compareAtPrice) : "",
-      variants: (p as any).variants ?? [],
     });
-    setImageAssetId(p.imageAssetId);
+    setImageAssetId(p.imageAssetId || null);
     setError(null);
-    setIsModalOpen(true);
+    setView("FORM");
   };
 
-  const handleImageUpload = async (file: File) => {
-    setUploadingImage(true);
-    try {
-      const { base64, mimeType } = await fileToBase64(file);
-      const res = await uploadAsset(organizationId, { fileName: file.name, mimeType, base64Data: base64 });
-      if (res && typeof res === 'object' && 'assetId' in res && res.assetId) setImageAssetId(res.assetId);
-    } finally {
-      setUploadingImage(false);
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    if (!form.name.trim()) {
+      setError("Product name is required.");
+      return;
     }
-  };
-
-  const submit = async () => {
-    setError(null);
     const price = parseFloat(form.price);
-    if (!form.name.trim()) { setError("Product name is required."); return; }
-    if (isNaN(price) || price < 0) { setError("A valid price is required."); return; }
+    if (isNaN(price) || price < 0) {
+      setError("A valid selling price is required.");
+      return;
+    }
 
     setIsSaving(true);
     try {
@@ -183,13 +216,17 @@ export default function InventoryManager({ organizationId, locationId, products,
           sku: form.sku || null,
           categoryId: form.categoryId || null,
           price,
+          compareAtPrice: form.compareAtPrice ? parseFloat(form.compareAtPrice) : null,
           cost: form.cost ? parseFloat(form.cost) : null,
           lowStockLevel: form.lowStockLevel ? parseInt(form.lowStockLevel, 10) : null,
           isWeighed: form.isWeighed,
           unit: form.unit,
           imageAssetId,
         });
-        if (res && typeof res === 'object' && 'error' in res && res.error) { setError(res.error); return; }
+        if (res && typeof res === "object" && "error" in res && res.error) {
+          setError(res.error);
+          return;
+        }
       } else {
         const res = await createProduct({
           organizationId,
@@ -197,6 +234,7 @@ export default function InventoryManager({ organizationId, locationId, products,
           sku: form.sku || undefined,
           categoryId: form.categoryId || undefined,
           price,
+          compareAtPrice: form.compareAtPrice ? parseFloat(form.compareAtPrice) : undefined,
           cost: form.cost ? parseFloat(form.cost) : undefined,
           stockQuantity: form.stockQuantity ? parseInt(form.stockQuantity, 10) : 0,
           lowStockLevel: form.lowStockLevel ? parseInt(form.lowStockLevel, 10) : undefined,
@@ -204,372 +242,392 @@ export default function InventoryManager({ organizationId, locationId, products,
           unit: form.unit,
           imageAssetId: imageAssetId || undefined,
         });
-        if (res && typeof res === 'object' && 'error' in res && res.error) { setError(res.error); return; }
+        if (res && typeof res === "object" && "error" in res && res.error) {
+          setError(res.error);
+          return;
+        }
       }
-      setIsModalOpen(false);
+      setView("LIST");
       onChanged();
+    } catch (err: any) {
+      setError(err.message || "Failed to save product.");
     } finally {
       setIsSaving(false);
     }
   };
 
   const remove = async (id: string) => {
-    if (!confirm("Delete this product?")) return;
+    if (!confirm("Delete this product? Existing orders will not be affected, but the product will be removed from your catalog.")) return;
     const res = await deleteProduct(id);
-    if (res && typeof res === 'object' && 'error' in res && res.error) { alert(res.error); return; }
-    onChanged();
+    if (res.error) {
+      alert(res.error);
+    } else {
+      setView("LIST");
+      onChanged();
+    }
   };
 
-  const totalValue = products.reduce((sum, p) => sum + (p.cost ?? 0) * p.stockQuantity, 0);
-  const lowStockCount = products.filter((p) => p.lowStockLevel != null && p.stockQuantity <= (p.lowStockLevel as number)).length;
+  if (view === "FORM") {
+    const isEdit = !!editId;
+    const variants = editId ? allVariants.filter(v => v.parentId === editId) : [];
 
-  return (
-    <div className="p-8 max-w-7xl mx-auto min-h-full flex flex-col">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div>
-          <h2 className="text-2xl font-black text-ink">Products & Inventory</h2>
+    return (
+      <div className="max-w-[1200px] mx-auto space-y-6">
+        <div className="flex items-center gap-4">
+          <button onClick={() => setView("LIST")} className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 transition-colors">
+            <ChevronLeft size={20} />
+          </button>
+          <div>
+            <h2 className="text-2xl font-black text-ink tracking-tight">{isEdit ? "Edit Product" : "New Product"}</h2>
+          </div>
         </div>
-        <button
-          onClick={openAdd}
-          className="flex items-center gap-2 bg-brand-700 hover:bg-brand-800 text-white px-5 py-2.5 rounded-lg font-bold transition-colors shadow-sm shadow-brand-700/25 mt-2"
-        >
-          <Plus size={18} /> Add Product
+
+        {error && <ErrorState title="Validation Error" message={error} />}
+
+        <form onSubmit={handleSave} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            
+            {/* BASIC INFO */}
+            <SectionCard title="Basic Information">
+              <div className="p-6 space-y-5">
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase">Product Name *</label>
+                  <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputCls} placeholder="e.g. Premium Blend Coffee" autoFocus />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div>
+                    <label className="text-xs font-bold text-slate-500 uppercase">Category</label>
+                    <select value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })} className={selectCls}>
+                      <option value="">No Category</option>
+                      {categories.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-500 uppercase">SKU / Barcode</label>
+                    <input type="text" value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} className={inputCls} placeholder="Optional" />
+                  </div>
+                </div>
+              </div>
+            </SectionCard>
+
+            {/* PRICING */}
+            <SectionCard title="Pricing">
+              <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase">Selling Price *</label>
+                  <div className="relative mt-1">
+                    <span className="absolute left-3 top-2.5 text-slate-400 font-bold">{currencySymbol}</span>
+                    <input type="number" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className={inputCls + " pl-8"} placeholder="0.00" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase text-slate-500">Compare-at Price (Sale)</label>
+                  <div className="relative mt-1">
+                    <span className="absolute left-3 top-2.5 text-slate-400 font-bold">{currencySymbol}</span>
+                    <input type="number" step="0.01" value={form.compareAtPrice} onChange={(e) => setForm({ ...form, compareAtPrice: e.target.value })} className={inputCls + " pl-8"} placeholder="0.00" />
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1">To show a markdown, enter a value higher than your selling price.</p>
+                </div>
+              </div>
+            </SectionCard>
+
+            {/* INVENTORY */}
+            <SectionCard title="Inventory">
+              <div className="p-6">
+                {!isEdit ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                    <div>
+                      <label className="text-xs font-bold text-slate-500 uppercase">Initial Stock</label>
+                      <input type="number" value={form.stockQuantity} onChange={(e) => setForm({ ...form, stockQuantity: e.target.value })} className={inputCls} placeholder="0" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-slate-500 uppercase">Low Stock Trigger</label>
+                      <input type="number" value={form.lowStockLevel} onChange={(e) => setForm({ ...form, lowStockLevel: e.target.value })} className={inputCls} placeholder="e.g. 5" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-slate-500 uppercase">Unit</label>
+                      <select value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} className={selectCls}>
+                        {customUnits.map((u) => <option key={u} value={u}>{u}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h4 className="font-bold text-ink">Current Available Stock</h4>
+                        <p className="text-sm text-slate-500">To adjust stock, enter a change amount (e.g. 5, -2).</p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-black text-ink">{form.stockQuantity}</div>
+                        <div className="text-xs font-bold text-slate-400 uppercase">{form.unit}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6">
+                      <div className="flex gap-3 items-end">
+                        <div className="flex-1">
+                          <label className="text-xs font-bold text-slate-500 uppercase">Adjust Amount</label>
+                          <input type="number" id="adjustDeltaInput" className={inputCls} placeholder="e.g. 10 or -5" />
+                        </div>
+                        <div className="flex-1">
+                          <label className="text-xs font-bold text-slate-500 uppercase">Note (Optional)</label>
+                          <input type="text" id="adjustNoteInput" className={inputCls} placeholder="Reason..." />
+                        </div>
+                        <button type="button" onClick={async () => {
+                          const deltaEl = document.getElementById('adjustDeltaInput') as HTMLInputElement;
+                          const noteEl = document.getElementById('adjustNoteInput') as HTMLInputElement;
+                          const delta = parseInt(deltaEl.value, 10);
+                          if (!delta || isNaN(delta)) return alert('Enter a valid adjustment');
+                          const res = await adjustStock(editId!, delta, noteEl.value, locationId);
+                          if (res.error) alert(res.error);
+                          else {
+                             deltaEl.value = '';
+                             noteEl.value = '';
+                             setForm({...form, stockQuantity: (parseInt(form.stockQuantity) + delta).toString()});
+                             onChanged();
+                          }
+                        }} className="bg-slate-800 text-white font-bold px-4 py-2.5 rounded-lg text-sm hover:bg-slate-900 transition-colors">Apply</button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-4 border-t border-slate-100">
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase">Low Stock Trigger</label>
+                        <input type="number" value={form.lowStockLevel} onChange={(e) => setForm({ ...form, lowStockLevel: e.target.value })} className={inputCls} placeholder="e.g. 5" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase">Unit</label>
+                        <select value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} className={selectCls}>
+                          {customUnits.map((u) => <option key={u} value={u}>{u}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="flex items-center gap-2 mt-6">
+                  <input type="checkbox" id="isWeighed" checked={form.isWeighed} onChange={(e) => setForm({ ...form, isWeighed: e.target.checked })} className="w-4 h-4 text-brand-600 rounded" />
+                  <label htmlFor="isWeighed" className="text-sm font-bold text-slate-700">Variable Weight Item (e.g. sold per kg)</label>
+                </div>
+              </div>
+            </SectionCard>
+
+            {/* VARIANTS */}
+            {isEdit && variants.length > 0 && (
+              <SectionCard title="Product Variants">
+                <div className="p-4 bg-amber-50 border-b border-amber-100 text-amber-900 text-sm font-medium">
+                  Variant management is currently restricted. Variants displayed below will remain attached to this product after saving.
+                </div>
+                <ul className="divide-y divide-slate-100">
+                  {variants.map(v => (
+                    <li key={v.id} className="p-4 flex items-center justify-between hover:bg-slate-50">
+                      <div>
+                        <p className="font-bold text-ink">{v.variantName || v.name}</p>
+                        <p className="text-xs text-slate-500 mt-1"><StockIndicator stock={v.stockQuantity} lowStockLevel={v.lowStockLevel} /></p>
+                      </div>
+                      <PriceDisplay amount={v.price} currency={currencySymbol} />
+                    </li>
+                  ))}
+                </ul>
+              </SectionCard>
+            )}
+          </div>
+
+          <div className="space-y-6">
+            <SectionCard title="Product Image">
+              <div className="p-6">
+                {imageAssetId ? (
+                  <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-slate-100 mb-4 border border-slate-200">
+                    <img src={`/api/assets/${imageAssetId}`} alt="Product" className="object-cover w-full h-full" />
+                    <button type="button" onClick={() => setImageAssetId(null)} className="absolute top-2 right-2 bg-white/90 text-slate-700 p-1.5 rounded-lg shadow-sm hover:text-rose-600">
+                      <X size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center bg-slate-50 mb-4">
+                    <Upload className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                    <p className="text-sm text-slate-500 font-medium">Upload an image</p>
+                  </div>
+                )}
+                
+                <label className="block">
+                  <span className={btnOutline + " w-full text-center cursor-pointer block"}>
+                    {uploadingImage ? "Uploading..." : imageAssetId ? "Change Image" : "Select Image"}
+                  </span>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
+                </label>
+              </div>
+            </SectionCard>
+
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6">
+              <h4 className="font-bold text-slate-700 mb-4">Marketplace Preview</h4>
+              <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                <div className="aspect-square bg-slate-100 rounded-lg mb-3 overflow-hidden">
+                  {imageAssetId ? (
+                     <img src={`/api/assets/${imageAssetId}`} alt="Product" className="object-cover w-full h-full" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-slate-300"><Package size={32}/></div>
+                  )}
+                </div>
+                <p className="font-bold text-ink truncate">{form.name || "Product Name"}</p>
+                <div className="mt-1">
+                  <PriceDisplay amount={parseFloat(form.price) || 0} compareAt={form.compareAtPrice ? parseFloat(form.compareAtPrice) : null} currency={currencySymbol} />
+                </div>
+              </div>
+            </div>
+
+            {isEdit && (
+              <div className="pt-4 border-t border-slate-200">
+                <button type="button" onClick={() => remove(editId)} className="w-full py-3 rounded-xl font-bold text-rose-600 hover:bg-rose-50 transition-colors border border-transparent hover:border-rose-100">
+                  Delete Product
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="lg:col-span-3 sticky bottom-0 bg-white/80 backdrop-blur-md border-t border-slate-200 p-4 -mx-6 lg:mx-0 lg:rounded-2xl flex justify-end gap-3 z-10 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
+            <button type="button" onClick={() => setView("LIST")} className={btnOutline}>Cancel</button>
+            <button type="submit" disabled={isSaving} className={btnPrimary + " min-w-[140px] flex items-center justify-center"}>
+              {isSaving ? <Loader2 size={18} className="animate-spin" /> : "Save Product"}
+            </button>
+          </div>
+        </form>
+      </div>
+    );
+  }
+
+  // -------------------------
+  // LIST VIEW
+  // -------------------------
+  return (
+    <div className="space-y-6 max-w-[1600px] mx-auto">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-black text-ink tracking-tight">Products</h2>
+          <p className="text-sm text-slate-500 mt-1">Manage your catalog, variants, and pricing.</p>
+        </div>
+        <button onClick={openCreate} className={btnPrimary}>
+          <Plus size={18} className="mr-1.5" /> Add Product
         </button>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 flex-shrink-0">
-        <div className="bg-white p-5 rounded-xl border border-slate-200 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-brand-100 text-brand-800 flex items-center justify-center">
-            <Package size={24} />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-slate-500">Total Products</p>
-            <p className="text-2xl font-black text-ink">{products.length}</p>
-          </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Total</p>
+          <p className="text-2xl font-black text-ink">{parentProducts.length}</p>
         </div>
-
-        <div className="bg-white p-5 rounded-xl border border-slate-200 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
-            <ArrowUpDown size={24} />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-slate-500">Total Inventory Value</p>
-            <p className="text-2xl font-black text-ink">{currencySymbol}{totalValue.toFixed(2)}</p>
-          </div>
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Variants</p>
+          <p className="text-2xl font-black text-ink">{allVariants.length}</p>
         </div>
-
-        <div className="bg-white p-5 rounded-xl border border-red-100 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-red-100 text-red-700 flex items-center justify-center">
-            <AlertTriangle size={24} />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-slate-500">Low Stock Alerts</p>
-            <p className="text-2xl font-black text-red-600">{lowStockCount} Items</p>
-          </div>
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Low Stock</p>
+          <p className="text-2xl font-black text-amber-600">{lowStockCount}</p>
+        </div>
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Out of Stock</p>
+          <p className="text-2xl font-black text-rose-600">{outOfStockCount}</p>
         </div>
       </div>
 
-      {/* Toolbar */}
-      <div className="bg-white border border-slate-200 rounded-t-xl p-4 flex gap-4 items-center flex-shrink-0">
-        <div className="relative flex-1 max-w-md">
-          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search by name or SKU..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-brand-600 focus:ring-1 focus:ring-brand-600 transition-shadow"
-          />
-        </div>
-      </div>
+      <FilterBar>
+        <SearchInput value={search} onChange={setSearch} placeholder="Search products..." />
+        <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className={inputCls + " w-auto bg-slate-50 border-transparent hover:border-slate-200 focus:bg-white"}>
+          <option value="ALL">All Categories</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
+        <select value={filterStock} onChange={(e) => setFilterStock(e.target.value as any)} className={inputCls + " w-auto bg-slate-50 border-transparent hover:border-slate-200 focus:bg-white"}>
+          <option value="ALL">All Inventory</option>
+          <option value="LOW">Low Stock</option>
+          <option value="OUT">Out of Stock</option>
+        </select>
+      </FilterBar>
 
-      {/* Data Table */}
-      <div className="bg-white border-x border-b border-slate-200 rounded-b-xl overflow-hidden flex-1 flex flex-col">
-        <div className="overflow-x-auto flex-1">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Product</th>
-                <th className="px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Category</th>
-                <th className="px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Price / Cost</th>
-                <th className="px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Stock</th>
-                <th className="px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredProducts.map((item) => {
-                const isLowStock = item.lowStockLevel != null && item.stockQuantity <= item.lowStockLevel;
-                return (
-                  <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        {item.imageAssetId ? (
-                          <img src={`/api/assets/${item.imageAssetId}`} alt="" className="w-10 h-10 object-cover rounded-lg border border-slate-200 flex-shrink-0" />
-                        ) : (
-                          <div className="w-10 h-10 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-300 flex-shrink-0"><Package size={16} /></div>
-                        )}
-                        <div>
-                          <div className="font-bold text-slate-800">{item.name}</div>
-                          <div className="text-xs text-slate-500 mt-0.5">SKU: {item.sku ?? "—"}</div>
-                        </div>
+      {filtered.length === 0 ? (
+        <EmptyState icon={Package} title={search ? "No products found" : "Your catalog is empty"} message={search ? "Try a different search term or filter." : "Add your first product to start selling."} action={!search && <button onClick={openCreate} className={btnPrimary}>Add Product</button>} />
+      ) : (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          
+          {/* MOBILE CARDS */}
+          <div className="block md:hidden divide-y divide-slate-100">
+            {filtered.map(p => {
+              const vCount = allVariants.filter(v => v.parentId === p.id).length;
+              return (
+                <div key={p.id} className="p-4 hover:bg-slate-50 cursor-pointer" onClick={() => openEdit(p)}>
+                  <div className="flex gap-4">
+                    <div className="w-16 h-16 rounded-lg bg-slate-100 flex-shrink-0 border border-slate-200 overflow-hidden">
+                      {p.imageAssetId ? <img src={`/api/assets/${p.imageAssetId}`} className="w-full h-full object-cover"/> : <div className="w-full h-full flex justify-center items-center text-slate-300"><Package size={24}/></div>}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-ink truncate">{p.name}</p>
+                      <PriceDisplay amount={p.price} compareAt={p.compareAtPrice} currency={currencySymbol} className="mt-0.5" />
+                      <div className="mt-2 flex items-center gap-3 text-xs text-slate-500 font-medium">
+                        <StockIndicator stock={p.stockQuantity} lowStockLevel={p.lowStockLevel} />
+                        {vCount > 0 && <span>• {vCount} variant{vCount > 1 ? 's' : ''}</span>}
                       </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
-                        {item.categoryName ?? "Uncategorized"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-<div className="font-bold text-slate-800">{currencySymbol}{item.price.toFixed(2)}{item.isWeighed ? `/${item.unit}` : ""}</div>
-                      <div className="text-xs text-slate-500 mt-0.5">Cost: {item.cost != null ? `${currencySymbol}${item.cost.toFixed(2)}` : "—"}</div>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className={`font-bold inline-flex items-center gap-1.5 ${isLowStock ? "text-red-600" : "text-slate-800"}`}>
-                        {isLowStock && <AlertTriangle size={14} />}
-                        {item.stockQuantity}
-                      </div>
-                      <div className="text-xs text-slate-500 mt-0.5">Min: {item.lowStockLevel ?? "—"}</div>
-                    </td>
-<td className="px-6 py-4 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button title="Stock history" onClick={() => openHistory(item)} className="p-1.5 text-slate-400 hover:text-brand-700 hover:bg-brand-50 rounded-md transition-colors">
-                          <History size={16} />
-                        </button>
-                        <button title="Adjust stock" onClick={() => openAdjust(item)} className="p-1.5 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-md transition-colors">
-                          <ArrowUpFromLine size={16} />
-                        </button>
-                        <button onClick={() => openEdit(item)} className="p-1.5 text-slate-400 hover:text-brand-700 hover:bg-brand-50 rounded-md transition-colors">
-                          <Edit2 size={16} />
-                        </button>
-                        <button onClick={() => remove(item.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors">
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          {filteredProducts.length === 0 && (
-            <div className="p-12 text-center text-slate-400">
-              <Package size={48} className="mx-auto mb-4 opacity-20" />
-              <p>{products.length === 0 ? "No products yet — add your first one." : `No products found matching "${search}"`}</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ADD/EDIT PRODUCT MODAL */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="font-bold text-lg text-slate-800">{editId ? "Edit Product" : "Add New Product"}</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600">
-                <X size={24} />
-              </button>
-            </div>
-            <div className="p-6 grid grid-cols-2 gap-4 bg-slate-50 max-h-[70vh] overflow-y-auto">
-              {error && (
-                <div className="col-span-2 p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-100">{error}</div>
-              )}
-              <div className="col-span-2 space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Product Name</label>
-                <input type="text" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className={inputCls} placeholder="e.g. Organic Bananas" />
-              </div>
-              <div className="col-span-2 space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Photo</label>
-                <div className="flex items-center gap-3">
-                  {imageAssetId ? (
-                    <img src={`/api/assets/${imageAssetId}`} alt="" className="w-14 h-14 object-cover rounded-lg border border-slate-200" />
-                  ) : (
-                    <div className="w-14 h-14 rounded-lg border border-dashed border-slate-300 flex items-center justify-center text-slate-300"><Upload size={18} /></div>
-                  )}
-                  <label className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors bg-white">
-                    {uploadingImage ? <Loader2 size={14} className="animate-spin inline" /> : (imageAssetId ? "Replace" : "Upload")}
-                    <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])} />
-                  </label>
-                  {imageAssetId && <button onClick={() => setImageAssetId(null)} className="text-xs font-semibold text-slate-400 hover:text-red-600">Remove</button>}
+                    </div>
+                  </div>
+                  <button className="mt-3 w-full py-2 bg-slate-100 text-slate-700 font-bold rounded-lg text-sm">Edit Product</button>
                 </div>
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Category</label>
-                <select value={form.categoryId} onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))} className={selectCls}>
-                  <option value="">Uncategorized</option>
-                  {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Unit (e.g. ea, kg, box, pallet)</label>
-                <input 
-                  type="text" 
-                  list="unit-suggestions"
-                  value={form.unit} 
-                  onChange={(e) => setForm((f) => ({ ...f, unit: e.target.value }))} 
-                  className={inputCls} 
-                  placeholder="ea"
-                />
-                <datalist id="unit-suggestions">
-                  {customUnits.map(unit => (
-                    <option key={unit} value={unit} />
-                  ))}
-                </datalist>
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Generated SKU</label>
-                <input type="text" value={form.sku} readOnly className={`${inputCls} bg-slate-100 text-slate-700 cursor-not-allowed`} />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Selling Price ({currencySymbol})</label>
-                <input type="number" step="0.01" value={form.price} onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))} className={inputCls} placeholder="0.00" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Cost Price ({currencySymbol})</label>
-                <input type="number" step="0.01" value={form.cost} onChange={(e) => setForm((f) => ({ ...f, cost: e.target.value }))} className={inputCls} placeholder="0.00" />
-              </div>
-              {!editId && (
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Initial Stock</label>
-                  <input type="number" value={form.stockQuantity} onChange={(e) => setForm((f) => ({ ...f, stockQuantity: e.target.value }))} className={inputCls} placeholder="0" />
-                </div>
-              )}
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Low Stock Alert Level</label>
-                <input type="number" value={form.lowStockLevel} onChange={(e) => setForm((f) => ({ ...f, lowStockLevel: e.target.value }))} className={inputCls} placeholder="0" />
-              </div>
-              <div className="col-span-2 flex items-center gap-2 pt-2">
-                <input type="checkbox" id="isWeighed" checked={form.isWeighed} onChange={(e) => setForm((f) => ({ ...f, isWeighed: e.target.checked, unit: e.target.checked && f.unit === "ea" ? "lb" : (!e.target.checked && f.unit === "lb" ? "ea" : f.unit) }))} />
-                <label htmlFor="isWeighed" className="text-sm text-slate-700">Sold by weight (price per {form.unit === "ea" ? "lb" : form.unit})</label>
-              </div>
-            </div>
-            <div className="p-4 border-t border-slate-100 flex justify-end gap-3 bg-white">
-              <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 font-semibold text-slate-500 hover:bg-slate-100 rounded-lg transition-colors">
-                Cancel
-              </button>
-              <button onClick={submit} disabled={isSaving} className="px-6 py-2 bg-brand-700 hover:bg-brand-800 disabled:opacity-50 text-white font-bold rounded-lg transition-colors">
-                {isSaving ? "Saving..." : "Save Product"}
-              </button>
-            </div>
+              );
+            })}
           </div>
-        </div>
-      )}
 
-{/* STOCK HISTORY MODAL */}
-      {historyProduct && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="font-bold text-lg text-slate-800">Stock History — {historyProduct.name}</h3>
-              <button onClick={() => setHistoryProduct(null)} className="text-slate-400 hover:text-slate-600">
-                <X size={24} />
-              </button>
-            </div>
-            <div className="p-6 bg-slate-50 max-h-[70vh] overflow-y-auto">
-              <p className="text-sm text-slate-500 mb-4">
-                Current stock: <span className="font-bold text-slate-800">{historyProduct.stockQuantity} {historyProduct.unit}</span>
-              </p>
-              {loadingMovements ? (
-                <div className="flex items-center gap-2 text-sm text-slate-400"><Loader2 size={16} className="animate-spin" /> Loading movements…</div>
-              ) : movements.length === 0 ? (
-                <p className="text-sm text-slate-400">No stock movements recorded yet.</p>
-              ) : (
-                <div className="space-y-2">
-                  {movements.map((m) => {
-                    const reasonStyles: Record<string, string> = {
-                      SALE: "bg-blue-100 text-blue-700",
-                      REFUND: "bg-slate-200 text-slate-700",
-                      ADJUSTMENT: "bg-amber-100 text-amber-700",
-                      RECEIVED: "bg-emerald-100 text-emerald-700",
-                    };
-                    return (
-                      <div key={m.id} className="flex items-center justify-between bg-white border border-slate-200 rounded-lg px-4 py-3 text-sm">
-                        <div className="flex items-center gap-3">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${reasonStyles[m.reason] ?? "bg-slate-100 text-slate-600"}`}>
-                            {m.reason}
-                          </span>
-                          <span className={`font-bold ${m.delta > 0 ? "text-emerald-600" : "text-red-600"}`}>
-                            {m.delta > 0 ? `+${m.delta}` : m.delta}
-                          </span>
-                          <span className="text-slate-400 text-xs">
-                            {m.beforeQty} → {m.afterQty}
-                          </span>
+          {/* DESKTOP TABLE */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-left text-sm whitespace-nowrap">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold">
+                  <th className="px-6 py-4 w-12"></th>
+                  <th className="px-6 py-4">Product</th>
+                  <th className="px-6 py-4">Category</th>
+                  <th className="px-6 py-4 text-right">Price</th>
+                  <th className="px-6 py-4">Inventory</th>
+                  <th className="px-6 py-4 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filtered.map((p) => {
+                  const vCount = allVariants.filter(v => v.parentId === p.id).length;
+                  return (
+                    <tr key={p.id} className="hover:bg-slate-50 transition-colors cursor-pointer group" onClick={() => openEdit(p)}>
+                      <td className="px-6 py-4 pr-0">
+                         <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden flex-shrink-0">
+                            {p.imageAssetId ? <img src={`/api/assets/${p.imageAssetId}`} className="w-full h-full object-cover"/> : <div className="w-full h-full flex justify-center items-center text-slate-300"><Package size={16}/></div>}
+                         </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="font-bold text-ink max-w-[250px] truncate">{p.name}</div>
+                        <div className="text-xs text-slate-400 font-mono mt-0.5">{p.sku || "No SKU"}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <StatusPill tone="slate">{p.categoryName || "Uncategorized"}</StatusPill>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <PriceDisplay amount={p.price} compareAt={p.compareAtPrice} currency={currencySymbol} />
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-1">
+                          <StockIndicator stock={p.stockQuantity} lowStockLevel={p.lowStockLevel} />
+                          {vCount > 0 && <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{vCount} variant{vCount > 1 ? 's' : ''}</span>}
                         </div>
-                        <div className="text-right">
-                          <div className="text-xs text-slate-500">{m.note || m.reason}</div>
-                          <div className="text-xs text-slate-400">{new Date(m.createdAt).toLocaleString()}</div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-            <div className="p-4 border-t border-slate-100 flex justify-end bg-white">
-              <button onClick={() => setHistoryProduct(null)} className="px-4 py-2 font-semibold text-slate-500 hover:bg-slate-100 rounded-lg transition-colors">
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ADJUST STOCK MODAL */}
-      {adjustProduct && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="font-bold text-lg text-slate-800">Adjust Stock — {adjustProduct.name}</h3>
-              <button onClick={() => setAdjustProduct(null)} className="text-slate-400 hover:text-slate-600">
-                <X size={24} />
-              </button>
-            </div>
-            <div className="p-6 space-y-4 bg-slate-50">
-              {adjustError && <div className="p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-100">{adjustError}</div>}
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Change (+ receive / − remove)</label>
-                <input
-                  type="number"
-                  step="any"
-                  value={adjustDelta}
-                  onChange={(e) => setAdjustDelta(e.target.value)}
-                  className={inputCls}
-                  placeholder="e.g. 10 or -2"
-                />
-              </div>
-              <div className="text-sm text-slate-500">
-                Resulting stock:{" "}
-                <span className={`font-bold ${(adjustProduct.stockQuantity + (parseFloat(adjustDelta) || 0)) < 0 ? "text-red-600" : "text-slate-800"}`}>
-                  {adjustProduct.stockQuantity + (parseFloat(adjustDelta) || 0)} {adjustProduct.unit}
-                </span>
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Reason / Note (Optional)</label>
-                <textarea
-                  value={adjustNote}
-                  onChange={(e) => setAdjustNote(e.target.value)}
-                  className={inputCls}
-                  placeholder="e.g. Damaged goods written off, stocktake correction, received from supplier…"
-                  rows={2}
-                />
-              </div>
-              <p className="text-xs text-slate-400">Every adjustment is written to the stock ledger with who made it and why.</p>
-            </div>
-            <div className="p-4 border-t border-slate-100 flex justify-end gap-3 bg-white">
-              <button onClick={() => setAdjustProduct(null)} className="px-4 py-2 font-semibold text-slate-500 hover:bg-slate-100 rounded-lg transition-colors">
-                Cancel
-              </button>
-              <button onClick={submitAdjust} disabled={isAdjusting} className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-lg transition-colors">
-                {isAdjusting ? "Saving..." : "Adjust Stock"}
-              </button>
-            </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <span className="text-brand-600 font-bold text-xs group-hover:text-brand-800">Edit</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
     </div>
   );
 }
-
-
-

@@ -167,10 +167,10 @@ export async function POST(
 
          await db.transaction(async (tx: any) => {
             await tx.orm.public.Payment.where({ id: payment.id }).update({ 
-               status: 'OUT_OF_STOCK_REFUNDED' 
+               status: 'CANCELLED' 
             });
             if (payment.retailOrderId) {
-               await tx.orm.public.RetailOrder.where({ id: payment.retailOrderId }).update({ status: 'OUT_OF_STOCK_REFUNDED' });
+               await tx.orm.public.RetailOrder.where({ id: payment.retailOrderId }).update({ status: 'CANCELLED' });
             }
          });
          

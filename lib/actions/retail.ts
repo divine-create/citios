@@ -207,6 +207,7 @@ export async function createProduct(input: {
   description?: string;
   sku?: string;
   price: number;
+  compareAtPrice?: number | null;
   cost?: number;
   stockQuantity?: number;
   lowStockLevel?: number;
@@ -214,6 +215,8 @@ export async function createProduct(input: {
   unit?: string;
   categoryId?: string;
   imageAssetId?: string;
+  parentId?: string;
+  variantName?: string;
   showOnFeed?: boolean;
 }) {
   try {
@@ -275,12 +278,16 @@ export async function updateProduct(productId: string, input: {
   description?: string | null;
   sku?: string | null;
   price?: number;
+  compareAtPrice?: number | null;
   cost?: number | null;
   lowStockLevel?: number | null;
   isWeighed?: boolean;
   unit?: string;
   categoryId?: string | null;
   imageAssetId?: string | null;
+  parentId?: string | null;
+  variantName?: string | null;
+  showOnFeed?: boolean;
 }) {
   try {
     const prod = await db.orm.public.RetailProduct.where({ id: productId }).all().first();
@@ -836,7 +843,7 @@ export async function createOrder(input: {
         taxAmount,
         discountAmount,
         paymentMethod: input.paymentMethod,
-        status: 'COMPLETED',
+        status: 'CONFIRMED',
       });
 
       for (const line of lineItems) {
@@ -1103,7 +1110,7 @@ export async function refundOrder(orderId: string, input: { reason?: string }) {
         }
       }
       await tx.orm.public.RetailOrder.where({ id: orderId }).update({
-        status: 'REFUNDED',
+        /* status preserved */
         refundedAt: toInstant(new Date()),
         refundedById: membership.id,
         refundReason: input.reason,
@@ -1376,7 +1383,8 @@ export async function getShopDashboardData(organizationId: string, locationId?: 
       stockMap.set(s.productId, (stockMap.get(s.productId) || 0) + s.stockQuantity);
     }
     
-    const lowStockCount = products.filter((p) => p.lowStockLevel != null && (stockMap.get(p.id) || 0) <= (p.lowStockLevel as number)).length;
+    const lowStockCount = products.filter((p) => p.lowStockLevel != null && (stockMap.get(p.id) || 0) <= (p.lowStockLevel as number) && (stockMap.get(p.id) || 0) > 0).length;
+    const outOfStockCount = products.filter((p) => (stockMap.get(p.id) || 0) <= 0).length;
     const lowStockProducts = products
       .filter((p) => p.lowStockLevel != null && (stockMap.get(p.id) || 0) <= (p.lowStockLevel as number))
       .sort((a, b) => (stockMap.get(a.id) || 0) - (stockMap.get(b.id) || 0))
@@ -2368,26 +2376,204 @@ export async function syncLogisticsStatusToShopOS(jobId: string) {
   }
 }
 
-export async function getShopAnalytics(organizationId: string) {
+
+
+export async function getOnlineOrdersAndLogistics(organizationId: string, locationId?: string | null) {
+  try {
+    await requireMembership(organizationId);
+    let orders = await db.orm.public.RetailOrder.where(locationId ? { organizationId, locationId, cashierId: 'ONLINE_CHECKOUT' } : { organizationId, cashierId: 'ONLINE_CHECKOUT' }).all();
+    orders.sort((a, b) => epochMs(b.createdAt) - epochMs(a.createdAt));
+    
+    const enriched = await enrichOrders(organizationId, orders);
+    
+    const activeOrders = enriched.filter(o => ['PROCESSING', 'READY', 'FULFILLED'].includes(o.fulfillmentStatus));
+    for (const o of activeOrders) {
+      const job = await getDeliveryStatusForSource('RETAIL_ORDER', o.id);
+      if (job) {
+        o.logistics = job;
+      }
+    }
+    
+    return JSON.parse(JSON.stringify(enriched));
+  } catch (error) {
+    console.error('Error fetching online orders:', error);
+    return [];
+  }
+}
+
+export async function getInventory(organizationId: string) {
+  try {
+    await requireMembership(organizationId);
+    const locations = await db.orm.public.Location.where({ organizationId }).all();
+    const products = await db.orm.public.RetailProduct.where({ organizationId }).all();
+    const stocks = await db.orm.public.RetailLocationStock.where({ organizationId }).all();
+
+    const categories = await db.orm.public.RetailCategory.where({ organizationId }).all();
+
+    const inventory = [];
+    
+    for (const p of products) {
+      const catName = categories.find((c) => c.id === p.categoryId)?.name ?? null;
+      for (const loc of locations) {
+        const stockRecord = stocks.find(s => s.productId === p.id && s.locationId === loc.id);
+        const qty = stockRecord ? stockRecord.stockQuantity : 0;
+        inventory.push({
+          productId: p.id,
+          productName: p.name,
+          variantName: p.variantName,
+          parentId: p.parentId,
+          categoryId: p.categoryId,
+          categoryName: catName,
+          sku: p.sku,
+          imageAssetId: p.imageAssetId,
+          price: p.price,
+          unit: p.unit,
+          locationId: loc.id,
+          locationName: loc.name,
+          stockQuantity: qty,
+          lowStockLevel: p.lowStockLevel,
+          stockId: stockRecord?.id || null
+        });
+      }
+    }
+    return JSON.parse(JSON.stringify(inventory));
+  } catch (error) {
+    console.error('Error fetching inventory:', error);
+    return [];
+  }
+}
+
+
+export async function getShopAnalytics(organizationId: string, options: { locationId?: string | null; startDateMs?: number; endDateMs?: number } = {}) {
   try {
     await requireMembership(organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
-    const orders = await db.orm.public.RetailOrder.where({ organizationId }).all();
-    const completedOrders = orders.filter((o: any) => o.status === 'COMPLETED');
-    const refundedOrders = orders.filter((o: any) => o.refundedAt != null);
+
+    let orders = await db.orm.public.RetailOrder.where(
+      options.locationId ? { organizationId, locationId: options.locationId } : { organizationId }
+    ).all();
+
+    if (options.startDateMs) {
+      orders = orders.filter((o: any) => epochMs(o.createdAt) >= options.startDateMs!);
+    }
+    if (options.endDateMs) {
+      orders = orders.filter((o: any) => epochMs(o.createdAt) <= options.endDateMs!);
+    }
+
+    // Identify truly completed orders using CityOS financial primitives
+    // Online orders (cashierId === 'ONLINE_CHECKOUT') require a COMPLETED Payment.
+    // POS orders (cashierId !== 'ONLINE_CHECKOUT') rely on CONFIRMED status (cashier physically captured it).
     
+    // Fetch payments for online orders
+    const onlineOrders = orders.filter((o: any) => o.cashierId === 'ONLINE_CHECKOUT');
+    const paymentMap = new Map<string, any>();
+    if (onlineOrders.length > 0) {
+      const chunkSize = 20;
+      for (let i = 0; i < onlineOrders.length; i += chunkSize) {
+        const chunk = onlineOrders.slice(i, i + chunkSize);
+        await Promise.all(chunk.map(async (o: any) => {
+          const payment = await db.orm.public.Payment.where({ retailOrderId: o.id }).all().then((r:any) => r[0]);
+          if (payment) paymentMap.set(o.id, payment);
+        }));
+      }
+    }
+
+    const completedOrders = orders.filter((o: any) => {
+      if (o.status === 'CANCELLED') return false;
+      if (o.cashierId === 'ONLINE_CHECKOUT') {
+        const p = paymentMap.get(o.id);
+        return p && p.status === 'COMPLETED';
+      }
+      return o.status === 'CONFIRMED';
+    });
+    
+    const cancelledOrders = orders.filter((o: any) => o.status === 'CANCELLED');
+    const refundedOrders = orders.filter((o: any) => o.refundedAt != null);
+
     const grossSales = completedOrders.reduce((sum: number, o: any) => sum + o.totalAmount, 0);
     const refundsAmount = refundedOrders.reduce((sum: number, o: any) => sum + o.totalAmount, 0);
     const netSales = grossSales - refundsAmount;
+    const aov = completedOrders.length > 0 ? grossSales / completedOrders.length : 0;
+
+    const orderStatusDistribution = {
+      PENDING: orders.filter((o: any) => o.status === 'PENDING').length,
+      PROCESSING: orders.filter((o: any) => o.status === 'PROCESSING').length,
+      READY: orders.filter((o: any) => o.status === 'READY').length,
+      CONFIRMED: completedOrders.length,
+      CANCELLED: cancelledOrders.length,
+    };
+
+    const topProductsMap = new Map<string, { units: number; revenue: number; name: string }>();
+    if (completedOrders.length > 0) {
+      const chunkSize = 50;
+      for (let i = 0; i < completedOrders.length; i += chunkSize) {
+        const chunk = completedOrders.slice(i, i + chunkSize);
+        await Promise.all(chunk.map(async (o: any) => {
+          const items = await db.orm.public.RetailOrderItem.where({ orderId: o.id }).all();
+          for (const item of items) {
+            const existing = topProductsMap.get(item.productId) || { units: 0, revenue: 0, name: 'Unknown Product' };
+            existing.units += item.quantity;
+            existing.revenue += (item.unitPrice * item.quantity);
+            topProductsMap.set(item.productId, existing);
+          }
+        }));
+      }
+    }
+
+    const products = await db.orm.public.RetailProduct.where({ organizationId }).all();
+    const prodMap = new Map(products.map((p: any) => [p.id, p.name]));
+    for (const [id, data] of topProductsMap.entries()) {
+      data.name = prodMap.get(id) || data.name;
+    }
+
+    const topProducts = Array.from(topProductsMap.values())
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5);
+
+    const revenueTrend = [];
+    if (completedOrders.length > 0) {
+      const msPerDay = 24 * 60 * 60 * 1000;
+      const minDate = Math.min(...completedOrders.map((o: any) => epochMs(o.createdAt)));
+      const maxDate = Math.max(...completedOrders.map((o: any) => epochMs(o.createdAt)));
+      
+      const startDay = Math.floor(minDate / msPerDay) * msPerDay;
+      const endDay = Math.floor(maxDate / msPerDay) * msPerDay;
+
+      for (let d = startDay; d <= endDay; d += msPerDay) {
+        const dayOrders = completedOrders.filter((o: any) => {
+          const t = epochMs(o.createdAt);
+          return t >= d && t < d + msPerDay;
+        });
+        revenueTrend.push({
+          date: new Date(d).toLocaleDateString(),
+          value: dayOrders.reduce((sum: number, o: any) => sum + o.totalAmount, 0),
+        });
+      }
+    }
 
     return {
       grossSales,
+      refunds: refundsAmount,
       netSales,
-      refundsAmount,
-      totalOrders: orders.length,
-      completedOrders: completedOrders.length,
-      refundedOrders: refundedOrders.length,
+      aov,
+      orderStatusDistribution,
+      topProducts,
+      revenueTrend,
     };
   } catch (error) {
-    return { grossSales: 0, netSales: 0, refundsAmount: 0, totalOrders: 0, completedOrders: 0, refundedOrders: 0 };
+    console.error("getShopAnalytics error:", error);
+    throw error;
   }
 }
+
+  export async function acceptOrder(orderId: string, locationId?: string) {
+  try {
+    const order = await db.orm.public.RetailOrder.where({ id: orderId }).all().then(r => r[0]);
+    if (!order) throw new Error("Order not found");
+    await db.orm.public.RetailOrder.where({ id: orderId }).update({ status: 'CONFIRMED', fulfillmentStatus: 'PROCESSING' });
+    return { success: true };
+  } catch (error) {
+    console.error('Error accepting order:', error);
+    return { error: (error as Error).message };
+  }
+}
+

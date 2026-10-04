@@ -36,7 +36,7 @@ import {
   AlertTriangle,
   Circle,
   BarChart3,
-  Pencil,
+  Pencil, ClipboardList,
   TrendingUp,
   Printer,
 } from "lucide-react";
@@ -51,25 +51,30 @@ import {
   Avatar,
   ProgressBar,
   SectionCard,
+  EmptyState,
   Modal,
   Kbd,
   btnPrimary,
   btnOutline,
   inputCls,
   selectCls,
+TableSkeleton,
 } from "./ShopUI";
 import { getProfileAndWallet } from "@/lib/actions/profile";
 import POSTerminal from "./POSTerminal";
 import InventoryManager from "./InventoryManager";
+import InventoryTab from "./InventoryTab";
 import Settings from "./Settings";
 import ShopOnboardingWidget from "./ShopOnboardingWidget";
 import GlobalSearch from "./GlobalSearch";
+import AnalyticsTab from './AnalyticsTab';
 import { getShopDashboardData, getProducts, getCategories, getRegisters, openShift, closeShift, getShiftHistory, createRegister, getExpenses, createExpense, deleteExpense, getExpenseSummary, getOrders, refundOrder, cancelOrder, getCustomers, getCustomer, createCustomer, deleteCustomer, adjustLoyaltyPoints, getLocations, createLocation, updateLocation, deleteLocation, getStaff, addStaffMember, updateStaffRole, removeStaffMember, getShopReports, getRetailSettings, getShopNotifications, markShopNotificationsRead, exportShopReport } from '@/lib/actions/retail'
 import { getSuppliers, createSupplier, deleteSupplier, getPurchaseOrders, createPurchaseOrder, updatePurchaseOrderStatus } from '@/lib/actions/procurement';
 import { getCityRegistry } from "@/app/actions/city";
 import { uploadAsset } from "@/lib/actions/microsite";
 import DiscountsTab from "./DiscountsTab";
 import OnlineStoreTab from "./OnlineStoreTab";
+import OnlineOrdersTab from "./OnlineOrdersTab";
 
 interface ShopDashboardProps {
   organizationId: string;
@@ -207,7 +212,7 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
       label: "Overview",
       items: [
         { label: "Dashboard", icon: LayoutDashboard, roles: ["OWNER", "MANAGER"] },
-        { label: "Reports", icon: BarChart3, roles: ["OWNER", "MANAGER"] },
+        { label: "Analytics", icon: BarChart3, roles: ["OWNER", "MANAGER"] },
       ],
     },
     {
@@ -215,12 +220,14 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
       items: [
         { label: "POS Terminal", icon: ShoppingCart, roles: ["OWNER", "MANAGER", "CASHIER"] },
         { label: "Sales & Returns", icon: ArrowRightLeft, roles: ["OWNER", "MANAGER", "CASHIER"] },
+          { label: "Online Orders", icon: Package, roles: ["OWNER", "MANAGER", "CASHIER"] },
       ],
     },
     {
       label: "Catalog",
       items: [
-        { label: "Products & Inventory", icon: Package, roles: ["OWNER", "MANAGER", "INVENTORY_STAFF"] },
+        { label: "Products", icon: Package, roles: ["OWNER", "MANAGER", "INVENTORY_STAFF"] },
+          { label: "Inventory", icon: ClipboardList, roles: ["OWNER", "MANAGER", "INVENTORY_STAFF"] },
       ],
     },
     {
@@ -236,19 +243,12 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
         { label: "Cash & Shifts", icon: Store, roles: ["OWNER", "MANAGER", "CASHIER"] },
         { label: "Suppliers & POs", icon: Truck, roles: ["OWNER", "MANAGER", "INVENTORY_STAFF"] },
         { label: "Expenses", icon: DollarSign, roles: ["OWNER", "MANAGER"] },
-        { label: "Locations", icon: MapPin, roles: ["OWNER", "MANAGER"] },
-      ],
+        ],
     },
     {
       label: "Grow",
       items: [
         { label: "Online Store", icon: Globe, roles: ["OWNER", "MANAGER"] },
-      ],
-    },
-    {
-      label: "Team",
-      items: [
-        { label: "Staff", icon: UserPlus, roles: ["OWNER", "MANAGER"] },
       ],
     },
     {
@@ -512,7 +512,7 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
 
         <div className={cn("flex-1", activeMenu === "POS Terminal" ? "overflow-hidden flex flex-col min-h-0" : "overflow-auto")}>
           {loading ? (
-            <div className="p-10 text-center text-slate-400 flex items-center justify-center gap-2"><Loader2 className="animate-spin" size={20} /> Loading...</div>
+            <div className="h-[60vh] flex flex-col items-center justify-center text-slate-400 gap-3 animate-in fade-in duration-500"><Loader2 className="animate-spin text-brand-500" size={32} /><p className="font-medium text-sm">Loading workspace...</p></div>
           ) : (
             <>
               {activeMenu === "Dashboard" && <DashboardView dashboard={dashboard} organizationId={organizationId} setActiveMenu={setActiveMenu} />}
@@ -537,7 +537,9 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
 
               {activeMenu === "Expenses" && <ExpensesTab organizationId={organizationId} currentUserId={currentUserId} symbol={currencySymbol} />}
 
-              {activeMenu === "Settings" && <Settings organizationId={organizationId} />}
+              {activeMenu === "Settings" && <Settings organizationId={organizationId} userRole={userRole} />}
+
+              {activeMenu === "Online Orders" && <OnlineOrdersTab organizationId={organizationId} locationId={activeLocationId} />}
 
               {activeMenu === "Sales & Returns" && (
                 <SalesReturnsTab organizationId={organizationId} locationId={activeLocationId} currentUserId={currentUserId} onChanged={loadAll} symbol={currencySymbol} salesShiftFilter={salesShiftFilter} setSalesShiftFilter={setSalesShiftFilter} />
@@ -549,11 +551,7 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
 
               {activeMenu === "Online Store" && <OnlineStoreTab organizationId={organizationId} onChanged={loadAll} />}
 
-              {activeMenu === "Locations" && <LocationsTab organizationId={organizationId} />}
-
-              {activeMenu === "Staff" && <StaffTab organizationId={organizationId} userRole={userRole} />}
-
-              {activeMenu === "Reports" && <ReportsTab organizationId={organizationId} setActiveMenu={setActiveMenu} />}
+              {activeMenu === "Analytics" && <AnalyticsTab locationId={activeLocationId} organizationId={organizationId} />}
             </>
           )}
         </div>
@@ -610,7 +608,7 @@ function DashboardView({ dashboard, organizationId, setActiveMenu }: { dashboard
   const orderRef = (id: string) => `#${id.slice(0, 8)}`;
 
   return (
-    <div className="p-6 lg:p-8">
+    <div className="p-6 lg:p-8 space-y-8 max-w-[1600px] mx-auto">
       {dashboard?.settings && (
         <ShopOnboardingWidget
           settings={dashboard.settings}
@@ -619,181 +617,138 @@ function DashboardView({ dashboard, organizationId, setActiveMenu }: { dashboard
         />
       )}
 
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6">
+      {/* HEADER */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-black text-ink tracking-tight">Welcome back</h2>
-          <p className="text-sm text-slate-500 mt-0.5">
-            {dashboard.settings?.storeName ?? "Your store"} · Here&apos;s what&apos;s happening today.
+          <h1 className="text-3xl font-black text-ink tracking-tight">Command Center</h1>
+          <p className="text-slate-500 mt-1 text-base">
+            {dashboard.settings?.storeName ?? "Your store"} — Here's what's happening today.
           </p>
         </div>
-        <button onClick={() => setActiveMenu("POS Terminal")} className={btnPrimary}>
-          <Plus size={16} /> New Sale
-        </button>
+        <div className="flex items-center gap-3">
+          <button onClick={() => setActiveMenu("POS Terminal")} className={btnPrimary}>
+            <Plus size={18} className="mr-1" /> New Sale
+          </button>
+        </div>
       </div>
 
+      {/* KPI CARDS */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-5">
-        <StatCard label="Gross Sales" value={money(dashboard.grossSales)} icon={DollarSign} tone="brand" sub="Completed today" />
-        <StatCard label="Transactions" value={String(dashboard.transactions)} icon={ShoppingCart} tone="purple" sub="Sales today" />
-        <StatCard label="New Customers" value={String(dashboard.newCustomersToday)} icon={Users} tone="emerald" sub="Added today" />
-        <StatCard label="Net Sales" value={money(dashboard.netSales)} icon={TrendingUp} tone="amber" sub="After refunds" />
+        <StatCard label="Revenue" value={money(dashboard.grossSales)} icon={DollarSign} tone="brand" sub={`${dashboard.transactions} orders today`} />
+        <StatCard label="Average Order" value={money(dashboard.averageOrderValue)} icon={TrendingUp} tone="emerald" sub="Based on today's sales" />
+        <StatCard label="Net Sales" value={money(dashboard.netSales)} icon={BarChart3} tone="purple" sub={`After ${money(dashboard.refunds)} refunds`} />
+        <StatCard label="New Customers" value={String(dashboard.newCustomersToday)} icon={Users} tone="blue" sub="Added today" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-5">
-        <SectionCard
-          title={<span className="flex items-center gap-2"><Package size={15} className="text-brand-700" /> Top Products</span>}
-          action={<button onClick={() => setActiveMenu("Products & Inventory")} className="text-xs font-bold text-brand-700 hover:text-brand-800 transition-colors">View all</button>}
-        >
-          {dashboard.topProducts.length === 0 ? (
-            <EmptyState
-              icon={Package}
-              title="No best sellers yet"
-              message="Ring up your first sale at the register and your top products will appear here."
-              cta="Open POS"
-              onCta={() => setActiveMenu("POS Terminal")}
-            />
-          ) : (
-            <ul className="divide-y divide-slate-100">
-              {dashboard.topProducts.map((p: any, i: number) => (
-                <li key={p.productId} className="px-5 py-3 flex items-center gap-3 hover:bg-slate-50 transition-colors">
-                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${i === 0 ? "bg-brand-100 text-brand-800" : "bg-slate-100 text-slate-500"}`}>{i + 1}</span>
-                  <span className="flex-1 text-sm font-semibold text-ink truncate">{p.name}</span>
-                  <span className="text-xs text-slate-500">{p.units} {p.units === 1 ? "unit" : "units"}</span>
-                  <span className="text-sm font-bold text-ink w-24 text-right">{money(p.revenue)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </SectionCard>
+      {/* ACTION CENTER */}
+      {(dashboard.pendingOnlineOrders > 0 || dashboard.fulfillmentActions > 0 || dashboard.lowStockCount > 0 || dashboard.outOfStockCount > 0 || dashboard.activeDeliveries > 0) && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 shadow-sm">
+          <h2 className="text-lg font-bold text-amber-900 mb-4 flex items-center gap-2">
+            <AlertTriangle size={20} className="text-amber-600" /> Needs Your Attention
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {dashboard.pendingOnlineOrders > 0 && (
+              <button onClick={() => setActiveMenu("Online Orders")} className="bg-white border border-amber-200 p-4 rounded-xl text-left hover:shadow-md transition-all group">
+                <p className="text-3xl font-black text-amber-600 mb-1">{dashboard.pendingOnlineOrders}</p>
+                <p className="font-semibold text-amber-900 group-hover:text-amber-700 transition-colors">New online orders</p>
+                <p className="text-xs text-amber-700/70 mt-1">Awaiting acceptance</p>
+              </button>
+            )}
+            {dashboard.fulfillmentActions > 0 && (
+              <button onClick={() => setActiveMenu("Online Orders")} className="bg-white border border-amber-200 p-4 rounded-xl text-left hover:shadow-md transition-all group">
+                <p className="text-3xl font-black text-amber-600 mb-1">{dashboard.fulfillmentActions}</p>
+                <p className="font-semibold text-amber-900 group-hover:text-amber-700 transition-colors">Fulfillment actions</p>
+                <p className="text-xs text-amber-700/70 mt-1">Ready for courier</p>
+              </button>
+            )}
+            {dashboard.lowStockCount > 0 && (
+              <button onClick={() => setActiveMenu("Inventory")} className="bg-white border border-amber-200 p-4 rounded-xl text-left hover:shadow-md transition-all group">
+                <p className="text-3xl font-black text-rose-600 mb-1">{dashboard.lowStockCount}</p>
+                <p className="font-semibold text-rose-900 group-hover:text-rose-700 transition-colors">Low stock products</p>
+                <p className="text-xs text-rose-700/70 mt-1">Requires reordering</p>
+              </button>
+            )}
+            {dashboard.activeDeliveries > 0 && (
+              <button onClick={() => setActiveMenu("Online Orders")} className="bg-white border border-amber-200 p-4 rounded-xl text-left hover:shadow-md transition-all group">
+                <p className="text-3xl font-black text-blue-600 mb-1">{dashboard.activeDeliveries}</p>
+                <p className="font-semibold text-blue-900 group-hover:text-blue-700 transition-colors">Active deliveries</p>
+                <p className="text-xs text-blue-700/70 mt-1">In progress via LogisticsOS</p>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
+      {/* TWO COLUMNS */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* RECENT ORDERS */}
         <SectionCard
-          title={<span className="flex items-center gap-2"><ShoppingCart size={15} className="text-brand-700" /> Recent Orders</span>}
-          action={<button onClick={() => setActiveMenu("Sales & Returns")} className="text-xs font-bold text-brand-700 hover:text-brand-800 transition-colors">View all</button>}
+          title={<span className="flex items-center gap-2 text-lg"><ShoppingCart size={18} className="text-brand-600" /> Recent Orders</span>}
+          action={<button onClick={() => setActiveMenu("Sales & Returns")} className="text-sm font-bold text-brand-600 hover:text-brand-800 transition-colors flex items-center gap-1">View all <ChevronRight size={16}/></button>}
+          className="shadow-sm border-slate-200 h-full flex flex-col"
+          bodyClassName="flex-1 flex flex-col"
         >
           {dashboard.recentOrders.length === 0 ? (
-            <EmptyState
-              icon={ShoppingCart}
-              title="No orders yet"
-              message="Completed orders show up here so you can see activity at a glance."
-              cta="Open POS"
-              onCta={() => setActiveMenu("POS Terminal")}
-            />
+            <div className="flex-1 flex items-center justify-center min-h-[200px]">
+              <EmptyState icon={Receipt} title="No orders yet" message="Completed orders show up here so you can see activity at a glance." action={<button onClick={() => setActiveMenu("POS Terminal")} className={btnOutline}>Open POS</button>} />
+            </div>
           ) : (
-            <ul className="divide-y divide-slate-100">
+            <ul className="divide-y divide-slate-100 flex-1">
               {dashboard.recentOrders.map((o: any) => (
-                <li key={o.id} className="px-5 py-3 flex items-center gap-3 hover:bg-slate-50 transition-colors">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-ink">{orderRef(o.id)}</p>
-                    <p className="text-xs text-slate-500 truncate">{o.cashierName} · {o.items.length} item{o.items.length === 1 ? "" : "s"}</p>
+                <li key={o.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50 transition-colors group cursor-pointer" onClick={() => setActiveMenu("Sales & Returns")}>
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-brand-50 group-hover:text-brand-600 transition-colors">
+                      <Receipt size={18} />
+                    </div>
+                    <div>
+                      <p className="font-bold text-ink">{orderRef(o.id)}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">{o.cashierName} • {o.items.length} item{o.items.length === 1 ? "" : "s"}</p>
+                    </div>
                   </div>
-                  <StatusPill tone={o.status === "REFUNDED" ? "red" : "emerald"}>{o.status}</StatusPill>
-                  <span className="text-sm font-bold text-ink w-20 text-right">{money(o.totalAmount)}</span>
+                  <div className="flex items-center gap-4 justify-between sm:justify-end">
+                    <StatusPill tone={o.status === "REFUNDED" ? "rose" : "emerald"}>{o.status}</StatusPill>
+                    <span className="font-black text-ink">{money(o.totalAmount)}</span>
+                  </div>
                 </li>
               ))}
             </ul>
           )}
         </SectionCard>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mt-5">
+        {/* TOP PRODUCTS */}
         <SectionCard
-          title={<span className="flex items-center gap-2"><AlertTriangle size={15} className="text-amber-500" /> Inventory Watch</span>}
-          action={<button onClick={() => setActiveMenu("Products & Inventory")} className="text-xs font-bold text-brand-700 hover:text-brand-800 transition-colors">Manage stock</button>}
+          title={<span className="flex items-center gap-2 text-lg"><Package size={18} className="text-brand-600" /> Top Products</span>}
+          action={<button onClick={() => setActiveMenu("Inventory")} className="text-sm font-bold text-brand-600 hover:text-brand-800 transition-colors flex items-center gap-1">Manage <ChevronRight size={16}/></button>}
+          className="shadow-sm border-slate-200 h-full flex flex-col"
+          bodyClassName="flex-1 flex flex-col"
         >
-          {dashboard.lowStockProducts.length === 0 ? (
-            <EmptyState icon={CheckCircle2} title="All stocked up" message="No products are at or below their low-stock threshold." />
+          {dashboard.topProducts.length === 0 ? (
+            <div className="flex-1 flex items-center justify-center min-h-[200px]">
+              <EmptyState icon={Package} title="No best sellers yet" message="Ring up your first sale at the register and your top products will appear here." action={<button onClick={() => setActiveMenu("POS Terminal")} className={btnOutline}>Open POS</button>} />
+            </div>
           ) : (
-            <ul className="divide-y divide-slate-100">
-              {dashboard.lowStockProducts.map((p: any) => (
-                <li key={p.id} className="px-5 py-3 flex items-center gap-3">
-                  <AlertTriangle size={16} className="text-amber-500 flex-shrink-0" />
-                  <span className="flex-1 text-sm font-semibold text-ink truncate">{p.name}</span>
-                  <span className="text-xs text-slate-500">
-                    {p.stockQuantity} {p.unit} left <span className="text-amber-600 font-semibold">(min {p.lowStockLevel})</span>
-                  </span>
+            <ul className="divide-y divide-slate-100 p-2 flex-1">
+              {dashboard.topProducts.map((p: any, i: number) => (
+                <li key={p.productId} className="px-4 py-3 flex items-center justify-between hover:bg-slate-50 rounded-xl transition-colors">
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${i === 0 ? "bg-amber-100 text-amber-700 ring-2 ring-amber-200" : i === 1 ? "bg-slate-200 text-slate-700" : i === 2 ? "bg-orange-100 text-orange-800" : "bg-slate-100 text-slate-500"}`}>{i + 1}</span>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-ink truncate">{p.name}</p>
+                      <p className="text-xs text-slate-500">{p.units} {p.units === 1 ? "unit" : "units"} sold today</p>
+                    </div>
+                  </div>
+                  <span className="font-black text-ink">{money(p.revenue)}</span>
                 </li>
               ))}
             </ul>
           )}
         </SectionCard>
 
-        <SectionCard title="Store at a Glance">
-          <dl className="p-5 space-y-3 text-sm">
-            <div className="flex justify-between">
-              <dt className="text-slate-500">Products in catalog</dt>
-              <dd className="font-bold text-ink">{dashboard.totalProducts}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-slate-500">All-time orders</dt>
-              <dd className="font-bold text-ink">{dashboard.totalCompletedOrders} completed</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-slate-500">Refunded orders</dt>
-              <dd className="font-bold text-ink">{dashboard.totalOrders - dashboard.totalCompletedOrders}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-slate-500">Register</dt>
-              <dd className="font-bold">
-                {dashboard.openShift ? (
-                  <span className="inline-flex items-center gap-1.5 text-emerald-700"><span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> {dashboard.openShift.registerName} OPEN</span>
-                ) : (
-                  <span className="text-slate-400">No register open</span>
-                )}
-              </dd>
-            </div>
-          </dl>
-        </SectionCard>
-
-        <SectionCard title="Launch Checklist">
-          <ul className="p-5 space-y-2.5">
-            {[
-              { done: dashboard.settings?.hasProducts, label: "Add products to your store", tab: "Products & Inventory" },
-              { done: dashboard.settings?.hasSetPayment, label: "Set up how you receive payments", tab: "Settings" },
-              { done: dashboard.settings?.hasShippingPrices, label: "Add shipping prices to your website", tab: "Settings" },
-              { done: dashboard.settings?.hasStoreInfo, label: "Complete store information", tab: "Settings" },
-            ].map((step) => (
-              <li key={step.label} className="flex items-center gap-2.5">
-                {step.done ? <CheckCircle2 size={16} className="text-emerald-500 flex-shrink-0" /> : <Circle size={16} className="text-slate-300 flex-shrink-0" />}
-                <span className={`text-sm flex-1 ${step.done ? "text-slate-400 line-through" : "text-slate-700"}`}>{step.label}</span>
-                {!step.done && <button onClick={() => setActiveMenu(step.tab)} className="text-xs font-bold text-brand-700 hover:text-brand-800 transition-colors">Do it</button>}
-              </li>
-            ))}
-          </ul>
-        </SectionCard>
       </div>
     </div>
   );
 }
-
-// =====================================================================
-// Empty state (shared — "never faked" rules: only rendered with no data)
-// =====================================================================
-
-function EmptyState({ icon: Icon, title, message, cta, onCta }: {
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-  title: string;
-  message: string;
-  cta?: string;
-  onCta?: () => void;
-}) {
-  return (
-    <div className="p-8 text-center">
-      <div className="w-12 h-12 mx-auto rounded-xl bg-brand-50 flex items-center justify-center mb-3">
-        <Icon size={22} className="text-brand-700" />
-      </div>
-      <p className="font-bold text-ink">{title}</p>
-      <p className="text-sm text-slate-500 mt-1 max-w-xs mx-auto">{message}</p>
-      {cta && onCta && (
-        <button onClick={onCta} className={`${btnPrimary} mt-4`}>
-          {cta} <ChevronRight size={14} />
-        </button>
-      )}
-    </div>
-  );
-}
-
-// =====================================================================
-// Open Shift prompt (POS is gated behind an open register shift)
-// =====================================================================
 
 function OpenShiftPrompt({ organizationId, locationId, registers, currentUserId, onOpened, symbol = "$" }: {
   organizationId: string; locationId?: string | null; registers: any[]; currentUserId: string; onOpened: () => void; symbol?: string;
@@ -957,7 +912,7 @@ function ShiftsTab({ organizationId, locationId, registers, openShift: openShift
       <div>
         <h3 className="font-bold text-slate-800 mb-3">Shift History</h3>
         <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-          <table className="w-full text-sm text-left">
+          <div className="overflow-x-auto"><table className="w-full text-sm text-left whitespace-nowrap">
             <thead className="bg-slate-50 text-slate-500 border-b border-slate-200">
               <tr>
                 <th className="px-4 py-3">Opened</th>
@@ -994,7 +949,7 @@ function ShiftsTab({ organizationId, locationId, registers, openShift: openShift
                 ))
               )}
             </tbody>
-          </table>
+          </table></div>
         </div>
       </div>
     </div>
@@ -1056,7 +1011,7 @@ function SuppliersTab({ organizationId, symbol = "$" }: { organizationId: string
     load();
   };
 
-  if (loading) return <div className="p-8 text-center text-slate-400">Loading...</div>;
+  if (loading) return <div className="h-64 flex flex-col items-center justify-center text-slate-400 gap-3 animate-in fade-in duration-500"><Loader2 className="animate-spin text-brand-500" size={24} /><p className="font-medium text-sm">Loading...</p></div>;
 
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-4">
@@ -1077,7 +1032,7 @@ function SuppliersTab({ organizationId, symbol = "$" }: { organizationId: string
 
       {view === "suppliers" ? (
         <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-          <table className="w-full text-sm text-left">
+          <div className="overflow-x-auto"><table className="w-full text-sm text-left whitespace-nowrap">
             <thead className="bg-slate-50 text-slate-500 border-b border-slate-200">
               <tr><th className="px-4 py-3">Name</th><th className="px-4 py-3">Email</th><th className="px-4 py-3">Terms</th><th className="px-4 py-3 text-right">Actions</th></tr>
             </thead>
@@ -1097,11 +1052,11 @@ function SuppliersTab({ organizationId, symbol = "$" }: { organizationId: string
                 ))
               )}
             </tbody>
-          </table>
+          </table></div>
         </div>
       ) : (
         <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-          <table className="w-full text-sm text-left">
+          <div className="overflow-x-auto"><table className="w-full text-sm text-left whitespace-nowrap">
             <thead className="bg-slate-50 text-slate-500 border-b border-slate-200">
               <tr><th className="px-4 py-3">PO Number</th><th className="px-4 py-3">Supplier</th><th className="px-4 py-3">Status</th><th className="px-4 py-3 text-right">Total</th><th className="px-4 py-3 text-right">Actions</th></tr>
             </thead>
@@ -1126,7 +1081,7 @@ function SuppliersTab({ organizationId, symbol = "$" }: { organizationId: string
                 ))
               )}
             </tbody>
-          </table>
+          </table></div>
         </div>
       )}
 
@@ -1270,7 +1225,7 @@ function ExpensesTab({ organizationId, currentUserId, symbol = "$" }: { organiza
     load();
   };
 
-  if (loading || !summary) return <div className="p-8 text-center text-slate-400 flex items-center justify-center gap-2"><Loader2 className="animate-spin" size={20} /> Loading...</div>;
+  if (loading || !summary) return <div className="h-64 flex flex-col items-center justify-center text-slate-400 gap-3 animate-in fade-in duration-500"><Loader2 className="animate-spin text-brand-500" size={24} /><p className="font-medium text-sm">Loading...</p></div>;
 
   const maxCategoryAmount = Math.max(1, ...Object.values(summary.byCategory));
 
@@ -1310,7 +1265,7 @@ function ExpensesTab({ organizationId, currentUserId, symbol = "$" }: { organiza
       <div>
         <h3 className="font-bold text-slate-800 mb-3">Recent Expenses</h3>
         <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-          <table className="w-full text-sm text-left">
+          <div className="overflow-x-auto"><table className="w-full text-sm text-left whitespace-nowrap">
             <thead className="bg-slate-50 text-slate-500 border-b border-slate-200">
               <tr>
                 <th className="px-4 py-3">Date</th>
@@ -1353,7 +1308,7 @@ function ExpensesTab({ organizationId, currentUserId, symbol = "$" }: { organiza
                 ))
               )}
             </tbody>
-          </table>
+          </table></div>
         </div>
       </div>
 
@@ -1459,7 +1414,7 @@ function ReportsTab({ organizationId, setActiveMenu }: { organizationId: string;
   }, [organizationId]);
 
   if (loading || !reports) {
-    return <div className="p-10 text-center text-slate-400 flex items-center justify-center gap-2"><Loader2 className="animate-spin" size={20} /> Loading...</div>;
+    return <div className="h-[60vh] flex flex-col items-center justify-center text-slate-400 gap-3 animate-in fade-in duration-500"><Loader2 className="animate-spin text-brand-500" size={32} /><p className="font-medium text-sm">Loading workspace...</p></div>;
   }
 
   const money = (v: number) => `${symbol}${(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -1554,9 +1509,9 @@ function ReportsTab({ organizationId, setActiveMenu }: { organizationId: string;
             <h3 className="font-bold text-slate-800">Top Products</h3>
           </div>
           {salesByProduct.length === 0 ? (
-            <EmptyState icon={Package} title="No sales yet" message="Products you sell appear here ranked by revenue." cta="Open POS" onCta={() => setActiveMenu("POS Terminal")} />
+            <EmptyState icon={Package} title="No sales yet" message="Products you sell appear here ranked by revenue." action={<button onClick={() => setActiveMenu("POS Terminal")} className={btnOutline}>Open POS</button>} />
           ) : (
-            <table className="w-full text-sm text-left">
+            <div className="overflow-x-auto"><table className="w-full text-sm text-left whitespace-nowrap">
               <thead className="bg-slate-50 text-slate-500 border-b border-slate-200">
                 <tr><th className="px-5 py-2">Product</th><th className="px-5 py-2 text-right">Units</th><th className="px-5 py-2 text-right">Revenue</th></tr>
               </thead>
@@ -1574,7 +1529,7 @@ function ReportsTab({ organizationId, setActiveMenu }: { organizationId: string;
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           )}
         </div>
 
@@ -1583,9 +1538,9 @@ function ReportsTab({ organizationId, setActiveMenu }: { organizationId: string;
             <h3 className="font-bold text-slate-800">Sales by Cashier</h3>
           </div>
           {salesByCashier.length === 0 ? (
-            <EmptyState icon={User} title="No sales yet" message="Cashier performance appears once orders are recorded." cta="Open POS" onCta={() => setActiveMenu("POS Terminal")} />
+            <EmptyState icon={User} title="No sales yet" message="Cashier performance appears once orders are recorded." action={<button onClick={() => setActiveMenu("POS Terminal")} className={btnOutline}>Open POS</button>} />
           ) : (
-            <table className="w-full text-sm text-left">
+            <div className="overflow-x-auto"><table className="w-full text-sm text-left whitespace-nowrap">
               <thead className="bg-slate-50 text-slate-500 border-b border-slate-200">
                 <tr><th className="px-5 py-2">Cashier</th><th className="px-5 py-2 text-right">Orders</th><th className="px-5 py-2 text-right">Revenue</th></tr>
               </thead>
@@ -1598,7 +1553,7 @@ function ReportsTab({ organizationId, setActiveMenu }: { organizationId: string;
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           )}
         </div>
       </div>
@@ -1609,7 +1564,7 @@ function ReportsTab({ organizationId, setActiveMenu }: { organizationId: string;
             <h3 className="font-bold text-slate-800">Top Customers</h3>
           </div>
           {topCustomers.length === 0 ? (
-            <EmptyState icon={Users} title="No customers yet" message="Your highest-spending customers appear here." cta="Add a customer" onCta={() => setActiveMenu("Customers")} />
+            <EmptyState icon={Users} title="No customers yet" message="Your highest-spending customers appear here." action={<button onClick={() => setActiveMenu("Customers")} className={btnOutline}>Add a customer</button>} />
           ) : (
             <ul className="divide-y divide-slate-100">
               {topCustomers.map((c: any) => (
@@ -1629,7 +1584,7 @@ function ReportsTab({ organizationId, setActiveMenu }: { organizationId: string;
         <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
             <h3 className="font-bold text-slate-800">Low Stock</h3>
-            <button onClick={() => setActiveMenu("Products & Inventory")} className="text-xs font-semibold text-blue-600 hover:text-blue-800">Manage</button>
+            <button onClick={() => setActiveMenu("Inventory")} className="text-xs font-semibold text-blue-600 hover:text-blue-800">Manage</button>
           </div>
           {lowStock.length === 0 ? (
             <EmptyState icon={CheckCircle2} title="All stocked up" message="Nothing is at or below its low-stock threshold." />
@@ -1758,7 +1713,7 @@ function SalesReturnsTab({ organizationId, locationId, currentUserId, onChanged,
       </div>
 
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-        <table className="w-full text-sm text-left">
+        <div className="overflow-x-auto"><table className="w-full text-sm text-left whitespace-nowrap">
           <thead className="bg-slate-50 text-slate-500 border-b border-slate-200">
             <tr>
               <th className="px-4 py-3">Order</th>
@@ -1773,7 +1728,7 @@ function SalesReturnsTab({ organizationId, locationId, currentUserId, onChanged,
           </thead>
           <tbody className="divide-y divide-slate-100">
             {loading ? (
-              <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-400">Loading...</td></tr>
+              <TableSkeleton cols={8} />
             ) : filteredOrders.length === 0 ? (
               <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-400">No orders found.</td></tr>
             ) : (
@@ -1812,7 +1767,7 @@ function SalesReturnsTab({ organizationId, locationId, currentUserId, onChanged,
               ))
             )}
           </tbody>
-        </table>
+        </table></div>
       </div>
 
       {viewingOrder && (
@@ -1965,7 +1920,7 @@ function CustomersTab({ organizationId, symbol = "$" }: { organizationId: string
       </div>
 
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-        <table className="w-full text-sm text-left">
+        <div className="overflow-x-auto"><table className="w-full text-sm text-left whitespace-nowrap">
           <thead className="bg-slate-50 text-slate-500 border-b border-slate-200">
             <tr>
               <th className="px-4 py-3">Customer</th>
@@ -1978,7 +1933,7 @@ function CustomersTab({ organizationId, symbol = "$" }: { organizationId: string
           </thead>
           <tbody className="divide-y divide-slate-100">
             {loading ? (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">Loading...</td></tr>
+              <TableSkeleton cols={6} />
             ) : filtered.length === 0 ? (
               <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">{customers.length === 0 ? "No customers yet — add your first one." : "No customers found."}</td></tr>
             ) : (
@@ -2005,7 +1960,7 @@ function CustomersTab({ organizationId, symbol = "$" }: { organizationId: string
               ))
             )}
           </tbody>
-        </table>
+        </table></div>
       </div>
 
       {isAddOpen && (
@@ -2271,13 +2226,13 @@ function LocationsTab({ organizationId }: { organizationId: string }) {
       </div>
 
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-        <table className="w-full text-sm text-left">
+        <div className="overflow-x-auto"><table className="w-full text-sm text-left whitespace-nowrap">
           <thead className="bg-slate-50 text-slate-500 border-b border-slate-200">
             <tr><th className="px-4 py-3">Name</th><th className="px-4 py-3">Address</th><th className="px-4 py-3 text-right">Actions</th></tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {loading ? (
-              <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-400">Loading...</td></tr>
+              <TableSkeleton cols={3} />
             ) : locations.length === 0 ? (
               <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-400">No locations yet — add your first branch.</td></tr>
             ) : (
@@ -2299,7 +2254,7 @@ function LocationsTab({ organizationId }: { organizationId: string }) {
               ))
             )}
           </tbody>
-        </table>
+        </table></div>
       </div>
 
       {isAddOpen && (
@@ -2428,13 +2383,13 @@ function StaffTab({ organizationId, userRole }: { organizationId: string; userRo
       </div>
 
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-        <table className="w-full text-sm text-left">
+        <div className="overflow-x-auto"><table className="w-full text-sm text-left whitespace-nowrap">
           <thead className="bg-slate-50 text-slate-500 border-b border-slate-200">
             <tr><th className="px-4 py-3">Name</th><th className="px-4 py-3">Email</th><th className="px-4 py-3">Roles</th>{canManage && <th className="px-4 py-3 text-right">Actions</th>}</tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {loading ? (
-              <tr><td colSpan={canManage ? 4 : 3} className="px-4 py-6 text-center text-slate-400">Loading...</td></tr>
+              <TableSkeleton cols={canManage ? 4 : 3} />
             ) : staff.length === 0 ? (
               <tr><td colSpan={canManage ? 4 : 3} className="px-4 py-6 text-center text-slate-400">No staff yet.</td></tr>
             ) : (
@@ -2486,7 +2441,7 @@ function StaffTab({ organizationId, userRole }: { organizationId: string; userRo
               })
             )}
           </tbody>
-        </table>
+        </table></div>
       </div>
 
       <p className="text-xs text-slate-400 max-w-lg">

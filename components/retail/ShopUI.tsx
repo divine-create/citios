@@ -257,3 +257,116 @@ export function Kbd({ children }: { children: React.ReactNode }) {
     </kbd>
   );
 }
+
+// =====================================================================
+// PHASE M1: MERCHANT DESIGN SYSTEM EXTENSIONS
+// =====================================================================
+
+import { Search as SearchIcon, AlertCircle } from "lucide-react";
+
+export function OrderStatusBadge({ status, toneOverride }: { status: string; toneOverride?: keyof typeof TONES }) {
+  const getTone = (): keyof typeof TONES => {
+    if (toneOverride) return toneOverride;
+    switch (status) {
+      case 'PENDING': return 'amber';
+      case 'CONFIRMED': return 'emerald';
+      case 'PROCESSING': return 'blue';
+      case 'READY': return 'violet';
+      case 'FULFILLED': return 'slate';
+      case 'CANCELLED': return 'rose';
+      case 'RETURNED': return 'rose';
+      default: return 'slate';
+    }
+  };
+  return <StatusPill tone={getTone()}>{status}</StatusPill>;
+}
+
+export function PriceDisplay({ amount, currency = '₦', compareAt, className = "" }: { amount: number; currency?: string; compareAt?: number | null; className?: string }) {
+  return (
+    <div className={`flex items-baseline gap-2 ${className}`}>
+      <span className="font-bold text-ink">{currency}{amount.toLocaleString()}</span>
+      {compareAt && compareAt > amount && (
+        <span className="text-xs text-slate-400 line-through">{currency}{compareAt.toLocaleString()}</span>
+      )}
+    </div>
+  );
+}
+
+export function StockIndicator({ stock, lowStockLevel }: { stock: number; lowStockLevel?: number | null }) {
+  if (stock <= 0) return <span className="inline-flex items-center gap-1.5 text-rose-600 font-semibold text-sm"><span className="w-2 h-2 rounded-full bg-rose-500"></span>Out of stock</span>;
+  if (lowStockLevel != null && stock <= lowStockLevel) return <span className="inline-flex items-center gap-1.5 text-amber-600 font-semibold text-sm"><span className="w-2 h-2 rounded-full bg-amber-500"></span>Low stock ({stock})</span>;
+  return <span className="inline-flex items-center gap-1.5 text-emerald-600 font-semibold text-sm"><span className="w-2 h-2 rounded-full bg-emerald-500"></span>In stock ({stock})</span>;
+}
+
+export function SearchInput({ value, onChange, placeholder = "Search..." }: { value: string; onChange: (val: string) => void; placeholder?: string }) {
+  return (
+    <div className="relative">
+      <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className={`${inputCls} pl-9`}
+      />
+    </div>
+  );
+}
+
+export function FilterBar({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`flex flex-wrap gap-3 items-center bg-slate-50 p-3 rounded-xl border border-slate-200 ${className}`}>
+      {children}
+    </div>
+  );
+}
+
+export function ErrorState({ title, message, action }: { title: string; message?: string; action?: React.ReactNode }) {
+  return (
+    <div className="p-6 bg-rose-50 border border-rose-100 rounded-xl text-center">
+      <AlertCircle className="w-10 h-10 mx-auto text-rose-500 mb-3" />
+      <h4 className="font-bold text-rose-900">{title}</h4>
+      {message && <p className="text-sm text-rose-600 mt-1">{message}</p>}
+      {action && <div className="mt-4">{action}</div>}
+    </div>
+  );
+}
+
+export function Skeleton({ className = "", style }: { className?: string, style?: React.CSSProperties }) {
+  return <div className={`animate-pulse bg-slate-200 rounded-lg ${className}`} style={style} />;
+}
+
+export function ActionCard({ title, description, action, icon: Icon, tone = "slate" }: { title: string; description: string; action: React.ReactNode; icon?: React.ComponentType<{ size?: number; className?: string }>; tone?: keyof typeof TONES }) {
+  return (
+    <div className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex items-center gap-4">
+        {Icon && (
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${TONES[tone]}`}>
+            <Icon size={22} />
+          </div>
+        )}
+        <div>
+          <h4 className="font-bold text-ink">{title}</h4>
+          <p className="text-sm text-slate-500 mt-0.5">{description}</p>
+        </div>
+      </div>
+      <div className="flex-shrink-0">
+        {action}
+      </div>
+    </div>
+  );
+}export function TableSkeleton({ rows = 3, cols = 4 }: { rows?: number; cols?: number }) {
+  return (
+    <>
+      {Array.from({ length: rows }).map((_, i) => (
+        <tr key={i} className="border-b border-slate-100 last:border-0">
+          {Array.from({ length: cols }).map((_, j) => (
+            <td key={j} className="px-4 py-4">
+              <Skeleton className="h-4 w-full" style={{ opacity: 1 - j * 0.15 }} />
+            </td>
+          ))}
+        </tr>
+      ))}
+    </>
+  );
+}
