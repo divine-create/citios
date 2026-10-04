@@ -267,7 +267,7 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
   const roleLabel = userRole === "OWNER" ? "Store Owner" : userRole === "MANAGER" ? "Store Manager" : userRole === "CASHIER" ? "Cashier" : "Inventory";
 
   return (
-    <div className="flex h-full flex-1 bg-[#F4F7FC] text-slate-800 font-sans overflow-hidden">
+    <div className="flex h-full flex-1 bg-[#FAFAFA] text-slate-800 font-sans overflow-hidden">
       {isSidebarOpen && (
         <div className="fixed inset-0 bg-black/40 z-30 md:hidden" onClick={() => setIsSidebarOpen(false)} />
       )}
@@ -402,7 +402,7 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col min-w-0 bg-[#F4F7FC]">
+      <main className="flex-1 flex flex-col min-w-0 bg-[#FAFAFA]">
         <header className="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-3 sm:px-4 lg:px-8 flex-shrink-0 z-10">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <button 

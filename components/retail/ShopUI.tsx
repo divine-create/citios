@@ -8,21 +8,17 @@ import { X } from "lucide-react";
 // (blue brand scale, navy ink text, soft tinted icon tiles, pill badges)
 // =====================================================================
 
-export const inputCls =
-  "w-full p-2.5 border border-slate-200 rounded-lg text-sm text-ink placeholder:text-slate-400 bg-white focus:outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 transition-all appearance-none";
+export const inputCls = "w-full px-4 py-2.5 bg-white border border-slate-200/80 rounded-xl text-sm text-ink shadow-sm placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-brand-500/10 focus:border-brand-500 transition-all appearance-none";
 export const selectCls = `${inputCls} cursor-pointer`;
 
-export const btnPrimary =
-  "inline-flex items-center justify-center gap-2 bg-brand-700 hover:bg-brand-800 text-white text-sm font-bold px-4 py-2.5 rounded-lg transition-colors disabled:opacity-50 disabled:pointer-events-none shadow-sm shadow-brand-700/25";
-export const btnOutline =
-  "inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors disabled:opacity-50";
-export const btnDanger =
-  "inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm font-bold px-4 py-2.5 rounded-lg transition-colors disabled:opacity-50";
+export const btnPrimary = "inline-flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold tracking-tight px-5 py-2.5 rounded-xl transition-all disabled:opacity-50 disabled:pointer-events-none shadow-sm shadow-brand-900/10 ring-1 ring-inset ring-black/10 active:scale-[0.98]";
+export const btnOutline = "inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-50 border border-slate-200 shadow-sm text-slate-700 text-sm font-semibold tracking-tight px-5 py-2.5 rounded-xl transition-all disabled:opacity-50 active:scale-[0.98]";
+export const btnDanger = "inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold tracking-tight px-5 py-2.5 rounded-xl transition-all disabled:opacity-50 shadow-sm shadow-red-900/10 ring-1 ring-inset ring-black/10 active:scale-[0.98]";
 export const btnDark =
   "inline-flex items-center justify-center gap-2 bg-ink hover:bg-slate-800 text-white text-sm font-bold px-4 py-2.5 rounded-lg transition-colors disabled:opacity-50";
 
-export const cardCls = "bg-white border border-slate-200 rounded-xl";
-export const thCls = "px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider";
+export const cardCls = "bg-white border border-slate-200/60 rounded-2xl shadow-sm";
+export const thCls = "px-5 py-3.5 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider bg-slate-50/50";
 export const iconBtnCls = "p-1.5 text-slate-400 hover:text-brand-700 hover:bg-brand-50 rounded-md transition-colors";
 
 const TONES: Record<string, string> = {
@@ -53,9 +49,9 @@ export function StatCard({ label, value, icon: Icon, tone = "brand", sub }: {
   sub?: React.ReactNode;
 }) {
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-5 flex items-center gap-4">
+    <div className="bg-white border border-slate-200/60 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow flex items-center gap-4">
       {Icon && (
-        <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${TONES[tone]}`}>
+        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ring-1 ring-inset ring-black/5 flex-shrink-0 ${TONES[tone]}`}>
           <Icon size={22} />
         </div>
       )}
@@ -213,7 +209,7 @@ export function SectionCard({ title, action, children, className = "", bodyClass
   bodyClassName?: string;
 }) {
   return (
-    <div className={`bg-white border border-slate-200 rounded-xl overflow-hidden ${className}`}>
+    <div className={`bg-white border border-slate-200/60 rounded-2xl overflow-hidden shadow-sm ${className}`}>
       {(title || action) && (
         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
           {title && <h3 className="font-bold text-[15px] text-ink">{title}</h3>}
@@ -338,10 +334,10 @@ export function Skeleton({ className = "", style }: { className?: string, style?
 
 export function ActionCard({ title, description, action, icon: Icon, tone = "slate" }: { title: string; description: string; action: React.ReactNode; icon?: React.ComponentType<{ size?: number; className?: string }>; tone?: keyof typeof TONES }) {
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="bg-white border border-slate-200/60 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div className="flex items-center gap-4">
         {Icon && (
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${TONES[tone]}`}>
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ring-1 ring-inset ring-black/5 flex-shrink-0 ${TONES[tone]}`}>
             <Icon size={22} />
           </div>
         )}
