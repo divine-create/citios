@@ -61,6 +61,14 @@ const membership = await db.orm.public.Membership.where({
   }
 
   if (locationId) {
+    const loc = await db.orm.public.Location.where({ id: locationId }).all().first();
+    if (!loc) {
+      throw new Error(`NOT_FOUND: Location ${locationId} not found`);
+    }
+    if (loc.organizationId !== organizationId) {
+      throw new Error(`FORBIDDEN: Location ${locationId} does not belong to organization ${organizationId}`);
+    }
+
     const isGlobalAdmin = roles.some(r => ['OWNER', 'ADMIN', 'MANAGER'].includes(r.role));
     if (!isGlobalAdmin) {
       const memLoc = await db.orm.public.MembershipLocation.where({ membershipId: membership.id, locationId }).all().first();
@@ -140,50 +148,67 @@ export async function inviteTeamMember(input: {
   locationId?: string;
 }) {
   await requireMembership(input.organizationId, ['OWNER', 'ADMIN']);
+
+  if (!input.roles || input.roles.length === 0) {
+    return { error: 'At least one role must be assigned.' };
+  }
   
   // Try to find the person by email
   const person = await findPersonByEmail(input.email);
   if (!person) {
     return { error: 'No user found with that email. They must sign up for CityOS first.' };
   }
-  
-  // Check if they are already a member
-  let mem = await db.orm.public.Membership.where({ personId: person.id, organizationId: input.organizationId }).all().first();
-  
-  if (!mem) {
-    mem = await db.orm.public.Membership.create({
-      personId: person.id,
-      organizationId: input.organizationId,
-    });
-  }
-  
-  // Clear existing roles
-  const existingRoles = await db.orm.public.MembershipRole.where({ membershipId: mem.id }).all();
-  for (const r of existingRoles) {
-    await db.orm.public.MembershipRole.where({ id: r.id }).delete();
-  }
-  
-  // Add new roles
-  for (const role of input.roles) {
-    await db.orm.public.MembershipRole.create({
-      membershipId: mem.id,
-      role
-    });
-  }
-  
-  // Handle location binding
+
+  // Handle location verification before writing anything
   if (input.locationId) {
-    const existingLocs = await db.orm.public.MembershipLocation.where({ membershipId: mem.id }).all();
-    for (const l of existingLocs) {
-      await db.orm.public.MembershipLocation.where({ id: l.id }).delete();
+    const loc = await db.orm.public.Location.where({ id: input.locationId }).all().first();
+    if (!loc) {
+      return { error: 'Location not found.' };
     }
-    await db.orm.public.MembershipLocation.create({
-      membershipId: mem.id,
-      locationId: input.locationId
-    });
+    if (loc.organizationId !== input.organizationId) {
+      return { error: 'FORBIDDEN: Location does not belong to this organization.' };
+    }
   }
-  
-  return { success: true };
+
+  return await db.transaction(async (tx: any) => {
+    // Check if they are already a member
+    let mem = await tx.orm.public.Membership.where({ personId: person.id, organizationId: input.organizationId }).all().first();
+    
+    if (!mem) {
+      mem = await tx.orm.public.Membership.create({
+        personId: person.id,
+        organizationId: input.organizationId,
+      });
+    }
+    
+    // Clear existing roles
+    const existingRoles = await tx.orm.public.MembershipRole.where({ membershipId: mem.id }).all();
+    for (const r of existingRoles) {
+      await tx.orm.public.MembershipRole.where({ id: r.id }).delete();
+    }
+    
+    // Add new roles
+    for (const role of input.roles) {
+      await tx.orm.public.MembershipRole.create({
+        membershipId: mem.id,
+        role
+      });
+    }
+    
+    // Handle location binding
+    if (input.locationId) {
+      const existingLocs = await tx.orm.public.MembershipLocation.where({ membershipId: mem.id }).all();
+      for (const l of existingLocs) {
+        await tx.orm.public.MembershipLocation.where({ id: l.id }).delete();
+      }
+      await tx.orm.public.MembershipLocation.create({
+        membershipId: mem.id,
+        locationId: input.locationId
+      });
+    }
+    
+    return { success: true };
+  });
 }
 
 export async function removeTeamMember(input: {
@@ -197,14 +222,32 @@ export async function removeTeamMember(input: {
     return { error: 'Membership not found in this organization.' };
   }
   
-  // Prevent removing the last owner (basic check)
+  // Prevent removing the last owner of THIS organization
   const isOwner = await db.orm.public.MembershipRole.where({ membershipId: mem.id, role: 'OWNER' }).all().first();
   if (isOwner) {
-    const allOwners = await db.orm.public.MembershipRole.where({ role: 'OWNER' }).all();
-    // We should really filter by org, but this is a rough guard
+    const orgMembers = await db.orm.public.Membership.where({ organizationId: input.organizationId }).all();
+    let orgOwnerCount = 0;
+    for (const m of orgMembers) {
+      const ownerRole = await db.orm.public.MembershipRole.where({ membershipId: m.id, role: 'OWNER' }).all().first();
+      if (ownerRole) orgOwnerCount++;
+    }
+    if (orgOwnerCount <= 1) {
+      return { error: 'FORBIDDEN: Cannot remove the last OWNER of this organization.' };
+    }
   }
   
-  await db.orm.public.Membership.where({ id: input.membershipId }).delete();
+  await db.transaction(async (tx: any) => {
+    // Delete roles and location bindings first to ensure clean cascade
+    const roles = await tx.orm.public.MembershipRole.where({ membershipId: input.membershipId }).all();
+    for (const r of roles) {
+      await tx.orm.public.MembershipRole.where({ id: r.id }).delete();
+    }
+    const locs = await tx.orm.public.MembershipLocation.where({ membershipId: input.membershipId }).all();
+    for (const l of locs) {
+      await tx.orm.public.MembershipLocation.where({ id: l.id }).delete();
+    }
+    await tx.orm.public.Membership.where({ id: input.membershipId }).delete();
+  });
   
   return { success: true };
 }

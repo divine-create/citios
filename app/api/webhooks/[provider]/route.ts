@@ -36,6 +36,11 @@ export async function POST(
 
     // 3. Early Idempotency Check (Without locking Payment)
     // To prevent processing the exact same webhook payload twice
+    if (!event.reference && !event.providerReference) {
+      console.warn(`[${providerName} Webhook] Missing both reference and providerReference in event payload.`);
+      return NextResponse.json({ status: 'missing_reference' }, { status: 400 });
+    }
+
     try {
        // We insert into PaymentEvent first to claim exactly-once processing
        const payment = await db.orm.public.Payment.where({ 
@@ -105,20 +110,33 @@ export async function POST(
            }
 
            // Credit Wallet Ledger
-           let targetOrgId = null;
-           if (payment.retailOrderId) {
-             const r = await tx.orm.public.RetailOrder.where({ id: payment.retailOrderId }).all().first();
-             if (r) targetOrgId = r.organizationId;
-           } else if (payment.restaurantOrderId) {
-             const r = await tx.orm.public.RestaurantOrder.where({ id: payment.restaurantOrderId }).all().first();
-             if (r) targetOrgId = r.organizationId;
+           let targetWallet = null;
+
+           if (payment.reference && payment.reference.startsWith('WAL-')) {
+             const parts = payment.reference.split('-');
+             if (parts.length >= 3) {
+               const walletId = parts.slice(1, -2).join('-');
+               targetWallet = await tx.orm.public.Wallet.where({ id: walletId }).all().first();
+             }
+           } else {
+             let targetOrgId = null;
+             if (payment.retailOrderId) {
+               const r = await tx.orm.public.RetailOrder.where({ id: payment.retailOrderId }).all().first();
+               if (r) targetOrgId = r.organizationId;
+             } else if (payment.restaurantOrderId) {
+               const r = await tx.orm.public.RestaurantOrder.where({ id: payment.restaurantOrderId }).all().first();
+               if (r) targetOrgId = r.organizationId;
+             }
+             
+             if (targetOrgId) {
+               targetWallet = await tx.orm.public.Wallet.where({ organizationId: targetOrgId }).all().first();
+               if (!targetWallet) {
+                 targetWallet = await tx.orm.public.Wallet.create({ organizationId: targetOrgId, balance: 0, currency: payment.currency || 'NGN' });
+               }
+             }
            }
            
-           if (targetOrgId) {
-             let wallet = await tx.orm.public.Wallet.where({ organizationId: targetOrgId }).all().first();
-             if (!wallet) {
-               wallet = await tx.orm.public.Wallet.create({ organizationId: targetOrgId, balance: 0, currency: payment.currency || 'NGN' });
-             }
+           if (targetWallet) {
              
              let transactionRecord = null;
              if (payment.transactionId) {
@@ -134,13 +152,14 @@ export async function POST(
              }
              
              await tx.orm.public.LedgerEntry.create({
-               walletId: wallet.id,
+               walletId: targetWallet.id,
                transactionId: transactionRecord.id,
                amount: payment.amount,
-               currency: wallet.currency
+               currency: targetWallet.currency
              });
              
-             await tx.orm.public.Wallet.where({ id: wallet.id }).update({ balance: wallet.balance + payment.amount });
+             const creditWalletPlan = db.raw.sql`UPDATE "wallet" SET balance = balance + ${payment.amount} WHERE id = ${targetWallet.id}`.affectedCount().build();
+             await tx.execute(creditWalletPlan);
            }
 
            // Finally mark payment completed

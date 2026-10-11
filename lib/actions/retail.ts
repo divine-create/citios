@@ -445,27 +445,29 @@ export async function createLocation(input: { organizationId: string; name: stri
 export async function updateLocation(locationId: string, input: { name?: string; address?: string | null }) {
   try {
     const location = await db.orm.public.Location.where({ id: locationId }).all().first();
-    if (location) await requireMembership(location.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
+    if (!location) return { error: 'Location not found.' };
+    await requireMembership(location.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     const data: Record<string, unknown> = {};
     if (input.name !== undefined) data.name = input.name;
     if (input.address !== undefined) data.address = input.address;
-    await db.orm.public.Location.where({ id: locationId }).update(data);
+    await db.orm.public.Location.where({ id: locationId, organizationId: location.organizationId }).update(data);
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating location:', error);
-    return { error: 'Failed to update location.' };
+    return { error: error?.message || 'Failed to update location.' };
   }
 }
 
 export async function deleteLocation(locationId: string) {
   try {
     const location = await db.orm.public.Location.where({ id: locationId }).all().first();
-    if (location) await requireMembership(location.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
-    await db.orm.public.Location.where({ id: locationId }).delete();
+    if (!location) return { error: 'Location not found.' };
+    await requireMembership(location.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
+    await db.orm.public.Location.where({ id: locationId, organizationId: location.organizationId }).delete();
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error deleting location:', error);
-    return { error: 'Failed to delete location.' };
+    return { error: error?.message || 'Failed to delete location.' };
   }
 }
 

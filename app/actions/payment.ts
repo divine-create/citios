@@ -7,6 +7,7 @@ import { placeRetailOrder } from '@/app/actions/commerce';
 import { placeRestaurantOrder } from '@/app/actions/food';
 import { createReservation } from '@/lib/actions/hotel';
 import { getPaymentAdapter } from '@/lib/payments/factory';
+import { requireMembership } from '@/lib/actions/tenant';
 
 export interface InitiateCheckoutInput {
   kind: 'retail' | 'food' | 'hotel';
@@ -238,8 +239,11 @@ export async function refundOrderPayment(reference: string, reason?: string) {
 
   if (!orgId) return { success: false, message: 'Cannot determine organization for payment.' };
   
-  const isMember = session.user.memberships?.some((m: any) => m.organizationId === orgId);
-  if (!isMember) return { success: false, message: 'Unauthorized to refund this payment.' };
+  try {
+    await requireMembership(orgId, ['OWNER', 'ADMIN', 'FINANCE', 'MANAGER']);
+  } catch (err: any) {
+    return { success: false, message: 'Unauthorized: insufficient merchant permissions to issue refund.' };
+  }
 
   if (payment.status !== 'COMPLETED') {
      return { success: false, message: 'Only COMPLETED payments can be refunded.' };
@@ -317,7 +321,8 @@ export async function refundOrderPayment(reference: string, reason?: string) {
           amount: -payment.amount,
           currency: wallet.currency
         });
-        await tx.orm.public.Wallet.where({ id: wallet.id }).update({ balance: wallet.balance - payment.amount });
+        const deductPlan = db.raw.sql`UPDATE "wallet" SET balance = balance - ${payment.amount} WHERE id = ${wallet.id}`.affectedCount().build();
+        await tx.execute(deductPlan);
      }
   });
 

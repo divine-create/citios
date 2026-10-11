@@ -1,4 +1,5 @@
 import { db } from '@/src/prisma/db';
+import crypto from 'crypto';
 
 // ============================================================================
 // CANONICAL PERSON RESOLUTION
@@ -96,13 +97,24 @@ export async function resolvePersonByEmail(email: string, displayName?: string |
 
   // First sign-in for this email: provision identity atomically with its
   // EMAIL identifier so the pair can never drift apart.
-  const { firstName, lastName } = splitDisplayName(displayName);
-  const person = await db.orm.public.Person.create({ firstName, lastName });
-  await db.orm.public.PersonIdentifier.create({
-    personId: person.id,
-    type: 'EMAIL',
-    normalizedValue: normalized,
-    isVerified: true,
+  return await db.transaction(async (tx: any) => {
+    const recheckIdent = await tx.orm.public.PersonIdentifier
+      .where({ type: 'EMAIL', normalizedValue: normalized })
+      .all()
+      .first();
+    if (recheckIdent) {
+      return tx.orm.public.Person.where({ id: recheckIdent.personId }).all().first();
+    }
+
+    const { firstName, lastName } = splitDisplayName(displayName);
+    const personId = crypto.randomUUID();
+    const person = await tx.orm.public.Person.create({ id: personId, firstName, lastName });
+    await tx.orm.public.PersonIdentifier.create({
+      personId: person.id,
+      type: 'EMAIL',
+      normalizedValue: normalized,
+      isVerified: true,
+    });
+    return person;
   });
-  return person;
 }

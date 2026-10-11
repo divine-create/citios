@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/src/prisma/db";
 import { provisionRestaurantOS } from "@/lib/actions/restaurantos";
+import { requireAuthenticatedAccount } from "@/lib/actions/tenant";
 
 // Registration default: when the onboarding form doesn't specify a city, the
 // organization lands in the first active city in the registry. Explicit
@@ -24,10 +25,12 @@ export async function registerOrganization(data: {
   description?: string;
   citySlug?: string;
 }) {
-  const session = await getServerSession(authOptions);
-  
-  if (!session?.user?.personId) {
-    return { error: "You must be logged in to register a business." };
+  let person: any;
+  try {
+    const auth = await requireAuthenticatedAccount();
+    person = auth.person;
+  } catch (err: any) {
+    return { error: err.message || "You must be logged in to register a business." };
   }
 
   // Validate OrgType
@@ -44,31 +47,40 @@ export async function registerOrganization(data: {
       return { error: "Unknown city. Organizations must be registered in a supported city." };
     }
 
-    // session.user.personId is a personId in the V1 model
-    const org = await db.orm.public.Organization.create({
-      name: data.name,
-      type: data.type as any,
-      description: data.description || "",
-      
-    });
+    const orgId = await db.transaction(async (tx: any) => {
+      const org = await tx.orm.public.Organization.create({
+        name: data.name,
+        type: data.type as any,
+        description: data.description || "",
+      });
 
-    const membership = await db.orm.public.Membership.create({
-      personId: session.user.personId,
-      organizationId: org.id,
-    });
+      const membership = await tx.orm.public.Membership.create({
+        personId: person.id,
+        organizationId: org.id,
+      });
 
-    await db.orm.public.MembershipRole.create({
-      membershipId: membership.id,
-      role: 'OWNER',
+      await tx.orm.public.MembershipRole.create({
+        membershipId: membership.id,
+        role: 'OWNER',
+      });
+
+      // Provision canonical organization wallet
+      await tx.orm.public.Wallet.create({
+        organizationId: org.id,
+        balance: 0.0,
+        currency: city.currency || "USD",
+      });
+
+      return org.id;
     });
 
     // Restaurants/eateries/fast-food get their own OS provisioned at
     // registration (serviceStyle defaults to HYBRID until onboarding sets it).
     if (data.type === 'RESTAURANT') {
-      await provisionRestaurantOS(org.id);
+      await provisionRestaurantOS(orgId);
     }
 
-    return { success: true, organizationId: org.id };
+    return { success: true, organizationId: orgId };
   } catch (err: any) {
     console.error("Error registering organization:", err);
     return { error: err.message || "Failed to register organization." };
@@ -84,10 +96,12 @@ export async function registerSchool(data: {
   phone: string;
   email: string;
 }) {
-  const session = await getServerSession(authOptions);
-  
-  if (!session?.user?.personId) {
-    return { error: "You must be logged in to register a school." };
+  let person: any;
+  try {
+    const auth = await requireAuthenticatedAccount();
+    person = auth.person;
+  } catch (err: any) {
+    return { error: err.message || "You must be logged in to register a school." };
   }
 
   try {
@@ -98,36 +112,45 @@ export async function registerSchool(data: {
       return { error: "Unknown city. Schools must be registered in a supported city." };
     }
 
-    const org = await db.orm.public.Organization.create({
-      name: data.name,
-      type: 'SCHOOL' as any,
-      address: `${data.address}, ${data.lga}, ${data.state}`,
-      
+    const orgId = await db.transaction(async (tx: any) => {
+      const org = await tx.orm.public.Organization.create({
+        name: data.name,
+        type: 'SCHOOL' as any,
+        address: `${data.address}, ${data.lga}, ${data.state}`,
+      });
+
+      const membership = await tx.orm.public.Membership.create({
+        personId: person.id,
+        organizationId: org.id,
+      });
+
+      await tx.orm.public.MembershipRole.create({
+        membershipId: membership.id,
+        role: 'OWNER',
+      });
+
+      await tx.orm.public.Wallet.create({
+        organizationId: org.id,
+        balance: 0.0,
+        currency: city.currency || "USD",
+      });
+
+      await tx.orm.public.SchoolSettings.create({
+        organizationId: org.id,
+        name: data.name,
+        shortName: data.shortName,
+        state: data.state,
+        lga: data.lga,
+        address: data.address,
+        phone: data.phone,
+        email: data.email,
+        currentYear: new Date().getFullYear(),
+      });
+
+      return org.id;
     });
 
-    const membership = await db.orm.public.Membership.create({
-      personId: session.user.personId,
-      organizationId: org.id,
-    });
-
-    await db.orm.public.MembershipRole.create({
-      membershipId: membership.id,
-      role: 'OWNER',
-    });
-
-    await db.orm.public.SchoolSettings.create({
-      organizationId: org.id,
-      name: data.name,
-      shortName: data.shortName,
-      state: data.state,
-      lga: data.lga,
-      address: data.address,
-      phone: data.phone,
-      email: data.email,
-      currentYear: new Date().getFullYear(),
-    });
-
-    return { success: true, organizationId: org.id };
+    return { success: true, organizationId: orgId };
   } catch (err: any) {
     console.error("Error registering school:", err);
     return { error: err.message || "Failed to register school." };
@@ -302,7 +325,67 @@ export async function quickCreateBusiness(data: {
 
 
 
-export async function registerHOTEL(data: { name: string; shortName: string; state: string; lga: string; address: string; phone: string; email: string; }) { const session = await getServerSession(authOptions); if (!session?.user?.personId) { return { error: 'You must be logged in to register a hotel.' }; } try { const city = await resolveRegistrationCity(); if (!city) { return { error: 'Unknown city.' }; } const org = await db.orm.public.Organization.create({ name: data.name, type: 'HOTEL' as any, description: data.address, }); const location = await db.orm.public.Location.create({ organizationId: org.id, name: data.shortName || 'Main Campus', address: data.address, cityId: city.id, }); const membership = await db.orm.public.Membership.create({ personId: session.user.personId, organizationId: org.id, }); await db.orm.public.MembershipRole.create({ membershipId: membership.id, role: 'OWNER', }); return { success: true, organizationId: org.id }; } catch (err: any) { return { error: err.message }; } }
+export async function registerHOTEL(data: {
+  name: string;
+  shortName: string;
+  state: string;
+  lga: string;
+  address: string;
+  phone: string;
+  email: string;
+}) {
+  let person: any;
+  try {
+    const auth = await requireAuthenticatedAccount();
+    person = auth.person;
+  } catch (err: any) {
+    return { error: err.message || 'You must be logged in to register a hotel.' };
+  }
+
+  try {
+    const city = await resolveRegistrationCity();
+    if (!city) {
+      return { error: 'Unknown city.' };
+    }
+
+    const orgId = await db.transaction(async (tx: any) => {
+      const org = await tx.orm.public.Organization.create({
+        name: data.name,
+        type: 'HOTEL' as any,
+        description: data.address,
+      });
+
+      await tx.orm.public.Location.create({
+        organizationId: org.id,
+        name: data.shortName || 'Main Campus',
+        address: data.address,
+        cityId: city.id,
+      });
+
+      const membership = await tx.orm.public.Membership.create({
+        personId: person.id,
+        organizationId: org.id,
+      });
+
+      await tx.orm.public.MembershipRole.create({
+        membershipId: membership.id,
+        role: 'OWNER',
+      });
+
+      await tx.orm.public.Wallet.create({
+        organizationId: org.id,
+        balance: 0.0,
+        currency: city.currency || 'USD',
+      });
+
+      return org.id;
+    });
+
+    return { success: true, organizationId: orgId };
+  } catch (err: any) {
+    return { error: err.message || 'Failed to register hotel.' };
+  }
+}
 
 
 

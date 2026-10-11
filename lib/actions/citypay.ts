@@ -88,8 +88,9 @@ export async function processPaymentEvent(payload: any) {
               amount: payment.amount,
               currency: wallet.currency
             });
-            // Update balance natively
-            await prismaTx.orm.public.Wallet.where({ id: wallet.id }).update({ balance: wallet.balance + payment.amount });
+            // Update balance atomically
+            const updateBalancePlan = db.raw.sql`UPDATE "wallet" SET balance = balance + ${payment.amount} WHERE id = ${wallet.id}`.affectedCount().build();
+            await prismaTx.execute(updateBalancePlan);
           }
         }
         // -----------------------------------
