@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Store, ArrowRight, Loader2 } from 'lucide-react';
+import { Store, ArrowRight, Loader2, Search } from 'lucide-react';
 import { useMoney } from '@/components/cityos/CityProvider';
-import { CityCard, FallbackImg, Stars, LocationRow, OpenBadge, ChipButton } from '@/components/cityos/CityUI';
 import { getCityMartProducts, getCityMartStores } from '@/app/actions/commerce';
 import { useCity } from '@/components/cityos/CityProvider';
-import { cn } from '@/lib/utils';
+import { MarketSearch, ProductGrid, ProductCard, ProductRail, ShopCard, ErrorState, MarketBadge } from '@/components/market/MarketUI';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { FallbackImg } from '@/components/cityos/CityUI';
 
 const MARKET_CATS = ['All', 'Groceries', 'Food & Market', 'Fashion', 'Electronics', 'Books & Prints'];
 
@@ -17,6 +17,7 @@ export default function CityMarket() {
   const cityName = city?.name ?? 'CityOS';
   const { fmt } = useMoney();
   const [cat, setCat] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState<any[]>([]);
   const [stores, setStores] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,6 +25,7 @@ export default function CityMarket() {
   useEffect(() => {
     async function load() {
       setLoading(true);
+      // Wait for 300ms debounce would be better here, but for now we fetch directly.
       const [fetchedProducts, fetchedStores] = await Promise.all([
         getCityMartProducts(city?.slug, cat),
         getCityMartStores(city?.slug)
@@ -35,132 +37,114 @@ export default function CityMarket() {
     load();
   }, [cat, city?.slug]);
 
+  // Client-side search filtering (since the backend doesn't support a search query parameter yet)
+  const filteredProducts = products.filter(p => 
+    searchQuery === '' || 
+    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.storeName?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-xl font-black text-ink">Market</h1>
-        <p className="text-xs text-slate-500 font-medium">
-          Shop the city's marketplaces, stalls and stores sold through CityOS.
-        </p>
+    <div className="flex flex-col min-h-[80vh] bg-white rounded-3xl p-4 md:p-6 shadow-sm border border-slate-100">
+      
+      {/* HEADER & SEARCH */}
+      <div className="mb-6 space-y-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Marketplace</h1>
+          <p className="text-sm text-slate-500 font-medium mt-1">
+            Discover local products from verified shops in {cityName}
+          </p>
+        </div>
+        <div className="max-w-xl">
+          <MarketSearch 
+            value={searchQuery} 
+            onChange={setSearchQuery} 
+            placeholder="Search for products or shops..." 
+          />
+        </div>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 [&::-webkit-scrollbar]:hidden">
+      {/* CATEGORIES RAIL */}
+      <div className="flex gap-2 overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0 hide-scrollbar snap-x">
         {MARKET_CATS.map((c) => (
-          <ChipButton key={c} active={cat === c} onClick={() => setCat(c)}>
+          <button 
+            key={c}
+            onClick={() => { setCat(c); setSearchQuery(''); }}
+            className={`shrink-0 snap-start px-4 py-2 rounded-2xl text-sm font-bold whitespace-nowrap transition-all ${
+              cat === c 
+                ? 'bg-ink text-white shadow-md' 
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
             {c}
-          </ChipButton>
+          </button>
         ))}
       </div>
 
+      {/* MAIN CONTENT */}
       {loading ? (
-        <div className="py-20 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-teal-600" /></div>
+        <div className="flex flex-col items-center justify-center flex-grow py-20 text-slate-400">
+          <Loader2 className="w-8 h-8 animate-spin text-ink mb-4" />
+          <p className="text-sm font-semibold animate-pulse">Discovering local goods...</p>
+        </div>
       ) : (
-        <>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-black text-slate-700 uppercase tracking-widest">Featured Products</h2>
+        <div className="space-y-10 mt-2 flex-grow">
+          
+          {/* FEATURED SHOPS RAIL */}
+          {stores.length > 0 && cat === 'All' && searchQuery === '' && (
+            <ProductRail 
+              title="Featured Shops" 
+              action={<Link href="/explore" className="text-xs font-bold text-ink hover:underline">View all</Link>}
+            >
+              {stores.map((s) => (
+                <ShopCard 
+                  key={s.id}
+                  id={s.id}
+                  name={s.name}
+                  type={s.storeCategory || 'Store'}
+                  href={`/org/${s.id}`}
+                />
+              ))}
+            </ProductRail>
+          )}
+
+          {/* PRODUCTS GRID */}
+          <div>
+            <div className="flex items-center justify-between mb-4 px-1">
+              <h2 className="text-lg font-black text-slate-900">
+                {searchQuery ? 'Search Results' : cat === 'All' ? 'Popular Products' : `${cat} Products`}
+              </h2>
+              <span className="text-xs font-bold text-slate-400">{filteredProducts.length} items</span>
             </div>
             
-            {products.length === 0 ? (
+            {filteredProducts.length === 0 ? (
               <EmptyState
-                icon={<Store className="w-7 h-7" />}
-                title={`Nothing here yet in ${cityName}`}
-                description="Try a different category, or check back soon as vendors add new products."
+                icon={<Search className="w-8 h-8" />}
+                title={searchQuery ? 'No products found' : `No ${cat} products yet`}
+                description={searchQuery ? 'Try adjusting your search terms.' : 'Check back later as local vendors add new items.'}
+                action={searchQuery ? { label: 'Clear Search', onClick: () => setSearchQuery('') } : undefined}
+                className="bg-slate-50 border border-slate-100 rounded-3xl"
               />
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                {products.map((p) => {
-                  const isOutOfStock = !p.isWeighed && (p.stockQuantity == null || p.stockQuantity <= 0);
-                  const isLowStock = !p.isWeighed && p.stockQuantity > 0 && p.stockQuantity <= 5;
-
-                  return (
-                    <Link
-                      key={p.id}
-                      href={`/product/${p.id}`}
-                      className={cn(
-                        'group flex flex-col gap-2 relative transition-opacity',
-                        isOutOfStock && 'opacity-75',
-                      )}
-                    >
-                      <div className="aspect-[4/5] w-full rounded-2xl overflow-hidden bg-slate-100 ring-1 ring-slate-200/50 relative">
-                        {p.imageAssetId ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={`/api/assets/${p.imageAssetId}`}
-                            alt={p.name}
-                            className={cn(
-                              'w-full h-full object-cover transition-transform group-hover:scale-105 duration-300',
-                              isOutOfStock && 'grayscale-[40%]',
-                            )}
-                          />
-                        ) : (
-                          <FallbackImg alt={p.name} />
-                        )}
-
-                        {/* Stock Badges */}
-                        {isOutOfStock ? (
-                          <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-slate-900/85 backdrop-blur-xs text-white text-[9px] font-black uppercase tracking-wider shadow-sm">
-                            Sold Out
-                          </div>
-                        ) : isLowStock ? (
-                          <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-amber-500 text-white text-[9px] font-black uppercase tracking-wider shadow-sm">
-                            Only {p.stockQuantity} left
-                          </div>
-                        ) : null}
-                      </div>
-                      <div className="space-y-0.5 px-1">
-                        <div className="flex items-center gap-1.5 opacity-80">
-                          <Store className="w-3 h-3 text-slate-500" />
-                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider line-clamp-1">{p.storeName}</span>
-                        </div>
-                        <h3 className="text-xs font-bold text-ink leading-tight line-clamp-2">{p.name}</h3>
-                        <div className="flex items-center justify-between pt-0.5">
-                          <div className="text-sm font-black text-teal-900">{fmt(p.price)}</div>
-                          {p.compareAtPrice && p.compareAtPrice > p.price && (
-                            <div className="text-xs font-bold text-slate-400 line-through">{fmt(p.compareAtPrice)}</div>
-                          )}
-                          {isOutOfStock ? (
-                            <span className="text-[10px] font-bold text-slate-400">Out of stock</span>
-                          ) : isLowStock ? (
-                            <span className="text-[10px] font-bold text-amber-600">{p.stockQuantity} left</span>
-                          ) : null}
-                        </div>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
+              <ProductGrid>
+                {filteredProducts.map((p) => (
+                  <ProductCard
+                    key={p.id}
+                    id={p.id}
+                    name={p.name}
+                    price={p.price}
+                    compareAtPrice={p.compareAtPrice}
+                    shopName={p.storeName}
+                    image={p.imageAssetId ? `/api/assets/${p.imageAssetId}` : undefined}
+                    inStock={p.isWeighed || (p.stockQuantity !== null && p.stockQuantity > 0)}
+                    href={`/product/${p.id}`}
+                  />
+                ))}
+              </ProductGrid>
             )}
           </div>
-
-          <div className="space-y-3 pt-4 border-t border-slate-100">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-black text-slate-700 uppercase tracking-widest">Participating Stores</h2>
-              <Link href="/explore" className="text-xs font-bold text-teal-700 flex items-center gap-1">
-                View all <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-            <div className="flex overflow-x-auto gap-3 pb-4 -mx-1 px-1 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden">
-              {stores.map((s) => (
-                <Link key={s.id} href={`/org/${s.id}`} className="snap-start shrink-0 w-64 block">
-                  <CityCard>
-                    <div className="flex items-start gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-slate-100 shrink-0 ring-1 ring-slate-200/50 flex items-center justify-center">
-                        <Store className="w-5 h-5 text-slate-400" />
-                      </div>
-                      <div className="space-y-1">
-                        <h3 className="font-bold text-ink text-sm leading-tight line-clamp-1">{s.name}</h3>
-                        <p className="text-xs text-slate-500 font-medium line-clamp-1">{s.storeCategory || 'Store'}</p>
-                        </div>
-                    </div>
-                  </CityCard>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </>
+        </div>
       )}
     </div>
   );
 }
-

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Plus, X, Loader2, Tag, Trash2, Pencil } from "lucide-react";
 import { getCoupons, createCoupon, updateCoupon, deleteCoupon } from "@/lib/actions/retail";
-import { inputCls, selectCls } from "./ShopUI";
+import { inputCls, selectCls, TableSkeleton } from "./ShopUI";
 
 interface Coupon {
   id: string;
@@ -126,7 +126,7 @@ export default function DiscountsTab({ organizationId, symbol = "$" }: { organiz
       </div>
 
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-        <table className="w-full text-sm text-left">
+        <div className="overflow-x-auto"><table className="w-full text-sm text-left whitespace-nowrap">
           <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider text-xs border-b border-slate-200">
             <tr>
               <th className="px-4 py-3">Code</th>
@@ -140,7 +140,7 @@ export default function DiscountsTab({ organizationId, symbol = "$" }: { organiz
           </thead>
           <tbody className="divide-y divide-slate-100">
             {loading ? (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-400">Loading…</td></tr>
+              <TableSkeleton cols={7} />
             ) : coupons.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-4 py-12 text-center text-slate-400">
@@ -187,7 +187,7 @@ export default function DiscountsTab({ organizationId, symbol = "$" }: { organiz
               })
             )}
           </tbody>
-        </table>
+        </table></div>
       </div>
 
       {isModalOpen && (

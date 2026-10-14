@@ -3,13 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Minus, Plus, ShoppingCart, Truck, ShieldCheck, BadgePercent, Check, ChevronRight, Loader2 } from 'lucide-react';
+import { ShoppingCart, Truck, ShieldCheck, BadgePercent, Check, ChevronLeft, Loader2, Store } from 'lucide-react';
 import { useMoney } from '@/components/cityos/CityProvider';
-import { FallbackImg, Stars, Pill, VerifiedBadge,  PriceTag } from '@/components/cityos/CityUI';
 import { useCart } from '@/components/cityos/CartStore';
 import CityMismatchChip from '@/components/cityos/CityMismatchChip';
 import { cn } from '@/lib/utils';
 import { getCityMartProduct } from '@/app/actions/commerce';
+import { QuantitySelector, VariantSelector, MarketBadge, ErrorState } from '@/components/market/MarketUI';
+import { FallbackImg } from '@/components/cityos/CityUI';
 
 export default function ProductDetail({ id }: { id: string }) {
   const { fmt } = useMoney();
@@ -17,6 +18,7 @@ export default function ProductDetail({ id }: { id: string }) {
   const [p, setP] = useState<any>(null);
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   
   const { add, count } = useCart();
   const [qty, setQty] = useState(1);
@@ -24,161 +26,226 @@ export default function ProductDetail({ id }: { id: string }) {
 
   useEffect(() => {
     async function load() {
-      const prod = await getCityMartProduct(id);
-      setP(prod);
-      if (prod && prod.variants && prod.variants.length > 0) {
-        setSelectedVariantId(prod.variants[0].id as string);
+      try {
+        const prod = await getCityMartProduct(id);
+        setP(prod);
+        if (prod && prod.variants && prod.variants.length > 0) {
+          // Select first available variant, or just the first one
+          const available = prod.variants.find((v:any) => v.stockQuantity > 0 || prod.isWeighed);
+          setSelectedVariantId((available || prod.variants[0]).id as string);
+        }
+      } catch (e) {
+        setError(true);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
     load();
   }, [id]);
 
   if (loading) {
-    return <div className="py-20 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-teal-600" /></div>;
-  }
-
-  if (!p) {
     return (
-      <div className="max-w-lg mx-auto text-center py-20 space-y-3">
-        <h1 className="text-lg font-black text-ink">Item unavailable</h1>
-        <p className="text-sm text-slate-500">This item might be out of stock or removed by the seller.</p>
-        <button onClick={() => router.back()} className="text-xs font-bold text-teal-700">Go back</button>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-slate-400">
+        <Loader2 className="w-8 h-8 animate-spin text-ink mb-4" />
       </div>
     );
   }
 
-  const activeProduct = p?.variants?.length > 0 ? p.variants.find((v:any) => v.id === selectedVariantId) || p : p;
+  if (error || !p) {
+    return (
+      <div className="max-w-md mx-auto pt-10">
+        <ErrorState 
+          title="Product Unavailable" 
+          message="This item might be out of stock, removed by the seller, or there was a network issue."
+          retry={() => router.back()}
+        />
+      </div>
+    );
+  }
+
+  const hasVariants = p?.variants?.length > 0;
+  const activeProduct = hasVariants ? (p.variants.find((v:any) => v.id === selectedVariantId) || p.variants[0]) : p;
   
+  const isOutOfStock = !p.isWeighed && (activeProduct.stockQuantity == null || activeProduct.stockQuantity <= 0);
+  const discount = activeProduct.compareAtPrice && activeProduct.compareAtPrice > activeProduct.price 
+    ? Math.round(((activeProduct.compareAtPrice - activeProduct.price) / activeProduct.compareAtPrice) * 100) 
+    : 0;
+
   const handleAdd = () => {
+    if (isOutOfStock) return;
+    
     add({
       kind: 'retail',
-      productId: activeProduct.id,
-      name: p.variants?.length > 0 ? `${p.name} - ${activeProduct.variantName}` : p.name,
+      productId: activeProduct.id, // For Retail, the cart expects the authoritative ID (which might be the variant ID or product ID depending on the backend, assuming variant ID here if variants exist)
+      name: hasVariants ? `${p.name} - ${activeProduct.variantName}` : p.name,
       price: activeProduct.price,
       qty,
       image: p.imageAssetId,
       orgId: p.organizationId,
-      orgName: p.storeName
+       
+      orgName: p.storeName || 'Store'
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };
 
-  const isOutOfStock = !activeProduct.isWeighed && (activeProduct.stockQuantity == null || activeProduct.stockQuantity <= 0);
-  const isLowStock = !activeProduct.isWeighed && activeProduct.stockQuantity > 0 && activeProduct.stockQuantity <= 5;
-  const maxQty = activeProduct.isWeighed ? 99 : Math.max(1, activeProduct.stockQuantity ?? 1);
+  const handleBuyNow = () => {
+    if (isOutOfStock) return;
+    handleAdd();
+    router.push('/cart');
+  };
+
+  const variantOptions = hasVariants ? p.variants.map((v:any) => ({
+    id: v.id,
+    name: v.variantName,
+    available: p.isWeighed || (v.stockQuantity !== null && v.stockQuantity > 0),
+    price: v.price
+  })) : [];
 
   return (
-    <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 animate-in fade-in duration-500">
-      <div className="space-y-4">
-        <div className="aspect-square w-full rounded-3xl overflow-hidden bg-slate-100 ring-1 ring-slate-200/50 relative">
-          {p.imageAssetId ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={`/api/assets/${p.imageAssetId}`} alt={p.name} className={cn("w-full h-full object-cover", isOutOfStock && "grayscale-[40%]")} />
-          ) : (
-            <FallbackImg alt={p.name} />
-          )}
-          {isOutOfStock && (
-            <div className="absolute top-4 left-4 px-3 py-1 rounded-full bg-slate-900/90 text-white text-[10px] font-black uppercase tracking-wider shadow-sm">
-              Sold Out
-            </div>
-          )}
-        </div>
+    <div className="max-w-5xl mx-auto bg-white rounded-3xl overflow-hidden shadow-sm border border-slate-100">
+      
+      {/* Mobile Back Header */}
+      <div className="md:hidden flex items-center p-4 border-b border-slate-100">
+        <button onClick={() => router.back()} className="p-2 -ml-2 text-slate-500 rounded-full hover:bg-slate-100">
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+        <span className="font-bold text-slate-800 ml-2 truncate">Product Details</span>
       </div>
 
-      <div className="space-y-8">
-        <div className="space-y-2">
-          <Link href={`/org/${p.orgSlug}`} className="inline-flex items-center gap-1.5 opacity-80 hover:opacity-100 transition-opacity">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{p.storeName}</span>
-          </Link>
-          <h1 className="text-2xl md:text-3xl font-black text-ink leading-tight">{p.name}</h1>
-          <CityMismatchChip citySlug={p.citySlug} className="mt-1.5" />
-          
-        {p.variants && p.variants.length > 0 && (
-          <div className="space-y-2 mt-4">
-            <h3 className="text-sm font-black text-slate-700">Variant</h3>
-            <div className="flex flex-wrap gap-2">
-              {p.variants.map((v: any) => (
-                <button
-                  key={v.id}
-                  onClick={() => setSelectedVariantId(v.id)}
-                  className={cn(
-                    "px-4 py-2 rounded-xl border text-sm font-bold transition-all",
-                    selectedVariantId === v.id
-                      ? "bg-teal-50 border-teal-200 text-teal-900 ring-2 ring-teal-500/20"
-                      : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"
-                  )}
-                >
-                  {v.variantName || 'Standard'}
-                </button>
-              ))}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-0 md:gap-8">
+        
+        {/* IMAGE SECTION */}
+        <div className="relative aspect-square md:aspect-auto md:h-full bg-slate-50 border-b md:border-b-0 md:border-r border-slate-100">
+          <FallbackImg 
+            src={p.imageAssetId ? `/api/assets/${p.imageAssetId}` : undefined} 
+            alt={p.name} 
+            className="w-full h-full object-cover"
+          />
+          {discount > 0 && (
+            <div className="absolute top-4 left-4">
+              <MarketBadge variant="danger" className="px-3 py-1 text-xs">-{discount}% OFF</MarketBadge>
             </div>
-          </div>
-        )}
-        <div className="flex items-center gap-3 pt-4 border-t border-slate-100">
-            <div className="text-2xl font-black text-teal-900">{fmt(activeProduct.price)}</div>
-            {activeProduct.compareAtPrice && activeProduct.compareAtPrice > activeProduct.price && (
-              <div className="text-lg font-bold text-slate-400 line-through">{fmt(activeProduct.compareAtPrice)}</div>
-            )}
-            {isOutOfStock ? (
-              <Pill className="bg-slate-100 text-slate-500 border-0 text-[10px] font-bold">Out of Stock</Pill>
-            ) : isLowStock ? (
-              <Pill className="bg-amber-50 text-amber-800 border-0 text-[10px] font-bold">Only {p.stockQuantity} Left</Pill>
-            ) : (
-              <Pill className="bg-emerald-50 text-emerald-800 border-0 text-[10px] font-bold">
-                In Stock {!p.isWeighed && p.stockQuantity ? `(${p.stockQuantity})` : ''}
-              </Pill>
-            )}
+          )}
+          <div className="absolute top-4 right-4 md:hidden">
+            <CityMismatchChip />
           </div>
         </div>
 
-        <div className="space-y-3">
-          <h3 className="text-sm font-black text-slate-700">Quantity</h3>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center bg-slate-100 rounded-xl p-1 shrink-0">
-              <button 
-                onClick={() => setQty(Math.max(1, qty - 1))}
-                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white hover:shadow-sm transition-all text-slate-600 disabled:opacity-50"
-                disabled={qty <= 1 || isOutOfStock}
-              >
-                <Minus className="w-4 h-4" />
-              </button>
-              <span className="w-12 text-center font-bold text-ink">{isOutOfStock ? 0 : qty}</span>
-              <button 
-                onClick={() => setQty(Math.min(maxQty, qty + 1))}
-                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white hover:shadow-sm transition-all text-slate-600 disabled:opacity-50"
-                disabled={qty >= maxQty || isOutOfStock}
-              >
-                <Plus className="w-4 h-4" />
-              </button>
-            </div>
-            <button 
-              onClick={handleAdd}
-              disabled={isOutOfStock}
-              className={cn(
-                "flex-1 h-12 rounded-xl flex items-center justify-center gap-2 text-sm font-black transition-all",
-                isOutOfStock
-                  ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200"
-                  : added
-                    ? "bg-emerald-500 text-white"
-                    : "bg-teal-800 text-white hover:bg-teal-900 shadow-sm"
-              )}
-            >
-              {isOutOfStock ? (
-                "Sold Out"
-              ) : added ? (
-                <span className="flex items-center gap-2"><Check className="w-4 h-4" /> Added to bag</span>
-              ) : (
-                <span className="flex items-center gap-2"><ShoppingCart className="w-4 h-4" /> Add {qty} to bag</span>
-              )}
+        {/* DETAILS SECTION */}
+        <div className="p-6 md:p-10 flex flex-col">
+          
+          <div className="hidden md:block mb-4">
+            <button onClick={() => router.back()} className="text-sm font-bold text-slate-400 hover:text-ink inline-flex items-center">
+              <ChevronLeft className="w-4 h-4 mr-1" /> Back to Market
             </button>
           </div>
-          {isOutOfStock && (
-            <p className="text-[11px] text-slate-400 font-medium">
-              This item is currently sold out in-store and online. Check back soon!
-            </p>
+
+          <div className="space-y-1 mb-6">
+            <Link href={`/org/${p.organizationId}`} className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-teal-700 hover:text-teal-900 transition-colors">
+              <Store className="w-3.5 h-3.5" />
+              {p.storeName}
+            </Link>
+            <h1 className="text-2xl md:text-4xl font-black text-slate-900 leading-tight">{p.name}</h1>
+          </div>
+          
+          {/* PRICE BLOCK */}
+          <div className="flex items-end gap-3 mb-8">
+            <span className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
+              {fmt(activeProduct.price)}
+            </span>
+            {activeProduct.compareAtPrice && activeProduct.compareAtPrice > activeProduct.price && (
+              <span className="text-lg font-bold text-slate-400 line-through mb-1">
+                {fmt(activeProduct.compareAtPrice)}
+              </span>
+            )}
+          </div>
+
+          {/* VARIANTS */}
+          {hasVariants && (
+            <div className="mb-8">
+              <h3 className="text-sm font-bold text-slate-900 mb-3 uppercase tracking-wider">Select Option</h3>
+              <VariantSelector 
+                options={variantOptions}
+                selectedId={selectedVariantId!}
+                onChange={setSelectedVariantId}
+              />
+            </div>
           )}
+
+          {/* DESCRIPTION */}
+          {p.description && (
+            <div className="mb-8 prose prose-sm prose-slate max-w-none">
+              <h3 className="text-sm font-bold text-slate-900 mb-2 uppercase tracking-wider">About this item</h3>
+              <p className="text-slate-600 leading-relaxed">{p.description}</p>
+            </div>
+          )}
+
+          {/* ACTION AREA */}
+          <div className="mt-auto pt-6 border-t border-slate-100">
+            
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                {isOutOfStock ? (
+                  <MarketBadge variant="danger">Out of Stock</MarketBadge>
+                ) : (
+                  <MarketBadge variant="success">In Stock</MarketBadge>
+                )}
+                {!p.isWeighed && activeProduct.stockQuantity > 0 && activeProduct.stockQuantity <= 5 && (
+                  <span className="text-xs font-semibold text-amber-600">Only {activeProduct.stockQuantity} left</span>
+                )}
+              </div>
+              {!isOutOfStock && (
+                <QuantitySelector 
+                  value={qty} 
+                  onChange={setQty} 
+                  max={p.isWeighed ? 99 : activeProduct.stockQuantity} 
+                />
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                disabled={isOutOfStock}
+                onClick={handleAdd}
+                className={cn(
+                  "flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-sm transition-all outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+                  added 
+                    ? "bg-emerald-500 text-white hover:bg-emerald-600 focus-visible:ring-emerald-500" 
+                    : isOutOfStock
+                      ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                      : "bg-slate-100 text-slate-900 hover:bg-slate-200 focus-visible:ring-slate-900"
+                )}
+              >
+                {added ? (
+                  <><Check className="w-5 h-5" /> Added to Cart</>
+                ) : (
+                  <><ShoppingCart className="w-5 h-5" /> Add to Cart</>
+                )}
+              </button>
+
+              <button
+                disabled={isOutOfStock}
+                onClick={handleBuyNow}
+                className={cn(
+                  "flex items-center justify-center py-4 rounded-2xl font-black text-sm transition-all outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+                  isOutOfStock
+                    ? "bg-slate-100 text-slate-400 cursor-not-allowed hidden sm:flex"
+                    : "bg-ink text-white shadow-lg shadow-ink/20 hover:bg-slate-800 hover:shadow-xl focus-visible:ring-ink hover:-translate-y-0.5"
+                )}
+              >
+                Buy Now
+              </button>
+            </div>
+            
+          </div>
+          
+          {/* TRUST BADGES */}
+          <div className="mt-6 flex flex-wrap gap-4 text-xs font-semibold text-slate-500">
+            <div className="flex items-center gap-1.5"><Truck className="w-4 h-4 text-slate-400" /> Fast Delivery</div>
+            <div className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-slate-400" /> Secure Payment</div>
+          </div>
+          
         </div>
       </div>
     </div>

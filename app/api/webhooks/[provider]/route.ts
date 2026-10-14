@@ -97,6 +97,7 @@ export async function POST(
         throw err;
       }
 
+
     } else if (event.status === 'FAILED') {
       try {
         const result = await settleFailedPayment({

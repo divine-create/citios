@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Wallet, CreditCard, Landmark, ShieldCheck, Loader2, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
+import { Wallet, CreditCard, Landmark, ShieldCheck, Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useMoney } from '@/components/cityos/CityProvider';
 import { useCart } from '@/components/cityos/CartStore';
 import { getResidentWallet } from '@/app/actions/resident_wallet';
 import { processMerchantCheckout } from '@/app/actions/checkout';
 import { PriceTag } from '@/components/cityos/CityUI';
 import { cn } from '@/lib/utils';
-import Link from 'next/link';
 
 type MethodId = 'wallet' | 'card' | 'transfer';
 
@@ -38,8 +38,6 @@ export default function CheckoutView() {
     }
     fetchWallet();
   }, []);
-
-  const total = subtotal + deliveryFee;
 
   if (lines.length === 0) {
     return (
@@ -100,7 +98,12 @@ export default function CheckoutView() {
 
   return (
     <div className="max-w-xl mx-auto space-y-6 animate-in fade-in duration-500 pb-20">
-      <h1 className="text-2xl font-black text-ink">Checkout</h1>
+      <div>
+        <Link href="/cart" className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-500 hover:text-ink transition-colors mb-4">
+          <ArrowLeft className="w-4 h-4" /> Back to Cart
+        </Link>
+        <h1 className="text-2xl font-black text-ink">Checkout</h1>
+      </div>
 
       {errorMsg && (
         <div className="bg-red-50 text-red-700 p-4 rounded-xl flex items-start gap-3 border border-red-100">
