@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Package, UtensilsCrossed, Clock, CheckCircle2, ChevronRight, Truck, Printer, ShoppingBag } from 'lucide-react';
-import { fetchMyOrders } from '@/app/actions/orders';
-import { cancelOrder, refundOrder } from '@/lib/actions/retail';
+import { fetchMyOrders, cancelMyOrder, requestMyOrderRefund } from '@/app/actions/orders';
 import { ChipButton, FallbackImg, OpenBadge } from '@/components/cityos/CityUI';
 import { useMoney } from '@/components/cityos/CityProvider';
 import ThermalReceiptModal from '@/components/common/ThermalReceiptModal';
@@ -17,20 +16,30 @@ export default function ResidentOrders() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const { fmt } = useMoney();
   
-  const handleCancel = async (id: string) => {
+  const handleCancel = async (id: string, category: 'MARKET' | 'FOOD') => {
     setActionLoading(id);
-    await cancelOrder(id, { reason: 'User requested' });
-    const res = await fetchMyOrders();
-    setData(res);
-    setActionLoading(null);
+    try {
+      await cancelMyOrder(id, category, 'User requested');
+      const res = await fetchMyOrders();
+      setData(res);
+    } catch (e: any) {
+      alert(e.message || 'Failed to cancel order.');
+    } finally {
+      setActionLoading(null);
+    }
   };
   
-  const handleRefund = async (id: string) => {
+  const handleRefund = async (id: string, category: 'MARKET' | 'FOOD') => {
     setActionLoading(id);
-    await refundOrder(id, { reason: 'User requested' });
-    const res = await fetchMyOrders();
-    setData(res);
-    setActionLoading(null);
+    try {
+      await requestMyOrderRefund(id, category, 'User requested');
+      const res = await fetchMyOrders();
+      setData(res);
+    } catch (e: any) {
+      alert(e.message || 'Failed to request refund.');
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   useEffect(() => {
@@ -86,7 +95,28 @@ export default function ResidentOrders() {
         {filtered.map((order: any) => {
           const isFood = order.category === 'FOOD';
           const icon = isFood ? <UtensilsCrossed className="w-5 h-5 text-orange-500" /> : <Package className="w-5 h-5 text-teal-600" />;
-          const statusColor = order.status === 'COMPLETED' ? 'text-green-600 bg-green-50 border-green-100' : 'text-amber-600 bg-amber-50 border-amber-100';
+          
+          let statusLabel = order.status;
+          let statusColor = 'text-slate-600 bg-slate-50 border-slate-200';
+          if (order.status === 'COMPLETED' || order.fulfillmentStatus === 'FULFILLED') {
+            statusColor = 'text-green-700 bg-green-50 border-green-200';
+            statusLabel = 'COMPLETED';
+          } else if (order.status === 'PREPARING' || order.fulfillmentStatus === 'PROCESSING') {
+            statusColor = 'text-blue-700 bg-blue-50 border-blue-200';
+            statusLabel = isFood ? 'PREPARING' : 'PROCESSING';
+          } else if (order.status === 'READY' || order.fulfillmentStatus === 'READY') {
+            statusColor = 'text-purple-700 bg-purple-50 border-purple-200';
+            statusLabel = 'READY FOR PICKUP';
+          } else if (order.status === 'DELIVERING') {
+            statusColor = 'text-indigo-700 bg-indigo-50 border-indigo-200';
+            statusLabel = 'ON THE WAY';
+          } else if (order.status === 'CONFIRMED') {
+            statusColor = 'text-emerald-700 bg-emerald-50 border-emerald-200';
+            statusLabel = 'CONFIRMED';
+          } else if (order.status === 'CANCELLED') {
+            statusColor = 'text-red-700 bg-red-50 border-red-200';
+            statusLabel = 'CANCELLED';
+          }
           
           return (
             <div key={order.id} className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm hover:shadow-md transition-shadow">
@@ -101,7 +131,7 @@ export default function ResidentOrders() {
                   </div>
                 </div>
                 <div className={`px-2.5 py-1 rounded-lg border text-[10px] font-black uppercase tracking-wider ${statusColor}`}>
-                  {order.status}
+                  {statusLabel}
                 </div>
               </div>
               
@@ -117,7 +147,6 @@ export default function ResidentOrders() {
                 ))}
               </div>
 
-              
               <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
                 <div className="flex items-center gap-2.5">
                   <span className="text-xs font-bold text-slate-500">
@@ -133,21 +162,26 @@ export default function ResidentOrders() {
                   </button>
                   {order.status === 'PENDING' && (
                     <button
-                      onClick={() => handleCancel(order.id)}
+                      onClick={() => handleCancel(order.id, order.category)}
                       disabled={actionLoading === order.id}
                       className="inline-flex items-center gap-1 text-[11px] font-bold text-red-700 hover:text-red-800 bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded-lg transition-colors border border-red-200 disabled:opacity-50"
                     >
                       {actionLoading === order.id ? 'Canceling...' : 'Cancel'}
                     </button>
                   )}
-                  {order.status === 'COMPLETED' && !order.refundedAt && (
+                  {(order.status === 'COMPLETED' || order.status === 'CONFIRMED') && !order.refundedAt && !order.refundReason && (
                     <button
-                      onClick={() => handleRefund(order.id)}
+                      onClick={() => handleRefund(order.id, order.category)}
                       disabled={actionLoading === order.id}
                       className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded-lg transition-colors border border-amber-200 disabled:opacity-50"
                     >
                       {actionLoading === order.id ? 'Refunding...' : 'Request Refund'}
                     </button>
+                  )}
+                  {order.refundReason && (
+                    <span className="text-[11px] font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
+                      Refund Requested
+                    </span>
                   )}
                 </div>
 

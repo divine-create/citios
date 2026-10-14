@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { expirePendingOrders } from "@/lib/actions/expirePendingOrders";
 
 export async function GET(request: Request) {

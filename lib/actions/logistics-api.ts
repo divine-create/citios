@@ -156,7 +156,7 @@ export async function getDeliveryStatusForSource(sourceType: DeliverySourceType,
     pickupAddress: job.pickupAddress,
     dropoffAddress: job.dropoffAddress,
     createdAt: job.createdAt,
-    updatedAt: job.updatedAt,
+    updatedAt: (job as any).updatedAt ?? job.createdAt,
     trackingEvents: trackingEvents.map((e: any) => ({
       status: e.status,
       timestamp: e.timestamp,

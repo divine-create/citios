@@ -73,4 +73,7 @@ export interface PaymentProviderAdapter {
 
   /** Issue a refund via the provider API */
   refundPayment(input: RefundPaymentInput): Promise<RefundPaymentOutput>;
+
+  /** Issue a payout via the provider API */
+  createPayout?(input: any): Promise<any>;
 }

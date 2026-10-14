@@ -1,17 +1,28 @@
-﻿import { db } from '@/src/prisma/db';
+import { db } from '@/src/prisma/db';
 import { requireMembership } from './tenant';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 export async function createBooking(input: {
   organizationId: string;
   locationId?: string;
   resourceId: string;
-  personId: string;
+  personId?: string;
   startDate: Date;
   endDate: Date;
   totalPrice: number;
 }) {
-  // Authorization is contextual, ensuring organization matches resource ownership
-  
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.personId) {
+    throw new Error('Unauthorized');
+  }
+  const personId = session.user.personId;
+
+  // Pilot feature guard: Hotel bookings are restricted until public pricing engine is validated
+  if (process.env.ENABLE_HOTEL_BOOKINGS !== 'true' && process.env.NODE_ENV === 'production') {
+    throw new Error('Hotel bookings are restricted to private pilot and currently disabled for public checkout.');
+  }
+
   // Concurrency protection using explicit row lock or serializable transaction.
   // In Postgres, we can do a pg_advisory_xact_lock on the resourceId hash, 
   // or use Prisma's optimistic concurrency / raw SQL.
@@ -39,12 +50,12 @@ export async function createBooking(input: {
       }
     }
 
-    // Create booking
+    // Create booking with server-authenticated personId
     return await prismaTx.orm.public.Booking.create({
       resourceId: input.resourceId,
       organizationId: input.organizationId,
       locationId: input.locationId,
-      personId: input.personId,
+      personId,
       startDate: input.startDate,
       endDate: input.endDate,
       totalPrice: input.totalPrice,

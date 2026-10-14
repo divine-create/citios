@@ -8,6 +8,7 @@ import { placeRestaurantOrder } from '@/app/actions/food';
 import { createReservation } from '@/lib/actions/hotel';
 import { getPaymentAdapter } from '@/lib/payments/factory';
 import { requireMembership } from '@/lib/actions/tenant';
+import { settleSuccessfulPayment, settleFailedPayment } from '@/lib/actions/payment-settlement';
 
 export interface InitiateCheckoutInput {
   kind: 'retail' | 'food' | 'hotel';
@@ -198,22 +199,36 @@ export async function verifyOrderPayment(reference: string) {
   const payment = await db.orm.public.Payment.where({ reference }).all().first();
   if (!payment) return { success: false, message: 'Payment reference not found.' };
 
+  if (payment.status === 'COMPLETED') {
+    return {
+      success: true,
+      reference,
+      status: 'SUCCESS',
+    };
+  }
+
   const adapter = getPaymentAdapter(payment.provider || 'PAYSTACK');
   const verifyResult = await adapter.verifyPayment(reference);
 
   if (!verifyResult.success || verifyResult.status !== 'SUCCESS') {
+    if (verifyResult.status === 'FAILED') {
+      await settleFailedPayment({ paymentId: payment.id, reason: verifyResult.error });
+    }
     return { success: false, message: verifyResult.error || 'Payment has not been confirmed yet.' };
   }
 
-  // Note: Actual fulfillment and stock deduction is handled securely by the Webhook Gateway.
-  // The client calling verifyOrderPayment merely checks the status. If the webhook hasn't fired yet,
-  // we could theoretically do a sync fulfillment here, but to avoid race conditions, it's safer
-  // to rely purely on the webhook for fulfillment. We just return the confirmed status.
+  // Synchronous settlement fallback: If the webhook has not yet arrived or in local sandbox,
+  // execute authoritative settlement idempotently.
+  await settleSuccessfulPayment({
+    paymentId: payment.id,
+    providerReference: reference,
+    eventType: 'payment.verified_callback',
+  });
 
   return {
     success: true,
     reference,
-    status: verifyResult.status,
+    status: 'SUCCESS',
   };
 }
 

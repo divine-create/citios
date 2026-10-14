@@ -19,9 +19,9 @@ export const getCart: VoiceToolDefinition = {
         itemCount: cart.items.length,
         subtotal,
         items: cart.items.map((i: any) => ({
-          productId: i.retailProductId || i.menuItemId,
-          name: (i.kind === 'retail' ? i.product?.name : i.menuItem?.name) || 'Unknown',
-          price: (i.kind === 'retail' ? i.product?.price : i.menuItem?.price) || 0,
+          productId: i.retailProductId || i.menuItemId || i.sourceId,
+          name: (i.kind === 'retail' ? i.product?.name : i.kind === 'food' ? i.menuItem?.name : 'Service Request') || 'Unknown',
+          price: (i.kind === 'retail' ? i.product?.price : i.kind === 'food' ? i.menuItem?.price : 0) || 0,
           quantity: i.quantity,
           kind: i.kind
         })),

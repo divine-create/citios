@@ -118,3 +118,34 @@ export async function resolvePersonByEmail(email: string, displayName?: string |
     return person;
   });
 }
+
+/**
+ * Normalizes phone numbers to standard E.164 format.
+ * Converts local Nigerian numbers (e.g. 080... or 23480...) to +234 format.
+ * Validates E.164 pattern: + followed by 8 to 15 digits.
+ * Returns null if the number is malformed or invalid.
+ */
+export function normalizePhoneNumber(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  const cleaned = trimmed.replace(/[\s\-\(\)\.]/g, '');
+  if (!cleaned) return null;
+
+  let formatted = cleaned;
+  if (/^0\d{10}$/.test(formatted)) {
+    // 08012345678 -> +2348012345678
+    formatted = `+234${formatted.slice(1)}`;
+  } else if (/^234\d{10}$/.test(formatted)) {
+    // 2348012345678 -> +2348012345678
+    formatted = `+${formatted}`;
+  } else if (/^\d{10}$/.test(formatted)) {
+    // 8012345678 -> +2348012345678
+    formatted = `+234${formatted}`;
+  }
+
+  // E.164 standard: +[1-9] followed by 7 to 14 digits (8-15 digits total)
+  if (/^\+[1-9]\d{7,14}$/.test(formatted)) {
+    return formatted;
+  }
+  return null;
+}

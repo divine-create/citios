@@ -1,4 +1,4 @@
-﻿import { test } from 'node:test';
+import { test } from 'node:test';
 import * as assert from 'node:assert';
 import { db } from '@/src/prisma/db';
 import { randomUUID } from 'crypto';

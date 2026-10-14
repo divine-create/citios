@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert';
 import { db } from '../../src/prisma/db';
 import { dispatchDelivery, rejectDispatch, expireDispatch, acceptDispatch } from './logistics-dispatch';
+import { v4 as uuidv4 } from 'uuid';
 import { 
   findStuckDeliveries, 
   reconcileLogisticsSettlements, 
@@ -23,6 +24,7 @@ async function makeProvider(name: string) {
 
 async function makePerson(name: string) {
   return await db.orm.public.Person.create({
+    id: uuidv4(),
     firstName: name,
     lastName: 'Test',
   });

@@ -9,8 +9,8 @@ import { Mail, Lock, Loader2, Eye, EyeOff, AlertCircle, Sparkles } from 'lucide-
 export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') || '/';
-  const urlError = searchParams.get('error');
+  const callbackUrl = searchParams?.get('callbackUrl') || '/';
+  const urlError = searchParams?.get('error');
 
   const [identifier, setIdentifier] = useState(''); // email or phone
   const [password, setPassword] = useState('');

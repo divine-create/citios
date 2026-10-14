@@ -4,6 +4,9 @@
  * Can be imported freely from server actions, tests, and server components.
  */
 
+import * as TemporalPolyfill from '@js-temporal/polyfill';
+const Temporal = TemporalPolyfill.Temporal;
+
 /**
  * Return the start and end of the restaurant-local calendar day for a given
  * IANA timezone string (e.g. "Africa/Lagos"). Defaults to UTC when the
@@ -25,73 +28,22 @@ export function getRestaurantDayBounds(timezone: string = 'UTC'): {
     tz = 'UTC';
   }
 
-  // To find local midnight and 23:59:59 in the target timezone:
-  // 1. Get the current date parts in the target timezone
-  const now = new Date();
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: tz,
-    year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
-  }).formatToParts(now);
+  try {
+    const zdt = Temporal.Now.zonedDateTimeISO(tz);
+    const startZdt = zdt.startOfDay();
+    const endZdt = startZdt.add({ days: 1 }).subtract({ milliseconds: 1 });
 
-  let y = 0, m = 0, d = 0;
-  for (const p of parts) {
-    if (p.type === 'year') y = parseInt(p.value, 10);
-    if (p.type === 'month') m = parseInt(p.value, 10);
-    if (p.type === 'day') d = parseInt(p.value, 10);
+    return {
+      start: new Date(startZdt.epochMilliseconds),
+      end: new Date(endZdt.epochMilliseconds),
+      timezone: tz,
+    };
+  } catch {
+    // Ultimate fallback to UTC
+    const now = new Date();
+    const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
+    const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999));
+    return { start, end, timezone: 'UTC' };
   }
-
-  // Create start and end as local dates, but this executes in the SERVER'S timezone,
-  // which is wrong. We need the exact UTC timestamp when it is y-m-d 00:00:00 in `tz`.
-  
-  // Cleanest robust way in plain JS:
-  // Brute force search or temporal-like timezone shift.
-  // Actually, using `toLocaleString('en-US', { timeZone })` offset check:
-  
-  const startLocalAsUtc = new Date(Date.UTC(y, m - 1, d, 0, 0, 0, 0));
-  const endLocalAsUtc = new Date(Date.UTC(y, m - 1, d, 23, 59, 59, 999));
-
-  return {
-    start: getTrueUtcForLocal(startLocalAsUtc, tz),
-    end: getTrueUtcForLocal(endLocalAsUtc, tz),
-    timezone: tz,
-  };
 }
 
-/**
- * Given a UTC Date that represents a "local time string" (e.g. 00:00:00 UTC),
- * calculate what the actual UTC time is when the clock reads that time in `tz`.
- */
-function getTrueUtcForLocal(localTimeUtc: Date, tz: string): Date {
-  // Rough estimate: localTimeUtc is what the clock reads.
-  // Let's find out what the clock reads when it's localTimeUtc in reality.
-  
-  // Format the UTC time as a string:
-  const fmt = new Intl.DateTimeFormat('en-US', {
-    timeZone: tz,
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', second: '2-digit',
-    hour12: false
-  });
-  
-  // We want to find a true UTC time T such that fmt(T) == localTimeUtc.
-  // The offset between a UTC date and its TZ string is the offset.
-  const str = fmt.format(localTimeUtc);
-  
-  // parse back to UTC date parts
-  const match = str.match(/(\d+)\/(\d+)\/(\d+),?\s+(\d+):(\d+):(\d+)/);
-  if (!match) return localTimeUtc;
-  const [_, mm, dd, yyyy, hh, min, ss] = match;
-  
-  const formattedAsUtc = new Date(Date.UTC(
-    parseInt(yyyy), parseInt(mm) - 1, parseInt(dd),
-    parseInt(hh) == 24 ? 0 : parseInt(hh), parseInt(min), parseInt(ss)
-  ));
-  
-  // Diff is how far off tz is from UTC at that moment
-  const diff = formattedAsUtc.getTime() - localTimeUtc.getTime();
-  
-  // Subtract the diff to get the true UTC time
-  return new Date(localTimeUtc.getTime() - diff);
-}

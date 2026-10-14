@@ -184,6 +184,4 @@ test('HotelOS Integration Concurrency Tests', async (t) => {
     const guestW = await db.orm.public.Wallet.where({ id: guestWallet.id }).all().first();
     assert.strictEqual(guestW?.balance, 100, 'Guest wallet balance decremented exactly once');
   });
-
-  await db.close();
 });

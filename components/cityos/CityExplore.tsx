@@ -108,6 +108,9 @@ export default function CityExplore() {
         </div>
       ) : (
         <>
+          <h2 className="text-base font-black text-ink mb-3">
+            {query ? `Search results for "${query}"` : (cat !== 'All' ? `${cat} in ${cityName}` : `Explore ${cityName}`)}
+          </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {results.map((b) => (
               <CityCard key={b.slug} href={`/org/${b.slug}`} className="flex flex-col">
@@ -118,20 +121,24 @@ export default function CityExplore() {
                       <p className="text-[14px] font-black text-ink truncate">{b.name}</p>
                       <LocationRow text={`${b.area} · ${b.category}`} className="text-[10px]" />
                     </div>
-                    <Stars rating={b.rating} className="shrink-0" />
+                    {b.rating != null ? <Stars rating={b.rating} className="shrink-0" /> : null}
                   </div>
                   <p className="text-[12px] text-slate-500 font-medium leading-snug line-clamp-2">{b.tagline}</p>
                   <div className="mt-auto flex items-center justify-between pt-2">
                     <OpenBadge open={b.isOpen} />
-                    <Pill tone="blue">{`${b.deliveryEta} min via CityDrive`}</Pill>
+                    {b.deliveryEta != null ? (
+                      <Pill tone="blue">{`${b.deliveryEta} min via CityDrive`}</Pill>
+                    ) : (
+                      <Pill tone="slate">CityDrive Available</Pill>
+                    )}
                   </div>
                 </div>
               </CityCard>
             ))}
             {results.length === 0 ? (
               <div className="col-span-full rounded-2xl border border-dashed border-slate-200 p-10 text-center">
-                <p className="text-sm font-bold text-slate-500">No business matched {query ? `"${query}"` : 'these filters'}.</p>
-                <p className="text-xs text-slate-400 mt-1">Try Watt Market, pharmacy, fashion, or clear the filters.</p>
+                <p className="text-sm font-bold text-slate-500">{query ? `No results found for "${query}"` : 'No businesses available yet.'}</p>
+                <p className="text-xs text-slate-400 mt-1">Try a different search or explore another category.</p>
               </div>
             ) : null}
           </div>

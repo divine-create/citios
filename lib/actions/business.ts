@@ -24,6 +24,7 @@ export async function registerOrganization(data: {
   type: string;
   description?: string;
   citySlug?: string;
+  address?: string;
 }) {
   let person: any;
   try {
@@ -33,10 +34,26 @@ export async function registerOrganization(data: {
     return { error: err.message || "You must be logged in to register a business." };
   }
 
+  const trimmedName = (data.name || '').trim();
+  if (!trimmedName) {
+    return { error: "Organization name is required." };
+  }
+
   // Validate OrgType
   const validTypes = ['GOVERNMENT', 'SCHOOL', 'HEALTHCARE', 'RETAIL', 'RESTAURANT', 'REAL_ESTATE', 'SERVICES', 'LOGISTICS', 'HOTEL', 'EVENT_ORGANIZER'];
   if (!validTypes.includes(data.type)) {
     return { error: "Invalid organization type." };
+  }
+
+  // Prevent duplicate organization registration by the same owner
+  const existingOrgs = await db.orm.public.Organization.where({ name: trimmedName }).all();
+  if (existingOrgs.length > 0) {
+    for (const existingOrg of existingOrgs) {
+      const mem = await db.orm.public.Membership.where({ organizationId: existingOrg.id, personId: person.id }).all().first();
+      if (mem) {
+        return { error: `You already own or belong to an organization named "${trimmedName}".` };
+      }
+    }
   }
 
   try {
@@ -49,9 +66,10 @@ export async function registerOrganization(data: {
 
     const orgId = await db.transaction(async (tx: any) => {
       const org = await tx.orm.public.Organization.create({
-        name: data.name,
+        name: trimmedName,
         type: data.type as any,
         description: data.description || "",
+        address: data.address || null,
       });
 
       const membership = await tx.orm.public.Membership.create({
@@ -64,21 +82,50 @@ export async function registerOrganization(data: {
         role: 'OWNER',
       });
 
+      // Provision primary location bound to canonical City
+      const location = await tx.orm.public.Location.create({
+        organizationId: org.id,
+        name: 'Main Location',
+        address: data.address || null,
+        cityId: city.id,
+      });
+
+      // Bind member to primary location
+      await tx.orm.public.MembershipLocation.create({
+        membershipId: membership.id,
+        locationId: location.id,
+      });
+
       // Provision canonical organization wallet
       await tx.orm.public.Wallet.create({
         organizationId: org.id,
         balance: 0.0,
-        currency: city.currency || "USD",
+        currency: city.currency || "NGN",
       });
+
+      // Provision canonical DiscoveryListing for marketplace visibility
+      const listingSlug = `${trimmedName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}-${org.id.slice(0, 8)}`;
+      await tx.orm.public.DiscoveryListing.create({
+        organizationId: org.id,
+        locationId: location.id,
+        cityId: city.id,
+        vertical: data.type,
+        slug: listingSlug,
+        title: trimmedName,
+        description: data.description || null,
+        isActive: true,
+      });
+
+      // Provision RestaurantOS settings if applicable
+      if (data.type === 'RESTAURANT') {
+        await tx.orm.public.RestaurantSettings.create({
+          organizationId: org.id,
+          serviceStyle: 'HYBRID',
+        });
+      }
 
       return org.id;
     });
-
-    // Restaurants/eateries/fast-food get their own OS provisioned at
-    // registration (serviceStyle defaults to HYBRID until onboarding sets it).
-    if (data.type === 'RESTAURANT') {
-      await provisionRestaurantOS(orgId);
-    }
 
     return { success: true, organizationId: orgId };
   } catch (err: any) {

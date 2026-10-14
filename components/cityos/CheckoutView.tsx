@@ -1,253 +1,225 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Wallet, CreditCard, Landmark, ShieldCheck, Loader2, ChevronRight, Truck, Lock, AlertCircle } from 'lucide-react';
+import { Wallet, CreditCard, Landmark, ShieldCheck, Loader2, AlertCircle } from 'lucide-react';
 import { useMoney } from '@/components/cityos/CityProvider';
 import { useCart } from '@/components/cityos/CartStore';
-
-import { Money, Pill } from '@/components/cityos/CityUI';
+import { getResidentWallet } from '@/app/actions/resident_wallet';
+import { processMerchantCheckout } from '@/app/actions/checkout';
+import { PriceTag } from '@/components/cityos/CityUI';
 import { cn } from '@/lib/utils';
-import { initiateCheckout } from '@/app/actions/payment';
+import Link from 'next/link';
 
-const METHODS = [
-  { id: 'card', label: 'Debit / Credit Card', sub: 'Visa, Mastercard, Verve via Paystack', icon: CreditCard },
-  { id: 'transfer', label: 'Bank Transfer / USSD', sub: 'Direct bank transfer via Paystack', icon: Landmark },
-] as const;
-
-type MethodId = 'card' | 'card' | 'transfer';
+type MethodId = 'wallet' | 'card' | 'transfer';
 
 export default function CheckoutView() {
   const { fmt } = useMoney();
   const router = useRouter();
-  const { lines, subtotal, deliveryFee, clear } = useCart();
+  const { lines, subtotal, deliveryFee, removeOrg, syncCart } = useCart();
   
-  const [method, setMethod] = useState<MethodId>('card');
-  const [deliveryAddress, setDeliveryAddress] = useState('');
-  const [processing, setProcessing] = useState(false);
+  const [method, setMethod] = useState<MethodId>('wallet');
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [processing, setProcessing] = useState<string | null>(null); // orgId being processed
   const [errorMsg, setErrorMsg] = useState('');
   
+  useEffect(() => {
+    async function fetchWallet() {
+      try {
+        const wallet = await getResidentWallet();
+        if (wallet && wallet.id) {
+          setWalletBalance(wallet.balance);
+        } else {
+          setWalletBalance(0);
+        }
+      } catch (e) {
+        setWalletBalance(0);
+      }
+    }
+    fetchWallet();
+  }, []);
 
-  // Split the shared cart by line kind. Retail and food are different
-  // canonical order pipelines (RetailOrder vs RestaurantOrder), so a mixed
-  // cart cannot be checked out in one pass — the resident resolves it by
-  // checking out each kind separately.
-  const retailLines = lines.filter((l) => l.kind === 'retail');
-  const foodLines = lines.filter((l) => l.kind === 'food');
-  const foodOnly = foodLines.length > 0 && retailLines.length === 0;
-  const hasMixed = retailLines.length > 0 && foodLines.length > 0;
+  const total = subtotal + deliveryFee;
 
-  if (lines.length === 0 && !processing) {
+  if (lines.length === 0) {
     return (
-      <div className="max-w-lg mx-auto text-center py-20 space-y-4">
-        <div className="w-16 h-16 mx-auto rounded-3xl bg-teal-50 text-teal-800 flex items-center justify-center">
-          <Wallet className="w-7 h-7" />
-        </div>
-        <h1 className="text-lg font-black text-ink">Nothing to pay for</h1>
-        <p className="text-sm text-slate-500">Add a few items from the market first, then check out.</p>
+      <div className="max-w-md mx-auto py-20 text-center animate-in fade-in duration-500">
+        <h1 className="text-2xl font-black text-ink mb-2">Nothing to check out</h1>
+        <p className="text-sm text-slate-500 mb-6">Your bag is empty.</p>
+        <Link href="/explore" className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-teal-800 text-white text-sm font-bold hover:bg-teal-900 transition-colors shadow-sm shadow-teal-900/20">
+          Explore CityOS
+        </Link>
       </div>
     );
   }
 
-  const total = subtotal + deliveryFee;
-  
+  // Group by merchant
+  const groupedLines = lines.reduce((acc, l) => {
+    if (!acc[l.orgId]) {
+      acc[l.orgId] = { orgName: l.orgName, items: [], total: 0 };
+    }
+    acc[l.orgId].items.push(l);
+    if (l.kind !== 'service') {
+      acc[l.orgId].total += l.price * l.qty;
+    }
+    return acc;
+  }, {} as Record<string, { orgName: string; items: any[]; total: number }>);
 
-  const pay = async () => {
-    if (processing || hasMixed) return;
+  const handleCheckoutOrg = async (orgId: string, orgTotal: number) => {
+    if (processing) return;
+    setErrorMsg('');
+    
+    if (method === 'wallet' && walletBalance !== null && walletBalance < orgTotal) {
+      setErrorMsg('Insufficient wallet balance for this merchant. Please fund your wallet or select another payment method.');
+      return;
+    }
 
-
-    setProcessing(true);
-
+    setProcessing(orgId);
+    
     try {
-      const checkoutKind = foodOnly ? 'food' : 'retail';
-      const activeLines = foodOnly ? foodLines : retailLines;
-
-      const res = await initiateCheckout({
-        kind: checkoutKind,
-        deliveryAddress,
-          items: activeLines.map((l) => ({
-          productId: l.productId,
-          qty: l.qty,
-          name: l.name,
-        })),
-        method,
-      });
-
-      if (res.error) {
-        setErrorMsg(res.error);
-        setProcessing(false);
-        return;
+      const idempotencyKey = `checkout_${orgId}_${Date.now()}`;
+      const res = await processMerchantCheckout(orgId, method, idempotencyKey);
+      
+      if (!res.success) {
+        throw new Error(res.errors?.[0] || res.message || 'Payment failed.');
       }
 
-      if (res.success && res.redirectUrl) {
-        clear();
-        if (res.redirectUrl.startsWith('http') && !res.redirectUrl.includes(window.location.host)) {
-          // External Paystack checkout URL
-          window.location.href = res.redirectUrl;
-        } else {
-          router.push(res.redirectUrl);
-        }
+      if (res.requiresPaymentAction && res.authorizationUrl) {
+        removeOrg(orgId);
+        window.location.href = res.authorizationUrl; // Redirect to Monnify/Paystack
+      } else {
+        removeOrg(orgId);
+        await syncCart();
+        router.push(`/pay/success?ref=${res.reference || 'internal'}`);
       }
-    } catch (err) {
-      console.error(err);
-      setErrorMsg('Failed to process payment: ' + (err as Error).message);
-      setProcessing(false);
+    } catch (e: any) {
+      setErrorMsg(e.message || 'An unexpected error occurred during checkout.');
+      setProcessing(null);
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-black text-ink">Checkout</h1>
+    <div className="max-w-xl mx-auto space-y-6 animate-in fade-in duration-500 pb-20">
+      <h1 className="text-2xl font-black text-ink">Checkout</h1>
+
+      {errorMsg && (
+        <div className="bg-red-50 text-red-700 p-4 rounded-xl flex items-start gap-3 border border-red-100">
+          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+          <p className="text-sm font-bold">{errorMsg}</p>
+        </div>
+      )}
+
+      <div className="bg-white rounded-[24px] border border-slate-100 overflow-hidden p-6 space-y-4">
+        <h2 className="text-sm font-black text-ink">Payment Method</h2>
+        
+        <button 
+          onClick={() => setMethod('wallet')}
+          className={cn("w-full flex items-center justify-between p-4 rounded-xl border text-left transition-all", 
+            method === 'wallet' ? "border-teal-800 bg-teal-50 shadow-[0_0_0_1px_#115e59]" : "border-slate-100 hover:border-slate-200"
+          )}
+        >
+          <div className="flex items-center gap-3">
+            <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", method === 'wallet' ? "bg-teal-800 text-white" : "bg-slate-50 text-slate-400")}>
+              <Wallet className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-sm font-black text-ink">CityOS Wallet</p>
+              <p className="text-[11px] font-bold text-slate-500">
+                {walletBalance !== null ? `Balance: ${fmt(walletBalance)}` : 'Loading...'}
+              </p>
+            </div>
+          </div>
+          <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center", method === 'wallet' ? "border-teal-800" : "border-slate-200")}>
+            {method === 'wallet' && <div className="w-2.5 h-2.5 bg-teal-800 rounded-full" />}
+          </div>
+        </button>
+
+        <button 
+          onClick={() => setMethod('card')}
+          className={cn("w-full flex items-center justify-between p-4 rounded-xl border text-left transition-all", 
+            method === 'card' ? "border-teal-800 bg-teal-50 shadow-[0_0_0_1px_#115e59]" : "border-slate-100 hover:border-slate-200"
+          )}
+        >
+          <div className="flex items-center gap-3">
+            <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", method === 'card' ? "bg-teal-800 text-white" : "bg-slate-50 text-slate-400")}>
+              <CreditCard className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-sm font-black text-ink">Credit / Debit Card</p>
+              <p className="text-[11px] font-bold text-slate-500">Secure gateway</p>
+            </div>
+          </div>
+          <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center", method === 'card' ? "border-teal-800" : "border-slate-200")}>
+            {method === 'card' && <div className="w-2.5 h-2.5 bg-teal-800 rounded-full" />}
+          </div>
+        </button>
+
+        <button 
+          onClick={() => setMethod('transfer')}
+          className={cn("w-full flex items-center justify-between p-4 rounded-xl border text-left transition-all", 
+            method === 'transfer' ? "border-teal-800 bg-teal-50 shadow-[0_0_0_1px_#115e59]" : "border-slate-100 hover:border-slate-200"
+          )}
+        >
+          <div className="flex items-center gap-3">
+            <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", method === 'transfer' ? "bg-teal-800 text-white" : "bg-slate-50 text-slate-400")}>
+              <Landmark className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-sm font-black text-ink">Bank Transfer</p>
+              <p className="text-[11px] font-bold text-slate-500">Pay via bank account</p>
+            </div>
+          </div>
+          <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center", method === 'transfer' ? "border-teal-800" : "border-slate-200")}>
+            {method === 'transfer' && <div className="w-2.5 h-2.5 bg-teal-800 rounded-full" />}
+          </div>
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-10 items-start">
-        <div className="lg:col-span-3 space-y-4">
-          <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-3">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Your items</p>
-            {hasMixed && (
-              <div className="mb-3 p-3 bg-amber-50 text-amber-900 text-xs font-medium rounded-xl flex gap-2 items-start leading-relaxed">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 opacity-70" />
-                <div>This cart mixes market items and food orders. They are placed with different merchants â€” check out each separately. Remove one type of item, or complete this checkout and come back.</div>
-              </div>
-            )}
-            {lines.map((l) => {
-              return (
-                <div key={l.productId} className="flex items-center gap-3 py-1.5">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs font-black text-ink line-clamp-1">{l.name}</div>
-                    <div className="text-[10px] font-medium text-slate-500">{l.orgName} â€¢ {l.qty}x</div>
-                  </div>
-                  <div className="text-xs font-bold text-ink whitespace-nowrap">
-                    {fmt(l.price * l.qty)}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+      <div className="space-y-4">
+        <h2 className="text-sm font-black text-ink">Merchant Obligations</h2>
+        <p className="text-xs text-slate-500 leading-relaxed mb-4">
+          Your cart contains items from multiple merchants. You must checkout with each merchant separately.
+        </p>
 
-          <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-            <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
-              <h2 className="text-xs font-black text-slate-700 uppercase tracking-widest">Delivery Details</h2>
-              <Pill className="bg-emerald-50 text-emerald-800 text-[10px] border-0"><Truck className="w-3 h-3 mr-1" /> Today</Pill>
-            </div>
-            <div className="p-5 flex items-start gap-4">
-              <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
-                <Truck className="w-4 h-4 text-slate-400" />
-              </div>
-              {!foodOnly && (
-                <div>
-                <h3 className="font-bold text-sm text-ink leading-tight">Delivery Address</h3>
-                  <textarea className="w-full mt-2 p-2 border border-slate-200 rounded text-xs text-slate-700" placeholder="Enter your delivery address..." value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} required={!foodOnly} />
-              </div>
+        {Object.entries(groupedLines).map(([orgId, group]) => (
+          <div key={orgId} className="bg-white rounded-[24px] border border-slate-100 overflow-hidden shadow-sm">
+            <div className="p-4 border-b border-slate-50 bg-slate-50/50 flex items-center justify-between">
+              <h3 className="text-sm font-black text-ink uppercase tracking-wide">{group.orgName}</h3>
+              {group.total > 0 ? (
+                <PriceTag amount={group.total} />
+              ) : (
+                <span className="text-[11px] font-bold text-teal-800 bg-teal-50 px-2 py-0.5 rounded-md">Quote on Request</span>
               )}
             </div>
-          </div>
-          
-          <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-            <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <h2 className="text-xs font-black text-slate-700 uppercase tracking-widest">Payment Method</h2>
-            </div>
-            <div className="p-2 space-y-1">
-              {METHODS.map((m) => (
-                <button
-                  key={m.id}
-                  onClick={() => setMethod(m.id)}
-                  className={cn(
-                    "w-full flex items-center justify-between p-3 rounded-xl transition-all text-left",
-                    method === m.id ? "bg-teal-50 ring-1 ring-teal-200" : "hover:bg-slate-50"
-                  )}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={cn(
-                      "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
-                      method === m.id ? "bg-teal-800 text-white" : "bg-slate-100 text-slate-400"
-                    )}>
-                      <m.icon className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className={cn("font-bold text-sm leading-tight", method === m.id ? "text-teal-900" : "text-slate-700")}>
-                        {m.label}
-                      </div>
-                      <div className={cn("text-xs", method === m.id ? "text-teal-700" : "text-slate-500")}>
-                        {m.sub}
-                      </div>
-                    </div>
+            
+            <div className="p-4 space-y-3">
+              {group.items.map((l: any, i: number) => (
+                <div key={i} className="flex justify-between items-start">
+                  <div>
+                    <p className="text-[13px] font-bold text-ink">{l.qty}x {l.name}</p>
+                    {l.kind === 'service' && <p className="text-[10px] text-teal-700 font-bold bg-teal-50 px-1.5 py-0.5 rounded uppercase w-max mt-1">Service Request</p>}
                   </div>
-                  <div className={cn(
-                    "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors",
-                    method === m.id ? "border-teal-600" : "border-slate-200"
-                  )}>
-                    {method === m.id && <div className="w-2.5 h-2.5 rounded-full bg-teal-600" />}
-                  </div>
-                </button>
+                  {l.kind !== 'service' && <p className="text-[12px] font-black text-slate-600">{fmt(l.price * l.qty)}</p>}
+                </div>
               ))}
             </div>
-          </div>
-        </div>
 
-        <div className="lg:col-span-2">
-          <div className="bg-slate-50 rounded-3xl p-6 space-y-6 sticky top-24">
-            <h2 className="text-sm font-black text-ink flex items-center gap-2">
-              Order summary
-            </h2>
-            
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between text-slate-600 font-medium">
-                <span>Subtotal</span>
-                <span className="font-bold text-ink"><Money amount={subtotal} /></span>
-              </div>
-              <div className="flex justify-between text-slate-600 font-medium">
-                <span>{foodOnly ? 'Pickup' : 'Delivery'}</span>
-                <span className="font-bold text-ink">
-                  {foodOnly
-                    ? <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">No delivery fee</span>
-                    : <Money amount={deliveryFee} />}
-                </span>
-              </div>
-            </div>
-            
-            <div className="pt-4 border-t border-slate-200 space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="font-black text-ink">Total</span>
-                <span className="text-2xl font-black text-teal-900"><Money amount={total} /></span>
-              </div>
-
-              
-
-              
-
-              <button 
-                onClick={pay}
-                disabled={processing || hasMixed}
-                className="w-full h-14 flex items-center justify-center gap-2 bg-teal-800 text-white rounded-xl text-sm font-black hover:bg-teal-900 transition-all disabled:opacity-50 disabled:active:scale-100 active:scale-[0.98] shadow-sm"
+            <div className="p-4 border-t border-slate-50 bg-slate-50/30">
+              <button
+                onClick={() => handleCheckoutOrg(orgId, group.total)}
+                disabled={processing !== null}
+                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-ink text-white text-sm font-black hover:bg-slate-800 disabled:opacity-50 transition-colors"
               >
-                {processing ? <Loader2 className="w-5 h-5 animate-spin opacity-50" /> : <Lock className="w-4 h-4 opacity-70" />}
-                {processing ? 'Processing securely...' : `Pay ${fmt(total)}`}
+                {processing === orgId ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
+                ) : (
+                  <><ShieldCheck className="w-4 h-4" /> {group.total > 0 ? `Checkout ${group.orgName}` : `Request Service from ${group.orgName}`}</>
+                )}
               </button>
-              <div className="text-center">
-                <p className="text-[10px] text-slate-400 font-medium px-4">Payments are secured by CityPay infrastructure.</p>
-              </div>
             </div>
           </div>
-        </div>
+        ))}
       </div>
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

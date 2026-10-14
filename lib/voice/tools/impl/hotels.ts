@@ -82,6 +82,9 @@ export const bookHotelRoom: VoiceToolDefinition = {
     required: ["hotelName", "roomType", "checkInDate", "nights"]
   },
   execute: async (args, session) => {
+    if (process.env.ENABLE_HOTEL_BOOKINGS !== 'true' && process.env.NODE_ENV === 'production') {
+      return { ok: false, error: { code: 'PILOT_RESTRICTION', message: 'Hotel booking via voice is restricted to pilot and disabled in production.' } };
+    }
     const { db } = await import('@/src/prisma/db');
     const { createReservation } = await import('@/lib/actions/hotel');
     

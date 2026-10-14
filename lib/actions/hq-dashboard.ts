@@ -1,4 +1,4 @@
-﻿import { db } from '@/src/prisma/db';
+import { db } from '@/src/prisma/db';
 import { requireSystemAdmin } from '@/lib/rbac';
 import { getHQMetrics } from '@/lib/actions/hq';
 

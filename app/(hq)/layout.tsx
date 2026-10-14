@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { requireSystemAdmin } from '@/lib/rbac';
-import { ShieldAlert, Users, Building, Activity, Map, ArrowLeft, LogOut, FileText } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, Users, Building, Activity, Map, ArrowLeft, LogOut, FileText } from 'lucide-react';
 import { redirect } from 'next/navigation';
 
 export default async function HQLayout({ children }: { children: React.ReactNode }) {
@@ -28,6 +28,12 @@ export default async function HQLayout({ children }: { children: React.ReactNode
           </Link>
           <Link href="/hq/tenants" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-sm font-medium text-slate-300 hover:text-white transition-colors">
             <Building className="w-4 h-4" /> Tenants & Orgs
+          </Link>
+          <Link href="/hq/discovery" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-sm font-medium text-slate-300 hover:text-white transition-colors">
+            <Map className="w-4 h-4 text-teal-400" /> Discovery Review
+          </Link>
+          <Link href="/hq/claims" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-sm font-medium text-slate-300 hover:text-white transition-colors">
+            <ShieldCheck className="w-4 h-4 text-amber-400" /> Business Claims
           </Link>
           <Link href="/hq/users" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-sm font-medium text-slate-300 hover:text-white transition-colors">
             <Users className="w-4 h-4" /> Citizens & Users

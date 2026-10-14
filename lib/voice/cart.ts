@@ -16,17 +16,17 @@ interface VoiceCartItemType {
 export async function getVoiceCart(personId: string) {
   let cart = await db.orm.public.Cart
     .where({ personId })
-    .select('id', 'personId', 'updatedAt', 'citySlug')
+    .select('id', 'personId', 'citySlug')
     .include('items', (i) => i
-      .select('id', 'retailProductId', 'menuItemId', 'quantity', 'kind')
-      .include('product', (p) => p.select('id', 'name', 'price', 'stockQuantity', 'organizationId').include('organization', o => o.select('name')))
-      .include('menuItem', (m) => m.select('id', 'name', 'price', 'organizationId').include('organization', o => o.select('name')))
+      .select('id', 'retailProductId', 'menuItemId', 'quantity', 'kind', 'sourceType', 'sourceId')
+      .include('product', (p) => p.select('id', 'name', 'price', 'stockQuantity', 'organizationId', 'imageAssetId').include('organization', o => o.select('name')))
+      .include('menuItem', (m) => m.select('id', 'name', 'price', 'organizationId', 'isAvailable', 'imageUrl').include('organization', o => o.select('name')))
     )
     .include('checkout', (c) => c.select('id', 'totalAmount', 'expiresAt', 'idempotencyKey'))
     .first();
 
   if (!cart) {
-    cart = await db.orm.public.Cart.select('id', 'personId', 'updatedAt', 'citySlug').create({ personId }) as any;
+    cart = await db.orm.public.Cart.select('id', 'personId', 'citySlug').create({ personId }) as any;
     cart!.items = [];
     cart!.checkout = null;
   }
@@ -38,15 +38,17 @@ export async function getVoiceCart(personId: string) {
   items.forEach((item: any) => {
     if (item.kind === 'retail') {
       subtotal += (item.product?.price || 0) * item.quantity;
-    } else {
+    } else if (item.kind === 'food') {
       subtotal += (item.menuItem?.price || 0) * item.quantity;
+    } else if (item.kind === 'service' && item.sourceId) {
+      // Service items generate quote requests at checkout
     }
   });
 
   return { cart: { ...cart, items }, subtotal };
 }
 
-export async function addVoiceCartItem(personId: string, productId: string, quantity: number, kind: 'retail' | 'food' = 'retail') {
+export async function addVoiceCartItem(personId: string, productId: string, quantity: number, kind: 'retail' | 'food' | 'service' = 'retail', priceObj?: number) {
   if (typeof quantity !== 'number' || isNaN(quantity) || quantity <= 0) {
     throw new Error('Invalid quantity.');
   }
@@ -57,13 +59,23 @@ export async function addVoiceCartItem(personId: string, productId: string, quan
     if (!product) throw new Error('Product not found.');
     if (!product.isWeighed && !Number.isInteger(quantity)) throw new Error('Product cannot be bought in fractions.');
     if ((product.stockQuantity || 0) < quantity) throw new Error('Insufficient stock.');
-  } else {
+  } else if (kind === 'food') {
     const menuItem = await db.orm.public.MenuItem.where({ id: productId }).first();
     if (!menuItem) throw new Error('Item not found.');
+    if (menuItem.isAvailable === false) throw new Error('This menu item is currently unavailable.');
+  } else if (kind === 'service') {
+    const svc = await db.orm.public.ServiceCatalogItem.where({ id: productId }).first();
+    if (!svc) throw new Error('Service not found.');
+    if (svc.isActive === false) throw new Error('This service is currently unavailable.');
   }
 
   await db.transaction(async (tx) => {
-    const condition = kind === 'retail' ? { cartId: cart.id as string, retailProductId: productId } : { cartId: cart.id as string, menuItemId: productId };
+    const condition = kind === 'retail' 
+      ? { cartId: cart.id as string, retailProductId: productId } 
+      : kind === 'food' 
+      ? { cartId: cart.id as string, menuItemId: productId }
+      : { cartId: cart.id as string, sourceId: productId, sourceType: 'SERVICE' };
+      
     const existingItem = await tx.orm.public.CartItem.where(condition).all().first();
     if (existingItem) {
       await tx.orm.public.CartItem.where({ id: existingItem.id as string }).update({
@@ -74,6 +86,8 @@ export async function addVoiceCartItem(personId: string, productId: string, quan
         cartId: cart.id as string,
         retailProductId: kind === 'retail' ? productId : undefined,
         menuItemId: kind === 'food' ? productId : undefined,
+        sourceId: kind === 'service' ? productId : undefined,
+        sourceType: kind === 'service' ? 'SERVICE' : undefined,
         quantity,
         kind
       });
@@ -91,7 +105,7 @@ export async function addVoiceCartItem(personId: string, productId: string, quan
 export async function removeVoiceCartItem(personId: string, productId: string) {
   const { cart } = await getVoiceCart(personId);
   
-  const existingItem = cart.items.find((item: any) => item.retailProductId === productId || item.menuItemId === productId);
+  const existingItem = cart.items.find((item: any) => item.retailProductId === productId || item.menuItemId === productId || item.sourceId === productId);
   if (existingItem) {
     await db.orm.public.CartItem.where({ id: existingItem.id as string }).delete();
   }
@@ -104,7 +118,7 @@ export async function removeVoiceCartItem(personId: string, productId: string) {
   return getVoiceCart(personId);
 }
 
-export async function updateVoiceCartQuantity(personId: string, productId: string, quantity: number, kind: 'retail' | 'food' = 'retail') {
+export async function updateVoiceCartQuantity(personId: string, productId: string, quantity: number, kind: 'retail' | 'food' | 'service' = 'retail') {
   if (typeof quantity !== 'number' || isNaN(quantity)) throw new Error('Invalid quantity.');
   if (quantity <= 0) return removeVoiceCartItem(personId, productId);
   
@@ -115,10 +129,23 @@ export async function updateVoiceCartQuantity(personId: string, productId: strin
     if (!product) throw new Error('Product not found.');
     if (!product.isWeighed && !Number.isInteger(quantity)) throw new Error('Product cannot be bought in fractions.');
     if ((product.stockQuantity || 0) < quantity) throw new Error('Insufficient stock.');
+  } else if (kind === 'food') {
+    const menuItem = await db.orm.public.MenuItem.where({ id: productId }).first();
+    if (!menuItem) throw new Error('Item not found.');
+    if (menuItem.isAvailable === false) throw new Error('This menu item is currently unavailable.');
+  } else if (kind === 'service') {
+    const svc = await db.orm.public.ServiceCatalogItem.where({ id: productId }).first();
+    if (!svc) throw new Error('Service not found.');
+    if (svc.isActive === false) throw new Error('This service is currently unavailable.');
   }
 
   await db.transaction(async (tx) => {
-    const condition = kind === 'retail' ? { cartId: cart.id as string, retailProductId: productId } : { cartId: cart.id as string, menuItemId: productId };
+    const condition = kind === 'retail' 
+      ? { cartId: cart.id as string, retailProductId: productId } 
+      : kind === 'food' 
+      ? { cartId: cart.id as string, menuItemId: productId }
+      : { cartId: cart.id as string, sourceId: productId, sourceType: 'SERVICE' };
+      
     const existingItem = await tx.orm.public.CartItem.where(condition).all().first();
     if (existingItem) {
       await tx.orm.public.CartItem.where({ id: existingItem.id as string }).update({
@@ -129,6 +156,8 @@ export async function updateVoiceCartQuantity(personId: string, productId: strin
         cartId: cart.id as string,
         retailProductId: kind === 'retail' ? productId : undefined,
         menuItemId: kind === 'food' ? productId : undefined,
+        sourceId: kind === 'service' ? productId : undefined,
+        sourceType: kind === 'service' ? 'SERVICE' : undefined,
         quantity,
         kind
       });
@@ -148,12 +177,22 @@ export async function prepareVoiceCheckout(personId: string) {
   
   if (cart.items.length === 0) throw new Error('Cart is empty.');
 
-  // Validate stock again
+  // Validate stock and availability again
   for (const item of cart.items) {
     if (item.kind === 'retail') {
       const prod = await db.orm.public.RetailProduct.where({ id: item.retailProductId as string }).first();
       if (!prod || (prod.stockQuantity || 0) < item.quantity) {
-        throw new Error(`Item ${item.product?.name} no longer has sufficient stock.`);
+        throw new Error(`Item ${item.product?.name || 'Retail product'} no longer has sufficient stock.`);
+      }
+    } else if (item.kind === 'food') {
+      const dish = await db.orm.public.MenuItem.where({ id: item.menuItemId as string }).first();
+      if (!dish || dish.isAvailable === false) {
+        throw new Error(`Dish "${dish?.name || 'Menu item'}" is currently unavailable.`);
+      }
+    } else if (item.kind === 'service' && item.sourceId) {
+      const svc = await db.orm.public.ServiceCatalogItem.where({ id: item.sourceId }).first();
+      if (!svc || svc.isActive === false) {
+        throw new Error(`Service "${svc?.name || 'Service'}" is currently unavailable.`);
       }
     }
   }
@@ -178,6 +217,9 @@ export async function prepareVoiceCheckout(personId: string) {
 }
 
 export async function confirmVoiceCheckout(personId: string, checkoutId: string, deliveryAddress?: string) {
+  if (process.env.ENABLE_VOICE_CHECKOUT !== 'true' && process.env.NODE_ENV === 'production') {
+    throw new Error('Voice checkout mutations are restricted during the launch pilot.');
+  }
   const { cart } = await getVoiceCart(personId);
   const checkout = cart.checkout as any;
   

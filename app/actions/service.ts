@@ -63,7 +63,9 @@ export async function requestServiceJob(input: {
     href: '/tasks',
   });
 
-  revalidatePath('/workspaces/serviceos');
+  try {
+    revalidatePath('/workspaces/serviceos');
+  } catch {}
   return { success: true, jobId: job.id };
 }
 
@@ -201,7 +203,9 @@ export async function acceptAndScheduleServiceJob(input: {
     scheduledDate: input.startTime
   });
 
-  revalidatePath('/workspaces/serviceos');
+  try {
+    revalidatePath('/workspaces/serviceos');
+  } catch {}
   return { success: true };
 }
 
@@ -234,7 +238,20 @@ export async function updateServiceJobLifecycle(input: {
     }
   });
 
-  revalidatePath('/workspaces/serviceos');
+  try {
+    revalidatePath('/workspaces/serviceos');
+  } catch {}
   return { success: true };
+}
+
+
+
+export async function getCityServiceItem(id: string) {
+  const item = await db.orm.public.ServiceCatalogItem
+    .where({ id, isActive: true })
+    .include('organization', o => o.select('name'))
+    .first();
+  if (!item) return null;
+  return item;
 }
 

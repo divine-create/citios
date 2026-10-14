@@ -8,7 +8,7 @@ import { verifyOrderPayment } from '@/app/actions/payment';
 
 export default function PaymentSuccess() {
   const searchParams = useSearchParams();
-  const reference = searchParams.get('reference');
+  const reference = searchParams?.get('reference') || null;
   const [verifying, setVerifying] = useState(Boolean(reference));
   const [successStatus, setSuccessStatus] = useState<boolean | null>(null);
 

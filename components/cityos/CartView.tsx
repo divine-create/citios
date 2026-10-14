@@ -6,6 +6,7 @@ import { useMoney } from '@/components/cityos/CityProvider';
 import { useCart } from '@/components/cityos/CartStore';
 import { useCity } from '@/components/cityos/CityProvider';
 import { FallbackImg, Money } from '@/components/cityos/CityUI';
+import { cn } from '@/lib/utils';
 
 export default function CartView() {
   const { lines, setQty, remove, subtotal, deliveryFee, count, cartCitySlug, isForeignCart } = useCart();
@@ -61,52 +62,61 @@ export default function CartView() {
               <div className="flex items-center gap-2 border-b border-slate-100 pb-2 mb-3">
                 <h2 className="text-sm font-black text-ink tracking-wide">{orgName}</h2>
               </div>
-              {orgLines.map((l) => (
-            <div key={l.productId} className="bg-white rounded-2xl border border-slate-100 p-3.5 flex gap-4 items-center">
-              <Link href={l.kind === 'food' ? `/food/item/${l.productId}` : `/product/${l.productId}`}>
-                <div className="w-20 h-20 rounded-xl overflow-hidden bg-slate-50 ring-1 ring-slate-200/50 relative">
-                  {l.image ? (
-                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={`/api/assets/${l.image}`} alt={l.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <FallbackImg alt={l.name} className="absolute inset-0" />
-                  )}
-                </div>
-              </Link>
-              
-              <div className="flex-1 space-y-2">
-                <div>
-                  <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{l.orgName}</div>
-                  <Link href={l.kind === 'food' ? `/food/item/${l.productId}` : `/product/${l.productId}`} className="text-sm font-black text-ink hover:text-teal-700 transition-colors">{l.name}</Link>
-                  <div className="text-xs font-bold text-teal-800 pt-0.5">{fmt(l.price)}</div>
-                </div>
-                
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center bg-slate-50 rounded-lg p-0.5 border border-slate-100">
-                    <button 
-                      onClick={() => setQty(l.productId, l.qty - 1)}
-                      className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white hover:shadow-sm transition-all text-slate-500"
-                    >
-                      <Minus className="w-3 h-3" />
-                    </button>
-                    <span className="w-8 text-center text-xs font-bold">{l.qty}</span>
-                    <button 
-                      onClick={() => setQty(l.productId, l.qty + 1)}
-                      className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white hover:shadow-sm transition-all text-slate-500"
-                    >
-                      <Plus className="w-3 h-3" />
-                    </button>
+              {orgLines.map((l) => {
+                const itemHref = l.kind === 'food' ? `/food/item/${l.productId}` : l.kind === 'service' ? `/service/${l.productId}` : `/product/${l.productId}`;
+                const imgSrc = l.image ? (l.image.startsWith('http') || l.image.startsWith('/') ? l.image : `/api/assets/${l.image}`) : null;
+                return (
+                  <div key={l.productId} className="bg-white rounded-2xl border border-slate-100 p-3.5 flex gap-4 items-center">
+                    <Link href={itemHref}>
+                      <div className="w-20 h-20 rounded-xl overflow-hidden bg-slate-50 ring-1 ring-slate-200/50 relative">
+                        {imgSrc ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={imgSrc} alt={l.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <FallbackImg alt={l.name} className="absolute inset-0" />
+                        )}
+                      </div>
+                    </Link>
+                    
+                    <div className="flex-1 space-y-2">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{l.orgName}</span>
+                          {l.isAvailable === false && (
+                            <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md">Unavailable</span>
+                          )}
+                        </div>
+                        <Link href={itemHref} className="text-sm font-black text-ink hover:text-teal-700 transition-colors">{l.name}</Link>
+                        <div className="text-xs font-bold text-teal-800 pt-0.5">{fmt(l.price)}</div>
+                      </div>
+                      
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center bg-slate-50 rounded-lg p-0.5 border border-slate-100">
+                          <button 
+                            onClick={() => setQty(l.productId, l.qty - 1)}
+                            className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white hover:shadow-sm transition-all text-slate-500"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <span className="w-8 text-center text-xs font-bold">{l.qty}</span>
+                          <button 
+                            onClick={() => setQty(l.productId, l.qty + 1)}
+                            className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white hover:shadow-sm transition-all text-slate-500"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
+                        <button onClick={() => remove(l.productId)} className="text-slate-400 hover:text-rose-500 transition-colors p-1">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="font-black text-sm text-ink text-right min-w-[80px]">
+                      {fmt(l.price * l.qty)}
+                    </div>
                   </div>
-                  <button onClick={() => remove(l.productId)} className="text-slate-400 hover:text-rose-500 transition-colors p-1">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-              <div className="font-black text-sm text-ink text-right min-w-[80px]">
-                {fmt(l.price * l.qty)}
-              </div>
-            </div>
-              ))}
+                );
+              })}
             </div>
           ))}
         </div>
@@ -133,9 +143,20 @@ export default function CartView() {
               </div>
             </div>
 
+            {lines.some((l) => l.isAvailable === false) && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs font-medium leading-relaxed">
+                Some items in your bag are currently out of stock or unavailable. Please remove them to proceed.
+              </div>
+            )}
+
             <Link 
-              href="/checkout"
-              className="w-full h-12 flex items-center justify-between px-5 bg-teal-800 text-white rounded-xl text-sm font-black hover:bg-teal-900 transition-all active:scale-[0.98]"
+              href={lines.some((l) => l.isAvailable === false) ? '#' : '/checkout'}
+              className={cn(
+                "w-full h-12 flex items-center justify-between px-5 bg-teal-800 text-white rounded-xl text-sm font-black transition-all",
+                lines.some((l) => l.isAvailable === false)
+                  ? "opacity-50 cursor-not-allowed pointer-events-none"
+                  : "hover:bg-teal-900 active:scale-[0.98]"
+              )}
             >
               <span>Checkout</span>
               <ChevronRight className="w-4 h-4 opacity-70" />

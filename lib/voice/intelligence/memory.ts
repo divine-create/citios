@@ -27,7 +27,7 @@ export async function rememberPreference(personId: string, category: string, key
   // Upsert the memory using Prisma ORM
   const existing = await db.orm.public.VoiceMemory.where({ personId, category, key }).first();
   if (existing) {
-    await db.orm.public.VoiceMemory.where({ id: existing.id }).update({ value, updatedAt: (globalThis as any).Temporal.Instant.fromEpochMilliseconds(Date.now()) });
+    await db.orm.public.VoiceMemory.where({ id: existing.id }).update({ value });
     return { ok: true, data: { id: existing.id, category, key, value } };
   }
 

@@ -29,6 +29,8 @@ import {
   Calendar,
   Menu as MenuIcon,
   X,
+  Search,
+  Wallet as WalletIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
@@ -701,9 +703,9 @@ const navGroups: { label: string; items: NavItem[] }[] = [
             <nav className="md:hidden absolute bottom-0 left-0 right-0 bg-white border-t border-slate-100 flex items-center justify-between px-2 h-16 z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">
               {[
                 { id: 'home', path: '/', label: 'Home', icon: LayoutGrid },
-                { id: 'map', path: '/map', label: 'Map', icon: MapIcon },
-                { id: 'create', path: '/create', label: 'Create', icon: PenSquare },
+                { id: 'explore', path: '/explore', label: 'Explore', icon: Search },
                 { id: 'activity', path: '/activity', label: 'Activity', icon: Bell },
+                { id: 'wallet', path: '/wallet', label: 'Wallet', icon: WalletIcon },
                 { id: 'profile', path: '/profile', label: 'Profile', icon: UserIcon },
               ].map((item) => {
                 const active = isActive(item.path);

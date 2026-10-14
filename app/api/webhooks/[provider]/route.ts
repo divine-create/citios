@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/src/prisma/db';
-import { fulfillRetailOrderInventory } from '@/lib/actions/retail';
 import { getPaymentAdapter } from '@/lib/payments/factory';
+import { settleSuccessfulPayment, settleFailedPayment } from '@/lib/actions/payment-settlement';
 
 export async function POST(
   req: NextRequest,
@@ -18,11 +18,11 @@ export async function POST(
 
     // 1. Signature Verification
     if (process.env.NODE_ENV === 'production' || signature) {
-       const isValid = adapter.validateWebhookSignature(rawBody, signature);
-       if (!isValid) {
-         console.warn(`[${providerName} Webhook] Invalid signature received.`);
-         return new NextResponse('Invalid signature', { status: 401 });
-       }
+      const isValid = adapter.validateWebhookSignature(rawBody, signature);
+      if (!isValid) {
+        console.warn(`[${providerName} Webhook] Invalid signature received.`);
+        return new NextResponse('Invalid signature', { status: 401 });
+      }
     }
 
     // 2. Parse & Normalize Event
@@ -34,181 +34,91 @@ export async function POST(
       return new NextResponse('Unrecognized event format', { status: 400 });
     }
 
-    // 3. Early Idempotency Check (Without locking Payment)
-    // To prevent processing the exact same webhook payload twice
+    // 3. Early Idempotency Check & Reference Validation
     if (!event.reference && !event.providerReference) {
       console.warn(`[${providerName} Webhook] Missing both reference and providerReference in event payload.`);
       return NextResponse.json({ status: 'missing_reference' }, { status: 400 });
     }
 
-    try {
-       // We insert into PaymentEvent first to claim exactly-once processing
-       const payment = await db.orm.public.Payment.where({ 
-         reference: event.reference || undefined, 
-         providerReference: event.providerReference || undefined 
-       }).all().first();
-
-       if (!payment) {
-         console.warn(`[${providerName} Webhook] Payment not found for reference ${event.reference || event.providerReference}`);
-         return NextResponse.json({ status: 'payment_not_found' }, { status: 404 });
-       }
-
-       await db.orm.public.PaymentEvent.create({
-         paymentId: payment.id,
-         providerEventId: event.providerEventId,
-         type: rawPayload.event || event.status,
-         payload: event.rawPayload,
-       });
-       
-       // If it successfully created, we are the ONLY process handling this specific event instance.
-       // We can now safely proceed.
-    } catch (err: any) {
-       if (err.code === 'P2002' || err.message?.includes('Unique constraint')) {
-          // This exact event was already processed.
-          console.info(`[${providerName} Webhook] Idempotent exit for providerEventId ${event.providerEventId}`);
-          return NextResponse.json({ status: 'already_processed' });
-       }
-       throw err;
+    if (event.providerEventId) {
+      const existingEvent = await db.orm.public.PaymentEvent.where({ 
+        providerEventId: event.providerEventId 
+      }).all().first();
+      if (existingEvent) {
+        console.info(`[${providerName} Webhook] Idempotent exit for providerEventId ${event.providerEventId}`);
+        return NextResponse.json({ status: 'already_processed' });
+      }
     }
 
-    // Find the payment again, now ready for the transaction
     const payment = await db.orm.public.Payment.where({ 
-       reference: event.reference || undefined, 
-       providerReference: event.providerReference || undefined 
+      reference: event.reference || undefined, 
+      providerReference: event.providerReference || undefined 
     }).all().first();
-    
+
     if (!payment) {
+      console.warn(`[${providerName} Webhook] Payment not found for reference ${event.reference || event.providerReference}`);
       return NextResponse.json({ status: 'payment_not_found' }, { status: 404 });
     }
 
     // 4. State Check & Amount Validation
     if (payment.status !== 'PENDING') {
-      // Payment is already completed/failed by a previous event (e.g. charge.success followed by invoice.paid)
       console.info(`[${providerName} Webhook] Ignoring event for Payment ${payment.id} because status is ${payment.status}`);
       return NextResponse.json({ status: `ignored_status_${payment.status.toLowerCase()}` });
     }
 
     if (event.status === 'SUCCESS') {
       if (Math.abs(payment.amount - event.amount) > 0.01) {
-         console.error(`[${providerName} Webhook] Amount mismatch. Expected ${payment.amount}, got ${event.amount}`);
-         return NextResponse.json({ status: 'amount_mismatch' }, { status: 400 });
+        console.error(`[${providerName} Webhook] Amount mismatch. Expected ${payment.amount}, got ${event.amount}`);
+        return NextResponse.json({ status: 'amount_mismatch' }, { status: 400 });
       }
 
-      // 5. Atomic Fulfillment Transaction
-      let oversellOccurred = false;
       try {
-         await db.transaction(async (tx: any) => {
-           // If Retail Order
-           if (payment.retailOrderId) {
-              await fulfillRetailOrderInventory(tx, payment.retailOrderId);
-              await tx.orm.public.RetailOrder.where({ id: payment.retailOrderId }).update({ status: 'CONFIRMED' });
-           }
-           
-           // If Restaurant Order
-           if (payment.restaurantOrderId) {
-              await tx.orm.public.RestaurantOrder.where({ id: payment.restaurantOrderId }).update({ status: 'PREPARING' });
-           }
-
-           // Credit Wallet Ledger
-           let targetWallet = null;
-
-           if (payment.reference && payment.reference.startsWith('WAL-')) {
-             const parts = payment.reference.split('-');
-             if (parts.length >= 3) {
-               const walletId = parts.slice(1, -2).join('-');
-               targetWallet = await tx.orm.public.Wallet.where({ id: walletId }).all().first();
-             }
-           } else {
-             let targetOrgId = null;
-             if (payment.retailOrderId) {
-               const r = await tx.orm.public.RetailOrder.where({ id: payment.retailOrderId }).all().first();
-               if (r) targetOrgId = r.organizationId;
-             } else if (payment.restaurantOrderId) {
-               const r = await tx.orm.public.RestaurantOrder.where({ id: payment.restaurantOrderId }).all().first();
-               if (r) targetOrgId = r.organizationId;
-             }
-             
-             if (targetOrgId) {
-               targetWallet = await tx.orm.public.Wallet.where({ organizationId: targetOrgId }).all().first();
-               if (!targetWallet) {
-                 targetWallet = await tx.orm.public.Wallet.create({ organizationId: targetOrgId, balance: 0, currency: payment.currency || 'NGN' });
-               }
-             }
-           }
-           
-           if (targetWallet) {
-             
-             let transactionRecord = null;
-             if (payment.transactionId) {
-                transactionRecord = await tx.orm.public.Transaction.where({ id: payment.transactionId }).all().first();
-                await tx.orm.public.Transaction.where({ id: payment.transactionId }).update({ status: 'CONFIRMED' });
-             } else {
-                transactionRecord = await tx.orm.public.Transaction.create({
-                  reference: payment.reference || `TX-${payment.id.slice(0,8)}`,
-                  status: 'CONFIRMED',
-                  description: `Online settlement ${payment.reference}`
-                });
-                await tx.orm.public.Payment.where({ id: payment.id }).update({ transactionId: transactionRecord.id });
-             }
-             
-             await tx.orm.public.LedgerEntry.create({
-               walletId: targetWallet.id,
-               transactionId: transactionRecord.id,
-               amount: payment.amount,
-               currency: targetWallet.currency
-             });
-             
-             const creditWalletPlan = db.raw.sql`UPDATE "wallet" SET balance = balance + ${payment.amount} WHERE id = ${targetWallet.id}`.affectedCount().build();
-             await tx.execute(creditWalletPlan);
-           }
-
-           // Finally mark payment completed
-           await tx.orm.public.Payment.where({ id: payment.id }).update({ 
-             status: 'CONFIRMED', 
-             providerReference: event.providerReference 
-           });
-         });
+        const result = await settleSuccessfulPayment({
+          paymentId: payment.id,
+          providerReference: event.providerReference,
+          providerEventId: event.providerEventId,
+          eventType: rawPayload.event || event.status,
+          rawPayload: event.rawPayload,
+        });
+        return NextResponse.json(result);
       } catch (err: any) {
-         if (err.message === 'OVERSELL') {
-            oversellOccurred = true;
-         } else {
-            throw err;
-         }
+        if (
+          err.code === 'P2002' ||
+          err.sqlState === '23505' ||
+          err.code === '23505' ||
+          err.message?.toLowerCase().includes('unique constraint') ||
+          err.message?.toLowerCase().includes('duplicate key') ||
+          err.detail?.includes('already exists')
+        ) {
+          console.info(`[${providerName} Webhook] Concurrent duplicate delivery caught via unique constraint: ${event.providerEventId}`);
+          return NextResponse.json({ status: 'already_processed' });
+        }
+        console.error(`[${providerName} Webhook] Downstream settlement failed:`, err);
+        throw err;
       }
 
-      if (oversellOccurred) {
-         console.warn(`[${providerName} Webhook] Oversell detected for payment ${payment.id}. Triggering auto-refund.`);
-         
-         const refundResult = await adapter.refundPayment({
-            providerReference: event.providerReference,
-            amount: payment.amount
-         });
-
-         await db.transaction(async (tx: any) => {
-            await tx.orm.public.Payment.where({ id: payment.id }).update({ 
-               status: 'OUT_OF_STOCK_REFUNDED' 
-            });
-            if (payment.retailOrderId) {
-               await tx.orm.public.RetailOrder.where({ id: payment.retailOrderId }).update({ status: 'OUT_OF_STOCK_REFUNDED' });
-            }
-         });
-         
-         if (!refundResult.success) {
-            console.error(`[${providerName} Webhook] Failed to auto-refund oversell for ${payment.id}. Manual intervention required!`);
-            await db.orm.public.Payment.where({ id: payment.id }).update({ status: 'FAILED' });
-         }
-      }
-      
     } else if (event.status === 'FAILED') {
-      await db.transaction(async (tx: any) => {
-         await tx.orm.public.Payment.where({ id: payment.id }).update({ status: 'FAILED' });
-         if (payment.retailOrderId) {
-            await tx.orm.public.RetailOrder.where({ id: payment.retailOrderId }).update({ status: 'CANCELLED' });
-         }
-         if (payment.transactionId) {
-            await tx.orm.public.Transaction.where({ id: payment.transactionId }).update({ status: 'FAILED' });
-         }
-      });
+      try {
+        const result = await settleFailedPayment({
+          paymentId: payment.id,
+          providerEventId: event.providerEventId,
+          eventType: rawPayload.event || 'charge.failed',
+          rawPayload: event.rawPayload,
+        });
+        return NextResponse.json(result);
+      } catch (err: any) {
+        if (
+          err.code === 'P2002' ||
+          err.sqlState === '23505' ||
+          err.code === '23505' ||
+          err.message?.toLowerCase().includes('unique constraint') ||
+          err.message?.toLowerCase().includes('duplicate key') ||
+          err.detail?.includes('already exists')
+        ) {
+          return NextResponse.json({ status: 'already_processed' });
+        }
+        throw err;
+      }
     }
 
     return NextResponse.json({ status: 'success' });

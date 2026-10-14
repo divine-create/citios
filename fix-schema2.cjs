@@ -2,63 +2,17 @@ const fs = require('fs');
 
 let schema = fs.readFileSync('src/prisma/contract.prisma', 'utf8');
 
+// Replace @updatedAt with @default(now())
+schema = schema.replace(/@updatedAt/g, '@default(now())');
+
+// Remove the incorrect payouts line from RetailSettings
+schema = schema.replace('  payouts         Payout[] @relation("OrganizationPayouts")\n', '');
+
+// Add payouts to Organization (we'll look for `payments` array and insert below it)
 schema = schema.replace(
-  /model CustomerData \{[\s\S]*?\}/,
-  `model CustomerData {
-  id             String  @id @default(dbgenerated("uuid_generate_v7()"))
-  personId       String? @unique
-  relationshipId String?
-  relationship   Relationship? @relation(fields: [relationshipId], references: [id])
-  loyaltyPoints  Float   @default(0)
-  notes          String?
-  orders         RetailOrder[]
-  restaurantOrders RestaurantOrder[]
-}`
+  'payments        Payment[]',
+  'payments        Payment[]\n  payouts         Payout[] @relation("OrganizationPayouts")'
 );
-
-schema = schema.replace(
-  /model DeliveryJob \{[\s\S]*?\}/,
-  `model DeliveryJob {
-  id                String  @id @default(dbgenerated("uuid_generate_v7()"))
-  organizationId    String?
-  retailOrderId     String? @unique
-  retailOrder       RetailOrder? @relation(fields: [retailOrderId], references: [id])
-  restaurantOrderId String? @unique
-  restaurantOrder   RestaurantOrder? @relation(fields: [restaurantOrderId], references: [id])
-  status            String  @default("PENDING")
-  pickupAddress     String?
-  deliveryAddress   String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @default(now())
-}`
-);
-
-if (!schema.includes('delivery       DeliveryJob?')) {
-  schema = schema.replace(
-    /refundReason   String\?/,
-    `refundReason   String?
-  delivery       DeliveryJob?`
-  );
-}
-
-if (!schema.includes('variants       RetailProduct[]')) {
-  schema = schema.replace(
-    /categoryId     String\?\r?\n\s*category       RetailCategory\? @relation\(fields: \[categoryId\], references: \[id\]\)/,
-    `categoryId     String?
-  category       RetailCategory? @relation(fields: [categoryId], references: [id])
-  parentId       String?
-  parent         RetailProduct? @relation("ProductVariants", fields: [parentId], references: [id], onDelete: Cascade)
-  variants       RetailProduct[] @relation("ProductVariants")
-  variantName    String?`
-  );
-}
-
-if (!schema.includes('compareAtPrice')) {
-  schema = schema.replace(
-    /price          Float/,
-    `price          Float
-  compareAtPrice Float?`
-  );
-}
 
 fs.writeFileSync('src/prisma/contract.prisma', schema);
+console.log('Fixed schema');

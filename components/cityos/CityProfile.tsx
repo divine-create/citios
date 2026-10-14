@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { fetchMyOrders } from '@/app/actions/commerce';
 import { getProfileAndWallet, updateProfileAvatar } from '@/lib/actions/profile';
 import { getPresignedUploadUrl } from '@/app/actions/upload';
+import { signOut } from 'next-auth/react';
 
 const TABS = ['Orders', 'Payments', 'CityHouse', 'Saved', 'Settings'] as const;
 type Tab = (typeof TABS)[number];
@@ -308,21 +309,25 @@ export default function CityProfile() {
             { label: 'Payment methods', sub: 'CityPay wallet, cards & transfer', icon: Wallet },
             { label: 'Privacy', sub: 'Who can see your feed posts', icon: Settings },
             { label: 'Referral code', sub: userProfile?.id ? `REF-${userProfile.id.slice(0, 4).toUpperCase()}` : '-', icon: Settings },
-            { label: 'Sign out', sub: 'From this device', icon: Settings },
+            { label: 'Sign out', sub: 'From this device', icon: Settings, action: 'signout' },
           ].map((s, i) => {
             const inner = (
               <div className="px-5 py-4 flex items-center gap-3 hover:bg-slate-50 transition-colors">
                 <s.icon className="w-4 h-4 text-slate-400" />
-                <div className="flex-1">
+                <div className="flex-1 text-left">
                   <p className="text-[13px] font-black text-ink">{s.label}</p>
                   <p className="text-[11px] font-bold text-slate-400">{s.sub}</p>
                 </div>
                 <ChevronRight className="w-4 h-4 text-slate-300" />
               </div>
             );
-            return s.href ? (
-              <Link key={s.label} href={s.href} className="block">{inner}</Link>
-            ) : (
+            if (s.href) {
+              return <Link key={s.label} href={s.href} className="block">{inner}</Link>;
+            }
+            if (s.action === 'signout') {
+              return <button key={s.label} onClick={() => signOut()} className="block w-full">{inner}</button>;
+            }
+            return (
               <div key={s.label}>{inner}</div>
             );
           })}

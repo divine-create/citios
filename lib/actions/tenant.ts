@@ -29,6 +29,9 @@ export async function requireAuthenticatedAccount() {
   if (!account) {
     throw new Error('UNAUTHORIZED: Account record not found');
   }
+  if (!account.isActive) {
+    throw new Error('FORBIDDEN: Account is deactivated or suspended');
+  }
 
   return { session, person, account };
 }
@@ -171,20 +174,41 @@ export async function inviteTeamMember(input: {
   }
 
   return await db.transaction(async (tx: any) => {
+    // Acquire exclusive row lock on Organization to serialize role changes and prevent concurrency races
+    await tx.execute(
+      db.raw.sql`SELECT id FROM "organization" WHERE id = ${input.organizationId} FOR UPDATE`.affectedCount().build()
+    );
+
     // Check if they are already a member
     let mem = await tx.orm.public.Membership.where({ personId: person.id, organizationId: input.organizationId }).all().first();
     
-    if (!mem) {
+    if (mem) {
+      // Check if existing member has OWNER role and if the new roles omit OWNER (demotion)
+      const existingRoles = await tx.orm.public.MembershipRole.where({ membershipId: mem.id }).all();
+      const isCurrentlyOwner = existingRoles.some((r: { role: string }) => r.role === 'OWNER');
+      const isDemotingOwner = isCurrentlyOwner && !input.roles.includes('OWNER');
+
+      if (isDemotingOwner) {
+        const orgMembers = await tx.orm.public.Membership.where({ organizationId: input.organizationId }).all();
+        let orgOwnerCount = 0;
+        for (const m of orgMembers) {
+          const ownerRole = await tx.orm.public.MembershipRole.where({ membershipId: m.id, role: 'OWNER' }).all().first();
+          if (ownerRole) orgOwnerCount++;
+        }
+        if (orgOwnerCount <= 1) {
+          return { error: 'FORBIDDEN: Cannot demote the last OWNER of this organization.' };
+        }
+      }
+
+      // Clear existing roles
+      for (const r of existingRoles) {
+        await tx.orm.public.MembershipRole.where({ id: r.id }).delete();
+      }
+    } else {
       mem = await tx.orm.public.Membership.create({
         personId: person.id,
         organizationId: input.organizationId,
       });
-    }
-    
-    // Clear existing roles
-    const existingRoles = await tx.orm.public.MembershipRole.where({ membershipId: mem.id }).all();
-    for (const r of existingRoles) {
-      await tx.orm.public.MembershipRole.where({ id: r.id }).delete();
     }
     
     // Add new roles
@@ -217,26 +241,31 @@ export async function removeTeamMember(input: {
 }) {
   await requireMembership(input.organizationId, ['OWNER', 'ADMIN']);
   
-  const mem = await db.orm.public.Membership.where({ id: input.membershipId }).all().first();
-  if (!mem || mem.organizationId !== input.organizationId) {
-    return { error: 'Membership not found in this organization.' };
-  }
-  
-  // Prevent removing the last owner of THIS organization
-  const isOwner = await db.orm.public.MembershipRole.where({ membershipId: mem.id, role: 'OWNER' }).all().first();
-  if (isOwner) {
-    const orgMembers = await db.orm.public.Membership.where({ organizationId: input.organizationId }).all();
-    let orgOwnerCount = 0;
-    for (const m of orgMembers) {
-      const ownerRole = await db.orm.public.MembershipRole.where({ membershipId: m.id, role: 'OWNER' }).all().first();
-      if (ownerRole) orgOwnerCount++;
+  return await db.transaction(async (tx: any) => {
+    // Acquire exclusive row lock on Organization to serialize concurrent removals/role updates
+    await tx.execute(
+      db.raw.sql`SELECT id FROM "organization" WHERE id = ${input.organizationId} FOR UPDATE`.affectedCount().build()
+    );
+
+    const mem = await tx.orm.public.Membership.where({ id: input.membershipId }).all().first();
+    if (!mem || mem.organizationId !== input.organizationId) {
+      return { error: 'Membership not found in this organization.' };
     }
-    if (orgOwnerCount <= 1) {
-      return { error: 'FORBIDDEN: Cannot remove the last OWNER of this organization.' };
+    
+    // Prevent removing the last owner of THIS organization under the lock
+    const isOwner = await tx.orm.public.MembershipRole.where({ membershipId: mem.id, role: 'OWNER' }).all().first();
+    if (isOwner) {
+      const orgMembers = await tx.orm.public.Membership.where({ organizationId: input.organizationId }).all();
+      let orgOwnerCount = 0;
+      for (const m of orgMembers) {
+        const ownerRole = await tx.orm.public.MembershipRole.where({ membershipId: m.id, role: 'OWNER' }).all().first();
+        if (ownerRole) orgOwnerCount++;
+      }
+      if (orgOwnerCount <= 1) {
+        return { error: 'FORBIDDEN: Cannot remove the last OWNER of this organization.' };
+      }
     }
-  }
-  
-  await db.transaction(async (tx: any) => {
+    
     // Delete roles and location bindings first to ensure clean cascade
     const roles = await tx.orm.public.MembershipRole.where({ membershipId: input.membershipId }).all();
     for (const r of roles) {
@@ -247,7 +276,7 @@ export async function removeTeamMember(input: {
       await tx.orm.public.MembershipLocation.where({ id: l.id }).delete();
     }
     await tx.orm.public.Membership.where({ id: input.membershipId }).delete();
+
+    return { success: true };
   });
-  
-  return { success: true };
 }

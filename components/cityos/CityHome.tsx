@@ -15,7 +15,13 @@ function greeting() {
   return 'Good evening';
 }
 
-export default function CityHome({ firstName }: { firstName?: string }) {
+export default function CityHome({ 
+  firstName,
+  wallet
+}: { 
+  firstName?: string;
+  wallet?: { balance: number; currency: string } | null;
+}) {
   const { city } = useCity();
   const cityName = city?.name ?? 'CityOS';
   const [greet, setGreet] = useState('Good day');
@@ -37,6 +43,23 @@ export default function CityHome({ firstName }: { firstName?: string }) {
           {greet}{firstName ? `, ${firstName}.` : '.'}
         </h1>
       </section>
+
+      {/* Wallet */}
+      {wallet && (
+        <section className="px-1">
+          <Link href="/wallet" className="block w-full bg-slate-900 rounded-3xl p-6 relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900 opacity-50" />
+            <div className="relative z-10">
+              <h2 className="text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">CityOS Wallet</h2>
+              <div className="flex items-end gap-2">
+                <span className="text-white text-3xl font-black">
+                  {new Intl.NumberFormat('en-NG', { style: 'currency', currency: wallet.currency || 'NGN' }).format(wallet.balance / 100)}
+                </span>
+              </div>
+            </div>
+          </Link>
+        </section>
+      )}
 
       {/* What do you need? */}
       <section className="space-y-6">

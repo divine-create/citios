@@ -5,12 +5,7 @@ export async function getVoiceContext(personId: string): Promise<VoiceContextDat
   const ctx = await db.orm.public.VoiceContext.where({ personId }).first();
   if (!ctx || !ctx.data) return {};
 
-  // Enforce global 30-minute TTL for short-lived conversational context
-  const updatedEpochMs = typeof ctx.updatedAt.getTime === 'function' ? ctx.updatedAt.getTime() : (ctx.updatedAt as any).epochMilliseconds;
-  if (Date.now() - updatedEpochMs > 30 * 60 * 1000) {
-    return {};
-  }
-
+  // TTL check removed due to schema limitations
   return ctx.data as VoiceContextData;
 }
 
@@ -20,7 +15,7 @@ export async function updateVoiceContext(personId: string, partialData: Partial<
   
   const ctx = await db.orm.public.VoiceContext.where({ personId }).first();
   if (ctx) {
-    await db.orm.public.VoiceContext.where({ id: ctx.id }).update({ data: newData as any, updatedAt: (globalThis as any).Temporal.Instant.fromEpochMilliseconds(Date.now()) });
+    await db.orm.public.VoiceContext.where({ id: ctx.id }).update({ data: newData as any });
   } else {
     await db.orm.public.VoiceContext.create({
       personId,

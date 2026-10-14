@@ -18,6 +18,10 @@ export async function getCanonicalOrganization(id: string) {
   const events = await db.orm.public.Event.where({ organizationId: org.id }).all();
   const services = await db.orm.public.ServiceCatalogItem.where({ organizationId: org.id }).all();
   const products = await db.orm.public.RetailProduct.where({ organizationId: org.id }).all();
+  const menuItems = await db.orm.public.MenuItem.where({ organizationId: org.id }).all();
+  const memberships = await db.orm.public.Membership.where({ organizationId: org.id }).all();
+  const contactPoints = await db.orm.public.OrganizationContactPoint.where({ organizationId: org.id }).all();
+  const isClaimed = memberships.length > 0;
   
   return {
     id: org.id,
@@ -29,8 +33,11 @@ export async function getCanonicalOrganization(id: string) {
     address: org.address,
     logoAssetId: org.logoAssetId,
     locations,
+    isClaimed,
+    contactPoints: JSON.parse(JSON.stringify(contactPoints)),
     capabilities: {
       retail: products.length > 0,
+      restaurant: menuItems.length > 0,
       services: services.length > 0,
       jobs: jobs.length > 0,
       events: events.length > 0,
@@ -40,6 +47,7 @@ export async function getCanonicalOrganization(id: string) {
     eventsData: events,
     servicesData: services,
     productsData: products,
+    menuData: menuItems,
   };
 }
 
@@ -219,4 +227,36 @@ export async function getResolvedSavedItems() {
   const places = placeIds.length > 0 ? await db.orm.public.Location.all().then(rows => rows.filter(r => placeIds.includes(r.id))) : [];
   
   return { orgs, products, jobs, events, places };
+}
+
+export async function getResidentOrganization(identifier: string) {
+  const session = await getServerSession(authOptions);
+  const personId = session?.user?.personId;
+
+  let listing = await db.orm.public.DiscoveryListing.where({ slug: identifier }).first();
+  let orgId = listing?.organizationId;
+
+  if (!orgId) {
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(identifier)) {
+      orgId = identifier;
+      listing = await db.orm.public.DiscoveryListing.where({ organizationId: orgId }).first();
+    }
+  }
+
+  if (!orgId) return null;
+
+  let isManager = false;
+  if (personId) {
+    const membership = await db.orm.public.Membership.where({
+      organizationId: orgId,
+      personId: personId,
+    }).first();
+    if (membership) isManager = true;
+  }
+
+  if ((!listing || !listing.isActive) && !isManager) {
+    return null;
+  }
+
+  return { orgId, isManager, listing };
 }

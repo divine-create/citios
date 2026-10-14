@@ -4,6 +4,8 @@ import { getFleetAndDrivers } from '@/lib/actions/logistics-fleet';
 import { Card, Badge, Button } from '@/components/Shared';
 import { Car, User, Plus, MapPin, Truck, Key, Activity, BadgeCheck, AlertCircle, Users } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default async function FleetDriversPage() {
   const provider = await db.orm.public.Organization.where({ type: 'LOGISTICS' }).first() || 
                    await db.orm.public.Organization.all().first();

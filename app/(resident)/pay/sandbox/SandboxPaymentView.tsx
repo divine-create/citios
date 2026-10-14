@@ -8,9 +8,9 @@ import { verifyOrderPayment } from '@/app/actions/payment';
 export default function SandboxPaymentView() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const reference = searchParams.get('reference') || 'UNKNOWN-REF';
-  const amountKobo = parseInt(searchParams.get('amount') || '0', 10);
-  const email = searchParams.get('email') || '';
+  const reference = searchParams?.get('reference') || 'UNKNOWN-REF';
+  const amountKobo = parseInt(searchParams?.get('amount') || '0', 10);
+  const email = searchParams?.get('email') || '';
 
   const [loading, setLoading] = useState(false);
   const [simError, setSimError] = useState<string | null>(null);

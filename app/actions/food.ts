@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth';
 import { db } from '@/src/prisma/db';
 import { getCurrentCity, getCityBySlug } from '@/lib/city';
 import { notifyPerson } from '@/lib/notify';
+import { debitResidentWallet } from '@/app/actions/resident_wallet';
 
 const FOOD_CATS = ['All', 'Restaurant', 'Cafe', 'Campus Eats', 'Food & Market'];
 
@@ -130,6 +131,7 @@ export async function placeRestaurantOrder(input: {
   tableNumber?: string;
   paymentReference?: string;
   method?: string;
+    idempotencyKey?: string;
 }) {
   const session = await getServerSession(authOptions);
 
@@ -200,6 +202,11 @@ export async function placeRestaurantOrder(input: {
 
     try {
       const order = await db.transaction(async (tx: any) => {
+        if (input.idempotencyKey) {
+          const existingOrder = await tx.orm.public.RestaurantOrder.where({ idempotencyKey: input.idempotencyKey + '_food' }).all().first();
+          if (existingOrder) return existingOrder;
+        }
+
         const created = await tx.orm.public.RestaurantOrder.create({
           organizationId: orgId,
           locationId: input.locationId || undefined,
@@ -207,8 +214,10 @@ export async function placeRestaurantOrder(input: {
           totalAmount: group.total,
           type: orderType,
           tableNumber,
-          status: 'PENDING',
-          // paymentMethod: 'WALLET', // TODO: Phase 1B CityPay Integration
+          status: input.method === 'wallet' ? 'PREPARING' : 'PENDING',
+          paymentStatus: input.method === 'wallet' ? 'COMPLETED' : 'PENDING',
+          paidAt: input.method === 'wallet' ? (globalThis as any).Temporal.Now.instant() : undefined,
+          idempotencyKey: input.idempotencyKey ? input.idempotencyKey + '_food' : undefined,
         });
         
         for (const it of group.items) {
@@ -221,12 +230,34 @@ export async function placeRestaurantOrder(input: {
         }
         
         if (input.paymentReference) {
+          let txRecordId = undefined;
+          if (input.method === 'wallet' && personId) {
+            const txRecord = await debitResidentWallet(tx, personId, group.total, input.paymentReference, `Food Order ${created.id}`);
+            txRecordId = txRecord.id;
+
+            let orgWallet = await tx.orm.public.Wallet.where({ organizationId: orgId }).all().first();
+            if (!orgWallet) {
+              orgWallet = await tx.orm.public.Wallet.create({ organizationId: orgId, balance: 0, currency: 'NGN' });
+            }
+            await tx.orm.public.LedgerEntry.create({
+              walletId: orgWallet.id,
+              transactionId: txRecord.id,
+              amount: group.total,
+              currency: orgWallet.currency || 'NGN'
+            });
+            await tx.execute(
+              db.raw.sql`UPDATE "wallet" SET balance = balance + ${group.total} WHERE id = ${orgWallet.id}`.affectedCount().build()
+            );
+          }
           await tx.orm.public.Payment.create({
             amount: group.total,
             currency: 'NGN',
             method: input.method === 'wallet' ? 'WALLET' : input.method === 'card' ? 'CARD' : 'TRANSFER',
-            status: 'PENDING',
+            status: input.method === 'wallet' ? 'COMPLETED' : 'PENDING',
+            provider: input.method === 'wallet' ? 'INTERNAL_WALLET' : (process.env.PAYMENT_PROVIDER || 'PAYSTACK').toUpperCase(),
+            idempotencyKey: input.idempotencyKey ? input.idempotencyKey + '_food' : undefined,
             reference: input.paymentReference,
+            transactionId: txRecordId,
             restaurantOrderId: created.id,
           });
         }
@@ -247,7 +278,11 @@ export async function placeRestaurantOrder(input: {
     }
   }
 
-  revalidatePath('/workspaces/foodos');
+  try {
+    revalidatePath('/workspaces/foodos');
+  } catch (_e) {
+    // Next.js static generation store is not available in unit/integration test context
+  }
   return { success: true, orderIds, total: grandTotal };
 }
 

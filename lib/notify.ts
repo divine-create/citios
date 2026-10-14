@@ -22,21 +22,35 @@ export async function notifyPerson(
     title: string;
     body?: string;
     href?: string;
+    idempotencyKey?: string;
   },
 ) {
   try {
+    // If idempotencyKey exists, check if already notified
+    if (input.idempotencyKey) {
+      const existing = await db.orm.public.Notification.where({
+        personId,
+        idempotencyKey: input.idempotencyKey
+      }).all().first();
+      
+      if (existing) {
+        return; // Already processed
+      }
+    }
+
     await db.orm.public.Notification.create({
       personId,
       type: input.type,
       title: input.title,
       body: input.body,
       href: input.href,
+      idempotencyKey: input.idempotencyKey ?? null,
       isRead: false,
     });
     // Trigger real-time push
     pusherServer.trigger(`private-user-${personId}`, 'new-notification', input).catch((e) => console.error('Pusher Error:', e));
   } catch (error) {
-    // Non-fatal by design — see docblock.
+    // Non-fatal by design ?" see docblock.
     console.error('Error creating resident notification:', error);
   }
 }

@@ -252,8 +252,6 @@ test('CityOS Core Hardening: Multi-Tenant Isolation & Authorization', async (t) 
   });
 
   await t.test('7. Refund Authorization: Merchant A cannot approve refund for Merchant B', async () => {
-    setActiveUserToken(userA.token);
-
     const paymentBId = `pay_b_${uuidv4().substring(0, 8)}`;
     const retailOrderBId = `order_b_${uuidv4().substring(0, 8)}`;
 
@@ -261,10 +259,12 @@ test('CityOS Core Hardening: Multi-Tenant Isolation & Authorization', async (t) 
     await pgClient.query(`INSERT INTO "retailOrder" (id, "organizationId", "totalAmount", "paymentMethod", status, "cashierId") VALUES ($1, $2, 50, 'CARD', 'CONFIRMED', 'system')`, [retailOrderBId, orgBId]);
     await pgClient.query(`INSERT INTO "payment" (id, amount, currency, status, method, "retailOrderId") VALUES ($1, 50, 'USD', 'COMPLETED', 'CARD', $2)`, [paymentBId, retailOrderBId]);
 
-    // Create refund request for Payment B
+    // User B requests refund for their order on Org B
+    setActiveUserToken(userB.token);
     const refundReq = await requestRefund(paymentBId, userB.person.id, 50, 'Defective item');
 
     // User A (member of Org A) tries to approve Org B's refund request
+    setActiveUserToken(userA.token);
     await assert.rejects(
       async () => { await approveRefund(refundReq.id, userA.person.id); },
       (err: any) => {
@@ -308,6 +308,7 @@ test('CityOS Core Hardening: Multi-Tenant Isolation & Authorization', async (t) 
     );
   });
 
-  await pgClient.end();
-  await db.close();
+  t.after(async () => {
+    await pgClient.end();
+  });
 });

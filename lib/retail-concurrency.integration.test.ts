@@ -23,6 +23,8 @@ import { placeRetailOrder } from '../app/actions/commerce';
 import { encode } from 'next-auth/jwt';
 import { v4 as uuidv4 } from 'uuid';
 
+import { authOptions } from '../lib/auth';
+
 async function setupAuth() {
   const testId = uuidv4().substring(0, 8);
   const email = `test-${testId}@example.com`;
@@ -42,7 +44,7 @@ async function setupAuth() {
       name: "Test User",
       personId: person.id,
     },
-    secret: process.env.NEXTAUTH_SECRET!
+    secret: (authOptions.secret as string) || process.env.NEXTAUTH_SECRET || "cityos-jwt-secret-key-2026"
   });
   mockCookies['next-auth.session-token'] = token;
   return person;

@@ -4,6 +4,7 @@ import { db } from '@/src/prisma/db';
 import { hashPassword, verifyPassword } from '@/lib/password';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { normalizePhoneNumber } from '@/lib/identity';
 
 export interface RegisterInput {
   firstName: string;
@@ -19,7 +20,7 @@ export async function registerUser(input: RegisterInput) {
     const lastName = (input.lastName || '').trim();
     const email = (input.email || '').trim().toLowerCase();
     const password = input.password || '';
-    const phone = (input.phone || '').trim();
+    const normalizedPhone = normalizePhoneNumber(input.phone);
 
     if (!firstName || !lastName) {
       return { error: 'Please enter your first and last name.' };
@@ -33,8 +34,8 @@ export async function registerUser(input: RegisterInput) {
       return { error: 'Password must be at least 6 characters.' };
     }
 
-    if (!phone || phone.length < 7) {
-      return { error: 'Please enter a valid phone number.' };
+    if (!normalizedPhone) {
+      return { error: 'Please enter a valid phone number (e.g. 08012345678 or +2348012345678).' };
     }
 
     // Check if email already registered
@@ -48,7 +49,7 @@ export async function registerUser(input: RegisterInput) {
     }
 
     const existingPhone = await db.orm.public.PersonIdentifier
-      .where({ type: 'PHONE', normalizedValue: phone })
+      .where({ type: 'PHONE', normalizedValue: normalizedPhone })
       .all()
       .first();
     if (existingPhone) {
@@ -71,14 +72,12 @@ export async function registerUser(input: RegisterInput) {
         isVerified: true,
       });
 
-      if (phone) {
-        await tx.orm.public.PersonIdentifier.create({
-          personId: newPerson.id,
-          type: 'PHONE',
-          normalizedValue: phone,
-          isVerified: false,
-        });
-      }
+      await tx.orm.public.PersonIdentifier.create({
+        personId: newPerson.id,
+        type: 'PHONE',
+        normalizedValue: normalizedPhone,
+        isVerified: false,
+      });
 
       await tx.orm.public.Account.create({
         personId: newPerson.id,
@@ -88,7 +87,7 @@ export async function registerUser(input: RegisterInput) {
 
       await tx.orm.public.ResidentProfile.create({
         personId: newPerson.id,
-        phone: phone || null,
+        phone: normalizedPhone,
         onboardingComplete: false,
       });
 

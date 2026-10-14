@@ -63,7 +63,7 @@ export async function dispatchDelivery(params: {
         throw new LogisticsDomainError('DeliveryJob already has an active dispatch');
       }
 
-      if (job.status !== 'REQUESTED' && job.status !== 'CREATED' && job.status !== 'DISPATCHED') {
+      if (!['REQUESTED', 'PRICED', 'CREATED', 'DISPATCHED'].includes(job.status)) {
         throw new LogisticsDomainError(`Cannot dispatch DeliveryJob in status ${job.status}`);
       }
 

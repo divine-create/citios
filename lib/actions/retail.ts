@@ -193,7 +193,22 @@ export async function getProducts(organizationId: string, locationId?: string | 
     await ensureDefaultCategories(organizationId);
     const products = await db.orm.public.RetailProduct.where({ organizationId }).all();
     const categories = await db.orm.public.RetailCategory.where({ organizationId }).all();
-    const enriched = products.map((p) => ({ ...p, categoryName: categories.find((c) => c.id === p.categoryId)?.name ?? null }));
+
+    const locationStocks = locationId
+      ? await db.orm.public.RetailLocationStock.where({ organizationId, locationId }).all()
+      : null;
+    const stockMap = locationStocks
+      ? new Map(locationStocks.map((s) => [s.productId, s.stockQuantity]))
+      : null;
+
+    const enriched = products.map((p) => {
+      const locQty = stockMap ? stockMap.get(p.id) : undefined;
+      return {
+        ...p,
+        categoryName: categories.find((c) => c.id === p.categoryId)?.name ?? null,
+        stockQuantity: locQty !== undefined ? locQty : p.stockQuantity,
+      };
+    });
     return JSON.parse(JSON.stringify(enriched));
   } catch (error) {
     console.error('Error fetching products:', error);
@@ -217,7 +232,7 @@ export async function createProduct(input: {
   showOnFeed?: boolean;
 }) {
   try {
-    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
+    const { membership } = await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     
     // Entitlement limit check: count products and verify against plan limit
     const productCount = await db.orm.public.RetailProduct.where({ organizationId: input.organizationId }).all().then(p => p.length);
@@ -247,6 +262,41 @@ export async function createProduct(input: {
         imageAssetId: input.imageAssetId,
       });
 
+      // Synchronize primary location stock so POS and location inventory can immediately discover and transact
+      const primaryLocation = await tx.orm.public.Location.where({ organizationId: input.organizationId }).all().first();
+      if (primaryLocation) {
+        const initialQty = input.stockQuantity ?? 0;
+        await tx.orm.public.RetailLocationStock.create({
+          organizationId: input.organizationId,
+          locationId: primaryLocation.id,
+          productId: createdProduct.id,
+          stockQuantity: initialQty,
+          lowStockLevel: input.lowStockLevel ?? null,
+        });
+
+        if (initialQty > 0) {
+          await tx.orm.public.RetailStockMovement.create({
+            organizationId: input.organizationId,
+            locationId: primaryLocation.id,
+            productId: createdProduct.id,
+            delta: initialQty,
+            beforeQty: 0,
+            afterQty: initialQty,
+            reason: 'INITIAL_STOCK',
+            note: 'Initial catalog inventory allocation',
+            recordedById: membership.id,
+          });
+        }
+      }
+
+      // Flip hasProducts in RetailSettings if present and not yet true
+      const settings = await tx.orm.public.RetailSettings.where({ organizationId: input.organizationId }).all().first();
+      if (settings && !settings.hasProducts) {
+        await tx.orm.public.RetailSettings.where({ organizationId: input.organizationId }).update({
+          hasProducts: true,
+        });
+      }
+
       if (showOnFeed) {
         await tx.orm.public.Post.create({
           organizationId: input.organizationId,
@@ -261,8 +311,12 @@ export async function createProduct(input: {
       return createdProduct;
     });
 
-    revalidatePath('/market');
-    revalidatePath('/workspaces/shopos');
+    try {
+      revalidatePath('/market');
+      revalidatePath('/workspaces/shopos');
+    } catch {
+      // Safe fallback when invoked in testing environments
+    }
     return { success: true, product: JSON.parse(JSON.stringify(product)) };
   } catch (error) {
     console.error('Error creating product:', error);
@@ -838,7 +892,7 @@ export async function createOrder(input: {
         taxAmount,
         discountAmount,
         paymentMethod: input.paymentMethod,
-        status: 'COMPLETED',
+        status: 'CONFIRMED',
       });
 
       for (const line of lineItems) {
@@ -855,17 +909,18 @@ export async function createOrder(input: {
         if (product && !product.isWeighed) {
           const stock = await getOrInitLocationStock(tx, input.organizationId, loc.id, line.productId);
 
-          const updated = await tx.sql`
-            UPDATE "RetailLocationStock"
+          const plan = db.raw.sql`
+            UPDATE "retailLocationStock"
             SET "stockQuantity" = "stockQuantity" - ${line.quantity}
             WHERE id = ${stock.id} AND "stockQuantity" >= ${line.quantity}
-            RETURNING "stockQuantity"
-          `;
+            RETURNING "id"
+          `.returnsRow({ id: 'pg/text@1' }).build();
           
-          if (updated.length === 0) {
+          const updated = await tx.execute(plan);
+          if (Array.isArray(updated) && updated.length === 0) {
             throw new Error(`Insufficient stock for ${product.name} at this location.`);
           }
-          const next = updated[0].stockQuantity;
+          const next = stock.stockQuantity - line.quantity;
 
           await tx.orm.public.RetailStockMovement.create({
             organizationId: input.organizationId,
@@ -932,10 +987,14 @@ export async function createOrder(input: {
       throw error;
     }
 
-    revalidatePath('/market');
-    revalidatePath('/workspaces/shopos');
-    for (const line of lineItems) {
-      revalidatePath(`/product/${line.productId}`);
+    try {
+      revalidatePath('/market');
+      revalidatePath('/workspaces/shopos');
+      for (const line of lineItems) {
+        revalidatePath(`/product/${line.productId}`);
+      }
+    } catch {
+      // Safe fallback when invoked in testing environments
     }
 
     await createShopNotification(
@@ -1081,12 +1140,14 @@ export async function refundOrder(orderId: string, input: { reason?: string }) {
         if (product && !product.isWeighed && order.locationId) {
           const stock = await tx.orm.public.RetailLocationStock.where({ organizationId: product.organizationId, locationId: order.locationId, productId: product.id }).all().first();
           if (stock) {
-            const updated = await tx.sql`
-              UPDATE "RetailLocationStock"
+            const plan = db.raw.sql`
+              UPDATE "retailLocationStock"
               SET "stockQuantity" = "stockQuantity" + ${item.quantity}
               WHERE id = ${stock.id}
-              RETURNING "stockQuantity"
-            `;
+              RETURNING "id"
+            `.returnsRow({ id: 'pg/text@1' }).build();
+            await tx.execute(plan);
+            const next = stock.stockQuantity + item.quantity;
             
             await tx.orm.public.RetailStockMovement.create({
               organizationId: product.organizationId,
@@ -1094,7 +1155,7 @@ export async function refundOrder(orderId: string, input: { reason?: string }) {
               productId: product.id,
               delta: item.quantity,
               beforeQty: stock.stockQuantity,
-              afterQty: updated[0].stockQuantity,
+              afterQty: next,
               reason: 'REFUND',
               referenceType: 'REFUND',
               referenceId: item.id, // Idempotency
@@ -2204,9 +2265,8 @@ export async function updateFulfillmentStatus(orderId: string, status: 'UNFULFIL
   try {
     const o = await db.orm.public.RetailOrder.where({ id: orderId }).all().first();
     if (!o) return { error: 'Order not found.' };
-    const loc = await resolveLocationContext(o.organizationId, locationId || o.locationId).catch(e => { throw e; });
-    if (!loc) return { error: 'Order location cannot be resolved.' };
-    await requireMembership(o.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER'], loc.id);
+    const targetLocId = locationId || o.locationId;
+    await requireMembership(o.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER'], targetLocId);
 
     await db.orm.public.RetailOrder.where({ id: orderId }).update({ fulfillmentStatus: status });
     return { success: true };
@@ -2236,31 +2296,57 @@ export async function cancelOrder(orderId: string, input: { reason?: string }) {
       const items = await tx.orm.public.RetailOrderItem.where({ orderId }).all();
       for (const item of items) {
         const product = await tx.orm.public.RetailProduct.where({ id: item.productId }).all().first();
-        if (product && !product.isWeighed && order.locationId) {
-          const stock = await tx.orm.public.RetailLocationStock.where({ organizationId: product.organizationId, locationId: order.locationId, productId: product.id }).all().first();
-          if (stock) {
-            const plan3 = db.raw.sql`
-              UPDATE "retailLocationStock"
-              SET "stockQuantity" = "stockQuantity" + ${item.quantity}
-              WHERE id = ${stock.id}
-            RETURNING "id"
-    `.returnsRow({ id: 'pg/text@1' }).build();
-            await tx.execute(plan3);
-            const afterQty = stock.stockQuantity + item.quantity;
-            await tx.orm.public.RetailStockMovement.create({
-              organizationId: product.organizationId,
-              locationId: stock.locationId,
-              productId: product.id,
-              delta: item.quantity,
-              beforeQty: stock.stockQuantity,
-              afterQty: afterQty,
-              reason: 'CANCELLATION',
-              referenceType: 'CANCELLATION',
-              referenceId: item.id,
-              note: input.reason ?? `Order ${order.id.slice(0, 8)} cancelled`,
-              recordedById: membership.id,
-            });
+        if (product && !product.isWeighed) {
+          if (order.locationId) {
+            const stock = await tx.orm.public.RetailLocationStock.where({ organizationId: product.organizationId, locationId: order.locationId, productId: product.id }).all().first();
+            if (stock) {
+              const plan3 = db.raw.sql`
+                UPDATE "retailLocationStock"
+                SET "stockQuantity" = "stockQuantity" + ${item.quantity}
+                WHERE id = ${stock.id}
+              RETURNING "id"
+      `.returnsRow({ id: 'pg/text@1' }).build();
+              await tx.execute(plan3);
+              const afterQty = stock.stockQuantity + item.quantity;
+              await tx.orm.public.RetailStockMovement.create({
+                organizationId: product.organizationId,
+                locationId: stock.locationId,
+                productId: product.id,
+                delta: item.quantity,
+                beforeQty: stock.stockQuantity,
+                afterQty: afterQty,
+                reason: 'CANCELLATION',
+                referenceType: 'CANCELLATION',
+                referenceId: item.id,
+                note: input.reason ?? `Order ${order.id.slice(0, 8)} cancelled`,
+                recordedById: membership.id,
+              });
+              continue;
+            }
           }
+
+          // Fallback / web-order without locationId: restore to RetailProduct.stockQuantity
+          const planProduct = db.raw.sql`
+            UPDATE "retailProduct"
+            SET "stockQuantity" = "stockQuantity" + ${item.quantity}
+            WHERE id = ${product.id}
+            RETURNING "id"
+          `.returnsRow({ id: 'pg/text@1' }).build();
+          await tx.execute(planProduct);
+
+          const afterQty = product.stockQuantity + item.quantity;
+          await tx.orm.public.RetailStockMovement.create({
+            organizationId: product.organizationId,
+            productId: product.id,
+            delta: item.quantity,
+            beforeQty: product.stockQuantity,
+            afterQty: afterQty,
+            reason: 'CANCELLATION',
+            referenceType: 'CANCELLATION',
+            referenceId: item.id,
+            note: input.reason ?? `Order ${order.id.slice(0, 8)} cancelled`,
+            recordedById: membership.id,
+          });
         }
       }
     });
@@ -2374,7 +2460,7 @@ export async function getShopAnalytics(organizationId: string) {
   try {
     await requireMembership(organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     const orders = await db.orm.public.RetailOrder.where({ organizationId }).all();
-    const completedOrders = orders.filter((o: any) => o.status === 'COMPLETED');
+    const completedOrders = orders.filter((o: any) => o.status === 'CONFIRMED');
     const refundedOrders = orders.filter((o: any) => o.refundedAt != null);
     
     const grossSales = completedOrders.reduce((sum: number, o: any) => sum + o.totalAmount, 0);

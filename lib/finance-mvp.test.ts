@@ -1,20 +1,52 @@
 import test from 'node:test';
 import assert from 'node:assert';
+import { createRequire } from 'module';
+import { v4 as uuidv4 } from 'uuid';
 import { db } from '../src/prisma/db';
 import { requestRefund, approveRefund } from '../app/actions/refund_workflow';
 import { requestPayout } from '../app/actions/finance';
 import { Client } from 'pg';
+import { encode } from 'next-auth/jwt';
+
+process.env.NEXTAUTH_URL = "http://localhost:3000";
+
+const require = createRequire(import.meta.url);
+const nextHeaders = require('next/headers');
+let mockCookies: Record<string, string> = {};
+nextHeaders.headers = () => new Map();
+nextHeaders.cookies = () => ({
+  get: (name: string) => mockCookies[name] ? { name, value: mockCookies[name] } : undefined,
+  getAll: () => Object.entries(mockCookies).map(([n, v]) => ({ name: n, value: v }))
+});
+
+function setActiveUserToken(token: string) {
+  mockCookies['next-auth.session-token'] = token;
+}
 
 const pgClient = new Client({ connectionString: process.env.DATABASE_URL });
+
+let sharedOrgId: string;
+let sharedPerson: any;
 
 test('Finance MVP: Payout Concurrency', async (t) => {
   if (!process.env.DATABASE_URL) return;
   await pgClient.connect();
   
   const orgId = 'org_' + Date.now();
+  sharedOrgId = orgId;
   await pgClient.query(`INSERT INTO "organization" (id, name, type) VALUES ($1, $2, 'RETAIL')`, [orgId, 'Org ' + orgId]);
   const walletId = 'wall_' + Date.now();
   await pgClient.query(`INSERT INTO "wallet" (id, "organizationId", currency, balance) VALUES ($1, $2, 'NGN', 100000)`, [walletId, orgId]);
+
+  // Create an authorized owner user for this org
+  const person = await db.orm.public.Person.create({ id: uuidv4(), firstName: 'Owner', lastName: 'User' });
+  sharedPerson = person;
+  await db.orm.public.PersonIdentifier.create({ personId: person.id, type: 'EMAIL', normalizedValue: `owner-${orgId}@test.com`, isVerified: true });
+  await db.orm.public.Account.create({ personId: person.id, isActive: true });
+  const mem = await db.orm.public.Membership.create({ personId: person.id, organizationId: orgId });
+  await db.orm.public.MembershipRole.create({ membershipId: mem.id, role: 'OWNER' });
+  const token = await encode({ token: { email: `owner-${orgId}@test.com`, personId: person.id }, secret: process.env.NEXTAUTH_SECRET || 'secret' });
+  setActiveUserToken(token);
 
   await t.test('Concurrent request of 80k each against 100k wallet - exactly one succeeds', async () => {
     const [res1, res2] = await Promise.allSettled([
@@ -46,12 +78,14 @@ test('Finance MVP: Refund Concurrency', async (t) => {
   if (!process.env.DATABASE_URL) return;
 
   const paymentId = 'pay_' + Date.now();
-  await pgClient.query(`INSERT INTO "payment" (id, amount, currency, status, method, "providerReference") VALUES ($1, 100000, 'NGN', 'COMPLETED', 'CARD', $1)`, [paymentId]);
+  const retailOrderId = 'order_' + Date.now();
+  await pgClient.query(`INSERT INTO "retailOrder" (id, "organizationId", "totalAmount", "paymentMethod", status, "cashierId") VALUES ($1, $2, 100000, 'CARD', 'CONFIRMED', 'system')`, [retailOrderId, sharedOrgId]);
+  await pgClient.query(`INSERT INTO "payment" (id, amount, currency, status, method, "providerReference", "retailOrderId") VALUES ($1, 100000, 'NGN', 'COMPLETED', 'CARD', $1, $2)`, [paymentId, retailOrderId]);
 
   await t.test('Concurrent refunds exceeding capture amount - only one succeeds', async () => {
     const [res1, res2] = await Promise.allSettled([
-      requestRefund(paymentId, 'person1', 70000, 'duplicate intent'),
-      requestRefund(paymentId, 'person1', 70000, 'duplicate intent 2'),
+      requestRefund(paymentId, sharedPerson.id, 70000, 'duplicate intent'),
+      requestRefund(paymentId, sharedPerson.id, 70000, 'duplicate intent 2'),
     ]);
 
     const successes = [res1, res2].filter(r => r.status === 'fulfilled');
@@ -63,11 +97,13 @@ test('Finance MVP: Payment State Semantics', async (t) => {
   if (!process.env.DATABASE_URL) return;
 
   const paymentId = 'pay_' + Date.now();
-  await pgClient.query(`INSERT INTO "payment" (id, amount, currency, status, method, "providerReference") VALUES ($1, 5000, 'NGN', 'COMPLETED', 'CARD', $1)`, [paymentId]);
+  const retailOrderId = 'order_sem_' + Date.now();
+  await pgClient.query(`INSERT INTO "retailOrder" (id, "organizationId", "totalAmount", "paymentMethod", status, "cashierId") VALUES ($1, $2, 5000, 'CARD', 'CONFIRMED', 'system')`, [retailOrderId, sharedOrgId]);
+  await pgClient.query(`INSERT INTO "payment" (id, amount, currency, status, method, "providerReference", "retailOrderId") VALUES ($1, 5000, 'NGN', 'COMPLETED', 'CARD', $1, $2)`, [paymentId, retailOrderId]);
 
   await t.test('Successful payment fully refunded -> Payment remains COMPLETED', async () => {
-    const req = await requestRefund(paymentId, 'merchantId', 5000, 'return');
-    const refund = await approveRefund(req.id, 'merchantId');
+    const req = await requestRefund(paymentId, sharedPerson.id, 5000, 'return');
+    const refund = await approveRefund(req.id, sharedPerson.id);
 
     const check = await pgClient.query(`SELECT status FROM "payment" WHERE id = $1`, [paymentId]);
     assert.strictEqual(check.rows[0].status, 'COMPLETED', 'Payment must remain COMPLETED');
@@ -128,7 +164,7 @@ test('Finance MVP: Resident Funding & Webhook Idempotency', async (t) => {
     assert.strictEqual(evts.rowCount, 1, 'Only one DB record generated');
   });
   
-  await t.test('Cleanup', async () => {
-      await pgClient.end();
+  t.after(async () => {
+    await pgClient.end();
   });
 });

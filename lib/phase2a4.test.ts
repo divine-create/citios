@@ -1,4 +1,4 @@
-﻿import { test, describe } from "node:test";
+import { test, describe } from "node:test";
 import assert from "node:assert";
 
 describe("Stage 2A.4 Entitlements & Procurement", () => {

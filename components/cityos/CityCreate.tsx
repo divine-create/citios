@@ -50,7 +50,7 @@ export default function CityCreate() {
   const { openCreateModal } = useAccountSwitcher();
 
   useEffect(() => {
-    fetchResidentActivity().then((a) => setRecent(a.slice(0, 5)));
+    fetchResidentActivity().then((a) => setRecent(a.items.slice(0, 5)));
   }, []);
 
   return (
@@ -161,7 +161,7 @@ export default function CityCreate() {
             <Link key={a.id} href={a.href ?? '#'} className="flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50/60 transition-colors">
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-black text-ink truncate">{a.title}</p>
-                <p className="text-[11px] font-bold text-slate-400 truncate">{a.desc}</p>
+                <p className="text-[11px] font-bold text-slate-400 truncate">{a.order?.label || a.sourceType}</p>
               </div>
               <span className="text-[10px] font-bold text-slate-400 shrink-0">{new Date(a.date).toLocaleDateString()}</span>
             </Link>

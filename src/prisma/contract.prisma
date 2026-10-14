@@ -37,10 +37,14 @@ model Person {
   follows        Follow[]           @relation("UserFollows")
   notifications  Notification[]     @relation("PersonNotifications")
   createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @default(now())
+  
 
   // LogisticsOS
   logisticsDriverProfiles LogisticsDriverProfile[] @relation("PersonLogisticsDriver")
+  supportCases   SupportCase[]
+  refundRequests RefundRequest[]
+  organizationClaims OrganizationClaim[] @relation("PersonClaims")
+  customerEnquiries  CustomerEnquiry[]
 }
 
 model PersonIdentifier {
@@ -69,7 +73,7 @@ model Account {
   providers     AuthProvider[]
   
   createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @default(now())
+  
 }
 
 model AuthProvider {
@@ -304,6 +308,8 @@ model Location {
   restaurantInventory RestaurantInventoryItem[] @relation("LocationRestaurantInventory")
     restaurantProductionRuns RestaurantProductionRun[] @relation("LocationRestaurantProductionRuns")
   restaurantExpenses  RestaurantExpense[] @relation("LocationRestaurantExpenses")
+  contactPoints       OrganizationContactPoint[]
+  customerEnquiries   CustomerEnquiry[]
 }
 
 model Wallet {
@@ -430,7 +436,7 @@ model Organization {
   logoAssetId String?
   status      OrganizationStatus @default(ACTIVE)
     createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now())
+  
 
 
   posts       Post[]
@@ -507,6 +513,13 @@ model Organization {
   providerDispatches   DeliveryDispatch[]       @relation("ProviderDispatches")
   providerSettlements  LogisticsSettlement[]    @relation("ProviderSettlements")
   logisticsSettings    LogisticsSettings?       @relation("OrgLogisticsSettings")
+  payouts         Payout[]
+  supportCases    SupportCase[]
+  refundRequests  RefundRequest[]
+  contactPoints       OrganizationContactPoint[]
+  sourceObservations  SourceObservation[]
+  customerEnquiries   CustomerEnquiry[]
+  claims              OrganizationClaim[]
 }
 
 enum OrgRole {
@@ -576,7 +589,7 @@ model RetailSettings {
   customUnits    String?      // JSON string array e.g. '["ea", "lb", "kg", "pack", "box"]'
 
   createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @default(now())
+  
 }
 
 
@@ -619,7 +632,7 @@ model Microsite {
   domainExpiresAt      DateTime?
 
   createdAt            DateTime     @default(now())
-  updatedAt            DateTime     @default(now())
+  
 
   pages                MicrositePage[]
   sections             MicrositeSection[]
@@ -641,7 +654,7 @@ model MicrositePage {
   sortOrder      Int          @default(0)
 
   createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @default(now())
+  
 
   sections       MicrositeSection[] @relation("PageSections")
   navItems       MicrositeNavigationItem[] @relation("PageNavItems")
@@ -676,7 +689,7 @@ model MicrositeSection {
   content     String  // JSON-encoded payload; shape depends on `type`
 
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now())
+  
 }
 
 // Self-hosted binary storage (base64 in `data`) for microsite images — no
@@ -749,7 +762,7 @@ model Task {
   dropoffAddress   String
   price            Float
   createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @default(now())
+  
 
   requesterPersonId      String       // The Resident who ordered the ride/food
   courierProfileId        String?      // The Courier who accepted it
@@ -1071,7 +1084,7 @@ model RateRule {
   organization   Organization @relation("HotelRateRules", fields: [organizationId], references: [id], onDelete: Cascade)
 
   createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @default(now())
+  
 
   @@unique([organizationId, type])
 }
@@ -1095,7 +1108,7 @@ model InventoryItem {
   organization   Organization      @relation("OrganizationInventory", fields: [organizationId], references: [id], onDelete: Cascade)
 
   createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @default(now())
+  
 }
 
 
@@ -1131,7 +1144,7 @@ model SchoolSettings {
   
   parentMessagingDefault Boolean  @default(true)
   createdAt      DateTime @default(now())
-  updatedAt      DateTime @default(now())
+  
 }
 
 model AcademicYear {
@@ -1183,7 +1196,7 @@ model LeaveRequest {
   approvedBy String?
   notes      String?
   createdAt  DateTime @default(now())
-  updatedAt  DateTime @default(now())
+  
   staff      Membership    @relation(fields: [membershipId], references: [id])
 }
 
@@ -1232,7 +1245,7 @@ model StudentNote {
   type      String   @default("general") // general | academic | medical | behaviour | pastoral
   private   Boolean  @default(false)
   createdAt DateTime @default(now())
-  updatedAt DateTime @default(now())
+  
   student   StudentData  @relation(fields: [studentDataId], references: [id], onDelete: Cascade)
   author    Membership     @relation("UserStudentNotes", fields: [authorMembershipId], references: [id], onDelete: Cascade)
 }
@@ -1267,7 +1280,7 @@ model EnrolmentRequest {
   reviewedAt       DateTime?
   rejectionReason  String?
   createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @default(now())
+  
   class            SchoolClass     @relation(fields: [classId], references: [id], onDelete: Cascade)
   student          StudentData   @relation(fields: [studentDataId], references: [id], onDelete: Cascade)
   requestedBy      Person      @relation("RequestedBy", fields: [requestedByPersonId], references: [id])
@@ -1424,7 +1437,7 @@ model SyllabusTopic {
   status      SyllabusTopicStatus @default(PLANNED)
 
   createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @default(now())
+  
 }
 
 model Room {
@@ -1542,7 +1555,7 @@ model ReportCard {
   published      Boolean   @default(false)
   pdfPath        String?
   createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @default(now())
+  
 
   @@unique([studentDataId, termId])
 }
@@ -1589,7 +1602,7 @@ model Notice {
   expiresAt   DateTime?
   pinned      Boolean   @default(false)
   createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @default(now())
+  
   author      Membership       @relation("UserNotices", fields: [authorMembershipId], references: [id])
   reads       NoticeRead[]
 }
@@ -1706,7 +1719,7 @@ model FeeInvoice {
   paidAmount  Float            @default(0)
   lastReminderSentAt DateTime?
   createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @default(now())
+  
   student     StudentData          @relation(fields: [studentDataId], references: [id])
   items       FeeInvoiceItem[]
   payments    FeePayment[]
@@ -1748,7 +1761,7 @@ model StudentExit {
   notes             String?
   documentsIssued   Boolean  @default(false)
   createdAt         DateTime @default(now())
-  updatedAt         DateTime @default(now())
+  
 
   student           StudentData  @relation(fields: [studentDataId], references: [id], onDelete: Cascade)
 }
@@ -1768,7 +1781,7 @@ model StudentTransferIn {
   notes           String?
   processedBy     String?  
   createdAt       DateTime @default(now())
-  updatedAt       DateTime @default(now())
+  
 
   student         StudentData  @relation(fields: [studentDataId], references: [id], onDelete: Cascade)
 }
@@ -1791,7 +1804,7 @@ model BehaviourIncident {
   followUpRequired Boolean @default(false)
   followUpNotes String?
   createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @default(now())
+  
 
   student      StudentData     @relation(fields: [studentDataId], references: [id], onDelete: Cascade)
   suspensions  Suspension[]
@@ -1816,7 +1829,7 @@ model Suspension {
   returnDate       DateTime?         
   notes            String?
   createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @default(now())
+  
 
   student          StudentData           @relation(fields: [studentDataId], references: [id], onDelete: Cascade)
   incident         BehaviourIncident? @relation(fields: [incidentId], references: [id])
@@ -1854,7 +1867,7 @@ model SchoolEvent {
   targetYears String   @default("all")      // JSON array or "all"
   createdByMembershipId String
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now())
+  
 
   createdBy   Membership     @relation("CreatedSchoolEvents", fields: [createdByMembershipId], references: [id])
 }
@@ -1968,6 +1981,7 @@ enum OrderType {
 model RestaurantOrder {
   id             String       @id @default(uuid())
   totalAmount    Float
+  idempotencyKey String?      @unique
   status         OrderStatus  @default(PENDING)
   type           OrderType    @default(DINE_IN)
   tableNumber    String?      // If DINE_IN (legacy free-text; prefer tableId)
@@ -1998,7 +2012,7 @@ model RestaurantOrder {
   kitchenStartedAt DateTime?
     kitchenCompletedAt DateTime?
     createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @default(now())
+  
 }
 
 model OrderItem {
@@ -2062,7 +2076,7 @@ model RestaurantSettings {
   hasTables      Boolean @default(false)
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @default(now())
+  
 }
 
 model RestaurantTable {
@@ -2080,7 +2094,7 @@ model RestaurantTable {
   reservations   RestaurantReservation[] @relation("TableReservations")
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @default(now())
+  
 }
 
 model RestaurantReservation {
@@ -2102,7 +2116,7 @@ model RestaurantReservation {
   notes          String?
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @default(now())
+  
 }
 
 
@@ -2137,7 +2151,7 @@ model RestaurantInventoryItem {
   menuItems      MenuItem[]
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @default(now())
+  
 }
 
 model RestaurantRecipe {
@@ -2158,7 +2172,7 @@ model RestaurantRecipe {
   menuItem       MenuItem?    @relation("MenuItemRecipe", fields: [menuItemId], references: [id])
   
   createdAt DateTime @default(now())
-  updatedAt DateTime @default(now())
+  
 }
 
 model RestaurantRecipeIngredient {
@@ -2251,7 +2265,7 @@ model RestaurantProductionRun {
     orders         RestaurantOrder[] @relation("ShiftRestaurantOrders")
     
     createdAt      DateTime     @default(now())
-    updatedAt      DateTime     @default(now())
+    
   }
 
   model RestaurantExpense {
@@ -2509,7 +2523,7 @@ model RetailCategory {
   products       RetailProduct[]
   
   createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @default(now())
+  
 }
 
 model RetailProduct {
@@ -2546,7 +2560,7 @@ model RetailProduct {
   stockMovements RetailStockMovement[] @relation("ProductStockMovements")
   
   createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @default(now())
+  
 }
 
 model RetailRegister {
@@ -2590,7 +2604,7 @@ model RetailShift {
   orders         RetailOrder[]
   
   createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @default(now())
+  
 }
 
 enum RetailOrderStatus {
@@ -2643,7 +2657,7 @@ model RetailOrder {
   items          RetailOrderItem[]
   
   createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @default(now())
+  
 }
 
 model RetailOrderItem {
@@ -2678,7 +2692,7 @@ model RetailSupplier {
   purchaseOrders RetailPurchaseOrder[]
   
   createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @default(now())
+  
 }
 
 model RetailPurchaseOrder {
@@ -2702,7 +2716,7 @@ model RetailPurchaseOrder {
   items          RetailPurchaseOrderItem[]
 
   createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @default(now())
+  
 
   @@index([organizationId])
 }
@@ -2740,7 +2754,7 @@ model RetailExpense {
   recordedById   String
 
   createdAt      DateTime @default(now())
-  updatedAt      DateTime @default(now())
+  
 }
 
 // Immutable per-event change to a product's stock level. Written by sales,
@@ -2761,7 +2775,7 @@ model RetailLocationStock {
   stockQuantity  Float         @default(0) // DEPRECATED: Use RetailLocationStock
   lowStockLevel  Float?
 
-  updatedAt      DateTime?
+  
 
   @@unique([locationId, productId])
 }
@@ -2810,7 +2824,7 @@ model RetailCoupon {
   orders         RetailOrder[] @relation("CouponOrders")
 
   createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @default(now())
+  
 
   @@unique([organizationId, code])
 }
@@ -2864,7 +2878,7 @@ model ServiceSettings {
   bookingBufferMinutes Int @default(15)
 
   createdAt       DateTime @default(now())
-  updatedAt       DateTime @default(now())
+  
 }
 
 model ServiceCategory {
@@ -2877,7 +2891,7 @@ model ServiceCategory {
   items          ServiceCatalogItem[]
 
   createdAt      DateTime @default(now())
-  updatedAt      DateTime @default(now())
+  
 }
 
 model ServiceCatalogItem {
@@ -2900,7 +2914,7 @@ model ServiceCatalogItem {
   jobs           ServiceJob[]
 
   createdAt      DateTime @default(now())
-  updatedAt      DateTime @default(now())
+  
 }
 
 model ServiceAddon {
@@ -2919,7 +2933,7 @@ model ServiceAddon {
   jobAddons         ServiceJobAddon[]
 
   createdAt      DateTime @default(now())
-  updatedAt      DateTime @default(now())
+  
 }
 
 
@@ -2952,7 +2966,7 @@ model ServiceAppointment {
   addons         ServiceAppointmentAddon[]
 
   createdAt      DateTime @default(now())
-  updatedAt      DateTime @default(now())
+  
 }
 
 model ServiceAppointmentAddon {
@@ -2995,7 +3009,7 @@ model ServiceJob {
   appointment    ServiceAppointment?
 
   createdAt      DateTime @default(now())
-  updatedAt      DateTime @default(now())
+  
 }
 
 model ServiceJobAddon {
@@ -3029,7 +3043,7 @@ model ServiceJobQuote {
   job            ServiceJob?
 
   createdAt      DateTime @default(now())
-  updatedAt      DateTime @default(now())
+  
 }
 
 model ServiceJobQuoteItem {
@@ -3065,7 +3079,7 @@ model ServiceInvoice {
   items          ServiceInvoiceItem[]
 
   createdAt      DateTime @default(now())
-  updatedAt      DateTime @default(now())
+  
 }
 
 model ServiceInvoiceItem {
@@ -3093,7 +3107,7 @@ model ServiceExpense {
   createdBy      String
 
   createdAt      DateTime @default(now())
-  updatedAt      DateTime @default(now())
+  
 }
 
 
@@ -3112,7 +3126,7 @@ model Job {
   applications   JobApplication[]
 
   createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @default(now())
+  
 }
 
 model JobApplication {
@@ -3217,7 +3231,7 @@ model Payment {
   events            PaymentEvent[]
   
   createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @default(now())
+  
 }
 
 
@@ -3330,7 +3344,7 @@ model LogisticsFleet {
   description     String?
   isActive        Boolean      @default(true)
   createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @default(now())
+  
   
   provider        Organization @relation("ProviderFleets", fields: [providerId], references: [id], onDelete: Cascade)
   vehicles        LogisticsVehicle[]
@@ -3349,7 +3363,7 @@ model LogisticsVehicle {
   capacityVolume  Float?
   status          VehicleStatus @default(ACTIVE)
   createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @default(now())
+  
 
   provider        Organization @relation("ProviderVehicles", fields: [providerId], references: [id], onDelete: Cascade)
   fleet           LogisticsFleet? @relation(fields: [fleetId, providerId], references: [id, providerId])
@@ -3366,7 +3380,7 @@ model LogisticsDriverProfile {
   onboardingComplete Boolean @default(false)
   currentVehicleId String?
   createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @default(now())
+  
 
   person          Person       @relation("PersonLogisticsDriver", fields: [personId], references: [id], onDelete: Cascade)
   provider        Organization @relation("ProviderDrivers", fields: [providerId], references: [id], onDelete: Cascade)
@@ -3399,7 +3413,7 @@ model DeliveryJob {
   dropoffLng      Float?
   
   createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @default(now())
+  
 
   provider        Organization? @relation("ProviderDeliveryJobs", fields: [providerId], references: [id])
   assignments     DeliveryAssignment[]
@@ -3548,7 +3562,7 @@ model DeliveryQuote {
   idempotencyKey  String?
   expiresAt       DateTime?
   createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @default(now())
+  
 
   deliveryJob     DeliveryJob  @relation(fields: [deliveryJobId], references: [id], onDelete: Cascade)
   provider        Organization @relation("ProviderQuotes", fields: [providerId], references: [id], onDelete: Cascade)
@@ -3577,7 +3591,7 @@ model DeliveryDispatch {
   idempotencyKey  String?
   
   createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @default(now())
+  
   
   deliveryJob     DeliveryJob  @relation(fields: [deliveryJobId], references: [id], onDelete: Cascade)
   provider        Organization @relation("ProviderDispatches", fields: [providerId], references: [id], onDelete: Cascade)
@@ -3615,6 +3629,9 @@ model Notification {
 
   createdAt  DateTime  @default(now())
 
+  idempotencyKey String?
+
+  @@unique([personId, idempotencyKey])
   @@index([personId, isRead, createdAt])
 }
 
@@ -3642,7 +3659,7 @@ model DiscoveryListing {
   city           City         @relation("CityListings", fields: [cityId], references: [id], onDelete: Cascade)
   
   createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @default(now())
+  
   
   @@unique([organizationId, vertical, locationId])
   @@index([cityId, vertical, isActive])
@@ -3806,7 +3823,7 @@ model Cart {
   citySlug  String?
   items     CartItem[]
   checkout  CartCheckout?
-  updatedAt DateTime @default(now())
+  
 }
 
 model CartItem {
@@ -3816,6 +3833,8 @@ model CartItem {
   cart            Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
   
   kind            String // "retail" | "food"
+  sourceType      String?
+  sourceId        String?
   
   retailProductId String?
   product         RetailProduct? @relation(fields: [retailProductId], references: [id], onDelete: Cascade)
@@ -3842,7 +3861,7 @@ model VoiceContext {
   personId  String   @unique
   person    Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
   data      Json
-  updatedAt DateTime @default(now())
+  
 }
 
 model VoiceMemory {
@@ -3855,7 +3874,7 @@ model VoiceMemory {
   source    String   @default("VOICE")
   confidence Float   @default(1.0)
   createdAt DateTime @default(now())
-  updatedAt DateTime @default(now())
+  
   expiresAt DateTime?
 
   @@unique([personId, category, key])
@@ -3923,7 +3942,201 @@ model LogisticsSettings {
   platformFeeRate Decimal      @default(0.10)
   
   createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @default(now())
+  
 
   organization    Organization @relation("OrgLogisticsSettings", fields: [organizationId], references: [id], onDelete: Cascade)
+}
+model Payout {
+  id             String       @id @default(uuid())
+  organizationId String
+  amount         Int
+  currency       String
+  provider       String
+  idempotencyKey String       @unique
+  status         String
+  createdAt      DateTime     @default(now())
+  
+  organization   Organization @relation(fields: [organizationId], references: [id])
+}
+
+model SupportCase {
+  id             String        @id @default(uuid())
+  personId       String
+  organizationId String?
+  sourceType     String
+  sourceId       String
+  category       String
+  description    String
+  status         String
+  priority       String
+  createdAt      DateTime      @default(now())
+  
+  person         Person        @relation(fields: [personId], references: [id])
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+}
+
+model RefundRequest {
+  id             String       @id @default(uuid())
+  paymentId      String
+  personId       String
+  organizationId String
+  amount         Int
+  reason         String
+  status         String
+  createdAt      DateTime     @default(now())
+  
+  payment        Payment      @relation(fields: [paymentId], references: [id])
+  person         Person       @relation(fields: [personId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  disputes       RefundDispute[]
+}
+model RefundDispute {
+  id             String       @id @default(uuid())
+  refundRequestId String
+  reason         String
+  status         String
+  createdAt      DateTime     @default(now())
+  refundRequest  RefundRequest @relation(fields: [refundRequestId], references: [id])
+}
+
+// ----------------------------------------------------------------------------
+// BUSINESS DISCOVERY, LEAD ROUTING & CLAIMS
+// ----------------------------------------------------------------------------
+
+model OrganizationContactPoint {
+  id              String            @id @default(uuid())
+  organizationId  String
+  locationId      String?
+  type            String            // "EMAIL", "PHONE", "WEBSITE", "WHATSAPP"
+  value           String            // e.g. "info@biz.ng", "+2348012345678"
+  isPrimary       Boolean           @default(false)
+  isVerified      Boolean           @default(false)
+  sourceId        String?
+  
+  organization    Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  location        Location?         @relation(fields: [locationId], references: [id])
+  source          DataSource?       @relation(fields: [sourceId], references: [id])
+  
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @default(now())
+
+  @@index([organizationId, type])
+  @@index([value])
+}
+
+model DataSource {
+  id              String            @id @default(uuid())
+  name            String            // e.g. "OpenStreetMap Nigeria", "LSETF SME Directory"
+  sourceType      String            // "GEO_API", "DIRECTORY", "CRAWLER", "SUBMISSION"
+  url             String?
+  policyJson      String?           // License terms, rate limits, attribution requirements
+  isActive        Boolean           @default(true)
+  
+  observations    SourceObservation[]
+  contactPoints   OrganizationContactPoint[]
+  createdAt       DateTime          @default(now())
+}
+
+model SourceObservation {
+  id              String            @id @default(uuid())
+  sourceId        String
+  organizationId  String?
+  entityType      String            // "ORGANIZATION", "EVENT", "LOCATION"
+  rawPayload      String            // JSON dump of raw extracted facts
+  extractedData   String            // Normalized extracted fields JSON
+  confidenceScore Float             @default(1.0)
+  observedAt      DateTime          @default(now())
+
+  source          DataSource        @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  organization    Organization?     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([sourceId])
+}
+
+model CustomerEnquiry {
+  id                String            @id @default(uuid())
+  organizationId    String
+  locationId        String?
+  personId          String?           // Null if guest enquiry
+  customerName      String
+  customerEmail     String
+  customerPhone     String?
+  serviceRequested  String?           // Subject or specific offering
+  message           String
+  consentGiven      Boolean           @default(true)
+  status            String            @default("ACCEPTED") // ACCEPTED, ROUTED, DELIVERED, BOUNCED, FAILED, RESPONDED
+  idempotencyKey    String?           @unique
+
+  organization      Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  location          Location?         @relation(fields: [locationId], references: [id])
+  person            Person?           @relation(fields: [personId], references: [id])
+  
+  deliveries        MessageDelivery[]
+  createdAt         DateTime          @default(now())
+
+  @@index([organizationId, status])
+}
+
+model MessageDelivery {
+  id                String            @id @default(uuid())
+  enquiryId         String
+  recipientEmail    String
+  channel           String            @default("EMAIL")
+  status            String            @default("QUEUED") // QUEUED, SENDING, ACCEPTED_BY_PROVIDER, DELIVERED, BOUNCED, FAILED, SUPPRESSED
+  providerMessageId String?
+  attempts          Int               @default(0)
+  lastError         String?
+  sentAt            DateTime?
+  deliveredAt       DateTime?
+
+  enquiry           CustomerEnquiry   @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  createdAt         DateTime          @default(now())
+
+  @@index([enquiryId])
+  @@index([providerMessageId])
+}
+
+model OutboxEvent {
+  id          String    @id @default(uuid())
+  eventType   String    // "ENQUIRY_ROUTING", "CLAIM_NOTIFICATION"
+  payload     String    // JSON
+  status      String    @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(5)
+  lastError   String?
+  lockedAt    DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([status, createdAt])
+}
+
+model SuppressionEntry {
+  id          String    @id @default(uuid())
+  type        String    // "EMAIL", "PHONE"
+  value       String    // Normalized email/phone
+  reason      String    // "BOUNCE", "UNSUBSCRIBE", "COMPLAINT"
+  createdAt   DateTime  @default(now())
+
+  @@unique([type, value])
+}
+
+model OrganizationClaim {
+  id                String       @id @default(uuid())
+  organizationId    String
+  claimantPersonId  String
+  status            String       @default("PENDING") // PENDING, UNDER_REVIEW, APPROVED, REJECTED
+  evidenceType      String       // "EMAIL_DOMAIN", "CAC_CERTIFICATE", "UTILITY_BILL", "PHONE_OTP"
+  evidenceData      String?      // Reference to uploaded asset or verification token
+  claimantNotes     String?
+  reviewerPersonId  String?
+  reviewerNotes     String?
+  reviewedAt        DateTime?
+  
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  claimant          Person       @relation("PersonClaims", fields: [claimantPersonId], references: [id], onDelete: Cascade)
+
+  createdAt         DateTime     @default(now())
+
+  @@index([organizationId, status])
 }

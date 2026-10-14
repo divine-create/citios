@@ -75,6 +75,12 @@ export default function RestaurantManagementSidebar({ slug, settings, orgName }:
         { label: 'Tables', href: `/workspaces/restaurantos/${slug}/management/tables`, icon: <LayoutDashboard size={18} /> },
         { label: 'Settings', href: `/workspaces/restaurantos/${slug}/management/capabilities`, icon: <Settings size={18} /> },
       ]
+    },
+    {
+      title: 'SUPPORT',
+      items: [
+        { label: 'Support & Disputes', href: `/workspaces/restaurantos/${slug}/management/support`, icon: <Layers size={18} /> },
+      ]
     }
   ];
 
@@ -91,7 +97,7 @@ export default function RestaurantManagementSidebar({ slug, settings, orgName }:
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-2">{group.title}</h3>
             <div className="space-y-1">
               {group.items.map((item, j) => {
-                const active = pathname === item.href || (pathname.startsWith(item.href) && item.href !== `/workspaces/restaurantos/${slug}/management/overview`);
+                const active = pathname === item.href || (Boolean(pathname?.startsWith(item.href)) && item.href !== `/workspaces/restaurantos/${slug}/management/overview`);
                 return (
                   <Link 
                     key={j}

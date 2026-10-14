@@ -10,6 +10,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/src/prisma/db';
 import { getWorkspaceUrlForOrg } from '@/lib/actions/business';
+import EnquiryModal from '@/components/cityos/EnquiryModal';
 
 export default async function OrgProfile({ id }: { id: string }) {
   const org = await getCanonicalOrganization(id);
@@ -47,9 +48,10 @@ export default async function OrgProfile({ id }: { id: string }) {
 
   const workspaceUrl = await getWorkspaceUrlForOrg(org.id, org.type);
 
-  const { capabilities, jobsData, eventsData, servicesData, productsData, locations } = org;
+  const { capabilities, jobsData, eventsData, servicesData, productsData, menuData, locations } = org;
   
   const shop = capabilities.retail ? { products: productsData } : undefined;
+  const restaurant = capabilities.restaurant ? { menu: menuData } : undefined;
   const svc = capabilities.services ? { services: servicesData } : undefined;
   const school = capabilities.school ? { classes: [], teachers: [], admissions: [] } : undefined;
   const jobs = jobsData || [];
@@ -61,7 +63,7 @@ export default async function OrgProfile({ id }: { id: string }) {
   const addressStr = org.address || locations?.[0]?.address || '';
   const hours = '8:00 AM · 6:00 PM';
   const category = org.type || 'Business';
-  const osLabel = capabilities.retail ? 'ShopOS' : capabilities.school ? 'SchoolOS' : capabilities.services ? 'ServiceOS' : 'CityOS';
+  const osLabel = capabilities.retail ? 'ShopOS' : capabilities.restaurant ? 'RestaurantOS' : capabilities.school ? 'SchoolOS' : capabilities.services ? 'ServiceOS' : 'CityOS';
   const osPath = osLabel.toLowerCase();
 
   return (
@@ -113,11 +115,43 @@ export default async function OrgProfile({ id }: { id: string }) {
               </div>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <EnquiryModal
+              organizationId={org.id}
+              organizationName={org.name}
+              userEmail={session?.user?.email || ''}
+              userName={session?.user?.name || ''}
+            />
             <Pill tone="blue">{osLabel}</Pill>
           </div>
         </div>
       </div>
+
+      {/* Unclaimed Business Profile Claim CTA */}
+      {!org.isClaimed && !isManager && (
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm animate-in fade-in duration-300">
+          <div className="flex items-start gap-3">
+            <span className="p-2.5 bg-amber-100 rounded-2xl text-xl shrink-0">🏢</span>
+            <div>
+              <h3 className="text-sm font-black text-amber-950 flex items-center gap-2">
+                Is this your business?
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-200/80 text-amber-800">
+                  Unclaimed Listing
+                </span>
+              </h3>
+              <p className="text-xs text-amber-800 font-medium mt-0.5">
+                Verify ownership to update hours, receive customer leads directly to your email, and unlock your management dashboard.
+              </p>
+            </div>
+          </div>
+          <Link
+            href={`/business/claim?orgId=${org.id}`}
+            className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-black transition-colors shrink-0 text-center shadow-sm"
+          >
+            Claim This Profile →
+          </Link>
+        </div>
+      )}
 
       {/* City mismatch: this business may sit in a different city than the one
           being browsed — always labelled, never silently mixed. */}
@@ -188,6 +222,44 @@ export default async function OrgProfile({ id }: { id: string }) {
 
       {shop && shop.products.length > 0 ? (
         <ClientProductList products={shop.products} />
+      ) : null}
+
+      {restaurant && restaurant.menu.length > 0 ? (
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-black text-ink">Menu</h2>
+            <Link href={`/food/${org.id}`} className="text-[12px] font-bold text-teal-800 hover:underline flex items-center gap-1">
+              Order Online / Full Menu <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {restaurant.menu.slice(0, 10).map((m: any) => (
+              <Link
+                key={m.id}
+                href={`/food/item/${m.id}`}
+                className="bg-white rounded-xl border border-slate-100 p-3 flex justify-between hover:border-teal-500 hover:shadow-sm transition-all group"
+              >
+                <div className="pr-3">
+                  <div className="flex items-center gap-2">
+                    <p className="text-[13px] font-black text-ink group-hover:text-teal-900">{m.name}</p>
+                    {m.isAvailable === false && (
+                      <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-50 text-rose-600 border border-rose-200">
+                        Unavailable
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[12px] text-slate-500 line-clamp-2 mt-0.5">{m.description}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-[13px] font-black text-teal-900">{fmt(m.price ?? m.basePrice ?? 0)}</p>
+                  <span className="text-[11px] font-bold text-teal-700 opacity-0 group-hover:opacity-100 transition-opacity">
+                    View dish →
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
       ) : null}
 
       {/* Jobs */}

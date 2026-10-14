@@ -186,10 +186,10 @@ test('LogisticsOS Phase 3 Operations Integration Tests', async (t) => {
     const p2 = arriveAtPickup({ deliveryJobId: job.id, providerId, driverProfileId });
 
     const results = await Promise.allSettled([p1, p2]);
-    const succeeded = results.filter(r => r.status === 'fulfilled');
+    const COMPLETED = results.filter(r => r.status === 'fulfilled');
     const failed = results.filter(r => r.status === 'rejected');
 
-    assert.strictEqual(succeeded.length, 1);
+    assert.strictEqual(COMPLETED.length, 1);
     assert.strictEqual(failed.length, 1);
   });
 

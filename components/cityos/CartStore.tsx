@@ -4,7 +4,7 @@ import { addCartItemAction, removeCartItemAction, updateCartItemQuantityAction, 
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
 import { useCity } from '@/components/cityos/CityProvider';
 
-export type CartKind = 'retail' | 'food';
+export type CartKind = 'retail' | 'food' | 'service';
 
 export interface CartLine {
   productId: string;
@@ -12,6 +12,8 @@ export interface CartLine {
   name: string;
   price: number;
   image?: string | null;
+  isAvailable?: boolean;
+  stockQuantity?: number;
   orgId: string;
   orgName: string;
   kind: CartKind;
@@ -26,8 +28,10 @@ interface CartCtx {
   lines: CartLine[];
   add: (item: CartLine) => void;
   remove: (productId: string) => void;
+  removeOrg: (orgId: string) => void;
   setQty: (productId: string, qty: number) => void;
   clear: () => void;
+  syncCart: () => Promise<void>;
   count: number;
   subtotal: number;
   deliveryFee: number;
@@ -61,12 +65,29 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [lastAddedId, setLastAddedId] = useState<string | null>(null);
   const [pendingCityLine, setPendingCityLine] = useState<CartLine | null>(null);
 
+  const syncCart = useCallback(async () => {
+    try {
+      const res = await fetchUserCart();
+      if (res && res.lines !== undefined) {
+        setLines(res.lines);
+        if (res.lines.length === 0) {
+          try { localStorage.removeItem(KEY); } catch {}
+        }
+      }
+    } catch (e) {
+      console.error('Failed to sync server cart', e);
+    }
+  }, []);
+
   useEffect(() => {
     async function load() {
       try {
         const res = await fetchUserCart();
-        if (res && res.lines && res.lines.length > 0) {
+        if (res && res.lines !== undefined) {
           setLines(res.lines);
+          if (res.lines.length === 0) {
+            try { localStorage.removeItem(KEY); } catch {}
+          }
           setHydrated(true);
           return;
         }
@@ -119,6 +140,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     removeCartItemAction(id).catch(() => {});
   }, []);
 
+  const removeOrg = useCallback((orgId: string) => {
+    setLines((prev) => prev.filter((x) => x.orgId !== orgId));
+  }, []);
+
   const setQty = useCallback((id: string, qty: number) => {
     if (qty <= 0) {
       remove(id);
@@ -162,8 +187,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       lines,
       add,
       remove,
+      removeOrg,
       setQty,
       clear,
+      syncCart,
       count,
       subtotal,
       deliveryFee,
@@ -174,7 +201,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       confirmPendingCity,
       cancelPendingCity,
     };
-  }, [lines, add, remove, setQty, clear, lastAddedId, cartCitySlug, isForeignCart, pendingCityLine, confirmPendingCity, cancelPendingCity]);
+  }, [lines, add, remove, removeOrg, setQty, clear, syncCart, lastAddedId, cartCitySlug, isForeignCart, pendingCityLine, confirmPendingCity, cancelPendingCity]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

@@ -8,6 +8,7 @@ import { db } from '@/src/prisma/db';
 import { getCurrentCity, getCityBySlug } from '@/lib/city';
 import { revalidatePath } from 'next/cache';
 import { notifyPerson } from '@/lib/notify';
+import { debitResidentWallet } from '@/app/actions/resident_wallet';
 
 /**
  * Place a retail order.
@@ -109,8 +110,8 @@ export async function placeRetailOrder(input: {
     }
 
     const order = await db.transaction(async (tx: any) => {
-      const isWallet = false; if (input.method === 'wallet') throw new Error('Wallet payment temporarily disabled for retail');
-      const orderStatus = isWallet ? 'COMPLETED' : 'PENDING';
+      const isWallet = input.method === 'wallet';
+      const orderStatus = isWallet ? 'CONFIRMED' : 'PENDING';
 
       const orderIdempKey = input.idempotencyKey ? `${input.idempotencyKey}-${orgId}` : undefined;
       // Idempotency check for duplicate creation
@@ -132,14 +133,37 @@ export async function placeRetailOrder(input: {
         status: orderStatus,
         idempotencyKey: orderIdempKey,
       });
+      
+      let txRecordId = undefined;
+      if (isWallet && personId) {
+        const txRecord = await debitResidentWallet(tx, personId, group.total, input.paymentReference || createdOrder.id, `Checkout Order ${createdOrder.id}`);
+        txRecordId = txRecord.id;
+
+        // Credit Merchant Organization Wallet
+        let orgWallet = await tx.orm.public.Wallet.where({ organizationId: orgId }).all().first();
+        if (!orgWallet) {
+          orgWallet = await tx.orm.public.Wallet.create({ organizationId: orgId, balance: 0, currency: 'NGN' });
+        }
+        await tx.orm.public.LedgerEntry.create({
+          walletId: orgWallet.id,
+          transactionId: txRecord.id,
+          amount: group.total,
+          currency: orgWallet.currency || 'NGN'
+        });
+        await tx.execute(
+          db.raw.sql`UPDATE "wallet" SET balance = balance + ${group.total} WHERE id = ${orgWallet.id}`.affectedCount().build()
+        );
+      }
         
       await tx.orm.public.Payment.create({
         amount: group.total,
         currency: 'NGN',
         method: isWallet ? 'WALLET' : input.method === 'card' ? 'CARD' : 'BANK_TRANSFER',
-        status: orderStatus,
+        status: isWallet ? 'COMPLETED' : 'PENDING',
+        provider: isWallet ? 'INTERNAL_WALLET' : (process.env.PAYMENT_PROVIDER || 'PAYSTACK').toUpperCase(),
         retailOrderId: createdOrder.id,
         reference: input.paymentReference,
+        transactionId: txRecordId,
         idempotencyKey: input.idempotencyKey ? input.idempotencyKey + '_pay' : undefined,
       });
         
@@ -184,7 +208,6 @@ export async function placeRetailOrder(input: {
                    SET "stockQuantity" = "stockQuantity" - ${verifiedItem.quantity}
                    WHERE id = ${product.id} AND "stockQuantity" >= ${verifiedItem.quantity}
                    RETURNING "stockQuantity"
-                 RETURNING "stockQuantity"
     `.returnsRow({ stockQuantity: 'pg/int4@1' }).build();
                  const updated = await tx.execute(plan);
                  if ((updated && updated.affectedRows === 0) || (Array.isArray(updated) && updated.length === 0) || !updated) {

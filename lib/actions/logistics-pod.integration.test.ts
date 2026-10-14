@@ -139,10 +139,10 @@ test('LogisticsOS Phase 4.1 POD Integration Tests', async (t) => {
     const p2 = completeDelivery({ deliveryJobId: job.id, providerId, driverProfileId, type: 'SIG_2' });
 
     const results = await Promise.allSettled([p1, p2]);
-    const succeeded = results.filter(r => r.status === 'fulfilled');
+    const COMPLETED = results.filter(r => r.status === 'fulfilled');
     const failed = results.filter(r => r.status === 'rejected');
 
-    assert.strictEqual(succeeded.length, 1);
+    assert.strictEqual(COMPLETED.length, 1);
     assert.strictEqual(failed.length, 1);
 
     const dbPod = await db.orm.public.ProofOfDelivery.where({ deliveryJobId: job.id }).all();

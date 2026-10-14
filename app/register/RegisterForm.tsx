@@ -10,7 +10,7 @@ import { registerUser } from '@/app/actions/auth';
 export default function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') || '/welcome';
+  const callbackUrl = searchParams?.get('callbackUrl') || '/welcome';
 
   const [formData, setFormData] = useState({
     firstName: '',

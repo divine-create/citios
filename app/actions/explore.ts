@@ -2,7 +2,6 @@
 
 import { db } from '@/src/prisma/db';
 import { getCurrentCity, getCityBySlug } from '@/lib/city';
-import { trackEvent } from '@/lib/actions/analytics';
 
 export async function searchCityExplore(citySlug: string | undefined, query: string, cat: string) {
   const city = citySlug ? await getCityBySlug(citySlug) : await getCurrentCity();
@@ -10,72 +9,50 @@ export async function searchCityExplore(citySlug: string | undefined, query: str
     return { organizations: [], products: [] };
   }
 
-  // Find organizations in the city
-  const orgs = await db.orm.public.Organization.where({ }).all();
-  
+  const listings = await db.orm.public.DiscoveryListing
+    .where({ cityId: city.id, isActive: true })
+    .include('organization', (org: any) => org.select('name', 'type', 'address', 'description'))
+    .include('location', (loc: any) => loc.select('address', 'name'))
+    .all();
+
   const q = query.trim().toLowerCase();
   
-  const filteredOrgs = orgs.filter((org) => {
-    // Determine category based on 'type' or map it
-    const orgType = org.type || 'Unknown';
-    // If we want exact category match or "All"
-    const inCat = cat === 'All' || orgType.toLowerCase() === cat.toLowerCase();
-    
-    const inQ = !q || 
-      org.name.toLowerCase().includes(q) || 
-      (org.description || '').toLowerCase().includes(q) ||
-      (org.address || '').toLowerCase().includes(q);
-      
-    return inCat && inQ;
-  });
-  
-  // Find products matching query in the city
-  const cityOrgIds = orgs.map(o => o.id);
-  
-  let products: any[] = [];
-  if (cityOrgIds.length > 0) {
-    // @ts-ignore
-    const allProducts = await db.orm.public.RetailProduct.where({ organizationId: { in: cityOrgIds } }).all();
-    products = allProducts.filter((p: any) => {
-      const biz = orgs.find((o) => o.id === p.organizationId);
-      if (!biz) return false;
-      const bizType = biz.type || 'Unknown';
-      
-      const inCat = cat === 'All' || bizType.toLowerCase() === cat.toLowerCase();
-      const inQ = !q || 
-        p.name.toLowerCase().includes(q) || 
-        (p.description || '').toLowerCase().includes(q) ||
-        biz.name.toLowerCase().includes(q);
-        
-      return inCat && inQ;
-    }).slice(0, 6);
+  let filtered = listings;
+  if (cat !== 'All') {
+    filtered = filtered.filter((l: any) => l.vertical.toLowerCase() === cat.toLowerCase());
   }
-  
+  if (q) {
+    filtered = filtered.filter((l: any) => 
+      (l.title && l.title.toLowerCase().includes(q)) ||
+      (l.description && l.description.toLowerCase().includes(q)) ||
+      (l.organization?.name && l.organization.name.toLowerCase().includes(q))
+    );
+  }
+
+  // Enforce pagination/limits
+  filtered = filtered.slice(0, 50);
+
   return { 
-    organizations: filteredOrgs.map(o => ({
-      slug: o.id,
-      name: o.name,
-      type: o.type,
-      category: o.type || 'Business',
-      area: o.address || city.name,
-      description: o.description,
-      tagline: o.description || `Local business in ${city.name}`,
-      rating: 4.8,
-      isOpen: true,
-      deliveryEta: 15,
-      cover: undefined
-    })), 
-    products: products.map(p => {
-      const biz = orgs.find(o => o.id === p.organizationId);
+    organizations: filtered.map((l: any) => {
+      let meta: any = {};
+      try {
+        if (l.metadata) meta = JSON.parse(l.metadata);
+      } catch {}
+
       return {
-        id: p.id,
-        name: p.name,
-        price: p.price,
-        description: p.description,
-        bizSlug: p.organizationId,
-        bizName: biz?.name,
-        image: undefined
+        slug: l.slug,
+        name: l.title || l.organization?.name,
+        type: l.vertical,
+        category: l.vertical,
+        area: l.location?.name || l.location?.address || l.organization?.address || city.name,
+        description: l.description || l.organization?.description,
+        tagline: l.description || `Local ${l.vertical.toLowerCase()} in ${city.name}`,
+        rating: typeof meta.rating === 'number' ? meta.rating : null, 
+        isOpen: typeof meta.isOpen === 'boolean' ? meta.isOpen : true,
+        deliveryEta: typeof meta.deliveryEta === 'number' ? meta.deliveryEta : null,
+        cover: l.coverAssetId
       };
-    })
+    }),
+    products: [] // We skip direct product injection per architecture rules.
   };
 }

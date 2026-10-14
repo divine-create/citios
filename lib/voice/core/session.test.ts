@@ -51,8 +51,7 @@ test('Voice Session Bootstrap & Context Safety', async (t) => {
             domain: 'commerce'
           }
         }
-      },
-      updatedAt: (globalThis as any).Temporal.Instant.fromEpochMilliseconds(Date.now())
+      }
     });
 
     const { systemPrompt } = await buildVoiceSessionBootstrap(personId);

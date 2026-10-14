@@ -15,23 +15,24 @@ export async function requestPayout(organizationId: string, amount: number, prov
     throw new Error('Invalid idempotencyKey');
   }
 
-  // If running in request context with session, enforce membership authorization
+  // Strict server-side authentication and authorization enforcement
   const session = await getServerSession(authOptions).catch(() => null);
-  if (session?.user) {
-    await requireMembership(organizationId, ['OWNER', 'FINANCE', 'ADMIN']);
+  if (!session?.user?.personId) {
+    throw new Error('UNAUTHORIZED: Valid authenticated session required');
   }
+  await requireMembership(organizationId, ['OWNER', 'FINANCE', 'ADMIN']);
 
   return await db.transaction(async (tx) => {
-    const wallet = await tx.orm.public.Wallet.where({ organizationId }).select('id', 'balance', 'currency').all().first();
-
-    if (!wallet) throw new Error('Wallet not found for organization');
-    if (wallet.balance < amount) throw new Error('Insufficient available payable balance');
-
-    const existingPayout = await tx.orm.public.Payout.where({ idempotencyKey }).select('id', 'organizationId').all().first();
+    const existingPayout = await tx.orm.public.Payout.where({ idempotencyKey }).select('id', 'organizationId', 'status').all().first();
     if (existingPayout) {
       if (existingPayout.organizationId !== organizationId) throw new Error('Idempotency collision across orgs');
       return existingPayout;
     }
+
+    const wallet = await tx.orm.public.Wallet.where({ organizationId }).select('id', 'balance', 'currency').all().first();
+
+    if (!wallet) throw new Error('Wallet not found for organization');
+    if (wallet.balance < amount) throw new Error('Insufficient available payable balance');
 
     const updatePlan = db.raw.sql`UPDATE "wallet" SET balance = balance - ${amount} WHERE id = ${wallet.id} AND balance >= ${amount}`.affectedCount().build();
     const rowsCount: any = await tx.execute(updatePlan);
@@ -40,7 +41,7 @@ export async function requestPayout(organizationId: string, amount: number, prov
       throw new Error('Concurrent modification or insufficient balance');
     }
 
-    const payout = await tx.orm.public.Payout.select('id').create({
+    const payout = await tx.orm.public.Payout.select('id', 'status').create({
       organizationId,
       amount,
       currency: wallet.currency,

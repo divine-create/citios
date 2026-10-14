@@ -46,7 +46,8 @@ export function FallbackImg({
   );
 }
 
-export function Stars({ rating, className }: { rating: number; className?: string }) {
+export function Stars({ rating, className }: { rating?: number | null; className?: string }) {
+  if (rating == null || Number.isNaN(rating)) return null;
   return (
     <span className={cn('inline-flex items-center gap-1', className)}>
       <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />

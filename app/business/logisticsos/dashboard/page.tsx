@@ -4,6 +4,8 @@ import { getProviderDeliveryOverview, findStuckDeliveries } from '@/lib/actions/
 import { Card, Badge, Button } from '@/components/Shared';
 import { PackageOpen, MapPin, AlertTriangle, CheckCircle2, Truck, DollarSign, Clock } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default async function LogisticsDashboardPage() {
   // Try to find the first valid logistics provider in the system
   const provider = await db.orm.public.Organization.where({ type: 'LOGISTICS' }).first() || 
