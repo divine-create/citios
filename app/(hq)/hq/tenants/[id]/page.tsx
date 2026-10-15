@@ -18,6 +18,7 @@ import {
   Clock,
   Map,
   Eye,
+  Sparkles,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/Badge';
@@ -104,6 +105,12 @@ export default async function Tenant360Page({ params }: { params: Promise<{ id: 
         </div>
 
         <div className="flex items-center gap-3">
+          <Link
+            href={`/hq/managed/${org.id}`}
+            className="px-4 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-black rounded-xl transition-all shadow-md shadow-teal-500/10 flex items-center gap-1.5"
+          >
+            <Sparkles className="w-3.5 h-3.5" /> Managed Studio
+          </Link>
           {listing && (
             <a
               href={`/org/${org.id}`}

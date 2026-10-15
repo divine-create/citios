@@ -1,7 +1,7 @@
 import React from 'react';
 import { requireSystemAdmin } from '@/lib/rbac';
 import { getHQCommandCenterData } from '@/lib/actions/hq-dashboard';
-import { Activity, Users, Building, Truck, Wallet, ShieldAlert, ArrowRight, History, Map, ShieldCheck } from 'lucide-react';
+import { Activity, Users, Building, Truck, Wallet, ShieldAlert, ArrowRight, History, Map, ShieldCheck, Sparkles, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
 
 function formatDate(temporalOrDate: any): string {
@@ -45,6 +45,55 @@ export default async function HQDashboardPage() {
             Platform Wallet: <strong className="text-purple-400 font-mono">&#8358;{metrics.wallet?.balance?.toLocaleString() || '0.00'}</strong>
           </span>
         </div>
+      </div>
+
+      {/* Managed Businesses Quick Launch */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Link
+          href="/hq/managed"
+          className="bg-gradient-to-r from-teal-950/60 to-slate-900 border border-teal-500/30 rounded-2xl p-5 hover:border-teal-500/60 transition-all flex items-center justify-between group"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-teal-500/20 text-teal-400 flex items-center justify-center shrink-0 border border-teal-500/30">
+              <Sparkles className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-white">Managed Businesses Studio</h3>
+                <span className="px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 text-[10px] font-black uppercase">
+                  Admin Custodian
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 mt-1">
+                Insert menus, prices in ₦, link/upload images, video tours, and publish proxy broadcasts.
+              </p>
+            </div>
+          </div>
+          <ArrowRight className="w-5 h-5 text-teal-400 group-hover:translate-x-1 transition-transform shrink-0" />
+        </Link>
+
+        <Link
+          href="/hq/orders"
+          className="bg-gradient-to-r from-amber-950/60 to-slate-900 border border-amber-500/30 rounded-2xl p-5 hover:border-amber-500/60 transition-all flex items-center justify-between group"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/30">
+              <ShoppingBag className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-white">HQ Managed Orders & Dispatch</h3>
+                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-black uppercase">
+                  Resident Orders
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 mt-1">
+                Total admin control to coordinate, fulfill, and dispatch resident orders for unconfirmed spots.
+              </p>
+            </div>
+          </div>
+          <ArrowRight className="w-5 h-5 text-amber-400 group-hover:translate-x-1 transition-transform shrink-0" />
+        </Link>
       </div>
 
       {/* Action Banners for Pending Tasks */}
