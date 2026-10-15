@@ -78,11 +78,28 @@ async function getHomeCity(cities: CityRecord[]): Promise<CityRecord | null> {
  * The current session's city. Returns null only when no active city exists
  * at all (unseeded database) — callers should degrade gracefully.
  */
+// Testing overrides for non-HTTP / runner environments
+let testSubdomainSlug: string | null = null;
+let testCookieSlug: string | null = null;
+
+export function setCitySubdomainForTesting(slug: string | null) {
+  testSubdomainSlug = slug;
+}
+
+export function setCityCookieForTesting(slug: string | null) {
+  testCookieSlug = slug;
+}
+
 export async function getCurrentCity(): Promise<CityRecord | null> {
   const cities = await getActiveCities();
   if (cities.length === 0) return null;
 
-  // 0. Subdomain override via header (injected by middleware for calabar.9jalive.online, etc.)
+  // 0. Subdomain override (injected by middleware for calabar.9jalive.online, etc.)
+  if (testSubdomainSlug) {
+    const selected = cities.find((c) => c.slug === testSubdomainSlug?.toLowerCase());
+    if (selected) return selected;
+  }
+
   try {
     const headerStore = await headers();
     const subdomainCity = headerStore.get('x-city-slug');
@@ -91,15 +108,24 @@ export async function getCurrentCity(): Promise<CityRecord | null> {
       if (selected) return selected;
     }
   } catch {
-    // If headers() is unavailable in context, continue ladder
+    // If headers() is unavailable in context (e.g. background job or prerender), continue ladder
   }
 
   // 1. Explicit selection (cookie)
-  const cookieStore = await cookies();
-  const slug = cookieStore.get(CITY_COOKIE)?.value;
-  if (slug) {
-    const selected = cities.find((c) => c.slug === slug.toLowerCase());
+  if (testCookieSlug) {
+    const selected = cities.find((c) => c.slug === testCookieSlug?.toLowerCase());
     if (selected) return selected;
+  }
+
+  try {
+    const cookieStore = await cookies();
+    const slug = cookieStore.get(CITY_COOKIE)?.value;
+    if (slug) {
+      const selected = cities.find((c) => c.slug === slug.toLowerCase());
+      if (selected) return selected;
+    }
+  } catch {
+    // If cookies() is unavailable in context, continue ladder
   }
 
   // 2. Resident's home city
