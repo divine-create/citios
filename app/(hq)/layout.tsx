@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { requireSystemAdmin } from '@/lib/rbac';
-import { ShieldAlert, ShieldCheck, Users, Building, Activity, Map, ArrowLeft, LogOut, FileText } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, Users, Building, Activity, Map, ArrowLeft, LogOut, FileText, Truck } from 'lucide-react';
 import { redirect } from 'next/navigation';
 
 export default async function HQLayout({ children }: { children: React.ReactNode }) {
@@ -45,7 +45,7 @@ export default async function HQLayout({ children }: { children: React.ReactNode
             <FileText className="w-4 h-4" /> Master Ledger
           </Link>
           <Link href="/hq/fleet" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-sm font-medium text-slate-300 hover:text-white transition-colors">
-            <Map className="w-4 h-4" /> Logistics Fleet
+            <Truck className="w-4 h-4 text-cyan-400" /> Logistics Fleet
           </Link>
         </nav>
 

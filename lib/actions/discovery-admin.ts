@@ -76,6 +76,8 @@ export async function getScrapedDiscoveryListings(filters: ScrapedListingFilters
 
       const primaryPhone = contactPoints.find((c) => c.type === 'PHONE')?.value || '';
       const primaryEmail = contactPoints.find((c) => c.type === 'EMAIL')?.value || '';
+      const whatsapp = contactPoints.find((c) => c.type === 'WHATSAPP')?.value || '';
+      const website = contactPoints.find((c) => c.type === 'WEBSITE')?.value || '';
       const latestObs = observations[observations.length - 1] || null;
 
       return {
@@ -95,6 +97,11 @@ export async function getScrapedDiscoveryListings(filters: ScrapedListingFilters
         isActive: listing.isActive,
         approvalStatus: meta.approvalStatus || (listing.isActive ? 'APPROVED' : 'PENDING_REVIEW'),
         sourceName: meta.source || (latestObs ? 'Scraped Feed' : 'Direct Import'),
+        sourceUrl: meta.sourceUrl || '',
+        originalCategory: meta.originalCategory || meta.category || '',
+        tags: Array.isArray(meta.tags) ? meta.tags : [],
+        hours: meta.hours || '',
+        instagram: meta.instagram || '',
         confidenceScore: latestObs?.confidenceScore ?? 1.0,
         contactPoints: contactPoints.map((c) => ({
           id: c.id,
@@ -104,6 +111,8 @@ export async function getScrapedDiscoveryListings(filters: ScrapedListingFilters
         })),
         primaryPhone,
         primaryEmail,
+        whatsapp,
+        website,
         createdAt: listing.createdAt,
       };
     })
@@ -233,6 +242,18 @@ export async function updateAndApproveListing(input: UpdateScrapedListingInput) 
           });
         }
       }
+      // 7. Emit Governance Audit Event
+      await tx.orm.public.HQAuditEvent.create({
+        actorPersonId: person.id,
+        action: 'LISTING_APPROVED',
+        targetType: 'DiscoveryListing',
+        targetId: listing.id,
+        metadata: {
+          title: cleanTitle,
+          vertical: cleanVertical,
+          organizationId: listing.organizationId,
+        },
+      });
     });
 
     return {
@@ -277,6 +298,18 @@ export async function rejectScrapedListing(listingId: string, reason?: string) {
 
     await db.orm.public.Organization.where({ id: listing.organizationId }).update({
       status: 'SUSPENDED' as any,
+    });
+
+    await db.orm.public.HQAuditEvent.create({
+      actorPersonId: person.id,
+      action: 'LISTING_REJECTED',
+      targetType: 'DiscoveryListing',
+      targetId: listingId,
+      metadata: {
+        title: listing.title,
+        organizationId: listing.organizationId,
+        reason: reason || 'Discarded during admin moderation',
+      },
     });
 
     return { success: true, status: 'REJECTED' };
@@ -324,6 +357,19 @@ export async function bulkApproveScrapedListings(listingIds: string[]) {
 
       approvedCount++;
     }
+  }
+
+  if (approvedCount > 0) {
+    await db.orm.public.HQAuditEvent.create({
+      actorPersonId: person.id,
+      action: 'LISTING_BULK_APPROVED',
+      targetType: 'DiscoveryListing',
+      targetId: 'bulk',
+      metadata: {
+        approvedCount,
+        listingIds: listingIds.slice(0, 50),
+      },
+    });
   }
 
   return {

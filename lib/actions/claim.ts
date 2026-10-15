@@ -141,6 +141,19 @@ export async function reviewOrganizationClaim(
         reviewerNotes: reviewerNotes?.trim() || null,
         reviewedAt: toTemporal(),
       });
+
+      await db.orm.public.HQAuditEvent.create({
+        actorPersonId: person.id,
+        action: 'CLAIM_REJECTED',
+        targetType: 'OrganizationClaim',
+        targetId: claimId,
+        metadata: {
+          organizationId: claim.organizationId,
+          claimantPersonId: claim.claimantPersonId,
+          reason: reviewerNotes?.trim() || 'Rejected during verification',
+        },
+      });
+
       return { success: true, status: 'REJECTED' };
     }
 
@@ -209,6 +222,19 @@ export async function reviewOrganizationClaim(
           currency: 'NGN',
         });
       }
+
+      // 6. Emit Governance Audit Event
+      await tx.orm.public.HQAuditEvent.create({
+        actorPersonId: person.id,
+        action: 'CLAIM_APPROVED',
+        targetType: 'OrganizationClaim',
+        targetId: claimId,
+        metadata: {
+          organizationId: claim.organizationId,
+          claimantPersonId: claim.claimantPersonId,
+          reviewerNotes: reviewerNotes?.trim() || 'Verified ownership',
+        },
+      });
     });
 
     return { success: true, status: 'APPROVED' };

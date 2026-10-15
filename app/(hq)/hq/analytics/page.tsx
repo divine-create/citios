@@ -77,7 +77,7 @@ export default async function HQAnalyticsPage({
             </div>
             <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Payment Volume</h3>
           </div>
-          <p className="text-3xl font-black text-emerald-400">${platform.financial.recentPaymentVolume.toLocaleString()}</p>
+          <p className="text-3xl font-black text-emerald-400">&#8358;{platform.financial.recentPaymentVolume.toLocaleString()}</p>
           <div className="mt-3 flex items-center gap-2">
             <span className="text-xs font-bold text-white">{platform.financial.recentPaymentCount.toLocaleString()}</span>
             <span className="text-xs text-slate-500">payments processed</span>

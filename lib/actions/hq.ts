@@ -103,18 +103,33 @@ export async function inspectOrganization(organizationId: string) {
   const org = await db.orm.public.Organization.where({ id: organizationId }).all().first();
   if (!org) throw new Error("Organization not found");
 
-  const [ memberships, locations, wallets, transactions, orders, auditEvents ] = await Promise.all([
+  const [
+    memberships,
+    locations,
+    wallets,
+    transactions,
+    orders,
+    auditEvents,
+    contactPoints,
+    listing,
+    claims,
+    sourceObservations,
+  ] = await Promise.all([
     db.orm.public.Membership.where({ organizationId }).all(),
     db.orm.public.Location.where({ organizationId }).all(),
-      db.orm.public.Wallet.where({ organizationId }).all(),
-    db.orm.public.Wallet.where({ organizationId }).all().then(async wallets => {
+    db.orm.public.Wallet.where({ organizationId }).all(),
+    db.orm.public.Wallet.where({ organizationId }).all().then(async (wallets) => {
       if (!wallets.length) return [];
-      const walletIds = wallets.map(w => w.id);
+      const walletIds = wallets.map((w) => w.id);
       const entries = await db.orm.public.LedgerEntry.where((le) => le.walletId.in(walletIds)).include('transaction').orderBy((le) => le.createdAt.desc()).limit(10).all();
-      return entries.map(e => e.transaction).filter(Boolean);
+      return entries.map((e) => e.transaction).filter(Boolean);
     }),
     db.orm.public.RetailOrder.where({ organizationId }).all(),
-    db.orm.public.HQAuditEvent.where({ targetId: organizationId }).all()
+    db.orm.public.HQAuditEvent.where({ targetId: organizationId }).all(),
+    db.orm.public.OrganizationContactPoint.where({ organizationId }).all(),
+    db.orm.public.DiscoveryListing.where({ organizationId }).all().first(),
+    db.orm.public.OrganizationClaim.where({ organizationId }).all(),
+    db.orm.public.SourceObservation.where({ organizationId }).all(),
   ]);
 
   // Try to enrich memberships with Person data, limiting to 50 for bounding
@@ -129,7 +144,11 @@ export async function inspectOrganization(organizationId: string) {
     organization: org,
     memberships: enrichedMemberships,
     locations,
-      wallets,
+    wallets,
+    contactPoints,
+    listing,
+    claims,
+    sourceObservations,
     recentTransactions: transactions.slice(-10),
     recentOrders: orders.slice(-10),
     recentAuditEvents: auditEvents.slice(-10),

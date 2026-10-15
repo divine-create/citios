@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { db } from '@/src/prisma/db';
 import { requireSystemAdmin } from '@/lib/rbac';
 import { ShieldAlert, Search, History, Filter } from 'lucide-react';
@@ -18,7 +18,13 @@ export default async function HQActivityPage({ searchParams }: { searchParams: P
 
   // Get bounded list (say 100 recent)
   const audits = await query.all();
-  audits.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  audits.sort((a, b) => {
+    try {
+      return (globalThis as any).Temporal.Instant.compare(b.createdAt, a.createdAt);
+    } catch {
+      return 0;
+    }
+  });
   const recentAudits = audits.slice(0, 100);
 
   // We need to resolve actor Person records.
@@ -38,6 +44,11 @@ export default async function HQActivityPage({ searchParams }: { searchParams: P
             <Filter className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <select name="actionType" defaultValue={actionType || 'ALL'} className="w-full bg-slate-900 border border-slate-800 text-white text-sm rounded-xl pl-9 pr-4 py-2.5 focus:outline-none appearance-none">
               <option value="ALL">All Actions</option>
+              <option value="LISTING_APPROVED">Listing Approved</option>
+              <option value="LISTING_BULK_APPROVED">Listing Bulk Approved</option>
+              <option value="LISTING_REJECTED">Listing Rejected</option>
+              <option value="CLAIM_APPROVED">Claim Approved</option>
+              <option value="CLAIM_REJECTED">Claim Rejected</option>
               <option value="ORGANIZATION_SUSPENDED">Org Suspended</option>
               <option value="ORGANIZATION_REACTIVATED">Org Reactivated</option>
             </select>

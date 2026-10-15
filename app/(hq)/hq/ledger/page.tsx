@@ -47,7 +47,7 @@ export default async function HQLedgerPage({
             </div>
             <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Payment Vol</h3>
           </div>
-          <p className="text-3xl font-black text-white">${(overview.metrics.totalPaymentVolume as number).toLocaleString()}</p>
+          <p className="text-3xl font-black text-white">&#8358;{(overview.metrics.totalPaymentVolume as number).toLocaleString()}</p>
           <p className="text-xs text-slate-500 mt-2">{(overview.metrics.successfulPaymentsCount as number)} successful</p>
         </div>
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
@@ -57,7 +57,7 @@ export default async function HQLedgerPage({
             </div>
             <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Refunds</h3>
           </div>
-          <p className="text-3xl font-black text-white">${(overview.metrics.totalRefundVolume as number).toLocaleString()}</p>
+          <p className="text-3xl font-black text-white">&#8358;{(overview.metrics.totalRefundVolume as number).toLocaleString()}</p>
           <p className="text-xs text-slate-500 mt-2">{(overview.metrics.refundCount as number)} processed</p>
         </div>
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
@@ -68,7 +68,7 @@ export default async function HQLedgerPage({
             <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">System Wallet</h3>
           </div>
           {overview.systemWallet ? (
-             <p className="text-3xl font-black text-white">${overview.systemWallet.balance.toLocaleString()}</p>
+             <p className="text-3xl font-black text-white">&#8358;{overview.systemWallet.balance.toLocaleString()}</p>
           ) : (
              <p className="text-sm font-medium text-slate-500">No system wallet found</p>
           )}

@@ -26,7 +26,7 @@ export default async function HQDiscoveryPage({
   const listings = await getScrapedDiscoveryListings({ status: active });
 
   return (
-    <div className="p-8 space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto">
       <div>
         <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
           <Map className="w-7 h-7 text-teal-400" />
