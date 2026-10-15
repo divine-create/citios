@@ -15,16 +15,34 @@ export default async function BusinessWebsitePage({ searchParams }: { searchPara
   const organizationId = searchOrgId === "null" ? undefined : searchOrgId;
   const session = await getServerSession(authOptions);
 
-  // The org must come from an authenticated membership — never from the URL
-  // alone. If ?org= is omitted, fall back to the caller's first membership.
-  const membership = organizationId
-    ? session?.user?.memberships?.find((m) => m.organizationId === organizationId)
-    : session?.user?.memberships?.[0];
+  if (!session?.user?.personId) {
+    redirect("/login");
+  }
 
-  const hasAccess = !!membership && ALLOWED_ROLES.includes(membership.role);
+  let targetOrgId = organizationId;
+  if (!targetOrgId && session.user.memberships?.length) {
+    targetOrgId = session.user.memberships[0].organizationId;
+  }
 
-  if (!hasAccess || !membership) {
-    redirect("/");
+  if (!targetOrgId) {
+    redirect("/business");
+  }
+
+  const { db } = await import("@/src/prisma/db");
+  const membership = await db.orm.public.Membership.where({
+    personId: session.user.personId,
+    organizationId: targetOrgId,
+  }).all().first();
+
+  if (!membership) {
+    redirect("/business");
+  }
+
+  const roles = await db.orm.public.MembershipRole.where({ membershipId: membership.id }).all();
+  const hasAccess = roles.some((r: any) => ALLOWED_ROLES.includes(r.role));
+
+  if (!hasAccess) {
+    redirect("/business");
   }
 
   return (

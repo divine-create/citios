@@ -12,7 +12,7 @@
 // City table, and the home city is read straight from the Person row.
 // ============================================================================
 
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { getServerSession } from 'next-auth';
 import { db } from '@/src/prisma/db';
 import { authOptions } from '@/lib/auth';
@@ -81,6 +81,18 @@ async function getHomeCity(cities: CityRecord[]): Promise<CityRecord | null> {
 export async function getCurrentCity(): Promise<CityRecord | null> {
   const cities = await getActiveCities();
   if (cities.length === 0) return null;
+
+  // 0. Subdomain override via header (injected by middleware for calabar.9jalive.online, etc.)
+  try {
+    const headerStore = await headers();
+    const subdomainCity = headerStore.get('x-city-slug');
+    if (subdomainCity) {
+      const selected = cities.find((c) => c.slug === subdomainCity.toLowerCase());
+      if (selected) return selected;
+    }
+  } catch {
+    // If headers() is unavailable in context, continue ladder
+  }
 
   // 1. Explicit selection (cookie)
   const cookieStore = await cookies();

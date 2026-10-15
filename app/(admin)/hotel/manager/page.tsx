@@ -8,10 +8,13 @@ export const metadata: Metadata = {
   description: "Hotel Manager Dashboard for CityConnect.",
 };
 
-export default async function ManagerPage() {
-  const resolvedOrgId = await resolveTenantOrg('HOTEL');
-  await requireOrgAccess(resolvedOrgId);
-  const organizationId = resolvedOrgId;
+export default async function ManagerPage({ searchParams }: { searchParams?: Promise<{ org?: string }> }) {
+  const params = searchParams ? await searchParams : {};
+  let organizationId = params.org;
+  if (!organizationId) {
+    organizationId = await resolveTenantOrg('HOTEL');
+  }
+  await requireOrgAccess(organizationId);
   const data = await getHotelAdminData(organizationId);
   const [roomBlocks, nightAuditReports, outletsData] = organizationId
     ? await Promise.all([getRoomBlocks(organizationId), getNightAuditReports(organizationId), getOutletsData(organizationId)])

@@ -15,8 +15,30 @@ const hasGoogleAuth = !!(
   !process.env.GOOGLE_CLIENT_ID.includes("mock")
 );
 
+const apexDomain = (process.env.NEXT_PUBLIC_APEX_DOMAIN || '').toLowerCase();
+const isSharedApex = apexDomain && apexDomain !== 'localhost' && !apexDomain.includes('localhost');
+
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || "cityos-jwt-secret-key-2026",
+  ...(isSharedApex
+    ? {
+        cookies: {
+          sessionToken: {
+            name:
+              process.env.NODE_ENV === "production"
+                ? "__Secure-next-auth.session-token"
+                : "next-auth.session-token",
+            options: {
+              httpOnly: true,
+              sameSite: "lax",
+              path: "/",
+              secure: process.env.NODE_ENV === "production",
+              domain: `.${apexDomain}`,
+            },
+          },
+        },
+      }
+    : {}),
   providers: [
     ...(hasGoogleAuth
       ? [

@@ -10,13 +10,34 @@ export default async function BusinessDomainPage({ searchParams }: { searchParam
   const { org: organizationId } = await searchParams;
   const session = await getServerSession(authOptions);
 
-  const membership = organizationId
-    ? session?.user?.memberships?.find((m) => m.organizationId === organizationId)
-    : session?.user?.memberships?.[0];
+  if (!session?.user?.personId) {
+    redirect("/login");
+  }
 
-  const hasAccess = !!membership && ALLOWED_ROLES.includes(membership.role);
-  if (!hasAccess || !membership) {
-    redirect("/");
+  let targetOrgId = organizationId;
+  if (!targetOrgId && session.user.memberships?.length) {
+    targetOrgId = session.user.memberships[0].organizationId;
+  }
+
+  if (!targetOrgId) {
+    redirect("/business");
+  }
+
+  const { db } = await import("@/src/prisma/db");
+  const membership = await db.orm.public.Membership.where({
+    personId: session.user.personId,
+    organizationId: targetOrgId,
+  }).all().first();
+
+  if (!membership) {
+    redirect("/business");
+  }
+
+  const roles = await db.orm.public.MembershipRole.where({ membershipId: membership.id }).all();
+  const hasAccess = roles.some((r: any) => ALLOWED_ROLES.includes(r.role));
+
+  if (!hasAccess) {
+    redirect("/business");
   }
 
   // In a real app we'd fetch the microsite and see if it has a custom domain already

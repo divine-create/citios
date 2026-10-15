@@ -85,6 +85,30 @@ export async function getUnifiedBusinessAnalytics(organizationId: string) {
       status: o.status,
       time: o.createdAt
     })));
+  } else if (org.type === 'SERVICES') {
+    const invoices = await db.orm.public.ServiceInvoice.where({ organizationId }).all();
+    ordersCount = invoices.length;
+    revenue = invoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
+
+    recentOrders.push(...invoices.slice(0, 10).map(inv => ({
+      ref: inv.id.substring(0, 6).toUpperCase(),
+      name: 'Client',
+      area: 'Service Invoice',
+      amount: (inv.total || 0),
+      status: inv.status,
+      time: inv.createdAt
+    })));
+  } else if (org.type === 'LOGISTICS') {
+    const jobs = await db.orm.public.DeliveryJob.where({ providerId: organizationId }).all();
+    ordersCount = jobs.length;
+    recentOrders.push(...jobs.slice(0, 10).map(j => ({
+      ref: j.id.substring(0, 6).toUpperCase(),
+      name: j.dropoffAddress?.split(',')[0] || 'Delivery Job',
+      area: 'Dispatch',
+      amount: 0,
+      status: j.status,
+      time: j.createdAt
+    })));
   } else if (org.type === 'SCHOOL') {
     // Basic stats for school
     const rels = await db.orm.public.Relationship.where({ organizationId }).all();

@@ -2,10 +2,9 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signIn, useSession } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import { registerHOTEL } from '@/lib/actions/business';
-import { Loader2, ArrowRight } from 'lucide-react';
-
+import { Loader2, ArrowRight, Building2 } from 'lucide-react';
 import { NIGERIAN_STATES } from '@/lib/data/nigeria';
 
 export default function HotelRegisterForm({ isLoggedIn }: { isLoggedIn: boolean }) {
@@ -32,7 +31,7 @@ export default function HotelRegisterForm({ isLoggedIn }: { isLoggedIn: boolean 
     setError('');
 
     if (!isLoggedIn) {
-      router.push('/login?callbackUrl=/business/HOTELos/register');
+      router.push('/login?callbackUrl=/business/hotelos/register');
       return;
     }
 
@@ -54,7 +53,7 @@ export default function HotelRegisterForm({ isLoggedIn }: { isLoggedIn: boolean 
       } catch {}
 
       const orgId = result.organizationId;
-      const destination = orgId ? `/workspaces/HOTELos/${orgId}` : '/HOTEL/admin';
+      const destination = orgId ? `/workspaces/hotelos/${orgId}` : '/hotel/manager';
       try {
         if (orgId) {
           localStorage.setItem('cityconnect_active_business_id', orgId);
@@ -74,14 +73,14 @@ export default function HotelRegisterForm({ isLoggedIn }: { isLoggedIn: boolean 
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="col-span-1 md:col-span-2">
-          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Official HOTEL Name *</label>
+          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Hotel / Property Name *</label>
           <input 
             required
             type="text" 
-            placeholder="e.g. Springfield High HOTEL"
+            placeholder="e.g. Grand Royal Hotel & Suites"
             value={formData.name}
             onChange={e => setFormData({...formData, name: e.target.value})}
-            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all font-medium text-slate-900"
+            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all font-medium text-slate-900"
           />
         </div>
 
@@ -94,7 +93,7 @@ export default function HotelRegisterForm({ isLoggedIn }: { isLoggedIn: boolean 
               // Reset LGA when state changes
               setFormData({...formData, state: e.target.value, lga: ''})
             }}
-            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all font-medium text-slate-900"
+            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all font-medium text-slate-900"
           >
             <option value="" disabled>Select a State</option>
             {Object.keys(NIGERIAN_STATES).sort().map(state => (
@@ -110,7 +109,7 @@ export default function HotelRegisterForm({ isLoggedIn }: { isLoggedIn: boolean 
             value={formData.lga}
             onChange={e => setFormData({...formData, lga: e.target.value})}
             disabled={!formData.state}
-            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all font-medium text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all font-medium text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <option value="" disabled>{formData.state ? 'Select an LGA' : 'Select a State first'}</option>
             {availableLGAs.map((lga: string) => (
@@ -123,16 +122,16 @@ export default function HotelRegisterForm({ isLoggedIn }: { isLoggedIn: boolean 
           <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Street Address *</label>
           <textarea 
             required
-            placeholder="e.g. 14 Awolowo Way"
+            placeholder="e.g. 14 Victoria Island Way, Lagos"
             value={formData.address}
             onChange={e => setFormData({...formData, address: e.target.value})}
             rows={2}
-            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all font-medium text-slate-900 resize-none"
+            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all font-medium text-slate-900 resize-none"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Phone Number *</label>
+          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Front Desk Phone *</label>
           <input 
             required
             type="tel" 
@@ -141,18 +140,18 @@ export default function HotelRegisterForm({ isLoggedIn }: { isLoggedIn: boolean 
             title="Please enter a valid Nigerian phone number (e.g., 08012345678 or +2348012345678)"
             value={formData.phone}
             onChange={e => setFormData({...formData, phone: e.target.value})}
-            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all font-medium text-slate-900"
+            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all font-medium text-slate-900"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Public Email</label>
+          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Reservations Email</label>
           <input 
             type="email" 
-            placeholder="admissions@HOTEL.edu"
+            placeholder="reservations@grandroyal.com"
             value={formData.email}
             onChange={e => setFormData({...formData, email: e.target.value})}
-            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all font-medium text-slate-900"
+            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all font-medium text-slate-900"
           />
         </div>
       </div>
@@ -161,19 +160,17 @@ export default function HotelRegisterForm({ isLoggedIn }: { isLoggedIn: boolean 
         <button 
           type="submit" 
           disabled={loading}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-600/20 disabled:opacity-70"
+          className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-amber-600/20 disabled:opacity-70 cursor-pointer"
         >
           {loading ? (
-            <><Loader2 className="animate-spin" size={20} /> Provisioning HOTELOS...</>
+            <><Loader2 className="animate-spin" size={20} /> Initializing HotelOS & Front Desk...</>
           ) : !isLoggedIn ? (
-            <><img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5 bg-white rounded-full p-0.5" /> Sign in to continue</>
+            <><Building2 className="w-5 h-5" /> Sign in to Register Property</>
           ) : (
-            <>Launch HOTELOS Dashboard <ArrowRight size={20} /></>
+            <>Launch HotelOS Dashboard <ArrowRight size={20} /></>
           )}
         </button>
       </div>
     </form>
   );
 }
-
-

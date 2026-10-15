@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/src/prisma/db";
 import { provisionRestaurantOS } from "@/lib/actions/restaurantos";
-import { requireAuthenticatedAccount } from "@/lib/actions/tenant";
+import { requireAuthenticatedAccount, requireMembership } from "@/lib/actions/tenant";
 
 // Registration default: when the onboarding form doesn't specify a city, the
 // organization lands in the first active city in the registry. Explicit
@@ -209,21 +209,21 @@ function resolveWorkspaceUrl(orgId: string, type: string): string {
     case 'RETAIL':
       return `/workspaces/shopos/${orgId}`;
     case 'RESTAURANT':
-      return `/workspaces/restaurantos/${orgId}`;
+      return `/workspaces/restaurantos/${orgId}/management/overview`;
     case 'SERVICES':
       return `/workspaces/serviceos/${orgId}`;
     case 'SCHOOL':
-      return `/workspaces/schoolos/${orgId}`;
+      return `/school/admin?org=${orgId}`;
     case 'HOTEL':
-      return `/hotel-os?org=${orgId}`;
+      return `/hotel/manager?org=${orgId}`;
     case 'EVENT_ORGANIZER':
-      return `/admin/events`;
+      return `/admin/events?org=${orgId}`;
     case 'HEALTHCARE':
-      return `/admin/healthcare`;
+      return `/admin/healthcare?org=${orgId}`;
     case 'LOGISTICS':
-      return `/business/logisticsos`;
+      return `/business/logisticsos/dashboard?org=${orgId}`;
     default:
-      return `/org/${orgId}`;
+      return `/workspaces/shopos/${orgId}`;
   }
 }
 
@@ -319,6 +319,25 @@ export async function quickCreateBusiness(data: {
       role: 'OWNER',
     });
 
+    // Provision primary location & wallet
+    const location = await db.orm.public.Location.create({
+      organizationId: org.id,
+      name: 'Main Location',
+      address: org.address || null,
+      cityId: city.id,
+    });
+
+    await db.orm.public.MembershipLocation.create({
+      membershipId: membership.id,
+      locationId: location.id,
+    });
+
+    await db.orm.public.Wallet.create({
+      organizationId: org.id,
+      balance: 0.0,
+      currency: city.currency || 'NGN',
+    });
+
     // Auto-provision vertical configurations
     if (data.type === 'RESTAURANT') {
       await provisionRestaurantOS(org.id);
@@ -402,9 +421,9 @@ export async function registerHOTEL(data: {
         description: data.address,
       });
 
-      await tx.orm.public.Location.create({
+      const location = await tx.orm.public.Location.create({
         organizationId: org.id,
-        name: data.shortName || 'Main Campus',
+        name: data.shortName || 'Main Lodge',
         address: data.address,
         cityId: city.id,
       });
@@ -419,10 +438,28 @@ export async function registerHOTEL(data: {
         role: 'OWNER',
       });
 
+      await tx.orm.public.MembershipLocation.create({
+        membershipId: membership.id,
+        locationId: location.id,
+      });
+
       await tx.orm.public.Wallet.create({
         organizationId: org.id,
         balance: 0.0,
-        currency: city.currency || 'USD',
+        currency: city.currency || 'NGN',
+      });
+
+      // Provision discovery listing for marketplace visibility
+      const listingSlug = `${data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}-${org.id.slice(0, 8)}`;
+      await tx.orm.public.DiscoveryListing.create({
+        organizationId: org.id,
+        locationId: location.id,
+        cityId: city.id,
+        vertical: 'HOTEL',
+        slug: listingSlug,
+        title: data.name,
+        description: data.address || null,
+        isActive: true,
       });
 
       return org.id;
@@ -431,6 +468,34 @@ export async function registerHOTEL(data: {
     return { success: true, organizationId: orgId };
   } catch (err: any) {
     return { error: err.message || 'Failed to register hotel.' };
+  }
+}
+
+export async function getOrgLocations(organizationId: string) {
+  try {
+    await requireMembership(organizationId);
+    const locations = await db.orm.public.Location.where({ organizationId }).all();
+    locations.sort((a: any, b: any) => a.name.localeCompare(b.name));
+    return JSON.parse(JSON.stringify(locations));
+  } catch (error) {
+    console.error('Error fetching org locations:', error);
+    return [];
+  }
+}
+
+export async function createOrgLocation(input: { organizationId: string; name: string; address?: string }) {
+  try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
+    if (!input.name?.trim()) return { error: 'Location name is required.' };
+    const location = await db.orm.public.Location.create({
+      organizationId: input.organizationId,
+      name: input.name.trim(),
+      address: input.address?.trim() || null,
+    });
+    return { success: true, location: JSON.parse(JSON.stringify(location)) };
+  } catch (error: any) {
+    console.error('Error creating location:', error);
+    return { error: error?.message || 'Failed to create location.' };
   }
 }
 

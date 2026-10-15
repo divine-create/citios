@@ -5,10 +5,11 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/src/prisma/db';
 
-const VALID_OS = new Set(['shopos', 'serviceos', 'schoolos', 'restaurantos']);
+const VALID_OS = new Set(['shopos', 'serviceos', 'schoolos', 'restaurantos', 'hotelos', 'logisticsos', 'eventos', 'healthos']);
 
 export default async function WorkspacePage({ params }: { params: Promise<{ os: string; slug: string }> }) {
-  const { os, slug } = await params;
+  const { os: rawOs, slug } = await params;
+  const os = rawOs.toLowerCase();
 
   if (!VALID_OS.has(os)) {
     return (
@@ -89,6 +90,26 @@ export default async function WorkspacePage({ params }: { params: Promise<{ os: 
         currentUserId={currentUserId}
       />
     );
+  }
+
+  if (os === 'hotelos') {
+    const { redirect } = await import('next/navigation');
+    redirect(`/hotel/manager?org=${slug}`);
+  }
+
+  if (os === 'logisticsos') {
+    const { redirect } = await import('next/navigation');
+    redirect(`/business/logisticsos/dashboard?org=${slug}`);
+  }
+
+  if (os === 'eventos') {
+    const { redirect } = await import('next/navigation');
+    redirect(`/admin/events?org=${slug}`);
+  }
+
+  if (os === 'healthos') {
+    const { redirect } = await import('next/navigation');
+    redirect(`/admin/healthcare?org=${slug}`);
   }
 
   return null;

@@ -21,11 +21,13 @@ export async function switchCity(slug: string) {
     return { ok: false as const, error: 'Unknown or inactive city.' };
   }
 
+  const apexDomain = (process.env.NEXT_PUBLIC_APEX_DOMAIN || '').toLowerCase();
   const cookieStore = await cookies();
   cookieStore.set(CITY_COOKIE, city.slug, {
     path: '/',
     maxAge: 60 * 60 * 24 * 365,
     sameSite: 'lax',
+    domain: apexDomain && apexDomain !== 'localhost' ? `.${apexDomain}` : undefined,
   });
 
   return { ok: true as const, city: { slug: city.slug, name: city.name } };

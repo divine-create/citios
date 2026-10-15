@@ -75,6 +75,19 @@ export default function CityPicker({ className }: { className?: string }) {
     setOpen(false);
     setQuery('');
     await switchCity(slug);
+
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname.toLowerCase();
+      const apex = (process.env.NEXT_PUBLIC_APEX_DOMAIN || '').toLowerCase();
+      if (apex && apex !== 'localhost' && hostname.endsWith(`.${apex}`)) {
+        const currentSub = hostname.slice(0, -(apex.length + 1));
+        if (currentSub && currentSub !== 'www' && currentSub !== slug) {
+          window.location.href = `${window.location.protocol}//${slug}.${apex}${window.location.pathname}${window.location.search}`;
+          return;
+        }
+      }
+    }
+
     // Re-render the whole server tree so the new city flows through
     // CityProvider into every consuming component.
     startTransition(() => router.refresh());
