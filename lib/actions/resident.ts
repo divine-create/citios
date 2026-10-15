@@ -17,7 +17,27 @@ async function getOrgsByType(type: string) {
     const cityOrgIds = new Set(locs.map(l => l.organizationId));
     orgs = orgs.filter(o => cityOrgIds.has(o.id));
   }
-  return JSON.parse(JSON.stringify(orgs));
+
+  const listings = await db.orm.public.DiscoveryListing.all();
+  const listingMap = new Map(listings.map((l: any) => [l.organizationId, l]));
+
+  return orgs.map((o: any) => {
+    const listing = listingMap.get(o.id);
+    let cover = o.logoAssetId || listing?.coverAssetId;
+    if (!cover && listing?.metadata) {
+      try {
+        const meta = JSON.parse(listing.metadata);
+        cover = meta.coverImage || meta.images?.[0];
+      } catch {}
+    }
+    return {
+      ...o,
+      storeCoverImage: cover,
+      image: cover,
+      imageUrl: cover,
+      coverAssetId: cover,
+    };
+  });
 }
 
 export async function getHealthcareOrgs() {

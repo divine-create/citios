@@ -50,7 +50,7 @@ export async function searchCityExplore(citySlug: string | undefined, query: str
         rating: typeof meta.rating === 'number' ? meta.rating : null, 
         isOpen: typeof meta.isOpen === 'boolean' ? meta.isOpen : true,
         deliveryEta: typeof meta.deliveryEta === 'number' ? meta.deliveryEta : null,
-        cover: l.coverAssetId
+        cover: l.coverAssetId || meta.coverImage || meta.images?.[0] || l.organization?.logoAssetId || undefined
       };
     }),
     products: [] // We skip direct product injection per architecture rules.

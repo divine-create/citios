@@ -121,7 +121,7 @@ export default function CityFood() {
                       {r.rating ? <Stars rating={r.rating} className="shrink-0 mt-0.5" /> : null}
                     </div>
                     <p className="text-[12px] font-bold text-slate-400 truncate">
-                       {r.category ?? 'Restaurant'} • {r.deliveryEta || '15-30 min'}
+                       {r.category ?? 'Restaurant'}{r.area ? ` • ${r.area}` : ''}{r.deliveryEta ? ` • ${r.deliveryEta}` : ''}
                     </p>
                   </div>
                 </Link>

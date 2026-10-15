@@ -22,7 +22,13 @@ export async function getCanonicalOrganization(id: string) {
   const memberships = await db.orm.public.Membership.where({ organizationId: org.id }).all();
   const contactPoints = await db.orm.public.OrganizationContactPoint.where({ organizationId: org.id }).all();
   const isClaimed = memberships.length > 0;
-  
+  const listing = await db.orm.public.DiscoveryListing.where({ organizationId: org.id }).first();
+  let meta: any = {};
+  try {
+    if (listing?.metadata) meta = JSON.parse(listing.metadata);
+  } catch {}
+  const cover = org.logoAssetId || listing?.coverAssetId || meta.coverImage || meta.images?.[0] || null;
+
   return {
     id: org.id,
     name: org.name,
@@ -32,6 +38,9 @@ export async function getCanonicalOrganization(id: string) {
     citySlug: orgCity?.slug ?? null,
     address: org.address,
     logoAssetId: org.logoAssetId,
+    coverImage: cover,
+    images: meta.images || (cover ? [cover] : []),
+    metadata: meta,
     locations,
     isClaimed,
     contactPoints: JSON.parse(JSON.stringify(contactPoints)),

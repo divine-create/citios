@@ -11,26 +11,29 @@ export async function getOrCreateResidentWallet(personIdOverride?: string) {
     const { person } = await requireAuthenticatedAccount();
     personId = person.id;
   }
-  return await db.transaction(async (tx) => {
-    let wallet = await tx.orm.public.Wallet.where({ personId }).select('id', 'balance', 'currency', 'personId').all().first();
-    if (!wallet) {
-      try {
+
+  const existing = await db.orm.public.Wallet.where({ personId }).select('id', 'balance', 'currency', 'personId').all().first();
+  if (existing) return existing;
+
+  try {
+    return await db.transaction(async (tx) => {
+      let wallet = await tx.orm.public.Wallet.where({ personId }).select('id', 'balance', 'currency', 'personId').all().first();
+      if (!wallet) {
         wallet = await tx.orm.public.Wallet.select('id', 'balance', 'currency', 'personId').create({
           personId,
           balance: 0,
           currency: 'NGN'
         });
-      } catch (err: any) {
-        if (err.sqlState === '23505' || err.code === '23505' || err.message?.includes('Unique constraint')) {
-          const existing = await tx.orm.public.Wallet.where({ personId }).select('id', 'balance', 'currency', 'personId').all().first();
-          if (!existing) throw new Error('Failed to recover from concurrent wallet creation');
-          return existing;
-        }
-        throw err;
       }
+      return wallet;
+    });
+  } catch (err: any) {
+    if (err.sqlState === '23505' || err.code === '23505' || err.message?.includes('Unique constraint') || err.message?.includes('unique') || err.message?.includes('aborted')) {
+      const recovered = await db.orm.public.Wallet.where({ personId }).select('id', 'balance', 'currency', 'personId').all().first();
+      if (recovered) return recovered;
     }
-    return wallet;
-  });
+    throw err;
+  }
 }
 
 export async function getResidentWallet(personIdOverride?: string) {
@@ -42,12 +45,15 @@ export async function getResidentWallet(personIdOverride?: string) {
   const wallet = await db.orm.public.Wallet.where({ personId }).select('id', 'balance', 'currency', 'personId').all().first();
   if (!wallet) return null;
 
-  // Retrieve pending funding amount
-  const pendingPayments = await db.orm.public.Payment.where((p: any) => 
-    p.status.equals('PENDING') && p.reference.startsWith('WAL-')
-  ).select('amount').all();
+  // Retrieve pending funding amount scoped to this wallet
+  const pendingPayments = await db.orm.public.Payment
+    .where({ status: 'PENDING' })
+    .select('amount', 'reference')
+    .all();
   
-  const pendingAmount = pendingPayments.reduce((acc, p) => acc + p.amount, 0);
+  const pendingAmount = pendingPayments
+    .filter((p: any) => p.reference?.startsWith(`WAL-${wallet.id}-`))
+    .reduce((acc: number, p: any) => acc + (p.amount || 0), 0);
   
   return { ...wallet, pendingAmount };
 }
@@ -114,10 +120,13 @@ export async function getResidentWalletTransactions(page: number = 1, pageSize: 
     .offset(offset)
     .all();
     
-  // get total using count builder
-  const total = await db.orm.public.LedgerEntry
+  // get total using aggregate
+  const totals = await db.orm.public.LedgerEntry
     .where({ walletId: wallet.id })
-    .count();
+    .aggregate((a: any) => ({
+      total: a.count(),
+    }));
+  const total = totals.total ?? 0;
     
   return { 
     entries: entries.map((e: any) => ({ 

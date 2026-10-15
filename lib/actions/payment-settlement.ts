@@ -131,7 +131,7 @@ export async function settleSuccessfulPayment(options: SettlePaymentOptions) {
       
       if (!transactionRecord) {
         transactionRecord = await tx.orm.public.Transaction.create({
-          reference: payment.reference || `TX-${payment.id.slice(0, 8)}`,
+          reference: payment.reference || payment.id,
           status: 'COMPLETED',
           description: `Online settlement ${payment.reference || payment.id}`,
         });

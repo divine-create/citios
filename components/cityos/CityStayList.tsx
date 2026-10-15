@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
@@ -37,7 +37,7 @@ export default function CityStayList({ hotels = [] }: { hotels?: any[] }) {
         {hotels.map((h) => (
           <CityCard key={h.id} href={`/stay/${h.id}`} className="flex flex-col">
             <div className="relative">
-              <FallbackImg src={h.storeCoverImage} alt={h.name} className="h-40 w-full" gradient="from-teal-900 to-teal-700" />
+              <FallbackImg src={h.storeCoverImage || h.image || h.logoAssetId} alt={h.name} className="h-40 w-full" gradient="from-teal-900 to-teal-700" />
               <span className="absolute top-2 left-2">
                 <Pill tone={false ? 'green' : 'blue'}>
                   {false ? 'Best value' : h.storeCategory ?? 'Hotel'}

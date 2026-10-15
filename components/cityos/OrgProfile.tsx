@@ -3,7 +3,7 @@ import { ArrowRight, Briefcase, BadgeCheck, Users, CalendarDays, ClipboardList, 
 import { getCanonicalOrganization } from '@/app/actions/org';
 import { formatMoney } from '@/lib/format';
 import { getCurrentCity } from '@/lib/city';
-import { Pill, Stars, LocationRow,  VerifiedBadge } from '@/components/cityos/CityUI';
+import { Pill, Stars, LocationRow, VerifiedBadge, FallbackImg } from '@/components/cityos/CityUI';
 import ClientProductList from '@/components/cityos/ClientProductList';
 import CityMismatchChip from '@/components/cityos/CityMismatchChip';
 import { getServerSession } from 'next-auth';
@@ -99,8 +99,13 @@ export default async function OrgProfile({ id }: { id: string }) {
         <div className="absolute -right-14 -top-14 w-60 h-60 rounded-full bg-white/10 blur-3xl" />
         <div className="relative flex flex-col md:flex-row md:items-end gap-4 justify-between">
           <div className="flex items-center gap-4">
-            {org.logoAssetId ? (
-              <img src={`/api/assets/${org.logoAssetId}`} alt={org.name} className="w-16 h-16 rounded-2xl object-cover shrink-0 bg-white ring-1 ring-white/20" />
+            {org.coverImage || org.logoAssetId ? (
+              <FallbackImg
+                src={org.coverImage || (org.logoAssetId?.startsWith('http') || org.logoAssetId?.startsWith('/') ? org.logoAssetId : `/api/assets/${org.logoAssetId}`)}
+                alt={org.name}
+                className="w-16 h-16 rounded-2xl object-cover shrink-0 bg-white ring-1 ring-white/20"
+                icon={<span className="text-3xl">{emoji}</span>}
+              />
             ) : (
               <span className="w-16 h-16 rounded-2xl bg-white/15 ring-1 ring-white/20 flex items-center justify-center text-3xl shrink-0">
                 {emoji}
@@ -111,7 +116,7 @@ export default async function OrgProfile({ id }: { id: string }) {
                 <h1 className="text-2xl font-black tracking-tight">{org.name}</h1>
               </div>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-[11px] font-bold text-white/70">Verified Org</span>
+                <span className="text-[11px] font-bold text-white/70">{org.isClaimed ? 'Verified Org' : 'Directory Listing'}</span>
               </div>
             </div>
           </div>
@@ -178,11 +183,34 @@ export default async function OrgProfile({ id }: { id: string }) {
         <p className="text-[13px] text-slate-600 leading-relaxed">{org.description || 'A verified organization in CityConnect.'}</p>
         <div className="mt-4 flex items-center gap-2 flex-wrap">
           <LocationRow text={`${addressStr}`} className="text-[11px]" />
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-700">
-            <CheckCircle2 className="w-3.5 h-3.5" /> Verified on CityOS
-          </span>
+          {org.isClaimed ? (
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-700">
+              <CheckCircle2 className="w-3.5 h-3.5" /> Verified on CityOS
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-400">
+              Public Directory Listing
+            </span>
+          )}
         </div>
       </section>
+
+      {/* Photos Gallery */}
+      {org.images && org.images.length > 0 && (
+        <section className="bg-white rounded-2xl border border-slate-100 p-5 md:p-6 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-black text-ink">Photos</h2>
+            <span className="text-[11px] font-bold text-slate-400">{org.images.length} photo{org.images.length === 1 ? '' : 's'}</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {org.images.map((img: string, idx: number) => (
+              <div key={idx} className="relative aspect-video rounded-xl overflow-hidden bg-slate-100 border border-slate-100">
+                <FallbackImg src={img} alt={`${org.name} photo ${idx + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* OS-specific listings */}
       {svc && svc.services.length > 0 ? (

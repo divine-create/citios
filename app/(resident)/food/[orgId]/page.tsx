@@ -70,7 +70,8 @@ export default async function CityFoodRestaurantPage({ params }: Props) {
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-xl bg-slate-50 px-3 py-2 text-[10px] font-black text-slate-600">
                 <Clock className="w-3 h-3 text-orange-500" />
-                {restaurant.deliveryEta ?? '45 min'} pickup</span>
+                {restaurant.deliveryEta ? `${restaurant.deliveryEta} pickup` : 'Dine-in & Takeout'}
+              </span>
             </div>
           </div>
         </div>
