@@ -351,12 +351,12 @@ export async function getCityMartStores(citySlug?: string) {
   return orgs.map((o: any) => {
     const listing = listingMap.get(o.id);
     let cover = o.logoAssetId || listing?.coverAssetId;
-    let rating = 4.8;
+    let rating: number | null = null;
     if (listing?.metadata) {
       try {
         const meta = JSON.parse(listing.metadata);
         if (!cover) cover = meta.coverImage || meta.images?.[0];
-        if (typeof meta.rating === 'number') rating = meta.rating;
+        if (typeof meta.rating === 'number' && meta.rating > 0) rating = meta.rating;
       } catch {}
     }
     return {

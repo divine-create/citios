@@ -45,7 +45,7 @@ async function getOrgsByType(type: string) {
       imageUrl: cover,
       coverAssetId: cover,
       images: images.length > 0 ? images : cover ? [cover] : [],
-      rating: rating ?? 4.8,
+      rating: rating,
       neighborhood: o.address ? o.address.split(',')[0].trim() : 'Calabar',
     };
   });

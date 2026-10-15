@@ -139,11 +139,11 @@ export default function CityExplore() {
                   subtitle={b.tagline || b.category}
                   neighborhood={b.area || cityName}
                   image={b.cover}
-                  rating={b.rating || 4.8}
-                  badge={idx % 4 === 0 ? 'Guest favorite' : undefined}
-                  price={price}
-                  priceSuffix={priceSuffix}
-                  metaLine={isFood ? '⚡ 25-35 min delivery' : b.isOpen ? 'Open now' : 'Closed'}
+                  rating={b.rating}
+                  badge={b.badge}
+                  price={b.price}
+                  priceSuffix={b.price ? priceSuffix : undefined}
+                  metaLine={isFood ? '⚡ Local kitchen' : b.isOpen ? 'Open' : 'Closed'}
                   aspectRatio="4/3"
                 />
               );

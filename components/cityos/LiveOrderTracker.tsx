@@ -209,8 +209,8 @@ export default function LiveOrderTracker({ order }: OrderTrackingProps) {
               <div>
                 <div className="flex items-center gap-2">
                   <h4 className="text-sm font-black text-slate-900">{courier.name}</h4>
-                  <span className="text-[10px] font-black bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">
-                    ★ {courier.rating}
+                  <span className="text-[10px] font-black bg-teal-100 text-teal-800 px-1.5 py-0.5 rounded">
+                    Verified Courier
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 font-medium mt-0.5">

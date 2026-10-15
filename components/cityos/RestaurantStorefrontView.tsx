@@ -127,10 +127,18 @@ export default function RestaurantStorefrontView({ restaurant, location, menuIte
             <div>
               <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">{restaurant.name}</h1>
               <div className="flex items-center gap-2 mt-1">
-                <Stars rating={restaurant.rating ?? 0} />
-                <span className="text-xs font-black text-slate-500">
-                  {restaurant.rating ? `${restaurant.rating} Rating` : 'Authentic Kitchen'}
-                </span>
+                {restaurant.rating && restaurant.rating > 0 ? (
+                  <>
+                    <Stars rating={restaurant.rating} />
+                    <span className="text-xs font-black text-slate-500">
+                      {restaurant.rating.toFixed(1)} Rating
+                    </span>
+                  </>
+                ) : (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-black bg-neutral-100 text-[#222222]">
+                    Newly Listed
+                  </span>
+                )}
                 <span className="text-slate-300">•</span>
                 <span className="text-xs font-bold text-slate-500">{restaurant.area || cityName}</span>
               </div>

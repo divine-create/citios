@@ -72,10 +72,10 @@ export default function CityStayList({ hotels = [] }: { hotels?: any[] }) {
               neighborhood={h.neighborhood || h.address || `${cityName} Metro`}
               image={h.storeCoverImage || h.image || h.logoAssetId}
               images={h.images}
-              rating={h.rating || 4.85}
-              reviewCount={12 + ((idx * 7) % 40)}
-              badge={idx % 3 === 0 ? 'Guest favorite' : idx % 5 === 0 ? 'Top Pick' : undefined}
-              price={basePrice}
+              rating={h.rating}
+              reviewCount={h.reviewCount}
+              badge={h.badge}
+              price={h.price || basePrice}
               priceSuffix="night"
               metaLine="Free cancellation · Verified host"
               aspectRatio="4/3"

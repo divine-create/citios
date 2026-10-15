@@ -68,12 +68,12 @@ export default function CityHouse({ stays = [] }: { stays?: any[] }) {
               neighborhood={p.neighborhood || p.address || `${cityName} Metro`}
               image={p.storeCoverImage || p.image || p.logoAssetId}
               images={p.images}
-              rating={p.rating || 4.88}
-              reviewCount={15 + ((idx * 6) % 30)}
-              badge={idx % 3 === 0 ? 'Guest favorite' : undefined}
+              rating={p.rating}
+              reviewCount={p.reviewCount}
+              badge={p.badge}
               price={price}
               priceSuffix="night"
-              metaLine="2 bedrooms · Wifi · 24/7 Power"
+              metaLine="Furnished · Verified host"
               aspectRatio="4/3"
             />
           );

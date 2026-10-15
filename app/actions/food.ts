@@ -23,7 +23,7 @@ function mapMenuItem(m: any) {
   };
 }
 
-function mapRestaurant(o: any, menuItems: any[], citySlug: string | null = null, coverUrl?: string | null) {
+function mapRestaurant(o: any, menuItems: any[], citySlug: string | null = null, coverUrl?: string | null, meta?: any) {
   const image = coverUrl || o.logoAssetId || undefined;
   return {
     id: o.id,
@@ -31,16 +31,16 @@ function mapRestaurant(o: any, menuItems: any[], citySlug: string | null = null,
     type: o.type,
     description: o.description,
     address: o.address,
-    
     citySlug,
     menuItems,
     imageUrl: image,
     image: image,
-    rating: null,
-    isOpen: true,
+    images: meta?.images && Array.isArray(meta.images) && meta.images.length > 0 ? meta.images : (image ? [image] : []),
+    rating: typeof meta?.rating === 'number' && meta.rating > 0 ? meta.rating : null,
+    isOpen: typeof meta?.isOpen === 'boolean' ? meta.isOpen : true,
     area: o.address || '',
     category: o.storeCategory || 'Restaurant',
-    deliveryEta: null,
+    deliveryEta: meta?.deliveryEta || null,
   };
 }
 
@@ -70,17 +70,19 @@ export async function getCityFood(citySlug?: string) {
     restaurants: orgs.map((o) => {
       const listing = listingMap.get(o.id);
       let cover = listing?.coverAssetId || o.logoAssetId;
-      if (!cover && listing?.metadata) {
+      let meta: any = null;
+      if (listing?.metadata) {
         try {
-          const meta = JSON.parse(listing.metadata);
-          cover = meta.coverImage || meta.images?.[0];
+          meta = JSON.parse(listing.metadata);
+          if (!cover) cover = meta.coverImage || meta.images?.[0];
         } catch {}
       }
       return mapRestaurant(
         o,
         availableMenus.filter((m: any) => m.organizationId === o.id).map(mapMenuItem),
         city.slug,
-        cover
+        cover,
+        meta
       );
     }),
     menuItems: availableMenus.map(mapMenuItem),
@@ -104,10 +106,11 @@ export async function getCityFoodRestaurant(orgId: string) {
 
   const listing = await db.orm.public.DiscoveryListing.where({ organizationId: org.id }).all().first();
   let cover = listing?.coverAssetId || org.logoAssetId;
-  if (!cover && listing?.metadata) {
+  let meta: any = null;
+  if (listing?.metadata) {
     try {
-      const meta = JSON.parse(listing.metadata);
-      cover = meta.coverImage || meta.images?.[0];
+      meta = JSON.parse(listing.metadata);
+      if (!cover) cover = meta.coverImage || meta.images?.[0];
     } catch {}
   }
 
@@ -116,7 +119,7 @@ export async function getCityFoodRestaurant(orgId: string) {
   const availableMenus = menus.filter((m: any) => m.isAvailable);
 
   return {
-    ...mapRestaurant(org, availableMenus.map(mapMenuItem), activeCity?.slug ?? null, cover),
+    ...mapRestaurant(org, availableMenus.map(mapMenuItem), activeCity?.slug ?? null, cover, meta),
     location: locs[0] ?? null,
     menuItems: availableMenus.map(mapMenuItem),
   };

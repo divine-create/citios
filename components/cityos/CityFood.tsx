@@ -30,7 +30,7 @@ const GLOVO_FILTERS = [
   { id: 'free_delivery', label: '🎉 Free Delivery', icon: Bike },
   { id: 'soups', label: '🍲 Calabar Soups', icon: Utensils },
   { id: 'suya', label: '🍢 Suya & Grills', icon: Flame },
-  { id: 'top_rated', label: '★ Top Rated (4.8+)', icon: Star },
+  { id: 'top_rated', label: '★ Top Rated', icon: Star },
 ];
 
 interface RestaurantView {
@@ -39,7 +39,8 @@ interface RestaurantView {
   type: string;
   description?: string;
   address?: string;
-  rating?: number;
+  rating?: number | null;
+  reviewCount?: number;
   image?: string;
   images?: string[];
   category: string;
@@ -100,7 +101,7 @@ export default function CityFood() {
       const text = `${r.name} ${r.description || ''} ${r.category}`.toLowerCase();
       return text.includes('suya') || text.includes('grill') || text.includes('fish') || text.includes('bar') || text.includes('joint');
     }
-    if (activeFilter === 'top_rated') return (r.rating || 4.8) >= 4.8;
+    if (activeFilter === 'top_rated') return typeof r.rating === 'number' && r.rating >= 4.5;
     return true;
   });
 
@@ -163,6 +164,10 @@ export default function CityFood() {
               const deliveryEta = idx % 2 === 0 ? '20 - 30 min' : '25 - 35 min';
               const deliveryFeeText = idx % 3 === 0 ? 'Free Delivery' : '₦600 delivery';
 
+              const minPrice = r.menuItems && r.menuItems.length > 0 
+                ? Math.min(...r.menuItems.map((m: any) => m.price)) 
+                : undefined;
+
               return (
                 <div key={r.id} className="relative group/spot">
                   <AirbnbCard
@@ -173,11 +178,11 @@ export default function CityFood() {
                     neighborhood={r.area || r.address || `${cityName}`}
                     image={r.image}
                     images={r.images}
-                    rating={r.rating || 4.8}
-                    reviewCount={18 + ((idx * 8) % 60)}
-                    badge={idx === 0 ? 'Top Pick' : idx % 4 === 0 ? 'Fast Delivery' : undefined}
-                    price={2500 + (idx % 3) * 500}
-                    priceSuffix="avg meal"
+                    rating={r.rating}
+                    reviewCount={r.reviewCount}
+                    badge={idx === 0 ? 'Verified Kitchen' : undefined}
+                    price={minPrice}
+                    priceSuffix={minPrice ? 'from' : undefined}
                     metaLine={`⚡ ${deliveryEta} · ${deliveryFeeText}`}
                     aspectRatio="4/3"
                   />

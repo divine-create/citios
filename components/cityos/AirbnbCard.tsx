@@ -31,7 +31,7 @@ export default function AirbnbCard({
   subtitle,
   image,
   images,
-  rating = 4.8,
+  rating,
   reviewCount,
   neighborhood,
   badge,
@@ -139,15 +139,17 @@ export default function AirbnbCard({
             <h3 className="font-bold text-[15px] text-[#222222] truncate tracking-tight group-hover/card:text-[#FF385C] transition-colors">
               {title}
             </h3>
-            {rating ? (
+            {rating && rating > 0 ? (
               <div className="flex items-center gap-1 shrink-0 text-[13px] font-semibold text-[#222222]">
                 <Star className="w-3.5 h-3.5 fill-[#222222] text-[#222222]" />
                 <span>{rating.toFixed(1)}</span>
-                {reviewCount ? (
+                {reviewCount && reviewCount > 0 ? (
                   <span className="text-[#717171] font-normal">({reviewCount})</span>
                 ) : null}
               </div>
-            ) : null}
+            ) : (
+              <span className="text-[12px] font-semibold text-[#717171] shrink-0">New</span>
+            )}
           </div>
 
           {/* Row 2: Neighborhood / Location / Subtitle */}

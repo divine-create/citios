@@ -10,9 +10,9 @@ export async function getLocalServicesOrgs() {
       id: org.id,
       name: org.name,
       category: org.storeCategory?.toLowerCase() || 'general',
-      hourlyRate: 50, // default if not set
-      rating: 4.8, 
-      jobsCompleted: 10,
+      hourlyRate: 50,
+      rating: null, 
+      jobsCompleted: 0,
       avatar: 'https://i.pravatar.cc/150?u=' + org.id,
       bio: org.description || 'Professional local service provider.',
     };

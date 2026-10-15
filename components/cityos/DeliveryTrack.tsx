@@ -147,8 +147,8 @@ export default function DeliveryTrack() {
                 <p className="text-[14px] font-black text-ink">{DRIVER.name}</p>
                 <p className="text-[11px] font-bold text-slate-400">{`${DRIVER.car} · ${DRIVER.plate}`}</p>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-[11px] font-black text-amber-500">{`★ ${DRIVER.rating}`}</span>
-                  <span className="text-[11px] text-slate-400 font-bold">{`${DRIVER.trips} trips`}</span>
+                  <span className="text-[11px] font-black text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md">Verified Rider</span>
+                  <span className="text-[11px] text-slate-400 font-bold">CityOS Fleet</span>
                 </div>
               </div>
             </div>

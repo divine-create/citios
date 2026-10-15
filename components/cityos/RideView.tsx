@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import type { ComponentType } from 'react';
@@ -242,8 +242,8 @@ export default function RideView() {
                     <p className="text-[14px] font-black text-ink">Nsi Okon</p>
                     <p className="text-[11px] font-bold text-slate-400">Toyota Corolla Â· AB-772-CR</p>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[11px] font-black text-amber-500">â˜… 4.8</span>
-                      <span className="text-[11px] text-slate-400 font-bold">3,860 trips</span>
+                      <span className="text-[11px] font-black text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md">Verified Driver</span>
+                      <span className="text-[11px] text-slate-400 font-bold">Active in Calabar</span>
                     </div>
                   </div>
                   <span className="text-[11px] font-black text-teal-800 tabular-nums">{fmt(fare)}</span>
