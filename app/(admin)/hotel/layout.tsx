@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
 import { CalendarRange, LayoutDashboard, Sparkles, Hotel, LogOut, ArrowLeft, UtensilsCrossed, Wrench, Menu, X } from 'lucide-react';
 
@@ -14,8 +14,35 @@ const NAV_ITEMS = [
   { path: '/hotel/maintenance', label: 'Maintenance', icon: Wrench },
 ];
 
-export default function HotelAdminLayout({ children }: { children: React.ReactNode }) {
+function HotelNavLinks({ onNavigate }: { onNavigate: () => void }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const orgParam = searchParams?.get('org');
+
+  return (
+    <nav className="flex-1 px-3 py-4 space-y-1">
+      {NAV_ITEMS.map((item) => {
+        const isActive = pathname?.startsWith(item.path);
+        const href = orgParam ? `${item.path}?org=${encodeURIComponent(orgParam)}` : item.path;
+        return (
+          <Link
+            key={item.path}
+            href={href}
+            onClick={onNavigate}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <item.icon size={18} className={isActive ? 'text-blue-600' : 'text-gray-400'} />
+            {item.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+export default function HotelAdminLayout({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
   const [isNavOpen, setIsNavOpen] = useState(false);
 
@@ -37,24 +64,18 @@ export default function HotelAdminLayout({ children }: { children: React.ReactNo
         </button>
       </div>
 
-      <nav className="flex-1 px-3 py-4 space-y-1">
-        {NAV_ITEMS.map((item) => {
-          const isActive = pathname?.startsWith(item.path);
-          return (
-            <Link
-              key={item.path}
-              href={item.path}
-              onClick={() => setIsNavOpen(false)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              <item.icon size={18} className={isActive ? 'text-blue-600' : 'text-gray-400'} />
+      <Suspense fallback={
+        <nav className="flex-1 px-3 py-4 space-y-1">
+          {NAV_ITEMS.map((item) => (
+            <div key={item.path} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-400">
+              <item.icon size={18} />
               {item.label}
-            </Link>
-          );
-        })}
-      </nav>
+            </div>
+          ))}
+        </nav>
+      }>
+        <HotelNavLinks onNavigate={() => setIsNavOpen(false)} />
+      </Suspense>
 
       <div className="p-3 border-t border-gray-100 space-y-1">
         <Link

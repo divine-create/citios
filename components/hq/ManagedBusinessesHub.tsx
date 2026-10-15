@@ -19,8 +19,10 @@ import {
   ChevronRight,
   ExternalLink,
   Sparkles,
+  Plus,
 } from 'lucide-react';
 import { ManagedBusinessSummary } from '@/lib/actions/hq-managed-business';
+import CreateBusinessWizardModal from './CreateBusinessWizardModal';
 
 interface ManagedBusinessesHubProps {
   initialBusinesses: ManagedBusinessSummary[];
@@ -31,6 +33,7 @@ export default function ManagedBusinessesHub({ initialBusinesses }: ManagedBusin
   const [search, setSearch] = useState('');
   const [verticalFilter, setVerticalFilter] = useState('ALL');
   const [claimFilter, setClaimFilter] = useState('ALL');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const filtered = businesses.filter((b) => {
     if (search.trim()) {
@@ -75,15 +78,24 @@ export default function ManagedBusinessesHub({ initialBusinesses }: ManagedBusin
           </p>
         </div>
 
-        <div className="relative w-full sm:w-72">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search business name or address..."
-            className="w-full bg-slate-950 border border-slate-800 text-white text-xs rounded-xl pl-9 pr-3 py-2.5 focus:outline-none focus:border-teal-500 placeholder:text-slate-600"
-          />
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="relative w-full sm:w-72">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search business name or address..."
+              className="w-full bg-slate-950 border border-slate-800 text-white text-xs rounded-xl pl-9 pr-3 py-2.5 focus:outline-none focus:border-teal-500 placeholder:text-slate-600"
+            />
+          </div>
+
+          <button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="px-4 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-black transition-all shadow-md shadow-teal-500/20 flex items-center gap-1.5 shrink-0"
+          >
+            <Plus className="w-4 h-4" /> + Create Business
+          </button>
         </div>
       </div>
 
@@ -255,6 +267,13 @@ export default function ManagedBusinessesHub({ initialBusinesses }: ManagedBusin
           </div>
         )}
       </div>
+
+      {/* HQ Universal Business Creation Modal */}
+      <CreateBusinessWizardModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={() => window.location.reload()}
+      />
     </div>
   );
 }

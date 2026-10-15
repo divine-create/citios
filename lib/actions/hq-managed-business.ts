@@ -479,6 +479,8 @@ export async function getHQManagedOrders(filters?: { status?: string; organizati
   const enriched = await Promise.all(
     orders.slice(0, 100).map(async (order: any) => {
       const org = await db.orm.public.Organization.where({ id: order.organizationId }).all().first();
+      const orgContacts = await db.orm.public.OrganizationContactPoint.where({ organizationId: order.organizationId }).all();
+      const orgPhoneContact = orgContacts.find((c: any) => c.type === 'PHONE' || c.type === 'WHATSAPP');
       const items = await db.orm.public.OrderItem.where({ orderId: order.id }).all();
       const customer = await db.orm.public.CustomerData.where({ id: order.customerDataId }).all().first();
 
@@ -512,6 +514,7 @@ export async function getHQManagedOrders(filters?: { status?: string; organizati
         organizationId: order.organizationId,
         organizationName: org?.name || 'Managed Spot',
         organizationAddress: org?.address || 'Calabar',
+        organizationPhone: orgPhoneContact?.value || null,
         totalAmount: order.totalAmount,
         status: order.status,
         paymentStatus: order.paymentStatus,
@@ -588,5 +591,437 @@ export async function updateHQManagedOrderStatus(payload: {
   revalidatePath('/hq/orders');
   revalidatePath(`/hq/managed/${order.organizationId}`);
   revalidatePath('/orders');
+  return { success: true };
+}
+
+export interface CreateHQManagedBusinessPayload {
+  name: string;
+  type: string; // 'RESTAURANT' | 'HOTEL' | 'RETAIL' | 'SERVICES' | 'LOGISTICS' | 'SCHOOL' | 'HEALTHCARE'
+  storeCategory?: string;
+  description?: string;
+  address: string;
+  cityId?: string;
+  latitude?: number;
+  longitude?: number;
+  phone?: string;
+  whatsapp?: string;
+  email?: string;
+  website?: string;
+  logoUrl?: string;
+  coverUrl?: string;
+  images?: string[];
+  initialItems?: Array<{
+    name: string;
+    category?: string;
+    price: number;
+    description?: string;
+    imageUrl?: string;
+  }>;
+  initialRooms?: Array<{
+    roomNumber: string;
+    type: string;
+    baseRate: number;
+  }>;
+}
+
+/**
+ * Universal Business Creator for HQ Admin:
+ * Creates an unconfirmed/managed business across any industry vertical (Restaurant, Hotel, Retail, Services, Logistics),
+ * provisions its Organization, Location, Wallet, DiscoveryListing, Contact Points, and initial items/rooms.
+ */
+export async function createHQManagedBusiness(payload: CreateHQManagedBusinessPayload) {
+  await requireSystemAdmin();
+  const session = await getServerSession(authOptions);
+  const actorPersonId = session?.user?.personId || 'system';
+
+  if (!payload.name || !payload.name.trim()) throw new Error('Business name is required');
+  if (!payload.type) throw new Error('Business vertical type is required');
+  if (!payload.address || !payload.address.trim()) throw new Error('Address is required');
+
+  const city = (payload.cityId && (await db.orm.public.City.where({ id: payload.cityId }).all().first()))
+    || (await db.orm.public.City.where({ slug: 'calabar' }).all().first())
+    || (await db.orm.public.City.all().first());
+
+  if (!city) throw new Error('No valid city found');
+
+  const baseSlug = payload.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  const uniqueSlug = `${baseSlug}-${uuidv4().slice(0, 6)}`;
+
+  let createdOrgId: string = '';
+
+  await db.transaction(async (tx) => {
+    // 1. Create Organization
+    const org = await tx.orm.public.Organization.create({
+      name: payload.name.trim(),
+      type: payload.type as any,
+      storeCategory: payload.storeCategory?.trim() || null,
+      description: payload.description?.trim() || payload.address.trim(),
+      address: payload.address.trim(),
+      logoAssetId: payload.logoUrl?.trim() || null,
+      status: 'ACTIVE',
+    });
+    createdOrgId = org.id;
+
+    // 2. Create Location
+    const loc = await tx.orm.public.Location.create({
+      organizationId: org.id,
+      name: 'Main Branch',
+      address: payload.address.trim(),
+      cityId: city.id,
+      latitude: payload.latitude || 4.9757,
+      longitude: payload.longitude || 8.3417,
+    });
+
+    // 3. Create Organization Wallet
+    await tx.orm.public.Wallet.create({
+      organizationId: org.id,
+      balance: 0,
+      currency: city.currency || 'NGN',
+    });
+
+    // 4. Create DiscoveryListing
+    const meta = {
+      coverImage: payload.coverUrl?.trim() || null,
+      images: (payload.images || []).filter(Boolean),
+      phone: payload.phone?.trim() || null,
+      whatsapp: payload.whatsapp?.trim() || null,
+      website: payload.website?.trim() || null,
+    };
+
+    await tx.orm.public.DiscoveryListing.create({
+      organizationId: org.id,
+      locationId: loc.id,
+      cityId: city.id,
+      vertical: payload.type,
+      slug: uniqueSlug,
+      title: payload.name.trim(),
+      description: payload.description?.trim() || payload.address.trim(),
+      coverAssetId: payload.coverUrl?.trim() || null,
+      isActive: true,
+      metadata: JSON.stringify(meta),
+    });
+
+    // 5. Contact points
+    if (payload.phone?.trim()) {
+      await tx.orm.public.OrganizationContactPoint.create({
+        organizationId: org.id,
+        type: 'PHONE',
+        value: payload.phone.trim(),
+      });
+    }
+    if (payload.whatsapp?.trim()) {
+      await tx.orm.public.OrganizationContactPoint.create({
+        organizationId: org.id,
+        type: 'WHATSAPP',
+        value: payload.whatsapp.trim(),
+      });
+    }
+
+    // 6. Quick catalog items
+    if (payload.initialItems && payload.initialItems.length > 0) {
+      for (const it of payload.initialItems) {
+        if (!it.name || !it.name.trim()) continue;
+        if (payload.type === 'RESTAURANT') {
+          await tx.orm.public.MenuItem.create({
+            organizationId: org.id,
+            name: it.name.trim(),
+            category: it.category?.trim() || 'General',
+            price: Number(it.price) || 0,
+            description: it.description?.trim() || null,
+            imageUrl: it.imageUrl?.trim() || null,
+            isAvailable: true,
+          });
+        } else if (payload.type === 'RETAIL') {
+          await tx.orm.public.RetailProduct.create({
+            organizationId: org.id,
+            name: it.name.trim(),
+            globalCategory: it.category?.trim() || 'General',
+            price: Number(it.price) || 0,
+            description: it.description?.trim() || null,
+            stockQuantity: 50,
+            imageAssetId: it.imageUrl?.trim() || null,
+          });
+        }
+      }
+    }
+
+    // 7. Quick hotel rooms
+    if (payload.type === 'HOTEL' && payload.initialRooms && payload.initialRooms.length > 0) {
+      for (const rm of payload.initialRooms) {
+        if (!rm.roomNumber || !rm.roomNumber.trim()) continue;
+        await tx.orm.public.HotelRoom.create({
+          organizationId: org.id,
+          locationId: loc.id,
+          roomNumber: rm.roomNumber.trim(),
+          type: rm.type?.trim() || 'Deluxe Room',
+          baseRate: Number(rm.baseRate) || 0,
+          status: 'CLEAN',
+        });
+      }
+    }
+
+    // 8. Audit Event
+    await tx.orm.public.HQAuditEvent.create({
+      actorPersonId: actorPersonId!,
+      action: 'MANAGED_BUSINESS_CREATED',
+      targetType: 'Organization',
+      targetId: org.id,
+      metadata: {
+        name: payload.name,
+        type: payload.type,
+        address: payload.address,
+        initialItemsCount: payload.initialItems?.length || 0,
+        initialRoomsCount: payload.initialRooms?.length || 0,
+      },
+    });
+  });
+
+  revalidatePath('/hq/managed');
+  revalidatePath('/explore');
+  revalidatePath('/food');
+  revalidatePath('/stay');
+  revalidatePath('/market');
+  revalidatePath('/services');
+  return { success: true, organizationId: createdOrgId };
+}
+
+/**
+ * Bulk import multiple businesses from JSON or CSV dataset.
+ */
+export async function bulkImportHQManagedBusinesses(businesses: CreateHQManagedBusinessPayload[]) {
+  await requireSystemAdmin();
+  let succeeded = 0;
+  let failed = 0;
+  const errors: string[] = [];
+
+  for (const b of businesses) {
+    try {
+      await createHQManagedBusiness(b);
+      succeeded++;
+    } catch (err: any) {
+      failed++;
+      errors.push(`${b.name || 'Unnamed'}: ${err.message || 'Failed'}`);
+    }
+  }
+
+  revalidatePath('/hq/managed');
+  return { succeeded, failed, errors };
+}
+
+/**
+ * Bulk add menu or product items to a business (e.g. from pasted menu text).
+ */
+export async function bulkAddManagedCatalogItems(
+  organizationId: string,
+  items: Array<{ name: string; price: number; category?: string; description?: string; imageUrl?: string }>
+) {
+  await requireSystemAdmin();
+  const session = await getServerSession(authOptions);
+  const actorPersonId = session?.user?.personId || 'system';
+
+  const org = await db.orm.public.Organization.where({ id: organizationId }).all().first();
+  if (!org) throw new Error('Organization not found');
+
+  let count = 0;
+  await db.transaction(async (tx) => {
+    for (const item of items) {
+      if (!item.name || !item.name.trim()) continue;
+      const price = Number(item.price) || 0;
+      if (org.type === 'RESTAURANT') {
+        await tx.orm.public.MenuItem.create({
+          organizationId,
+          name: item.name.trim(),
+          category: item.category?.trim() || 'General',
+          price,
+          description: item.description?.trim() || null,
+          imageUrl: item.imageUrl?.trim() || null,
+          isAvailable: true,
+        });
+        count++;
+      } else if (org.type === 'RETAIL') {
+        await tx.orm.public.RetailProduct.create({
+          organizationId,
+          name: item.name.trim(),
+          globalCategory: item.category?.trim() || 'General',
+          price,
+          description: item.description?.trim() || null,
+          stockQuantity: 100,
+          imageAssetId: item.imageUrl?.trim() || null,
+        });
+        count++;
+      }
+    }
+
+    await tx.orm.public.HQAuditEvent.create({
+      actorPersonId: actorPersonId!,
+      action: 'MANAGED_CATALOG_BULK_ADDED',
+      targetType: 'Organization',
+      targetId: organizationId,
+      metadata: { addedCount: count },
+    });
+  });
+
+  revalidatePath(`/hq/managed/${organizationId}`);
+  revalidatePath(`/org/${organizationId}`);
+  revalidatePath('/food');
+  revalidatePath('/market');
+  return { success: true, count };
+}
+
+/**
+ * Upsert Hotel Room for HQ management.
+ */
+export async function upsertManagedHotelRoom(payload: {
+  id?: string;
+  organizationId: string;
+  roomNumber: string;
+  type: string;
+  baseRate: number;
+  status?: string;
+}) {
+  await requireSystemAdmin();
+  const session = await getServerSession(authOptions);
+  const actorPersonId = session?.user?.personId || 'system';
+
+  let roomId = payload.id;
+  await db.transaction(async (tx) => {
+    if (payload.id) {
+      await tx.orm.public.HotelRoom.where({ id: payload.id }).update({
+        roomNumber: payload.roomNumber.trim(),
+        type: payload.type.trim(),
+        baseRate: Number(payload.baseRate) || 0,
+        status: payload.status || 'CLEAN',
+      });
+    } else {
+      const room = await tx.orm.public.HotelRoom.create({
+        organizationId: payload.organizationId,
+        roomNumber: payload.roomNumber.trim(),
+        type: payload.type.trim(),
+        baseRate: Number(payload.baseRate) || 0,
+        status: payload.status || 'CLEAN',
+      });
+      roomId = room.id;
+    }
+
+    await tx.orm.public.HQAuditEvent.create({
+      actorPersonId: actorPersonId!,
+      action: payload.id ? 'MANAGED_ROOM_UPDATED' : 'MANAGED_ROOM_CREATED',
+      targetType: 'HotelRoom',
+      targetId: roomId!,
+      metadata: payload,
+    });
+  });
+
+  revalidatePath(`/hq/managed/${payload.organizationId}`);
+  revalidatePath('/stay');
+  return { success: true, roomId };
+}
+
+/**
+ * Delete a Hotel Room.
+ */
+export async function deleteManagedHotelRoom(roomId: string, organizationId: string) {
+  await requireSystemAdmin();
+  const session = await getServerSession(authOptions);
+  const actorPersonId = session?.user?.personId || 'system';
+
+  await db.transaction(async (tx) => {
+    await tx.orm.public.HotelRoom.where({ id: roomId }).delete();
+    await tx.orm.public.HQAuditEvent.create({
+      actorPersonId: actorPersonId!,
+      action: 'MANAGED_ROOM_DELETED',
+      targetType: 'HotelRoom',
+      targetId: roomId,
+      metadata: { organizationId },
+    });
+  });
+
+  revalidatePath(`/hq/managed/${organizationId}`);
+  revalidatePath('/stay');
+  return { success: true };
+}
+
+/**
+ * Upsert Retail Product for HQ management.
+ */
+export async function upsertManagedRetailProduct(payload: {
+  id?: string;
+  organizationId: string;
+  name: string;
+  price: number;
+  category?: string;
+  description?: string;
+  stockQuantity?: number;
+  barcode?: string;
+  sku?: string;
+  imageUrl?: string;
+}) {
+  await requireSystemAdmin();
+  const session = await getServerSession(authOptions);
+  const actorPersonId = session?.user?.personId || 'system';
+
+  let productId = payload.id;
+  await db.transaction(async (tx) => {
+    if (payload.id) {
+      await tx.orm.public.RetailProduct.where({ id: payload.id }).update({
+        name: payload.name.trim(),
+        price: Number(payload.price) || 0,
+        globalCategory: payload.category?.trim() || null,
+        description: payload.description?.trim() || null,
+        stockQuantity: Number(payload.stockQuantity) || 0,
+        barcode: payload.barcode?.trim() || null,
+        sku: payload.sku?.trim() || null,
+        imageAssetId: payload.imageUrl?.trim() || null,
+      });
+    } else {
+      const prod = await tx.orm.public.RetailProduct.create({
+        organizationId: payload.organizationId,
+        name: payload.name.trim(),
+        price: Number(payload.price) || 0,
+        globalCategory: payload.category?.trim() || null,
+        description: payload.description?.trim() || null,
+        stockQuantity: Number(payload.stockQuantity) || 50,
+        barcode: payload.barcode?.trim() || null,
+        sku: payload.sku?.trim() || null,
+        imageAssetId: payload.imageUrl?.trim() || null,
+      });
+      productId = prod.id;
+    }
+
+    await tx.orm.public.HQAuditEvent.create({
+      actorPersonId: actorPersonId!,
+      action: payload.id ? 'MANAGED_PRODUCT_UPDATED' : 'MANAGED_PRODUCT_CREATED',
+      targetType: 'RetailProduct',
+      targetId: productId!,
+      metadata: payload,
+    });
+  });
+
+  revalidatePath(`/hq/managed/${payload.organizationId}`);
+  revalidatePath('/market');
+  return { success: true, productId };
+}
+
+/**
+ * Delete a Retail Product.
+ */
+export async function deleteManagedRetailProduct(productId: string, organizationId: string) {
+  await requireSystemAdmin();
+  const session = await getServerSession(authOptions);
+  const actorPersonId = session?.user?.personId || 'system';
+
+  await db.transaction(async (tx) => {
+    await tx.orm.public.RetailProduct.where({ id: productId }).delete();
+    await tx.orm.public.HQAuditEvent.create({
+      actorPersonId: actorPersonId!,
+      action: 'MANAGED_PRODUCT_DELETED',
+      targetType: 'RetailProduct',
+      targetId: productId,
+      metadata: { organizationId },
+    });
+  });
+
+  revalidatePath(`/hq/managed/${organizationId}`);
+  revalidatePath('/market');
   return { success: true };
 }

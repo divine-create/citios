@@ -16,19 +16,22 @@ import {
   Clock,
   ShieldCheck,
   CheckCircle2,
+  Hotel,
+  Package,
+  Sparkles,
 } from 'lucide-react';
 import ManagedCatalogEditor from './ManagedCatalogEditor';
 import ManagedMediaStudio from './ManagedMediaStudio';
 import ManagedProxyPostStudio from './ManagedProxyPostStudio';
-import { updateHQManagedOrderStatus } from '@/lib/actions/hq-managed-business';
-import { toast } from 'sonner';
+import ManagedRoomsEditor from './ManagedRoomsEditor';
+import ManagedRetailInventoryEditor from './ManagedRetailInventoryEditor';
+import ManagedBulkMenuParser from './ManagedBulkMenuParser';
 
 interface ManagedBusinessStudioProps {
   businessData: any;
 }
 
 export default function ManagedBusinessStudio({ businessData }: ManagedBusinessStudioProps) {
-  const [activeTab, setActiveTab] = useState<'catalog' | 'media' | 'posts' | 'orders' | 'info'>('catalog');
   const org = businessData.organization;
   const listing = businessData.listing;
   const metadata = businessData.metadata;
@@ -37,7 +40,9 @@ export default function ManagedBusinessStudio({ businessData }: ManagedBusinessS
   const orders = businessData.orders;
   const contactPoints = businessData.contactPoints;
 
-  const isClaimed = businessData.locations?.length > 0 && businessData.orders?.some((o: any) => o.isClaimed);
+  // Initial tab depending on business type
+  const initialTab = org.type === 'HOTEL' ? 'rooms' : org.type === 'RETAIL' ? 'inventory' : 'catalog';
+  const [activeTab, setActiveTab] = useState<string>(initialTab);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -86,17 +91,62 @@ export default function ManagedBusinessStudio({ businessData }: ManagedBusinessS
 
       {/* Navigation Tabs */}
       <div className="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto scrollbar-none">
-        <button
-          onClick={() => setActiveTab('catalog')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-            activeTab === 'catalog'
-              ? 'bg-teal-500 text-slate-950 font-black shadow-lg shadow-teal-500/20'
-              : 'text-slate-400 hover:text-white hover:bg-slate-900'
-          }`}
-        >
-          <Utensils className="w-4 h-4" /> Menu & Pricing ({catalog.menuItems.length})
-        </button>
+        {/* Restaurant Tabs */}
+        {org.type === 'RESTAURANT' && (
+          <>
+            <button
+              onClick={() => setActiveTab('catalog')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                activeTab === 'catalog'
+                  ? 'bg-teal-500 text-slate-950 font-black shadow-lg shadow-teal-500/20'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-900'
+              }`}
+            >
+              <Utensils className="w-4 h-4" /> Menu & Pricing ({catalog.menuItems?.length || 0})
+            </button>
 
+            <button
+              onClick={() => setActiveTab('bulk-menu')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                activeTab === 'bulk-menu'
+                  ? 'bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/20'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-900'
+              }`}
+            >
+              <Sparkles className="w-4 h-4 text-amber-400" /> Bulk Menu Parser
+            </button>
+          </>
+        )}
+
+        {/* Hotel Tabs */}
+        {org.type === 'HOTEL' && (
+          <button
+            onClick={() => setActiveTab('rooms')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+              activeTab === 'rooms'
+                ? 'bg-blue-500 text-white font-black shadow-lg shadow-blue-500/20'
+                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+            }`}
+          >
+            <Hotel className="w-4 h-4" /> Rooms & Rates ({catalog.hotelRooms?.length || 0})
+          </button>
+        )}
+
+        {/* Retail Tabs */}
+        {org.type === 'RETAIL' && (
+          <button
+            onClick={() => setActiveTab('inventory')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+              activeTab === 'inventory'
+                ? 'bg-emerald-500 text-slate-950 font-black shadow-lg shadow-emerald-500/20'
+                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+            }`}
+          >
+            <Package className="w-4 h-4" /> Products & Stock ({catalog.retailProducts?.length || 0})
+          </button>
+        )}
+
+        {/* Common Tabs across all businesses */}
         <button
           onClick={() => setActiveTab('media')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
@@ -138,7 +188,7 @@ export default function ManagedBusinessStudio({ businessData }: ManagedBusinessS
               : 'text-slate-400 hover:text-white hover:bg-slate-900'
           }`}
         >
-          <Info className="w-4 h-4" /> Details & Outbox
+          <Info className="w-4 h-4" /> Details & Claim
         </button>
       </div>
 
@@ -147,8 +197,30 @@ export default function ManagedBusinessStudio({ businessData }: ManagedBusinessS
         {activeTab === 'catalog' && (
           <ManagedCatalogEditor
             organizationId={org.id}
-            initialItems={catalog.menuItems}
+            initialItems={catalog.menuItems || []}
             verticalType={org.type}
+          />
+        )}
+
+        {activeTab === 'bulk-menu' && (
+          <ManagedBulkMenuParser
+            organizationId={org.id}
+            businessType={org.type}
+            onSuccess={() => window.location.reload()}
+          />
+        )}
+
+        {activeTab === 'rooms' && (
+          <ManagedRoomsEditor
+            organizationId={org.id}
+            initialRooms={catalog.hotelRooms || []}
+          />
+        )}
+
+        {activeTab === 'inventory' && (
+          <ManagedRetailInventoryEditor
+            organizationId={org.id}
+            initialProducts={catalog.retailProducts || []}
           />
         )}
 
@@ -187,92 +259,59 @@ export default function ManagedBusinessStudio({ businessData }: ManagedBusinessS
             </div>
 
             <div className="space-y-3">
-              {orders.map((o: any) => (
-                <div
-                  key={o.id}
-                  className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
-                >
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-white font-bold">₦{o.totalAmount.toLocaleString()}</span>
-                      <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold uppercase text-[10px]">
-                        {o.status}
-                      </span>
-                      <span className="text-slate-500 font-mono text-[10px]">{o.id.slice(0, 8)}...</span>
-                    </div>
-                    <p className="text-slate-400 mt-1">
-                      Customer: <strong className="text-white">{o.customerName}</strong> · {o.itemsCount} items
-                    </p>
-                  </div>
-
-                  <Link
-                    href="/hq/orders"
-                    className="px-3 py-1.5 bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs rounded-lg transition-colors self-start sm:self-auto"
+              {orders.length === 0 ? (
+                <div className="text-center py-12 bg-slate-900/50 border border-slate-800 rounded-2xl text-slate-500 text-xs">
+                  No orders placed for this establishment yet.
+                </div>
+              ) : (
+                orders.map((o: any) => (
+                  <div
+                    key={o.id}
+                    className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
                   >
-                    Manage & Dispatch
-                  </Link>
-                </div>
-              ))}
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-white font-bold">₦{o.totalAmount.toLocaleString()}</span>
+                        <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold uppercase text-[10px]">
+                          {o.status}
+                        </span>
+                        <span className="text-slate-500 text-[11px]">({o.itemsCount} items)</span>
+                      </div>
+                      <p className="text-slate-400 mt-1">Customer: {o.customerName}</p>
+                    </div>
 
-              {orders.length === 0 && (
-                <div className="py-12 text-center bg-slate-900/40 border border-dashed border-slate-800 rounded-2xl text-xs text-slate-500">
-                  No orders placed for this business yet.
-                </div>
+                    <Link
+                      href="/hq/orders"
+                      className="px-3 py-1.5 bg-teal-500/10 text-teal-400 border border-teal-500/20 rounded-lg font-bold text-center hover:bg-teal-500/20 transition-colors"
+                    >
+                      Manage in Dispatch Console
+                    </Link>
+                  </div>
+                ))
               )}
             </div>
           </div>
         )}
 
         {activeTab === 'info' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 text-xs">
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider border-b border-slate-800 pb-3">
-                Establishment Information
-              </h3>
-              <div>
-                <span className="text-slate-500 font-bold uppercase text-[10px] block">Name</span>
-                <span className="text-white text-sm font-bold">{org.name}</span>
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6 text-xs">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider">Business Verification & Tenancy</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800">
+                <span className="text-slate-500 font-mono text-[10px] block">SYSTEM UUID</span>
+                <span className="text-white font-mono font-bold">{org.id}</span>
               </div>
-              <div>
-                <span className="text-slate-500 font-bold uppercase text-[10px] block">Type</span>
-                <span className="text-slate-300">{org.type}</span>
+              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800">
+                <span className="text-slate-500 font-mono text-[10px] block">VERTICAL TYPE</span>
+                <span className="text-teal-400 font-bold">{org.type}</span>
               </div>
-              <div>
-                <span className="text-slate-500 font-bold uppercase text-[10px] block">Address</span>
-                <span className="text-slate-300">{org.address || 'Unrecorded'}</span>
+              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800">
+                <span className="text-slate-500 font-mono text-[10px] block">CONTACT POINTS REGISTERED</span>
+                <span className="text-white font-bold">{contactPoints.length} numbers/emails</span>
               </div>
-              <div>
-                <span className="text-slate-500 font-bold uppercase text-[10px] block">Description</span>
-                <p className="text-slate-400 leading-relaxed">{org.description || 'No description recorded'}</p>
-              </div>
-            </div>
-
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 text-xs">
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider border-b border-slate-800 pb-3">
-                Merchant Outreach & Claim Link
-              </h3>
-              <p className="text-slate-400">
-                Send this invite link to the physical business owner to let them claim and take autonomous ownership of this pre-populated profile:
-              </p>
-              <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl font-mono text-[11px] text-teal-400 break-all select-all">
-                https://calabar.cityos.ng/claim?orgId={org.id}
-              </div>
-
-              <div className="pt-2">
-                <span className="text-slate-500 font-bold uppercase text-[10px] block mb-2">
-                  Recorded Contact Points
-                </span>
-                <div className="space-y-2">
-                  {contactPoints.map((cp: any) => (
-                    <div key={cp.id} className="flex items-center justify-between p-2 bg-slate-950 rounded-lg border border-slate-850">
-                      <span className="font-mono text-slate-400 uppercase text-[10px]">{cp.type}</span>
-                      <span className="font-mono text-white text-xs">{cp.value}</span>
-                    </div>
-                  ))}
-                  {contactPoints.length === 0 && (
-                    <p className="text-slate-500 italic">No contact channels recorded yet.</p>
-                  )}
-                </div>
+              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800">
+                <span className="text-slate-500 font-mono text-[10px] block">CLAIM STATUS</span>
+                <span className="text-amber-400 font-bold">Unclaimed (Managed by CityOS HQ)</span>
               </div>
             </div>
           </div>

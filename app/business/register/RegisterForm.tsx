@@ -46,8 +46,8 @@ export default function RegisterForm({ initialType, isLoggedIn }: { initialType:
         else if (formData.type === 'RETAIL') destination = `/workspaces/shopos/${orgId}`;
         else if (formData.type === 'SERVICES') destination = `/workspaces/serviceos/${orgId}`;
         else if (formData.type === 'SCHOOL') destination = `/school/admin?org=${orgId}`;
-        else if (formData.type === 'HOTEL') destination = `/hotel/manager`;
-        else if (formData.type === 'HEALTHCARE') destination = '/admin/healthcare';
+        else if (formData.type === 'HOTEL') destination = `/hotel/manager?org=${orgId}`;
+        else if (formData.type === 'HEALTHCARE') destination = `/admin/healthcare?org=${orgId}`;
         else destination = `/org/${orgId}`;
         try {
           localStorage.setItem('cityconnect_active_business_id', orgId);

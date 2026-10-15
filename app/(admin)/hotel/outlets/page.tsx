@@ -7,8 +7,9 @@ export const metadata = {
   description: 'Restaurant, bar, and club point-of-sale with charge-to-room.',
 };
 
-export default async function OutletsPage() {
-  const resolvedOrgId = await resolveTenantOrg('HOTEL');
+export default async function OutletsPage({ searchParams }: { searchParams?: Promise<{ org?: string }> }) {
+  const params = searchParams ? await searchParams : {};
+  const resolvedOrgId = await resolveTenantOrg('HOTEL', params.org);
   await requireOrgAccess(resolvedOrgId);
   const hotelData = await getHotelAdminData(resolvedOrgId);
   const organizationId = hotelData?.hotel?.id ?? null;

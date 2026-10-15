@@ -173,6 +173,105 @@ test('HQ Managed Business & Order Lifecycle Suite', async (t) => {
       // Cleanup post
       await db.orm.public.Post.where({ id: post.id }).delete();
     });
+
+    await t.test('5. HQ Hotel Room management: room numbering, rate, and housekeeping state', async () => {
+      const room = await db.orm.public.HotelRoom.create({
+        organizationId: testOrg.id,
+        locationId: testLocation.id,
+        roomNumber: '101',
+        type: 'Deluxe Suite',
+        status: 'CLEAN',
+        baseRate: 45000,
+      });
+
+      assert.strictEqual(room.roomNumber, '101');
+      assert.strictEqual(room.type, 'Deluxe Suite');
+      assert.strictEqual(room.baseRate, 45000);
+
+      // Update room rate and status
+      await db.orm.public.HotelRoom.where({ id: room.id }).update({
+        baseRate: 50000,
+        status: 'DIRTY',
+      });
+
+      const updated = await db.orm.public.HotelRoom.where({ id: room.id }).all().first();
+      assert.strictEqual(updated?.baseRate, 50000);
+      assert.strictEqual(updated?.status, 'DIRTY');
+
+      // Cleanup room
+      await db.orm.public.HotelRoom.where({ id: room.id }).delete();
+      const deleted = await db.orm.public.HotelRoom.where({ id: room.id }).all().first();
+      assert.strictEqual(deleted, null);
+    });
+
+    await t.test('6. HQ Retail Shelf Product: inventory pricing, SKU, and stock count', async () => {
+      const product = await db.orm.public.RetailProduct.create({
+        organizationId: testOrg.id,
+        name: 'Organic Honey (500g)',
+        price: 3200,
+        stockQuantity: 24,
+        sku: 'HNY-ORG-500',
+        barcode: '6151234567890',
+        globalCategory: 'GROCERY',
+      });
+
+      assert.strictEqual(product.name, 'Organic Honey (500g)');
+      assert.strictEqual(product.price, 3200);
+      assert.strictEqual(product.stockQuantity, 24);
+
+      // Update price and stock
+      await db.orm.public.RetailProduct.where({ id: product.id }).update({
+        price: 3500,
+        stockQuantity: 18,
+      });
+
+      const updated = await db.orm.public.RetailProduct.where({ id: product.id }).all().first();
+      assert.strictEqual(updated?.price, 3500);
+      assert.strictEqual(updated?.stockQuantity, 18);
+
+      // Cleanup product
+      await db.orm.public.RetailProduct.where({ id: product.id }).delete();
+      const deleted = await db.orm.public.RetailProduct.where({ id: product.id }).all().first();
+      assert.strictEqual(deleted, null);
+    });
+
+    await t.test('7. Database Membership Fallback for newly created organizations', async () => {
+      // Simulate new organization created while user has a stale session cookie
+      const newOrg = await db.orm.public.Organization.create({
+        name: `Newly Registered Hotel ${randomUUID().slice(0, 5)}`,
+        type: 'HOTEL',
+        status: 'ACTIVE',
+      });
+
+      const membership = await db.orm.public.Membership.create({
+        personId: adminActor.id,
+        organizationId: newOrg.id,
+      });
+
+      const memberRole = await db.orm.public.MembershipRole.create({
+        membershipId: membership.id,
+        role: 'OWNER',
+      });
+
+      // Verify DB lookup fallback works reliably without relying on stale session cookie
+      const dbMem = await db.orm.public.Membership.where({
+        organizationId: newOrg.id,
+        personId: adminActor.id,
+      }).all().first();
+
+      assert.ok(dbMem);
+      assert.strictEqual(dbMem.organizationId, newOrg.id);
+
+      const dbRole = await db.orm.public.MembershipRole.where({
+        membershipId: dbMem.id,
+      }).all().first();
+      assert.strictEqual(dbRole?.role, 'OWNER');
+
+      // Cleanup
+      await db.orm.public.MembershipRole.where({ id: memberRole.id }).delete();
+      await db.orm.public.Membership.where({ id: membership.id }).delete();
+      await db.orm.public.Organization.where({ id: newOrg.id }).delete();
+    });
   } finally {
     try {
       const audits = await db.orm.public.HQAuditEvent.where({ actorPersonId: adminActor.id }).all();

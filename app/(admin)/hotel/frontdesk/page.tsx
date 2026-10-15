@@ -8,8 +8,9 @@ export const metadata = {
   description: 'Manage reservations, room statuses, and front desk operations.',
 };
 
-export default async function FrontDeskPage() {
-  const resolvedOrgId = await resolveTenantOrg('HOTEL');
+export default async function FrontDeskPage({ searchParams }: { searchParams?: Promise<{ org?: string }> }) {
+  const params = searchParams ? await searchParams : {};
+  const resolvedOrgId = await resolveTenantOrg('HOTEL', params.org);
   await requireOrgAccess(resolvedOrgId);
   const data = await getHotelAdminData(resolvedOrgId);
 

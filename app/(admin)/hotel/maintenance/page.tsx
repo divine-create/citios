@@ -7,8 +7,9 @@ export const metadata = {
   description: 'Maintenance ticketing for hotel rooms and facilities.',
 };
 
-export default async function MaintenancePage() {
-  const resolvedOrgId = await resolveTenantOrg('HOTEL');
+export default async function MaintenancePage({ searchParams }: { searchParams?: Promise<{ org?: string }> }) {
+  const params = searchParams ? await searchParams : {};
+  const resolvedOrgId = await resolveTenantOrg('HOTEL', params.org);
   await requireOrgAccess(resolvedOrgId);
   const hotelData = await getHotelAdminData(resolvedOrgId);
   const organizationId = hotelData?.hotel?.id ?? null;
