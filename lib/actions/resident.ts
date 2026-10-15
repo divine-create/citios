@@ -24,10 +24,18 @@ async function getOrgsByType(type: string) {
   return orgs.map((o: any) => {
     const listing = listingMap.get(o.id);
     let cover = o.logoAssetId || listing?.coverAssetId;
-    if (!cover && listing?.metadata) {
+    let rating: number | null = null;
+    let images: string[] = [];
+    if (listing?.metadata) {
       try {
         const meta = JSON.parse(listing.metadata);
-        cover = meta.coverImage || meta.images?.[0];
+        if (!cover) cover = meta.coverImage || meta.images?.[0];
+        if (Array.isArray(meta.images) && meta.images.length > 0) {
+          images = meta.images;
+        }
+        if (typeof meta.rating === 'number') {
+          rating = meta.rating;
+        }
       } catch {}
     }
     return {
@@ -36,6 +44,9 @@ async function getOrgsByType(type: string) {
       image: cover,
       imageUrl: cover,
       coverAssetId: cover,
+      images: images.length > 0 ? images : cover ? [cover] : [],
+      rating: rating ?? 4.8,
+      neighborhood: o.address ? o.address.split(',')[0].trim() : 'Calabar',
     };
   });
 }

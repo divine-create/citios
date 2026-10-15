@@ -268,3 +268,92 @@ export async function requestMyOrderRefund(orderId: string, category: 'MARKET' |
     }
   });
 }
+
+
+export async function fetchMyOrderById(orderId: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.personId) {
+    throw new Error('Unauthorized');
+  }
+
+  const personId = session.user.personId as string;
+  const customerIds = await resolveResidentCustomerIds(personId);
+
+  // 1. Try finding in RestaurantOrder
+  const restOrder = await db.orm.public.RestaurantOrder.where({ id: orderId }).all().first();
+  if (restOrder) {
+    if (customerIds.length > 0 && !customerIds.includes(restOrder.customerDataId || '')) {
+      throw new Error('Forbidden: You do not own this order.');
+    }
+    const org = await db.orm.public.Organization.where({ id: restOrder.organizationId }).all().first();
+    const items = await db.orm.public.OrderItem.where({ orderId: restOrder.id }).all();
+    const enrichedItems = await Promise.all(items.map(async (item) => {
+      const mi = await db.orm.public.MenuItem.where({ id: item.menuItemId }).all().first();
+      return {
+        id: item.id,
+        name: mi?.name || 'Dish',
+        price: item.unitPrice,
+        quantity: item.quantity,
+        image: mi?.imageUrl,
+      };
+    }));
+    const payment = await db.orm.public.Payment.where({ restaurantOrderId: restOrder.id }).all().first();
+    const delivery = await getDeliveryStatusForSource('RESTAURANT_ORDER', restOrder.id);
+    const location = restOrder.locationId ? await db.orm.public.Location.where({ id: restOrder.locationId }).all().first() : null;
+
+    return {
+      id: restOrder.id,
+      category: 'FOOD' as const,
+      status: restOrder.status,
+      paymentStatus: restOrder.paymentStatus,
+      totalAmount: restOrder.totalAmount,
+      createdAt: restOrder.createdAt,
+      type: restOrder.type,
+      org,
+      location,
+      items: enrichedItems,
+      payment,
+      delivery,
+    };
+  }
+
+  // 2. Try finding in RetailOrder
+  const retOrder = await db.orm.public.RetailOrder.where({ id: orderId }).all().first();
+  if (retOrder) {
+    if (customerIds.length > 0 && !customerIds.includes(retOrder.customerDataId || '')) {
+      throw new Error('Forbidden: You do not own this order.');
+    }
+    const org = await db.orm.public.Organization.where({ id: retOrder.organizationId }).all().first();
+    const items = await db.orm.public.RetailOrderItem.where({ orderId: retOrder.id }).all();
+    const enrichedItems = await Promise.all(items.map(async (item) => {
+      const prod = await db.orm.public.RetailProduct.where({ id: item.productId }).all().first();
+      return {
+        id: item.id,
+        name: prod?.name || 'Item',
+        price: item.unitPrice,
+        quantity: item.quantity,
+        image: prod?.imageAssetId,
+      };
+    }));
+    const payment = await db.orm.public.Payment.where({ retailOrderId: retOrder.id }).all().first();
+    const delivery = await getDeliveryStatusForSource('RETAIL_ORDER', retOrder.id);
+    const location = retOrder.locationId ? await db.orm.public.Location.where({ id: retOrder.locationId }).all().first() : null;
+
+    return {
+      id: retOrder.id,
+      category: 'MARKET' as const,
+      status: retOrder.status,
+      paymentStatus: payment?.status || 'PENDING',
+      totalAmount: retOrder.totalAmount,
+      createdAt: retOrder.createdAt,
+      type: 'DELIVERY',
+      org,
+      location,
+      items: enrichedItems,
+      payment,
+      delivery,
+    };
+  }
+
+  return null;
+}

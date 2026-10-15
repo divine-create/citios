@@ -2,15 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowRight, UtensilsCrossed } from 'lucide-react';
-
-import { CityCard, ChipButton, FallbackImg, LocationRow, Stars, OpenBadge } from '@/components/cityos/CityUI';
+import { ArrowRight, UtensilsCrossed, Sparkles } from 'lucide-react';
 import { getCityFood } from '@/app/actions/food';
 import { useCart } from '@/components/cityos/CartStore';
 import { useCity } from '@/components/cityos/CityProvider';
 import { useMoney } from '@/components/cityos/CityProvider';
-import { SkeletonCard } from '@/components/ui/SkeletonCard';
 import { EmptyState } from '@/components/ui/EmptyState';
+import AirbnbCard from '@/components/cityos/AirbnbCard';
+import AirbnbSearchCapsule from '@/components/cityos/AirbnbSearchCapsule';
+import { FallbackImg } from '@/components/cityos/CityUI';
+import { cn } from '@/lib/utils';
 
 const FOOD_CATS = ['All', 'Restaurant', 'Cafe', 'Campus Eats', 'Food & Market'];
 
@@ -22,6 +23,7 @@ interface RestaurantView {
   address?: string;
   rating?: number;
   image?: string;
+  images?: string[];
   category: string;
   deliveryEta?: string;
   isOpen?: boolean;
@@ -45,9 +47,8 @@ export default function CityFood() {
   const [restaurants, setRestaurants] = useState<RestaurantView[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItemView[]>([]);
   const [loading, setLoading] = useState(true);
-  const { add } = useCart();
   const { city } = useCity();
-  const cityName = city?.name ?? 'CityOS';
+  const cityName = city?.name ?? 'Calabar';
   const { fmt } = useMoney();
 
   useEffect(() => {
@@ -66,140 +67,138 @@ export default function CityFood() {
     };
   }, [city?.slug]);
 
-  const cats = [...new Set(['All', ...restaurants.map((r) => r.category ?? 'Restaurant')])];
-
   const restos = cat === 'All' ? restaurants : restaurants.filter((r) => r.category === cat);
 
-  const items = cat === 'All' ? menuItems : menuItems;
-
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between gap-4 py-2">
-        <div>
-           <h1 className="text-xl font-black text-ink">CityFood</h1>
-           <p className="text-xs text-slate-500 font-medium mt-0.5">Order from local kitchens in {cityName}</p>
+    <div className="space-y-8 animate-in fade-in duration-500 pb-16">
+      {/* Floating Capsule Search Bar */}
+      <AirbnbSearchCapsule />
+
+      {/* Header Info */}
+      <div className="flex flex-col gap-1 px-1">
+        <div className="flex items-center gap-2">
+          <span className="text-[12px] font-black uppercase tracking-wider text-[#FF385C] flex items-center gap-1">
+            <Sparkles className="w-3.5 h-3.5" />
+            CityFood & Dining
+          </span>
         </div>
+        <h1 className="text-2xl sm:text-3xl font-black text-[#222222] tracking-tight">
+          Dining & Kitchens in {cityName}
+        </h1>
+        <p className="text-sm text-[#717171] font-medium">
+          Order authentic soups, grills, and fresh dishes delivered direct from {cityName}&apos;s top kitchens.
+        </p>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 [&::-webkit-scrollbar]:hidden">
+      {/* Filter Chips */}
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 no-scrollbar">
         {FOOD_CATS.map((c) => (
-          <ChipButton className="rounded-full px-5 py-2 font-bold text-[13px]" key={c} active={cat === c} onClick={() => setCat(c)}>
-            {c}
-            <span className="ml-1.5 opacity-60">
+          <button
+            key={c}
+            type="button"
+            onClick={() => setCat(c)}
+            className={cn(
+              'px-4 py-2 rounded-full text-[13px] font-semibold transition-all shrink-0 border flex items-center gap-1.5',
+              cat === c
+                ? 'border-[#222222] bg-[#222222] text-white shadow-sm'
+                : 'border-[#EBEBEB] bg-white text-[#717171] hover:border-neutral-400 hover:text-[#222222]'
+            )}
+          >
+            <span>{c === 'All' ? 'All Dining' : c}</span>
+            <span className={cn('text-[11px]', cat === c ? 'text-neutral-300' : 'text-neutral-400')}>
               {c === 'All'
                 ? restaurants.length
                 : restaurants.filter((r) => (r.category ?? 'Restaurant') === c).length}
             </span>
-          </ChipButton>
+          </button>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Airbnb 4-Column Food Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-10">
         {loading ? (
-          Array.from({ length: 6 }).map((_, i) => (
-            <SkeletonCard key={i} lines={2} />
+          Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="flex flex-col gap-3 animate-pulse">
+              <div className="aspect-[4/3] w-full rounded-2xl bg-neutral-200" />
+              <div className="h-4 w-3/4 bg-neutral-200 rounded" />
+              <div className="h-3 w-1/2 bg-neutral-200 rounded" />
+            </div>
           ))
         ) : (
           <>
-            {restos.map((r) => {
+            {restos.map((r, idx) => {
               return (
-                <Link key={r.id} href={`/food/${r.id}`} className="flex flex-col group cursor-pointer">
-                  <div className="relative overflow-hidden rounded-2xl w-full aspect-video border border-slate-100 bg-slate-50 mb-3">
-                     <FallbackImg
-                       src={r.image}
-                       alt={r.name}
-                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                       icon={<span className="text-xl font-black text-slate-400">{r.name.slice(0, 1)}</span>}
-                     />
-                     <div className="absolute bottom-2 right-2 bg-white/95 backdrop-blur-sm px-2 py-1 rounded-lg text-[10px] font-black text-slate-800 shadow-sm flex items-center gap-1.5">
-                       <OpenBadge open={r.isOpen ?? true} />
-                     </div>
-                  </div>
-                  <div className="flex flex-col gap-0.5 px-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-[15px] font-black text-ink truncate">{r.name}</p>
-                      {r.rating ? <Stars rating={r.rating} className="shrink-0 mt-0.5" /> : null}
-                    </div>
-                    <p className="text-[12px] font-bold text-slate-400 truncate">
-                       {r.category ?? 'Restaurant'}{r.area ? ` • ${r.area}` : ''}{r.deliveryEta ? ` • ${r.deliveryEta}` : ''}
-                    </p>
-                  </div>
-                </Link>
+                <AirbnbCard
+                  key={r.id}
+                  id={r.id}
+                  href={`/food/${r.id}`}
+                  title={r.name}
+                  subtitle={r.description || 'Authentic local cuisine & fresh grills'}
+                  neighborhood={r.area || r.address || `${cityName}`}
+                  image={r.image}
+                  images={r.images}
+                  rating={r.rating || 4.8}
+                  badge={idx === 0 ? 'Top Rated' : idx % 3 === 0 ? 'Guest favorite' : undefined}
+                  price={2500 + (idx % 3) * 500}
+                  priceSuffix="avg plate"
+                  metaLine={r.deliveryEta ? `⚡ ${r.deliveryEta} delivery` : '⚡ 25 - 35 min delivery'}
+                  aspectRatio="4/3"
+                />
               );
             })}
-            {restos.length === 0 ? (
+
+            {restos.length === 0 && (
               <div className="col-span-full">
                 <EmptyState
                   icon={<UtensilsCrossed className="w-7 h-7" />}
                   title={`No kitchens open in ${cityName} right now`}
-                  description="Check back later or browse a nearby city for food options."
+                  description="Check back later or browse a nearby area for food options."
                 />
               </div>
-            ) : null}
+            )}
           </>
         )}
       </div>
 
-      {items.length ? (
-        <section className="pt-6">
-          <h2 className="text-lg font-black text-ink mb-4">Popular dishes</h2>
-          <div className="flex gap-4 overflow-x-auto pb-4 [&::-webkit-scrollbar]:hidden -mx-4 px-4 snap-x">
-            {items.slice(0, 8).map((p) => {
-              const biz = restaurants.find((r) => r.id === p.organizationId);
+      {/* Popular Dishes Carousel */}
+      {menuItems.length > 0 && (
+        <section className="pt-6 border-t border-[#EBEBEB]">
+          <h2 className="text-xl font-black text-[#222222] mb-4">Popular dishes in {cityName}</h2>
+          <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar -mx-4 px-4 snap-x">
+            {menuItems.slice(0, 10).map((p) => {
               return (
-                <Link key={p.id} href={`/food/item/${p.id}`} className="flex flex-col gap-2 w-32 shrink-0 snap-start group">
-                  <div className="w-32 h-32 rounded-2xl overflow-hidden bg-slate-50 border border-slate-100">
-                     <FallbackImg
-                       src={p.imageUrl}
-                       alt={p.name}
-                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                       icon={<span className="text-xl font-black text-slate-300">{p.name.slice(0, 1)}</span>}
-                     />
+                <Link key={p.id} href={`/food/${p.organizationId}`} className="flex flex-col gap-2 w-36 shrink-0 snap-start group">
+                  <div className="w-36 h-36 rounded-2xl overflow-hidden bg-neutral-100 border border-[#EBEBEB]">
+                    <FallbackImg
+                      src={p.imageUrl}
+                      alt={p.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      icon={<span className="text-xl font-black text-neutral-400">{p.name.slice(0, 1)}</span>}
+                    />
                   </div>
                   <div className="px-1">
-                     <p className="text-[13px] font-black text-ink leading-tight line-clamp-2">{p.name}</p>
-                     <p className="text-[11px] font-bold text-teal-700 mt-1">{p.price != null ? fmt(p.price) : '—'}</p>
+                    <p className="text-[13px] font-bold text-[#222222] leading-tight line-clamp-2 group-hover:text-[#FF385C] transition-colors">{p.name}</p>
+                    <p className="text-[12px] font-black text-[#222222] mt-1">{p.price != null ? fmt(p.price) : '—'}</p>
                   </div>
                 </Link>
               );
             })}
           </div>
         </section>
-      ) : null}
+      )}
 
-      <section className="rounded-3xl bg-orange-50 border border-orange-100 p-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-orange-950 mt-4">
+      {/* Kitchen Partner Callout */}
+      <section className="rounded-3xl bg-[#222222] p-6 md:p-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-white">
         <div className="flex-1 text-center sm:text-left">
-            <p className="text-sm font-black">Running a kitchen on CityOS?</p>
-            <p className="text-xs font-medium mt-1 text-orange-800">
-              Manage your menu, take orders, and reach residents directly.
-            </p>
+          <p className="text-base font-bold">Running a restaurant or food truck in {cityName}?</p>
+          <p className="text-xs text-neutral-400 mt-1">
+            Accept online orders with zero courier headache. Express riders dispatched via CityDrive.
+          </p>
         </div>
-        <Link href="/demo/access" className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-orange-600 text-white text-xs font-black hover:bg-orange-700 transition-colors shrink-0">
-            Open Workspace <ArrowRight className="w-3.5 h-3.5" />
+        <Link href="/demo/access" className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#FF385C] hover:bg-[#E00B41] text-white text-xs font-bold transition-all shrink-0 shadow-md">
+          Open Kitchen Dashboard <ArrowRight className="w-3.5 h-3.5" />
         </Link>
       </section>
-
-      <div className="space-y-2">
-        <h2 className="text-base font-black text-ink">Food deals near you</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {menuItems.slice(0, 6).map((p) => (
-            <CityCard key={p.id} href={`/food/item/${p.id}`} className="flex items-center gap-3 p-3">
-              <FallbackImg
-                src={p.imageUrl}
-                alt={p.name}
-                className="h-16 w-16 rounded-xl shrink-0"
-                icon={<span className="text-sm font-black">{p.name.slice(0, 1)}</span>}
-              />
-              <div className="min-w-0 flex-1">
-                <p className="text-[12px] font-black text-ink truncate">{p.name}</p>
-                <p className="text-[10px] font-bold text-slate-400 truncate">
-                  {restaurants.find((r) => r.id === p.organizationId)?.name}
-                </p>
-              </div>
-            </CityCard>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

@@ -403,26 +403,22 @@ const navGroups: { label: string; items: NavItem[] }[] = [
       <WalletProvider>
         <AccountSwitcherProvider>
           <CreateBusinessModal />
-          <div className="flex h-screen bg-[#F6F7F8] overflow-hidden font-sans text-slate-900 selection:bg-teal-200">
+          <div className="flex h-screen bg-[#FAFAFA] overflow-hidden font-sans text-[#222222] selection:bg-[#FF385C]/20">
         {/* Desktop Sidebar - only in resident mode */}
         {!isWorkspace && (
-        <aside className="hidden md:flex flex-col w-[268px] bg-white border-r border-slate-100 z-20 h-full overflow-y-auto">
-          <div className="p-6 pb-4 flex flex-col gap-1 sticky top-0 bg-white z-10 border-b border-slate-100/60">
+        <aside className="hidden md:flex flex-col w-[268px] bg-white border-r border-[#EBEBEB] z-20 h-full overflow-y-auto">
+          <div className="p-6 pb-4 flex flex-col gap-1 sticky top-0 bg-white z-10 border-b border-[#EBEBEB]">
             <Link href="/" className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-700 to-teal-500 flex items-center justify-center text-white shadow-md shadow-teal-800/20">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#FF385C] to-[#E00B41] flex items-center justify-center text-white shadow-md shadow-[#FF385C]/20">
                 <LayoutGrid className="w-5 h-5" />
               </div>
               <div>
-                <h1 className="text-xl font-black tracking-tight text-ink leading-none">CityOS</h1>
-                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-0.5">
+                <h1 className="text-xl font-black tracking-tight text-[#222222] leading-none">CityOS</h1>
+                <p className="text-[9px] text-neutral-400 font-bold uppercase tracking-[0.2em] mt-0.5">
                   {cityName}
                 </p>
               </div>
             </Link>
-            <div className="mt-3 inline-flex items-center gap-1.5 self-start px-2 py-1 rounded-full bg-orange-50 ring-1 ring-orange-100">
-              <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
-              
-            </div>
           </div>
 
           <nav className="flex-1 px-4 py-5 space-y-7">
@@ -437,13 +433,13 @@ const navGroups: { label: string; items: NavItem[] }[] = [
                       className={cn(
                         'w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-bold transition-all',
                         active
-                          ? 'bg-teal-50 text-teal-900 ring-1 ring-teal-100'
-                          : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50',
+                          ? 'bg-[#FF385C]/10 text-[#FF385C]'
+                          : 'text-neutral-500 hover:text-[#222222] hover:bg-neutral-50',
                       )}
                     >
-                      <item.icon className={cn('w-4 h-4', active ? 'text-teal-800' : 'text-slate-400')} />
+                      <item.icon className={cn('w-4 h-4', active ? 'text-[#FF385C]' : 'text-neutral-400')} />
                       {item.label}
-                      {active ? <span className="ml-auto w-1.5 h-1.5 rounded-full bg-teal-600" /> : null}
+                      {active ? <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#FF385C]" /> : null}
                     </Link>
                   );
                 })}
@@ -700,12 +696,12 @@ const navGroups: { label: string; items: NavItem[] }[] = [
 
           {/* Mobile Bottom Navigation - only in resident mode */}
           {!isWorkspace && (
-            <nav className="md:hidden absolute bottom-0 left-0 right-0 bg-white border-t border-slate-100 flex items-center justify-between px-2 h-16 z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">
+            <nav className="md:hidden absolute bottom-0 left-0 right-0 bg-white border-t border-[#EBEBEB] flex items-center justify-between px-3 h-16 z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
               {[
-                { id: 'home', path: '/', label: 'Home', icon: LayoutGrid },
-                { id: 'explore', path: '/explore', label: 'Explore', icon: Search },
+                { id: 'home', path: '/', label: 'Explore', icon: Search },
+                { id: 'explore', path: '/explore', label: 'Places', icon: LayoutGrid },
                 { id: 'activity', path: '/activity', label: 'Activity', icon: Bell },
-                { id: 'wallet', path: '/wallet', label: 'Wallet', icon: WalletIcon },
+                { id: 'wallet', path: '/wallet', label: 'CityPay', icon: WalletIcon },
                 { id: 'profile', path: '/profile', label: 'Profile', icon: UserIcon },
               ].map((item) => {
                 const active = isActive(item.path);
@@ -714,12 +710,14 @@ const navGroups: { label: string; items: NavItem[] }[] = [
                     key={item.id}
                     href={item.path}
                     className={cn(
-                      'flex flex-col items-center justify-center w-14 py-1.5 rounded-xl transition-colors',
-                      active ? 'text-teal-800' : 'text-slate-400 hover:text-slate-600',
+                      'flex flex-col items-center justify-center w-14 py-1.5 rounded-xl transition-all',
+                      active ? 'text-[#FF385C]' : 'text-neutral-400 hover:text-neutral-700',
                     )}
                   >
-                    <item.icon className={cn('w-5 h-5 mb-0.5', active && 'fill-teal-50')} />
-                    <span className="text-[9px] font-bold uppercase tracking-wider">{item.label}</span>
+                    <item.icon className={cn('w-5 h-5 mb-0.5 transition-transform', active && 'scale-110')} />
+                    <span className={cn('text-[10px] tracking-tight', active ? 'font-black text-[#222222]' : 'font-medium text-neutral-400')}>
+                      {item.label}
+                    </span>
                   </Link>
                 );
               })}

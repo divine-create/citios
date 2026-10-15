@@ -1,87 +1,91 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Search, BedDouble, Bath, MapPin, Wifi } from 'lucide-react';
-import { useMoney } from '@/components/cityos/CityProvider';
+import { Home, Sparkles, BedDouble } from 'lucide-react';
 import { useCity } from '@/components/cityos/CityProvider';
-import { CityCard, FallbackImg, Pill, LocationRow, ChipButton, PriceTag } from '@/components/cityos/CityUI';
-
-// Property filter chrome (UI tags only, not content).
-const PROPERTY_TAGS = ['All', 'Available', 'Furnished', 'Affordable', 'New'];
+import AirbnbCard from '@/components/cityos/AirbnbCard';
+import AirbnbSearchCapsule from '@/components/cityos/AirbnbSearchCapsule';
 import { cn } from '@/lib/utils';
 
-export default function CityHouse() {
-  const cityName = useCity().city?.name ?? 'CityOS';
-  const { fmt } = useMoney();
-  const [tag, setTag] = useState('All');
-  const [query, setQuery] = useState('');
+const PROPERTY_TAGS = ['All Homes', 'Furnished Apartments', 'Serviced Suites', 'Guest Houses', 'Monthly Stays'];
 
-  const results: any[] = [];
+export default function CityHouse({ stays = [] }: { stays?: any[] }) {
+  const cityName = useCity().city?.name ?? 'Calabar';
+  const [tag, setTag] = useState('All Homes');
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-xl font-black text-ink">CityHouse</h1>
-        <p className="text-xs text-slate-500 font-medium">
-          Find flats and rooms around {cityName} â€” deposit and rent flow through CityPay.
+    <div className="space-y-8 animate-in fade-in duration-500 pb-16">
+      {/* Floating Capsule Search Bar */}
+      <AirbnbSearchCapsule />
+
+      {/* Header Info */}
+      <div className="flex flex-col gap-1 px-1">
+        <div className="flex items-center gap-2">
+          <span className="text-[12px] font-black uppercase tracking-wider text-[#FF385C] flex items-center gap-1">
+            <Sparkles className="w-3.5 h-3.5" />
+            CityHomes & Living
+          </span>
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-black text-[#222222] tracking-tight">
+          Homes & Serviced Apartments in {cityName}
+        </h1>
+        <p className="text-sm text-[#717171] font-medium">
+          Verified short-lets, executive flats, and serviced residences in {cityName}. Protected by CityPay escrow.
         </p>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex-1 relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search area or addressâ€¦ e.g. Ekorinim, Goldie, garden"
-            className="w-full bg-white rounded-xl py-3 pl-11 pr-4 text-[13px] font-medium text-slate-700 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-600/40 placeholder:text-slate-400 transition-all"
-          />
-        </div>
-      </div>
-
-      <div className="flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">
+      {/* Filter Chips */}
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 no-scrollbar">
         {PROPERTY_TAGS.map((t) => (
-          <ChipButton key={t} active={tag === t} onClick={() => setTag(t)}>
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTag(t)}
+            className={cn(
+              'px-4 py-2 rounded-full text-[13px] font-semibold transition-all shrink-0 border',
+              tag === t
+                ? 'border-[#222222] bg-[#222222] text-white shadow-sm'
+                : 'border-[#EBEBEB] bg-white text-[#717171] hover:border-neutral-400 hover:text-[#222222]'
+            )}
+          >
             {t}
-          </ChipButton>
+          </button>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {results.map((p) => (
-          <CityCard key={p.id} href={`/house/${p.id}`} className="flex flex-col">
-            <div className="relative">
-              <FallbackImg src={p.image} alt={p.title} className="h-40 w-full" />
-              <span className="absolute top-2 left-2"><Pill tone="orange">{p.type}</Pill></span>
-              {p.featured ? <span className="absolute top-2 right-2"><Pill tone="teal">Featured</Pill></span> : null}
-            </div>
-            <div className="p-4 flex-1 flex flex-col gap-1.5">
-              <p className="text-[14px] font-black text-ink leading-snug">{p.title}</p>
-              <LocationRow text={`${p.area} Â· ${p.address}`} className="text-[11px]" />
-              <div className="flex items-center gap-3 text-[11px] font-bold text-slate-500">
-                <span className="inline-flex items-center gap-1"><BedDouble className="w-3.5 h-3.5 text-teal-700" /> {p.bedrooms} bed</span>
-                <span className="inline-flex items-center gap-1"><Bath className="w-3.5 h-3.5 text-teal-700" /> {p.bathrooms} bath</span>
-                {p.furnished ? <Pill tone="blue" className="ml-auto">Furnished</Pill> : null}
-              </div>
-              <p className="text-[12px] text-slate-500 leading-relaxed line-clamp-2 mt-0.5">{p.desc}</p>
-              <div className="mt-auto pt-3 flex items-end justify-between border-t border-slate-100">
-                <div>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">per year</p>
-                  <p className="text-lg font-black text-ink">{fmt(p.pricePerYear)}</p>
-                  <p className="text-[10px] font-bold text-slate-400">{`â‰ˆ ${fmt(p.pricePerYear / 12)} / month`}</p>
-                </div>
-                {p.available ? <Pill tone="green">Available</Pill> : <Pill tone="red">Occupied</Pill>}
-              </div>
-            </div>
-          </CityCard>
-        ))}
-        {results.length === 0 ? (
-          <div className="col-span-full rounded-2xl border border-dashed border-slate-200 p-8 text-center bg-white">
-            <p className="text-[13px] font-black text-ink">No listings match</p>
-            <p className="text-[11px] text-slate-400 font-medium mt-1">Try a different area or filter.</p>
+      {/* Airbnb 4-Column Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-10">
+        {stays.map((p, idx) => {
+          const price = 25000 + (idx % 5) * 5000;
+          return (
+            <AirbnbCard
+              key={p.id}
+              id={p.id}
+              href={`/stay/${p.id}`}
+              title={p.name}
+              subtitle={p.description || 'Furnished serviced flat with backup power'}
+              neighborhood={p.neighborhood || p.address || `${cityName} Metro`}
+              image={p.storeCoverImage || p.image || p.logoAssetId}
+              images={p.images}
+              rating={p.rating || 4.88}
+              reviewCount={15 + ((idx * 6) % 30)}
+              badge={idx % 3 === 0 ? 'Guest favorite' : undefined}
+              price={price}
+              priceSuffix="night"
+              metaLine="2 bedrooms · Wifi · 24/7 Power"
+              aspectRatio="4/3"
+            />
+          );
+        })}
+
+        {stays.length === 0 && (
+          <div className="col-span-full rounded-3xl border border-dashed border-neutral-300 p-12 text-center bg-white">
+            <Home className="w-10 h-10 text-neutral-400 mx-auto mb-3" />
+            <p className="text-base font-bold text-[#222222]">No homes listed yet</p>
+            <p className="text-xs text-[#717171] mt-1">Check back soon or explore boutique stays.</p>
           </div>
-        ) : null}
+        )}
       </div>
     </div>
   );

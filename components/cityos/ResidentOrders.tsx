@@ -225,7 +225,13 @@ export default function ResidentOrders() {
                         </span>
                       )}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/orders/${order.id}`}
+                        className="px-3.5 py-2 text-xs font-black text-orange-700 bg-orange-50 hover:bg-orange-100 rounded-xl transition-colors inline-flex items-center gap-1.5 border border-orange-100 shadow-sm"
+                      >
+                        Track Order ➔
+                      </Link>
                       {isCancelable && (
                         <button
                           disabled={actionLoading === order.id}

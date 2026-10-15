@@ -88,7 +88,11 @@ export default function CheckoutView() {
       } else {
         removeOrg(orgId);
         await syncCart();
-        router.push(`/pay/success?ref=${res.reference || 'internal'}`);
+        if (res.orderId) {
+          router.push(`/orders/${res.orderId}`);
+        } else {
+          router.push(`/pay/success?ref=${res.reference || 'internal'}`);
+        }
       }
     } catch (e: any) {
       setErrorMsg(e.message || 'An unexpected error occurred during checkout.');

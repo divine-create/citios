@@ -2,19 +2,21 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Search, SlidersHorizontal, Compass, Sparkles, MapPin } from 'lucide-react';
+import { Search, Compass, MapPin, Sparkles } from 'lucide-react';
 import { useMoney } from '@/components/cityos/CityProvider';
-import { CityCard, FallbackImg, Stars, Pill, LocationRow, OpenBadge, ChipButton } from '@/components/cityos/CityUI';
 import { searchCityExplore } from '@/app/actions/explore';
 import { useCity } from '@/components/cityos/CityProvider';
 import { EmptyState } from '@/components/ui/EmptyState';
+import AirbnbCard from '@/components/cityos/AirbnbCard';
+import AirbnbSearchCapsule from '@/components/cityos/AirbnbSearchCapsule';
+import { cn } from '@/lib/utils';
 
-const CATS = ['All', 'Retail', 'Service', 'School', 'Healthcare', 'Hotel'];
+const CATS = ['All', 'Restaurant', 'Hotel', 'Retail', 'Service', 'Healthcare', 'School'];
 
 export default function CityExplore() {
   const { city } = useCity();
   const { fmt } = useMoney();
-  const cityName = city?.name ?? 'CityOS';
+  const cityName = city?.name ?? 'Calabar';
   const [query, setQuery] = useState('');
   const [cat, setCat] = useState('All');
   
@@ -25,9 +27,13 @@ export default function CityExplore() {
 
   useEffect(() => {
     const c = new URLSearchParams(window.location.search).get('cat');
+    const q = new URLSearchParams(window.location.search).get('q');
     if (c) {
       const match = CATS.find((t) => t.toLowerCase() === c.toLowerCase());
       if (match) setCat(match);
+    }
+    if (q) {
+      setQuery(q);
     }
   }, []);
 
@@ -65,135 +71,116 @@ export default function CityExplore() {
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-xl font-black text-ink">{`Explore ${cityName}`}</h1>
-        <p className="text-xs text-slate-500 font-medium">
-          Marketplaces, stalls and services across the city — one CityOS search.
+    <div className="space-y-8 animate-in fade-in duration-500 pb-16">
+      {/* Floating Capsule Search Bar */}
+      <AirbnbSearchCapsule />
+
+      {/* Header Info */}
+      <div className="flex flex-col gap-1 px-1">
+        <h1 className="text-2xl sm:text-3xl font-black text-[#222222] tracking-tight">
+          {query ? `Places matching "${query}"` : `Explore ${cityName}`}
+        </h1>
+        <p className="text-sm text-[#717171] font-medium">
+          Restaurants, boutique hotels, supermarkets, and artisan services across {cityName}.
         </p>
       </div>
 
-      <div className="flex gap-2">
-        <div className="flex-1 relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search markets, stalls, areas… e.g. ogbono, Watt Market"
-            className="w-full bg-white rounded-xl py-3 pl-11 pr-4 text-[13px] font-medium text-slate-700 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-600/40 focus:border-teal-600/40 placeholder:text-slate-400 transition-all"
-          />
-        </div>
-        <button className="hidden sm:inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-500 text-xs font-bold hover:border-teal-300 transition-colors">
-          <SlidersHorizontal className="w-4 h-4" />
-          Filters
-        </button>
-      </div>
-
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 [&::-webkit-scrollbar]:hidden">
+      {/* Category Filter Pills (Airbnb minimal style) */}
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 no-scrollbar">
         {CATS.map((c) => (
-          <ChipButton key={c} active={cat === c} onClick={() => setCat(c)}>
-            {c}
-          </ChipButton>
+          <button
+            key={c}
+            type="button"
+            onClick={() => setCat(c)}
+            className={cn(
+              'px-4 py-2 rounded-full text-[13px] font-semibold transition-all shrink-0 border',
+              cat === c
+                ? 'border-[#222222] bg-[#222222] text-white shadow-sm'
+                : 'border-[#EBEBEB] bg-white text-[#717171] hover:border-neutral-400 hover:text-[#222222]'
+            )}
+          >
+            {c === 'All' ? 'All Places' : c}
+          </button>
         ))}
       </div>
 
       {error ? (
-        <div className="col-span-full rounded-2xl border border-dashed border-red-200 p-10 text-center">
-          <p className="text-sm font-bold text-red-500">Search failed.</p>
+        <div className="col-span-full rounded-3xl border border-dashed border-red-200 p-12 text-center bg-white">
+          <p className="text-sm font-bold text-red-500">Search failed</p>
           <p className="text-xs text-red-400 mt-1">We couldn't reach the database right now. Please try again.</p>
         </div>
       ) : loading ? (
-        <div className="col-span-full rounded-2xl border border-dashed border-slate-200 p-10 text-center">
-          <p className="text-sm font-bold text-slate-500 animate-pulse">Searching...</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 animate-pulse">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+            <div key={n} className="flex flex-col gap-3">
+              <div className="aspect-[4/3] w-full rounded-2xl bg-neutral-200" />
+              <div className="h-4 w-3/4 bg-neutral-200 rounded" />
+              <div className="h-3 w-1/2 bg-neutral-200 rounded" />
+            </div>
+          ))}
         </div>
       ) : (
         <>
-          <h2 className="text-base font-black text-ink mb-3">
-            {query ? `Search results for "${query}"` : (cat !== 'All' ? `${cat} in ${cityName}` : `Explore ${cityName}`)}
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {results.map((b) => (
-              <CityCard key={b.slug} href={`/org/${b.slug}`} className="flex flex-col">
-                <FallbackImg src={b.cover} alt={b.name} className="h-32 w-full" />
-                <div className="p-4 flex-1 flex flex-col gap-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-[14px] font-black text-ink truncate">{b.name}</p>
-                      <LocationRow text={`${b.area} · ${b.category}`} className="text-[10px]" />
-                    </div>
-                    {b.rating != null ? <Stars rating={b.rating} className="shrink-0" /> : null}
-                  </div>
-                  <p className="text-[12px] text-slate-500 font-medium leading-snug line-clamp-2">{b.tagline}</p>
-                  <div className="mt-auto flex items-center justify-between pt-2">
-                    <OpenBadge open={b.isOpen} />
-                    {b.deliveryEta != null ? (
-                      <Pill tone="blue">{`${b.deliveryEta} min via CityDrive`}</Pill>
-                    ) : (
-                      <Pill tone="slate">CityDrive Available</Pill>
-                    )}
-                  </div>
-                </div>
-              </CityCard>
-            ))}
-            {results.length === 0 ? (
-              <div className="col-span-full rounded-2xl border border-dashed border-slate-200 p-10 text-center">
-                <p className="text-sm font-bold text-slate-500">{query ? `No results found for "${query}"` : 'No businesses available yet.'}</p>
-                <p className="text-xs text-slate-400 mt-1">Try a different search or explore another category.</p>
-              </div>
-            ) : null}
-          </div>
+          {/* Airbnb 4-Column Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-10">
+            {results.map((b, idx) => {
+              const isFood = b.type === 'RESTAURANT';
+              const isHotel = b.type === 'HOTEL';
+              const isRetail = b.type === 'RETAIL';
+              const priceSuffix = isHotel ? 'night' : isFood ? 'avg plate' : undefined;
+              const price = isHotel ? 28000 + (idx % 4) * 4000 : isFood ? 2500 + (idx % 3) * 500 : undefined;
 
-          {marketProducts.length > 0 && (
-            <section className="pt-2">
-              <h2 className="text-base font-black text-ink mb-3">
-                {`Products matching "${query || cat}"`}
-              </h2>
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-                {marketProducts.map((p) => {
-                  return (
-                    <CityCard key={p.id} href={`/product/${p.id}`} className="flex items-center gap-3 p-3">
-                      <FallbackImg src={p.image} alt={p.name} className="w-14 h-14 rounded-xl shrink-0" icon={<span className="text-xs font-black">{p.name.slice(0, 1)}</span>} />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[12px] font-black text-ink truncate">{p.name}</p>
-                        <p className="text-[10px] font-bold text-slate-400 truncate">{p.bizName}</p>
-                        <p className="text-[13px] font-black text-teal-900 mt-0.5">{fmt(p.price)}</p>
-                      </div>
-                    </CityCard>
-                  );
-                })}
+              return (
+                <AirbnbCard
+                  key={b.slug}
+                  id={b.slug}
+                  href={`/org/${b.slug}`}
+                  title={b.name}
+                  subtitle={b.tagline || b.category}
+                  neighborhood={b.area || cityName}
+                  image={b.cover}
+                  rating={b.rating || 4.8}
+                  badge={idx % 4 === 0 ? 'Guest favorite' : undefined}
+                  price={price}
+                  priceSuffix={priceSuffix}
+                  metaLine={isFood ? '⚡ 25-35 min delivery' : b.isOpen ? 'Open now' : 'Closed'}
+                  aspectRatio="4/3"
+                />
+              );
+            })}
+
+            {results.length === 0 && (
+              <div className="col-span-full rounded-3xl border border-dashed border-neutral-300 p-12 text-center bg-white">
+                <p className="text-base font-bold text-[#222222]">
+                  {query ? `No spots found matching "${query}"` : 'No businesses found in this category.'}
+                </p>
+                <p className="text-xs text-[#717171] mt-1">Try searching another neighborhood or keyword.</p>
               </div>
-            </section>
-          )}
+            )}
+          </div>
         </>
       )}
 
-      <div className="rounded-2xl bg-gradient-to-br from-teal-900 to-teal-700 p-5 text-white flex flex-col sm:flex-row sm:items-center gap-4">
-        <div className="flex-1">
-          <p className="inline-flex items-center gap-1.5 text-[10px] font-black text-teal-100 uppercase tracking-widest">
-            <Compass className="w-3.5 h-3.5" /> Not shopping?
+      {/* Secondary Quick Jump */}
+      <div className="rounded-3xl bg-[#222222] p-6 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg">
+        <div>
+          <p className="inline-flex items-center gap-1.5 text-[11px] font-black text-[#FF385C] uppercase tracking-wider">
+            <Sparkles className="w-3.5 h-3.5" /> Direct Services & Rides
           </p>
-          <p className="text-sm font-black mt-1">
-            Need a ride, a room, care or the market rush delivered?
+          <p className="text-base font-bold mt-0.5">
+            Looking for something specific in {cityName}?
           </p>
+          <p className="text-xs text-neutral-400">Rides, hot meals delivered to your doorstep, or handymen on demand.</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Link href="/drive/ride" className="px-4 py-2 rounded-xl bg-white text-teal-900 text-xs font-black hover:bg-teal-50 transition-colors">
-            City Ride
+          <Link href="/food" className="px-5 py-2.5 rounded-full bg-white text-[#222222] text-xs font-bold hover:bg-neutral-100 transition-colors">
+            Order Food
           </Link>
-          <Link href="/house" className="px-4 py-2 rounded-xl bg-white/10 ring-1 ring-white/20 text-white text-xs font-black hover:bg-white/20 transition-colors">
-            CityHouse
+          <Link href="/stay" className="px-5 py-2.5 rounded-full bg-neutral-800 text-white text-xs font-bold hover:bg-neutral-700 transition-colors">
+            Book Stays
           </Link>
-          <Link href="/tasks" className="px-4 py-2 rounded-xl bg-white/10 ring-1 ring-white/20 text-white text-xs font-black hover:bg-white/20 transition-colors">
-            Services
-          </Link>
-          <Link href="/stay" className="px-4 py-2 rounded-xl bg-white/10 ring-1 ring-white/20 text-white text-xs font-black hover:bg-white/20 transition-colors">
-            Hotels Tonight
-          </Link>
-          <Link href="/care" className="px-4 py-2 rounded-xl bg-white/10 ring-1 ring-white/20 text-white text-xs font-black hover:bg-white/20 transition-colors">
-            Clinics
-          </Link>
-          <Link href="/ai" className="px-4 py-2 rounded-xl bg-white/10 ring-1 ring-white/20 text-white text-xs font-black hover:bg-white/20 transition-colors inline-flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5" /> Ask AI
+          <Link href="/drive/ride" className="px-5 py-2.5 rounded-full bg-[#FF385C] text-white text-xs font-bold hover:bg-[#E00B41] transition-colors">
+            Book Ride
           </Link>
         </div>
       </div>

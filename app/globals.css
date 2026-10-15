@@ -54,4 +54,13 @@
   --color-coral-100: #FFE3D8;
   --color-coral-500: #F84012;
   --color-coral-600: #D9360F;
+
+  /* Airbnb Hospitality Design Language */
+  --color-airbnb-coral: #FF385C;
+  --color-airbnb-coral-dark: #E00B41;
+  --color-airbnb-dark: #222222;
+  --color-airbnb-muted: #717171;
+  --color-airbnb-border: #EBEBEB;
+  --color-airbnb-card: #FFFFFF;
+  --color-airbnb-canvas: #F7F7F7;
 }

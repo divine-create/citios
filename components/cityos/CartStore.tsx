@@ -1,6 +1,6 @@
 'use client';
-import { addCartItemAction, removeCartItemAction, updateCartItemQuantityAction, fetchUserCart, clearCartAction } from '@/app/actions/cart';
 
+import { addCartItemAction, removeCartItemAction, updateCartItemQuantityAction, fetchUserCart, clearCartAction } from '@/app/actions/cart';
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
 import { useCity } from '@/components/cityos/CityProvider';
 
@@ -50,6 +50,14 @@ interface CartCtx {
   confirmPendingCity: () => void;
   /** Discard the withheld line and keep the existing bag. */
   cancelPendingCity: () => void;
+  /**
+   * Glovo-grade Single-Store Guard:
+   * A line whose add was withheld because on-demand food & express delivery
+   * requires single-merchant courier routing.
+   */
+  pendingStoreLine: CartLine | null;
+  confirmPendingStore: () => void;
+  cancelPendingStore: () => void;
 }
 
 const KEY = 'cityos-cart-v2';
@@ -64,6 +72,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
   const [lastAddedId, setLastAddedId] = useState<string | null>(null);
   const [pendingCityLine, setPendingCityLine] = useState<CartLine | null>(null);
+  const [pendingStoreLine, setPendingStoreLine] = useState<CartLine | null>(null);
 
   const syncCart = useCallback(async () => {
     try {
@@ -110,17 +119,27 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [lines, hydrated]);
 
   /**
-   * Add a line to the bag. The city is stamped from the server-resolved city
-   * context — never from the caller. If the bag already belongs to another
-   * city, the line is withheld and surfaced as `pendingCityLine` so the user
-   * decides; we never silently mix cities or silently discard their bag.
+   * Add a line to the bag.
+   * 1. City Guard: Never silently mix cities.
+   * 2. Store Guard (Glovo Pattern): Food & on-demand deliveries are isolated to a single merchant.
    */
   const add = useCallback((item: CartLine) => {
     const line: CartLine = currentCitySlug ? { ...item, citySlug: currentCitySlug } : { ...item };
 
+    // 1. Cross-city protection
     const bagCity = lines.length > 0 ? lines[0].citySlug ?? null : null;
     if (bagCity && line.citySlug && bagCity !== line.citySlug) {
       setPendingCityLine(line);
+      return;
+    }
+
+    // 2. Single-Store Food Delivery Guard
+    const hasExistingFood = lines.some((l) => l.kind === 'food');
+    const isAddingFood = line.kind === 'food';
+    const existingOrgId = lines.length > 0 ? lines[0].orgId : null;
+
+    if (lines.length > 0 && (hasExistingFood || isAddingFood) && existingOrgId && line.orgId && existingOrgId !== line.orgId) {
+      setPendingStoreLine(line);
       return;
     }
 
@@ -150,13 +169,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     setLines((prev) => prev.map((x) => (x.productId === id ? { ...x, qty } : x)));
-    const line = lines.find(x => x.productId === id);
+    const line = lines.find((x) => x.productId === id);
     if (line) updateCartItemQuantityAction(id, qty, line.kind).catch(() => {});
-  }, [remove]);
+  }, [remove, lines]);
 
   const clear = useCallback(() => {
     setLines([]);
     setPendingCityLine(null);
+    setPendingStoreLine(null);
     setLastAddedId(null);
     clearCartAction().catch(() => {});
   }, []);
@@ -168,10 +188,28 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setLines([line]);
     setLastAddedId(line.productId);
     setPendingCityLine(null);
+    clearCartAction().then(() => {
+      addCartItemAction(line.productId, line.qty, line.kind).catch(() => {});
+    }).catch(() => {});
   }, [pendingCityLine]);
 
   /** Keep the existing bag; the withheld line is dropped. */
   const cancelPendingCity = useCallback(() => setPendingCityLine(null), []);
+
+  /** Glovo single-store confirmation: discard old store basket, start with the new store item. */
+  const confirmPendingStore = useCallback(() => {
+    const line = pendingStoreLine;
+    if (!line) return;
+    setLines([line]);
+    setLastAddedId(line.productId);
+    setPendingStoreLine(null);
+    clearCartAction().then(() => {
+      addCartItemAction(line.productId, line.qty, line.kind).catch(() => {});
+    }).catch(() => {});
+  }, [pendingStoreLine]);
+
+  /** Keep existing store basket; cancel adding from the new store. */
+  const cancelPendingStore = useCallback(() => setPendingStoreLine(null), []);
 
   // A bag whose city is gone from the registry is treated as unknown, not foreign.
   const bagCity = lines.length > 0 ? lines[0].citySlug ?? null : null;
@@ -181,8 +219,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<CartCtx>(() => {
     const subtotal = lines.reduce((sum, l) => sum + l.price * l.qty, 0);
     const count = lines.reduce((s, l) => s + l.qty, 0);
+    const hasFood = lines.some((l) => l.kind === 'food');
     const hasRetail = lines.some((l) => l.kind === 'retail');
-    const deliveryFee = hasRetail ? 1200 : 0;
+
+    // Glovo-style delivery economics:
+    // Free delivery on orders 10,000 NGN or more!
+    let deliveryFee = 0;
+    if (subtotal > 0 && subtotal < 10000) {
+      if (hasFood) deliveryFee = 600; // Hyperlocal motorcycle courier in city
+      else if (hasRetail) deliveryFee = 1200; // Standard retail parcel delivery
+    }
+
     return {
       lines,
       add,
@@ -200,8 +247,28 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       pendingCityLine,
       confirmPendingCity,
       cancelPendingCity,
+      pendingStoreLine,
+      confirmPendingStore,
+      cancelPendingStore,
     };
-  }, [lines, add, remove, removeOrg, setQty, clear, syncCart, lastAddedId, cartCitySlug, isForeignCart, pendingCityLine, confirmPendingCity, cancelPendingCity]);
+  }, [
+    lines,
+    add,
+    remove,
+    removeOrg,
+    setQty,
+    clear,
+    syncCart,
+    lastAddedId,
+    cartCitySlug,
+    isForeignCart,
+    pendingCityLine,
+    confirmPendingCity,
+    cancelPendingCity,
+    pendingStoreLine,
+    confirmPendingStore,
+    cancelPendingStore,
+  ]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

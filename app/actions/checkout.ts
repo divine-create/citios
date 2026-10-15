@@ -15,6 +15,7 @@ export type CheckoutResponse = {
   message?: string;
   authorizationUrl?: string; // Provider's checkout URL
   reference?: string;
+  orderId?: string;
   errors?: string[];
   requiresPaymentAction?: boolean;
 };
@@ -79,21 +80,25 @@ export async function processMerchantCheckout(
     throw new Error('Cannot process external payment for mixed Retail and Restaurant items simultaneously. Please pay with Wallet or split your cart.');
   }
 
+  let placedOrderId: string | undefined = undefined;
+
   try {
+
     if (retailItems.length > 0) {
-      await placeRetailOrder({
+      const retRes = await placeRetailOrder({
         items: retailItems.map((i: any) => ({ productId: i.productId, qty: i.qty, name: i.name })),
         method,
         idempotencyKey: idempotencyKey + '_ret',
         paymentReference: retailItems.length > 0 && foodItems.length === 0 ? reference : reference + '_RET',
         expectedTotal: retailItems.reduce((acc: number, i: any) => acc + (i.price * i.qty), 0)
       });
+      if ((retRes as any)?.orderId) placedOrderId = (retRes as any).orderId;
       // Clear them from cart
       for (const item of retailItems) await removeVoiceCartItem(personId, item.productId);
     }
 
     if (foodItems.length > 0) {
-      await placeRestaurantOrder({
+      const foodRes = await placeRestaurantOrder({
         locationId,
         items: foodItems.map((i: any) => ({ menuItemId: i.productId, qty: i.qty, name: i.name })),
         type: 'TAKEOUT', // Default for resident checkout
@@ -101,6 +106,7 @@ export async function processMerchantCheckout(
         paymentReference: foodItems.length > 0 && retailItems.length === 0 ? reference : reference + '_FOOD',
         method
       });
+      if (foodRes?.orderIds && foodRes.orderIds[0]) placedOrderId = foodRes.orderIds[0];
       for (const item of foodItems) await removeVoiceCartItem(personId, item.productId);
     }
 
@@ -117,7 +123,7 @@ export async function processMerchantCheckout(
 
   // 5. If Wallet, it's already completed inside the vertical actions!
   if (method === 'wallet') {
-    return { success: true, message: 'Payment successful via Wallet.' };
+    return { success: true, message: 'Payment successful via Wallet.', orderId: placedOrderId };
   }
 
   // 6. External Payment: Initialize configured gateway via adapter

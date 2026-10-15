@@ -2,29 +2,35 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, ShoppingCart, X } from 'lucide-react';
+import { ArrowRight, ShoppingCart, UtensilsCrossed, X } from 'lucide-react';
 import { useCart } from '@/components/cityos/CartStore';
 import { useCity } from '@/components/cityos/CityProvider';
 import { switchCity } from '@/app/actions/city';
 
 /**
- * City/cart trust layer.
+ * City & Store Trust Guard.
  *
- * Two jobs, both about never letting a bag silently straddle two cities:
- *  1. Resolve a withheld cross-city add (the store you're in belongs to another
- *     city than the bag you already have).
- *  2. Warn, ambiently, that the bag you carry was built elsewhere, and offer a
- *     one-tap jump back to that city.
- *
- * Nothing here is automatic: every resolution is a user choice.
+ * 1. Resolves cross-city additions (city isolation).
+ * 2. Resolves cross-store food additions (Glovo single-merchant on-demand isolation).
+ * 3. Alerts if a saved cart was built in another city.
  */
 export default function CartCityGuard() {
-  const { lines, count, isForeignCart, cartCitySlug, pendingCityLine, confirmPendingCity, cancelPendingCity, clear } = useCart();
+  const {
+    lines,
+    count,
+    isForeignCart,
+    cartCitySlug,
+    pendingCityLine,
+    confirmPendingCity,
+    cancelPendingCity,
+    pendingStoreLine,
+    confirmPendingStore,
+    cancelPendingStore,
+    clear,
+  } = useCart();
   const { city, cities } = useCity();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  // Dismissing the notice hides it for the current situation only — it must
-  // never touch the bag itself (dismissal is not a decision about the bag).
   const [dismissedNotice, setDismissedNotice] = useState(false);
 
   useEffect(() => {
@@ -34,40 +40,40 @@ export default function CartCityGuard() {
   const cityNameFor = (slug: string | null | undefined) =>
     cities.find((c) => c.slug === slug)?.name ?? slug ?? '';
 
-  // 1. A cross-city add is waiting on a decision.
+  // 1. Cross-city add is waiting on a decision.
   if (pendingCityLine) {
     const target = cityNameFor(pendingCityLine.citySlug);
     const current = cityNameFor(cartCitySlug);
     return (
-      <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-4">
-        <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={cancelPendingCity} />
-        <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl p-5 animate-in fade-in slide-in-from-bottom-3 duration-200">
+      <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center p-4">
+        <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={cancelPendingCity} />
+        <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 animate-in fade-in slide-in-from-bottom-3 duration-200">
           <div className="flex items-start gap-3">
             <span className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
               <ShoppingCart className="w-5 h-5" />
             </span>
             <div className="min-w-0">
-              <p className="text-[13px] font-black text-ink">This item is from {target}</p>
-              <p className="text-[11px] text-slate-500 font-medium mt-0.5 leading-relaxed">
-                Your bag has {count} item{count === 1 ? '' : 's'} from {current}. A bag can only be
-                checked out in one city — start a {target} bag, or keep your {current} bag?
+              <p className="text-sm font-black text-slate-900">This item is from {target}</p>
+              <p className="text-xs text-slate-500 font-medium mt-1 leading-relaxed">
+                Your basket has {count} item{count === 1 ? '' : 's'} from {current}. A delivery order can only be
+                checked out in one city — start a {target} basket, or keep your {current} basket?
               </p>
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-2 mt-4">
+          <div className="flex flex-col sm:flex-row gap-2.5 mt-5">
             <button
               type="button"
               onClick={confirmPendingCity}
-              className="flex-1 h-11 rounded-xl bg-teal-800 hover:bg-teal-900 text-white text-[11px] font-black transition-colors"
+              className="flex-1 h-11 rounded-2xl bg-teal-800 hover:bg-teal-900 text-white text-xs font-black transition-colors"
             >
-              Start a {target} bag
+              Start {target} basket
             </button>
             <button
               type="button"
               onClick={cancelPendingCity}
-              className="flex-1 h-11 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-[11px] font-black transition-colors"
+              className="flex-1 h-11 rounded-2xl border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold transition-colors"
             >
-              Keep my {current} bag
+              Keep {current} basket
             </button>
           </div>
         </div>
@@ -75,7 +81,47 @@ export default function CartCityGuard() {
     );
   }
 
-  // 2. The bag belongs to another city than the one being browsed.
+  // 2. Glovo Single-Store Food/Express Isolation Guard
+  if (pendingStoreLine) {
+    const newStoreName = pendingStoreLine.orgName || 'New Kitchen';
+    const currentStoreName = lines[0]?.orgName || 'Current Store';
+    return (
+      <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center p-4">
+        <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={cancelPendingStore} />
+        <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 animate-in fade-in slide-in-from-bottom-3 duration-200">
+          <div className="flex items-start gap-3">
+            <span className="w-10 h-10 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center shrink-0">
+              <UtensilsCrossed className="w-5 h-5" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-black text-slate-900">Start a new basket?</p>
+              <p className="text-xs text-slate-500 font-medium mt-1 leading-relaxed">
+                You already have items from <strong className="text-slate-800">{currentStoreName}</strong> in your basket. On-demand delivery requires a single kitchen per trip.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2.5 mt-5">
+            <button
+              type="button"
+              onClick={confirmPendingStore}
+              className="flex-1 h-11 rounded-2xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-black transition-all shadow-md shadow-orange-600/20 active:scale-95"
+            >
+              Start {newStoreName} basket
+            </button>
+            <button
+              type="button"
+              onClick={cancelPendingStore}
+              className="flex-1 h-11 rounded-2xl border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold transition-all"
+            >
+              Keep {currentStoreName}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 3. The bag belongs to another city than the one being browsed.
   if (!isForeignCart || lines.length === 0 || dismissedNotice) return null;
 
   const bagCityName = cityNameFor(cartCitySlug);
@@ -95,7 +141,7 @@ export default function CartCityGuard() {
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-[13px] font-black text-ink">
-              Your bag is from {bagCityName}
+              Your basket is from {bagCityName}
             </p>
             <p className="text-[11px] text-slate-500 font-medium mt-0.5">
               {count} item{count === 1 ? '' : 's'} waiting. You&apos;re browsing {city?.name}.
@@ -107,7 +153,7 @@ export default function CartCityGuard() {
                 disabled={pending}
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-teal-800 hover:bg-teal-900 text-white text-[11px] font-black transition-colors disabled:opacity-60"
               >
-                Go to {bagCityName} bag
+                Go to {bagCityName} basket
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
               <button
@@ -115,7 +161,7 @@ export default function CartCityGuard() {
                 onClick={clear}
                 className="px-3 py-2 rounded-xl text-[11px] font-black text-slate-500 hover:text-rose-500 transition-colors"
               >
-                Clear bag
+                Clear basket
               </button>
             </div>
           </div>
