@@ -5,10 +5,15 @@ import { ShieldAlert, Search, History, Filter } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/Badge';
 
-export default async function HQActivityPage({ searchParams }: { searchParams: Promise<{ actionType?: string }> }) {
+export default async function HQActivityPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   await requireSystemAdmin();
 
-  const { actionType } = await searchParams;
+  const sp = await searchParams;
+  const actionType = typeof sp.actionType === 'string' ? sp.actionType : undefined;
 
   let query = db.orm.public.HQAuditEvent.where({});
   

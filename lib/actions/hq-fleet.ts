@@ -136,19 +136,30 @@ export async function getHQFleetData(filters: {
   ).length;
 
   // Recent jobs for the activity feed (newest 15)
-  const recentJobs = [...allJobs]
+  const recentJobs: Array<{
+    id: string;
+    trackingCode: string;
+    providerName: string;
+    sourceType: string;
+    status: string;
+    pickupAddress: string;
+    dropoffAddress: string;
+    fare: number;
+    currency: string;
+    createdAt: string;
+  }> = [...allJobs]
     .sort(compareTemporal)
     .slice(0, 15)
-    .map((j) => ({
-      id: j.id,
-      trackingCode: j.trackingCode || `TRK-${j.id.slice(0, 8)}`,
-      providerName: j.provider?.name || 'CityOS Dispatch Pool',
-      sourceType: j.sourceType || 'MANUAL',
-      status: j.status,
-      pickupAddress: j.pickupAddress || 'Calabar Central Distribution',
-      dropoffAddress: j.dropoffAddress || 'Destination Point',
-      fare: j.estimatedFare || j.finalFare || 1500,
-      currency: j.currency || 'NGN',
+    .map((j: any) => ({
+      id: String(j.id),
+      trackingCode: String(j.trackingCode || `TRK-${j.id.slice(0, 8)}`),
+      providerName: String(j.provider?.name || 'CityOS Dispatch Pool'),
+      sourceType: String(j.sourceType || 'MANUAL'),
+      status: String(j.status || 'REQUESTED'),
+      pickupAddress: String(j.pickupAddress || 'Calabar Central Distribution'),
+      dropoffAddress: String(j.dropoffAddress || 'Destination Point'),
+      fare: Number(j.estimatedFare || j.finalFare || 1500),
+      currency: String(j.currency || 'NGN'),
       createdAt: j.createdAt?.toString?.() || '',
     }));
 

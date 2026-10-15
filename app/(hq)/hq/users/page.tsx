@@ -14,10 +14,15 @@ function compareTemporal(a: any, b: any) {
   return 0;
 }
 
-export default async function HQUsersPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+export default async function HQUsersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   await requireSystemAdmin();
 
-  const { q } = await searchParams;
+  const sp = await searchParams;
+  const q = typeof sp.q === 'string' ? sp.q : undefined;
 
   const [allUsers, allMemberships, allIdentifiers] = await Promise.all([
     db.orm.public.Person.all(),

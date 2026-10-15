@@ -18,11 +18,14 @@ function compareTemporal(a: any, b: any) {
 export default async function HQTenantsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string; type?: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   await requireSystemAdmin();
 
-  const { q, status, type } = await searchParams;
+  const sp = await searchParams;
+  const q = typeof sp.q === 'string' ? sp.q : undefined;
+  const status = typeof sp.status === 'string' ? sp.status : undefined;
+  const type = typeof sp.type === 'string' ? sp.type : undefined;
 
   let query = db.orm.public.Organization.where({});
 

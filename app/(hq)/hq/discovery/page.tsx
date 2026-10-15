@@ -13,11 +13,12 @@ const TABS = [
 export default async function HQDiscoveryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   await requireSystemAdmin();
 
-  const { status } = await searchParams;
+  const sp = await searchParams;
+  const status = typeof sp.status === 'string' ? sp.status : undefined;
   const active = (TABS.find((t) => t.id === status)?.id ?? 'PENDING_REVIEW') as
     | 'PENDING_REVIEW'
     | 'PUBLISHED'

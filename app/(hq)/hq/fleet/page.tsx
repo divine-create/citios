@@ -25,11 +25,15 @@ import FleetDriverActions from '@/components/hq/FleetDriverActions';
 export default async function HQFleetPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string; type?: string; page?: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   await requireSystemAdmin();
 
-  const { q, status, type, page } = await searchParams;
+  const sp = await searchParams;
+  const q = typeof sp.q === 'string' ? sp.q : undefined;
+  const status = typeof sp.status === 'string' ? sp.status : undefined;
+  const type = typeof sp.type === 'string' ? sp.type : undefined;
+  const page = typeof sp.page === 'string' ? sp.page : undefined;
   const pageNum = page ? parseInt(page, 10) : 1;
 
   const data = await getHQFleetData({
