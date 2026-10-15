@@ -1,5 +1,5 @@
-﻿import ShopDashboard from '@/components/retail/ShopDashboard';
-import ServiceOSWorkspace from '@/components/cityos/workspaces/ServiceOSWorkspace';
+import ShopDashboard from '@/components/retail/ShopDashboard';
+import ServiceDashboard from '@/components/service/ServiceDashboard';
 
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -81,12 +81,15 @@ export default async function WorkspacePage({ params }: { params: Promise<{ os: 
     );
   }
 
-  return (
-    <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6 w-full h-full bg-[#F4F7FC]">
-      <div className="max-w-7xl mx-auto">
-        {os === 'serviceos' && <ServiceOSWorkspace slug={slug} />}
-        
-      </div>
-    </div>
-  );
+  if (os === 'serviceos') {
+    return (
+      <ServiceDashboard
+        organizationId={slug}
+        userRole={userRole}
+        currentUserId={currentUserId}
+      />
+    );
+  }
+
+  return null;
 }
