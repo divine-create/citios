@@ -273,6 +273,7 @@ export default function ManagedBusinessesHub({ initialBusinesses }: ManagedBusin
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSuccess={() => window.location.reload()}
+        initialVertical={verticalFilter !== 'ALL' ? verticalFilter : 'RESTAURANT'}
       />
     </div>
   );

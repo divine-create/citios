@@ -610,17 +610,33 @@ export interface CreateHQManagedBusinessPayload {
   logoUrl?: string;
   coverUrl?: string;
   images?: string[];
+  videos?: string[];
+  amenities?: string[];
+  cuisineType?: string;
+  starRating?: string;
+  checkInTime?: string;
+  checkOutTime?: string;
+  diningOptions?: string[];
+  operatingHours?: string;
+  serviceType?: string;
+  fleetType?: string;
+  curriculum?: string;
   initialItems?: Array<{
     name: string;
     category?: string;
     price: number;
     description?: string;
     imageUrl?: string;
+    durationMinutes?: number;
+    stockQuantity?: number;
+    sku?: string;
   }>;
   initialRooms?: Array<{
     roomNumber: string;
     type: string;
     baseRate: number;
+    bedType?: string;
+    maxGuests?: number;
   }>;
 }
 
@@ -679,13 +695,24 @@ export async function createHQManagedBusiness(payload: CreateHQManagedBusinessPa
       currency: city.currency || 'NGN',
     });
 
-    // 4. Create DiscoveryListing
+    // 4. Create DiscoveryListing with rich vertical metadata
     const meta = {
       coverImage: payload.coverUrl?.trim() || null,
       images: (payload.images || []).filter(Boolean),
+      videos: (payload.videos || []).filter(Boolean),
       phone: payload.phone?.trim() || null,
       whatsapp: payload.whatsapp?.trim() || null,
       website: payload.website?.trim() || null,
+      amenities: payload.amenities || [],
+      cuisineType: payload.cuisineType || null,
+      starRating: payload.starRating || null,
+      checkInTime: payload.checkInTime || null,
+      checkOutTime: payload.checkOutTime || null,
+      diningOptions: payload.diningOptions || [],
+      operatingHours: payload.operatingHours || null,
+      serviceType: payload.serviceType || null,
+      fleetType: payload.fleetType || null,
+      curriculum: payload.curriculum || null,
     };
 
     await tx.orm.public.DiscoveryListing.create({
@@ -738,8 +765,25 @@ export async function createHQManagedBusiness(payload: CreateHQManagedBusinessPa
             globalCategory: it.category?.trim() || 'General',
             price: Number(it.price) || 0,
             description: it.description?.trim() || null,
-            stockQuantity: 50,
+            stockQuantity: it.stockQuantity || 50,
+            sku: it.sku?.trim() || null,
             imageAssetId: it.imageUrl?.trim() || null,
+          });
+        } else if (payload.type === 'SERVICES') {
+          await tx.orm.public.ServiceCatalogItem.create({
+            organizationId: org.id,
+            name: it.name.trim(),
+            price: Number(it.price) || 0,
+            durationMinutes: it.durationMinutes || 60,
+            description: it.description?.trim() || null,
+            imageAssetId: it.imageUrl?.trim() || null,
+            isActive: true,
+          });
+        } else if (payload.type === 'SCHOOL') {
+          await tx.orm.public.FeeType.create({
+            organizationId: org.id,
+            name: it.name.trim(),
+            amount: Number(it.price) || 0,
           });
         }
       }
