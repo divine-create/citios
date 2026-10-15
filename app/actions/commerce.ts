@@ -344,7 +344,30 @@ export async function getCityMartStores(citySlug?: string) {
   const orgIdsInCity = Array.from(new Set(locs.map((l: any) => l.organizationId)));
   const allOrgs = await db.orm.public.Organization.all();
   const orgs = allOrgs.filter((o: any) => o.type === 'RETAIL' && orgIdsInCity.includes(o.id));
-  return orgs;
+
+  const listings = await db.orm.public.DiscoveryListing.where({ cityId: city.id }).all();
+  const listingMap = new Map(listings.map((l: any) => [l.organizationId, l]));
+
+  return orgs.map((o: any) => {
+    const listing = listingMap.get(o.id);
+    let cover = o.logoAssetId || listing?.coverAssetId;
+    let rating = 4.8;
+    if (listing?.metadata) {
+      try {
+        const meta = JSON.parse(listing.metadata);
+        if (!cover) cover = meta.coverImage || meta.images?.[0];
+        if (typeof meta.rating === 'number') rating = meta.rating;
+      } catch {}
+    }
+    return {
+      ...o,
+      image: cover,
+      storeCoverImage: cover,
+      rating,
+      neighborhood: o.address ? o.address.split(',')[0].trim() : city.name,
+      deliveryEta: '30 - 45 min',
+    };
+  });
 }
 
 export async function getCityMartProduct(productId: string) {

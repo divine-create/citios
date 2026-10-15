@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Wallet, CreditCard, Landmark, ShieldCheck, Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Wallet, CreditCard, Landmark, ShieldCheck, Loader2, AlertCircle, ArrowLeft, PhoneCall } from 'lucide-react';
 import { useMoney } from '@/components/cityos/CityProvider';
 import { useCart } from '@/components/cityos/CartStore';
 import { getResidentWallet } from '@/app/actions/resident_wallet';
@@ -19,6 +19,7 @@ export default function CheckoutView() {
   const { lines, subtotal, deliveryFee, removeOrg, syncCart } = useCart();
   
   const [method, setMethod] = useState<MethodId>('wallet');
+  const [substitutionRule, setSubstitutionRule] = useState<'call' | 'replace' | 'refund'>('call');
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [processing, setProcessing] = useState<string | null>(null); // orgId being processed
   const [errorMsg, setErrorMsg] = useState('');
@@ -115,6 +116,50 @@ export default function CheckoutView() {
           <p className="text-sm font-bold">{errorMsg}</p>
         </div>
       )}
+
+      {/* Glovo Out-of-stock Substitution Preferences */}
+      <div className="bg-white rounded-[24px] border border-slate-100 overflow-hidden p-6 space-y-4">
+        <div className="flex items-center gap-2">
+          <PhoneCall className="w-4 h-4 text-[#FF385C]" />
+          <h2 className="text-sm font-black text-ink">If an item is out of stock</h2>
+        </div>
+        <p className="text-xs text-slate-500 leading-relaxed">
+          How should the merchant or courier handle items that are out of stock?
+        </p>
+
+        <div className="space-y-2.5">
+          {[
+            { id: 'call', label: '📞 Call me to choose a replacement', desc: 'The rider or merchant will call your phone' },
+            { id: 'replace', label: '🔄 Pick the closest replacement', desc: 'Merchant will choose the most similar brand or weight' },
+            { id: 'refund', label: '❌ Do not replace (refund item)', desc: 'Automatically credit your CityOS wallet balance' },
+          ].map((opt) => (
+            <button
+              key={opt.id}
+              type="button"
+              onClick={() => setSubstitutionRule(opt.id as any)}
+              className={cn(
+                'w-full flex items-start gap-3 p-3.5 rounded-xl border text-left transition-all',
+                substitutionRule === opt.id
+                  ? 'border-[#222222] bg-neutral-50/80 shadow-xs'
+                  : 'border-slate-100 hover:border-slate-200'
+              )}
+            >
+              <div
+                className={cn(
+                  'w-4 h-4 rounded-full border-2 mt-0.5 flex items-center justify-center shrink-0',
+                  substitutionRule === opt.id ? 'border-[#FF385C]' : 'border-slate-300'
+                )}
+              >
+                {substitutionRule === opt.id && <div className="w-2 h-2 rounded-full bg-[#FF385C]" />}
+              </div>
+              <div>
+                <p className="text-[13px] font-bold text-[#222222]">{opt.label}</p>
+                <p className="text-[11px] text-slate-500">{opt.desc}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="bg-white rounded-[24px] border border-slate-100 overflow-hidden p-6 space-y-4">
         <h2 className="text-sm font-black text-ink">Payment Method</h2>

@@ -11,7 +11,6 @@ import {
   Wrench, 
   Briefcase, 
   Compass,
-  ShieldCheck,
   Sparkles
 } from 'lucide-react';
 import { CITY_NOTES } from '@/lib/city-content';
@@ -131,31 +130,6 @@ export default function CityHome({
         <p className="text-sm text-[#717171] mt-1 font-medium">
           Explore authentic food, verified stays, and local markets across {cityName}.
         </p>
-      </section>
-
-      {/* Resident Trust & Physical Verification Guarantee */}
-      <section className="rounded-3xl bg-neutral-100 p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-[#FF385C]/10 text-[#FF385C] flex items-center justify-center shrink-0">
-            <ShieldCheck className="w-7 h-7" />
-          </div>
-          <div>
-            <h3 className="font-bold text-[16px] text-[#222222]">
-              CityOS Resident Guarantee
-            </h3>
-            <p className="text-xs text-[#717171] mt-0.5 max-w-lg">
-              All 211 scraped businesses are verified physical establishments in Calabar. Transactions are protected by CityPay escrow until receipt.
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <Link
-            href="/explore"
-            className="px-5 py-2.5 rounded-full bg-[#222222] text-white text-xs font-bold hover:bg-black transition-colors"
-          >
-            Explore All 211 Spots
-          </Link>
-        </div>
       </section>
 
       {/* Community Feed / City Pulse Section */}
