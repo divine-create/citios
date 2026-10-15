@@ -181,355 +181,359 @@ export default function RetailCreationWizard({ onSuccess, onCancel }: RetailCrea
   };
 
   return (
-    <div className="p-6">
-      {/* Progress */}
-      <div className="flex items-center justify-between mb-8 pb-4 border-b border-emerald-100 text-xs">
-        {[
-          { s: 1, title: '1. Store Profile' },
-          { s: 2, title: '2. Location & Manager' },
-          { s: 3, title: '3. Storefront Visuals' },
-          { s: 4, title: '4. Shelf Inventory' },
-        ].map(({ s, title }) => (
-          <button
-            key={s}
-            onClick={() => setStep(s as any)}
-            className={`font-bold pb-1 flex items-center gap-1.5 transition-all ${
-              step === s 
-                ? 'text-emerald-600 border-b-2 border-emerald-600' 
-                : step > s 
-                ? 'text-emerald-700' 
-                : 'text-slate-400'
-            }`}
-          >
-            {step > s ? <Check size={14} /> : null}
-            {title}
-          </button>
-        ))}
+    <div className="flex flex-col min-h-full">
+      {/* Progress (Sticky top) */}
+      <div className="sticky top-0 z-10 bg-slate-900/95 backdrop-blur-md px-6 py-3 border-b border-slate-800 flex items-center justify-between text-xs shrink-0 overflow-x-auto scrollbar-none">
+        <div className="flex items-center justify-between w-full min-w-max gap-4">
+          {[
+            { s: 1, title: '1. Store Profile' },
+            { s: 2, title: '2. Location & Manager' },
+            { s: 3, title: '3. Storefront Visuals' },
+            { s: 4, title: '4. Shelf Inventory' },
+          ].map(({ s, title }) => (
+            <button
+              key={s}
+              onClick={() => setStep(s as any)}
+              className={`font-bold pb-1 flex items-center gap-1.5 transition-all ${
+                step === s 
+                  ? 'text-emerald-400 border-b-2 border-emerald-400' 
+                  : step > s 
+                  ? 'text-teal-400' 
+                  : 'text-slate-500 hover:text-slate-400'
+              }`}
+            >
+              {step > s ? <Check size={14} /> : null}
+              {title}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {error && (
-        <div className="mb-6 p-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
-          <AlertCircle size={16} className="shrink-0 text-red-500" />
-          <span>{error}</span>
-        </div>
-      )}
-
-      {/* STEP 1: Store Profile */}
-      {step === 1 && (
-        <div className="space-y-6">
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              Supermarket / Retail Store Name *
-            </label>
-            <input
-              type="text"
-              required
-              placeholder="e.g. Spar Supermarket Calabar, Next Level Electronics, HealthPlus Pharmacy"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full text-sm font-bold px-4 py-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            />
+      <div className="p-6 space-y-6 flex-1 text-slate-100">
+        {error && (
+          <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
+            <AlertCircle size={16} className="shrink-0 text-red-400" />
+            <span>{error}</span>
           </div>
+        )}
 
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              Retail Category & Merchandising Focus
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {RETAIL_CATEGORIES.map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setRetailCategory(cat)}
-                  className={`p-3 rounded-xl border text-xs font-bold text-left transition-all ${
-                    retailCategory === cat
-                      ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm'
-                      : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-100">
-            <span className="block text-[11px] font-bold text-emerald-900 uppercase tracking-wider mb-2">
-              Resident Fulfillment Channels
-            </span>
-            <div className="flex flex-wrap gap-4 text-xs text-slate-700 font-medium">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={inStore} onChange={(e) => setInStore(e.target.checked)} className="rounded text-emerald-600 focus:ring-emerald-500" />
-                <span>In-Store Walk-in</span>
+        {/* STEP 1: Store Profile */}
+        {step === 1 && (
+          <div className="space-y-6">
+            <div>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                Supermarket / Retail Store Name *
               </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={delivery} onChange={(e) => setDelivery(e.target.checked)} className="rounded text-emerald-600 focus:ring-emerald-500" />
-                <span>CityOS Courier Delivery</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={clickAndCollect} onChange={(e) => setClickAndCollect(e.target.checked)} className="rounded text-emerald-600 focus:ring-emerald-500" />
-                <span>Click & Collect (Curbside)</span>
-              </label>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              Store Highlights & Policy Notice
-            </label>
-            <textarea
-              rows={2}
-              placeholder="e.g. Calabar's favorite neighborhood supermarket stocking daily groceries, fresh produce, cold beverages, and household essentials..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full text-xs p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            />
-          </div>
-        </div>
-      )}
-
-      {/* STEP 2: Location & Contacts */}
-      {step === 2 && (
-        <div className="space-y-6">
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              Store Address / Mall Branch *
-            </label>
-            <div className="relative">
-              <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
               <input
                 type="text"
                 required
-                placeholder="e.g. Calabar Mall, Cultural Centre Complex, Calabar"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                className="w-full text-sm pl-10 pr-4 py-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
+                placeholder="e.g. Spar Supermarket Calabar, Next Level Electronics, HealthPlus Pharmacy"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full text-sm font-bold px-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                Retail Category & Merchandising Focus
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {RETAIL_CATEGORIES.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setRetailCategory(cat)}
+                    className={`p-3 rounded-xl border text-xs font-bold text-left transition-all ${
+                      retailCategory === cat
+                        ? 'bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-600/20'
+                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white hover:bg-slate-850'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800">
+              <span className="block text-[11px] font-bold text-emerald-400 uppercase tracking-wider mb-2">
+                Resident Fulfillment Channels
+              </span>
+              <div className="flex flex-wrap gap-4 text-xs text-slate-300 font-medium">
+                <label className="flex items-center gap-2 cursor-pointer hover:text-white">
+                  <input type="checkbox" checked={inStore} onChange={(e) => setInStore(e.target.checked)} className="rounded bg-slate-900 border-slate-700 text-emerald-500 focus:ring-emerald-500" />
+                  <span>In-Store Walk-in</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer hover:text-white">
+                  <input type="checkbox" checked={delivery} onChange={(e) => setDelivery(e.target.checked)} className="rounded bg-slate-900 border-slate-700 text-emerald-500 focus:ring-emerald-500" />
+                  <span>CityOS Courier Delivery</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer hover:text-white">
+                  <input type="checkbox" checked={clickAndCollect} onChange={(e) => setClickAndCollect(e.target.checked)} className="rounded bg-slate-900 border-slate-700 text-emerald-500 focus:ring-emerald-500" />
+                  <span>Click & Collect (Curbside)</span>
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                Store Highlights & Policy Notice
+              </label>
+              <textarea
+                rows={2}
+                placeholder="e.g. Calabar's favorite neighborhood supermarket stocking daily groceries, fresh produce, cold beverages, and household essentials..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full text-xs p-3 rounded-2xl bg-slate-950 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none focus:border-emerald-500"
               />
             </div>
           </div>
+        )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* STEP 2: Location & Contacts */}
+        {step === 2 && (
+          <div className="space-y-6">
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                Cashier / Front Desk Phone
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                Store Address / Mall Branch *
               </label>
               <div className="relative">
-                <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                <MapPin className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
                 <input
-                  type="tel"
-                  placeholder="e.g. 08035551234"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full text-xs pl-10 pr-4 py-3 rounded-2xl border border-slate-200"
+                  type="text"
+                  required
+                  placeholder="e.g. Calabar Mall, Cultural Centre Complex, Calabar"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  className="w-full text-sm pl-10 pr-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none focus:border-emerald-500 font-medium"
                 />
               </div>
             </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                  Cashier / Front Desk Phone
+                </label>
+                <div className="relative">
+                  <Phone className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+                  <input
+                    type="tel"
+                    placeholder="e.g. 08035551234"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full text-xs pl-10 pr-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center justify-between">
+                  <span>WhatsApp Order & Stock Line *</span>
+                  <span className="text-[10px] text-emerald-400 font-bold">Concierge Alerts</span>
+                </label>
+                <div className="relative">
+                  <MessageSquare className="w-4 h-4 text-emerald-400 absolute left-3.5 top-3.5" />
+                  <input
+                    type="tel"
+                    placeholder="e.g. 08123456789"
+                    value={whatsapp}
+                    onChange={(e) => setWhatsapp(e.target.value)}
+                    className="w-full text-xs pl-10 pr-4 py-3 rounded-2xl bg-emerald-950/20 border border-emerald-500/40 text-emerald-300 placeholder:text-emerald-700 focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center justify-between">
-                <span>WhatsApp Order & Stock Line *</span>
-                <span className="text-[10px] text-emerald-600 font-bold">Concierge Alerts</span>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                Official Website / Online Catalogue
               </label>
               <div className="relative">
-                <MessageSquare className="w-4 h-4 text-emerald-500 absolute left-3.5 top-3.5" />
+                <Globe className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
                 <input
-                  type="tel"
-                  placeholder="e.g. 08123456789"
-                  value={whatsapp}
-                  onChange={(e) => setWhatsapp(e.target.value)}
-                  className="w-full text-xs pl-10 pr-4 py-3 rounded-2xl border border-emerald-200 bg-emerald-50/20 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  type="url"
+                  placeholder="e.g. https://sparnigeria.com"
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
+                  className="w-full text-xs pl-10 pr-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none focus:border-emerald-500"
                 />
               </div>
             </div>
           </div>
+        )}
 
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              Official Website / Online Catalogue
-            </label>
-            <div className="relative">
-              <Globe className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+        {/* STEP 3: Storefront Visuals */}
+        {step === 3 && (
+          <div className="space-y-6">
+            <div>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                Store Brand Logo
+              </label>
+              <MediaLinkOrUploadInput
+                label="Store Logo"
+                value={logoUrl}
+                onChange={setLogoUrl}
+                placeholder="Paste logo URL from their website or upload image"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                Hero Storefront & Merchandising Cover Banner
+              </label>
+              <MediaLinkOrUploadInput
+                label="Storefront Banner"
+                value={coverUrl}
+                onChange={setCoverUrl}
+                placeholder="Paste high-res storefront photo URL or upload banner"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                Store Tour or Promo Video (YouTube / Vimeo)
+              </label>
               <input
                 type="url"
-                placeholder="e.g. https://sparnigeria.com"
-                value={website}
-                onChange={(e) => setWebsite(e.target.value)}
-                className="w-full text-xs pl-10 pr-4 py-3 rounded-2xl border border-slate-200"
+                placeholder="e.g. https://www.youtube.com/watch?v=sampleStoreTour"
+                value={videoUrl}
+                onChange={(e) => setVideoUrl(e.target.value)}
+                className="w-full text-xs px-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none focus:border-emerald-500"
               />
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* STEP 3: Storefront Visuals */}
-      {step === 3 && (
-        <div className="space-y-6">
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-              Store Brand Logo
-            </label>
-            <MediaLinkOrUploadInput
-              label="Store Logo"
-              value={logoUrl}
-              onChange={setLogoUrl}
-              placeholder="Paste logo URL from their website or upload image"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-              Hero Storefront & Merchandising Cover Banner
-            </label>
-            <MediaLinkOrUploadInput
-              label="Storefront Banner"
-              value={coverUrl}
-              onChange={setCoverUrl}
-              placeholder="Paste high-res storefront photo URL or upload banner"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-              Store Tour or Promo Video (YouTube / Vimeo)
-            </label>
-            <input
-              type="url"
-              placeholder="e.g. https://www.youtube.com/watch?v=sampleStoreTour"
-              value={videoUrl}
-              onChange={(e) => setVideoUrl(e.target.value)}
-              className="w-full text-xs px-4 py-3 rounded-2xl border border-slate-200"
-            />
-          </div>
-        </div>
-      )}
-
-      {/* STEP 4: Shelf Inventory Seeding */}
-      {step === 4 && (
-        <div className="space-y-6">
-          {/* Bulk Text Parser */}
-          <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles size={14} className="text-emerald-600" />
-                Fast Bulk Shelf Inventory Parser
-              </span>
-              <span className="text-[10px] text-emerald-700 font-mono">Format: Product - Price(₦) - Stock - SKU</span>
-            </div>
-            <textarea
-              rows={3}
-              placeholder={`Golden Penny Spaghetti (500g) - 1200 - 100 - GP-SPAG-500
+        {/* STEP 4: Shelf Inventory Seeding */}
+        {step === 4 && (
+          <div className="space-y-6">
+            {/* Bulk Text Parser */}
+            <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles size={14} className="text-emerald-400" />
+                  Fast Bulk Shelf Inventory Parser
+                </span>
+                <span className="text-[10px] text-slate-500 font-mono">Format: Product - Price(₦) - Stock - SKU</span>
+              </div>
+              <textarea
+                rows={3}
+                placeholder={`Golden Penny Spaghetti (500g) - 1200 - 100 - GP-SPAG-500
 Peak Full Cream Powdered Milk (400g) - 3800 - 45 - PEAK-400G
 Indomie Instant Noodles Onion (Pack of 40) - 8500 - 30 - INDO-ON-40
 Oral-B Complete Toothpaste (140g) - 1100 - 80 - ORALB-140G`}
-              value={bulkText}
-              onChange={(e) => setBulkText(e.target.value)}
-              className="w-full text-xs font-mono p-3 rounded-xl border border-slate-200 bg-white"
-            />
-            <button
-              type="button"
-              onClick={handleParseBulkInventory}
-              className="mt-2 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-sm"
-            >
-              <Plus size={14} /> Parse Lines into Shelf Inventory
-            </button>
-          </div>
-
-          {/* Add Single Product */}
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
-            <span className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              + Add Individual Product
-            </span>
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
-              <input
-                type="text"
-                placeholder="Product Name"
-                value={newProdName}
-                onChange={(e) => setNewProdName(e.target.value)}
-                className="text-xs p-2.5 rounded-xl border border-slate-200 bg-white sm:col-span-2"
-              />
-              <input
-                type="number"
-                placeholder="Price (₦)"
-                value={newProdPrice}
-                onChange={(e) => setNewProdPrice(e.target.value)}
-                className="text-xs p-2.5 rounded-xl border border-slate-200 bg-white"
-              />
-              <input
-                type="number"
-                placeholder="Stock Qty (e.g. 50)"
-                value={newProdStock}
-                onChange={(e) => setNewProdStock(e.target.value)}
-                className="text-xs p-2.5 rounded-xl border border-slate-200 bg-white"
-              />
-            </div>
-            <div className="mt-2 flex gap-2">
-              <input
-                type="text"
-                placeholder="SKU / Barcode (optional)"
-                value={newProdSku}
-                onChange={(e) => setNewProdSku(e.target.value)}
-                className="flex-1 text-xs p-2.5 rounded-xl border border-slate-200 bg-white"
+                value={bulkText}
+                onChange={(e) => setBulkText(e.target.value)}
+                className="w-full text-xs font-mono p-3 rounded-xl bg-slate-900 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none focus:border-emerald-500"
               />
               <button
                 type="button"
-                onClick={handleAddSingleProduct}
-                className="text-xs bg-slate-900 hover:bg-slate-800 text-white font-bold px-4 py-2 rounded-xl transition-all"
+                onClick={handleParseBulkInventory}
+                className="mt-2 text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-sm"
               >
-                Add Product
+                <Plus size={14} /> Parse Lines into Shelf Inventory
               </button>
             </div>
-          </div>
 
-          {/* Inventory Table */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Configured Shelf Products ({products.length} items)
+            {/* Add Single Product */}
+            <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800">
+              <span className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                + Add Individual Product
               </span>
-              <span className="text-[11px] text-slate-500">Auto-created with CityOS Retail Stock</span>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                <input
+                  type="text"
+                  placeholder="Product Name"
+                  value={newProdName}
+                  onChange={(e) => setNewProdName(e.target.value)}
+                  className="text-xs p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none focus:border-emerald-500 sm:col-span-2"
+                />
+                <input
+                  type="number"
+                  placeholder="Price (₦)"
+                  value={newProdPrice}
+                  onChange={(e) => setNewProdPrice(e.target.value)}
+                  className="text-xs p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none focus:border-emerald-500 font-mono"
+                />
+                <input
+                  type="number"
+                  placeholder="Stock Qty (e.g. 50)"
+                  value={newProdStock}
+                  onChange={(e) => setNewProdStock(e.target.value)}
+                  className="text-xs p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none focus:border-emerald-500 font-mono"
+                />
+              </div>
+              <div className="mt-2 flex gap-2">
+                <input
+                  type="text"
+                  placeholder="SKU / Barcode (optional)"
+                  value={newProdSku}
+                  onChange={(e) => setNewProdSku(e.target.value)}
+                  className="flex-1 text-xs p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none focus:border-emerald-500 font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddSingleProduct}
+                  className="text-xs bg-slate-800 hover:bg-slate-700 text-white font-bold px-4 py-2 rounded-xl transition-all"
+                >
+                  Add Product
+                </button>
+              </div>
             </div>
 
-            <div className="max-h-48 overflow-y-auto space-y-2 pr-1">
-              {products.map((prod, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center justify-between p-3 rounded-xl bg-white border border-slate-200 shadow-sm text-xs"
-                >
-                  <div className="flex items-center gap-2">
-                    <Package className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <div>
-                      <span className="font-bold text-slate-900">{prod.name}</span>
-                      <p className="text-[11px] text-slate-500">
-                        Stock: {prod.stockQuantity} units {prod.sku ? `• SKU: ${prod.sku}` : ''}
-                      </p>
+            {/* Inventory Table */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  Configured Shelf Products ({products.length} items)
+                </span>
+                <span className="text-[11px] text-slate-500">Auto-created with CityOS Retail Stock</span>
+              </div>
+
+              <div className="max-h-48 overflow-y-auto space-y-2 pr-1">
+                {products.map((prod, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between p-3 rounded-xl bg-slate-950 border border-slate-800 shadow-sm text-xs"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Package className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <div>
+                        <span className="font-bold text-white">{prod.name}</span>
+                        <p className="text-[11px] text-slate-400">
+                          Stock: {prod.stockQuantity} units {prod.sku ? `• SKU: ${prod.sku}` : ''}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono font-bold text-emerald-400">₦{prod.price.toLocaleString()}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveProduct(idx)}
+                        className="p-1 text-slate-500 hover:text-red-400 transition-colors"
+                        title="Remove product"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono font-bold text-emerald-600">₦{prod.price.toLocaleString()}</span>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveProduct(idx)}
-                      className="p-1 text-slate-400 hover:text-red-500 transition-colors"
-                      title="Remove product"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Footer Navigation */}
-      <div className="flex items-center justify-between pt-6 mt-6 border-t border-slate-100">
+      {/* Footer Navigation (Sticky bottom of wizard) */}
+      <div className="sticky bottom-0 z-10 bg-slate-950/95 backdrop-blur-md px-6 py-3.5 border-t border-slate-800 flex items-center justify-between shrink-0">
         {step > 1 ? (
           <button
             type="button"
             onClick={() => setStep((step - 1) as any)}
-            className="px-5 py-2.5 rounded-full text-xs font-bold text-slate-600 hover:bg-slate-100 flex items-center gap-1.5"
+            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-750 flex items-center gap-1.5 transition-colors"
           >
             <ArrowLeft size={14} /> Back
           </button>
@@ -537,7 +541,7 @@ Oral-B Complete Toothpaste (140g) - 1100 - 80 - ORALB-140G`}
           <button
             type="button"
             onClick={onCancel}
-            className="px-5 py-2.5 rounded-full text-xs font-bold text-slate-600 hover:bg-slate-100"
+            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-800 transition-colors"
           >
             Cancel
           </button>
@@ -547,7 +551,7 @@ Oral-B Complete Toothpaste (140g) - 1100 - 80 - ORALB-140G`}
           <button
             type="button"
             onClick={() => setStep((step + 1) as any)}
-            className="px-6 py-2.5 rounded-full bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-all flex items-center gap-1.5 shadow-md shadow-emerald-600/20"
+            className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all flex items-center gap-1.5 shadow-md shadow-emerald-600/20"
           >
             Continue <ArrowRight size={14} />
           </button>
@@ -556,7 +560,7 @@ Oral-B Complete Toothpaste (140g) - 1100 - 80 - ORALB-140G`}
             type="button"
             disabled={isSubmitting}
             onClick={handleSubmit}
-            className="px-8 py-3 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-lg shadow-emerald-600/20 disabled:opacity-50 transition-all flex items-center gap-2"
+            className="px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-md shadow-emerald-500/20 disabled:opacity-50 transition-all flex items-center gap-2"
           >
             {isSubmitting ? 'Onboarding Retail Store...' : 'Complete & Launch Store'}
           </button>

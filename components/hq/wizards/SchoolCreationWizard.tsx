@@ -154,332 +154,336 @@ export default function SchoolCreationWizard({ onSuccess, onCancel }: SchoolCrea
   };
 
   return (
-    <div className="p-6">
-      {/* Progress */}
-      <div className="flex items-center justify-between mb-8 pb-4 border-b border-indigo-100 text-xs">
-        {[
-          { s: 1, title: '1. Academic Profile' },
-          { s: 2, title: '2. Campus & Admissions' },
-          { s: 3, title: '3. Campus Media' },
-          { s: 4, title: '4. Tuition & Classes' },
-        ].map(({ s, title }) => (
-          <button
-            key={s}
-            onClick={() => setStep(s as any)}
-            className={`font-bold pb-1 flex items-center gap-1.5 transition-all ${
-              step === s 
-                ? 'text-indigo-600 border-b-2 border-indigo-600' 
-                : step > s 
-                ? 'text-emerald-600' 
-                : 'text-slate-400'
-            }`}
-          >
-            {step > s ? <Check size={14} /> : null}
-            {title}
-          </button>
-        ))}
+    <div className="flex flex-col min-h-full">
+      {/* Progress (Sticky top) */}
+      <div className="sticky top-0 z-10 bg-slate-900/95 backdrop-blur-md px-6 py-3 border-b border-slate-800 flex items-center justify-between text-xs shrink-0 overflow-x-auto scrollbar-none">
+        <div className="flex items-center justify-between w-full min-w-max gap-4">
+          {[
+            { s: 1, title: '1. Academic Profile' },
+            { s: 2, title: '2. Campus & Admissions' },
+            { s: 3, title: '3. Campus Media' },
+            { s: 4, title: '4. Tuition & Classes' },
+          ].map(({ s, title }) => (
+            <button
+              key={s}
+              onClick={() => setStep(s as any)}
+              className={`font-bold pb-1 flex items-center gap-1.5 transition-all ${
+                step === s 
+                  ? 'text-indigo-400 border-b-2 border-indigo-400' 
+                  : step > s 
+                  ? 'text-emerald-400' 
+                  : 'text-slate-500 hover:text-slate-400'
+              }`}
+            >
+              {step > s ? <Check size={14} /> : null}
+              {title}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {error && (
-        <div className="mb-6 p-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
-          <AlertCircle size={16} className="shrink-0 text-red-500" />
-          <span>{error}</span>
-        </div>
-      )}
-
-      {/* STEP 1: Academic Profile */}
-      {step === 1 && (
-        <div className="space-y-6">
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              Institution / School Name *
-            </label>
-            <input
-              type="text"
-              required
-              placeholder="e.g. Hillcrest International Academy, Calabar Royal College, Access Tech Academy"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full text-sm font-bold px-4 py-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-600"
-            />
+      <div className="p-6 space-y-6 flex-1 text-slate-100">
+        {error && (
+          <div className="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
+            <AlertCircle size={16} className="shrink-0 text-red-400" />
+            <span>{error}</span>
           </div>
+        )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* STEP 1: Academic Profile */}
+        {step === 1 && (
+          <div className="space-y-6">
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                Education Level
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                Institution / School Name *
               </label>
-              <select
-                value={schoolLevel}
-                onChange={(e) => setSchoolLevel(e.target.value)}
-                className="w-full text-xs p-3 rounded-2xl border border-slate-200 bg-white"
-              >
-                {SCHOOL_LEVELS.map(sl => <option key={sl} value={sl}>{sl}</option>)}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                Educational Curriculum
-              </label>
-              <select
-                value={curriculum}
-                onChange={(e) => setCurriculum(e.target.value)}
-                className="w-full text-xs p-3 rounded-2xl border border-slate-200 bg-white"
-              >
-                {CURRICULUM_OPTIONS.map(co => <option key={co} value={co}>{co}</option>)}
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              Campus Facilities (Select all that apply)
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {CAMPUS_FACILITIES.map((facility) => {
-                const isSelected = selectedFacilities.includes(facility);
-                return (
-                  <button
-                    key={facility}
-                    type="button"
-                    onClick={() => toggleFacility(facility)}
-                    className={`p-2.5 rounded-xl text-xs font-bold text-left transition-all border flex items-center justify-between ${
-                      isSelected
-                        ? 'bg-indigo-50 border-indigo-300 text-indigo-900'
-                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    <span>{facility}</span>
-                    {isSelected && <Check size={14} className="text-indigo-600 shrink-0 ml-2" />}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              About School & Academic Philosophy
-            </label>
-            <textarea
-              rows={2}
-              placeholder="e.g. Nurturing future leaders in Calabar with high academic standards, STEM innovation, and character building..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full text-xs p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-600"
-            />
-          </div>
-        </div>
-      )}
-
-      {/* STEP 2: Campus Location & Admissions Desk */}
-      {step === 2 && (
-        <div className="space-y-6">
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              Campus Physical Address *
-            </label>
-            <div className="relative">
-              <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
               <input
                 type="text"
                 required
-                placeholder="e.g. 5 Diamond Hill, Old Ikang Road, Calabar"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                className="w-full text-sm pl-10 pr-4 py-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-600 font-medium"
+                placeholder="e.g. Hillcrest International Academy, Calabar Royal College, Access Tech Academy"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full text-sm font-bold px-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                  Education Level
+                </label>
+                <select
+                  value={schoolLevel}
+                  onChange={(e) => setSchoolLevel(e.target.value)}
+                  className="w-full text-xs p-3 rounded-2xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
+                >
+                  {SCHOOL_LEVELS.map(sl => <option key={sl} value={sl} className="bg-slate-950 text-white">{sl}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                  Educational Curriculum
+                </label>
+                <select
+                  value={curriculum}
+                  onChange={(e) => setCurriculum(e.target.value)}
+                  className="w-full text-xs p-3 rounded-2xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
+                >
+                  {CURRICULUM_OPTIONS.map(co => <option key={co} value={co} className="bg-slate-950 text-white">{co}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                Campus Facilities (Select all that apply)
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {CAMPUS_FACILITIES.map((facility) => {
+                  const isSelected = selectedFacilities.includes(facility);
+                  return (
+                    <button
+                      key={facility}
+                      type="button"
+                      onClick={() => toggleFacility(facility)}
+                      className={`p-2.5 rounded-xl text-xs font-bold text-left transition-all border flex items-center justify-between ${
+                        isSelected
+                          ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300'
+                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white hover:bg-slate-850'
+                      }`}
+                    >
+                      <span>{facility}</span>
+                      {isSelected && <Check size={14} className="text-indigo-400 shrink-0 ml-2" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                About School & Academic Philosophy
+              </label>
+              <textarea
+                rows={2}
+                placeholder="e.g. Nurturing future leaders in Calabar with high academic standards, STEM innovation, and character building..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full text-xs p-3 rounded-2xl bg-slate-950 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500"
               />
             </div>
           </div>
+        )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* STEP 2: Campus Location & Admissions Desk */}
+        {step === 2 && (
+          <div className="space-y-6">
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                Admissions Office Telephone
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                Campus Physical Address *
               </label>
               <div className="relative">
-                <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                <MapPin className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
                 <input
-                  type="tel"
-                  placeholder="e.g. 08031122334"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full text-xs pl-10 pr-4 py-3 rounded-2xl border border-slate-200"
+                  type="text"
+                  required
+                  placeholder="e.g. 5 Diamond Hill, Old Ikang Road, Calabar"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  className="w-full text-sm pl-10 pr-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 font-medium"
                 />
               </div>
             </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                  Admissions Office Telephone
+                </label>
+                <div className="relative">
+                  <Phone className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+                  <input
+                    type="tel"
+                    placeholder="e.g. 08031122334"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full text-xs pl-10 pr-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center justify-between">
+                  <span>WhatsApp Parent Hotline *</span>
+                  <span className="text-[10px] text-emerald-400 font-bold">Enrolment Inquiries</span>
+                </label>
+                <div className="relative">
+                  <MessageSquare className="w-4 h-4 text-emerald-400 absolute left-3.5 top-3.5" />
+                  <input
+                    type="tel"
+                    placeholder="e.g. 08123456789"
+                    value={whatsapp}
+                    onChange={(e) => setWhatsapp(e.target.value)}
+                    className="w-full text-xs pl-10 pr-4 py-3 rounded-2xl bg-emerald-950/20 border border-emerald-500/40 text-emerald-300 placeholder:text-emerald-700 focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center justify-between">
-                <span>WhatsApp Parent Hotline *</span>
-                <span className="text-[10px] text-emerald-600 font-bold">Enrolment Inquiries</span>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                Official School Portal / Website
               </label>
               <div className="relative">
-                <MessageSquare className="w-4 h-4 text-emerald-500 absolute left-3.5 top-3.5" />
+                <Globe className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
                 <input
-                  type="tel"
-                  placeholder="e.g. 08123456789"
-                  value={whatsapp}
-                  onChange={(e) => setWhatsapp(e.target.value)}
-                  className="w-full text-xs pl-10 pr-4 py-3 rounded-2xl border border-emerald-200 bg-emerald-50/20 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  type="url"
+                  placeholder="e.g. https://hillcrestcalabar.edu.ng"
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
+                  className="w-full text-xs pl-10 pr-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500"
                 />
               </div>
             </div>
           </div>
+        )}
 
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              Official School Portal / Website
-            </label>
-            <div className="relative">
-              <Globe className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+        {/* STEP 3: Campus Visuals & Virtual Tour */}
+        {step === 3 && (
+          <div className="space-y-6">
+            <div>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                School Crest / Emblem
+              </label>
+              <MediaLinkOrUploadInput
+                label="School Crest"
+                value={logoUrl}
+                onChange={setLogoUrl}
+                placeholder="Paste school crest URL or upload file"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                Hero Campus Cover Banner
+              </label>
+              <MediaLinkOrUploadInput
+                label="Campus Banner"
+                value={coverUrl}
+                onChange={setCoverUrl}
+                placeholder="Paste high-res campus photo URL or upload banner"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                Virtual Campus Tour Video (YouTube or Vimeo)
+              </label>
               <input
                 type="url"
-                placeholder="e.g. https://hillcrestcalabar.edu.ng"
-                value={website}
-                onChange={(e) => setWebsite(e.target.value)}
-                className="w-full text-xs pl-10 pr-4 py-3 rounded-2xl border border-slate-200"
+                placeholder="e.g. https://www.youtube.com/watch?v=sampleCampusTour"
+                value={videoUrl}
+                onChange={(e) => setVideoUrl(e.target.value)}
+                className="w-full text-xs px-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500"
               />
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* STEP 3: Campus Visuals & Virtual Tour */}
-      {step === 3 && (
-        <div className="space-y-6">
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-              School Crest / Emblem
-            </label>
-            <MediaLinkOrUploadInput
-              label="School Crest"
-              value={logoUrl}
-              onChange={setLogoUrl}
-              placeholder="Paste school crest URL or upload file"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-              Hero Campus Cover Banner
-            </label>
-            <MediaLinkOrUploadInput
-              label="Campus Banner"
-              value={coverUrl}
-              onChange={setCoverUrl}
-              placeholder="Paste high-res campus photo URL or upload banner"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-              Virtual Campus Tour Video (YouTube or Vimeo)
-            </label>
-            <input
-              type="url"
-              placeholder="e.g. https://www.youtube.com/watch?v=sampleCampusTour"
-              value={videoUrl}
-              onChange={(e) => setVideoUrl(e.target.value)}
-              className="w-full text-xs px-4 py-3 rounded-2xl border border-slate-200"
-            />
-          </div>
-        </div>
-      )}
-
-      {/* STEP 4: Tuition & Classes */}
-      {step === 4 && (
-        <div className="space-y-6">
-          {/* Add Fee Tier Box */}
-          <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200 space-y-3">
-            <span className="text-xs font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-1.5">
-              <BookOpen size={14} className="text-indigo-600" />
-              + Add Class Level & Termly Tuition Fee
-            </span>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <input
-                type="text"
-                placeholder="Class Level (e.g. Primary 1, JSS 2)"
-                value={newClassName}
-                onChange={(e) => setNewClassName(e.target.value)}
-                className="text-xs p-2.5 rounded-xl border border-slate-200 bg-white sm:col-span-2"
-              />
-              <input
-                type="number"
-                placeholder="Tuition (₦/term)"
-                value={newTuitionFee}
-                onChange={(e) => setNewTuitionFee(e.target.value)}
-                className="text-xs p-2.5 rounded-xl border border-slate-200 bg-white"
-              />
-            </div>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="Inclusions (e.g. Books, ICT & lab fees included)"
-                value={newFeeNotes}
-                onChange={(e) => setNewFeeNotes(e.target.value)}
-                className="flex-1 text-xs p-2.5 rounded-xl border border-slate-200 bg-white"
-              />
-              <button
-                type="button"
-                onClick={handleAddFeeTier}
-                className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-xl transition-all shadow-sm"
-              >
-                Add Fee Schedule
-              </button>
-            </div>
-          </div>
-
-          {/* Fee Schedule List */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Configured Class Tuition Schedules ({feeSchedule.length} levels)
+        {/* STEP 4: Tuition & Classes */}
+        {step === 4 && (
+          <div className="space-y-6">
+            {/* Add Fee Tier Box */}
+            <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-3">
+              <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+                <BookOpen size={14} className="text-indigo-400" />
+                + Add Class Level & Termly Tuition Fee
               </span>
-              <span className="text-[11px] text-slate-500">Termly tuition structure in Nigerian Naira (₦)</span>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <input
+                  type="text"
+                  placeholder="Class Level (e.g. Primary 1, JSS 2)"
+                  value={newClassName}
+                  onChange={(e) => setNewClassName(e.target.value)}
+                  className="text-xs p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 sm:col-span-2"
+                />
+                <input
+                  type="number"
+                  placeholder="Tuition (₦/term)"
+                  value={newTuitionFee}
+                  onChange={(e) => setNewTuitionFee(e.target.value)}
+                  className="text-xs p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 font-mono"
+                />
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Inclusions (e.g. Books, ICT & lab fees included)"
+                  value={newFeeNotes}
+                  onChange={(e) => setNewFeeNotes(e.target.value)}
+                  className="flex-1 text-xs p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddFeeTier}
+                  className="text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2 rounded-xl transition-all shadow-sm"
+                >
+                  Add Fee Schedule
+                </button>
+              </div>
             </div>
 
-            <div className="max-h-56 overflow-y-auto space-y-2 pr-1">
-              {feeSchedule.map((tier, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center justify-between p-3 rounded-xl bg-white border border-slate-200 shadow-sm text-xs"
-                >
-                  <div className="flex items-center gap-2">
-                    <SchoolIcon className="w-4 h-4 text-indigo-600 shrink-0" />
-                    <div>
-                      <span className="font-bold text-slate-900">{tier.name}</span>
-                      <p className="text-[11px] text-slate-500">{tier.description}</p>
+            {/* Fee Schedule List */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  Configured Class Tuition Schedules ({feeSchedule.length} levels)
+                </span>
+                <span className="text-[11px] text-slate-500">Termly tuition structure in Nigerian Naira (₦)</span>
+              </div>
+
+              <div className="max-h-56 overflow-y-auto space-y-2 pr-1">
+                {feeSchedule.map((tier, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between p-3 rounded-xl bg-slate-950 border border-slate-800 shadow-sm text-xs"
+                  >
+                    <div className="flex items-center gap-2">
+                      <SchoolIcon className="w-4 h-4 text-indigo-400 shrink-0" />
+                      <div>
+                        <span className="font-bold text-white">{tier.name}</span>
+                        <p className="text-[11px] text-slate-400">{tier.description}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono font-bold text-indigo-400">₦{tier.price.toLocaleString()}<span className="text-[10px] text-slate-500 font-normal">/term</span></span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveFeeTier(idx)}
+                        className="p-1 text-slate-500 hover:text-red-400 transition-colors"
+                        title="Remove fee schedule"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono font-bold text-indigo-700">₦{tier.price.toLocaleString()}<span className="text-[10px] text-slate-400 font-normal">/term</span></span>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveFeeTier(idx)}
-                      className="p-1 text-slate-400 hover:text-red-500 transition-colors"
-                      title="Remove fee schedule"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Footer Navigation */}
-      <div className="flex items-center justify-between pt-6 mt-6 border-t border-slate-100">
+      {/* Footer Navigation (Sticky bottom of wizard) */}
+      <div className="sticky bottom-0 z-10 bg-slate-950/95 backdrop-blur-md px-6 py-3.5 border-t border-slate-800 flex items-center justify-between shrink-0">
         {step > 1 ? (
           <button
             type="button"
             onClick={() => setStep((step - 1) as any)}
-            className="px-5 py-2.5 rounded-full text-xs font-bold text-slate-600 hover:bg-slate-100 flex items-center gap-1.5"
+            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-750 flex items-center gap-1.5 transition-colors"
           >
             <ArrowLeft size={14} /> Back
           </button>
@@ -487,7 +491,7 @@ export default function SchoolCreationWizard({ onSuccess, onCancel }: SchoolCrea
           <button
             type="button"
             onClick={onCancel}
-            className="px-5 py-2.5 rounded-full text-xs font-bold text-slate-600 hover:bg-slate-100"
+            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-800 transition-colors"
           >
             Cancel
           </button>
@@ -497,7 +501,7 @@ export default function SchoolCreationWizard({ onSuccess, onCancel }: SchoolCrea
           <button
             type="button"
             onClick={() => setStep((step + 1) as any)}
-            className="px-6 py-2.5 rounded-full bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition-all flex items-center gap-1.5 shadow-md shadow-indigo-600/20"
+            className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-all flex items-center gap-1.5 shadow-md shadow-indigo-600/20"
           >
             Continue <ArrowRight size={14} />
           </button>
@@ -506,7 +510,7 @@ export default function SchoolCreationWizard({ onSuccess, onCancel }: SchoolCrea
             type="button"
             disabled={isSubmitting}
             onClick={handleSubmit}
-            className="px-8 py-3 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-lg shadow-emerald-600/20 disabled:opacity-50 transition-all flex items-center gap-2"
+            className="px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-md shadow-emerald-500/20 disabled:opacity-50 transition-all flex items-center gap-2"
           >
             {isSubmitting ? 'Onboarding School...' : 'Complete & Launch School'}
           </button>

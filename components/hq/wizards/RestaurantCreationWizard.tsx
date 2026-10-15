@@ -196,44 +196,47 @@ export default function RestaurantCreationWizard({ onSuccess, onCancel }: Restau
   };
 
   return (
-    <div className="p-6">
-      {/* Step Indicators */}
-      <div className="flex items-center justify-between mb-8 pb-4 border-b border-amber-100 text-xs">
-        {[
-          { s: 1, title: '1. Restaurant Profile' },
-          { s: 2, title: '2. Location & Dispatch' },
-          { s: 3, title: '3. Food Media' },
-          { s: 4, title: '4. Menu & Pricing' },
-        ].map(({ s, title }) => (
-          <button
-            key={s}
-            onClick={() => setStep(s as any)}
-            className={`font-bold pb-1 flex items-center gap-1.5 transition-all ${
-              step === s 
-                ? 'text-amber-600 border-b-2 border-amber-500' 
-                : step > s 
-                ? 'text-emerald-600' 
-                : 'text-slate-400'
-            }`}
-          >
-            {step > s ? <Check size={14} /> : null}
-            {title}
-          </button>
-        ))}
+    <div className="flex flex-col min-h-full">
+      {/* Step Indicators (Sticky top of wizard) */}
+      <div className="sticky top-0 z-10 bg-slate-900/95 backdrop-blur-md px-6 py-3 border-b border-slate-800 flex items-center justify-between text-xs shrink-0 overflow-x-auto scrollbar-none">
+        <div className="flex items-center justify-between w-full min-w-max gap-4">
+          {[
+            { s: 1, title: '1. Restaurant Profile' },
+            { s: 2, title: '2. Location & Dispatch' },
+            { s: 3, title: '3. Food Media' },
+            { s: 4, title: '4. Menu & Pricing' },
+          ].map(({ s, title }) => (
+            <button
+              key={s}
+              onClick={() => setStep(s as any)}
+              className={`font-bold pb-1 flex items-center gap-1.5 transition-all ${
+                step === s 
+                  ? 'text-amber-400 border-b-2 border-amber-400' 
+                  : step > s 
+                  ? 'text-emerald-400' 
+                  : 'text-slate-500 hover:text-slate-400'
+              }`}
+            >
+              {step > s ? <Check size={14} /> : null}
+              {title}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {error && (
-        <div className="mb-6 p-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
-          <AlertCircle size={16} className="shrink-0 text-red-500" />
-          <span>{error}</span>
-        </div>
-      )}
+      <div className="p-6 space-y-6 flex-1 text-slate-100">
+        {error && (
+          <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
+            <AlertCircle size={16} className="shrink-0 text-red-400" />
+            <span>{error}</span>
+          </div>
+        )}
 
-      {/* STEP 1: Restaurant Profile */}
-      {step === 1 && (
-        <div className="space-y-6">
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+        {/* STEP 1: Restaurant Profile */}
+        {step === 1 && (
+          <div className="space-y-6">
+            <div>
+            <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
               Restaurant Name *
             </label>
             <input
@@ -242,12 +245,12 @@ export default function RestaurantCreationWizard({ onSuccess, onCancel }: Restau
               placeholder="e.g. Freddy's Restaurant & Grill, Crunchies Fried Chicken, Calabar Delicacy Bukka"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full text-sm font-bold px-4 py-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full text-sm font-bold px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-400"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
               Dining Concept & Ambience
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -258,8 +261,8 @@ export default function RestaurantCreationWizard({ onSuccess, onCancel }: Restau
                   onClick={() => setDiningConcept(concept)}
                   className={`p-3 rounded-xl border text-xs font-bold text-left transition-all ${
                     diningConcept === concept
-                      ? 'bg-amber-500 text-white border-amber-600 shadow-sm'
-                      : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/60 shadow-sm'
+                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
                   }`}
                 >
                   {concept}
@@ -269,7 +272,7 @@ export default function RestaurantCreationWizard({ onSuccess, onCancel }: Restau
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
               Signature Cuisine Specialties (Select all that apply)
             </label>
             <div className="flex flex-wrap gap-2">
@@ -282,8 +285,8 @@ export default function RestaurantCreationWizard({ onSuccess, onCancel }: Restau
                     onClick={() => toggleSpecialty(spec)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
                       isSelected
-                        ? 'bg-amber-50 border-amber-300 text-amber-800'
-                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                        ? 'bg-amber-500/20 border-amber-500/50 text-amber-300'
+                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-850 hover:text-white'
                     }`}
                   >
                     {isSelected ? '✓ ' : '+ '} {spec}
@@ -293,38 +296,38 @@ export default function RestaurantCreationWizard({ onSuccess, onCancel }: Restau
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-2xl bg-amber-50/50 border border-amber-100">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-2xl bg-slate-950/70 border border-slate-800">
             <div>
-              <span className="block text-[11px] font-bold text-amber-900 uppercase tracking-wider mb-2">Dining Modes</span>
-              <div className="space-y-1.5 text-xs text-slate-700 font-medium">
+              <span className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Dining Modes</span>
+              <div className="space-y-1.5 text-xs text-slate-300 font-medium">
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={dineIn} onChange={(e) => setDineIn(e.target.checked)} className="rounded text-amber-600 focus:ring-amber-500" />
+                  <input type="checkbox" checked={dineIn} onChange={(e) => setDineIn(e.target.checked)} className="rounded bg-slate-900 border-slate-700 text-amber-500 focus:ring-amber-500" />
                   <span>Dine-in Tables</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={takeaway} onChange={(e) => setTakeaway(e.target.checked)} className="rounded text-amber-600 focus:ring-amber-500" />
+                  <input type="checkbox" checked={takeaway} onChange={(e) => setTakeaway(e.target.checked)} className="rounded bg-slate-900 border-slate-700 text-amber-500 focus:ring-amber-500" />
                   <span>Takeaway / Pick-up</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={delivery} onChange={(e) => setDelivery(e.target.checked)} className="rounded text-amber-600 focus:ring-amber-500" />
+                  <input type="checkbox" checked={delivery} onChange={(e) => setDelivery(e.target.checked)} className="rounded bg-slate-900 border-slate-700 text-amber-500 focus:ring-amber-500" />
                   <span>CityOS Delivery</span>
                 </label>
               </div>
             </div>
 
             <div>
-              <span className="block text-[11px] font-bold text-amber-900 uppercase tracking-wider mb-2">Avg Kitchen Prep</span>
+              <span className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Avg Kitchen Prep</span>
               <input
                 type="text"
                 placeholder="e.g. 15 - 25 mins"
                 value={prepTime}
                 onChange={(e) => setPrepTime(e.target.value)}
-                className="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white"
+                className="w-full text-xs p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-400"
               />
             </div>
 
             <div>
-              <span className="block text-[11px] font-bold text-amber-900 uppercase tracking-wider mb-2">Price Range</span>
+              <span className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Price Range</span>
               <div className="flex gap-2">
                 {(['₦', '₦₦', '₦₦₦'] as const).map((tier) => (
                   <button
@@ -332,7 +335,7 @@ export default function RestaurantCreationWizard({ onSuccess, onCancel }: Restau
                     type="button"
                     onClick={() => setPriceTier(tier)}
                     className={`flex-1 py-2 rounded-xl text-xs font-black transition-all border ${
-                      priceTier === tier ? 'bg-amber-600 text-white border-amber-700' : 'bg-white border-slate-200 text-slate-600'
+                      priceTier === tier ? 'bg-amber-500 text-slate-950 font-black border-amber-400' : 'bg-slate-950 border-slate-800 text-slate-400'
                     }`}
                   >
                     {tier}
@@ -343,7 +346,7 @@ export default function RestaurantCreationWizard({ onSuccess, onCancel }: Restau
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
               Restaurant Backstory & Ambiance
             </label>
             <textarea
@@ -351,7 +354,7 @@ export default function RestaurantCreationWizard({ onSuccess, onCancel }: Restau
               placeholder="e.g. Calabar's premier dining destination for smoky grills, chilled palmwine, and native delicacies..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full text-xs p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full text-xs p-3 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-400"
             />
           </div>
         </div>
@@ -361,52 +364,52 @@ export default function RestaurantCreationWizard({ onSuccess, onCancel }: Restau
       {step === 2 && (
         <div className="space-y-6">
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
               Restaurant Physical Address *
             </label>
             <div className="relative">
-              <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+              <MapPin className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
               <input
                 type="text"
                 required
                 placeholder="e.g. 90 Marian Road, Calabar Municipal"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                className="w-full text-sm pl-10 pr-4 py-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium"
+                className="w-full text-sm pl-10 pr-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-400 font-medium"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
                 Customer Telephone Line
               </label>
               <div className="relative">
-                <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                <Phone className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
                 <input
                   type="tel"
                   placeholder="e.g. 08031234567"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full text-xs pl-10 pr-4 py-3 rounded-2xl border border-slate-200"
+                  className="w-full text-xs pl-10 pr-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-400"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center justify-between">
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center justify-between">
                 <span>Kitchen WhatsApp Dispatch Line *</span>
-                <span className="text-[10px] text-emerald-600 font-bold">HQ Concierge Alerts</span>
+                <span className="text-[10px] text-emerald-400 font-bold">HQ Order Alerts</span>
               </label>
               <div className="relative">
-                <MessageSquare className="w-4 h-4 text-emerald-500 absolute left-3.5 top-3.5" />
+                <MessageSquare className="w-4 h-4 text-emerald-400 absolute left-3.5 top-3.5" />
                 <input
                   type="tel"
                   placeholder="e.g. 08123456789 (receives order dispatch)"
                   value={whatsapp}
                   onChange={(e) => setWhatsapp(e.target.value)}
-                  className="w-full text-xs pl-10 pr-4 py-3 rounded-2xl border border-emerald-200 bg-emerald-50/20 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full text-xs pl-10 pr-4 py-3 rounded-xl bg-slate-950 border border-emerald-500/40 text-emerald-300 placeholder:text-slate-600 focus:outline-none focus:border-emerald-400"
                 />
               </div>
             </div>
@@ -414,33 +417,33 @@ export default function RestaurantCreationWizard({ onSuccess, onCancel }: Restau
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
                 Operating Hours
               </label>
               <div className="relative">
-                <Clock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                <Clock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
                 <input
                   type="text"
                   placeholder="e.g. Mon - Sun: 8:00 AM - 10:30 PM"
                   value={operatingHours}
                   onChange={(e) => setOperatingHours(e.target.value)}
-                  className="w-full text-xs pl-10 pr-4 py-3 rounded-2xl border border-slate-200"
+                  className="w-full text-xs pl-10 pr-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-400"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
                 Website or Instagram (Optional)
               </label>
               <div className="relative">
-                <Globe className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                <Globe className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
                 <input
                   type="url"
                   placeholder="e.g. https://instagram.com/crunchiescalabar"
                   value={website}
                   onChange={(e) => setWebsite(e.target.value)}
-                  className="w-full text-xs pl-10 pr-4 py-3 rounded-2xl border border-slate-200"
+                  className="w-full text-xs pl-10 pr-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-400"
                 />
               </div>
             </div>
@@ -452,7 +455,7 @@ export default function RestaurantCreationWizard({ onSuccess, onCancel }: Restau
       {step === 3 && (
         <div className="space-y-6">
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+            <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
               Restaurant Logo / Brand Signage
             </label>
             <p className="text-[11px] text-slate-500 mb-2">Displayed in checkout, order receipts, and search cards.</p>
@@ -465,7 +468,7 @@ export default function RestaurantCreationWizard({ onSuccess, onCancel }: Restau
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+            <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
               Hero Storefront & Food Spread Banner
             </label>
             <p className="text-[11px] text-slate-500 mb-2">Wide landscape image featured at the top of the restaurant profile.</p>
@@ -478,7 +481,7 @@ export default function RestaurantCreationWizard({ onSuccess, onCancel }: Restau
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+            <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
               Food Ambience / Reel Video (YouTube, Vimeo, TikTok URL)
             </label>
             <p className="text-[11px] text-slate-500 mb-2">Provides residents with an immersive video preview of food and vibe.</p>
@@ -487,7 +490,7 @@ export default function RestaurantCreationWizard({ onSuccess, onCancel }: Restau
               placeholder="e.g. https://www.youtube.com/watch?v=sampleFoodTour"
               value={videoUrl}
               onChange={(e) => setVideoUrl(e.target.value)}
-              className="w-full text-xs px-4 py-3 rounded-2xl border border-slate-200"
+              className="w-full text-xs px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-400"
             />
           </div>
         </div>
@@ -497,13 +500,13 @@ export default function RestaurantCreationWizard({ onSuccess, onCancel }: Restau
       {step === 4 && (
         <div className="space-y-6">
           {/* Bulk Text Parser Box */}
-          <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200">
+          <div className="p-4 rounded-2xl bg-slate-950/80 border border-amber-500/30">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles size={14} className="text-amber-600" />
+              <span className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Sparkles size={14} className="text-amber-400" />
                 Fast Bulk Menu Parser (Text Importer)
               </span>
-              <span className="text-[10px] text-amber-700 font-mono">Format: Dish - Price(₦) - Description</span>
+              <span className="text-[10px] text-slate-400 font-mono">Format: Dish - Price(₦) - Description</span>
             </div>
             <textarea
               rows={3}
@@ -513,20 +516,20 @@ Smoky Jollof Rice Combo - 3200 - Served with fried plantain, moin moin and grill
 Fresh Palmwine (1 Litre) - 1500 - Sweet freshly tapped Calabar palmwine`}
               value={bulkText}
               onChange={(e) => setBulkText(e.target.value)}
-              className="w-full text-xs font-mono p-3 rounded-xl border border-slate-200 bg-white"
+              className="w-full text-xs font-mono p-3 rounded-xl bg-slate-900 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-400"
             />
             <button
               type="button"
               onClick={handleParseBulkMenu}
-              className="mt-2 text-xs bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-sm"
+              className="mt-2 text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-md shadow-amber-500/20"
             >
               <Plus size={14} /> Parse Lines into Menu
             </button>
           </div>
 
           {/* Add Single Dish */}
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
-            <span className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+          <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800">
+            <span className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
               + Add Individual Dish
             </span>
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
@@ -535,12 +538,12 @@ Fresh Palmwine (1 Litre) - 1500 - Sweet freshly tapped Calabar palmwine`}
                 placeholder="Dish Name (e.g. Afang Soup)"
                 value={newDishName}
                 onChange={(e) => setNewDishName(e.target.value)}
-                className="text-xs p-2.5 rounded-xl border border-slate-200 bg-white sm:col-span-2"
+                className="text-xs p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none sm:col-span-2"
               />
               <select
                 value={newDishCategory}
                 onChange={(e) => setNewDishCategory(e.target.value)}
-                className="text-xs p-2.5 rounded-xl border border-slate-200 bg-white"
+                className="text-xs p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 focus:outline-none"
               >
                 <option value="Native Soups">Native Soups</option>
                 <option value="Rice & Grills">Rice & Grills</option>
@@ -553,7 +556,7 @@ Fresh Palmwine (1 Litre) - 1500 - Sweet freshly tapped Calabar palmwine`}
                 placeholder="Price (₦)"
                 value={newDishPrice}
                 onChange={(e) => setNewDishPrice(e.target.value)}
-                className="text-xs p-2.5 rounded-xl border border-slate-200 bg-white"
+                className="text-xs p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none"
               />
             </div>
             <div className="mt-2 flex gap-2">
@@ -562,12 +565,12 @@ Fresh Palmwine (1 Litre) - 1500 - Sweet freshly tapped Calabar palmwine`}
                 placeholder="Short description or ingredients (optional)"
                 value={newDishDesc}
                 onChange={(e) => setNewDishDesc(e.target.value)}
-                className="flex-1 text-xs p-2.5 rounded-xl border border-slate-200 bg-white"
+                className="flex-1 text-xs p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none"
               />
               <button
                 type="button"
                 onClick={handleAddSingleDish}
-                className="text-xs bg-slate-900 hover:bg-slate-800 text-white font-bold px-4 py-2 rounded-xl transition-all"
+                className="text-xs bg-slate-800 hover:bg-slate-750 text-white font-bold px-4 py-2 rounded-xl transition-all"
               >
                 Add Dish
               </button>
@@ -577,36 +580,36 @@ Fresh Palmwine (1 Litre) - 1500 - Sweet freshly tapped Calabar palmwine`}
           {/* Current Menu List */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+              <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
                 Menu Ready for Resident Orders ({dishes.length} items)
               </span>
-              <span className="text-[11px] text-slate-500">All prices calculated in Nigerian Naira (₦)</span>
+              <span className="text-[11px] text-slate-500 font-mono">Currency: NGN (₦)</span>
             </div>
 
             <div className="max-h-48 overflow-y-auto space-y-2 pr-1">
               {dishes.map((dish, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center justify-between p-3 rounded-xl bg-white border border-slate-200 shadow-sm text-xs"
+                  className="flex items-center justify-between p-3 rounded-xl bg-slate-950 border border-slate-800 shadow-sm text-xs"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 font-bold text-[10px]">
+                    <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 font-bold text-[10px]">
                       {dish.category}
                     </span>
                     <div>
-                      <span className="font-bold text-slate-900">{dish.name}</span>
+                      <span className="font-bold text-white">{dish.name}</span>
                       {dish.description && (
-                        <p className="text-[11px] text-slate-500 line-clamp-1">{dish.description}</p>
+                        <p className="text-[11px] text-slate-400 line-clamp-1">{dish.description}</p>
                       )}
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <span className="font-mono font-bold text-emerald-600">₦{dish.price.toLocaleString()}</span>
+                    <span className="font-mono font-bold text-emerald-400">₦{dish.price.toLocaleString()}</span>
                     <button
                       type="button"
                       onClick={() => handleRemoveDish(idx)}
-                      className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+                      className="p-1 text-slate-500 hover:text-red-400 transition-colors"
                       title="Remove dish"
                     >
                       <Trash2 size={14} />
@@ -618,14 +621,15 @@ Fresh Palmwine (1 Litre) - 1500 - Sweet freshly tapped Calabar palmwine`}
           </div>
         </div>
       )}
+      </div>
 
-      {/* Footer Navigation */}
-      <div className="flex items-center justify-between pt-6 mt-6 border-t border-slate-100">
+      {/* Footer Navigation (Sticky bottom of wizard) */}
+      <div className="sticky bottom-0 z-10 bg-slate-950/95 backdrop-blur-md px-6 py-3.5 border-t border-slate-800 flex items-center justify-between shrink-0">
         {step > 1 ? (
           <button
             type="button"
             onClick={() => setStep((step - 1) as any)}
-            className="px-5 py-2.5 rounded-full text-xs font-bold text-slate-600 hover:bg-slate-100 flex items-center gap-1.5"
+            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-750 flex items-center gap-1.5 transition-colors"
           >
             <ArrowLeft size={14} /> Back
           </button>
@@ -633,7 +637,7 @@ Fresh Palmwine (1 Litre) - 1500 - Sweet freshly tapped Calabar palmwine`}
           <button
             type="button"
             onClick={onCancel}
-            className="px-5 py-2.5 rounded-full text-xs font-bold text-slate-600 hover:bg-slate-100"
+            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-800 transition-colors"
           >
             Cancel
           </button>
@@ -643,7 +647,7 @@ Fresh Palmwine (1 Litre) - 1500 - Sweet freshly tapped Calabar palmwine`}
           <button
             type="button"
             onClick={() => setStep((step + 1) as any)}
-            className="px-6 py-2.5 rounded-full bg-amber-600 text-white text-xs font-bold hover:bg-amber-700 transition-all flex items-center gap-1.5 shadow-md shadow-amber-600/20"
+            className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all flex items-center gap-1.5 shadow-md shadow-amber-500/20"
           >
             Continue <ArrowRight size={14} />
           </button>
@@ -652,7 +656,7 @@ Fresh Palmwine (1 Litre) - 1500 - Sweet freshly tapped Calabar palmwine`}
             type="button"
             disabled={isSubmitting}
             onClick={handleSubmit}
-            className="px-8 py-3 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-lg shadow-emerald-600/20 disabled:opacity-50 transition-all flex items-center gap-2"
+            className="px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-md shadow-emerald-500/20 disabled:opacity-50 transition-all flex items-center gap-2"
           >
             {isSubmitting ? 'Onboarding Restaurant...' : 'Complete & Launch Restaurant'}
           </button>
