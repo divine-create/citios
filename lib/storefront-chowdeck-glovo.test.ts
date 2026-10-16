@@ -165,6 +165,12 @@ test('Chowdeck & Glovo Storefront Integration Suite', async (t) => {
     assert.equal(spot.isFastCourier, true);
     assert.ok(Array.isArray(spot.cuisines));
     assert.ok(foodData.campaigns.length > 0);
+    assert.ok(Array.isArray(foodData.categories));
+    assert.ok(foodData.categories.length > 0);
+    assert.ok(foodData.categories.some((c: any) => c.id === 'all'));
+    assert.ok(Array.isArray(foodData.deliveryHubs));
+    assert.ok(foodData.deliveryHubs.length > 0);
+    assert.ok(foodData.deliveryHubs.some((h: any) => h.id === locFoodId));
   });
 
   await t.test('4. getCityMarketFeed returns stores with Glovo metadata and market campaigns', async () => {

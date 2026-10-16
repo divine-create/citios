@@ -12,7 +12,21 @@ import { getStorefrontPromotions, StorefrontCampaign } from '@/lib/actions/store
 
 const FOOD_CATS = ['All', 'Restaurant', 'Cafe', 'Campus Eats', 'Food & Market'];
 
-function mapMenuItem(m: any) {
+async function safeQuery<T = any[]>(fn: () => any, fallback: T = [] as unknown as T): Promise<T> {
+  try {
+    const res = await fn();
+    return (res ?? fallback) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+function mapMenuItem(
+  m: any,
+  modifierGroups: any[] = [],
+  addons: any[] = [],
+  variants: any[] = []
+) {
   return {
     id: m.id,
     name: m.name,
@@ -22,13 +36,51 @@ function mapMenuItem(m: any) {
     imageUrl: m.imageUrl,
     isAvailable: m.isAvailable,
     organizationId: m.organizationId,
+    modifierGroups: modifierGroups.map((g: any) => ({
+      id: g.id,
+      name: g.name,
+      description: g.description,
+      isRequired: Boolean(g.isRequired),
+      minSelections: g.minSelections ?? 0,
+      maxSelections: g.maxSelections,
+      type: (g.maxSelections === 1 || g.type === 'radio') ? 'radio' : 'checkbox',
+      options: (g.options || []).filter((opt: any) => opt.isActive !== false).map((opt: any) => ({
+        id: opt.id,
+        name: opt.name,
+        priceDelta: opt.priceDelta || 0,
+      })),
+    })),
+    addons: addons.map((a: any) => ({
+      id: a.id,
+      name: a.name,
+      price: a.price || 0,
+      isAvailable: a.isAvailable,
+    })),
+    variants: variants.map((v: any) => ({
+      id: v.id,
+      name: v.name,
+      price: v.price,
+      isAvailable: v.isAvailable,
+    })),
   };
 }
 
-function mapRestaurant(o: any, menuItems: any[], citySlug: string | null = null, coverUrl?: string | null, meta?: any) {
+function mapRestaurant(
+  o: any,
+  menuItems: any[],
+  citySlug: string | null = null,
+  coverUrl?: string | null,
+  meta?: any,
+  reviewStats?: { rating: number | null; count: number }
+) {
   const image = coverUrl || o.logoAssetId || undefined;
-  const rating = typeof meta?.rating === 'number' && meta.rating > 0 ? meta.rating : 4.7;
-  const reviewCount = typeof meta?.reviewCount === 'number' && meta.reviewCount > 0 ? meta.reviewCount : 54;
+  const rating = typeof meta?.rating === 'number' && meta.rating > 0
+    ? meta.rating
+    : reviewStats?.rating !== undefined ? reviewStats.rating : null;
+  const reviewCount = typeof meta?.reviewCount === 'number' && meta.reviewCount > 0
+    ? meta.reviewCount
+    : (reviewStats?.count || 0);
+
   const deliveryFee = typeof meta?.deliveryFee === 'number' ? meta.deliveryFee : 450;
   const deliveryEta = meta?.deliveryEta || (meta?.isFastCourier ? '15 - 25 min' : '20 - 30 min');
   const isVerified = meta?.isVerified !== undefined ? Boolean(meta.isVerified) : true;
@@ -36,7 +88,7 @@ function mapRestaurant(o: any, menuItems: any[], citySlug: string | null = null,
   const isFastCourier = Boolean(meta?.isFastCourier);
   const cuisines = Array.isArray(meta?.cuisines) && meta.cuisines.length > 0 
     ? meta.cuisines 
-    : [o.storeCategory || 'Local Dishes', 'Calabar Cuisine'];
+    : [o.storeCategory || 'Local Dishes'];
 
   return {
     id: o.id,
@@ -60,14 +112,24 @@ function mapRestaurant(o: any, menuItems: any[], citySlug: string | null = null,
     cuisines,
     badge: meta?.badge || (isFeatured ? 'Popular Spot' : undefined),
     isOpen: typeof meta?.isOpen === 'boolean' ? meta.isOpen : true,
-    area: o.address ? o.address.split(',')[0].trim() : 'Calabar',
+    area: o.address ? o.address.split(',')[0].trim() : 'City Area',
     category: o.storeCategory || 'Restaurant',
   };
 }
 
 export async function getCityFood(citySlug?: string) {
   const city = citySlug ? await getCityBySlug(citySlug) : await getCurrentCity();
-  if (!city) return { restaurants: [], menuItems: [], campaigns: [] };
+  if (!city) {
+    return {
+      restaurants: [],
+      menuItems: [],
+      campaigns: [],
+      categories: [{ id: 'all', label: 'All Cuisines', count: 0 }],
+      deliveryHubs: [],
+      defaultAddress: null,
+      topSearchTags: [],
+    };
+  }
 
   const [locs, campaigns] = await Promise.all([
     db.orm.public.Location.where({ cityId: city.id }).all(),
@@ -75,43 +137,197 @@ export async function getCityFood(citySlug?: string) {
   ]);
 
   const orgIdsWithLoc = locs.map((l) => l.organizationId);
-  if (orgIdsWithLoc.length === 0) return { restaurants: [], menuItems: [], campaigns };
+  if (orgIdsWithLoc.length === 0) {
+    return {
+      restaurants: [],
+      menuItems: [],
+      campaigns,
+      categories: [{ id: 'all', label: 'All Cuisines', count: 0 }],
+      deliveryHubs: [],
+      defaultAddress: null,
+      topSearchTags: [],
+    };
+  }
 
   const allOrgs = await db.orm.public.Organization.where({ type: 'RESTAURANT' }).all();
   const orgs = allOrgs.filter((o: any) => orgIdsWithLoc.includes(o.id));
   const orgIds = orgs.map((o) => o.id);
-  if (orgIds.length === 0) return { restaurants: [], menuItems: [], campaigns };
+  if (orgIds.length === 0) {
+    return {
+      restaurants: [],
+      menuItems: [],
+      campaigns,
+      categories: [{ id: 'all', label: 'All Cuisines', count: 0 }],
+      deliveryHubs: [],
+      defaultAddress: null,
+      topSearchTags: [],
+    };
+  }
 
   // Fetch listings for high-res cover photos
   const listings = await db.orm.public.DiscoveryListing.where({ cityId: city.id }).all();
   const listingMap = new Map(listings.map((l: any) => [l.organizationId, l]));
 
+  // Fetch menu items, modifiers, addons and variants
   // @ts-ignore — Prisma Next `in` operator on the ORM requires a ts-ignore
   const allMenus = await db.orm.public.MenuItem.all();
   const menus = allMenus.filter((m: any) => orgIds.includes(m.organizationId));
   const availableMenus = menus.filter((m: any) => m.isAvailable);
 
+  const [allModifierLinks, allGroups, allOptions, allAddons, allVariants, allReviews] = await Promise.all([
+    safeQuery<any[]>(() => db.orm.public.MenuItemModifierGroup.all(), []),
+    safeQuery<any[]>(() => db.orm.public.ModifierGroup.where({ isActive: true }).all(), []),
+    safeQuery<any[]>(() => db.orm.public.ModifierOption.where({ isActive: true }).all(), []),
+    safeQuery<any[]>(() => db.orm.public.MenuItemAddon.where({ isAvailable: true }).all(), []),
+    safeQuery<any[]>(() => db.orm.public.MenuItemVariant.where({ isAvailable: true }).all(), []),
+    safeQuery<any[]>(() => db.orm.public.Review.all(), []),
+  ]);
+
+  // Index reviews by org
+  const reviewsByOrg = new Map<string, { total: number; count: number }>();
+  for (const rev of (allReviews as any[])) {
+    if (!reviewsByOrg.has(rev.organizationId)) reviewsByOrg.set(rev.organizationId, { total: 0, count: 0 });
+    const stat = reviewsByOrg.get(rev.organizationId)!;
+    stat.total += rev.rating;
+    stat.count += 1;
+  }
+
+  // Build modifier group options map
+  const optionsByGroup = new Map<string, any[]>();
+  for (const opt of allOptions) {
+    if (!optionsByGroup.has(opt.modifierGroupId)) optionsByGroup.set(opt.modifierGroupId, []);
+    optionsByGroup.get(opt.modifierGroupId)!.push(opt);
+  }
+
+  const groupMap = new Map<string, any>();
+  for (const g of allGroups) {
+    groupMap.set(g.id, {
+      ...g,
+      options: optionsByGroup.get(g.id) || [],
+    });
+  }
+
+  const groupsByMenu = new Map<string, any[]>();
+  for (const link of allModifierLinks) {
+    const grp = groupMap.get(link.modifierGroupId);
+    if (grp) {
+      if (!groupsByMenu.has(link.menuItemId)) groupsByMenu.set(link.menuItemId, []);
+      groupsByMenu.get(link.menuItemId)!.push(grp);
+    }
+  }
+
+  const addonsByMenu = new Map<string, any[]>();
+  for (const a of allAddons) {
+    if (!addonsByMenu.has(a.menuItemId)) addonsByMenu.set(a.menuItemId, []);
+    addonsByMenu.get(a.menuItemId)!.push(a);
+  }
+
+  const variantsByMenu = new Map<string, any[]>();
+  for (const v of allVariants) {
+    if (!variantsByMenu.has(v.menuItemId)) variantsByMenu.set(v.menuItemId, []);
+    variantsByMenu.get(v.menuItemId)!.push(v);
+  }
+
+  const mappedMenuItems = availableMenus.map((m: any) =>
+    mapMenuItem(
+      m,
+      groupsByMenu.get(m.id) || [],
+      addonsByMenu.get(m.id) || [],
+      variantsByMenu.get(m.id) || []
+    )
+  );
+
+  const mappedRestaurants = orgs.map((o) => {
+    const listing = listingMap.get(o.id);
+    let cover = listing?.coverAssetId || o.logoAssetId;
+    let meta: any = null;
+    if (listing?.metadata) {
+      try {
+        meta = JSON.parse(listing.metadata);
+        if (!cover) cover = meta.coverImage || meta.images?.[0];
+      } catch {}
+    }
+
+    const revStat = reviewsByOrg.get(o.id);
+    const reviewStats = revStat && revStat.count > 0
+      ? { rating: Number((revStat.total / revStat.count).toFixed(1)), count: revStat.count }
+      : undefined;
+
+    return mapRestaurant(
+      o,
+      mappedMenuItems.filter((m: any) => m.organizationId === o.id),
+      city.slug,
+      cover,
+      meta,
+      reviewStats
+    );
+  });
+
+  // Dynamic backend categories derived directly from database records
+  const categoryCounter = new Map<string, number>();
+  for (const r of mappedRestaurants) {
+    if (r.category && r.category !== 'Restaurant') {
+      categoryCounter.set(r.category, (categoryCounter.get(r.category) || 0) + 1);
+    }
+    for (const c of r.cuisines || []) {
+      const clean = c.trim();
+      if (clean) categoryCounter.set(clean, (categoryCounter.get(clean) || 0) + 1);
+    }
+  }
+  for (const m of mappedMenuItems) {
+    const mc = m.category?.trim();
+    if (mc && !categoryCounter.has(mc)) {
+      categoryCounter.set(mc, 1);
+    }
+  }
+
+  const dynamicCategories = Array.from(categoryCounter.entries())
+    .map(([label, count]) => ({
+      id: label.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      label,
+      count,
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  const categories = [
+    { id: 'all', label: 'All Cuisines', count: mappedRestaurants.length },
+    ...dynamicCategories,
+  ];
+
+  // Delivery hubs derived from actual locations in this city
+  const deliveryHubs = locs.map((l: any) => ({
+    id: l.id,
+    name: l.name || l.address || 'Branch Hub',
+    address: l.address,
+  }));
+
+  // Read default delivery address if resident is logged in
+  let defaultAddress: string | null = null;
+  const session = await getServerSession(authOptions).catch(() => null);
+  if (session?.user?.personId) {
+    const profile = await safeQuery<any>(
+      () => db.orm.public.ResidentProfile.where({ personId: session.user.personId }).all().first(),
+      null
+    );
+    defaultAddress = profile?.defaultDeliveryAddress ?? null;
+  }
+
+  // Top search tags derived from actual menu items and cuisines in this city
+  const topSearchTags = Array.from(
+    new Set([
+      ...dynamicCategories.slice(0, 4).map((c) => c.label),
+      ...mappedMenuItems.slice(0, 4).map((m: any) => m.name),
+    ])
+  ).slice(0, 6);
+
   return {
-    restaurants: orgs.map((o) => {
-      const listing = listingMap.get(o.id);
-      let cover = listing?.coverAssetId || o.logoAssetId;
-      let meta: any = null;
-      if (listing?.metadata) {
-        try {
-          meta = JSON.parse(listing.metadata);
-          if (!cover) cover = meta.coverImage || meta.images?.[0];
-        } catch {}
-      }
-      return mapRestaurant(
-        o,
-        availableMenus.filter((m: any) => m.organizationId === o.id).map(mapMenuItem),
-        city.slug,
-        cover,
-        meta
-      );
-    }),
-    menuItems: availableMenus.map(mapMenuItem),
+    restaurants: mappedRestaurants,
+    menuItems: mappedMenuItems,
     campaigns,
+    categories,
+    deliveryHubs,
+    defaultAddress,
+    topSearchTags,
   };
 }
 
@@ -122,7 +338,6 @@ export async function getCityFoodRestaurant(orgId: string) {
   const activeCity = await getCurrentCity();
   let locs = await db.orm.public.Location.where({ organizationId: org.id }).all();
   
-  // If the user is in a city context, prioritize local presence
   if (activeCity) {
     const cityLocs = locs.filter((l) => l.cityId === activeCity.id);
     if (cityLocs.length > 0) {
@@ -141,13 +356,72 @@ export async function getCityFoodRestaurant(orgId: string) {
   }
 
   const menus = await db.orm.public.MenuItem.where({ organizationId: org.id }).all();
-
   const availableMenus = menus.filter((m: any) => m.isAvailable);
 
+  const [allModifierLinks, allGroups, allOptions, allAddons, allVariants, reviews] = await Promise.all([
+    safeQuery<any[]>(() => db.orm.public.MenuItemModifierGroup.all(), []),
+    safeQuery<any[]>(() => db.orm.public.ModifierGroup.where({ organizationId: org.id, isActive: true }).all(), []),
+    safeQuery<any[]>(() => db.orm.public.ModifierOption.where({ isActive: true }).all(), []),
+    safeQuery<any[]>(() => db.orm.public.MenuItemAddon.where({ organizationId: org.id, isAvailable: true }).all(), []),
+    safeQuery<any[]>(() => db.orm.public.MenuItemVariant.where({ organizationId: org.id, isAvailable: true }).all(), []),
+    safeQuery<any[]>(() => db.orm.public.Review.where({ organizationId: org.id }).all(), []),
+  ]);
+
+  const optionsByGroup = new Map<string, any[]>();
+  for (const opt of allOptions) {
+    if (!optionsByGroup.has(opt.modifierGroupId)) optionsByGroup.set(opt.modifierGroupId, []);
+    optionsByGroup.get(opt.modifierGroupId)!.push(opt);
+  }
+
+  const groupMap = new Map<string, any>();
+  for (const g of allGroups) {
+    groupMap.set(g.id, {
+      ...g,
+      options: optionsByGroup.get(g.id) || [],
+    });
+  }
+
+  const groupsByMenu = new Map<string, any[]>();
+  for (const link of allModifierLinks) {
+    const grp = groupMap.get(link.modifierGroupId);
+    if (grp) {
+      if (!groupsByMenu.has(link.menuItemId)) groupsByMenu.set(link.menuItemId, []);
+      groupsByMenu.get(link.menuItemId)!.push(grp);
+    }
+  }
+
+  const addonsByMenu = new Map<string, any[]>();
+  for (const a of allAddons) {
+    if (!addonsByMenu.has(a.menuItemId)) addonsByMenu.set(a.menuItemId, []);
+    addonsByMenu.get(a.menuItemId)!.push(a);
+  }
+
+  const variantsByMenu = new Map<string, any[]>();
+  for (const v of allVariants) {
+    if (!variantsByMenu.has(v.menuItemId)) variantsByMenu.set(v.menuItemId, []);
+    variantsByMenu.get(v.menuItemId)!.push(v);
+  }
+
+  const mappedMenus = availableMenus.map((m: any) =>
+    mapMenuItem(
+      m,
+      groupsByMenu.get(m.id) || [],
+      addonsByMenu.get(m.id) || [],
+      variantsByMenu.get(m.id) || []
+    )
+  );
+
+  const reviewStats = reviews.length > 0
+    ? {
+        rating: Number((reviews.reduce((acc: number, r: any) => acc + r.rating, 0) / reviews.length).toFixed(1)),
+        count: reviews.length,
+      }
+    : undefined;
+
   return {
-    ...mapRestaurant(org, availableMenus.map(mapMenuItem), activeCity?.slug ?? null, cover, meta),
+    ...mapRestaurant(org, mappedMenus, activeCity?.slug ?? null, cover, meta, reviewStats),
     location: locs[0] ?? null,
-    menuItems: availableMenus.map(mapMenuItem),
+    menuItems: mappedMenus,
   };
 }
 
@@ -160,7 +434,6 @@ export async function getCityFoodMenuItem(menuItemId: string) {
   const activeCity = await getCurrentCity();
   let locs = await db.orm.public.Location.where({ organizationId: m.organizationId }).all();
 
-  // Scope to the active city context
   if (activeCity) {
     const cityLocs = locs.filter((l) => l.cityId === activeCity.id);
     if (cityLocs.length > 0) {
@@ -168,8 +441,34 @@ export async function getCityFoodMenuItem(menuItemId: string) {
     }
   }
 
+  const [allModifierLinks, allGroups, allOptions, allAddons, allVariants] = await Promise.all([
+    safeQuery<any[]>(() => db.orm.public.MenuItemModifierGroup.where({ menuItemId: m.id }).all(), []),
+    safeQuery<any[]>(() => db.orm.public.ModifierGroup.where({ organizationId: m.organizationId, isActive: true }).all(), []),
+    safeQuery<any[]>(() => db.orm.public.ModifierOption.where({ isActive: true }).all(), []),
+    safeQuery<any[]>(() => db.orm.public.MenuItemAddon.where({ menuItemId: m.id, isAvailable: true }).all(), []),
+    safeQuery<any[]>(() => db.orm.public.MenuItemVariant.where({ menuItemId: m.id, isAvailable: true }).all(), []),
+  ]);
+
+  const optionsByGroup = new Map<string, any[]>();
+  for (const opt of allOptions) {
+    if (!optionsByGroup.has(opt.modifierGroupId)) optionsByGroup.set(opt.modifierGroupId, []);
+    optionsByGroup.get(opt.modifierGroupId)!.push(opt);
+  }
+
+  const groupMap = new Map<string, any>();
+  for (const g of allGroups) {
+    groupMap.set(g.id, {
+      ...g,
+      options: optionsByGroup.get(g.id) || [],
+    });
+  }
+
+  const groups = allModifierLinks
+    .map((link: any) => groupMap.get(link.modifierGroupId))
+    .filter(Boolean);
+
   return {
-    ...mapMenuItem(m),
+    ...mapMenuItem(m, groups, allAddons, allVariants),
     org,
     location: locs[0] ?? null,
   };
