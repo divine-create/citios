@@ -324,7 +324,21 @@ export async function getCityMartProducts(citySlug?: string, cat: string = 'All'
   if (orgIds.length === 0) return [];
 
   const allProducts = await db.orm.public.RetailProduct.all();
-  const products = allProducts.filter((p: any) => orgIds.includes(p.organizationId) && (cat === 'All' || p.globalCategory === cat) && !p.parentId);
+  const products = allProducts.filter((p: any) => {
+    if (!orgIds.includes(p.organizationId) || p.parentId) return false;
+    if (!cat || cat.toLowerCase() === 'all') return true;
+
+    const catSlug = cat.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const pCat = (p.globalCategory || (p as any).category || '').toLowerCase();
+    const pCatSlug = pCat.replace(/[^a-z0-9]+/g, '-');
+    if (pCat === cat.toLowerCase() || pCatSlug === catSlug) return true;
+
+    const org = orgs.find((o) => o.id === p.organizationId);
+    const orgCat = ((org as any)?.storeCategory || '').toLowerCase();
+    if (orgCat === cat.toLowerCase() || orgCat.replace(/[^a-z0-9]+/g, '-') === catSlug) return true;
+
+    return false;
+  });
   return products.map(p => {
     const org = orgs.find(o => o.id === p.organizationId);
     return {
@@ -394,7 +408,17 @@ export async function getCityMartStores(citySlug?: string) {
 
 export async function getCityMarketFeed(citySlug?: string, activeAisle: string = 'All') {
   const city = citySlug ? await getCityBySlug(citySlug) : await getCurrentCity();
-  if (!city) return { stores: [], products: [], campaigns: [] };
+  if (!city) {
+    return {
+      stores: [],
+      products: [],
+      campaigns: [],
+      categories: [{ id: 'all', label: 'All Goods', count: 0 }],
+      deliveryHubs: [],
+      defaultAddress: null,
+      topSearchTags: [],
+    };
+  }
 
   const [stores, products, campaigns] = await Promise.all([
     getCityMartStores(city.slug),
@@ -402,7 +426,69 @@ export async function getCityMarketFeed(citySlug?: string, activeAisle: string =
     getStorefrontPromotions(city.slug, 'MARKET'),
   ]);
 
-  return { stores, products, campaigns };
+  const locs = await db.orm.public.Location.where({ cityId: city.id }).all();
+  const deliveryHubs = locs.map((l: any) => ({
+    id: l.id,
+    name: l.name || l.address || 'Retail Hub',
+    address: l.address,
+  }));
+
+  let defaultAddress: string | null = null;
+  const session = await getServerSession(authOptions).catch(() => null);
+  if (session?.user?.personId) {
+    try {
+      const profile = await db.orm.public.ResidentProfile.where({ personId: session.user.personId }).all().first();
+      defaultAddress = profile?.defaultDeliveryAddress ?? null;
+    } catch {}
+  }
+
+  // Dynamically derive backend categories directly from DB store aisles, store categories, and retail products
+  const categoryCounter = new Map<string, number>();
+  for (const s of stores) {
+    if (s.storeCategory && s.storeCategory !== 'Supermarket') {
+      categoryCounter.set(s.storeCategory, (categoryCounter.get(s.storeCategory) || 0) + 1);
+    }
+    for (const a of s.aisles || []) {
+      const clean = a.trim();
+      if (clean) categoryCounter.set(clean, (categoryCounter.get(clean) || 0) + 1);
+    }
+  }
+  for (const p of products) {
+    const gc = p.globalCategory?.trim() || (p as any).category?.trim();
+    if (gc) {
+      categoryCounter.set(gc, (categoryCounter.get(gc) || 0) + 1);
+    }
+  }
+
+  const dynamicCategories = Array.from(categoryCounter.entries())
+    .map(([label, count]) => ({
+      id: label.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      label,
+      count,
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  const categories = [
+    { id: 'all', label: 'All Goods', count: products.length },
+    ...dynamicCategories,
+  ];
+
+  const topSearchTags = Array.from(
+    new Set([
+      ...dynamicCategories.slice(0, 4).map((c) => c.label),
+      ...products.slice(0, 4).map((p: any) => p.name),
+    ])
+  ).slice(0, 6);
+
+  return {
+    stores,
+    products,
+    campaigns,
+    categories,
+    deliveryHubs,
+    defaultAddress,
+    topSearchTags,
+  };
 }
 
 export async function getCityMartProduct(productId: string) {

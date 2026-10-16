@@ -183,6 +183,10 @@ test('Chowdeck & Glovo Storefront Integration Suite', async (t) => {
     assert.equal(store.deliveryFee, 500);
     assert.ok(Array.isArray(store.aisles));
     assert.ok(feed.campaigns.length > 0);
+    assert.ok(Array.isArray(feed.categories));
+    assert.ok(feed.categories.some((c: any) => c.id === 'all'));
+    assert.ok(Array.isArray(feed.deliveryHubs));
+    assert.ok(feed.deliveryHubs.some((h: any) => h.id === locRetailId));
   });
 
   await t.test('5. saveStorefrontPromotions saves custom hero slides and getStorefrontPromotions retrieves them', async () => {
