@@ -222,13 +222,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const hasFood = lines.some((l) => l.kind === 'food');
     const hasRetail = lines.some((l) => l.kind === 'retail');
 
-    // Glovo-style delivery economics:
-    // Free delivery on orders 10,000 NGN or more!
-    let deliveryFee = 0;
-    if (subtotal > 0 && subtotal < 10000) {
-      if (hasFood) deliveryFee = 600; // Hyperlocal motorcycle courier in city
-      else if (hasRetail) deliveryFee = 1200; // Standard retail parcel delivery
-    }
+    const deliveryFee = 0;
 
     return {
       lines,

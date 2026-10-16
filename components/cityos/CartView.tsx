@@ -9,8 +9,6 @@ import { FallbackImg } from '@/components/cityos/CityUI';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { cn } from '@/lib/utils';
 
-const FREE_DELIVERY_THRESHOLD = 10000;
-
 export default function CartView() {
   const { lines, setQty, remove, subtotal, deliveryFee, count, cartCitySlug, isForeignCart } = useCart();
   const { cities } = useCity();
@@ -33,8 +31,6 @@ export default function CartView() {
 
   const previewTotal = subtotal + deliveryFee;
   const hasUnavailableItems = lines.some((l) => l.isAvailable === false);
-  const remainingForFreeDelivery = Math.max(0, FREE_DELIVERY_THRESHOLD - subtotal);
-  const freeDeliveryProgress = Math.min(100, Math.round((subtotal / FREE_DELIVERY_THRESHOLD) * 100));
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 md:space-y-8 animate-in fade-in duration-500 pb-16">
@@ -46,9 +42,9 @@ export default function CartView() {
         </Link>
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">Your Basket</h1>
-            <p className="text-sm text-slate-500 font-medium mt-1">
-              {count} {count === 1 ? 'item' : 'items'} ready for express checkout
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Your Basket</h1>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
+              {count} {count === 1 ? 'item' : 'items'} in your cart
             </p>
           </div>
           {isForeignCart && bagCityName && (
@@ -57,32 +53,6 @@ export default function CartView() {
               Note: This basket is from {bagCityName}.
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Glovo-Style Free Delivery Milestone Bar */}
-      <div className="bg-gradient-to-r from-orange-50 via-amber-50 to-orange-50 border border-orange-100 rounded-2xl p-4 shadow-sm">
-        <div className="flex items-center justify-between text-xs font-black mb-2">
-          <span className="flex items-center gap-1.5 text-orange-950">
-            <Zap className="w-4 h-4 text-orange-600 fill-orange-600" />
-            {remainingForFreeDelivery === 0 ? (
-              <span className="text-emerald-700 flex items-center gap-1">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" /> You unlocked Free Express Delivery!
-              </span>
-            ) : (
-              <span>Add {fmt(remainingForFreeDelivery)} more to unlock Free Delivery!</span>
-            )}
-          </span>
-          <span className="text-orange-700">{freeDeliveryProgress}%</span>
-        </div>
-        <div className="w-full h-2 rounded-full bg-orange-100 overflow-hidden">
-          <div
-            className={cn(
-              "h-full rounded-full transition-all duration-500",
-              remainingForFreeDelivery === 0 ? "bg-emerald-500" : "bg-gradient-to-r from-orange-500 to-amber-500"
-            )}
-            style={{ width: `${freeDeliveryProgress}%` }}
-          />
         </div>
       </div>
 
@@ -101,9 +71,6 @@ export default function CartView() {
                   <Store className="w-4 h-4 text-orange-600" />
                   <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">{orgName}</h2>
                 </div>
-                <span className="text-[11px] font-bold text-orange-700 bg-orange-50 px-2.5 py-1 rounded-full border border-orange-100">
-                  ⚡ 25 - 35 min delivery
-                </span>
               </div>
               <div className="divide-y divide-slate-100">
                 {orgLines.map((l) => {
@@ -219,7 +186,7 @@ export default function CartView() {
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-black text-slate-900">Delivery Guarantee</p>
-                <p className="text-[11px] text-slate-500 font-medium">Dispatched via Calabar City Courier Network</p>
+                <p className="text-[11px] text-slate-500 font-medium">Dispatched via City Courier Network</p>
               </div>
             </div>
 
