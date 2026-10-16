@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { requireSystemAdmin } from '@/lib/rbac';
-import { ShieldAlert, ShieldCheck, Users, Building, Activity, Map, ArrowLeft, LogOut, FileText, Truck, ShoppingBag, Sparkles, Tag } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, Users, Building, Activity, Map, ArrowLeft, LogOut, FileText, Truck, ShoppingBag, Sparkles, Tag, CreditCard } from 'lucide-react';
 import { redirect } from 'next/navigation';
 
 export default async function HQLayout({ children }: { children: React.ReactNode }) {
@@ -22,6 +22,9 @@ export default async function HQLayout({ children }: { children: React.ReactNode
         <nav className="flex-1 px-4 space-y-1">
           <Link href="/hq" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-sm font-medium text-slate-300 hover:text-white transition-colors">
             <Activity className="w-4 h-4" /> Overview
+          </Link>
+          <Link href="/hq/checkout" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-sm font-medium text-slate-300 hover:text-white transition-colors">
+            <CreditCard className="w-4 h-4 text-emerald-400" /> Checkout Settings
           </Link>
           <Link href="/hq/promotions" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-sm font-medium text-slate-300 hover:text-white transition-colors">
             <Tag className="w-4 h-4 text-orange-400" /> Hero Deals & Promos

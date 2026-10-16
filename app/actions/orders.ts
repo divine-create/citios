@@ -301,13 +301,17 @@ export async function fetchMyOrderById(orderId: string) {
     }));
     const payment = await db.orm.public.Payment.where({ restaurantOrderId: restOrder.id }).all().first();
     const delivery = await getDeliveryStatusForSource('RESTAURANT_ORDER', restOrder.id);
-    const location = restOrder.locationId ? await db.orm.public.Location.where({ id: restOrder.locationId }).all().first() : null;
+    const contactPoints = await db.orm.public.OrganizationContactPoint.where({ organizationId: restOrder.organizationId }).all();
+    const waContact = contactPoints.find((c: any) => c.type === 'WHATSAPP') || contactPoints.find((c: any) => c.type === 'PHONE');
+    const paymentMethod = restOrder.paymentMethod || payment?.method || 'CARD';
 
     return {
       id: restOrder.id,
       category: 'FOOD' as const,
       status: restOrder.status,
       paymentStatus: restOrder.paymentStatus,
+      paymentMethod,
+      whatsappPhone: waContact?.value || null,
       totalAmount: restOrder.totalAmount,
       createdAt: restOrder.createdAt,
       type: restOrder.type,
@@ -343,15 +347,21 @@ export async function fetchMyOrderById(orderId: string) {
     const payment = await db.orm.public.Payment.where({ retailOrderId: retOrder.id }).all().first();
     const delivery = await getDeliveryStatusForSource('RETAIL_ORDER', retOrder.id);
     const location = retOrder.locationId ? await db.orm.public.Location.where({ id: retOrder.locationId }).all().first() : null;
+    const contactPoints = await db.orm.public.OrganizationContactPoint.where({ organizationId: retOrder.organizationId }).all();
+    const waContact = contactPoints.find((c: any) => c.type === 'WHATSAPP') || contactPoints.find((c: any) => c.type === 'PHONE');
+    const paymentMethod = retOrder.paymentMethod || payment?.method || 'CARD';
 
     return {
       id: retOrder.id,
       category: 'MARKET' as const,
       status: retOrder.status,
       paymentStatus: payment?.status || 'PENDING',
+      paymentMethod,
+      whatsappPhone: waContact?.value || null,
       totalAmount: retOrder.totalAmount,
       createdAt: retOrder.createdAt,
       type: 'DELIVERY',
+      deliveryAddress: retOrder.deliveryAddress || null,
       org,
       location,
       items: enrichedItems,

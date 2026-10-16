@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { UtensilsCrossed } from 'lucide-react';
+import { UtensilsCrossed, MapPin } from 'lucide-react';
 import { getCityFood } from '@/app/actions/food';
 import { useCity } from '@/components/cityos/CityProvider';
 import { EmptyState } from '@/components/ui/EmptyState';
 import ItemCustomizerModal, { CustomizableItem } from '@/components/cityos/ItemCustomizerModal';
-import ChowdeckDeliveryHeader, { DeliveryHubOption } from '@/components/cityos/delivery/ChowdeckDeliveryHeader';
+import ChowdeckDeliveryHeader, { DeliveryHubOption, AreaOption } from '@/components/cityos/delivery/ChowdeckDeliveryHeader';
 import ChowdeckCategoryBubbles, { CategoryBubbleItem, FOOD_CATEGORY_BUBBLES } from '@/components/cityos/delivery/ChowdeckCategoryBubbles';
 import ChowdeckStoreCard, { StoreCardData } from '@/components/cityos/delivery/ChowdeckStoreCard';
 import ChowdeckPopularDishCard, { PopularDishItem } from '@/components/cityos/delivery/ChowdeckPopularDishCard';
@@ -27,6 +27,8 @@ export default function CityFood() {
   const [restaurants, setRestaurants] = useState<StoreCardData[]>([]);
   const [menuItems, setMenuItems] = useState<PopularDishItem[]>([]);
   const [categories, setCategories] = useState<CategoryBubbleItem[]>(FOOD_CATEGORY_BUBBLES);
+  const [areas, setAreas] = useState<AreaOption[]>([]);
+  const [activeArea, setActiveArea] = useState('all');
   const [deliveryHubs, setDeliveryHubs] = useState<DeliveryHubOption[]>([]);
   const [defaultAddress, setDefaultAddress] = useState<string | null>(null);
   const [topSearchTags, setTopSearchTags] = useState<string[]>([]);
@@ -39,6 +41,13 @@ export default function CityFood() {
   const [customizerItem, setCustomizerItem] = useState<CustomizableItem | null>(null);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search).get('area');
+      if (p) setActiveArea(p.toLowerCase());
+    }
+  }, []);
+
+  useEffect(() => {
     let active = true;
     async function load() {
       setLoading(true);
@@ -49,6 +58,9 @@ export default function CityFood() {
         setMenuItems((data.menuItems || []) as unknown as PopularDishItem[]);
         if (data.categories && data.categories.length > 0) {
           setCategories(data.categories as CategoryBubbleItem[]);
+        }
+        if (data.areas && data.areas.length > 0) {
+          setAreas(data.areas as AreaOption[]);
         }
         if (data.deliveryHubs) {
           setDeliveryHubs(data.deliveryHubs as DeliveryHubOption[]);
@@ -71,9 +83,49 @@ export default function CityFood() {
     };
   }, [city?.slug]);
 
-  // Filter restaurants based on Search, Category Bubble, and Pill Filter
+  // 1. Filter restaurants by Area first
+  const areaFilteredRestaurants = useMemo(() => {
+    if (activeArea === 'all') return restaurants;
+    return restaurants.filter((r) => (r as any).areaSlug === activeArea);
+  }, [restaurants, activeArea]);
+
+  // 2. Dynamic Backend Category Filter calculated specifically for the selected Area!
+  const areaCategories = useMemo(() => {
+    if (activeArea === 'all') return categories;
+
+    const countMap = new Map<string, number>();
+    for (const r of areaFilteredRestaurants) {
+      if (r.category && r.category !== 'Restaurant') {
+        const catKey = r.category.toLowerCase();
+        countMap.set(catKey, (countMap.get(catKey) || 0) + 1);
+      }
+      for (const c of r.cuisines || []) {
+        const cKey = c.toLowerCase().trim();
+        countMap.set(cKey, (countMap.get(cKey) || 0) + 1);
+      }
+      for (const m of (r as any).menuItems || []) {
+        if (m.category) {
+          const mKey = m.category.toLowerCase().trim();
+          countMap.set(mKey, (countMap.get(mKey) || 0) + 1);
+        }
+      }
+    }
+
+    return categories.map((cat) => {
+      if (cat.id === 'all') {
+        return { ...cat, count: areaFilteredRestaurants.length };
+      }
+      const count = countMap.get(cat.label.toLowerCase()) || countMap.get(cat.id.toLowerCase()) || 0;
+      return {
+        ...cat,
+        count,
+      };
+    });
+  }, [categories, areaFilteredRestaurants, activeArea]);
+
+  // 3. Final filtered restaurants based on Search, Category Bubble, and Pill Filter
   const filteredRestaurants = useMemo(() => {
-    return restaurants.filter((r) => {
+    return areaFilteredRestaurants.filter((r) => {
       // 1. Search Query Filter
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -86,7 +138,7 @@ export default function CityFood() {
 
       // 2. Dynamic Backend Category Filter
       if (activeBubble !== 'all') {
-        const selectedCat = categories.find((c) => c.id === activeBubble);
+        const selectedCat = areaCategories.find((c) => c.id === activeBubble);
         const catLabel = selectedCat?.label?.toLowerCase();
         if (catLabel) {
           const matchCategory = r.category?.toLowerCase() === catLabel || (r as any).storeCategory?.toLowerCase() === catLabel;
@@ -107,7 +159,7 @@ export default function CityFood() {
 
       return true;
     });
-  }, [restaurants, searchQuery, activeBubble, activeFilterPill, categories]);
+  }, [areaFilteredRestaurants, searchQuery, activeBubble, activeFilterPill, areaCategories]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300 pb-32">
@@ -118,16 +170,80 @@ export default function CityFood() {
         placeholder={`Search restaurants or dishes in ${cityName}...`}
         trendingTags={topSearchTags}
         onSelectTag={(tag) => setSearchQuery(tag)}
+        areas={areas}
+        activeAreaId={activeArea}
+        onSelectArea={(areaId) => {
+          setActiveArea(areaId);
+          setActiveBubble('all');
+        }}
         deliveryHubs={deliveryHubs}
         defaultAddress={defaultAddress}
       />
 
-      {/* 2. Cuisines & Categories */}
-      {!searchQuery && categories.length > 1 && (
+      {/* 1b. Area Quick Filter Bar */}
+      {!searchQuery && areas.length > 1 && (
+        <section className="space-y-1.5">
+          <div className="flex items-center justify-between px-1">
+            <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-orange-500" />
+              Filter by Area in {cityName}
+            </span>
+            {activeArea !== 'all' && (
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveArea('all');
+                  setActiveBubble('all');
+                }}
+                className="text-xs font-bold text-orange-600 hover:text-orange-700"
+              >
+                Reset to All Areas
+              </button>
+            )}
+          </div>
+
+          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 no-scrollbar select-none">
+            {areas.map((a) => {
+              const isSelected = activeArea === a.id || (activeArea === 'all' && a.id === 'all');
+              return (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveArea(a.id);
+                    setActiveBubble('all');
+                  }}
+                  className={cn(
+                    'px-3.5 py-2 rounded-2xl text-xs font-bold transition-all shrink-0 border flex items-center gap-1.5 focus:outline-none',
+                    isSelected
+                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                      : 'bg-white text-slate-700 border-slate-200/90 hover:border-slate-300 hover:bg-slate-50'
+                  )}
+                >
+                  <span>{a.shortName || a.name}</span>
+                  {typeof a.count === 'number' && a.count > 0 && (
+                    <span
+                      className={cn(
+                        'px-1.5 py-0.2 rounded-full text-[10px] font-extrabold',
+                        isSelected ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-600'
+                      )}
+                    >
+                      {a.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* 2. Cuisines & Categories (Dynamically scoped to active area) */}
+      {!searchQuery && areaCategories.length > 1 && (
         <section className="space-y-2">
           <div className="flex items-center justify-between px-1">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Cuisines & Categories
+              Cuisines & Categories {activeArea !== 'all' && `in ${areas.find((a) => a.id === activeArea)?.shortName || 'Area'}`}
             </h3>
             {activeBubble !== 'all' && (
               <button
@@ -135,13 +251,13 @@ export default function CityFood() {
                 onClick={() => setActiveBubble('all')}
                 className="text-xs font-bold text-orange-600 hover:text-orange-700"
               >
-                Reset to All
+                Reset to All Cuisines
               </button>
             )}
           </div>
 
           <ChowdeckCategoryBubbles
-            categories={categories}
+            categories={areaCategories}
             activeCategoryId={activeBubble}
             onSelectCategory={(id) => {
               setActiveBubble(id);
@@ -196,10 +312,13 @@ export default function CityFood() {
                 ? `Results for "${searchQuery}"`
                 : activeBubble !== 'all'
                 ? `${categories.find((b) => b.id === activeBubble)?.label || 'Selected Cuisines'}`
+                : activeArea !== 'all'
+                ? `Restaurants in ${areas.find((a) => a.id === activeArea)?.name || 'Selected Area'}`
                 : `All Restaurants in ${cityName}`}
             </h2>
             <p className="text-xs text-slate-500 font-medium">
               {filteredRestaurants.length} kitchen{filteredRestaurants.length === 1 ? '' : 's'} available
+              {activeArea !== 'all' && ` · ${areas.find((a) => a.id === activeArea)?.shortName || 'Area'}`}
             </p>
           </div>
 
@@ -241,8 +360,29 @@ export default function CityFood() {
           <div className="col-span-full">
             <EmptyState
               icon={<UtensilsCrossed className="w-8 h-8 text-orange-500" />}
-              title={`No restaurants match your selection in ${cityName}`}
-              description={searchQuery ? 'Try searching for dishes like Rice, Soup, or Shawarma.' : "Select 'All Places' to view all available food spots."}
+              title={
+                activeArea !== 'all'
+                  ? `No kitchens found in ${areas.find((a) => a.id === activeArea)?.name || 'this area'}`
+                  : `No restaurants match your selection in ${cityName}`
+              }
+              description={
+                activeArea !== 'all'
+                  ? 'Try switching to All Areas to browse kitchens delivering across the entire city.'
+                  : searchQuery
+                  ? 'Try searching for dishes like Rice, Soup, or Shawarma.'
+                  : "Select 'All Places' to view all available food spots."
+              }
+              action={
+                activeArea !== 'all'
+                  ? {
+                      label: `Show All ${cityName} Kitchens`,
+                      onClick: () => {
+                        setActiveArea('all');
+                        setActiveBubble('all');
+                      },
+                    }
+                  : undefined
+              }
             />
           </div>
         ) : (

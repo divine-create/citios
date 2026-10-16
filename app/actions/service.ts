@@ -255,3 +255,126 @@ export async function getCityServiceItem(id: string) {
   return item;
 }
 
+export async function bookResidentService(input: {
+  serviceId: string;
+  date: string; // "YYYY-MM-DD"
+  timeSlot: string; // "09:00", "11:00", etc.
+  address?: string;
+  notes?: string;
+}) {
+  const session = await getServerSession(authOptions);
+
+  if (!session || !session.user || !session.user.personId) {
+    return {
+      success: false,
+      error: 'UNAUTHORIZED',
+      message: 'Please sign in to book an appointment.',
+    };
+  }
+
+  const personId = session.user.personId as string;
+
+  const service = await db.orm.public.ServiceCatalogItem
+    .where({ id: input.serviceId, isActive: true })
+    .all()
+    .first();
+
+  if (!service) {
+    return { success: false, error: 'NOT_FOUND', message: 'Service not found or inactive.' };
+  }
+
+  const orgId = service.organizationId;
+
+  // Resolve customer relationship for this person & org
+  let relationship = await db.orm.public.Relationship
+    .where({ personId, organizationId: orgId, type: 'CUSTOMER' })
+    .all()
+    .first();
+
+  if (!relationship) {
+    relationship = await db.orm.public.Relationship.create({
+      personId,
+      organizationId: orgId,
+      type: 'CUSTOMER',
+    });
+  }
+
+  let customer = await db.orm.public.CustomerData
+    .where({ relationshipId: relationship.id })
+    .all()
+    .first();
+
+  if (!customer) {
+    customer = await db.orm.public.CustomerData.create({
+      relationshipId: relationship.id,
+      loyaltyPoints: 0,
+    });
+  }
+
+  // Construct start and end time
+  const timeStr = input.timeSlot || '09:00';
+  const startTime = new Date(`${input.date}T${timeStr}:00`);
+  if (isNaN(startTime.getTime())) {
+    return { success: false, error: 'INVALID_DATE', message: 'Please provide a valid booking date and time.' };
+  }
+
+  const durationMs = (service.durationMinutes || 60) * 60 * 1000;
+  const endTime = new Date(startTime.getTime() + durationMs);
+
+  function toInstant(date: Date) {
+    if ((globalThis as any).Temporal?.Instant?.fromEpochMilliseconds) {
+      return (globalThis as any).Temporal.Instant.fromEpochMilliseconds(date.getTime());
+    }
+    return date;
+  }
+
+  const result = await db.transaction(async (tx) => {
+    const job = await tx.orm.public.ServiceJob.create({
+      organizationId: orgId,
+      customerDataId: customer.id,
+      serviceId: service.id,
+      description: service.name,
+      address: input.address || null,
+      scheduledDate: toInstant(startTime) as any,
+      status: 'SCHEDULED',
+      priority: 'NORMAL',
+      notes: input.notes || null,
+    });
+
+    const appointment = await tx.orm.public.ServiceAppointment.create({
+      organizationId: orgId,
+      customerDataId: customer.id,
+      serviceId: service.id,
+      jobId: job.id,
+      startTime: toInstant(startTime) as any,
+      endTime: toInstant(endTime) as any,
+      status: 'REQUESTED',
+      price: service.price,
+      notes: input.notes || null,
+    });
+
+    return { job, appointment };
+  });
+
+  // Notify resident (fire-and-forget)
+  await notifyPerson(personId, {
+    type: 'SERVICE_REQUESTED',
+    title: 'Service Appointment Requested',
+    body: `Your appointment for "${service.name}" on ${input.date} at ${input.timeSlot} was submitted to the provider.`,
+    href: `/tasks/${result.job.id}`,
+  });
+
+  try {
+    revalidatePath('/tasks');
+    revalidatePath('/services');
+    revalidatePath('/workspaces/serviceos');
+  } catch {}
+
+  return {
+    success: true,
+    jobId: result.job.id,
+    appointmentId: result.appointment.id,
+  };
+}
+
+

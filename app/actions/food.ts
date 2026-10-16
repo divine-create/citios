@@ -9,6 +9,7 @@ import { notifyPerson } from '@/lib/notify';
 import { debitResidentWallet } from '@/app/actions/resident_wallet';
 
 import { getStorefrontPromotions, StorefrontCampaign } from '@/lib/actions/storefront-management';
+import { getCityAreas, detectAreaFromAddress } from '@/lib/city-areas';
 
 const FOOD_CATS = ['All', 'Restaurant', 'Cafe', 'Campus Eats', 'Food & Market'];
 
@@ -112,7 +113,8 @@ function mapRestaurant(
     cuisines,
     badge: meta?.badge || (isFeatured ? 'Featured' : undefined),
     isOpen: typeof meta?.isOpen === 'boolean' ? meta.isOpen : true,
-    area: o.address ? o.address.split(',')[0].trim() : '',
+    area: meta?.area || detectAreaFromAddress(citySlug, meta?.area || o.address || o.name)?.name || (o.address ? o.address.split(',')[0].trim() : 'Central Area'),
+    areaSlug: detectAreaFromAddress(citySlug, meta?.area || o.address || o.name)?.id || 'central',
     category: o.storeCategory || 'Restaurant',
   };
 }
@@ -125,6 +127,7 @@ export async function getCityFood(citySlug?: string) {
       menuItems: [],
       campaigns: [],
       categories: [{ id: 'all', label: 'All Cuisines', count: 0 }],
+      areas: [{ id: 'all', name: 'All Areas', shortName: 'All Areas', count: 0 }],
       deliveryHubs: [],
       defaultAddress: null,
       topSearchTags: [],
@@ -143,6 +146,7 @@ export async function getCityFood(citySlug?: string) {
       menuItems: [],
       campaigns,
       categories: [{ id: 'all', label: 'All Cuisines', count: 0 }],
+      areas: [{ id: 'all', name: `All ${city.name} Areas`, shortName: 'All Areas', count: 0 }],
       deliveryHubs: [],
       defaultAddress: null,
       topSearchTags: [],
@@ -158,6 +162,7 @@ export async function getCityFood(citySlug?: string) {
       menuItems: [],
       campaigns,
       categories: [{ id: 'all', label: 'All Cuisines', count: 0 }],
+      areas: [{ id: 'all', name: `All ${city.name} Areas`, shortName: 'All Areas', count: 0 }],
       deliveryHubs: [],
       defaultAddress: null,
       topSearchTags: [],
@@ -320,11 +325,27 @@ export async function getCityFood(citySlug?: string) {
     ])
   ).slice(0, 6);
 
+  const canonicalAreas = getCityAreas(city.slug);
+  const areaCounts = new Map<string, number>();
+  for (const r of mappedRestaurants) {
+    const slug = (r as any).areaSlug || 'central';
+    areaCounts.set(slug, (areaCounts.get(slug) || 0) + 1);
+  }
+
+  const areas = [
+    { id: 'all', name: `All ${city.name} Areas`, shortName: 'All Areas', count: mappedRestaurants.length },
+    ...canonicalAreas.map((a) => ({
+      ...a,
+      count: areaCounts.get(a.id) || 0,
+    })),
+  ];
+
   return {
     restaurants: mappedRestaurants,
     menuItems: mappedMenuItems,
     campaigns,
     categories,
+    areas,
     deliveryHubs,
     defaultAddress,
     topSearchTags,

@@ -1614,6 +1614,7 @@ export async function registerRestaurantOS(input: {
   description?: string;
   serviceStyle: 'FULL_SERVICE' | 'COUNTER' | 'HYBRID';
   citySlug: string;
+  area?: string;
   address?: string;
   phone?: string;
 }) {
@@ -1664,7 +1665,7 @@ export async function registerRestaurantOS(input: {
       // Provision primary Location bound to canonical City
       const location = await tx.orm.public.Location.create({
         organizationId: org.id,
-        name: 'Main Location',
+        name: input.area ? `${input.area} Branch` : 'Main Location',
         address: input.address ?? null,
         cityId: city.id,
       });
@@ -1697,6 +1698,9 @@ export async function registerRestaurantOS(input: {
         slug: listingSlug,
         title: businessName,
         description: input.description ?? null,
+        metadata: JSON.stringify({
+          area: input.area || null,
+        }),
         isActive: true,
       });
 

@@ -19,6 +19,14 @@ export interface DeliveryHubOption {
   address?: string;
 }
 
+export interface AreaOption {
+  id: string;
+  name: string;
+  shortName?: string;
+  description?: string;
+  count?: number;
+}
+
 interface ChowdeckDeliveryHeaderProps {
   searchQuery: string;
   onSearchChange: (q: string) => void;
@@ -26,6 +34,9 @@ interface ChowdeckDeliveryHeaderProps {
   onSelectTag?: (tag: string) => void;
   placeholder?: string;
   vertical?: 'food' | 'market';
+  areas?: AreaOption[];
+  activeAreaId?: string;
+  onSelectArea?: (areaId: string) => void;
   deliveryHubs?: DeliveryHubOption[];
   defaultAddress?: string | null;
 }
@@ -37,25 +48,33 @@ export default function ChowdeckDeliveryHeader({
   onSelectTag,
   placeholder = 'Search restaurants, dishes, or cuisines...',
   vertical = 'food',
+  areas = [],
+  activeAreaId = 'all',
+  onSelectArea,
   deliveryHubs = [],
   defaultAddress,
 }: ChowdeckDeliveryHeaderProps) {
   const { city } = useCity();
   const cityName = city?.name ?? 'Calabar';
 
+  const currentAreaObj = areas.find((a) => a.id === activeAreaId);
   const [deliveryMode, setDeliveryMode] = useState<'delivery' | 'pickup'>('delivery');
   const [selectedHub, setSelectedHub] = useState<string>(() => {
-    return defaultAddress || (deliveryHubs[0]?.name ? `${deliveryHubs[0].name}, ${cityName}` : `${cityName} Central`);
+    if (currentAreaObj && currentAreaObj.id !== 'all') return currentAreaObj.name;
+    return defaultAddress || (deliveryHubs[0]?.name ? `${deliveryHubs[0].name}, ${cityName}` : `All ${cityName} Areas`);
   });
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
 
   useEffect(() => {
-    if (defaultAddress) {
+    if (activeAreaId && activeAreaId !== 'all') {
+      const match = areas.find((a) => a.id === activeAreaId);
+      if (match) setSelectedHub(match.name);
+    } else if (defaultAddress) {
       setSelectedHub(defaultAddress);
-    } else if (deliveryHubs.length > 0 && !selectedHub) {
-      setSelectedHub(`${deliveryHubs[0].name}, ${cityName}`);
+    } else {
+      setSelectedHub(`All ${cityName} Areas`);
     }
-  }, [defaultAddress, deliveryHubs, cityName]);
+  }, [activeAreaId, defaultAddress, areas, cityName]);
 
   // Combine default address and database locations for picker
   const availableOptions = React.useMemo(() => {
@@ -108,8 +127,8 @@ export default function ChowdeckDeliveryHeader({
               <div className="bg-white rounded-3xl max-w-md w-full p-5 border border-slate-200 shadow-2xl space-y-4">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <div>
-                    <h3 className="text-base font-black text-slate-900">Choose Delivery Address</h3>
-                    <p className="text-xs text-slate-500">Select branch or area in {cityName} for local orders</p>
+                    <h3 className="text-base font-black text-slate-900">Choose Area in {cityName}</h3>
+                    <p className="text-xs text-slate-500">Filter local kitchens, cuisines & courier dispatch times</p>
                   </div>
                   <button
                     type="button"
@@ -120,37 +139,74 @@ export default function ChowdeckDeliveryHeader({
                   </button>
                 </div>
 
-                <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
-                  {availableOptions.map((opt) => {
-                    const isSelected = selectedHub === opt.name;
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedHub(opt.name);
-                          setIsLocationModalOpen(false);
-                        }}
-                        className={cn(
-                          'w-full flex items-center justify-between p-3 rounded-2xl text-left transition-all border',
-                          isSelected
-                            ? 'bg-orange-50 border-orange-500 text-orange-950'
-                            : 'bg-slate-50/70 border-slate-200/60 hover:bg-slate-100 text-slate-800'
-                        )}
-                      >
-                        <div className="flex items-center gap-3">
-                          <MapPin className={cn('w-4 h-4', isSelected ? 'text-orange-600' : 'text-slate-400')} />
-                          <div>
-                            <p className="text-xs font-bold">{opt.name}</p>
-                            {opt.subtitle && (
-                              <span className="text-[10px] text-slate-500 font-medium">{opt.subtitle}</span>
-                            )}
+                <div className="space-y-1.5 max-h-80 overflow-y-auto pr-1">
+                  {/* Canonical Areas */}
+                  {areas.length > 0 ? (
+                    areas.map((opt) => {
+                      const isSelected = activeAreaId === opt.id || (activeAreaId === 'all' && opt.id === 'all');
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedHub(opt.name);
+                            if (onSelectArea) onSelectArea(opt.id);
+                            setIsLocationModalOpen(false);
+                          }}
+                          className={cn(
+                            'w-full flex items-center justify-between p-3 rounded-2xl text-left transition-all border',
+                            isSelected
+                              ? 'bg-orange-50 border-orange-500 text-orange-950'
+                              : 'bg-slate-50/70 border-slate-200/60 hover:bg-slate-100 text-slate-800'
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            <MapPin className={cn('w-4 h-4', isSelected ? 'text-orange-600' : 'text-slate-400')} />
+                            <div>
+                              <p className="text-xs font-bold">{opt.name}</p>
+                              <span className="text-[10px] text-slate-500 font-medium">
+                                {typeof opt.count === 'number'
+                                  ? `${opt.count} kitchen${opt.count === 1 ? '' : 's'} available`
+                                  : opt.description || `${cityName} Area`}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                        {isSelected && <Check className="w-4 h-4 text-orange-600 shrink-0" />}
-                      </button>
-                    );
-                  })}
+                          {isSelected && <Check className="w-4 h-4 text-orange-600 shrink-0" />}
+                        </button>
+                      );
+                    })
+                  ) : (
+                    availableOptions.map((opt) => {
+                      const isSelected = selectedHub === opt.name;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedHub(opt.name);
+                            setIsLocationModalOpen(false);
+                          }}
+                          className={cn(
+                            'w-full flex items-center justify-between p-3 rounded-2xl text-left transition-all border',
+                            isSelected
+                              ? 'bg-orange-50 border-orange-500 text-orange-950'
+                              : 'bg-slate-50/70 border-slate-200/60 hover:bg-slate-100 text-slate-800'
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            <MapPin className={cn('w-4 h-4', isSelected ? 'text-orange-600' : 'text-slate-400')} />
+                            <div>
+                              <p className="text-xs font-bold">{opt.name}</p>
+                              {opt.subtitle && (
+                                <span className="text-[10px] text-slate-500 font-medium">{opt.subtitle}</span>
+                              )}
+                            </div>
+                          </div>
+                          {isSelected && <Check className="w-4 h-4 text-orange-600 shrink-0" />}
+                        </button>
+                      );
+                    })
+                  )}
                 </div>
               </div>
             </div>

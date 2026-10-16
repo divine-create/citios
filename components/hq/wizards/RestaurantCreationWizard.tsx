@@ -6,6 +6,7 @@ import {
   Clock, MapPin, Phone, MessageSquare, Globe, Plus, Trash2, Flame, Award
 } from 'lucide-react';
 import { createHQManagedBusiness, CreateHQManagedBusinessPayload } from '@/lib/actions/hq-managed-business';
+import { getCityAreas } from '@/lib/city-areas';
 import MediaLinkOrUploadInput from '../MediaLinkOrUploadInput';
 
 interface RestaurantCreationWizardProps {
@@ -52,6 +53,7 @@ export default function RestaurantCreationWizard({ onSuccess, onCancel }: Restau
 
   // Location & Contacts
   const [address, setAddress] = useState('');
+  const [area, setArea] = useState('Marian Road & Environs');
   const [phone, setPhone] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [website, setWebsite] = useState('');
@@ -164,6 +166,7 @@ export default function RestaurantCreationWizard({ onSuccess, onCancel }: Restau
         storeCategory: diningConcept,
         description: description.trim() || `${name} offers authentic dining in Calabar. Specializing in ${selectedSpecialties.slice(0, 2).join(', ')}.`,
         address: address.trim(),
+        area: area.trim(),
         latitude,
         longitude,
         phone: phone.trim(),
@@ -363,20 +366,38 @@ export default function RestaurantCreationWizard({ onSuccess, onCancel }: Restau
       {/* STEP 2: Location & Kitchen Dispatch Contacts */}
       {step === 2 && (
         <div className="space-y-6">
-          <div>
-            <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-              Restaurant Physical Address *
-            </label>
-            <div className="relative">
-              <MapPin className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
-              <input
-                type="text"
-                required
-                placeholder="e.g. 90 Marian Road, Calabar Municipal"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                className="w-full text-sm pl-10 pr-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-400 font-medium"
-              />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                City Area / District *
+              </label>
+              <select
+                value={area}
+                onChange={(e) => setArea(e.target.value)}
+                className="w-full text-xs px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-400 font-semibold"
+              >
+                {getCityAreas('calabar').map((a) => (
+                  <option key={a.id} value={a.name}>{a.name}</option>
+                ))}
+                <option value="Other Area">Other Area / Landmark</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                Street Address & Landmark *
+              </label>
+              <div className="relative">
+                <MapPin className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. 90 Marian Road, Near Lion Bank"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  className="w-full text-xs pl-10 pr-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-400 font-medium"
+                />
+              </div>
             </div>
           </div>
 

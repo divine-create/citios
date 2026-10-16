@@ -27,6 +27,7 @@ export default async function ServicesPage() {
     <CityServices
       orgs={orgs.map((o) => ({ id: o.id, name: o.name, description: o.description }))}
       services={services}
+      cityName={city?.name || 'City'}
     />
   );
 }

@@ -600,6 +600,7 @@ export interface CreateHQManagedBusinessPayload {
   storeCategory?: string;
   description?: string;
   address: string;
+  area?: string;
   cityId?: string;
   latitude?: number;
   longitude?: number;
@@ -681,7 +682,7 @@ export async function createHQManagedBusiness(payload: CreateHQManagedBusinessPa
     // 2. Create Location
     const loc = await tx.orm.public.Location.create({
       organizationId: org.id,
-      name: 'Main Branch',
+      name: payload.area ? `${payload.area} Branch` : 'Main Branch',
       address: payload.address.trim(),
       cityId: city.id,
       latitude: payload.latitude || 4.9757,
@@ -697,6 +698,7 @@ export async function createHQManagedBusiness(payload: CreateHQManagedBusinessPa
 
     // 4. Create DiscoveryListing with rich vertical metadata
     const meta = {
+      area: payload.area?.trim() || null,
       coverImage: payload.coverUrl?.trim() || null,
       images: (payload.images || []).filter(Boolean),
       videos: (payload.videos || []).filter(Boolean),

@@ -5,25 +5,26 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { registerRestaurantOS } from '@/lib/actions/restaurantos';
 import { getCityRegistry } from '@/app/actions/city';
+import { getCityAreas } from '@/lib/city-areas';
 import { Loader2, UtensilsCrossed, Soup, Zap } from 'lucide-react';
 
 const STYLE_OPTIONS = [
   {
     id: 'FULL_SERVICE' as const,
     label: 'Restaurant',
-    description: 'Full service â€” tables, reservations and floor plan included.',
+    description: 'Full service — tables, reservations and floor plan included.',
     icon: UtensilsCrossed,
   },
   {
     id: 'HYBRID' as const,
     label: 'Eatery',
-    description: 'Walk-in friendly local spot â€” simple, pay-and-collect.',
+    description: 'Walk-in friendly local spot — simple, pay-and-collect.',
     icon: Soup,
   },
   {
     id: 'COUNTER' as const,
     label: 'Fast food',
-    description: 'Quick service â€” POS-first with order numbers and combos.',
+    description: 'Quick service — POS-first with order numbers and combos.',
     icon: Zap,
   },
 ];
@@ -44,6 +45,7 @@ export default function RestaurantRegisterForm() {
   const [serviceStyle, setServiceStyle] = useState<'FULL_SERVICE' | 'COUNTER' | 'HYBRID'>('HYBRID');
   const [state, setState] = useState('');
   const [lga, setLga] = useState('');
+  const [area, setArea] = useState('');
   const [address, setAddress] = useState('');
   const [registry, setRegistry] = useState<CityRegistry[]>([]);
 
@@ -52,6 +54,7 @@ export default function RestaurantRegisterForm() {
   }, []);
 
   const lgas = registry.find((r) => r.state === state)?.lgas ?? [];
+  const areas = getCityAreas(lga || 'calabar');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,6 +71,7 @@ export default function RestaurantRegisterForm() {
       description: description || undefined,
       serviceStyle,
       citySlug: lga,
+      area: area || undefined,
       address: address || undefined,
     });
 
@@ -175,18 +179,39 @@ export default function RestaurantRegisterForm() {
               disabled={!state}
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all font-medium text-slate-900 disabled:opacity-50"
             >
-              <option value="">{state ? 'Select LGAâ€¦' : 'Pick a state first'}</option>
+              <option value="">{state ? 'Select LGA…' : 'Pick a state first'}</option>
               {lgas.map((l) => (
                 <option key={l.slug} value={l.slug}>{l.name}</option>
               ))}
             </select>
           </div>
         </div>
+
+        {/* Business Area / District */}
         <div>
-          <label className="block text-sm font-bold text-slate-700 mb-2">Address</label>
+          <label className="block text-sm font-bold text-slate-700 mb-2">
+            Business Area / District
+            <span className="text-xs font-normal text-slate-500 ml-2">(Used for local customer discovery & courier dispatch)</span>
+          </label>
+          <select
+            value={area}
+            onChange={(e) => setArea(e.target.value)}
+            disabled={!lga}
+            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all font-medium text-slate-900 disabled:opacity-50"
+          >
+            <option value="">Select area / district…</option>
+            {areas.map((a) => (
+              <option key={a.id} value={a.name}>{a.name}</option>
+            ))}
+            <option value="Other Area">Other Area / Landmark</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold text-slate-700 mb-2">Street Address & Landmark</label>
           <input
             type="text"
-            placeholder="e.g. 12 Adeola Odeku, Victoria Island"
+            placeholder="e.g. 14 Marian Road, Near Total Fuel Station"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all font-medium text-slate-900"

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Package, UtensilsCrossed, Clock, CheckCircle2, ChevronRight, Truck, Printer, ShoppingBag, Loader2, AlertCircle } from 'lucide-react';
+import { Package, UtensilsCrossed, Clock, CheckCircle2, ChevronRight, Truck, Printer, ShoppingBag, Loader2, AlertCircle, MessageCircle } from 'lucide-react';
 import { fetchMyOrders, cancelMyOrder, requestMyOrderRefund } from '@/app/actions/orders';
 import { useMoney } from '@/components/cityos/CityProvider';
 import ThermalReceiptModal from '@/components/common/ThermalReceiptModal';
@@ -127,6 +127,7 @@ export default function ResidentOrders() {
             // Fulfillment/Delivery state logic
             const fulfillmentState = order.fulfillmentStatus || 'UNFULFILLED';
             const isDelivering = fulfillmentState === 'IN_TRANSIT' || fulfillmentState === 'OUT_FOR_DELIVERY';
+            const isWhatsApp = order.paymentMethod === 'WHATSAPP' || order.payment?.method === 'WHATSAPP' || order.payment?.provider === 'WHATSAPP';
 
             return (
               <div key={order.id} className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-all">
@@ -170,8 +171,8 @@ export default function ResidentOrders() {
                 <div className="px-5 md:px-6 py-4 border-b border-slate-100 bg-white grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
                     <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Payment</div>
-                    <div className={cn("inline-flex px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border", payColor)}>
-                      {order.payment?.method === 'WALLET' ? 'WALLET' : payStatus}
+                    <div className={cn("inline-flex px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border", isWhatsApp ? "text-emerald-800 bg-emerald-50 border-emerald-200" : payColor)}>
+                      {isWhatsApp ? 'WHATSAPP' : order.payment?.method === 'WALLET' ? 'WALLET' : payStatus}
                     </div>
                   </div>
 
@@ -192,7 +193,9 @@ export default function ResidentOrders() {
                   <div>
                     <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Delivery</div>
                     <div className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600">
-                      {isDelivering ? (
+                      {isWhatsApp ? (
+                        <><MessageCircle className="w-3.5 h-3.5 text-emerald-600 fill-emerald-600/20" /> WhatsApp Direct</>
+                      ) : isDelivering ? (
                         <><Truck className="w-3.5 h-3.5 text-blue-500" /> On the way</>
                       ) : fulfillmentState === 'DELIVERED' ? (
                         <><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Arrived</>
@@ -228,9 +231,21 @@ export default function ResidentOrders() {
                     <div className="flex items-center gap-2">
                       <Link
                         href={`/orders/${order.id}`}
-                        className="px-3.5 py-2 text-xs font-black text-orange-700 bg-orange-50 hover:bg-orange-100 rounded-xl transition-colors inline-flex items-center gap-1.5 border border-orange-100 shadow-sm"
+                        className={cn(
+                          "px-3.5 py-2 text-xs font-black rounded-xl transition-colors inline-flex items-center gap-1.5 border shadow-sm",
+                          isWhatsApp
+                            ? "text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border-emerald-200"
+                            : "text-orange-700 bg-orange-50 hover:bg-orange-100 border-orange-100"
+                        )}
                       >
-                        Track Order ➔
+                        {isWhatsApp ? (
+                          <>
+                            <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                            View Order ➔
+                          </>
+                        ) : (
+                          <>Track Order ➔</>
+                        )}
                       </Link>
                       {isCancelable && (
                         <button

@@ -8,6 +8,7 @@ import { useMoney } from '@/components/cityos/CityProvider';
 import { useCart } from '@/components/cityos/CartStore';
 import { getResidentWallet } from '@/app/actions/resident_wallet';
 import { processMerchantCheckout, getResidentCheckoutDefaults } from '@/app/actions/checkout';
+import { getCheckoutConfig, PlatformCheckoutConfig } from '@/lib/actions/checkout-settings';
 import { PriceTag } from '@/components/cityos/CityUI';
 import { cn } from '@/lib/utils';
 
@@ -26,6 +27,7 @@ export default function CheckoutView() {
   const [deliveryNotes, setDeliveryNotes] = useState('');
   const [processing, setProcessing] = useState<string | null>(null); // orgId being processed
   const [errorMsg, setErrorMsg] = useState('');
+  const [checkoutConfig, setCheckoutConfig] = useState<PlatformCheckoutConfig | null>(null);
   
   useEffect(() => {
     async function fetchWallet() {
@@ -46,6 +48,36 @@ export default function CheckoutView() {
       if (def) {
         if (def.phone) setCustomerPhone(def.phone);
         if (def.deliveryAddress) setDeliveryAddress(def.deliveryAddress);
+      }
+    }).catch(() => {});
+
+    getCheckoutConfig().then((cfg) => {
+      if (cfg) {
+        setCheckoutConfig(cfg);
+        const isCurrentEnabled =
+          (method === 'whatsapp' && cfg.enableWhatsApp) ||
+          (method === 'wallet' && cfg.enableWallet) ||
+          (method === 'card' && cfg.enableCard) ||
+          (method === 'transfer' && cfg.enableTransfer);
+
+        if (!isCurrentEnabled) {
+          if (cfg.defaultMethod && (
+            (cfg.defaultMethod === 'whatsapp' && cfg.enableWhatsApp) ||
+            (cfg.defaultMethod === 'wallet' && cfg.enableWallet) ||
+            (cfg.defaultMethod === 'card' && cfg.enableCard) ||
+            (cfg.defaultMethod === 'transfer' && cfg.enableTransfer)
+          )) {
+            setMethod(cfg.defaultMethod);
+          } else if (cfg.enableWhatsApp) {
+            setMethod('whatsapp');
+          } else if (cfg.enableWallet) {
+            setMethod('wallet');
+          } else if (cfg.enableCard) {
+            setMethod('card');
+          } else if (cfg.enableTransfer) {
+            setMethod('transfer');
+          }
+        }
       }
     }).catch(() => {});
   }, []);
@@ -237,92 +269,107 @@ export default function CheckoutView() {
       </div>
 
       <div className="bg-white rounded-[24px] border border-slate-100 overflow-hidden p-6 space-y-4">
-        <h2 className="text-sm font-black text-ink">Payment Method</h2>
-
-        <button 
-          onClick={() => setMethod('whatsapp')}
-          className={cn("w-full flex items-center justify-between p-4 rounded-xl border text-left transition-all", 
-            method === 'whatsapp' ? "border-emerald-600 bg-emerald-50/80 shadow-[0_0_0_1px_#059669]" : "border-slate-100 hover:border-slate-200"
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-black text-ink">Payment Method</h2>
+          {checkoutConfig?.allowPayOnDelivery && (
+            <span className="text-[10px] font-bold text-teal-800 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-100">
+              Pay on Delivery Available
+            </span>
           )}
-        >
-          <div className="flex items-center gap-3">
-            <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", method === 'whatsapp' ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-600")}>
-              <MessageSquare className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <p className="text-sm font-black text-ink">WhatsApp Direct Order</p>
-                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-extrabold px-1.5 py-0.5 rounded-full">POPULAR</span>
+        </div>
+
+        {(checkoutConfig === null || checkoutConfig.enableWhatsApp) && (
+          <button 
+            onClick={() => setMethod('whatsapp')}
+            className={cn("w-full flex items-center justify-between p-4 rounded-xl border text-left transition-all", 
+              method === 'whatsapp' ? "border-emerald-600 bg-emerald-50/80 shadow-[0_0_0_1px_#059669]" : "border-slate-100 hover:border-slate-200"
+            )}
+          >
+            <div className="flex items-center gap-3">
+              <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", method === 'whatsapp' ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-600")}>
+                <MessageSquare className="w-5 h-5" />
               </div>
-              <p className="text-[11px] font-bold text-slate-500">Send order directly to merchant on WhatsApp for instant confirmation</p>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-sm font-black text-ink">WhatsApp Direct Order</p>
+                  <span className="text-[10px] bg-emerald-100 text-emerald-800 font-extrabold px-1.5 py-0.5 rounded-full">POPULAR</span>
+                </div>
+                <p className="text-[11px] font-bold text-slate-500">Send order directly to merchant on WhatsApp for instant confirmation</p>
+              </div>
             </div>
-          </div>
-          <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center", method === 'whatsapp' ? "border-emerald-600" : "border-slate-200")}>
-            {method === 'whatsapp' && <div className="w-2.5 h-2.5 bg-emerald-600 rounded-full" />}
-          </div>
-        </button>
+            <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center", method === 'whatsapp' ? "border-emerald-600" : "border-slate-200")}>
+              {method === 'whatsapp' && <div className="w-2.5 h-2.5 bg-emerald-600 rounded-full" />}
+            </div>
+          </button>
+        )}
         
-        <button 
-          onClick={() => setMethod('wallet')}
-          className={cn("w-full flex items-center justify-between p-4 rounded-xl border text-left transition-all", 
-            method === 'wallet' ? "border-teal-800 bg-teal-50 shadow-[0_0_0_1px_#115e59]" : "border-slate-100 hover:border-slate-200"
-          )}
-        >
-          <div className="flex items-center gap-3">
-            <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", method === 'wallet' ? "bg-teal-800 text-white" : "bg-slate-50 text-slate-400")}>
-              <Wallet className="w-5 h-5" />
+        {(checkoutConfig === null || checkoutConfig.enableWallet) && (
+          <button 
+            onClick={() => setMethod('wallet')}
+            className={cn("w-full flex items-center justify-between p-4 rounded-xl border text-left transition-all", 
+              method === 'wallet' ? "border-teal-800 bg-teal-50 shadow-[0_0_0_1px_#115e59]" : "border-slate-100 hover:border-slate-200"
+            )}
+          >
+            <div className="flex items-center gap-3">
+              <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", method === 'wallet' ? "bg-teal-800 text-white" : "bg-slate-50 text-slate-400")}>
+                <Wallet className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-sm font-black text-ink">CityOS Wallet</p>
+                <p className="text-[11px] font-bold text-slate-500">
+                  {walletBalance !== null ? `Balance: ${fmt(walletBalance)}` : 'Loading...'}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-black text-ink">CityOS Wallet</p>
-              <p className="text-[11px] font-bold text-slate-500">
-                {walletBalance !== null ? `Balance: ${fmt(walletBalance)}` : 'Loading...'}
-              </p>
+            <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center", method === 'wallet' ? "border-teal-800" : "border-slate-200")}>
+              {method === 'wallet' && <div className="w-2.5 h-2.5 bg-teal-800 rounded-full" />}
             </div>
-          </div>
-          <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center", method === 'wallet' ? "border-teal-800" : "border-slate-200")}>
-            {method === 'wallet' && <div className="w-2.5 h-2.5 bg-teal-800 rounded-full" />}
-          </div>
-        </button>
+          </button>
+        )}
 
-        <button 
-          onClick={() => setMethod('card')}
-          className={cn("w-full flex items-center justify-between p-4 rounded-xl border text-left transition-all", 
-            method === 'card' ? "border-teal-800 bg-teal-50 shadow-[0_0_0_1px_#115e59]" : "border-slate-100 hover:border-slate-200"
-          )}
-        >
-          <div className="flex items-center gap-3">
-            <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", method === 'card' ? "bg-teal-800 text-white" : "bg-slate-50 text-slate-400")}>
-              <CreditCard className="w-5 h-5" />
+        {(checkoutConfig === null || checkoutConfig.enableCard) && (
+          <button 
+            onClick={() => setMethod('card')}
+            className={cn("w-full flex items-center justify-between p-4 rounded-xl border text-left transition-all", 
+              method === 'card' ? "border-teal-800 bg-teal-50 shadow-[0_0_0_1px_#115e59]" : "border-slate-100 hover:border-slate-200"
+            )}
+          >
+            <div className="flex items-center gap-3">
+              <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", method === 'card' ? "bg-teal-800 text-white" : "bg-slate-50 text-slate-400")}>
+                <CreditCard className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-sm font-black text-ink">Credit / Debit Card</p>
+                <p className="text-[11px] font-bold text-slate-500">Secure gateway</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-black text-ink">Credit / Debit Card</p>
-              <p className="text-[11px] font-bold text-slate-500">Secure gateway</p>
+            <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center", method === 'card' ? "border-teal-800" : "border-slate-200")}>
+              {method === 'card' && <div className="w-2.5 h-2.5 bg-teal-800 rounded-full" />}
             </div>
-          </div>
-          <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center", method === 'card' ? "border-teal-800" : "border-slate-200")}>
-            {method === 'card' && <div className="w-2.5 h-2.5 bg-teal-800 rounded-full" />}
-          </div>
-        </button>
+          </button>
+        )}
 
-        <button 
-          onClick={() => setMethod('transfer')}
-          className={cn("w-full flex items-center justify-between p-4 rounded-xl border text-left transition-all", 
-            method === 'transfer' ? "border-teal-800 bg-teal-50 shadow-[0_0_0_1px_#115e59]" : "border-slate-100 hover:border-slate-200"
-          )}
-        >
-          <div className="flex items-center gap-3">
-            <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", method === 'transfer' ? "bg-teal-800 text-white" : "bg-slate-50 text-slate-400")}>
-              <Landmark className="w-5 h-5" />
+        {(checkoutConfig === null || checkoutConfig.enableTransfer) && (
+          <button 
+            onClick={() => setMethod('transfer')}
+            className={cn("w-full flex items-center justify-between p-4 rounded-xl border text-left transition-all", 
+              method === 'transfer' ? "border-teal-800 bg-teal-50 shadow-[0_0_0_1px_#115e59]" : "border-slate-100 hover:border-slate-200"
+            )}
+          >
+            <div className="flex items-center gap-3">
+              <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", method === 'transfer' ? "bg-teal-800 text-white" : "bg-slate-50 text-slate-400")}>
+                <Landmark className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-sm font-black text-ink">Bank Transfer</p>
+                <p className="text-[11px] font-bold text-slate-500">Pay via bank account</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-black text-ink">Bank Transfer</p>
-              <p className="text-[11px] font-bold text-slate-500">Pay via bank account</p>
+            <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center", method === 'transfer' ? "border-teal-800" : "border-slate-200")}>
+              {method === 'transfer' && <div className="w-2.5 h-2.5 bg-teal-800 rounded-full" />}
             </div>
-          </div>
-          <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center", method === 'transfer' ? "border-teal-800" : "border-slate-200")}>
-            {method === 'transfer' && <div className="w-2.5 h-2.5 bg-teal-800 rounded-full" />}
-          </div>
-        </button>
+          </button>
+        )}
       </div>
 
       <div className="space-y-4">
@@ -331,51 +378,62 @@ export default function CheckoutView() {
           Your cart contains items from multiple merchants. You must checkout with each merchant separately.
         </p>
 
-        {Object.entries(groupedLines).map(([orgId, group]) => (
-          <div key={orgId} className="bg-white rounded-[24px] border border-slate-100 overflow-hidden shadow-sm">
-            <div className="p-4 border-b border-slate-50 bg-slate-50/50 flex items-center justify-between">
-              <h3 className="text-sm font-black text-ink uppercase tracking-wide">{group.orgName}</h3>
-              {group.total > 0 ? (
-                <PriceTag amount={group.total} />
-              ) : (
-                <span className="text-[11px] font-bold text-teal-800 bg-teal-50 px-2 py-0.5 rounded-md">Quote on Request</span>
-              )}
-            </div>
-            
-            <div className="p-4 space-y-3">
-              {group.items.map((l: any, i: number) => (
-                <div key={i} className="flex justify-between items-start">
-                  <div>
-                    <p className="text-[13px] font-bold text-ink">{l.qty}x {l.name}</p>
-                    {l.kind === 'service' && <p className="text-[10px] text-teal-700 font-bold bg-teal-50 px-1.5 py-0.5 rounded uppercase w-max mt-1">Service Request</p>}
-                  </div>
-                  {l.kind !== 'service' && <p className="text-[12px] font-black text-slate-600">{fmt(l.price * l.qty)}</p>}
-                </div>
-              ))}
-            </div>
-
-            <div className="p-4 border-t border-slate-50 bg-slate-50/30">
-              <button
-                onClick={() => handleCheckoutOrg(orgId, group.total)}
-                disabled={processing !== null}
-                className={cn(
-                  "w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-white text-sm font-black transition-all disabled:opacity-50",
-                  method === 'whatsapp'
-                    ? "bg-[#25D366] hover:bg-[#20ba59] text-white shadow-md shadow-emerald-600/20 active:scale-[0.99]"
-                    : "bg-ink hover:bg-slate-800"
-                )}
-              >
-                {processing === orgId ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
-                ) : method === 'whatsapp' ? (
-                  <><MessageSquare className="w-4 h-4" /> Order from {group.orgName} via WhatsApp</>
+        {Object.entries(groupedLines).map(([orgId, group]) => {
+          const isBelowMin = !!(checkoutConfig?.minOrderAmount && group.total > 0 && group.total < checkoutConfig.minOrderAmount);
+          return (
+            <div key={orgId} className="bg-white rounded-[24px] border border-slate-100 overflow-hidden shadow-sm">
+              <div className="p-4 border-b border-slate-50 bg-slate-50/50 flex items-center justify-between">
+                <h3 className="text-sm font-black text-ink uppercase tracking-wide">{group.orgName}</h3>
+                {group.total > 0 ? (
+                  <PriceTag amount={group.total} />
                 ) : (
-                  <><ShieldCheck className="w-4 h-4" /> {group.total > 0 ? `Checkout ${group.orgName}` : `Request Service from ${group.orgName}`}</>
+                  <span className="text-[11px] font-bold text-teal-800 bg-teal-50 px-2 py-0.5 rounded-md">Quote on Request</span>
                 )}
-              </button>
+              </div>
+              
+              <div className="p-4 space-y-3">
+                {group.items.map((l: any, i: number) => (
+                  <div key={i} className="flex justify-between items-start">
+                    <div>
+                      <p className="text-[13px] font-bold text-ink">{l.qty}x {l.name}</p>
+                      {l.kind === 'service' && <p className="text-[10px] text-teal-700 font-bold bg-teal-50 px-1.5 py-0.5 rounded uppercase w-max mt-1">Service Request</p>}
+                    </div>
+                    {l.kind !== 'service' && <p className="text-[12px] font-black text-slate-600">{fmt(l.price * l.qty)}</p>}
+                  </div>
+                ))}
+              </div>
+
+              {isBelowMin && (
+                <div className="px-4 py-2 bg-amber-50 border-t border-amber-100 flex items-center gap-2 text-xs font-bold text-amber-800">
+                  <span>⚠️ Minimum order for checkout is {fmt(checkoutConfig!.minOrderAmount)}. Add {fmt(checkoutConfig!.minOrderAmount - group.total)} more.</span>
+                </div>
+              )}
+
+              <div className="p-4 border-t border-slate-50 bg-slate-50/30">
+                <button
+                  onClick={() => handleCheckoutOrg(orgId, group.total)}
+                  disabled={processing !== null || isBelowMin}
+                  className={cn(
+                    "w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-white text-sm font-black transition-all disabled:opacity-50",
+                    method === 'whatsapp'
+                      ? "bg-[#25D366] hover:bg-[#20ba59] text-white shadow-md shadow-emerald-600/20 active:scale-[0.99]"
+                      : "bg-ink hover:bg-slate-800"
+                  )}
+                >
+                  {processing === orgId ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
+                  ) : isBelowMin ? (
+                    <>Min Order: {fmt(checkoutConfig!.minOrderAmount)}</>
+                  ) : method === 'whatsapp' ? (
+                    <><MessageSquare className="w-4 h-4" /> Order from {group.orgName} via WhatsApp</>
+                  ) : (
+                    <><ShieldCheck className="w-4 h-4" /> {group.total > 0 ? `Checkout ${group.orgName}` : `Request Service from ${group.orgName}`}</>
+                  )}
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

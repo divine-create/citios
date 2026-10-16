@@ -7,7 +7,7 @@ interface Props {
 }
 
 export const metadata = {
-  title: 'Live Order Tracking - CityOS',
+  title: 'Order Status - CityOS',
 };
 
 export default async function OrderTrackPage({ params }: Props) {

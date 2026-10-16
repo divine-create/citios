@@ -9,6 +9,7 @@ import { placeRestaurantOrder } from '@/app/actions/food';
 import { requestServiceJob } from '@/app/actions/service';
 import { fetchUserCart } from '@/app/actions/cart';
 import { getPaymentAdapter } from '@/lib/payments/factory';
+import { getCheckoutConfig } from '@/lib/actions/checkout-settings';
 
 export type CheckoutResponse = {
   success: boolean;
@@ -47,6 +48,21 @@ export async function processMerchantCheckout(
     throw new Error('Cart is empty.');
   }
 
+  // 1b. Enforce Admin Checkout Configuration
+  const checkoutConfig = await getCheckoutConfig();
+  if (method === 'whatsapp' && !checkoutConfig.enableWhatsApp) {
+    throw new Error('WhatsApp checkout is currently disabled by platform administration.');
+  }
+  if (method === 'wallet' && !checkoutConfig.enableWallet) {
+    throw new Error('CityOS Wallet payment is currently disabled.');
+  }
+  if (method === 'card' && !checkoutConfig.enableCard) {
+    throw new Error('Card payment gateway is currently disabled.');
+  }
+  if (method === 'transfer' && !checkoutConfig.enableTransfer) {
+    throw new Error('Bank transfer payment is currently disabled.');
+  }
+
   // 2. Isolate items for this org
   const orgLines = cartData.lines.filter((l: any) => l.orgId === orgId);
   if (orgLines.length === 0) {
@@ -61,6 +77,10 @@ export async function processMerchantCheckout(
   let calculatedTotal = 0;
   for (const item of retailItems) calculatedTotal += (item.price * item.qty);
   for (const item of foodItems) calculatedTotal += (item.price * item.qty);
+  
+  if (checkoutConfig.minOrderAmount > 0 && calculatedTotal < checkoutConfig.minOrderAmount) {
+    throw new Error(`Minimum order amount of ₦${checkoutConfig.minOrderAmount.toLocaleString()} not met for this store.`);
+  }
   // ServiceItems do not charge at checkout (they generate quotes/requests).
 
   const reference = `CC-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
@@ -155,7 +175,7 @@ export async function processMerchantCheckout(
       }
     }
     if (!rawPhone) {
-      rawPhone = process.env.CITYOS_CONCIERGE_WHATSAPP || '2348000000000';
+      rawPhone = checkoutConfig.conciergeWhatsAppNumber || process.env.CITYOS_CONCIERGE_WHATSAPP || '2348000000000';
     }
 
     // 6b. Sanitize phone to international format without '+'
