@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { inferServiceCategory, getCityBookableServices } from './actions/service';
+import { inferServiceCategory } from '@/lib/service-categories';
+import { getCityBookableServices } from './actions/service';
 import { bookResidentService } from '@/app/actions/service';
 
 test('CityServices Resident Discovery and Booking Suite', async (t) => {

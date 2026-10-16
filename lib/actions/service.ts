@@ -4,6 +4,7 @@ import '@js-temporal/polyfill'
 import { db } from '@/src/prisma/db'
 import { requireMembership } from '@/lib/actions/tenant'
 import { notifyPerson, personIdForCustomerData } from '@/lib/notify'
+import { inferServiceCategory as inferCategoryUtil } from '@/lib/service-categories'
 
 function toInstant(date: Date) {
   return (globalThis as any).Temporal.Instant.fromEpochMilliseconds(date.getTime());
@@ -634,29 +635,6 @@ export async function getServiceRevenueStats(organizationId: string) {
   }
 }
 
-export function inferServiceCategory(name: string, description?: string | null): string {
-  const text = `${name} ${description || ''}`.toLowerCase();
-  if (text.includes('clean') || text.includes('laundry') || text.includes('wash') || text.includes('maid') || text.includes('housekeep') || text.includes('fumigat')) {
-    return 'Home & Cleaning';
-  }
-  if (text.includes('ac ') || text.includes('air condition') || text.includes('repair') || text.includes('plumb') || text.includes('electri') || text.includes('wire') || text.includes('weld') || text.includes('carpenter') || text.includes('paint') || text.includes('fix') || text.includes('roof')) {
-    return 'Trades & Repair';
-  }
-  if (text.includes('car') || text.includes('auto') || text.includes('mechanic') || text.includes('engine') || text.includes('tire') || text.includes('tyre') || text.includes('generator') || text.includes('battery')) {
-    return 'Automotive & Power';
-  }
-  if (text.includes('hair') || text.includes('barber') || text.includes('salon') || text.includes('spa') || text.includes('nail') || text.includes('massage') || text.includes('beauty') || text.includes('braid')) {
-    return 'Beauty & Wellness';
-  }
-  if (text.includes('doctor') || text.includes('nurse') || text.includes('health') || text.includes('clinic') || text.includes('therapy') || text.includes('dental') || text.includes('care')) {
-    return 'Health & Care';
-  }
-  if (text.includes('tech') || text.includes('laptop') || text.includes('phone') || text.includes('computer') || text.includes('install') || text.includes('cctv') || text.includes('solar') || text.includes('inverter') || text.includes('network')) {
-    return 'Tech & Solar';
-  }
-  return 'General Services';
-}
-
 export async function getCityBookableServices(citySlug?: string) {
   try {
     let orgIds: string[] = [];
@@ -687,7 +665,7 @@ export async function getCityBookableServices(citySlug?: string) {
       durationMinutes: it.durationMinutes,
       organizationId: it.organizationId,
       orgName: orgMap.get(it.organizationId) || 'Local Pro',
-      category: inferServiceCategory(it.name, it.description),
+      category: inferCategoryUtil(it.name, it.description),
     }));
   } catch (error) {
     console.error('Error fetching city bookable services:', error);

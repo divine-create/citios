@@ -262,12 +262,26 @@ export async function bookResidentService(input: {
   address?: string;
   notes?: string;
 }) {
-  const session = await getServerSession(authOptions);
+  if (!input.serviceId || !input.date || !input.timeSlot) {
+    return {
+      success: false,
+      error: 'Service, date, and time slot are required.',
+      message: 'Service, date, and time slot are required.',
+    };
+  }
+
+  let session: any = null;
+  try {
+    session = await getServerSession(authOptions);
+  } catch {
+    session = null;
+  }
 
   if (!session || !session.user || !session.user.personId) {
     return {
       success: false,
-      error: 'UNAUTHORIZED',
+      requiresAuth: true,
+      error: 'Please sign in to book an appointment.',
       message: 'Please sign in to book an appointment.',
     };
   }
