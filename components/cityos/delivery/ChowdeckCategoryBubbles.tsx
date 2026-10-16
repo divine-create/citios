@@ -35,6 +35,24 @@ export const MARKET_CATEGORY_BUBBLES: CategoryBubbleItem[] = [
   { id: 'Electronics', label: 'Tech & Gadgets', shortLabel: 'Electronics' },
 ];
 
+const DEFAULT_EMOJIS: Record<string, string> = {
+  all: '🍽️',
+  soups: '🍲',
+  jollof: '🍚',
+  chicken: '🍗',
+  suya: '🍢',
+  shawarma: '🌯',
+  pizza: '🍕',
+  pastries: '🥐',
+  drinks: '🥤',
+  'food & market': '🥬',
+  groceries: '🛒',
+  bakery: '🍞',
+  pharmacy: '💊',
+  fashion: '👕',
+  electronics: '📱',
+};
+
 interface ChowdeckCategoryBubblesProps {
   categories: CategoryBubbleItem[];
   activeCategoryId: string;
@@ -49,34 +67,50 @@ export default function ChowdeckCategoryBubbles({
   className,
 }: ChowdeckCategoryBubblesProps) {
   return (
-    <div className={cn('relative select-none', className)}>
-      <div className="flex gap-2.5 overflow-x-auto pb-1 -mx-1 px-1 no-scrollbar scroll-smooth">
+    <div className={cn('relative select-none py-1', className)}>
+      <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 -mx-1 px-1 no-scrollbar scroll-smooth snap-x">
         {categories.map((cat) => {
           const isActive = activeCategoryId === cat.id;
+          const key = cat.id.toLowerCase();
+          const emoji = cat.emoji || DEFAULT_EMOJIS[key] || '🍽️';
 
           return (
             <button
               key={cat.id}
               type="button"
               onClick={() => onSelectCategory(cat.id)}
-              className={cn(
-                'flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all duration-200 shrink-0 border focus:outline-none',
-                isActive
-                  ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                  : 'bg-white text-slate-700 border-slate-200/90 hover:bg-slate-50 hover:text-slate-950 hover:border-slate-300'
-              )}
+              className="flex flex-col items-center gap-1.5 shrink-0 group focus:outline-none snap-start transition-transform active:scale-95"
             >
-              <span>{cat.shortLabel || cat.label}</span>
-              {typeof cat.count === 'number' && cat.count > 0 && (
+              <div
+                className={cn(
+                  'w-13 h-13 sm:w-15 sm:h-15 rounded-2xl flex items-center justify-center text-xl sm:text-2xl transition-all duration-200 border shadow-2xs',
+                  isActive
+                    ? 'bg-slate-900 border-slate-900 text-white scale-105 shadow-md shadow-slate-900/15'
+                    : 'bg-white border-slate-200/80 text-slate-800 hover:border-slate-300 hover:bg-slate-50'
+                )}
+              >
+                <span>{emoji}</span>
+              </div>
+              <div className="flex items-center gap-1 max-w-[76px] sm:max-w-[84px] justify-center">
                 <span
                   className={cn(
-                    'px-2 py-0.5 rounded-full text-[10px] font-bold',
-                    isActive ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-600'
+                    'text-[11px] font-bold leading-tight truncate text-center',
+                    isActive ? 'text-slate-900 font-black' : 'text-slate-600 group-hover:text-slate-900'
                   )}
                 >
-                  {cat.count}
+                  {cat.shortLabel || cat.label}
                 </span>
-              )}
+                {typeof cat.count === 'number' && cat.count > 0 && cat.id !== 'all' && (
+                  <span
+                    className={cn(
+                      'text-[9px] font-extrabold px-1 rounded-full shrink-0',
+                      isActive ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500'
+                    )}
+                  >
+                    {cat.count}
+                  </span>
+                )}
+              </div>
             </button>
           );
         })}

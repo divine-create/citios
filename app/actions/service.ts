@@ -5,7 +5,8 @@ import { authOptions } from '@/lib/auth';
 import { db } from '@/src/prisma/db';
 import { revalidatePath } from 'next/cache';
 import { ActivityItem } from '@/lib/activity';
-import { notifyPerson } from '@/lib/notify';
+import { notifyPerson, personIdForCustomerData } from '@/lib/notify';
+import { resolveResidentCustomerIds } from '@/lib/resident-activity/compose';
 
 export async function requestServiceJob(input: {
   serviceId: string;
@@ -238,8 +239,38 @@ export async function updateServiceJobLifecycle(input: {
     }
   });
 
+  // Notify resident of status transition
+  try {
+    const residentPersonId = await personIdForCustomerData(job.customerDataId);
+    if (residentPersonId) {
+      const statusTitle =
+        input.status === 'COMPLETED'
+          ? 'Service Completed'
+          : input.status === 'IN_PROGRESS'
+          ? 'Technician In Progress'
+          : 'Service Status Updated';
+      const statusBody =
+        input.status === 'COMPLETED'
+          ? `Your service "${job.description || 'Service'}" has been marked completed by the provider.`
+          : input.status === 'IN_PROGRESS'
+          ? `Technician is currently working on your service "${job.description || 'Service'}".`
+          : `Your service status was updated to ${input.status.toLowerCase()}.`;
+
+      await notifyPerson(residentPersonId, {
+        type: 'SERVICE_STATUS',
+        title: statusTitle,
+        body: statusBody,
+        href: `/tasks/${job.id}`,
+      });
+    }
+  } catch (err) {
+    console.error('Error notifying resident on service status update:', err);
+  }
+
   try {
     revalidatePath('/workspaces/serviceos');
+    revalidatePath('/tasks');
+    revalidatePath(`/tasks/${job.id}`);
   } catch {}
   return { success: true };
 }
@@ -390,5 +421,258 @@ export async function bookResidentService(input: {
     appointmentId: result.appointment.id,
   };
 }
+
+function toSafeIsoString(val: any): string | null {
+  if (!val) return null;
+  if (typeof val === 'string') return val;
+  if (typeof val.epochMilliseconds === 'number') {
+    return new Date(val.epochMilliseconds).toISOString();
+  }
+  if (typeof val.getTime === 'function') {
+    return val.toISOString();
+  }
+  return String(val);
+}
+
+export async function fetchMyResidentTasks() {
+  let session: any = null;
+  try {
+    session = await getServerSession(authOptions);
+  } catch {
+    session = null;
+  }
+
+  if (!session || !session.user || !session.user.personId) {
+    return { success: false, requiresAuth: true, tasks: [] };
+  }
+
+  const personId = session.user.personId as string;
+  const customerIds = await resolveResidentCustomerIds(personId);
+  if (customerIds.length === 0) {
+    return { success: true, tasks: [] };
+  }
+
+  // Fetch jobs for resident
+  const jobs = await db.orm.public.ServiceJob
+    .where((j) => j.customerDataId.in(customerIds))
+    .all();
+
+  // Fetch appointments for resident
+  const appointments = await db.orm.public.ServiceAppointment
+    .where((a) => a.customerDataId.in(customerIds))
+    .all();
+
+  const appointmentByJobId = new Map(
+    appointments.filter((a) => a.jobId).map((a) => [a.jobId as string, a])
+  );
+
+  // Resolve unique organization IDs
+  const orgIds = Array.from(new Set([
+    ...jobs.map((j) => j.organizationId),
+    ...appointments.map((a) => a.organizationId),
+  ]));
+  const orgMap = new Map<string, any>();
+  for (const oid of orgIds) {
+    const org = await db.orm.public.Organization.where({ id: oid }).all().first();
+    if (org) orgMap.set(oid, org);
+  }
+
+  // Resolve unique service IDs
+  const serviceIds = Array.from(new Set([
+    ...jobs.map((j) => j.serviceId).filter(Boolean) as string[],
+    ...appointments.map((a) => a.serviceId).filter(Boolean) as string[],
+  ]));
+  const serviceMap = new Map<string, any>();
+  for (const sid of serviceIds) {
+    const s = await db.orm.public.ServiceCatalogItem.where({ id: sid }).all().first();
+    if (s) serviceMap.set(sid, s);
+  }
+
+  const tasks = jobs.map((job) => {
+    const appt = appointmentByJobId.get(job.id);
+    const org = orgMap.get(job.organizationId);
+    const srv = job.serviceId
+      ? serviceMap.get(job.serviceId)
+      : (appt?.serviceId ? serviceMap.get(appt.serviceId) : null);
+
+    return {
+      id: job.id,
+      jobId: job.id,
+      appointmentId: appt?.id || null,
+      title: srv?.name || job.description || 'Service Task',
+      status: appt?.status || job.status || 'SCHEDULED',
+      jobStatus: job.status,
+      appointmentStatus: appt?.status || 'REQUESTED',
+      scheduledDate: toSafeIsoString(job.scheduledDate || appt?.startTime),
+      startTime: toSafeIsoString(appt?.startTime || job.scheduledDate),
+      endTime: toSafeIsoString(appt?.endTime),
+      address: job.address || null,
+      notes: job.notes || appt?.notes || null,
+      price: appt?.price || srv?.price || 0,
+      createdAt: toSafeIsoString(job.createdAt) || new Date().toISOString(),
+      organization: org ? {
+        id: org.id,
+        name: org.name,
+        slug: (org as any).slug || org.id,
+        phone: (org as any).phone || null,
+      } : null,
+      service: srv ? {
+        id: srv.id,
+        name: srv.name,
+        description: srv.description,
+        price: srv.price,
+        durationMinutes: srv.durationMinutes,
+      } : null,
+    };
+  });
+
+  // Sort by createdAt descending
+  tasks.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  return { success: true, tasks };
+}
+
+export async function fetchResidentTaskDetail(id: string) {
+  let session: any = null;
+  try {
+    session = await getServerSession(authOptions);
+  } catch {
+    session = null;
+  }
+
+  if (!session || !session.user || !session.user.personId) {
+    return { success: false, requiresAuth: true, task: null, error: 'Unauthorized' };
+  }
+
+  const personId = session.user.personId as string;
+  const customerIds = await resolveResidentCustomerIds(personId);
+
+  // Look for job matching id
+  let job = await db.orm.public.ServiceJob.where({ id }).all().first();
+  let appointment = null;
+
+  if (job) {
+    appointment = await db.orm.public.ServiceAppointment.where({ jobId: job.id }).all().first();
+  } else {
+    // Maybe id was an appointment id
+    appointment = await db.orm.public.ServiceAppointment.where({ id }).all().first();
+    if (appointment?.jobId) {
+      job = await db.orm.public.ServiceJob.where({ id: appointment.jobId }).all().first();
+    }
+  }
+
+  if (!job && !appointment) {
+    return { success: false, task: null, error: 'Task not found' };
+  }
+
+  // Security check: Must belong to one of customerIds
+  const recordCustId = job?.customerDataId || appointment?.customerDataId;
+  if (!recordCustId || !customerIds.includes(recordCustId)) {
+    return { success: false, task: null, error: 'Access denied: not your task' };
+  }
+
+  const orgId = job?.organizationId || appointment?.organizationId;
+  const org = orgId ? await db.orm.public.Organization.where({ id: orgId }).all().first() : null;
+
+  const srvId = job?.serviceId || appointment?.serviceId;
+  const srv = srvId ? await db.orm.public.ServiceCatalogItem.where({ id: srvId }).all().first() : null;
+
+  const task = {
+    id: job?.id || appointment?.id,
+    jobId: job?.id || null,
+    appointmentId: appointment?.id || null,
+    title: srv?.name || job?.description || 'Service Task',
+    status: appointment?.status || job?.status || 'SCHEDULED',
+    jobStatus: job?.status || 'SCHEDULED',
+    appointmentStatus: appointment?.status || 'REQUESTED',
+    scheduledDate: toSafeIsoString(job?.scheduledDate || appointment?.startTime),
+    startTime: toSafeIsoString(appointment?.startTime || job?.scheduledDate),
+    endTime: toSafeIsoString(appointment?.endTime),
+    address: job?.address || null,
+    notes: job?.notes || appointment?.notes || null,
+    price: appointment?.price || srv?.price || 0,
+    createdAt: toSafeIsoString(job?.createdAt || appointment?.createdAt) || new Date().toISOString(),
+    organization: org ? {
+      id: org.id,
+      name: org.name,
+      slug: (org as any).slug || org.id,
+      phone: (org as any).phone || null,
+    } : null,
+    service: srv ? {
+      id: srv.id,
+      name: srv.name,
+      description: srv.description,
+      price: srv.price,
+      durationMinutes: srv.durationMinutes,
+    } : null,
+  };
+
+  return { success: true, task };
+}
+
+export async function cancelResidentTask(id: string, reason?: string) {
+  let session: any = null;
+  try {
+    session = await getServerSession(authOptions);
+  } catch {
+    session = null;
+  }
+
+  if (!session || !session.user || !session.user.personId) {
+    return { success: false, requiresAuth: true, error: 'Unauthorized' };
+  }
+
+  const personId = session.user.personId as string;
+  const customerIds = await resolveResidentCustomerIds(personId);
+
+  let job = await db.orm.public.ServiceJob.where({ id }).all().first();
+  let appointment = null;
+
+  if (job) {
+    appointment = await db.orm.public.ServiceAppointment.where({ jobId: job.id }).all().first();
+  } else {
+    appointment = await db.orm.public.ServiceAppointment.where({ id }).all().first();
+    if (appointment?.jobId) {
+      job = await db.orm.public.ServiceJob.where({ id: appointment.jobId }).all().first();
+    }
+  }
+
+  if (!job && !appointment) {
+    return { success: false, error: 'Task not found' };
+  }
+
+  const recordCustId = job?.customerDataId || appointment?.customerDataId;
+  if (!recordCustId || !customerIds.includes(recordCustId)) {
+    return { success: false, error: 'Access denied' };
+  }
+
+  const currentStatus = appointment?.status || job?.status;
+  if (currentStatus === 'COMPLETED' || currentStatus === 'CANCELLED') {
+    return { success: false, error: `Cannot cancel task with status: ${currentStatus}` };
+  }
+
+  await db.transaction(async (tx) => {
+    if (job) {
+      await tx.orm.public.ServiceJob.where({ id: job.id }).update({
+        status: 'CANCELLED',
+        notes: reason ? `${job.notes ? job.notes + ' | ' : ''}Cancelled by resident: ${reason}` : job.notes,
+      });
+    }
+    if (appointment) {
+      await tx.orm.public.ServiceAppointment.where({ id: appointment.id }).update({
+        status: 'CANCELLED',
+      });
+    }
+  });
+
+  try {
+    revalidatePath('/tasks');
+    if (job) revalidatePath(`/tasks/${job.id}`);
+    if (appointment) revalidatePath(`/tasks/${appointment.id}`);
+  } catch {}
+
+  return { success: true };
+}
+
 
 

@@ -641,6 +641,15 @@ export default function CityServices({
                   />
                 </div>
 
+                {/* Payment Policy Note */}
+                <div className="p-3 bg-teal-50/70 border border-teal-100 rounded-xl text-teal-900 text-xs flex items-center justify-between">
+                  <div>
+                    <span className="font-bold block">Inspection-First Policy</span>
+                    <span className="text-[11px] text-teal-700">Pay {fmtNaira(selectedService.price)} upon satisfactory job completion via Transfer or Cash.</span>
+                  </div>
+                  <ShieldCheck className="w-4 h-4 text-teal-700 shrink-0" />
+                </div>
+
                 {/* Actions */}
                 <div className="pt-2 flex justify-end gap-3 border-t border-slate-100">
                   <button

@@ -94,8 +94,10 @@ export default function ChowdeckDeliveryHeader({
     return list;
   }, [defaultAddress, deliveryHubs, cityName]);
 
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Top Location & Fulfillment Mode Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 sm:p-4 rounded-2xl border border-slate-200/90 shadow-2xs">
         {/* Location Selector */}
@@ -245,7 +247,7 @@ export default function ChowdeckDeliveryHeader({
         </div>
       </div>
 
-      {/* Prominent Search Bar */}
+      {/* Google/Glovo Search Bar with contextual on-focus suggestions */}
       <div className="relative">
         <div className="relative flex items-center">
           <Search className="w-5 h-5 absolute left-4 text-slate-400 pointer-events-none" />
@@ -253,6 +255,11 @@ export default function ChowdeckDeliveryHeader({
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => {
+              // Delay slightly to allow onMouseDown on tags to fire
+              setTimeout(() => setIsSearchFocused(false), 200);
+            }}
             placeholder={placeholder}
             className="w-full pl-12 pr-10 py-3.5 rounded-2xl bg-white border border-slate-200/90 text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 shadow-2xs transition-all"
           />
@@ -266,26 +273,33 @@ export default function ChowdeckDeliveryHeader({
             </button>
           )}
         </div>
-      </div>
 
-      {/* Clickable Popular Tags */}
-      {trendingTags.length > 0 && !searchQuery && (
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar select-none">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 shrink-0">
-            Popular:
-          </span>
-          {trendingTags.map((tag) => (
-            <button
-              key={tag}
-              type="button"
-              onClick={() => onSelectTag ? onSelectTag(tag) : onSearchChange(tag)}
-              className="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-950 border border-slate-200/80 shrink-0 transition-colors"
-            >
-              {tag}
-            </button>
-          ))}
-        </div>
-      )}
+        {/* On-focus contextual suggestions dropdown */}
+        {isSearchFocused && trendingTags.length > 0 && !searchQuery && (
+          <div className="absolute top-full left-0 right-0 mt-2 p-3.5 bg-white border border-slate-200/90 rounded-2xl shadow-xl z-30 animate-in fade-in slide-in-from-top-1 duration-150">
+            <div className="text-[11px] font-black uppercase tracking-wider text-slate-400 mb-2 px-1">
+              Popular in {cityName}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {trendingTags.map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    if (onSelectTag) onSelectTag(tag);
+                    else onSearchChange(tag);
+                    setIsSearchFocused(false);
+                  }}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-50 hover:bg-slate-900 hover:text-white text-slate-700 border border-slate-200/70 transition-colors"
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

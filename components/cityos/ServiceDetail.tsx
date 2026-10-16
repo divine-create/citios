@@ -361,6 +361,15 @@ export default function ServiceDetail({ id }: { id: string }) {
                       className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-teal-700 resize-none"
                     />
                   </div>
+
+                  {/* Payment Policy Note */}
+                  <div className="p-3 bg-teal-50/70 border border-teal-100 rounded-xl text-teal-900 text-xs flex items-center justify-between">
+                    <div>
+                      <span className="font-bold block">Inspection-First Policy</span>
+                      <span className="text-[11px] text-teal-700">Pay {fmt(s.price)} upon satisfactory job completion via Transfer or Cash.</span>
+                    </div>
+                    <ShieldCheck className="w-4 h-4 text-teal-700 shrink-0" />
+                  </div>
                 </div>
 
                 <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
