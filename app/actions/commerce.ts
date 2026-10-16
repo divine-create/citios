@@ -336,6 +336,8 @@ export async function getCityMartProducts(citySlug?: string, cat: string = 'All'
   });
 }
 
+import { getStorefrontPromotions } from '@/lib/actions/storefront-management';
+
 export async function getCityMartStores(citySlug?: string) {
   const city = citySlug ? await getCityBySlug(citySlug) : await getCurrentCity();
   if (!city) return [];
@@ -351,23 +353,56 @@ export async function getCityMartStores(citySlug?: string) {
   return orgs.map((o: any) => {
     const listing = listingMap.get(o.id);
     let cover = o.logoAssetId || listing?.coverAssetId;
-    let rating: number | null = null;
+    let rating: number = 4.8;
+    let meta: any = null;
     if (listing?.metadata) {
       try {
-        const meta = JSON.parse(listing.metadata);
+        meta = JSON.parse(listing.metadata);
         if (!cover) cover = meta.coverImage || meta.images?.[0];
         if (typeof meta.rating === 'number' && meta.rating > 0) rating = meta.rating;
       } catch {}
     }
+    const isVerified = meta?.isVerified !== undefined ? Boolean(meta.isVerified) : true;
+    const isFeatured = Boolean(meta?.isFeatured);
+    const isFastCourier = Boolean(meta?.isFastCourier);
+    const deliveryFee = typeof meta?.deliveryFee === 'number' ? meta.deliveryFee : 500;
+    const deliveryEta = meta?.deliveryEta || (isFastCourier ? '20 - 30 min' : '30 - 45 min');
+    const reviewCount = typeof meta?.reviewCount === 'number' ? meta.reviewCount : 68;
+    const aisles = Array.isArray(meta?.aisles) && meta.aisles.length > 0 
+      ? meta.aisles 
+      : ['Groceries', 'Supermarket', 'Watt Market Produce'];
+
     return {
       ...o,
       image: cover,
       storeCoverImage: cover,
       rating,
+      reviewCount,
+      deliveryEta,
+      deliveryFee,
+      freeDeliveryOver: meta?.freeDeliveryOver || 15000,
+      isVerified,
+      isFeatured,
+      isFastCourier,
+      aisles,
+      badge: meta?.badge || (isFeatured ? 'Supermarket Partner' : undefined),
       neighborhood: o.address ? o.address.split(',')[0].trim() : city.name,
-      deliveryEta: '30 - 45 min',
+      area: o.address ? o.address.split(',')[0].trim() : city.name,
     };
   });
+}
+
+export async function getCityMarketFeed(citySlug?: string, activeAisle: string = 'All') {
+  const city = citySlug ? await getCityBySlug(citySlug) : await getCurrentCity();
+  if (!city) return { stores: [], products: [], campaigns: [] };
+
+  const [stores, products, campaigns] = await Promise.all([
+    getCityMartStores(city.slug),
+    getCityMartProducts(city.slug, activeAisle),
+    getStorefrontPromotions(city.slug, 'MARKET'),
+  ]);
+
+  return { stores, products, campaigns };
 }
 
 export async function getCityMartProduct(productId: string) {

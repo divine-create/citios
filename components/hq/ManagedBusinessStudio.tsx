@@ -26,6 +26,7 @@ import ManagedProxyPostStudio from './ManagedProxyPostStudio';
 import ManagedRoomsEditor from './ManagedRoomsEditor';
 import ManagedRetailInventoryEditor from './ManagedRetailInventoryEditor';
 import ManagedBulkMenuParser from './ManagedBulkMenuParser';
+import ManagedStorefrontPlacement from './ManagedStorefrontPlacement';
 
 interface ManagedBusinessStudioProps {
   businessData: any;
@@ -148,6 +149,17 @@ export default function ManagedBusinessStudio({ businessData }: ManagedBusinessS
 
         {/* Common Tabs across all businesses */}
         <button
+          onClick={() => setActiveTab('storefront')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+            activeTab === 'storefront'
+              ? 'bg-orange-500 text-slate-950 font-black shadow-lg shadow-orange-500/20'
+              : 'text-slate-400 hover:text-white hover:bg-slate-900'
+          }`}
+        >
+          <Sparkles className="w-4 h-4 text-orange-400" /> Storefront & Badging
+        </button>
+
+        <button
           onClick={() => setActiveTab('media')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
             activeTab === 'media'
@@ -222,6 +234,10 @@ export default function ManagedBusinessStudio({ businessData }: ManagedBusinessS
             organizationId={org.id}
             initialProducts={catalog.retailProducts || []}
           />
+        )}
+
+        {activeTab === 'storefront' && (
+          <ManagedStorefrontPlacement businessData={businessData} />
         )}
 
         {activeTab === 'media' && (

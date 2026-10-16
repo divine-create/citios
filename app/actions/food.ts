@@ -8,6 +8,8 @@ import { getCurrentCity, getCityBySlug } from '@/lib/city';
 import { notifyPerson } from '@/lib/notify';
 import { debitResidentWallet } from '@/app/actions/resident_wallet';
 
+import { getStorefrontPromotions, StorefrontCampaign } from '@/lib/actions/storefront-management';
+
 const FOOD_CATS = ['All', 'Restaurant', 'Cafe', 'Campus Eats', 'Food & Market'];
 
 function mapMenuItem(m: any) {
@@ -25,6 +27,17 @@ function mapMenuItem(m: any) {
 
 function mapRestaurant(o: any, menuItems: any[], citySlug: string | null = null, coverUrl?: string | null, meta?: any) {
   const image = coverUrl || o.logoAssetId || undefined;
+  const rating = typeof meta?.rating === 'number' && meta.rating > 0 ? meta.rating : 4.7;
+  const reviewCount = typeof meta?.reviewCount === 'number' && meta.reviewCount > 0 ? meta.reviewCount : 54;
+  const deliveryFee = typeof meta?.deliveryFee === 'number' ? meta.deliveryFee : 450;
+  const deliveryEta = meta?.deliveryEta || (meta?.isFastCourier ? '15 - 25 min' : '20 - 30 min');
+  const isVerified = meta?.isVerified !== undefined ? Boolean(meta.isVerified) : true;
+  const isFeatured = Boolean(meta?.isFeatured);
+  const isFastCourier = Boolean(meta?.isFastCourier);
+  const cuisines = Array.isArray(meta?.cuisines) && meta.cuisines.length > 0 
+    ? meta.cuisines 
+    : [o.storeCategory || 'Local Dishes', 'Calabar Cuisine'];
+
   return {
     id: o.id,
     name: o.name,
@@ -36,26 +49,38 @@ function mapRestaurant(o: any, menuItems: any[], citySlug: string | null = null,
     imageUrl: image,
     image: image,
     images: meta?.images && Array.isArray(meta.images) && meta.images.length > 0 ? meta.images : (image ? [image] : []),
-    rating: typeof meta?.rating === 'number' && meta.rating > 0 ? meta.rating : null,
+    rating,
+    reviewCount,
+    deliveryEta,
+    deliveryFee,
+    freeDeliveryOver: meta?.freeDeliveryOver || 10000,
+    isVerified,
+    isFeatured,
+    isFastCourier,
+    cuisines,
+    badge: meta?.badge || (isFeatured ? 'Popular Spot' : undefined),
     isOpen: typeof meta?.isOpen === 'boolean' ? meta.isOpen : true,
-    area: o.address || '',
+    area: o.address ? o.address.split(',')[0].trim() : 'Calabar',
     category: o.storeCategory || 'Restaurant',
-    deliveryEta: meta?.deliveryEta || null,
   };
 }
 
 export async function getCityFood(citySlug?: string) {
   const city = citySlug ? await getCityBySlug(citySlug) : await getCurrentCity();
-  if (!city) return { restaurants: [], menuItems: [] };
+  if (!city) return { restaurants: [], menuItems: [], campaigns: [] };
 
-  const locs = await db.orm.public.Location.where({ cityId: city.id }).all();
+  const [locs, campaigns] = await Promise.all([
+    db.orm.public.Location.where({ cityId: city.id }).all(),
+    getStorefrontPromotions(city.slug, 'FOOD'),
+  ]);
+
   const orgIdsWithLoc = locs.map((l) => l.organizationId);
-  if (orgIdsWithLoc.length === 0) return { restaurants: [], menuItems: [] };
+  if (orgIdsWithLoc.length === 0) return { restaurants: [], menuItems: [], campaigns };
 
   const allOrgs = await db.orm.public.Organization.where({ type: 'RESTAURANT' }).all();
   const orgs = allOrgs.filter((o: any) => orgIdsWithLoc.includes(o.id));
   const orgIds = orgs.map((o) => o.id);
-  if (orgIds.length === 0) return { restaurants: [], menuItems: [] };
+  if (orgIds.length === 0) return { restaurants: [], menuItems: [], campaigns };
 
   // Fetch listings for high-res cover photos
   const listings = await db.orm.public.DiscoveryListing.where({ cityId: city.id }).all();
@@ -86,6 +111,7 @@ export async function getCityFood(citySlug?: string) {
       );
     }),
     menuItems: availableMenus.map(mapMenuItem),
+    campaigns,
   };
 }
 

@@ -1,7 +1,7 @@
 
 'use server'
 import { db } from '@/src/prisma/db'
-import { getCurrentCity } from '@/lib/city'
+import { getCurrentCity, getCityBySlug } from '@/lib/city'
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
@@ -129,8 +129,91 @@ export async function getRideOrgs() {
   return getOrgsByType('LOGISTICS');
 }
 
-export async function getHotelOrgs() {
-  return getOrgsByType('HOTEL');
+export async function getHotelOrgs(citySlug?: string) {
+  const city = citySlug ? await getCityBySlug(citySlug) : await getCurrentCity();
+  // @ts-ignore
+  let orgs = await db.orm.public.Organization.where({ type: 'HOTEL' }).all();
+  if (city) {
+    const locs = await db.orm.public.Location.where({ cityId: city.id }).all();
+    const cityOrgIds = new Set(locs.map(l => l.organizationId));
+    orgs = orgs.filter(o => cityOrgIds.has(o.id));
+  }
+
+  const listings = await db.orm.public.DiscoveryListing.all();
+  const listingMap = new Map(listings.map((l: any) => [l.organizationId, l]));
+
+  const allRooms = await db.orm.public.HotelRoom.all();
+  const roomsByOrg = new Map<string, any[]>();
+  for (const r of allRooms) {
+    if (!roomsByOrg.has(r.organizationId)) roomsByOrg.set(r.organizationId, []);
+    roomsByOrg.get(r.organizationId)!.push(r);
+  }
+
+  return orgs.map((o: any) => {
+    const listing = listingMap.get(o.id);
+    let cover = o.logoAssetId || listing?.coverAssetId;
+    let rating: number = 4.8;
+    let reviewScore: number = 9.0;
+    let reviewText: string = 'Superb';
+    let reviewCount: number = 84;
+    let stars: number = 4;
+    let images: string[] = [];
+    let meta: any = null;
+
+    if (listing?.metadata) {
+      try {
+        meta = JSON.parse(listing.metadata);
+        if (!cover) cover = meta.coverImage || meta.images?.[0];
+        if (Array.isArray(meta.images) && meta.images.length > 0) {
+          images = meta.images;
+        }
+        if (typeof meta.rating === 'number') {
+          rating = meta.rating;
+          reviewScore = Number((meta.rating * 2).toFixed(1));
+        }
+        if (typeof meta.reviewCount === 'number') reviewCount = meta.reviewCount;
+        if (typeof meta.stars === 'number') stars = meta.stars;
+      } catch {}
+    }
+
+    if (reviewScore >= 9.0) reviewText = 'Superb';
+    else if (reviewScore >= 8.5) reviewText = 'Fabulous';
+    else if (reviewScore >= 8.0) reviewText = 'Very Good';
+    else reviewText = 'Good';
+
+    const orgRooms = roomsByOrg.get(o.id) || [];
+    const minRate = orgRooms.length > 0
+      ? Math.min(...orgRooms.map((r: any) => r.baseRate || 35000))
+      : 35000;
+
+    return {
+      ...o,
+      storeCoverImage: cover,
+      image: cover,
+      imageUrl: cover,
+      coverAssetId: cover,
+      images: images.length > 0 ? images : cover ? [cover] : [],
+      rating,
+      reviewScore,
+      reviewText,
+      reviewCount,
+      stars,
+      price: minRate,
+      startingPrice: minRate,
+      compareAtPrice: Math.round(minRate * 1.25),
+      roomsCount: orgRooms.length,
+      rooms: orgRooms,
+      roomType: orgRooms[0]?.type || 'Deluxe King Room',
+      bedType: orgRooms[0]?.bedType || '1 extra-large double bed',
+      neighborhood: o.address ? o.address.split(',')[0].trim() : 'Calabar',
+      area: o.address ? o.address.split(',')[0].trim() : 'Calabar',
+      distanceFromCenter: '0.8 km from center',
+      isVerified: meta?.isVerified !== undefined ? Boolean(meta.isVerified) : true,
+      hasPowerGuarantee: true,
+      freeCancellation: true,
+      breakfastIncluded: meta?.breakfastIncluded ?? (o.name.toLowerCase().includes('resort') || o.name.toLowerCase().includes('suites')),
+    };
+  });
 }
 
 export async function getHotelRooms(orgId: string) {
