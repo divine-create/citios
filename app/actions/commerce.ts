@@ -353,7 +353,7 @@ export async function getCityMartStores(citySlug?: string) {
   return orgs.map((o: any) => {
     const listing = listingMap.get(o.id);
     let cover = o.logoAssetId || listing?.coverAssetId;
-    let rating: number = 4.8;
+    let rating: number | null = null;
     let meta: any = null;
     if (listing?.metadata) {
       try {
@@ -362,15 +362,15 @@ export async function getCityMartStores(citySlug?: string) {
         if (typeof meta.rating === 'number' && meta.rating > 0) rating = meta.rating;
       } catch {}
     }
-    const isVerified = meta?.isVerified !== undefined ? Boolean(meta.isVerified) : true;
+    const isVerified = Boolean(meta?.isVerified);
     const isFeatured = Boolean(meta?.isFeatured);
     const isFastCourier = Boolean(meta?.isFastCourier);
-    const deliveryFee = typeof meta?.deliveryFee === 'number' ? meta.deliveryFee : 500;
-    const deliveryEta = meta?.deliveryEta || (isFastCourier ? '20 - 30 min' : '30 - 45 min');
-    const reviewCount = typeof meta?.reviewCount === 'number' ? meta.reviewCount : 68;
+    const deliveryFee = typeof meta?.deliveryFee === 'number' ? meta.deliveryFee : null;
+    const deliveryEta = meta?.deliveryEta || null;
+    const reviewCount = typeof meta?.reviewCount === 'number' ? meta.reviewCount : 0;
     const aisles = Array.isArray(meta?.aisles) && meta.aisles.length > 0 
       ? meta.aisles 
-      : ['Groceries', 'Supermarket', 'Watt Market Produce'];
+      : (o.storeCategory ? [o.storeCategory] : []);
 
     return {
       ...o,
@@ -380,12 +380,12 @@ export async function getCityMartStores(citySlug?: string) {
       reviewCount,
       deliveryEta,
       deliveryFee,
-      freeDeliveryOver: meta?.freeDeliveryOver || 15000,
+      freeDeliveryOver: typeof meta?.freeDeliveryOver === 'number' ? meta.freeDeliveryOver : null,
       isVerified,
       isFeatured,
       isFastCourier,
       aisles,
-      badge: meta?.badge || (isFeatured ? 'Supermarket Partner' : undefined),
+      badge: meta?.badge || (isFeatured ? 'Featured Partner' : undefined),
       neighborhood: o.address ? o.address.split(',')[0].trim() : city.name,
       area: o.address ? o.address.split(',')[0].trim() : city.name,
     };

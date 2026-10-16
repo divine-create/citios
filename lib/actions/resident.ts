@@ -46,7 +46,7 @@ async function getOrgsByType(type: string) {
       coverAssetId: cover,
       images: images.length > 0 ? images : cover ? [cover] : [],
       rating: rating,
-      neighborhood: o.address ? o.address.split(',')[0].trim() : 'Calabar',
+      neighborhood: o.address ? o.address.split(',')[0].trim() : (city?.name ?? ''),
     };
   });
 }
@@ -152,11 +152,11 @@ export async function getHotelOrgs(citySlug?: string) {
   return orgs.map((o: any) => {
     const listing = listingMap.get(o.id);
     let cover = o.logoAssetId || listing?.coverAssetId;
-    let rating: number = 4.8;
-    let reviewScore: number = 9.0;
-    let reviewText: string = 'Superb';
-    let reviewCount: number = 84;
-    let stars: number = 4;
+    let rating: number | null = null;
+    let reviewScore: number | null = null;
+    let reviewText: string | null = null;
+    let reviewCount: number = 0;
+    let stars: number | null = null;
     let images: string[] = [];
     let meta: any = null;
 
@@ -167,7 +167,7 @@ export async function getHotelOrgs(citySlug?: string) {
         if (Array.isArray(meta.images) && meta.images.length > 0) {
           images = meta.images;
         }
-        if (typeof meta.rating === 'number') {
+        if (typeof meta.rating === 'number' && meta.rating > 0) {
           rating = meta.rating;
           reviewScore = Number((meta.rating * 2).toFixed(1));
         }
@@ -176,15 +176,18 @@ export async function getHotelOrgs(citySlug?: string) {
       } catch {}
     }
 
-    if (reviewScore >= 9.0) reviewText = 'Superb';
-    else if (reviewScore >= 8.5) reviewText = 'Fabulous';
-    else if (reviewScore >= 8.0) reviewText = 'Very Good';
-    else reviewText = 'Good';
+    if (reviewScore !== null) {
+      if (reviewScore >= 9.0) reviewText = 'Superb';
+      else if (reviewScore >= 8.5) reviewText = 'Fabulous';
+      else if (reviewScore >= 8.0) reviewText = 'Very Good';
+      else reviewText = 'Good';
+    }
 
     const orgRooms = roomsByOrg.get(o.id) || [];
-    const minRate = orgRooms.length > 0
-      ? Math.min(...orgRooms.map((r: any) => r.baseRate || 35000))
-      : 35000;
+    const validRates = orgRooms
+      .map((r: any) => r.baseRate)
+      .filter((r: any): r is number => typeof r === 'number' && r > 0);
+    const minRate = validRates.length > 0 ? Math.min(...validRates) : null;
 
     return {
       ...o,
@@ -200,18 +203,18 @@ export async function getHotelOrgs(citySlug?: string) {
       stars,
       price: minRate,
       startingPrice: minRate,
-      compareAtPrice: Math.round(minRate * 1.25),
+      compareAtPrice: minRate ? Math.round(minRate * 1.25) : null,
       roomsCount: orgRooms.length,
       rooms: orgRooms,
-      roomType: orgRooms[0]?.type || 'Deluxe King Room',
-      bedType: orgRooms[0]?.bedType || '1 extra-large double bed',
-      neighborhood: o.address ? o.address.split(',')[0].trim() : 'Calabar',
-      area: o.address ? o.address.split(',')[0].trim() : 'Calabar',
-      distanceFromCenter: '0.8 km from center',
-      isVerified: meta?.isVerified !== undefined ? Boolean(meta.isVerified) : true,
-      hasPowerGuarantee: true,
-      freeCancellation: true,
-      breakfastIncluded: meta?.breakfastIncluded ?? (o.name.toLowerCase().includes('resort') || o.name.toLowerCase().includes('suites')),
+      roomType: orgRooms[0]?.type || null,
+      bedType: orgRooms[0]?.bedType || null,
+      neighborhood: o.address ? o.address.split(',')[0].trim() : (city?.name ?? ''),
+      area: o.address ? o.address.split(',')[0].trim() : (city?.name ?? ''),
+      distanceFromCenter: meta?.distanceFromCenter || null,
+      isVerified: Boolean(meta?.isVerified),
+      hasPowerGuarantee: meta?.hasPowerGuarantee !== undefined ? Boolean(meta.hasPowerGuarantee) : true,
+      freeCancellation: Boolean(meta?.freeCancellation),
+      breakfastIncluded: Boolean(meta?.breakfastIncluded),
     };
   });
 }

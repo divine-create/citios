@@ -98,9 +98,9 @@ export default function CityFood() {
 
       // 3. Quick Filter Pill
       if (activeFilterPill === 'fast') {
-        if (!r.isFastCourier && !r.deliveryEta?.includes('15') && !r.deliveryEta?.includes('20')) return false;
+        if (!r.isFastCourier && (!r.deliveryEta || (!r.deliveryEta.includes('15') && !r.deliveryEta.includes('20')))) return false;
       } else if (activeFilterPill === 'free_delivery') {
-        if (r.deliveryFee !== 0 && r.deliveryFee !== undefined && (r.deliveryFee > 400)) return false;
+        if (r.deliveryFee !== 0) return false;
       } else if (activeFilterPill === 'top_rated') {
         if (!r.rating || r.rating < 4.7) return false;
       }

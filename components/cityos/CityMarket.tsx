@@ -80,14 +80,26 @@ export default function CityMarket() {
     return products.slice(0, 10);
   }, [products]);
 
+  // Dynamically compute trending tags from real products and store aisles
+  const trendingTags = useMemo(() => {
+    const tags = new Set<string>();
+    products.forEach((p) => {
+      if (p.name) tags.add(p.name);
+    });
+    stores.forEach((s) => {
+      s.aisles?.forEach((a) => tags.add(a));
+    });
+    return Array.from(tags).slice(0, 6);
+  }, [products, stores]);
+
   return (
     <div className="space-y-7 animate-in fade-in duration-500 pb-32">
       {/* 1. Chowdeck Delivery Header with Address Selector & Mode Switcher */}
       <ChowdeckDeliveryHeader
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        placeholder={`Search Watt Market produce, supermarket groceries, drinks in ${cityName}...`}
-        trendingTags={['Watt Market Tomatoes', 'Golden Penny Semo', 'Cold Malt', 'Indomie Super Pack', 'Fresh Eggs', 'Pure Honey']}
+        placeholder={`Search supermarket groceries and market produce in ${cityName}...`}
+        trendingTags={trendingTags}
         onSelectTag={(tag) => setSearchQuery(tag)}
         vertical="market"
       />

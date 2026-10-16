@@ -81,14 +81,14 @@ function mapRestaurant(
     ? meta.reviewCount
     : (reviewStats?.count || 0);
 
-  const deliveryFee = typeof meta?.deliveryFee === 'number' ? meta.deliveryFee : 450;
-  const deliveryEta = meta?.deliveryEta || (meta?.isFastCourier ? '15 - 25 min' : '20 - 30 min');
-  const isVerified = meta?.isVerified !== undefined ? Boolean(meta.isVerified) : true;
+  const deliveryFee = typeof meta?.deliveryFee === 'number' ? meta.deliveryFee : null;
+  const deliveryEta = meta?.deliveryEta || null;
+  const isVerified = Boolean(meta?.isVerified);
   const isFeatured = Boolean(meta?.isFeatured);
   const isFastCourier = Boolean(meta?.isFastCourier);
   const cuisines = Array.isArray(meta?.cuisines) && meta.cuisines.length > 0 
     ? meta.cuisines 
-    : [o.storeCategory || 'Local Dishes'];
+    : (o.storeCategory ? [o.storeCategory] : []);
 
   return {
     id: o.id,
@@ -105,14 +105,14 @@ function mapRestaurant(
     reviewCount,
     deliveryEta,
     deliveryFee,
-    freeDeliveryOver: meta?.freeDeliveryOver || 10000,
+    freeDeliveryOver: typeof meta?.freeDeliveryOver === 'number' ? meta.freeDeliveryOver : null,
     isVerified,
     isFeatured,
     isFastCourier,
     cuisines,
-    badge: meta?.badge || (isFeatured ? 'Popular Spot' : undefined),
+    badge: meta?.badge || (isFeatured ? 'Featured' : undefined),
     isOpen: typeof meta?.isOpen === 'boolean' ? meta.isOpen : true,
-    area: o.address ? o.address.split(',')[0].trim() : 'City Area',
+    area: o.address ? o.address.split(',')[0].trim() : '',
     category: o.storeCategory || 'Restaurant',
   };
 }

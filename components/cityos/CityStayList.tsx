@@ -31,8 +31,14 @@ const HOTEL_FILTER_PILLS = [
 export default function CityStayList({ hotels = [] }: { hotels?: BookingHotelItem[] }) {
   const cityName = useCity().city?.name ?? 'Calabar';
 
-  const [destination, setDestination] = useState<string>('All of Calabar, Cross River');
-  const [datesText, setDatesText] = useState<string>('Thu, Oct 16 — Fri, Oct 17 · 1 night');
+  const [destination, setDestination] = useState<string>(() => `All of ${cityName}`);
+  const [datesText, setDatesText] = useState<string>(() => {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const fmt = new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    return `${fmt.format(today)} — ${fmt.format(tomorrow)} · 1 night`;
+  });
   const [occupancyText, setOccupancyText] = useState<string>('2 adults · 0 children · 1 room');
   const [activeFilter, setActiveFilter] = useState('all');
   const [sortBy, setSortBy] = useState<'recommended' | 'price_asc' | 'rating'>('recommended');
@@ -41,7 +47,7 @@ export default function CityStayList({ hotels = [] }: { hotels?: BookingHotelIte
   const filteredHotels = useMemo(() => {
     let result = hotels.filter((h) => {
       // Destination filter
-      if (destination && !destination.includes('All of Calabar')) {
+      if (destination && !destination.toLowerCase().includes('all of')) {
         const destLower = destination.toLowerCase();
         const addressLower = (h.address || h.neighborhood || '').toLowerCase();
         const nameLower = h.name.toLowerCase();
@@ -59,8 +65,8 @@ export default function CityStayList({ hotels = [] }: { hotels?: BookingHotelIte
         const text = `${h.name} ${h.description || ''} ${h.roomType || ''}`.toLowerCase();
         if (!text.includes('suite') && !text.includes('executive')) return false;
       } else if (activeFilter === 'budget') {
-        const price = h.startingPrice || h.price || 35000;
-        if (price > 35000) return false;
+        const price = h.startingPrice || h.price || null;
+        if (!price || price > 35000) return false;
       } else if (activeFilter === 'breakfast') {
         if (!h.breakfastIncluded) return false;
       }

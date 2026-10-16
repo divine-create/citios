@@ -46,11 +46,9 @@ export default function HotelBookingWidget({ theme, heading, subtext, availableR
     letterSpacing: "0.1em"
   };
 
-  // If no rooms are available in the DB, fallback to mock data so the UI looks good
-  const displayRooms = availableRooms.length > 0 ? availableRooms : [
-    { type: "King Suite", rate: 250, left: 3 },
-    { type: "Double Room", rate: 150, left: 5 }
-  ];
+  // Display actual available rooms from the database
+  const displayRooms = availableRooms || [];
+  const [isBooked, setIsBooked] = useState(false);
 
   return (
     <div style={{ maxWidth: "1000px", margin: "0 auto", background: isLuxury ? "transparent" : theme.surface, borderRadius: theme.radius, padding: isLuxury ? "0" : "2rem", boxShadow: isLuxury ? "none" : "0 20px 40px rgba(0,0,0,0.1)" }}>
@@ -99,35 +97,53 @@ export default function HotelBookingWidget({ theme, heading, subtext, availableR
             <button onClick={() => setStep("SEARCH")} style={{ background: "transparent", border: "none", color: theme.accent, cursor: "pointer", fontWeight: "bold" }}>Change Dates</button>
           </div>
           
-          {displayRooms.map(room => (
-            <div key={room.type} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1.5rem", background: theme.bg, borderRadius: theme.radius, border: `1px solid ${theme.textMuted}20` }}>
-              <div>
-                <h4 style={{ fontSize: "1.25rem", fontWeight: "bold", marginBottom: "0.25rem" }}>{room.type}</h4>
-                <p style={{ fontSize: "0.85rem", color: theme.textMuted }}>Book now for best rates</p>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
-                <div style={{ textAlign: "right" }}>
-                  <span style={{ display: "block", fontSize: "1.5rem", fontWeight: "900", color: theme.text }}>${room.rate}</span>
-                  <span style={{ fontSize: "0.75rem", color: theme.textMuted }}>/ night</span>
-                </div>
-                <button style={primaryBtnStyle} onClick={() => setStep("DETAILS")}>
-                  Select
-                </button>
-              </div>
+          {displayRooms.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "3rem 1rem", background: theme.bg, borderRadius: theme.radius, border: `1px dashed ${theme.textMuted}40` }}>
+              <p style={{ fontWeight: "bold", fontSize: "1.1rem", color: theme.text, marginBottom: "0.5rem" }}>No rooms available online for these dates</p>
+              <p style={{ fontSize: "0.85rem", color: theme.textMuted }}>Please try alternative dates or contact the front desk directly.</p>
             </div>
-          ))}
+          ) : (
+            displayRooms.map(room => (
+              <div key={room.type || room.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1.5rem", background: theme.bg, borderRadius: theme.radius, border: `1px solid ${theme.textMuted}20` }}>
+                <div>
+                  <h4 style={{ fontSize: "1.25rem", fontWeight: "bold", marginBottom: "0.25rem" }}>{room.type || room.name}</h4>
+                  <p style={{ fontSize: "0.85rem", color: theme.textMuted }}>Book direct for best guaranteed rate</p>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
+                  <div style={{ textAlign: "right" }}>
+                    <span style={{ display: "block", fontSize: "1.5rem", fontWeight: "900", color: theme.text }}>₦{Number(room.rate || room.baseRate || 0).toLocaleString()}</span>
+                    <span style={{ fontSize: "0.75rem", color: theme.textMuted }}>/ night</span>
+                  </div>
+                  <button style={primaryBtnStyle} onClick={() => setStep("DETAILS")}>
+                    Select
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       )}
 
       {step === "DETAILS" && (
         <div style={{ textAlign: "center", padding: "2rem" }}>
-          <CheckCircle2 size={48} style={{ color: theme.accent, margin: "0 auto 1rem auto" }} />
-          <h3 style={{ fontSize: "1.5rem", fontWeight: "bold", marginBottom: "1rem" }}>Complete Your Booking</h3>
-          <p style={{ color: theme.textMuted, marginBottom: "2rem" }}>Enter your details below to confirm your stay.</p>
-          <div style={{ display: "flex", gap: "1rem", justifyContent: "center" }}>
-            <button onClick={() => setStep("RESULTS")} style={{ padding: "0.75rem 1.5rem", borderRadius: theme.radius, background: "transparent", border: `1px solid ${theme.textMuted}40`, color: theme.text, cursor: "pointer", fontWeight: "bold" }}>Back</button>
-            <button style={primaryBtnStyle} onClick={() => alert("Booking confirmed! (Demo Mode)")}>Confirm & Pay</button>
-          </div>
+          {isBooked ? (
+            <div>
+              <CheckCircle2 size={48} style={{ color: "#10b981", margin: "0 auto 1rem auto" }} />
+              <h3 style={{ fontSize: "1.5rem", fontWeight: "bold", marginBottom: "1rem" }}>Reservation Request Received</h3>
+              <p style={{ color: theme.textMuted, marginBottom: "2rem" }}>The front desk has received your request. You will receive booking confirmation and check-in instructions shortly.</p>
+              <button onClick={() => { setStep("SEARCH"); setIsBooked(false); }} style={{ padding: "0.75rem 1.5rem", borderRadius: theme.radius, background: theme.accent, color: theme.accentText, border: "none", cursor: "pointer", fontWeight: "bold" }}>Done</button>
+            </div>
+          ) : (
+            <div>
+              <CheckCircle2 size={48} style={{ color: theme.accent, margin: "0 auto 1rem auto" }} />
+              <h3 style={{ fontSize: "1.5rem", fontWeight: "bold", marginBottom: "1rem" }}>Complete Your Booking</h3>
+              <p style={{ color: theme.textMuted, marginBottom: "2rem" }}>Confirm your stay and payment preference.</p>
+              <div style={{ display: "flex", gap: "1rem", justifyContent: "center" }}>
+                <button onClick={() => setStep("RESULTS")} style={{ padding: "0.75rem 1.5rem", borderRadius: theme.radius, background: "transparent", border: `1px solid ${theme.textMuted}40`, color: theme.text, cursor: "pointer", fontWeight: "bold" }}>Back</button>
+                <button style={primaryBtnStyle} onClick={() => setIsBooked(true)}>Confirm Reservation</button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

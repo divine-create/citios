@@ -34,19 +34,19 @@ export default function ManagedStorefrontPlacement({ businessData }: ManagedStor
 
   const [isFeatured, setIsFeatured] = useState<boolean>(Boolean(metadata.isFeatured));
   const [isFastCourier, setIsFastCourier] = useState<boolean>(Boolean(metadata.isFastCourier));
-  const [isVerified, setIsVerified] = useState<boolean>(metadata.isVerified !== undefined ? Boolean(metadata.isVerified) : true);
-  const [deliveryEta, setDeliveryEta] = useState<string>(metadata.deliveryEta || (isRetail ? '30 - 45 min' : '20 - 30 min'));
-  const [deliveryFee, setDeliveryFee] = useState<number>(typeof metadata.deliveryFee === 'number' ? metadata.deliveryFee : 450);
-  const [freeDeliveryOver, setFreeDeliveryOver] = useState<number>(metadata.freeDeliveryOver || (isRetail ? 15000 : 10000));
-  const [rating, setRating] = useState<number>(typeof metadata.rating === 'number' ? metadata.rating : 4.8);
-  const [reviewCount, setReviewCount] = useState<number>(typeof metadata.reviewCount === 'number' ? metadata.reviewCount : 56);
+  const [isVerified, setIsVerified] = useState<boolean>(Boolean(metadata.isVerified));
+  const [deliveryEta, setDeliveryEta] = useState<string>(metadata.deliveryEta || '');
+  const [deliveryFee, setDeliveryFee] = useState<number>(typeof metadata.deliveryFee === 'number' ? metadata.deliveryFee : 0);
+  const [freeDeliveryOver, setFreeDeliveryOver] = useState<number>(typeof metadata.freeDeliveryOver === 'number' ? metadata.freeDeliveryOver : 0);
+  const [rating, setRating] = useState<number>(typeof metadata.rating === 'number' ? metadata.rating : 5.0);
+  const [reviewCount, setReviewCount] = useState<number>(typeof metadata.reviewCount === 'number' ? metadata.reviewCount : 0);
   const [badge, setBadge] = useState<string>(metadata.badge || '');
   const [isOpen, setIsOpen] = useState<boolean>(typeof metadata.isOpen === 'boolean' ? metadata.isOpen : true);
 
   // Selected Cuisines or Aisles
   const initialTags: string[] = isRetail
-    ? Array.isArray(metadata.aisles) ? metadata.aisles : ['Groceries', 'Supermarket']
-    : Array.isArray(metadata.cuisines) ? metadata.cuisines : ['Calabar Soups & Swallow', 'Party Jollof & Rice'];
+    ? Array.isArray(metadata.aisles) ? metadata.aisles : []
+    : Array.isArray(metadata.cuisines) ? metadata.cuisines : [];
 
   const [selectedTags, setSelectedTags] = useState<string[]>(initialTags);
   const [isSaving, setIsSaving] = useState(false);

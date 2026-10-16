@@ -49,16 +49,16 @@ export default function ChowdeckStoreCard({
   aspectRatio = '16/9',
 }: ChowdeckStoreCardProps) {
   const href = store.href || (store.type === 'RETAIL' ? `/org/${store.id}` : `/food/${store.id}`);
-  const deliveryEta = store.deliveryEta || (store.isFastCourier ? '15 - 25 min' : '20 - 30 min');
-  const deliveryFeeText = store.deliveryFee === 0 || store.deliveryFee === undefined
-    ? 'Free Delivery'
-    : `₦${store.deliveryFee.toLocaleString()} delivery`;
+  const deliveryEta = store.deliveryEta || (store.isFastCourier ? '15 - 25 min' : null);
+  const deliveryFeeText = typeof store.deliveryFee === 'number'
+    ? (store.deliveryFee === 0 ? 'Free Delivery' : `₦${store.deliveryFee.toLocaleString()} delivery`)
+    : null;
 
   const tagList = store.cuisines?.length
     ? store.cuisines.slice(0, 3).join(' · ')
     : store.aisles?.length
     ? store.aisles.slice(0, 3).join(' · ')
-    : store.description || 'Local Kitchen';
+    : store.description || '';
 
   const isClosed = store.isOpen === false;
 
@@ -85,18 +85,22 @@ export default function ChowdeckStoreCard({
         </div>
 
         {/* Top-Left: ETA & Badge */}
-        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 z-10">
-          <div className="px-2 py-0.5 rounded-md bg-white/95 backdrop-blur-xs text-slate-800 text-[11px] font-bold shadow-xs flex items-center gap-1">
-            <Clock className="w-3 h-3 text-slate-500" />
-            <span>{deliveryEta}</span>
-          </div>
+        {(deliveryEta || store.badge) && (
+          <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 z-10">
+            {deliveryEta && (
+              <div className="px-2 py-0.5 rounded-md bg-white/95 backdrop-blur-xs text-slate-800 text-[11px] font-bold shadow-xs flex items-center gap-1">
+                <Clock className="w-3 h-3 text-slate-500" />
+                <span>{deliveryEta}</span>
+              </div>
+            )}
 
-          {store.badge && (
-            <div className="px-2 py-0.5 rounded-md bg-slate-900 text-white text-[10px] font-bold shadow-xs">
-              {store.badge}
-            </div>
-          )}
-        </div>
+            {store.badge && (
+              <div className="px-2 py-0.5 rounded-md bg-slate-900 text-white text-[10px] font-bold shadow-xs">
+                {store.badge}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Closed Overlay */}
         {isClosed && (
@@ -139,18 +143,24 @@ export default function ChowdeckStoreCard({
           </div>
 
           {/* Cuisines / Description Line */}
-          <p className="text-xs text-slate-500 font-normal line-clamp-1 mt-0.5">
-            {tagList}
-          </p>
+          {tagList && (
+            <p className="text-xs text-slate-500 font-normal line-clamp-1 mt-0.5">
+              {tagList}
+            </p>
+          )}
         </div>
 
         {/* Delivery Metrics & Price */}
         <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600 font-medium">
           <div className="flex items-center gap-1.5 truncate">
             <Bike className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <span className="truncate">{deliveryFeeText}</span>
-            <span>·</span>
-            <span className="text-slate-400 truncate">{store.area || 'City'}</span>
+            {deliveryFeeText ? (
+              <>
+                <span className="truncate">{deliveryFeeText}</span>
+                {store.area && <span>·</span>}
+              </>
+            ) : null}
+            <span className="text-slate-400 truncate">{store.area || ''}</span>
           </div>
 
           {typeof store.minPrice === 'number' && (

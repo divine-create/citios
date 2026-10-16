@@ -56,15 +56,15 @@ export default function CityHouse({ stays = [] }: { stays?: any[] }) {
 
       {/* Airbnb 4-Column Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-10">
-        {stays.map((p, idx) => {
-          const price = 25000 + (idx % 5) * 5000;
+        {stays.map((p) => {
+          const price = p.price || p.startingPrice || null;
           return (
             <AirbnbCard
               key={p.id}
               id={p.id}
               href={`/stay/${p.id}`}
               title={p.name}
-              subtitle={p.description || 'Furnished serviced flat with backup power'}
+              subtitle={p.description || ''}
               neighborhood={p.neighborhood || p.address || `${cityName} Metro`}
               image={p.storeCoverImage || p.image || p.logoAssetId}
               images={p.images}
@@ -72,8 +72,8 @@ export default function CityHouse({ stays = [] }: { stays?: any[] }) {
               reviewCount={p.reviewCount}
               badge={p.badge}
               price={price}
-              priceSuffix="night"
-              metaLine="Furnished · Verified host"
+              priceSuffix={price ? 'night' : undefined}
+              metaLine={p.roomType || undefined}
               aspectRatio="4/3"
             />
           );

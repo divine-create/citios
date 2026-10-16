@@ -123,12 +123,10 @@ export default function CityExplore() {
         <>
           {/* Airbnb 4-Column Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-10">
-            {results.map((b, idx) => {
+            {results.map((b) => {
               const isFood = b.type === 'RESTAURANT';
               const isHotel = b.type === 'HOTEL';
-              const isRetail = b.type === 'RETAIL';
               const priceSuffix = isHotel ? 'night' : isFood ? 'avg plate' : undefined;
-              const price = isHotel ? 28000 + (idx % 4) * 4000 : isFood ? 2500 + (idx % 3) * 500 : undefined;
 
               return (
                 <AirbnbCard
@@ -143,7 +141,7 @@ export default function CityExplore() {
                   badge={b.badge}
                   price={b.price}
                   priceSuffix={b.price ? priceSuffix : undefined}
-                  metaLine={isFood ? '⚡ Local kitchen' : b.isOpen ? 'Open' : 'Closed'}
+                  metaLine={isFood ? 'Local kitchen' : b.isOpen ? 'Open' : 'Closed'}
                   aspectRatio="4/3"
                 />
               );
