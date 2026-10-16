@@ -15,12 +15,14 @@ import {
   Store,
   Sparkles,
   ShieldCheck,
-  RefreshCw
+  RefreshCw,
+  Loader2
 } from 'lucide-react';
 import { FallbackImg } from '@/components/cityos/CityUI';
 import { useMoney } from '@/components/cityos/CityProvider';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
+import { acceptOrderByMerchant } from '@/app/actions/orders';
 
 export interface OrderTrackingProps {
   order: {
@@ -42,6 +44,7 @@ export interface OrderTrackingProps {
     }>;
     payment?: any;
     delivery?: any;
+    isMerchantStaff?: boolean;
   };
 }
 
@@ -49,6 +52,7 @@ export default function LiveOrderTracker({ order }: OrderTrackingProps) {
   const { fmt } = useMoney();
   const router = useRouter();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isAccepting, setIsAccepting] = useState(false);
 
   // Map backend status to 4 Glovo stages (1 to 4)
   const currentStage = (() => {
@@ -95,6 +99,18 @@ export default function LiveOrderTracker({ order }: OrderTrackingProps) {
     setTimeout(() => setIsRefreshing(false), 800);
   };
 
+  const handleMerchantAccept = async () => {
+    try {
+      setIsAccepting(true);
+      await acceptOrderByMerchant(order.id, order.category);
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message || 'Failed to accept order.');
+    } finally {
+      setIsAccepting(false);
+    }
+  };
+
   // Courier simulated/resolved details
   const courier = {
     name: order.delivery?.courierName || 'Sunday Bassey',
@@ -120,6 +136,45 @@ export default function LiveOrderTracker({ order }: OrderTrackingProps) {
           <span>Refresh Status</span>
         </button>
       </div>
+
+      {/* Merchant 1-Click Accept Banner (if viewed by merchant) */}
+      {order.isMerchantStaff && (order.status === 'PENDING' || order.status === 'REQUESTED') && (
+        <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+          <div>
+            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md">
+              Merchant Action Required
+            </span>
+            <h3 className="text-base font-black text-slate-900 mt-1">Accept Order & Start Preparation</h3>
+            <p className="text-xs text-slate-600 font-medium">
+              Order #{order.id.slice(0, 8).toUpperCase()} received from customer via WhatsApp.
+            </p>
+          </div>
+          <button
+            onClick={handleMerchantAccept}
+            disabled={isAccepting}
+            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-emerald-600 text-white text-xs font-black hover:bg-emerald-700 transition-all shadow-md shadow-emerald-700/20 shrink-0 disabled:opacity-50"
+          >
+            {isAccepting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+            Accept & Start Cooking
+          </button>
+        </div>
+      )}
+
+      {/* WhatsApp Order Badge */}
+      {order.payment?.method === 'WHATSAPP' && (
+        <div className="bg-[#25D366]/10 border border-[#25D366]/20 p-4 rounded-2xl flex items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2.5">
+            <MessageCircle className="w-5 h-5 text-[#25D366] shrink-0" />
+            <div>
+              <span className="font-black text-slate-900">WhatsApp Commerce Order</span>
+              <p className="text-slate-500 font-medium text-[11px]">Direct chat active with {order.org?.name || 'store'}</p>
+            </div>
+          </div>
+          <span className="text-[10px] bg-white border border-slate-200 text-slate-700 font-bold px-2.5 py-1 rounded-lg">
+            Live Link
+          </span>
+        </div>
+      )}
 
       {/* Main Delivery Status Card (The Glovo Tracker) */}
       <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden p-6 md:p-8 space-y-6">

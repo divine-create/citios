@@ -16,15 +16,23 @@ export type CheckoutResponse = {
   authorizationUrl?: string; // Provider's checkout URL
   reference?: string;
   orderId?: string;
+  whatsappUrl?: string;
+  whatsappMessage?: string;
   errors?: string[];
   requiresPaymentAction?: boolean;
 };
 
 export async function processMerchantCheckout(
   orgId: string,
-  method: 'wallet' | 'card' | 'transfer',
+  method: 'wallet' | 'card' | 'transfer' | 'whatsapp',
   idempotencyKey: string,
-  locationId?: string
+  locationId?: string,
+  options?: {
+    customerPhone?: string;
+    deliveryAddress?: string;
+    deliveryNotes?: string;
+    substitutionPreference?: 'call' | 'replace' | 'refund';
+  }
 ): Promise<CheckoutResponse> {
   const session = await getServerSession(authOptions);
   if (!session?.user?.personId) {
@@ -76,8 +84,8 @@ export async function processMerchantCheckout(
   // If method is wallet, they debit sequentially.
   // If method is card/transfer, we can only initialize ONE Monnify intent! 
   // Thus, if method is external and they have BOTH Retail and Food for the same org, we must return an error instructing them to checkout separately, as Core Payment cannot span them.
-  if (method !== 'wallet' && retailItems.length > 0 && foodItems.length > 0) {
-    throw new Error('Cannot process external payment for mixed Retail and Restaurant items simultaneously. Please pay with Wallet or split your cart.');
+  if (method !== 'wallet' && method !== 'whatsapp' && retailItems.length > 0 && foodItems.length > 0) {
+    throw new Error('Cannot process external payment for mixed Retail and Restaurant items simultaneously. Please pay with Wallet, WhatsApp, or split your cart.');
   }
 
   let placedOrderId: string | undefined = undefined;
@@ -123,10 +131,94 @@ export async function processMerchantCheckout(
 
   // 5. If Wallet, it's already completed inside the vertical actions!
   if (method === 'wallet') {
-    return { success: true, message: 'Payment successful via Wallet.', orderId: placedOrderId };
+    return { success: true, message: 'Payment successful via Wallet.', orderId: placedOrderId, reference };
   }
 
-  // 6. External Payment: Initialize configured gateway via adapter
+  // 6. WhatsApp Checkout: Compose authoritative order message and deep link
+  if (method === 'whatsapp') {
+    // 6a. Resolve Merchant WhatsApp / Phone Contact Point
+    const org = await db.orm.public.Organization.where({ id: orgId }).all().first();
+    const contactPoints = await db.orm.public.OrganizationContactPoint.where({ organizationId: orgId }).all();
+    const waContact = contactPoints.find((c: any) => c.type === 'WHATSAPP') || contactPoints.find((c: any) => c.type === 'PHONE');
+    
+    let rawPhone = waContact?.value;
+    if (!rawPhone && locationId) {
+      const locContact = contactPoints.find((c: any) => c.locationId === locationId);
+      if (locContact?.value) rawPhone = locContact.value;
+    }
+    if (!rawPhone) {
+      // Check org owner phone as fallback
+      const ownerMembership = await db.orm.public.Membership.where({ organizationId: orgId }).all().first();
+      if (ownerMembership) {
+        const ownerPhone = await db.orm.public.PersonIdentifier.where({ personId: ownerMembership.personId, type: 'PHONE' }).all().first();
+        if (ownerPhone?.normalizedValue) rawPhone = ownerPhone.normalizedValue;
+      }
+    }
+    if (!rawPhone) {
+      rawPhone = process.env.CITYOS_CONCIERGE_WHATSAPP || '2348000000000';
+    }
+
+    // 6b. Sanitize phone to international format without '+'
+    let cleanPhone = rawPhone.replace(/[^\d+]/g, '');
+    if (cleanPhone.startsWith('+')) cleanPhone = cleanPhone.substring(1);
+    if (cleanPhone.startsWith('0')) cleanPhone = '234' + cleanPhone.substring(1);
+    if (!cleanPhone.startsWith('234') && cleanPhone.length === 10) cleanPhone = '234' + cleanPhone;
+
+    // 6c. Resolve Resident Information
+    const residentProfile = await db.orm.public.ResidentProfile.where({ personId }).all().first();
+    const customerName = session.user.name || 'Resident';
+    const customerPhone = options?.customerPhone || residentProfile?.phone || '';
+    const deliveryAddress = options?.deliveryAddress || residentProfile?.defaultDeliveryAddress || 'Calabar Urban / Direct Handover';
+    const deliveryNotes = options?.deliveryNotes || '';
+    
+    const substPref = options?.substitutionPreference || 'call';
+    const substText = substPref === 'call'
+      ? '📞 Call me to choose replacement'
+      : substPref === 'replace'
+      ? '🔄 Pick closest replacement'
+      : '❌ Do not replace (refund item)';
+
+    const shortRef = reference.replace('CC-', 'WA-');
+    const origin = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://cityos.ng');
+    const trackingUrl = `${origin}/orders/${placedOrderId || reference}`;
+
+    const itemsSummary = orgLines.map((l: any) => `• ${l.qty}x ${l.name} (₦${(l.price * l.qty).toLocaleString()})`).join('\n');
+
+    const messageLines = [
+      `🛍️ *NEW CITYOS ORDER* — #${shortRef}`,
+      `--------------------------------`,
+      `🏬 *Merchant:* ${org?.name || 'Local Merchant'}`,
+      `👤 *Customer:* ${customerName}${customerPhone ? ` (${customerPhone})` : ''}`,
+      `📍 *Delivery Address:* ${deliveryAddress}`,
+      deliveryNotes ? `📝 *Delivery Notes:* ${deliveryNotes}` : null,
+      `🔄 *If item unavailable:* ${substText}`,
+      `--------------------------------`,
+      `📦 *ITEMS ORDERED:*`,
+      itemsSummary,
+      `--------------------------------`,
+      `*Total Amount:* ₦${calculatedTotal.toLocaleString()}`,
+      `💳 *Payment Method:* WhatsApp Order / Transfer / Pay on Delivery`,
+      ``,
+      `🔐 *Track & Confirm Order on CityOS:*`,
+      trackingUrl,
+      `--------------------------------`,
+      `_Sent via CityOS Hyperlocal Commerce_`
+    ].filter(Boolean);
+
+    const whatsappMessage = messageLines.join('\n');
+    const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(whatsappMessage)}`;
+
+    return {
+      success: true,
+      message: 'Order created for WhatsApp confirmation.',
+      orderId: placedOrderId,
+      reference,
+      whatsappUrl,
+      whatsappMessage
+    };
+  }
+
+  // 7. External Payment: Initialize configured gateway via adapter
   // Since we enforced that external payments only have EITHER Retail OR Food, the reference matches exactly one Payment created in the vertical action.
   const provider = (process.env.PAYMENT_PROVIDER || 'PAYSTACK').toUpperCase();
   const adapter = getPaymentAdapter(provider);
@@ -153,5 +245,17 @@ export async function processMerchantCheckout(
     requiresPaymentAction: true,
     authorizationUrl: initResult.authorizationUrl,
     reference
+  };
+}
+
+export async function getResidentCheckoutDefaults() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.personId) return null;
+  const personId = session.user.personId;
+  const profile = await db.orm.public.ResidentProfile.where({ personId }).all().first();
+  return {
+    name: session.user.name || '',
+    phone: profile?.phone || '',
+    deliveryAddress: profile?.defaultDeliveryAddress || '',
   };
 }

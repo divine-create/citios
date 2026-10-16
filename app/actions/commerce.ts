@@ -25,6 +25,7 @@ export async function placeRetailOrder(input: {
   paymentReference?: string;
   idempotencyKey?: string;
   expectedTotal?: number;
+  deliveryAddress?: string;
 }) {
   const session = await getServerSession(authOptions);
 
@@ -123,14 +124,23 @@ export async function placeRetailOrder(input: {
         }
       }
 
+      const paymentMethodStr = isWallet
+        ? 'WALLET'
+        : input.method === 'card'
+        ? 'CARD'
+        : input.method === 'whatsapp'
+        ? 'WHATSAPP'
+        : 'BANK_TRANSFER';
+
       const createdOrder = await tx.orm.public.RetailOrder.create({
         organizationId: orgId,
         locationId: input.locationId,
         customerDataId: customer.id,
         cashierId: 'ONLINE_CHECKOUT',
         totalAmount: group.total,
-        paymentMethod: isWallet ? 'WALLET' : input.method === 'card' ? 'CARD' : 'BANK_TRANSFER',
+        paymentMethod: paymentMethodStr,
         status: orderStatus,
+        deliveryAddress: input.deliveryAddress || null,
         idempotencyKey: orderIdempKey,
       });
       
@@ -158,9 +168,9 @@ export async function placeRetailOrder(input: {
       await tx.orm.public.Payment.create({
         amount: group.total,
         currency: 'NGN',
-        method: isWallet ? 'WALLET' : input.method === 'card' ? 'CARD' : 'BANK_TRANSFER',
+        method: paymentMethodStr,
         status: isWallet ? 'COMPLETED' : 'PENDING',
-        provider: isWallet ? 'INTERNAL_WALLET' : (process.env.PAYMENT_PROVIDER || 'PAYSTACK').toUpperCase(),
+        provider: isWallet ? 'INTERNAL_WALLET' : input.method === 'whatsapp' ? 'WHATSAPP' : (process.env.PAYMENT_PROVIDER || 'PAYSTACK').toUpperCase(),
         retailOrderId: createdOrder.id,
         reference: input.paymentReference,
         transactionId: txRecordId,

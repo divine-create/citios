@@ -3,24 +3,27 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Wallet, CreditCard, Landmark, ShieldCheck, Loader2, AlertCircle, ArrowLeft, PhoneCall } from 'lucide-react';
+import { Wallet, CreditCard, Landmark, ShieldCheck, Loader2, AlertCircle, ArrowLeft, PhoneCall, MessageSquare, MapPin } from 'lucide-react';
 import { useMoney } from '@/components/cityos/CityProvider';
 import { useCart } from '@/components/cityos/CartStore';
 import { getResidentWallet } from '@/app/actions/resident_wallet';
-import { processMerchantCheckout } from '@/app/actions/checkout';
+import { processMerchantCheckout, getResidentCheckoutDefaults } from '@/app/actions/checkout';
 import { PriceTag } from '@/components/cityos/CityUI';
 import { cn } from '@/lib/utils';
 
-type MethodId = 'wallet' | 'card' | 'transfer';
+type MethodId = 'wallet' | 'whatsapp' | 'card' | 'transfer';
 
 export default function CheckoutView() {
   const { fmt } = useMoney();
   const router = useRouter();
   const { lines, subtotal, deliveryFee, removeOrg, syncCart } = useCart();
   
-  const [method, setMethod] = useState<MethodId>('wallet');
+  const [method, setMethod] = useState<MethodId>('whatsapp');
   const [substitutionRule, setSubstitutionRule] = useState<'call' | 'replace' | 'refund'>('call');
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [deliveryNotes, setDeliveryNotes] = useState('');
   const [processing, setProcessing] = useState<string | null>(null); // orgId being processed
   const [errorMsg, setErrorMsg] = useState('');
   
@@ -38,6 +41,13 @@ export default function CheckoutView() {
       }
     }
     fetchWallet();
+
+    getResidentCheckoutDefaults().then((def) => {
+      if (def) {
+        if (def.phone) setCustomerPhone(def.phone);
+        if (def.deliveryAddress) setDeliveryAddress(def.deliveryAddress);
+      }
+    }).catch(() => {});
   }, []);
 
   if (lines.length === 0) {
@@ -77,10 +87,27 @@ export default function CheckoutView() {
     
     try {
       const idempotencyKey = `checkout_${orgId}_${Date.now()}`;
-      const res = await processMerchantCheckout(orgId, method, idempotencyKey);
+      const res = await processMerchantCheckout(orgId, method, idempotencyKey, undefined, {
+        customerPhone,
+        deliveryAddress,
+        deliveryNotes,
+        substitutionPreference: substitutionRule,
+      });
       
       if (!res.success) {
         throw new Error(res.errors?.[0] || res.message || 'Payment failed.');
+      }
+
+      if (method === 'whatsapp' && res.whatsappUrl) {
+        removeOrg(orgId);
+        await syncCart();
+        window.open(res.whatsappUrl, '_blank');
+        if (res.orderId) {
+          router.push(`/orders/${res.orderId}`);
+        } else {
+          router.push('/orders');
+        }
+        return;
       }
 
       if (res.requiresPaymentAction && res.authorizationUrl) {
@@ -116,6 +143,54 @@ export default function CheckoutView() {
           <p className="text-sm font-bold">{errorMsg}</p>
         </div>
       )}
+
+      {/* Delivery Destination & Contact Info */}
+      <div className="bg-white rounded-[24px] border border-slate-100 overflow-hidden p-6 space-y-4 shadow-xs">
+        <div className="flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-emerald-600" />
+          <h2 className="text-sm font-black text-ink">Delivery Destination & Phone</h2>
+        </div>
+        <div className="space-y-3">
+          <div>
+            <label className="text-[11px] font-black uppercase text-slate-400 block mb-1">
+              Delivery Address / Landmark (Calabar)
+            </label>
+            <input
+              type="text"
+              value={deliveryAddress}
+              onChange={(e) => setDeliveryAddress(e.target.value)}
+              placeholder="e.g. 14 Marian Road, Near Total Fuel Station, Calabar"
+              className="w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-teal-700 transition-colors"
+            />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-[11px] font-black uppercase text-slate-400 block mb-1">
+                Contact Phone (WhatsApp)
+              </label>
+              <input
+                type="tel"
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+                placeholder="e.g. 0803 123 4567"
+                className="w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-teal-700 transition-colors"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-black uppercase text-slate-400 block mb-1">
+                Delivery Instructions (Optional)
+              </label>
+              <input
+                type="text"
+                value={deliveryNotes}
+                onChange={(e) => setDeliveryNotes(e.target.value)}
+                placeholder="e.g. Yellow gate, call on arrival"
+                className="w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-teal-700 transition-colors"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Glovo Out-of-stock Substitution Preferences */}
       <div className="bg-white rounded-[24px] border border-slate-100 overflow-hidden p-6 space-y-4">
@@ -163,6 +238,29 @@ export default function CheckoutView() {
 
       <div className="bg-white rounded-[24px] border border-slate-100 overflow-hidden p-6 space-y-4">
         <h2 className="text-sm font-black text-ink">Payment Method</h2>
+
+        <button 
+          onClick={() => setMethod('whatsapp')}
+          className={cn("w-full flex items-center justify-between p-4 rounded-xl border text-left transition-all", 
+            method === 'whatsapp' ? "border-emerald-600 bg-emerald-50/80 shadow-[0_0_0_1px_#059669]" : "border-slate-100 hover:border-slate-200"
+          )}
+        >
+          <div className="flex items-center gap-3">
+            <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", method === 'whatsapp' ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-600")}>
+              <MessageSquare className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <p className="text-sm font-black text-ink">WhatsApp Direct Order</p>
+                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-extrabold px-1.5 py-0.5 rounded-full">POPULAR</span>
+              </div>
+              <p className="text-[11px] font-bold text-slate-500">Send order directly to merchant on WhatsApp for instant confirmation</p>
+            </div>
+          </div>
+          <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center", method === 'whatsapp' ? "border-emerald-600" : "border-slate-200")}>
+            {method === 'whatsapp' && <div className="w-2.5 h-2.5 bg-emerald-600 rounded-full" />}
+          </div>
+        </button>
         
         <button 
           onClick={() => setMethod('wallet')}
@@ -260,10 +358,17 @@ export default function CheckoutView() {
               <button
                 onClick={() => handleCheckoutOrg(orgId, group.total)}
                 disabled={processing !== null}
-                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-ink text-white text-sm font-black hover:bg-slate-800 disabled:opacity-50 transition-colors"
+                className={cn(
+                  "w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-white text-sm font-black transition-all disabled:opacity-50",
+                  method === 'whatsapp'
+                    ? "bg-[#25D366] hover:bg-[#20ba59] text-white shadow-md shadow-emerald-600/20 active:scale-[0.99]"
+                    : "bg-ink hover:bg-slate-800"
+                )}
               >
                 {processing === orgId ? (
                   <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
+                ) : method === 'whatsapp' ? (
+                  <><MessageSquare className="w-4 h-4" /> Order from {group.orgName} via WhatsApp</>
                 ) : (
                   <><ShieldCheck className="w-4 h-4" /> {group.total > 0 ? `Checkout ${group.orgName}` : `Request Service from ${group.orgName}`}</>
                 )}

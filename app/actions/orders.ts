@@ -282,7 +282,9 @@ export async function fetchMyOrderById(orderId: string) {
   // 1. Try finding in RestaurantOrder
   const restOrder = await db.orm.public.RestaurantOrder.where({ id: orderId }).all().first();
   if (restOrder) {
-    if (customerIds.length > 0 && !customerIds.includes(restOrder.customerDataId || '')) {
+    const isOwner = customerIds.length > 0 && customerIds.includes(restOrder.customerDataId || '');
+    const isMerchantStaff = (await db.orm.public.Membership.where({ organizationId: restOrder.organizationId, personId }).all().first()) !== null;
+    if (!isOwner && !isMerchantStaff) {
       throw new Error('Forbidden: You do not own this order.');
     }
     const org = await db.orm.public.Organization.where({ id: restOrder.organizationId }).all().first();
@@ -314,13 +316,16 @@ export async function fetchMyOrderById(orderId: string) {
       items: enrichedItems,
       payment,
       delivery,
+      isMerchantStaff,
     };
   }
 
   // 2. Try finding in RetailOrder
   const retOrder = await db.orm.public.RetailOrder.where({ id: orderId }).all().first();
   if (retOrder) {
-    if (customerIds.length > 0 && !customerIds.includes(retOrder.customerDataId || '')) {
+    const isOwner = customerIds.length > 0 && customerIds.includes(retOrder.customerDataId || '');
+    const isMerchantStaff = (await db.orm.public.Membership.where({ organizationId: retOrder.organizationId, personId }).all().first()) !== null;
+    if (!isOwner && !isMerchantStaff) {
       throw new Error('Forbidden: You do not own this order.');
     }
     const org = await db.orm.public.Organization.where({ id: retOrder.organizationId }).all().first();
@@ -352,8 +357,99 @@ export async function fetchMyOrderById(orderId: string) {
       items: enrichedItems,
       payment,
       delivery,
+      isMerchantStaff,
     };
   }
 
   return null;
+}
+
+/**
+ * Merchant 1-Click Order Acceptance & Preparation dispatch.
+ * Allows kitchen/store operators to confirm WhatsApp or pending orders.
+ */
+export async function acceptOrderByMerchant(orderId: string, category: 'FOOD' | 'MARKET') {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.personId) {
+    throw new Error('Unauthorized');
+  }
+  const personId = session.user.personId as string;
+
+  if (category === 'FOOD') {
+    const order = await db.orm.public.RestaurantOrder.where({ id: orderId }).all().first();
+    if (!order) throw new Error('Order not found.');
+    const membership = await db.orm.public.Membership.where({ organizationId: order.organizationId, personId }).all().first();
+    if (!membership) throw new Error('Forbidden: Not authorized for this merchant.');
+
+    await db.orm.public.RestaurantOrder.where({ id: orderId }).update({
+      status: 'PREPARING',
+      paymentStatus: 'COMPLETED',
+    });
+
+    const payment = await db.orm.public.Payment.where({ restaurantOrderId: order.id }).all().first();
+    if (payment && payment.status === 'PENDING') {
+      await db.orm.public.Payment.where({ id: payment.id }).update({ status: 'COMPLETED' });
+    }
+
+    if (order.customerDataId) {
+      const cust = await db.orm.public.CustomerData.where({ id: order.customerDataId }).all().first();
+      if (cust?.relationshipId) {
+        const rel = await db.orm.public.Relationship.where({ id: cust.relationshipId }).all().first();
+        if (rel?.personId) {
+          try {
+            await notifyPerson(rel.personId, {
+              type: 'FOOD_ORDER_CONFIRMED',
+              title: 'Order Confirmed by Restaurant',
+              body: `Your food order #${order.id.slice(0, 8).toUpperCase()} has been accepted and is now being prepared!`,
+              href: `/orders/${order.id}`,
+            });
+          } catch (_e) {}
+        }
+      }
+    }
+
+    try {
+      revalidatePath(`/orders/${orderId}`);
+    } catch (_e) {}
+
+    return { success: true, message: 'Order accepted and kitchen preparation started.' };
+  } else {
+    const order = await db.orm.public.RetailOrder.where({ id: orderId }).all().first();
+    if (!order) throw new Error('Order not found.');
+    const membership = await db.orm.public.Membership.where({ organizationId: order.organizationId, personId }).all().first();
+    if (!membership) throw new Error('Forbidden: Not authorized for this merchant.');
+
+    await db.orm.public.RetailOrder.where({ id: orderId }).update({
+      status: 'CONFIRMED',
+      fulfillmentStatus: 'PROCESSING',
+    });
+
+    const payment = await db.orm.public.Payment.where({ retailOrderId: order.id }).all().first();
+    if (payment && payment.status === 'PENDING') {
+      await db.orm.public.Payment.where({ id: payment.id }).update({ status: 'COMPLETED' });
+    }
+
+    if (order.customerDataId) {
+      const cust = await db.orm.public.CustomerData.where({ id: order.customerDataId }).all().first();
+      if (cust?.relationshipId) {
+        const rel = await db.orm.public.Relationship.where({ id: cust.relationshipId }).all().first();
+        if (rel?.personId) {
+          try {
+            await notifyPerson(rel.personId, {
+              type: 'RETAIL_ORDER_CONFIRMED',
+              title: 'Order Confirmed by Merchant',
+              body: `Your market order #${order.id.slice(0, 8).toUpperCase()} has been accepted and is being packed!`,
+              href: `/orders/${order.id}`,
+            });
+          } catch (_e) {}
+        }
+      }
+    }
+
+    try {
+      revalidatePath(`/orders/${orderId}`);
+    } catch (_e) {}
+
+    return { success: true, message: 'Order accepted and fulfillment started.' };
+  }
 }

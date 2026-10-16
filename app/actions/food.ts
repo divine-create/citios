@@ -565,6 +565,14 @@ export async function placeRestaurantOrder(input: {
           if (existingOrder) return existingOrder;
         }
 
+        const paymentMethodStr = input.method === 'wallet'
+          ? 'WALLET'
+          : input.method === 'card'
+          ? 'CARD'
+          : input.method === 'whatsapp'
+          ? 'WHATSAPP'
+          : 'TRANSFER';
+
         const created = await tx.orm.public.RestaurantOrder.create({
           organizationId: orgId,
           locationId: input.locationId || undefined,
@@ -572,6 +580,7 @@ export async function placeRestaurantOrder(input: {
           totalAmount: group.total,
           type: orderType,
           tableNumber,
+          paymentMethod: paymentMethodStr,
           status: input.method === 'wallet' ? 'PREPARING' : 'PENDING',
           paymentStatus: input.method === 'wallet' ? 'COMPLETED' : 'PENDING',
           paidAt: input.method === 'wallet' ? (globalThis as any).Temporal.Now.instant() : undefined,
@@ -610,9 +619,9 @@ export async function placeRestaurantOrder(input: {
           await tx.orm.public.Payment.create({
             amount: group.total,
             currency: 'NGN',
-            method: input.method === 'wallet' ? 'WALLET' : input.method === 'card' ? 'CARD' : 'TRANSFER',
+            method: paymentMethodStr,
             status: input.method === 'wallet' ? 'COMPLETED' : 'PENDING',
-            provider: input.method === 'wallet' ? 'INTERNAL_WALLET' : (process.env.PAYMENT_PROVIDER || 'PAYSTACK').toUpperCase(),
+            provider: input.method === 'wallet' ? 'INTERNAL_WALLET' : input.method === 'whatsapp' ? 'WHATSAPP' : (process.env.PAYMENT_PROVIDER || 'PAYSTACK').toUpperCase(),
             idempotencyKey: input.idempotencyKey ? input.idempotencyKey + '_food' : undefined,
             reference: input.paymentReference,
             transactionId: txRecordId,

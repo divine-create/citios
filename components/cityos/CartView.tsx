@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Trash2, ShoppingCart, ArrowLeft, ArrowRight, Store, AlertCircle, Minus, Plus, Zap, CheckCircle2 } from 'lucide-react';
+import { Trash2, ShoppingCart, ArrowLeft, ArrowRight, Store, AlertCircle, Minus, Plus, Zap, CheckCircle2, MessageSquare } from 'lucide-react';
 import { useMoney } from '@/components/cityos/CityProvider';
 import { useCart } from '@/components/cityos/CartStore';
 import { useCity } from '@/components/cityos/CityProvider';
@@ -188,6 +188,11 @@ export default function CartView() {
                 <p className="text-xs font-black text-slate-900">Delivery Guarantee</p>
                 <p className="text-[11px] text-slate-500 font-medium">Dispatched via City Courier Network</p>
               </div>
+            </div>
+
+            <div className="bg-[#25D366]/10 border border-[#25D366]/25 p-3 rounded-2xl flex items-center gap-2.5 text-xs text-slate-800">
+              <MessageSquare className="w-4 h-4 text-[#25D366] shrink-0" />
+              <span className="font-bold text-[11px] text-emerald-950">Direct WhatsApp Checkout Available</span>
             </div>
 
             <Link 
