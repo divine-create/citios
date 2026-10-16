@@ -304,6 +304,9 @@ export async function fetchMyOrderById(orderId: string) {
     const contactPoints = await db.orm.public.OrganizationContactPoint.where({ organizationId: restOrder.organizationId }).all();
     const waContact = contactPoints.find((c: any) => c.type === 'WHATSAPP') || contactPoints.find((c: any) => c.type === 'PHONE');
     const paymentMethod = restOrder.paymentMethod || payment?.method || 'CARD';
+    const location = restOrder.locationId
+      ? await db.orm.public.Location.where({ id: restOrder.locationId }).all().first()
+      : await db.orm.public.Location.where({ organizationId: restOrder.organizationId }).all().first();
 
     return {
       id: restOrder.id,

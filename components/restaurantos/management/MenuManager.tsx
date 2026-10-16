@@ -7,18 +7,23 @@ import { formatNaira } from '@/lib/utils';
 import { toggleMenuItemAvailability, createMenuItem } from '@/lib/actions/restaurantos';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { STANDARDIZED_FOOD_CATEGORIES } from '@/lib/food-categories';
 
-const DEFAULT_CATEGORIES = ["Mains", "Starters", "Drinks", "Desserts", "Sides", "Proteins", "Combos"];
+const DEFAULT_CATEGORIES = STANDARDIZED_FOOD_CATEGORIES
+  .filter((c) => c.id !== 'other')
+  .map((c) => c.label);
 
 const FOOD_LIBRARY = [
-  { name: "Jollof Rice", category: "Mains", price: 3500, description: "Classic Nigerian party Jollof rice", imageUrl: "https://images.unsplash.com/photo-1662116765994-6d9b32943324?w=500&q=80" },
-  { name: "Fried Rice", category: "Mains", price: 3500, description: "Stir-fried rice with mixed vegetables and liver", imageUrl: "https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&q=80" },
-  { name: "Pounded Yam & Egusi", category: "Mains", price: 4000, description: "Smooth pounded yam with rich Egusi soup", imageUrl: "https://images.unsplash.com/photo-1626082929543-5a0224151759?w=500&q=80" },
-  { name: "Grilled Chicken", category: "Proteins", price: 2500, description: "Flame-grilled quarter chicken", imageUrl: "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=500&q=80" },
-  { name: "Beef Suya", category: "Starters", price: 2000, description: "Spicy roasted beef skewers", imageUrl: "https://images.unsplash.com/photo-1599598425947-330025721118?w=500&q=80" },
-  { name: "Fried Plantain (Dodo)", category: "Sides", price: 1000, description: "Sweet fried plantains", imageUrl: "https://images.unsplash.com/photo-1634789547671-33230a84f3cc?w=500&q=80" },
-  { name: "Chapman", category: "Drinks", price: 1500, description: "Classic Nigerian mocktail", imageUrl: "https://images.unsplash.com/photo-1536935338788-846bb9981813?w=500&q=80" },
-  { name: "Bottled Water", category: "Drinks", price: 500, description: "Chilled table water", imageUrl: "https://images.unsplash.com/photo-1548839140-29a749e1abc5?w=500&q=80" }
+  { name: "Jollof Rice", category: "Jollof & Rice", price: 3500, description: "Classic Nigerian party Jollof rice", imageUrl: "https://images.unsplash.com/photo-1662116765994-6d9b32943324?w=500&q=80" },
+  { name: "Fried Rice", category: "Jollof & Rice", price: 3500, description: "Stir-fried rice with mixed vegetables and liver", imageUrl: "https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&q=80" },
+  { name: "Pounded Yam & Egusi", category: "Soups & Swallow", price: 4000, description: "Smooth pounded yam with rich Egusi soup", imageUrl: "https://images.unsplash.com/photo-1626082929543-5a0224151759?w=500&q=80" },
+  { name: "Afang Soup & Garri", category: "Soups & Swallow", price: 4500, description: "Rich traditional Calabar Afang soup with yellow garri", imageUrl: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80" },
+  { name: "Grilled Chicken", category: "Chicken & Proteins", price: 2500, description: "Flame-grilled quarter chicken", imageUrl: "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=500&q=80" },
+  { name: "Beef Suya", category: "Suya & Street Grills", price: 2000, description: "Spicy roasted beef skewers", imageUrl: "https://images.unsplash.com/photo-1599598425947-330025721118?w=500&q=80" },
+  { name: "Chicken Shawarma Wrap", category: "Shawarma & Fast Eats", price: 2800, description: "Double sausage, grilled chicken and spicy sauce wrap", imageUrl: "https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=500&q=80" },
+  { name: "Fried Plantain (Dodo)", category: "Local & African Classics", price: 1000, description: "Sweet golden fried plantains", imageUrl: "https://images.unsplash.com/photo-1634789547671-33230a84f3cc?w=500&q=80" },
+  { name: "Chapman", category: "Drinks & Smoothies", price: 1500, description: "Classic Nigerian mocktail", imageUrl: "https://images.unsplash.com/photo-1536935338788-846bb9981813?w=500&q=80" },
+  { name: "Bottled Water", category: "Drinks & Smoothies", price: 500, description: "Chilled table water", imageUrl: "https://images.unsplash.com/photo-1548839140-29a749e1abc5?w=500&q=80" }
 ];
 
 export default function MenuManager({ slug, menu, settings }: { slug: string; menu: any[]; settings: any }) {

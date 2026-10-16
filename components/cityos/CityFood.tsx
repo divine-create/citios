@@ -11,6 +11,7 @@ import ChowdeckCategoryBubbles, { CategoryBubbleItem, FOOD_CATEGORY_BUBBLES } fr
 import ChowdeckStoreCard, { StoreCardData } from '@/components/cityos/delivery/ChowdeckStoreCard';
 import ChowdeckPopularDishCard, { PopularDishItem } from '@/components/cityos/delivery/ChowdeckPopularDishCard';
 import ChowdeckBasketDock from '@/components/cityos/delivery/ChowdeckBasketDock';
+import { doesRestaurantMatchCategory, normalizeCategoryId } from '@/lib/food-categories';
 import { cn } from '@/lib/utils';
 
 export default function CityFood() {
@@ -86,25 +87,15 @@ export default function CityFood() {
     return restaurants.filter((r) => (r as any).areaSlug === activeArea);
   }, [restaurants, activeArea]);
 
-  // 2. Dynamic Backend Category Filter calculated specifically for the selected Area
+  // 2. Standardized Backend Category Filter calculated specifically for the selected Area
   const areaCategories = useMemo(() => {
     if (activeArea === 'all') return categories;
 
     const countMap = new Map<string, number>();
     for (const r of areaFilteredRestaurants) {
-      if (r.category && r.category !== 'Restaurant') {
-        const catKey = r.category.toLowerCase();
-        countMap.set(catKey, (countMap.get(catKey) || 0) + 1);
-      }
-      for (const c of r.cuisines || []) {
-        const cKey = c.toLowerCase().trim();
-        countMap.set(cKey, (countMap.get(cKey) || 0) + 1);
-      }
-      for (const m of (r as any).menuItems || []) {
-        if (m.category) {
-          const mKey = m.category.toLowerCase().trim();
-          countMap.set(mKey, (countMap.get(mKey) || 0) + 1);
-        }
+      const catIds: string[] = (r as any).canonicalCategoryIds || [];
+      for (const catId of catIds) {
+        countMap.set(catId, (countMap.get(catId) || 0) + 1);
       }
     }
 
@@ -112,7 +103,8 @@ export default function CityFood() {
       if (cat.id === 'all') {
         return { ...cat, count: areaFilteredRestaurants.length };
       }
-      const count = countMap.get(cat.label.toLowerCase()) || countMap.get(cat.id.toLowerCase()) || 0;
+      const normId = normalizeCategoryId(cat.id);
+      const count = countMap.get(cat.id) || countMap.get(normId) || 0;
       return {
         ...cat,
         count,
@@ -133,15 +125,10 @@ export default function CityFood() {
         if (!matchName && !matchDesc && !matchCuisine && !matchDishes) return false;
       }
 
-      // 2. Dynamic Backend Category Filter
+      // 2. Standardized Canonical Category Filter
       if (activeBubble !== 'all') {
-        const selectedCat = areaCategories.find((c) => c.id === activeBubble);
-        const catLabel = selectedCat?.label?.toLowerCase();
-        if (catLabel) {
-          const matchCategory = r.category?.toLowerCase() === catLabel || (r as any).storeCategory?.toLowerCase() === catLabel;
-          const matchCuisine = r.cuisines?.some((c: string) => c.toLowerCase() === catLabel || c.toLowerCase().includes(catLabel));
-          const matchDishes = (r as any).menuItems?.some((m: any) => m.category?.toLowerCase() === catLabel || m.name?.toLowerCase().includes(catLabel));
-          if (!matchCategory && !matchCuisine && !matchDishes) return false;
+        if (!doesRestaurantMatchCategory(r, activeBubble)) {
+          return false;
         }
       }
 

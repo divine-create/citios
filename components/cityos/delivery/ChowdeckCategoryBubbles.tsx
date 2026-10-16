@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { STANDARDIZED_FOOD_CATEGORIES } from '@/lib/food-categories';
 
 export interface CategoryBubbleItem {
   id: string;
@@ -13,15 +14,13 @@ export interface CategoryBubbleItem {
 }
 
 export const FOOD_CATEGORY_BUBBLES: CategoryBubbleItem[] = [
-  { id: 'all', label: 'All Cuisines', shortLabel: 'All Places' },
-  { id: 'soups', label: 'Soups & Swallow', shortLabel: 'Soups & Swallow' },
-  { id: 'jollof', label: 'Jollof & Rice', shortLabel: 'Jollof & Rice' },
-  { id: 'chicken', label: 'Chicken & Turkey', shortLabel: 'Chicken' },
-  { id: 'suya', label: 'Suya & Street Grills', shortLabel: 'Suya & Grills' },
-  { id: 'shawarma', label: 'Shawarma & Fast Eats', shortLabel: 'Shawarma' },
-  { id: 'pizza', label: 'Pizza & Pasta', shortLabel: 'Pizza' },
-  { id: 'pastries', label: 'Pastries & Bakeries', shortLabel: 'Pastries' },
-  { id: 'drinks', label: 'Smoothies & Drinks', shortLabel: 'Drinks' },
+  { id: 'all', label: 'All Cuisines', shortLabel: 'All Places', emoji: '🍽️' },
+  ...STANDARDIZED_FOOD_CATEGORIES.filter((c) => c.id !== 'other').map((c) => ({
+    id: c.id,
+    label: c.label,
+    shortLabel: c.shortLabel,
+    emoji: c.emoji,
+  })),
 ];
 
 export const MARKET_CATEGORY_BUBBLES: CategoryBubbleItem[] = [
@@ -37,14 +36,29 @@ export const MARKET_CATEGORY_BUBBLES: CategoryBubbleItem[] = [
 
 const DEFAULT_EMOJIS: Record<string, string> = {
   all: '🍽️',
+  'soups-swallow': '🍲',
   soups: '🍲',
+  'rice-jollof': '🍚',
   jollof: '🍚',
+  'chicken-meat': '🍗',
   chicken: '🍗',
+  'suya-grills': '🍢',
   suya: '🍢',
+  'fast-food-shawarma': '🌯',
   shawarma: '🌯',
+  'pizza-pasta': '🍕',
   pizza: '🍕',
+  'pastries-bakery': '🥐',
   pastries: '🥐',
+  'drinks-beverages': '🥤',
   drinks: '🥤',
+  'breakfast-cafe': '☕',
+  breakfast: '☕',
+  'healthy-salads': '🥗',
+  salads: '🥗',
+  'local-specialties': '🥘',
+  local: '🥘',
+  other: '🍽️',
   'food & market': '🥬',
   groceries: '🛒',
   bakery: '🍞',

@@ -10,6 +10,11 @@ import { debitResidentWallet } from '@/app/actions/resident_wallet';
 
 import { getStorefrontPromotions, StorefrontCampaign } from '@/lib/actions/storefront-management';
 import { getCityAreas, detectAreaFromAddress } from '@/lib/city-areas';
+import {
+  STANDARDIZED_FOOD_CATEGORIES,
+  normalizeFoodCategory,
+  inferCanonicalCategoriesForRestaurant,
+} from '@/lib/food-categories';
 
 const FOOD_CATS = ['All', 'Restaurant', 'Cafe', 'Campus Eats', 'Food & Market'];
 
@@ -28,12 +33,15 @@ function mapMenuItem(
   addons: any[] = [],
   variants: any[] = []
 ) {
+  const normCat = normalizeFoodCategory(m.category, m.name);
   return {
     id: m.id,
     name: m.name,
     description: m.description,
     price: m.price,
-    category: m.category,
+    category: m.category || normCat.label,
+    canonicalCategoryId: normCat.id,
+    canonicalCategoryLabel: normCat.label,
     imageUrl: m.imageUrl,
     isAvailable: m.isAvailable,
     organizationId: m.organizationId,
@@ -91,6 +99,12 @@ function mapRestaurant(
     ? meta.cuisines 
     : (o.storeCategory ? [o.storeCategory] : []);
 
+  const canonicalCategoryIds = inferCanonicalCategoriesForRestaurant({
+    category: o.storeCategory,
+    cuisines,
+    menuItems,
+  });
+
   return {
     id: o.id,
     name: o.name,
@@ -116,6 +130,7 @@ function mapRestaurant(
     area: meta?.area || detectAreaFromAddress(citySlug, meta?.area || o.address || o.name)?.name || (o.address ? o.address.split(',')[0].trim() : 'Central Area'),
     areaSlug: detectAreaFromAddress(citySlug, meta?.area || o.address || o.name)?.id || 'central',
     category: o.storeCategory || 'Restaurant',
+    canonicalCategoryIds,
   };
 }
 
@@ -268,35 +283,35 @@ export async function getCityFood(citySlug?: string) {
     );
   });
 
-  // Dynamic backend categories derived directly from database records
+  // Standardized categories taxonomy aggregation
   const categoryCounter = new Map<string, number>();
   for (const r of mappedRestaurants) {
-    if (r.category && r.category !== 'Restaurant') {
-      categoryCounter.set(r.category, (categoryCounter.get(r.category) || 0) + 1);
-    }
-    for (const c of r.cuisines || []) {
-      const clean = c.trim();
-      if (clean) categoryCounter.set(clean, (categoryCounter.get(clean) || 0) + 1);
-    }
-  }
-  for (const m of mappedMenuItems) {
-    const mc = m.category?.trim();
-    if (mc && !categoryCounter.has(mc)) {
-      categoryCounter.set(mc, 1);
+    for (const catId of (r as any).canonicalCategoryIds || []) {
+      categoryCounter.set(catId, (categoryCounter.get(catId) || 0) + 1);
     }
   }
 
-  const dynamicCategories = Array.from(categoryCounter.entries())
-    .map(([label, count]) => ({
-      id: label.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-      label,
-      count,
+  // Canonical categories sorted by restaurant presence (descending)
+  const populatedCategories = STANDARDIZED_FOOD_CATEGORIES
+    .filter((cat) => cat.id !== 'other')
+    .map((cat) => ({
+      id: cat.id,
+      label: cat.label,
+      shortLabel: cat.shortLabel,
+      emoji: cat.emoji,
+      count: categoryCounter.get(cat.id) || 0,
     }))
     .sort((a, b) => b.count - a.count);
 
   const categories = [
-    { id: 'all', label: 'All Cuisines', count: mappedRestaurants.length },
-    ...dynamicCategories,
+    {
+      id: 'all',
+      label: 'All Cuisines',
+      shortLabel: 'All Places',
+      emoji: '🍽️',
+      count: mappedRestaurants.length,
+    },
+    ...populatedCategories,
   ];
 
   // Delivery hubs derived from actual locations in this city
@@ -317,10 +332,10 @@ export async function getCityFood(citySlug?: string) {
     defaultAddress = profile?.defaultDeliveryAddress ?? null;
   }
 
-  // Top search tags derived from actual menu items and cuisines in this city
+  // Top search tags derived from actual menu items and canonical cuisines in this city
   const topSearchTags = Array.from(
     new Set([
-      ...dynamicCategories.slice(0, 4).map((c) => c.label),
+      ...populatedCategories.slice(0, 4).map((c) => c.label),
       ...mappedMenuItems.slice(0, 4).map((m: any) => m.name),
     ])
   ).slice(0, 6);

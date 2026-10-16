@@ -164,10 +164,16 @@ test('Chowdeck & Glovo Storefront Integration Suite', async (t) => {
     assert.equal(spot.isVerified, true);
     assert.equal(spot.isFastCourier, true);
     assert.ok(Array.isArray(spot.cuisines));
+    assert.ok(Array.isArray(spot.canonicalCategoryIds), 'spot has canonicalCategoryIds array');
+    assert.ok(spot.canonicalCategoryIds.includes('soups-swallow'), 'spot has soups-swallow category');
+    assert.ok(spot.canonicalCategoryIds.includes('suya-grills'), 'spot has suya-grills category');
     assert.ok(foodData.campaigns.length > 0);
     assert.ok(Array.isArray(foodData.categories));
     assert.ok(foodData.categories.length > 0);
     assert.ok(foodData.categories.some((c: any) => c.id === 'all'));
+    const soupsCategory = foodData.categories.find((c: any) => c.id === 'soups-swallow');
+    assert.ok(soupsCategory, 'has canonical soups-swallow category in categories list');
+    assert.ok(soupsCategory.count >= 1, 'soups category count reflects test restaurant');
     assert.ok(Array.isArray(foodData.deliveryHubs));
     assert.ok(foodData.deliveryHubs.length > 0);
     assert.ok(foodData.deliveryHubs.some((h: any) => h.id === locFoodId));
