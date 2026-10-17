@@ -152,25 +152,16 @@ export default function CartView() {
                 <span>Subtotal ({count} items)</span>
                 <span className="text-slate-900 font-bold">{fmt(subtotal)}</span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="flex items-center gap-1.5">
-                  Express Delivery
-                  {deliveryFee === 0 && subtotal > 0 && (
-                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-black px-1.5 py-0.5 rounded">FREE</span>
-                  )}
-                </span>
-                <span className={cn("font-bold", deliveryFee === 0 && subtotal > 0 ? "text-emerald-600" : "text-slate-900")}>
-                  {deliveryFee > 0 ? fmt(deliveryFee) : (subtotal > 0 ? '₦0' : 'Calculated at checkout')}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Service & Packaging</span>
-                <span className="text-slate-900 font-bold">Included</span>
-              </div>
+              {deliveryFee > 0 && (
+                <div className="flex justify-between items-center">
+                  <span>Delivery Fee</span>
+                  <span className="font-bold text-slate-900">{fmt(deliveryFee)}</span>
+                </div>
+              )}
             </div>
 
             <div className="border-t border-slate-200/80 pt-4 flex justify-between items-end">
-              <span className="font-bold text-slate-900">Estimated Total</span>
+              <span className="font-bold text-slate-900">Total</span>
               <span className="text-2xl md:text-3xl font-black text-orange-700">{fmt(previewTotal)}</span>
             </div>
 

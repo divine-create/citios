@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   Clock,
   Bike,
+  MapPin,
 } from 'lucide-react';
 import { FallbackImg } from '@/components/cityos/CityUI';
 import { cn } from '@/lib/utils';
@@ -25,8 +26,8 @@ export interface StoreCardData {
   rating?: number | null;
   reviewCount?: number;
   deliveryEta?: string | null;
-  deliveryFee?: number;
-  freeDeliveryOver?: number;
+  deliveryFee?: number | null;
+  freeDeliveryOver?: number | null;
   isVerified?: boolean;
   isFeatured?: boolean;
   isFastCourier?: boolean;
@@ -51,7 +52,7 @@ export default function ChowdeckStoreCard({
   aspectRatio = '16/9',
 }: ChowdeckStoreCardProps) {
   const href = store.href || (store.type === 'RETAIL' ? `/org/${store.id}` : `/food/${store.id}`);
-  const deliveryEta = store.deliveryEta || (store.isFastCourier ? '15 - 25 min' : null);
+  const deliveryEta = store.deliveryEta || null;
   const deliveryFeeText = typeof store.deliveryFee === 'number'
     ? (store.deliveryFee === 0 ? 'Free Delivery' : `₦${store.deliveryFee.toLocaleString()} delivery`)
     : null;
@@ -137,11 +138,7 @@ export default function ChowdeckStoreCard({
                   <span className="text-[10px] text-amber-700 font-normal">({store.reviewCount})</span>
                 ) : null}
               </div>
-            ) : (
-              <span className="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider shrink-0">
-                New
-              </span>
-            )}
+            ) : null}
           </div>
 
           {/* Cuisines / Description Line */}
@@ -152,17 +149,22 @@ export default function ChowdeckStoreCard({
           )}
         </div>
 
-        {/* Delivery Metrics & Price */}
+        {/* Location / Delivery Footer */}
         <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600 font-medium">
           <div className="flex items-center gap-1.5 truncate">
-            <Bike className="w-3.5 h-3.5 text-slate-400 shrink-0" />
             {deliveryFeeText ? (
               <>
+                <Bike className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                 <span className="truncate">{deliveryFeeText}</span>
                 {store.area && <span>·</span>}
+                <span className="text-slate-400 truncate">{store.area || ''}</span>
               </>
-            ) : null}
-            <span className="text-slate-400 truncate">{store.area || ''}</span>
+            ) : (
+              <>
+                <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span className="text-slate-500 truncate">{store.area || store.address || 'Local Store'}</span>
+              </>
+            )}
           </div>
 
           {typeof store.minPrice === 'number' && (

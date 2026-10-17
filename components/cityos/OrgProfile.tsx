@@ -61,10 +61,40 @@ export default async function OrgProfile({ id }: { id: string }) {
   const city = await getCurrentCity();
   const fmt = (a: number) => formatMoney(a, city?.currency ?? 'NGN');
   const addressStr = org.address || locations?.[0]?.address || '';
-  const hours = '8:00 AM · 6:00 PM';
+  const hours: string | null = org.metadata?.workingHours || org.metadata?.hours || null;
   const category = org.type || 'Business';
   const osLabel = capabilities.retail ? 'ShopOS' : capabilities.restaurant ? 'RestaurantOS' : capabilities.school ? 'SchoolOS' : capabilities.services ? 'ServiceOS' : 'CityOS';
   const osPath = osLabel.toLowerCase();
+
+  const factCells: { label: string; sub: string }[] = [
+    { label: addressStr || city?.name || 'Local Store', sub: `${(org as any).storeCategory || category}` },
+  ];
+  if (hours) {
+    factCells.push({
+      label: hours.includes('·') ? hours.split('·')[0].trim() : hours,
+      sub: hours.includes('·') ? hours.split('·')[1]?.trim() || 'Working Hours' : 'Working Hours',
+    });
+  }
+  if (org.metadata?.landmark) {
+    factCells.push({
+      label: org.metadata.landmark,
+      sub: 'Landmark / Directions',
+    });
+  } else if (org.metadata?.deliveryEta) {
+    factCells.push({
+      label: org.metadata.deliveryEta,
+      sub: 'Estimated Delivery',
+    });
+  } else if (shop && shop.products.length > 0) {
+    factCells.push({
+      label: `${shop.products.length} ${shop.products.length === 1 ? 'Product' : 'Products'}`,
+      sub: 'In-Store Catalog',
+    });
+  }
+  factCells.push({
+    label: org.isClaimed ? 'Verified Merchant' : 'Directory Listing',
+    sub: `Operates on ${osLabel}`,
+  });
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
@@ -168,13 +198,8 @@ export default async function OrgProfile({ id }: { id: string }) {
       ) : null}
 
       {/* Fact bar */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: addressStr || city?.name || 'Local Store', sub: `${(org as any).storeCategory || category}` },
-          { label: hours.split('·')[0].trim(), sub: hours.split('·')[1]?.trim() ?? 'Open' },
-          { label: org.metadata?.deliveryEta || '20–35 min', sub: 'Express City Delivery' },
-          { label: org.isClaimed ? 'Verified Merchant' : 'Directory Listing', sub: `Operates on ${osLabel}` },
-        ].map((cell, i) => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+        {factCells.map((cell, i) => (
           <div key={i} className="bg-white rounded-2xl border border-slate-100 p-4">
             <p className="text-[12px] font-black text-ink leading-snug">{cell.label}</p>
             <p className="text-[11px] text-slate-400 font-medium mt-1">{cell.sub}</p>

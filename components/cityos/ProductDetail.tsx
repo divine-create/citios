@@ -250,8 +250,7 @@ export default function ProductDetail({ id }: { id: string }) {
             
             {/* TRUST BADGES */}
             <div className="mt-6 flex flex-wrap gap-4 text-xs font-semibold text-slate-500">
-              <div className="flex items-center gap-1.5"><Truck className="w-4 h-4 text-slate-400" /> Fast Delivery</div>
-              <div className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-slate-400" /> Secure Payment</div>
+              <div className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-slate-400" /> Verified Merchant Listing</div>
             </div>
             
           </div>
@@ -267,7 +266,7 @@ export default function ProductDetail({ id }: { id: string }) {
                 More from {p.storeName}
               </h2>
               <p className="text-xs text-slate-500 font-medium">
-                Bundle items from the same store for a single delivery fee
+                Other items available at {p.storeName}
               </p>
             </div>
             <Link

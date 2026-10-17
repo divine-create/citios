@@ -477,20 +477,12 @@ async function main() {
       console.log('Created Location:', locationId);
     }
 
-    // 4. Upsert DiscoveryListing so it shines on /market and /explore
+    // 4. Upsert DiscoveryListing with strictly real scraped Jiji data (no demo delivery/ratings)
     const listingMetadata = JSON.stringify({
-      rating: 4.9,
-      reviewCount: 38,
       isVerified: true,
-      isFeatured: true,
-      isFastCourier: true,
-      deliveryEta: '20 - 35 min',
-      deliveryFee: 800,
-      freeDeliveryOver: 150000,
-      badge: 'Verified Tech Store',
       neighborhood: 'Ettagbor',
       area: 'Ettagbor',
-      workingHours: 'Mon - Sat: 08:00 AM - 06:00 PM',
+      workingHours: 'Mon – Sat · 08:00 AM – 06:00 PM',
       landmark: 'Opposite Peace Mass Park beside former Ecobank Ettagbor Small Gate',
       jijiUrl: 'https://jiji.ng/shop/softwaregurutech',
       coverImage: 'https://pictures-nigeria.jijistatic.net/193444887_MzAwLTM3OS01MGJjNTAxNmRl.webp',
