@@ -31,11 +31,11 @@ export const VERTICAL_DEFINITIONS: Record<VerticalId, VerticalDefinition> = {
   },
   houses: {
     id: 'houses',
-    name: 'CityHomes & Stays',
+    name: 'CityStay',
     description: 'Apartments, short lets, hotel rooms, and house rentals.',
     path: '/stay',
     iconKey: 'stay',
-    badge: 'Real Estate & Hospitality',
+    badge: 'Shortlets & Living',
   },
   shops: {
     id: 'shops',

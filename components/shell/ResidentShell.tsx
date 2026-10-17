@@ -321,7 +321,7 @@ export default function ResidentShell({
     { id: 'services', path: '/services', label: 'CityServices', icon: Wrench, iconKey: 'services', verticalId: 'services' },
     { id: 'jobs', path: '/jobs', label: 'CityJobs', icon: Briefcase, iconKey: 'jobs', verticalId: 'jobs' },
     { id: 'events', path: '/events', label: 'CityEvents', icon: Calendar, iconKey: 'events', verticalId: 'events' },
-    { id: 'house', path: '/stay', label: 'CityHomes & Stays', icon: Building2, iconKey: 'house', verticalId: 'houses' },
+    { id: 'stay', path: '/stay', label: 'CityStay', icon: Building2, iconKey: 'stay', verticalId: 'houses' },
   ];
 
   const exploreItems = ALL_EXPLORE_ITEMS.filter((item) => {
@@ -382,8 +382,8 @@ export default function ResidentShell({
     if (pathname.startsWith('/drive/ride')) return 'City Ride';
     if (pathname.startsWith('/drive/delivery')) return 'City Delivery';
     if (pathname.startsWith('/drive/')) return 'CityDrive';
-    if (pathname.startsWith('/house')) return 'CityHomes';
-    if (pathname.startsWith('/stay')) return 'Hotels Tonight';
+    if (pathname.startsWith('/house')) return 'CityStay';
+    if (pathname.startsWith('/stay')) return 'CityStay';
     if (pathname.startsWith('/care')) return 'CityHealth';
     if (pathname.startsWith('/schools')) return 'CitySchools';
     if (pathname.startsWith('/tasks')) return 'City Tasks';

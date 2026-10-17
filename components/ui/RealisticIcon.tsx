@@ -596,7 +596,7 @@ export default function RealisticIcon({
   }
 
   // 18. Home Portal: Stay / Hotels
-  if (key === 'stay' || key === 'stays' || key === 'hotels' || key === 'hotel') {
+  if (key === 'stay' || key === 'stays' || key === 'hotels' || key === 'hotel' || key === 'citystay') {
     return (
       <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn('select-none drop-shadow-sm', className)}>
         <defs>

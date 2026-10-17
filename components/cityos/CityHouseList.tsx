@@ -24,11 +24,11 @@ export default function CityHouse({ stays = [] }: { stays?: any[] }) {
         <div className="flex items-center gap-2">
           <span className="text-[12px] font-black uppercase tracking-wider text-[#FF385C] flex items-center gap-1">
             <Sparkles className="w-3.5 h-3.5" />
-            CityHomes & Living
+            CityStay
           </span>
         </div>
         <h1 className="text-2xl sm:text-3xl font-black text-[#222222] tracking-tight">
-          Homes & Serviced Apartments in {cityName}
+          Stays & Serviced Apartments in {cityName}
         </h1>
         <p className="text-sm text-[#717171] font-medium">
           Verified short-lets, executive flats, and serviced residences in {cityName}. Protected by CityPay escrow.
