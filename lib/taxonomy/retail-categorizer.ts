@@ -17,9 +17,9 @@ export const STORE_SECTORS: StoreSectorDefinition[] = [
   },
   {
     id: 'phones-tablets',
-    label: 'Phones & Tablets',
-    shortLabel: 'Phones & Gadgets',
-    keywords: ['iphone', 'samsung', 'galaxy', 'ipad', 'redmi', 'xiaomi', 'infinix', 'tecno', 'airpods', 'smartwatch', 'earbuds', 'phone'],
+    label: 'Phones, iPhones & Tablets',
+    shortLabel: 'Phones & Apple',
+    keywords: ['iphone', 'samsung', 'galaxy', 'ipad', 'apple watch', 'airpods', 'redmi', 'xiaomi', 'infinix', 'tecno', 'smartwatch', 'earbuds', 'phone', 'istore'],
   },
   {
     id: 'supermarket-groceries',
@@ -61,12 +61,12 @@ export interface ProductClassification {
 }
 
 const BRAND_MATCHERS: Array<{ brand: string; regex: RegExp }> = [
+  { brand: 'Apple', regex: /\b(apple|macbook|imac|ipad|iphone|airpods|iwatch|watch\s+ultra|watch\s+series|magic\s+keyboard|magic\s+mouse|magic\s+trackpad|pencil\s+pro)\b/i },
   { brand: 'Starlink', regex: /\b(starlink)\b/i },
   { brand: 'JBL', regex: /\b(jbl)\b/i },
   { brand: 'Sony', regex: /\b(sony|ps5|ps4|playstation|dualsense|dualshock)\b/i },
   { brand: 'HP', regex: /\b(hp|elitebook|probook|pavilion|envy|omen|zbook|spectre)\b/i },
   { brand: 'Dell', regex: /\b(dell|latitude|inspiron|xps|precision|alienware|vostro)\b/i },
-  { brand: 'Apple', regex: /\b(apple|macbook|imac|ipad|iphone|airpods)\b/i },
   { brand: 'Lenovo', regex: /\b(lenovo|thinkpad|ideapad|yoga|legion)\b/i },
   { brand: 'DJI', regex: /\b(dji)\b/i },
   { brand: 'Hollyland', regex: /\b(hollyland)\b/i },
@@ -96,8 +96,21 @@ export function extractSpecTags(name: string, description?: string | null): stri
   const combined = `${name} ${description || ''}`;
   const tags: string[] = [];
 
-  // CPU
-  const cpuMatch = combined.match(/\b(core\s*i[3579]|i[3579]\s*-\s*\d+|ryzen\s*[3579]|apple\s*m[123]|celeron|pentium)\b/i);
+  // Condition (New / Open-Box / US-Used / UK-Used)
+  if (/\b(open[-\s]*box)\b/i.test(name)) {
+    tags.push('Open-Box');
+  } else if (/\b(us[-\s]*used)\b/i.test(name)) {
+    tags.push('US-Used');
+  } else if (/\b(uk[-\s]*used)\b/i.test(combined)) {
+    tags.push('UK-Used');
+  } else if (/\b(new|brand\s*new)\b/i.test(name)) {
+    tags.push('Brand New');
+  } else if (/\b(used)\b/i.test(name)) {
+    tags.push('Pre-Owned');
+  }
+
+  // CPU / Chip
+  const cpuMatch = combined.match(/\b(core\s*i[3579]|i[3579]\s*-\s*\d+|ryzen\s*[3579]|m[1234]\s*(pro|max)?|celeron|pentium)\b/i);
   if (cpuMatch) {
     const raw = cpuMatch[0].toUpperCase().replace(/\s+/g, ' ');
     if (raw.includes('I9')) tags.push('Core i9');
@@ -105,45 +118,46 @@ export function extractSpecTags(name: string, description?: string | null): stri
     else if (raw.includes('I5')) tags.push('Core i5');
     else if (raw.includes('I3')) tags.push('Core i3');
     else if (raw.includes('RYZEN')) tags.push(raw);
-    else if (raw.includes('M1') || raw.includes('M2') || raw.includes('M3')) tags.push(raw);
+    else if (/^M[1234]\b/.test(raw)) tags.push(`Apple ${raw}`);
   }
 
-  // RAM
-  const ramMatch = combined.match(/\b(4|8|12|16|24|32|64)\s*GB\s*(RAM|DDR\d|Memory|Intel)?\b/i);
-  if (ramMatch) {
+  // Storage / Memory (64GB, 128GB, 256GB, 512GB, 1TB)
+  const capMatch = name.match(/\b(64|128|256|512)\s*GB\b|\b(1|2)\s*TB\b/i);
+  if (capMatch) {
+    tags.push(capMatch[0].toUpperCase().replace(/\s+/g, ''));
+  }
+
+  // RAM for Laptops if distinct
+  const ramMatch = combined.match(/\b(8|16|24|32|64)\s*GB\s*(RAM|DDR\d|Memory|Intel)\b/i);
+  if (ramMatch && !tags.includes(`${ramMatch[1]}GB`)) {
     tags.push(`${ramMatch[1]}GB RAM`);
   }
 
-  // Storage
-  const ssdMatch = combined.match(/\b(128|256|512|1000)\s*GB\s*(SSD|NVMe|HDD)?\b|\b(1|2)\s*TB\s*(SSD|NVMe|HDD)?\b|\bSSD\s*(128|256|512)GB\b/i);
-  if (ssdMatch) {
-    const digits = ssdMatch[0].match(/\d+\s*(GB|TB)/i)?.[0]?.toUpperCase().replace(/\s+/g, '') || '';
-    if (digits && !tags.includes(`${digits} RAM`)) {
-      tags.push(`${digits} SSD`);
-    }
+  // SIM / Connectivity
+  if (/\b(nano\s*\+\s*esim)\b/i.test(name)) {
+    tags.push('Nano + eSIM');
+  } else if (/\b(physical\s*sim)\b/i.test(name)) {
+    tags.push('Physical SIM');
+  } else if (/\b(esim)\b/i.test(name)) {
+    tags.push('eSIM');
+  } else if (/\b(cellular)\b/i.test(name)) {
+    tags.push('Wi-Fi + Cellular');
+  } else if (/\b(usb-c)\b/i.test(name)) {
+    tags.push('USB-C');
   }
 
   // Starlink / Networking tags
   if (/\b(gen\s*3|v4)\b/i.test(combined)) tags.push('Gen 3 V4');
-  if (/\b(ax3000|wifi\s*6|dual\s*band)\b/i.test(combined)) tags.push('Wi-Fi 6');
-  if (/\b(ip67|ip68|waterproof)\b/i.test(combined)) tags.push('Waterproof');
+  if (/\b(ax3000|wifi\s*6)\b/i.test(combined)) tags.push('Wi-Fi 6');
+  if (/\b(ip67|ip68|waterproof)\b/i.test(combined) && tags.length < 3) tags.push('Waterproof');
 
   // Audio / Battery playtime tags
   const hoursMatch = combined.match(/\b(24|28|34)\s*h(ours|rs|r)?\b/i);
-  if (hoursMatch) tags.push(`${hoursMatch[1]}h Playtime`);
+  if (hoursMatch && tags.length < 3) tags.push(`${hoursMatch[1]}h Playtime`);
 
   // Power Station tags
-  if (/\b(500w|1000w|1000wh|1kwh|lifepo4)\b/i.test(combined)) {
+  if (/\b(500w|1000w|1000wh|1kwh|lifepo4)\b/i.test(combined) && tags.length < 3) {
     tags.push('1000Wh LiFePO4');
-  }
-
-  // Wireless / Bluetooth / 4K
-  if (/\b(wireless|bluetooth)\b/i.test(combined) && tags.length < 3) {
-    tags.push('Wireless');
-  }
-  if (/\b(4k|1080p|720p)\b/i.test(combined) && tags.length < 3) {
-    const res = combined.match(/\b(4k|1080p|720p)\b/i)?.[0]?.toUpperCase();
-    if (res) tags.push(`${res} Video`);
   }
 
   return Array.from(new Set(tags)).slice(0, 3);
@@ -166,7 +180,75 @@ export function classifyRetailProduct(input: {
   const brand = extractProductBrand(`${name} ${desc}`);
   const specTags = extractSpecTags(name, desc);
 
-  // 1. Starlink, Routers & Networking
+  // 1. Apple Watch & Smartwatches
+  if (/\b(apple\s*watch|watch\s+ultra|watch\s+series\s*\d+|iwatch|smartwatch)\b/i.test(text)) {
+    return {
+      globalCategory: 'Smartwatches & Wearables',
+      inStoreCategory: 'Apple Watch',
+      brand: brand || 'Apple',
+      specTags,
+    };
+  }
+
+  // 2. AirPods
+  if (/\b(airpods)\b/i.test(name)) {
+    return {
+      globalCategory: 'Audio, Speakers & Mics',
+      inStoreCategory: 'AirPods & Wireless Audio',
+      brand: 'Apple',
+      specTags,
+    };
+  }
+
+  // 3. Apple iPads
+  if (/\b(ipad)\b/i.test(name)) {
+    return {
+      globalCategory: 'Phones & Tablets',
+      inStoreCategory: 'Apple iPads',
+      brand: 'Apple',
+      specTags,
+    };
+  }
+
+  // 4. Apple MacBooks
+  if (/\b(macbook|imac|mac\s+mini|mac\s+studio)\b/i.test(name)) {
+    return {
+      globalCategory: 'Laptops & Computers',
+      inStoreCategory: 'Apple MacBooks',
+      brand: 'Apple',
+      specTags,
+    };
+  }
+
+  // 5. Apple Magic Accessories & Pencil
+  if (/\b(magic\s+keyboard|magic\s+mouse|magic\s+trackpad|pencil\s+pro|apple\s+pencil)\b/i.test(name)) {
+    return {
+      globalCategory: 'Tech Accessories & Smart Gadgets',
+      inStoreCategory: 'Apple Keyboards, Mice & Pencil',
+      brand: 'Apple',
+      specTags,
+    };
+  }
+
+  // 6. Apple iPhones (segmented by generation series for in-store aisles!)
+  if (/\b(iphone)\b/i.test(name)) {
+    let inStoreCategory = 'Apple iPhones';
+    if (/\biphone\s*(17|16|air)/i.test(name)) {
+      inStoreCategory = 'iPhone 16, 17 & Air Series';
+    } else if (/\biphone\s*(15|14)/i.test(name)) {
+      inStoreCategory = 'iPhone 14 & 15 Series';
+    } else if (/\biphone\s*(13|12|11|xr|xs)/i.test(name)) {
+      inStoreCategory = 'iPhone 12 & 13 Series';
+    }
+    return {
+      globalCategory: 'Phones & Tablets',
+      inStoreCategory,
+      brand: 'Apple',
+      specTags,
+    };
+  }
+
+  // 7. Starlink, Routers & Networking
   if (/\b(starlink|router|access\s*point|wavlink|d-link|tp-link|mikrotik|ethernet\s*cable|pipe\s*adapter|modem|network\s*switch|mesh\s*wifi)\b/i.test(text)) {
     return {
       globalCategory: 'Starlink & Networking',
@@ -176,7 +258,7 @@ export function classifyRetailProduct(input: {
     };
   }
 
-  // 2. Gaming Consoles, Controllers & Video Games
+  // 8. Gaming Consoles, Controllers & Video Games
   if (/\b(ps5|ps4|playstation|xbox|nintendo|controller|game\s*pad|gamepad|fc27|fc26|fc25|fc24|fifa|steam\s*deck|gaming\s*console)\b/i.test(text)) {
     return {
       globalCategory: 'Gaming & Consoles',
@@ -186,8 +268,8 @@ export function classifyRetailProduct(input: {
     };
   }
 
-  // 3. Speakers, Microphones & Pro Audio
-  if (/\b(jbl|boombox|xtreme|charge\s*\d|flip\s*\d|onyx\s*studio|harman|speaker|soundbar|subwoofer|microphone|maono|dji\s*mic|hollyland|boya|rode|xlr|wireless\s*mic|airpods|earbuds|headphone)\b/i.test(text)) {
+  // 9. Speakers, Microphones & Pro Audio
+  if (/\b(jbl|boombox|xtreme|charge\s*\d|flip\s*\d|onyx\s*studio|harman|speaker|soundbar|subwoofer|microphone|maono|dji\s*mic|hollyland|boya|rode|xlr|wireless\s*mic|earbuds|headphone)\b/i.test(text)) {
     const isMic = /\b(mic|microphone|maono|hollyland)\b/i.test(name);
     return {
       globalCategory: 'Audio, Speakers & Mics',
@@ -197,7 +279,7 @@ export function classifyRetailProduct(input: {
     };
   }
 
-  // 4. Monitors & Displays
+  // 10. Monitors & Displays
   if (/\b(monitor|curved\s+display|led\s+monitor|ips\s+monitor|frameless\s+monitor)\b/i.test(name)) {
     return {
       globalCategory: 'Monitors & Displays',
@@ -207,8 +289,8 @@ export function classifyRetailProduct(input: {
     };
   }
 
-  // 5. Laptops & Desktops
-  if (/\b(laptop|notebook|ultrabook|elitebook|probook|pavilion|envy|omen|zbook|spectre|latitude|inspiron|xps|precision|alienware|vostro|thinkpad|ideapad|yoga|legion|zenbook|vivobook|aspire|predator|nitro|macbook|imac|desktop\s*computer|core\s*i[3579])\b/i.test(text)) {
+  // 11. Laptops & Desktops
+  if (/\b(laptop|notebook|ultrabook|elitebook|probook|pavilion|envy|omen|zbook|spectre|latitude|inspiron|xps|precision|alienware|vostro|thinkpad|ideapad|yoga|legion|zenbook|vivobook|aspire|predator|nitro|desktop\s*computer|core\s*i[3579])\b/i.test(text)) {
     return {
       globalCategory: 'Laptops & Computers',
       inStoreCategory: 'Laptops & Computers',
@@ -217,7 +299,7 @@ export function classifyRetailProduct(input: {
     };
   }
 
-  // 6. Power Banks, Portable Power Stations, Solar & Inverters
+  // 12. Power Banks, Portable Power Stations, Solar & Inverters
   if (/\b(power\s*tank|power\s*station|inverter|solar|lithium\s*battery|tubular\s*battery|ecoflow|bluetti|ups|charge\s*controller|lifepo4)\b/i.test(text)) {
     return {
       globalCategory: 'Power & Inverters',
@@ -227,7 +309,7 @@ export function classifyRetailProduct(input: {
     };
   }
 
-  // 7. Webcams, Smart Gadgets & Computer Accessories
+  // 13. Webcams, Smart Gadgets & Computer Accessories
   if (/\b(webcam|life\s*cam|smart\s*glasses|smart\s*socket|laptop\s*stand|charger|adapter|power\s*cord|cable|mouse|keyboard|flash\s*drive|hard\s*drive|external\s*ssd|docking)\b/i.test(text)) {
     return {
       globalCategory: 'Tech Accessories & Smart Gadgets',
@@ -237,8 +319,8 @@ export function classifyRetailProduct(input: {
     };
   }
 
-  // 8. Phones, Telephones & Tablets
-  if (/\b(iphone|ipad|samsung\s+galaxy|redmi|xiaomi|infinix|tecno|itel|pixel\s+\d|smartphone|tablet|telephone|dual\s*sim)\b/i.test(text)) {
+  // 14. Other Phones, Telephones & Tablets
+  if (/\b(samsung\s+galaxy|redmi|xiaomi|infinix|tecno|itel|pixel\s+\d|smartphone|tablet|telephone|dual\s*sim)\b/i.test(text)) {
     return {
       globalCategory: 'Phones & Tablets',
       inStoreCategory: 'Phones & Communication',
@@ -247,7 +329,7 @@ export function classifyRetailProduct(input: {
     };
   }
 
-  // 9. Home Appliances
+  // 15. Home Appliances
   if (/\b(refrigerator|fridge|freezer|washing\s*machine|microwave|blender|air\s*conditioner|standing\s*fan|smart\s*tv|television)\b/i.test(text)) {
     return {
       globalCategory: 'Home Appliances',
@@ -257,7 +339,7 @@ export function classifyRetailProduct(input: {
     };
   }
 
-  // 10. Fashion & Apparel
+  // 16. Fashion & Apparel
   if (/\b(sneaker|shoe|shirt|trouser|jeans|dress|gown|handbag|wrist\s*watch|heels|sandals|hoodie|jacket)\b/i.test(text)) {
     return {
       globalCategory: 'Fashion & Style',
@@ -267,7 +349,7 @@ export function classifyRetailProduct(input: {
     };
   }
 
-  // 11. Beauty & Personal Care
+  // 17. Beauty & Personal Care
   if (/\b(perfume|fragrance|body\s*spray|lotion|cream|serum|wig|makeup|skincare)\b/i.test(text)) {
     return {
       globalCategory: 'Health & Beauty',
@@ -322,7 +404,9 @@ export function inferStoreProfileTaxonomy(
   let storeCategory = currentStoreCategory || 'General Merchandise';
   const primaryGlobal = topGlobal[0]?.[0] || '';
 
-  if (
+  if (primaryGlobal === 'Phones & Tablets' || primaryGlobal === 'Smartwatches & Wearables') {
+    storeCategory = 'Phones, Apple & Devices';
+  } else if (
     primaryGlobal === 'Laptops & Computers' ||
     primaryGlobal === 'Starlink & Networking' ||
     primaryGlobal === 'Audio, Speakers & Mics' ||
@@ -332,8 +416,6 @@ export function inferStoreProfileTaxonomy(
     currentStoreCategory === 'Electronics'
   ) {
     storeCategory = 'Electronics & Gadgets';
-  } else if (primaryGlobal === 'Phones & Tablets') {
-    storeCategory = 'Phones & Tablets';
   } else if (primaryGlobal === 'Power & Inverters') {
     storeCategory = 'Solar & Power Solutions';
   } else if (primaryGlobal === 'Home Appliances') {
