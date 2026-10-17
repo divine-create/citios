@@ -73,13 +73,48 @@ interface ReviewItem {
 }
 
 const CATEGORIES = [
-  { id: 'All', label: 'All Services', iconKey: 'services' },
-  { id: 'Trades & Repair', label: 'Trades & Repair', iconKey: 'trades-repair' },
-  { id: 'Home & Cleaning', label: 'Home & Cleaning', iconKey: 'home-cleaning' },
-  { id: 'Tech & Solar', label: 'Tech & Solar', iconKey: 'tech-solar' },
-  { id: 'Automotive & Power', label: 'Automotive & Power', iconKey: 'automotive-power' },
-  { id: 'Beauty & Wellness', label: 'Beauty & Wellness', iconKey: 'beauty-wellness' },
-  { id: 'Health & Care', label: 'Health & Care', iconKey: 'health-care' },
+  {
+    id: 'All',
+    label: 'All Categories',
+    iconKey: 'services',
+    description: 'Explore all skilled trades and professional services in Calabar.',
+  },
+  {
+    id: 'Trades & Repair',
+    label: 'Trades & Repair',
+    iconKey: 'trades-repair',
+    description: 'Plumbing, electrical wiring, AC servicing, carpentry, masonry & structural repairs.',
+  },
+  {
+    id: 'Home & Cleaning',
+    label: 'Home & Cleaning',
+    iconKey: 'home-cleaning',
+    description: 'Deep house cleaning, post-construction cleanup, laundry, dry cleaning & fumigation.',
+  },
+  {
+    id: 'Tech & Solar',
+    label: 'Tech & Solar',
+    iconKey: 'tech-solar',
+    description: 'Solar inverter installation, battery BMS setups, CCTV surveillance & device repairs.',
+  },
+  {
+    id: 'Automotive & Power',
+    label: 'Automotive & Power',
+    iconKey: 'automotive-power',
+    description: 'Generator servicing, vehicle diagnostics, mobile mechanic callouts & tyre care.',
+  },
+  {
+    id: 'Beauty & Wellness',
+    label: 'Beauty & Wellness',
+    iconKey: 'beauty-wellness',
+    description: 'Professional barbing, salon braiding, luxury manicure/pedicure, massage & spa therapy.',
+  },
+  {
+    id: 'Health & Care',
+    label: 'Health & Care',
+    iconKey: 'health-care',
+    description: 'Clinical home nursing, phlebotomy & lab tests, physio rehabilitation & wellness care.',
+  },
 ];
 
 export default function CityServices({
@@ -523,7 +558,19 @@ export default function CityServices({
           </div>
 
           <div className="text-xs text-slate-400 font-medium">
-            Showing <span className="font-bold text-slate-800">{filteredServices.length}</span> verified services
+            {activeCategory === 'All' && !searchQuery.trim() ? (
+              <>
+                Showing <span className="font-bold text-slate-800">{CATEGORIES.filter((c) => c.id !== 'All').length}</span> categories &bull; <span className="font-bold text-slate-800">{services.length}</span> verified services
+              </>
+            ) : searchQuery.trim() ? (
+              <>
+                Found <span className="font-bold text-slate-800">{filteredServices.length}</span> matching {filteredServices.length === 1 ? 'service' : 'services'}
+              </>
+            ) : (
+              <>
+                Showing <span className="font-bold text-slate-800">{filteredServices.length}</span> verified {filteredServices.length === 1 ? 'service' : 'services'} in {activeCategory}
+              </>
+            )}
           </div>
         </div>
 
@@ -536,7 +583,10 @@ export default function CityServices({
               <button
                 key={cat.id}
                 type="button"
-                onClick={() => setActiveCategory(cat.id)}
+                onClick={() => {
+                  setActiveCategory(cat.id);
+                  setSearchQuery('');
+                }}
                 className={`px-3.5 py-2 rounded-full text-xs sm:text-[13px] font-bold whitespace-nowrap transition-all border shrink-0 snap-start active:scale-95 flex items-center gap-2 ${
                   active
                     ? 'border-teal-800 bg-teal-800 text-white shadow-xs'
@@ -560,98 +610,163 @@ export default function CityServices({
         </div>
       </section>
 
-      {/* Services Organized by Category Shelves */}
-      {filteredServices.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-200 p-12 text-center bg-white space-y-3">
-          <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
-            <Search size={20} />
+      {/* Main Services View */}
+      {/* 1. HOME VIEW: Show ONLY Service Categories, NO Service Cards */}
+      {activeCategory === 'All' && !searchQuery.trim() ? (
+        <section className="space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <div>
+              <h2 className="text-lg font-black text-ink tracking-tight">Service Categories</h2>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                Select a category to view bookable services and verified technicians across {cityName}.
+              </p>
+            </div>
+            <span className="text-xs font-bold text-teal-800 bg-teal-50 border border-teal-200/60 px-3 py-1 rounded-full self-start sm:self-auto">
+              {CATEGORIES.filter((c) => c.id !== 'All').length} Categories Available
+            </span>
           </div>
-          <div>
-            <p className="text-sm font-bold text-slate-800">No services match your search</p>
-            <p className="text-xs text-slate-400 mt-1">
-              Try searching for another trade, keyword or clear your filters.
-            </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {CATEGORIES.filter((c) => c.id !== 'All').map((cat) => {
+              const count = categoryCounts[cat.id] || 0;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setActiveCategory(cat.id)}
+                  className="text-left group bg-white rounded-2xl border border-slate-100 p-5 shadow-xs hover:shadow-md hover:border-teal-700/40 hover:-translate-y-0.5 transition-all flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="w-14 h-14 rounded-2xl bg-teal-50/70 border border-teal-100/70 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-2xs">
+                        <RealisticIcon name={cat.iconKey} size={36} className="shrink-0" />
+                      </div>
+                      <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 group-hover:bg-teal-800 group-hover:text-white transition-colors">
+                        {count} {count === 1 ? 'service' : 'services'}
+                      </span>
+                    </div>
+
+                    <h3 className="text-base font-black text-slate-900 group-hover:text-teal-800 transition-colors">
+                      {cat.label}
+                    </h3>
+                    <p className="text-xs text-slate-500 font-normal mt-1.5 leading-relaxed line-clamp-2">
+                      {cat.description}
+                    </p>
+                  </div>
+
+                  <div className="mt-5 pt-3.5 border-t border-slate-50 flex items-center justify-between text-xs font-bold text-teal-800 group-hover:text-teal-900">
+                    <span>Explore {cat.label}</span>
+                    <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </button>
+              );
+            })}
           </div>
-          {(searchQuery || activeCategory !== 'All') && (
+        </section>
+      ) : searchQuery.trim() ? (
+        /* 2. SEARCH RESULTS VIEW: Shown when user actively searches */
+        <section className="space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+              <h2 className="text-base font-black text-ink">
+                Search Results for &ldquo;{searchQuery}&rdquo;
+              </h2>
+              <p className="text-xs text-slate-500 font-medium">
+                Found {filteredServices.length} matching {filteredServices.length === 1 ? 'service' : 'services'}
+              </p>
+            </div>
             <button
+              type="button"
               onClick={() => {
                 setSearchQuery('');
                 setActiveCategory('All');
               }}
-              className="px-4 py-2 bg-teal-50 text-teal-800 hover:bg-teal-100 rounded-xl text-xs font-bold transition-colors"
+              className="text-xs font-bold text-slate-500 hover:text-teal-800 flex items-center gap-1 transition-colors"
             >
-              Clear all filters
+              ← Back to Categories
             </button>
+          </div>
+
+          {filteredServices.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredServices.map(renderServiceCard)}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-slate-200 p-12 text-center bg-white space-y-3">
+              <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
+                <Search size={20} />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-slate-800">No services match your search</p>
+                <p className="text-xs text-slate-400 mt-1">
+                  Try searching for another keyword or browse our service categories.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setActiveCategory('All');
+                }}
+                className="px-4 py-2 bg-teal-50 text-teal-800 hover:bg-teal-100 rounded-xl text-xs font-bold transition-colors"
+              >
+                View All Categories
+              </button>
+            </div>
           )}
-        </div>
-      ) : activeCategory === 'All' ? (
-        <div className="space-y-10">
-          {shelfCategories.map((cat) => {
-            const catServices = servicesByCategory.get(cat.id) || [];
-            if (catServices.length === 0) return null;
-
-            return (
-              <section key={cat.id} className="space-y-4">
-                {/* Category Shelf Header */}
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <RealisticIcon name={cat.iconKey} size={24} className="shrink-0" />
-                    <h2 className="text-base sm:text-lg font-black text-ink tracking-tight">
-                      {cat.label}
-                    </h2>
-                    <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                      {catServices.length} {catServices.length === 1 ? 'service' : 'services'}
-                    </span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setActiveCategory(cat.id)}
-                    className="text-xs font-bold text-teal-800 hover:text-teal-900 flex items-center gap-1 group transition-colors"
-                  >
-                    <span>View all {cat.label}</span>
-                    <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
-                  </button>
-                </div>
-
-                {/* Services Grid for Category */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {catServices.map(renderServiceCard)}
-                </div>
-              </section>
-            );
-          })}
-        </div>
+        </section>
       ) : (
-        /* Single Active Category View */
-        <section className="space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div className="flex items-center gap-2.5">
-              <RealisticIcon
-                name={CATEGORIES.find((c) => c.id === activeCategory)?.iconKey || 'services'}
-                size={24}
-                className="shrink-0"
-              />
-              <h2 className="text-base sm:text-lg font-black text-ink tracking-tight">
-                {activeCategory}
-              </h2>
-              <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200/60">
-                {filteredServices.length} {filteredServices.length === 1 ? 'service' : 'services'}
-              </span>
+        /* 3. CATEGORY VIEW: Shown when a specific category is chosen */
+        <section className="space-y-6">
+          {/* Category Banner with Back Button */}
+          <div className="bg-gradient-to-r from-teal-900/5 via-teal-800/10 to-transparent rounded-2xl p-4 sm:p-5 border border-teal-900/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-xl bg-white shadow-xs border border-teal-100 flex items-center justify-center shrink-0">
+                <RealisticIcon
+                  name={CATEGORIES.find((c) => c.id === activeCategory)?.iconKey || 'services'}
+                  size={30}
+                  className="shrink-0"
+                />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg sm:text-xl font-black text-ink tracking-tight">
+                    {activeCategory}
+                  </h2>
+                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-teal-800 text-white">
+                    {filteredServices.length} {filteredServices.length === 1 ? 'service' : 'services'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 font-medium mt-0.5">
+                  {CATEGORIES.find((c) => c.id === activeCategory)?.description || 'Verified local service providers in Calabar'}
+                </p>
+              </div>
             </div>
 
             <button
               type="button"
               onClick={() => setActiveCategory('All')}
-              className="text-xs font-bold text-slate-500 hover:text-teal-800 flex items-center gap-1 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-teal-900 text-xs font-bold border border-slate-200 transition-colors shadow-2xs self-start sm:self-auto shrink-0"
             >
-              ← Show All Categories
+              ← Back to All Categories
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredServices.map(renderServiceCard)}
-          </div>
+          {/* Services Grid for This Category */}
+          {filteredServices.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredServices.map(renderServiceCard)}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-slate-200 p-12 text-center bg-white space-y-3">
+              <p className="text-sm font-bold text-slate-800">No services found in {activeCategory}</p>
+              <button
+                onClick={() => setActiveCategory('All')}
+                className="px-4 py-2 bg-teal-50 text-teal-800 hover:bg-teal-100 rounded-xl text-xs font-bold transition-colors"
+              >
+                Return to Categories
+              </button>
+            </div>
+          )}
         </section>
       )}
 
