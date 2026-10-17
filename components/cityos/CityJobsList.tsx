@@ -37,11 +37,11 @@ export default function CityJobsList() {
         <div className="absolute -right-12 -top-12 w-56 h-56 rounded-full bg-indigo-500/20 blur-3xl" />
         <div className="relative">
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 ring-1 ring-white/15 text-[10px] font-black uppercase tracking-widest">
-            <Briefcase className="w-3 h-3" /> CityJobs
+            <Briefcase className="w-3 h-3" /> Jobs
           </span>
           <h1 className="mt-3 text-2xl md:text-4xl font-black tracking-tight">Every open role in the city</h1>
           <p className="mt-2 text-teal-50/85 text-[13px] font-medium max-w-2xl leading-relaxed">
-            {`CityJobs aggregates every open role in the city — ${jobs.length} roles across pickers, riders, technicians, teachers and gigs.`}
+            {`Aggregating every open role in the city — ${jobs.length} roles across pickers, riders, technicians, teachers and gigs.`}
           </p>
           <div className="mt-5 flex flex-col sm:flex-row gap-2 sm:items-center">
             <div className="flex-1 flex items-center gap-2 bg-white/95 rounded-xl px-3.5 py-2.5 text-slate-500">

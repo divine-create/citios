@@ -21,6 +21,13 @@ test('HQ Verticals Master Switch & Governance Suite', async (t) => {
       assert.ok(VERTICAL_DEFINITIONS[v].path.startsWith('/'), `Path for ${v} should be a valid root route`);
       assert.ok(VERTICAL_DEFINITIONS[v].name, `Vertical ${v} should have a display name`);
     }
+
+    assert.equal(VERTICAL_DEFINITIONS.jobs.name, 'Jobs');
+    assert.equal(VERTICAL_DEFINITIONS.houses.name, 'Stay');
+    assert.equal(VERTICAL_DEFINITIONS.shops.name, 'Shop');
+    assert.equal(VERTICAL_DEFINITIONS.food.name, 'Food');
+    assert.equal(VERTICAL_DEFINITIONS.services.name, 'Services');
+    assert.equal(VERTICAL_DEFINITIONS.events.name, 'Events');
   });
 
   await t.test('2. getVerticalsConfig safely returns valid config with all 6 keys', async () => {

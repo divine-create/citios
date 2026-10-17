@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 export default async function StayPage() {
   const config = await getVerticalsConfig();
   if (!config.houses) {
-    return <VerticalPausedNotice verticalName="CityStay" verticalId="houses" />;
+    return <VerticalPausedNotice verticalName="Stay" verticalId="houses" />;
   }
 
   const hotels = await getHotelOrgs();

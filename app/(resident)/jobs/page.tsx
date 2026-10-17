@@ -5,7 +5,7 @@ import CityJobsList from '@/components/cityos/CityJobsList';
 export default async function CityJobsPage() {
   const config = await getVerticalsConfig();
   if (!config.jobs) {
-    return <VerticalPausedNotice verticalName="CityJobs" verticalId="jobs" />;
+    return <VerticalPausedNotice verticalName="Jobs" verticalId="jobs" />;
   }
 
   return (

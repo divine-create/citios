@@ -316,12 +316,12 @@ export default function ResidentShell({
   ];
 
   const ALL_EXPLORE_ITEMS: (NavItem & { verticalId?: VerticalId })[] = [
-    { id: 'market', path: '/market', label: 'CityMart', icon: Store, iconKey: 'shop', verticalId: 'shops' },
-    { id: 'food', path: '/food', label: 'CityFood', icon: UtensilsCrossed, iconKey: 'food', verticalId: 'food' },
-    { id: 'services', path: '/services', label: 'CityServices', icon: Wrench, iconKey: 'services', verticalId: 'services' },
-    { id: 'jobs', path: '/jobs', label: 'CityJobs', icon: Briefcase, iconKey: 'jobs', verticalId: 'jobs' },
-    { id: 'events', path: '/events', label: 'CityEvents', icon: Calendar, iconKey: 'events', verticalId: 'events' },
-    { id: 'stay', path: '/stay', label: 'CityStay', icon: Building2, iconKey: 'stay', verticalId: 'houses' },
+    { id: 'market', path: '/market', label: 'Shop', icon: Store, iconKey: 'shop', verticalId: 'shops' },
+    { id: 'food', path: '/food', label: 'Food', icon: UtensilsCrossed, iconKey: 'food', verticalId: 'food' },
+    { id: 'services', path: '/services', label: 'Services', icon: Wrench, iconKey: 'services', verticalId: 'services' },
+    { id: 'jobs', path: '/jobs', label: 'Jobs', icon: Briefcase, iconKey: 'jobs', verticalId: 'jobs' },
+    { id: 'events', path: '/events', label: 'Events', icon: Calendar, iconKey: 'events', verticalId: 'events' },
+    { id: 'stay', path: '/stay', label: 'Stay', icon: Building2, iconKey: 'stay', verticalId: 'houses' },
   ];
 
   const exploreItems = ALL_EXPLORE_ITEMS.filter((item) => {
@@ -369,9 +369,9 @@ export default function ResidentShell({
     if (pathname.startsWith('/ai')) return 'Ask CityOS';
     if (pathname.startsWith('/feed')) return 'Newsfeed';
     if (pathname.startsWith('/explore')) return `Explore ${cityName}`;
-    if (pathname.startsWith('/market')) return 'CityMart';
-    if (pathname.startsWith('/food')) return 'CityFood';
-    if (pathname.startsWith('/services')) return 'CityServices';
+    if (pathname.startsWith('/market')) return 'Shop';
+    if (pathname.startsWith('/food')) return 'Food';
+    if (pathname.startsWith('/services')) return 'Services';
     if (pathname.startsWith('/org/')) return 'Business Profile';
     if (pathname.startsWith('/saved')) return 'Saved';
     if (pathname.startsWith('/cart')) return 'Your Cart';
@@ -382,18 +382,18 @@ export default function ResidentShell({
     if (pathname.startsWith('/drive/ride')) return 'City Ride';
     if (pathname.startsWith('/drive/delivery')) return 'City Delivery';
     if (pathname.startsWith('/drive/')) return 'CityDrive';
-    if (pathname.startsWith('/house')) return 'CityStay';
-    if (pathname.startsWith('/stay')) return 'CityStay';
+    if (pathname.startsWith('/house')) return 'Stay';
+    if (pathname.startsWith('/stay')) return 'Stay';
     if (pathname.startsWith('/care')) return 'CityHealth';
     if (pathname.startsWith('/schools')) return 'CitySchools';
     if (pathname.startsWith('/tasks')) return 'City Tasks';
     if (pathname.startsWith('/news')) return 'News';
-    if (pathname.startsWith('/events')) return 'CityEvents';
+    if (pathname.startsWith('/events')) return 'Events';
     if (pathname.startsWith('/activity')) return 'Activity';
     if (pathname.startsWith('/business')) return 'Business Dashboard';
     if (pathname.startsWith('/map')) return 'City Map';
     if (pathname.startsWith('/create')) return 'Create';
-    if (pathname.startsWith('/jobs')) return 'CityJobs';
+    if (pathname.startsWith('/jobs')) return 'Jobs';
     if (pathname.startsWith('/community')) return 'CityCommunity';
     if (pathname.startsWith('/workspaces')) return 'Workspaces';
     if (pathname.startsWith('/profile')) return 'Profile';
