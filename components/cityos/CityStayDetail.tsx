@@ -2,13 +2,14 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { BedDouble, ArrowLeft, User } from 'lucide-react';
-import { initiateCheckout } from '@/app/actions/payment';
+import { BedDouble, ArrowLeft, User, Phone, MessageSquare } from 'lucide-react';
+import { createHotelWhatsAppBooking } from '@/app/actions/checkout';
 
-export default function CityStayDetail({ org, rooms }: { org: any, rooms: any[] }) {
+export default function CityStayDetail({ org, rooms }: { org: any; rooms: any[] }) {
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
   const [guestName, setGuestName] = useState('');
+  const [guestPhone, setGuestPhone] = useState('');
   const [loadingRoomId, setLoadingRoomId] = useState<string | null>(null);
   const [message, setMessage] = useState('');
 
@@ -28,21 +29,19 @@ export default function CityStayDetail({ org, rooms }: { org: any, rooms: any[] 
     setLoadingRoomId(room.id);
     setMessage('');
     try {
-      const res = await initiateCheckout({
-        kind: 'hotel',
-        method: 'wallet',
-        items: [{
-           productId: room.id,
-           qty: room.baseRate,
-           name: guestName,
-           // @ts-ignore
-           organizationId: org.id,
-           checkInDate: checkIn,
-           checkOutDate: checkOut,
-        }],
+      const res = await createHotelWhatsAppBooking({
+        organizationId: org.id,
+        roomId: room.id,
+        guestName: guestName.trim(),
+        guestPhone: guestPhone.trim() || undefined,
+        checkInDate: checkIn,
+        checkOutDate: checkOut,
       });
-      if (res.error) setMessage(res.error);
-      else if (res.redirectUrl) window.location.href = res.redirectUrl;
+      if (!res.success || res.error) {
+        setMessage(res.error || 'Booking failed. Please try again.');
+      } else if (res.whatsappUrl) {
+        window.open(res.whatsappUrl, '_blank');
+      }
     } catch (e: any) {
       setMessage(e.message || 'Booking failed. Please try again.');
     }
@@ -71,23 +70,43 @@ export default function CityStayDetail({ org, rooms }: { org: any, rooms: any[] 
       </div>
 
       <div className="bg-white p-6 rounded-2xl border border-slate-200 space-y-4">
-        <h2 className="font-bold text-ink">Your Stay Details</h2>
-        <div>
-          <label className="text-xs font-bold text-slate-500 uppercase">Guest Name</label>
-          <div className="relative mt-1">
-            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Full name of the guest"
-              className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium placeholder:text-slate-400"
-              value={guestName}
-              onChange={e => setGuestName(e.target.value)}
-            />
+        <div className="flex items-center justify-between">
+          <h2 className="font-bold text-ink">Your Stay Details</h2>
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+            <MessageSquare className="w-3.5 h-3.5 text-[#25D366]" /> Instant WhatsApp Booking
+          </span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="text-xs font-bold text-slate-500 uppercase">Guest Name *</label>
+            <div className="relative mt-1">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Full name of the guest"
+                className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium placeholder:text-slate-400"
+                value={guestName}
+                onChange={e => setGuestName(e.target.value)}
+              />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-bold text-slate-500 uppercase">WhatsApp / Phone</label>
+            <div className="relative mt-1">
+              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="tel"
+                placeholder="e.g. 0803 123 4567"
+                className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium placeholder:text-slate-400"
+                value={guestPhone}
+                onChange={e => setGuestPhone(e.target.value)}
+              />
+            </div>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="text-xs font-bold text-slate-500 uppercase">Check-in</label>
+            <label className="text-xs font-bold text-slate-500 uppercase">Check-in *</label>
             <input
               type="date"
               className="w-full mt-1 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium"
@@ -96,7 +115,7 @@ export default function CityStayDetail({ org, rooms }: { org: any, rooms: any[] 
             />
           </div>
           <div>
-            <label className="text-xs font-bold text-slate-500 uppercase">Check-out</label>
+            <label className="text-xs font-bold text-slate-500 uppercase">Check-out *</label>
             <input
               type="date"
               className="w-full mt-1 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium"
@@ -125,9 +144,10 @@ export default function CityStayDetail({ org, rooms }: { org: any, rooms: any[] 
             <button
               disabled={loadingRoomId === r.id}
               onClick={() => handleBook(r)}
-              className="w-full sm:w-auto px-6 py-2.5 bg-ink text-white rounded-xl text-xs font-black hover:bg-slate-800 transition-colors disabled:opacity-50 active:scale-95"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-xl text-xs font-black transition-all shadow-md shadow-emerald-600/20 disabled:opacity-50 active:scale-95"
             >
-              {loadingRoomId === r.id ? 'Booking…' : 'Book Room'}
+              <MessageSquare className="w-4 h-4" />
+              {loadingRoomId === r.id ? 'Opening WhatsApp…' : 'Book Room via WhatsApp'}
             </button>
           </div>
         ))}

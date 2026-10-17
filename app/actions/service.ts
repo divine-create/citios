@@ -7,6 +7,33 @@ import { revalidatePath } from 'next/cache';
 import { ActivityItem } from '@/lib/activity';
 import { notifyPerson, personIdForCustomerData } from '@/lib/notify';
 import { resolveResidentCustomerIds } from '@/lib/resident-activity/compose';
+import { formatWhatsAppNumber } from '@/lib/whatsapp';
+import {
+  getOrganizationReviews as libGetReviews,
+  submitOrganizationReview as libSubmitReview,
+  toggleOrganizationLike as libToggleLike,
+  getOrganizationSocialData as libGetSocialData,
+} from '@/lib/actions/service';
+
+export async function getOrganizationReviews(organizationId: string) {
+  return libGetReviews(organizationId);
+}
+
+export async function submitOrganizationReview(input: {
+  organizationId: string;
+  rating: number;
+  body?: string;
+}) {
+  return libSubmitReview(input);
+}
+
+export async function toggleOrganizationLike(organizationId: string) {
+  return libToggleLike(organizationId);
+}
+
+export async function getOrganizationSocialData(organizationId: string) {
+  return libGetSocialData(organizationId);
+}
 
 export async function requestServiceJob(input: {
   serviceId: string;
@@ -283,7 +310,47 @@ export async function getCityServiceItem(id: string) {
     .include('organization', o => o.select('name'))
     .first();
   if (!item) return null;
-  return item;
+
+  const orgId = item.organizationId;
+  const contacts = await db.orm.public.OrganizationContactPoint.where({ organizationId: orgId }).all();
+  let phone: string | null = null;
+  let whatsapp: string | null = null;
+  for (const cp of contacts) {
+    if (cp.type === 'WHATSAPP' && cp.value) {
+      whatsapp = formatWhatsAppNumber(cp.value);
+    } else if (cp.type === 'PHONE' && cp.value) {
+      phone = cp.value;
+      if (!whatsapp) whatsapp = formatWhatsAppNumber(cp.value);
+    }
+  }
+
+  const [reviews, likes, loc] = await Promise.all([
+    db.orm.public.Review.where({ organizationId: orgId }).all(),
+    db.orm.public.SavedItem.where({ entityType: 'service_org', entityId: orgId }).all(),
+    db.orm.public.Location.where({ organizationId: orgId }).all().first(),
+  ]);
+
+  let currentPersonId: string | null = null;
+  try {
+    const session = await getServerSession(authOptions);
+    currentPersonId = session?.user?.personId ?? null;
+  } catch {}
+
+  const totalReviews = reviews.length;
+  const sumRatings = reviews.reduce((acc, r) => acc + r.rating, 0);
+  const averageRating = totalReviews > 0 ? Number((sumRatings / totalReviews).toFixed(1)) : null;
+  const userHasLiked = currentPersonId ? likes.some((l) => l.personId === currentPersonId) : false;
+
+  return {
+    ...item,
+    phone,
+    whatsapp,
+    address: loc?.address || null,
+    rating: averageRating,
+    reviewCount: totalReviews,
+    likesCount: likes.length,
+    userHasLiked,
+  };
 }
 
 export async function bookResidentService(input: {

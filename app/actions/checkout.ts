@@ -23,6 +23,48 @@ export type CheckoutResponse = {
   requiresPaymentAction?: boolean;
 };
 
+export async function resolveOrgWhatsAppPhone(orgId: string, locationId?: string): Promise<string> {
+  const checkoutConfig = await getCheckoutConfig();
+  const contactPoints = await db.orm.public.OrganizationContactPoint.where({ organizationId: orgId }).all();
+  const waContact =
+    contactPoints.find((c: any) => c.type === 'WHATSAPP') ||
+    contactPoints.find((c: any) => c.type === 'PHONE');
+
+  let rawPhone = waContact?.value;
+  if (!rawPhone && locationId) {
+    const locContact = contactPoints.find((c: any) => c.locationId === locationId);
+    if (locContact?.value) rawPhone = locContact.value;
+  }
+  if (!rawPhone) {
+    const listing = await db.orm.public.DiscoveryListing.where({ organizationId: orgId }).all().first();
+    if (listing?.metadata) {
+      try {
+        const meta = JSON.parse(listing.metadata);
+        if (meta.whatsappPhone || meta.phone) rawPhone = meta.whatsappPhone || meta.phone;
+      } catch {}
+    }
+  }
+  if (!rawPhone) {
+    const ownerMembership = await db.orm.public.Membership.where({ organizationId: orgId }).all().first();
+    if (ownerMembership) {
+      const ownerPhone = await db.orm.public.PersonIdentifier.where({
+        personId: ownerMembership.personId,
+        type: 'PHONE',
+      }).all().first();
+      if (ownerPhone?.normalizedValue) rawPhone = ownerPhone.normalizedValue;
+    }
+  }
+  if (!rawPhone) {
+    rawPhone = checkoutConfig.conciergeWhatsAppNumber || process.env.CITYOS_CONCIERGE_WHATSAPP || '2348067154233';
+  }
+
+  let cleanPhone = rawPhone.replace(/[^\d+]/g, '');
+  if (cleanPhone.startsWith('+')) cleanPhone = cleanPhone.substring(1);
+  if (cleanPhone.startsWith('0')) cleanPhone = '234' + cleanPhone.substring(1);
+  if (!cleanPhone.startsWith('234') && cleanPhone.length === 10) cleanPhone = '234' + cleanPhone;
+  return cleanPhone;
+}
+
 export async function processMerchantCheckout(
   orgId: string,
   method: 'wallet' | 'card' | 'transfer' | 'whatsapp',
@@ -33,263 +75,249 @@ export async function processMerchantCheckout(
     deliveryAddress?: string;
     deliveryNotes?: string;
     substitutionPreference?: 'call' | 'replace' | 'refund';
+    clientItems?: Array<{ productId: string; qty: number; name: string; kind?: string }>;
   }
 ): Promise<CheckoutResponse> {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.personId) {
-    throw new Error('Unauthorized');
-  }
-  const personId = session.user.personId;
-  const userEmail = session.user.email || 'customer@cityos.local';
+  const personId = session?.user?.personId || null;
 
-  // 1. Fetch Cart securely (this inherently re-fetches authoritative prices and orgs)
-  const cartData = await fetchUserCart();
-  if (!cartData || !cartData.lines || cartData.lines.length === 0) {
-    throw new Error('Cart is empty.');
-  }
-
-  // 1b. Enforce Admin Checkout Configuration
+  // Enforce WhatsApp-only checkout
   const checkoutConfig = await getCheckoutConfig();
-  if (method === 'whatsapp' && !checkoutConfig.enableWhatsApp) {
-    throw new Error('WhatsApp checkout is currently disabled by platform administration.');
-  }
-  if (method === 'wallet' && !checkoutConfig.enableWallet) {
-    throw new Error('CityOS Wallet payment is currently disabled.');
-  }
-  if (method === 'card' && !checkoutConfig.enableCard) {
-    throw new Error('Card payment gateway is currently disabled.');
-  }
-  if (method === 'transfer' && !checkoutConfig.enableTransfer) {
-    throw new Error('Bank transfer payment is currently disabled.');
+  if (method !== 'whatsapp') {
+    throw new Error('All checkouts and payments are currently processed via WhatsApp Direct Order.');
   }
 
-  // 2. Isolate items for this org
-  const orgLines = cartData.lines.filter((l: any) => l.orgId === orgId);
+  // 1. Resolve Cart Items (Server Cart if authenticated, or DB-revalidated clientItems)
+  let orgLines: Array<{ productId: string; qty: number; name: string; price: number; kind: string; orgId: string }> = [];
+
+  if (personId) {
+    const cartData = await fetchUserCart();
+    if (cartData?.lines && cartData.lines.length > 0) {
+      orgLines = cartData.lines.filter((l: any) => l.orgId === orgId);
+    }
+  }
+
+  // Fallback to DB-verified clientItems (supports guest checkout or localStorage-only cart)
+  if (orgLines.length === 0 && options?.clientItems && options.clientItems.length > 0) {
+    for (const ci of options.clientItems) {
+      const qty = Math.max(1, Number(ci.qty) || 1);
+      const prod = await db.orm.public.RetailProduct.where({ id: ci.productId }).all().first();
+      if (prod && prod.organizationId === orgId) {
+        orgLines.push({
+          productId: prod.id,
+          qty,
+          name: prod.name,
+          price: prod.price,
+          kind: 'retail',
+          orgId,
+        });
+        continue;
+      }
+      const menu = await db.orm.public.MenuItem.where({ id: ci.productId }).all().first();
+      if (menu && menu.organizationId === orgId) {
+        orgLines.push({
+          productId: menu.id,
+          qty,
+          name: menu.name,
+          price: menu.price,
+          kind: 'food',
+          orgId,
+        });
+        continue;
+      }
+      const svc = await db.orm.public.ServiceCatalogItem.where({ id: ci.productId }).all().first();
+      if (svc && svc.organizationId === orgId) {
+        orgLines.push({
+          productId: svc.id,
+          qty,
+          name: svc.name,
+          price: svc.price || 0,
+          kind: 'service',
+          orgId,
+        });
+      }
+    }
+  }
+
   if (orgLines.length === 0) {
     throw new Error('No items in cart for this merchant.');
   }
 
-  const retailItems = orgLines.filter((l: any) => l.kind === 'retail');
-  const foodItems = orgLines.filter((l: any) => l.kind === 'food');
-  const serviceItems = orgLines.filter((l: any) => l.kind === 'service');
+  const retailItems = orgLines.filter((l) => l.kind === 'retail');
+  const foodItems = orgLines.filter((l) => l.kind === 'food');
+  const serviceItems = orgLines.filter((l) => l.kind === 'service');
 
-  // 3. Authoritative Revalidation happens via fetchUserCart which reads current DB state.
+  // 2. Authoritative Server Total Calculation
   let calculatedTotal = 0;
-  for (const item of retailItems) calculatedTotal += (item.price * item.qty);
-  for (const item of foodItems) calculatedTotal += (item.price * item.qty);
-  
+  for (const item of retailItems) calculatedTotal += item.price * item.qty;
+  for (const item of foodItems) calculatedTotal += item.price * item.qty;
+
   if (checkoutConfig.minOrderAmount > 0 && calculatedTotal < checkoutConfig.minOrderAmount) {
     throw new Error(`Minimum order amount of ₦${checkoutConfig.minOrderAmount.toLocaleString()} not met for this store.`);
   }
-  // ServiceItems do not charge at checkout (they generate quotes/requests).
 
   const reference = `CC-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
-
-  // 4. Create obligations
-  // If only services, no payment needed.
-  if (retailItems.length === 0 && foodItems.length === 0 && serviceItems.length > 0) {
-    for (const item of serviceItems) {
-      await requestServiceJob({ serviceId: item.productId, notes: 'Requested via Resident Cart' });
-      await removeVoiceCartItem(personId, item.productId);
-    }
-    return { success: true, message: 'Service requests submitted successfully.' };
-  }
-
-  // If we have retail/food, we must execute them. Note that multiple verticals for same org is supported,
-  // but if both exist, we might have two separate orders.
-  // Wait, if BOTH retail and food exist for the same org (unlikely but possible), how do we handle payment?
-  // We cannot have a single Payment record pointing to both retailOrderId and restaurantOrderId if we use placeRetailOrder and placeRestaurantOrder sequentially, because they each create their own Payment.
-  // The safest implementation according to the existing Finance architecture is to dispatch them separately if they are mixed, or restrict checkout to one vertical at a time.
-  // To avoid failing multi-vertical checkout, we will process Retail and Food sequentially. 
-  // If method is wallet, they debit sequentially.
-  // If method is card/transfer, we can only initialize ONE Monnify intent! 
-  // Thus, if method is external and they have BOTH Retail and Food for the same org, we must return an error instructing them to checkout separately, as Core Payment cannot span them.
-  if (method !== 'wallet' && method !== 'whatsapp' && retailItems.length > 0 && foodItems.length > 0) {
-    throw new Error('Cannot process external payment for mixed Retail and Restaurant items simultaneously. Please pay with Wallet, WhatsApp, or split your cart.');
-  }
-
   let placedOrderId: string | undefined = undefined;
 
-  try {
+  // 3. If user is authenticated, also persist order record in DB
+  if (personId) {
+    try {
+      if (retailItems.length > 0) {
+        const residentProfileForRetail = await db.orm.public.ResidentProfile.where({ personId }).all().first();
+        const phonePart = options?.customerPhone || residentProfileForRetail?.phone || '';
+        const notesPart = options?.deliveryNotes || '';
+        const substPref = options?.substitutionPreference;
+        const substLabel =
+          substPref === 'call'
+            ? 'Call me for replacement'
+            : substPref === 'replace'
+            ? 'Pick closest replacement'
+            : substPref === 'refund'
+            ? 'Remove unavailable item'
+            : '';
 
-    if (retailItems.length > 0) {
-      const residentProfileForRetail = await db.orm.public.ResidentProfile.where({ personId }).all().first();
-      const baseAddress = options?.deliveryAddress || residentProfileForRetail?.defaultDeliveryAddress || '';
-      const phonePart = options?.customerPhone || residentProfileForRetail?.phone || '';
-      const notesPart = options?.deliveryNotes || '';
-      const substPref = options?.substitutionPreference;
-      const substLabel =
-        substPref === 'call'
-          ? 'Call me for replacement'
-          : substPref === 'replace'
-          ? 'Pick closest replacement'
-          : substPref === 'refund'
-          ? 'Refund unavailable item'
-          : '';
+        const formattedNotes = [
+          phonePart ? `Phone: ${phonePart}` : '',
+          notesPart ? `Notes: ${notesPart}` : '',
+          substLabel ? `Substitution: ${substLabel}` : '',
+        ]
+          .filter(Boolean)
+          .join(' | ');
 
-      const formattedAddress = [
-        baseAddress,
-        phonePart ? `Phone: ${phonePart}` : '',
-        notesPart ? `Notes: ${notesPart}` : '',
-        substLabel ? `Substitution: ${substLabel}` : '',
-      ]
-        .filter(Boolean)
-        .join(' | ');
-
-      const retRes = await placeRetailOrder({
-        locationId,
-        items: retailItems.map((i: any) => ({ productId: i.productId, qty: i.qty, name: i.name })),
-        method,
-        idempotencyKey: idempotencyKey + '_ret',
-        paymentReference: retailItems.length > 0 && foodItems.length === 0 ? reference : reference + '_RET',
-        expectedTotal: retailItems.reduce((acc: number, i: any) => acc + (i.price * i.qty), 0),
-        deliveryAddress: formattedAddress || undefined,
-      });
-      if (retRes?.orderIds && retRes.orderIds[0]) placedOrderId = retRes.orderIds[0];
-      else if ((retRes as any)?.orderId) placedOrderId = (retRes as any).orderId;
-      // Clear them from cart
-      for (const item of retailItems) await removeVoiceCartItem(personId, item.productId);
-    }
-
-    if (foodItems.length > 0) {
-      const foodRes = await placeRestaurantOrder({
-        locationId,
-        items: foodItems.map((i: any) => ({ menuItemId: i.productId, qty: i.qty, name: i.name })),
-        type: 'TAKEOUT', // Default for resident checkout
-        idempotencyKey,
-        paymentReference: foodItems.length > 0 && retailItems.length === 0 ? reference : reference + '_FOOD',
-        method
-      });
-      if (foodRes?.orderIds && foodRes.orderIds[0]) placedOrderId = foodRes.orderIds[0];
-      for (const item of foodItems) await removeVoiceCartItem(personId, item.productId);
-    }
-
-    if (serviceItems.length > 0) {
-      for (const item of serviceItems) {
-        await requestServiceJob({ serviceId: item.productId, notes: 'Requested via Resident Cart' });
-        await removeVoiceCartItem(personId, item.productId);
+        const retRes = await placeRetailOrder({
+          locationId,
+          items: retailItems.map((i) => ({ productId: i.productId, qty: i.qty, name: i.name })),
+          method: 'whatsapp',
+          idempotencyKey: idempotencyKey + '_ret',
+          paymentReference: retailItems.length > 0 && foodItems.length === 0 ? reference : reference + '_RET',
+          expectedTotal: retailItems.reduce((acc, i) => acc + i.price * i.qty, 0),
+          deliveryAddress: formattedNotes || undefined,
+        });
+        if (retRes?.orderIds && retRes.orderIds[0]) placedOrderId = retRes.orderIds[0];
+        else if ((retRes as any)?.orderId) placedOrderId = (retRes as any).orderId;
+        for (const item of retailItems) await removeVoiceCartItem(personId, item.productId);
       }
-    }
 
-  } catch (error: any) {
-    throw new Error(error.message || 'Failed to place order.');
+      if (foodItems.length > 0) {
+        const foodRes = await placeRestaurantOrder({
+          locationId,
+          items: foodItems.map((i) => ({ menuItemId: i.productId, qty: i.qty, name: i.name })),
+          type: 'TAKEOUT',
+          idempotencyKey,
+          paymentReference: foodItems.length > 0 && retailItems.length === 0 ? reference : reference + '_FOOD',
+          method: 'whatsapp',
+        });
+        if (foodRes?.orderIds && foodRes.orderIds[0]) placedOrderId = foodRes.orderIds[0];
+        for (const item of foodItems) await removeVoiceCartItem(personId, item.productId);
+      }
+
+      if (serviceItems.length > 0) {
+        for (const item of serviceItems) {
+          await requestServiceJob({ serviceId: item.productId, notes: 'Requested via WhatsApp Checkout' });
+          await removeVoiceCartItem(personId, item.productId);
+        }
+      }
+    } catch (err) {
+      // Non-blocking if guest or stock edge case so WhatsApp chat still opens cleanly
+      console.warn('[processMerchantCheckout] Order persistence note:', err);
+    }
   }
 
-  // 5. If Wallet, it's already completed inside the vertical actions!
-  if (method === 'wallet') {
-    return { success: true, message: 'Payment successful via Wallet.', orderId: placedOrderId, reference };
-  }
+  // 4. Compose authoritative WhatsApp Order Message & Deep Link
+  const org = await db.orm.public.Organization.where({ id: orgId }).all().first();
+  const cleanPhone = await resolveOrgWhatsAppPhone(orgId, locationId);
 
-  // 6. WhatsApp Checkout: Compose authoritative order message and deep link
-  if (method === 'whatsapp') {
-    // 6a. Resolve Merchant WhatsApp / Phone Contact Point
-    const org = await db.orm.public.Organization.where({ id: orgId }).all().first();
-    const contactPoints = await db.orm.public.OrganizationContactPoint.where({ organizationId: orgId }).all();
-    const waContact = contactPoints.find((c: any) => c.type === 'WHATSAPP') || contactPoints.find((c: any) => c.type === 'PHONE');
-    
-    let rawPhone = waContact?.value;
-    if (!rawPhone && locationId) {
-      const locContact = contactPoints.find((c: any) => c.locationId === locationId);
-      if (locContact?.value) rawPhone = locContact.value;
-    }
-    if (!rawPhone) {
-      // Check org owner phone as fallback
-      const ownerMembership = await db.orm.public.Membership.where({ organizationId: orgId }).all().first();
-      if (ownerMembership) {
-        const ownerPhone = await db.orm.public.PersonIdentifier.where({ personId: ownerMembership.personId, type: 'PHONE' }).all().first();
-        if (ownerPhone?.normalizedValue) rawPhone = ownerPhone.normalizedValue;
-      }
-    }
-    if (!rawPhone) {
-      rawPhone = checkoutConfig.conciergeWhatsAppNumber || process.env.CITYOS_CONCIERGE_WHATSAPP || '2348000000000';
-    }
+  const residentProfile = personId
+    ? await db.orm.public.ResidentProfile.where({ personId }).all().first()
+    : null;
+  const customerName = session?.user?.name || 'Customer';
+  const customerPhone = options?.customerPhone || residentProfile?.phone || '';
+  const orderNotes = options?.deliveryNotes || '';
 
-    // 6b. Sanitize phone to international format without '+'
-    let cleanPhone = rawPhone.replace(/[^\d+]/g, '');
-    if (cleanPhone.startsWith('+')) cleanPhone = cleanPhone.substring(1);
-    if (cleanPhone.startsWith('0')) cleanPhone = '234' + cleanPhone.substring(1);
-    if (!cleanPhone.startsWith('234') && cleanPhone.length === 10) cleanPhone = '234' + cleanPhone;
-
-    // 6c. Resolve Resident Information
-    const residentProfile = await db.orm.public.ResidentProfile.where({ personId }).all().first();
-    const customerName = session.user.name || 'Resident';
-    const customerPhone = options?.customerPhone || residentProfile?.phone || '';
-    const orderNotes = options?.deliveryNotes || '';
-    
-    const substPref = options?.substitutionPreference || 'call';
-    const substText = substPref === 'call'
+  const substPref = options?.substitutionPreference || 'call';
+  const substText =
+    substPref === 'call'
       ? '📞 Call me to choose replacement'
       : substPref === 'replace'
       ? '🔄 Pick closest replacement'
-      : '❌ Do not replace (refund item)';
+      : '❌ Do not replace (remove item)';
 
-    const shortRef = reference.replace('CC-', 'WA-');
-    const origin = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://cityos.ng');
-    const trackingUrl = `${origin}/orders/${placedOrderId || reference}`;
+  const shortRef = reference.replace('CC-', 'WA-');
+  const origin =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://citios.vercel.app');
+  const trackingUrl = placedOrderId ? `${origin}/orders/${placedOrderId}` : `${origin}/org/${orgId}`;
 
-    const itemsSummary = orgLines.map((l: any) => `• ${l.qty}x ${l.name} (₦${(l.price * l.qty).toLocaleString()})`).join('\n');
+  const itemsSummary = orgLines
+    .map((l) => `• ${l.qty}x ${l.name} (₦${(l.price * l.qty).toLocaleString()})`)
+    .join('\n');
 
-    const messageLines = [
-      `🛍️ *NEW CITYOS ORDER* — #${shortRef}`,
-      `--------------------------------`,
-      `🏬 *Merchant:* ${org?.name || 'Local Merchant'}`,
-      `👤 *Customer:* ${customerName}${customerPhone ? ` (${customerPhone})` : ''}`,
-      orderNotes ? `📝 *Order Notes:* ${orderNotes}` : null,
-      `🔄 *If item unavailable:* ${substText}`,
-      `--------------------------------`,
-      `📦 *ITEMS ORDERED:*`,
-      itemsSummary,
-      `--------------------------------`,
-      `*Total Amount:* ₦${calculatedTotal.toLocaleString()}`,
-      `💳 *Payment Method:* WhatsApp Direct Order`,
-      ``,
-      `🔐 *View Order on CityOS:*`,
-      trackingUrl,
-      `--------------------------------`,
-      `_Sent via CityOS Hyperlocal Commerce_`
-    ].filter(Boolean);
+  const messageLines = [
+    `🛍️ *NEW CITYOS ORDER* — #${shortRef}`,
+    `--------------------------------`,
+    `🏬 *Store:* ${org?.name || 'Local Store'}`,
+    `👤 *Customer:* ${customerName}${customerPhone ? ` (${customerPhone})` : ''}`,
+    orderNotes ? `📝 *Order Notes:* ${orderNotes}` : null,
+    `🔄 *If item unavailable:* ${substText}`,
+    `--------------------------------`,
+    `📦 *ITEMS ORDERED:*`,
+    itemsSummary,
+    `--------------------------------`,
+    `*Total Amount:* ₦${calculatedTotal.toLocaleString()}`,
+    `💬 *Channel:* WhatsApp Direct Order`,
+    ``,
+    placedOrderId ? `🔐 *Order Link:* ${trackingUrl}` : `🔗 *Store Page:* ${trackingUrl}`,
+  ].filter(Boolean);
 
-    const whatsappMessage = messageLines.join('\n');
-    const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(whatsappMessage)}`;
-
-    return {
-      success: true,
-      message: 'Order created for WhatsApp confirmation.',
-      orderId: placedOrderId,
-      reference,
-      whatsappUrl,
-      whatsappMessage
-    };
-  }
-
-  // 7. External Payment: Initialize configured gateway via adapter
-  // Since we enforced that external payments only have EITHER Retail OR Food, the reference matches exactly one Payment created in the vertical action.
-  const provider = (process.env.PAYMENT_PROVIDER || 'PAYSTACK').toUpperCase();
-  const adapter = getPaymentAdapter(provider);
-  
-  const initResult = await adapter.initializePayment({
-    amount: calculatedTotal,
-    currency: 'NGN',
-    reference,
-    email: userEmail,
-    metadata: {
-      customerName: session.user.name || 'Resident'
-    },
-    callbackUrl: process.env.NEXT_PUBLIC_APP_URL 
-      ? `${process.env.NEXT_PUBLIC_APP_URL}/pay/success?reference=${encodeURIComponent(reference)}` 
-      : `http://localhost:3000/pay/success?reference=${encodeURIComponent(reference)}`
-  });
-
-  if (!initResult.success) {
-    return { success: false, errors: ['Payment gateway initialization failed.'] };
-  }
+  const whatsappMessage = messageLines.join('\n');
+  const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(whatsappMessage)}`;
 
   return {
     success: true,
-    requiresPaymentAction: true,
-    authorizationUrl: initResult.authorizationUrl,
-    reference
+    message: 'Order prepared for WhatsApp confirmation.',
+    orderId: placedOrderId,
+    reference,
+    whatsappUrl,
+    whatsappMessage,
   };
+}
+
+export async function createHotelWhatsAppBooking(input: {
+  organizationId: string;
+  roomId: string;
+  guestName: string;
+  guestPhone?: string;
+  checkInDate: string;
+  checkOutDate: string;
+}): Promise<{ success: boolean; whatsappUrl?: string; error?: string }> {
+  const org = await db.orm.public.Organization.where({ id: input.organizationId }).all().first();
+  if (!org) return { success: false, error: 'Hotel not found.' };
+
+  const room = await db.orm.public.HotelRoom.where({ id: input.roomId }).all().first();
+  if (!room || room.organizationId !== org.id) return { success: false, error: 'Room not found.' };
+
+  const inDate = new Date(input.checkInDate);
+  const outDate = new Date(input.checkOutDate);
+  const nights = Math.max(1, Math.ceil((outDate.getTime() - inDate.getTime()) / (1000 * 60 * 60 * 24)));
+  const totalRate = room.baseRate * nights;
+
+  const cleanPhone = await resolveOrgWhatsAppPhone(org.id, room.locationId || undefined);
+
+  const lines = [
+    `🏨 *NEW HOTEL BOOKING REQUEST*`,
+    `--------------------------------`,
+    `🏢 *Hotel:* ${org.name}`,
+    `🛏️ *Room:* ${room.type} Room (Room ${room.roomNumber})`,
+    `👤 *Guest Name:* ${input.guestName}${input.guestPhone ? ` (${input.guestPhone})` : ''}`,
+    `📅 *Check-in:* ${input.checkInDate}`,
+    `📅 *Check-out:* ${input.checkOutDate} (${nights} ${nights === 1 ? 'night' : 'nights'})`,
+    `💰 *Rate:* ₦${room.baseRate.toLocaleString()}/night • *Total:* ₦${totalRate.toLocaleString()}`,
+    `--------------------------------`,
+    `Please confirm availability and payment details on WhatsApp. Thank you!`,
+  ];
+
+  const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(lines.join('\n'))}`;
+  return { success: true, whatsappUrl };
 }
 
 export async function getResidentCheckoutDefaults() {

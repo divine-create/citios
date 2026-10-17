@@ -1,8 +1,26 @@
+/**
+ * WhatsApp integration for CityOS.
+ * Provides WhatsApp Cloud API order notifications (Retail)
+ * and deep link generation for hyperlocal Services (ServiceOS / WhatsApp Direct).
+ */
+
 type WhatsAppOrderItem = {
   name: string;
   quantity: number;
   unitPrice: number;
 };
+
+export function formatWhatsAppNumber(phone?: string | null): string {
+  if (!phone) return '';
+  const digits = phone.replace(/[^0-9]/g, '');
+  if (digits.startsWith('0') && digits.length === 11) {
+    return '234' + digits.slice(1);
+  }
+  if (digits.startsWith('234')) {
+    return digits;
+  }
+  return digits;
+}
 
 function normalizeWhatsAppPhone(phone: string): string | null {
   const digits = phone.replace(/\D/g, '');
@@ -59,4 +77,54 @@ export async function sendWhatsAppOrderNotification(input: {
   }
 
   return { sent: true as const };
+}
+
+export function buildWhatsAppServiceUrl(params: {
+  phone: string;
+  orgName: string;
+  serviceName: string;
+  price: number;
+  date?: string;
+  timeSlot?: string;
+  address?: string;
+  notes?: string;
+}): string {
+  const cleanPhone = formatWhatsAppNumber(params.phone);
+  const lines: string[] = [
+    `👋 Hello ${params.orgName}!`,
+    ``,
+    `I would like to book your service via *CityOS*:`,
+    `🛠️ *Service:* ${params.serviceName}`,
+    `💰 *Fee:* ₦${params.price.toLocaleString()}`,
+  ];
+
+  if (params.date) {
+    lines.push(`📅 *Preferred Date:* ${params.date} (${params.timeSlot || 'Anytime'})`);
+  }
+  if (params.address) {
+    lines.push(`📍 *Service Location:* ${params.address}`);
+  } else {
+    lines.push(`📍 *Location:* Provider's Hub / Workshop`);
+  }
+  if (params.notes) {
+    lines.push(`📝 *Notes/Issues:* ${params.notes}`);
+  }
+
+  lines.push(``);
+  lines.push(`Please confirm your availability and booking details. Thank you!`);
+
+  const text = lines.join('\n');
+  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
+}
+
+export function buildWhatsAppInquiryUrl(params: {
+  phone: string;
+  orgName: string;
+  cityName?: string;
+}): string {
+  const cleanPhone = formatWhatsAppNumber(params.phone);
+  const text = `👋 Hello ${params.orgName}! I found your business on CityOS ${
+    params.cityName ? `(${params.cityName})` : ''
+  } and would like to inquire about your services.`;
+  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
 }

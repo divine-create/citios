@@ -109,50 +109,38 @@ export default function CheckoutView() {
   const handleCheckoutOrg = async (orgId: string, orgTotal: number) => {
     if (processing) return;
     setErrorMsg('');
-    
-    if (method === 'wallet' && walletBalance !== null && walletBalance < orgTotal) {
-      setErrorMsg('Insufficient wallet balance for this merchant. Please fund your wallet or select another payment method.');
-      return;
-    }
-
     setProcessing(orgId);
     
     try {
       const idempotencyKey = `checkout_${orgId}_${Date.now()}`;
-      const res = await processMerchantCheckout(orgId, method, idempotencyKey, undefined, {
+      const orgGroup = groupedLines[orgId];
+      const res = await processMerchantCheckout(orgId, 'whatsapp', idempotencyKey, undefined, {
         customerPhone,
         deliveryAddress,
         deliveryNotes,
         substitutionPreference: substitutionRule,
+        clientItems: (orgGroup?.items || []).map((i: any) => ({
+          productId: i.productId,
+          qty: i.qty,
+          name: i.name,
+          kind: i.kind,
+        })),
       });
       
       if (!res.success) {
-        throw new Error(res.errors?.[0] || res.message || 'Payment failed.');
+        throw new Error(res.errors?.[0] || res.message || 'Order preparation failed.');
       }
 
-      if (method === 'whatsapp' && res.whatsappUrl) {
+      if (res.whatsappUrl) {
         removeOrg(orgId);
         await syncCart();
         window.open(res.whatsappUrl, '_blank');
         if (res.orderId) {
           router.push(`/orders/${res.orderId}`);
         } else {
-          router.push('/orders');
+          router.push(`/org/${orgId}`);
         }
         return;
-      }
-
-      if (res.requiresPaymentAction && res.authorizationUrl) {
-        removeOrg(orgId);
-        window.location.href = res.authorizationUrl; // Redirect to Monnify/Paystack
-      } else {
-        removeOrg(orgId);
-        await syncCart();
-        if (res.orderId) {
-          router.push(`/orders/${res.orderId}`);
-        } else {
-          router.push(`/pay/success?ref=${res.reference || 'internal'}`);
-        }
       }
     } catch (e: any) {
       setErrorMsg(e.message || 'An unexpected error occurred during checkout.');

@@ -5,6 +5,10 @@ import { db } from '@/src/prisma/db'
 import { requireMembership } from '@/lib/actions/tenant'
 import { notifyPerson, personIdForCustomerData } from '@/lib/notify'
 import { inferServiceCategory as inferCategoryUtil } from '@/lib/service-categories'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { revalidatePath } from 'next/cache'
+import { formatWhatsAppNumber } from '@/lib/whatsapp'
 
 function toInstant(date: Date) {
   return (globalThis as any).Temporal.Instant.fromEpochMilliseconds(date.getTime());
@@ -649,29 +653,308 @@ export async function getCityBookableServices(citySlug?: string) {
     const allItems = await db.orm.public.ServiceCatalogItem.where({ isActive: true }).all();
     const items = orgIds.length > 0 ? allItems.filter((i: any) => orgIds.includes(i.organizationId)) : allItems;
 
+    // Collect distinct organization IDs
+    const distinctOrgIds = Array.from(new Set(items.map((i: any) => i.organizationId)));
+
+    // Fetch org names
     const orgMap = new Map<string, string>();
-    for (const it of items) {
-      if (!orgMap.has(it.organizationId)) {
-        const org = await db.orm.public.Organization.where({ id: it.organizationId }).all().first();
-        orgMap.set(it.organizationId, org?.name || 'Local Pro');
+    for (const orgId of distinctOrgIds) {
+      const org = await db.orm.public.Organization.where({ id: orgId }).all().first();
+      orgMap.set(orgId, org?.name || 'Local Pro');
+    }
+
+    // Fetch contact points (phone and whatsapp)
+    const contacts = await db.orm.public.OrganizationContactPoint.all();
+    const contactMap = new Map<string, { phone: string | null; whatsapp: string | null }>();
+    for (const cp of contacts) {
+      if (!contactMap.has(cp.organizationId)) {
+        contactMap.set(cp.organizationId, { phone: null, whatsapp: null });
+      }
+      const entry = contactMap.get(cp.organizationId)!;
+      if (cp.type === 'WHATSAPP' && cp.value) {
+        entry.whatsapp = formatWhatsAppNumber(cp.value);
+      } else if (cp.type === 'PHONE' && cp.value) {
+        entry.phone = cp.value;
+        if (!entry.whatsapp) {
+          entry.whatsapp = formatWhatsAppNumber(cp.value);
+        }
       }
     }
 
-    return items.map((it) => ({
-      id: it.id,
-      name: it.name,
-      description: it.description,
-      price: it.price,
-      durationMinutes: it.durationMinutes,
-      organizationId: it.organizationId,
-      orgName: orgMap.get(it.organizationId) || 'Local Pro',
-      category: inferCategoryUtil(it.name, it.description),
-    }));
+    // Fetch primary locations (address)
+    const locations = await db.orm.public.Location.all();
+    const locationMap = new Map<string, string>();
+    for (const loc of locations) {
+      if (loc.address && !locationMap.has(loc.organizationId)) {
+        locationMap.set(loc.organizationId, loc.address);
+      }
+    }
+
+    // Fetch reviews aggregate
+    const allReviews = await db.orm.public.Review.all();
+    const reviewsMap = new Map<string, { sum: number; count: number }>();
+    for (const rev of allReviews) {
+      if (!reviewsMap.has(rev.organizationId)) {
+        reviewsMap.set(rev.organizationId, { sum: 0, count: 0 });
+      }
+      const entry = reviewsMap.get(rev.organizationId)!;
+      entry.sum += rev.rating;
+      entry.count += 1;
+    }
+
+    // Fetch likes (SavedItem entityType = 'service_org')
+    const allLikes = await db.orm.public.SavedItem.where({ entityType: 'service_org' }).all();
+    const likesMap = new Map<string, number>();
+    for (const lk of allLikes) {
+      likesMap.set(lk.entityId, (likesMap.get(lk.entityId) || 0) + 1);
+    }
+
+    let currentPersonId: string | null = null;
+    try {
+      const session = await getServerSession(authOptions);
+      currentPersonId = session?.user?.personId ?? null;
+    } catch {}
+
+    const userLikedSet = new Set(
+      currentPersonId ? allLikes.filter((l) => l.personId === currentPersonId).map((l) => l.entityId) : []
+    );
+
+    return items.map((it) => {
+      const contact = contactMap.get(it.organizationId);
+      const revStat = reviewsMap.get(it.organizationId);
+      const avgRating = revStat && revStat.count > 0 ? Number((revStat.sum / revStat.count).toFixed(1)) : null;
+      const reviewCount = revStat?.count || 0;
+      const likesCount = likesMap.get(it.organizationId) || 0;
+      const userHasLiked = userLikedSet.has(it.organizationId);
+      const address = locationMap.get(it.organizationId) || null;
+
+      return {
+        id: it.id,
+        name: it.name,
+        description: it.description,
+        price: it.price,
+        durationMinutes: it.durationMinutes,
+        organizationId: it.organizationId,
+        orgName: orgMap.get(it.organizationId) || 'Local Pro',
+        category: inferCategoryUtil(it.name, it.description),
+        phone: contact?.phone || null,
+        whatsapp: contact?.whatsapp || null,
+        address,
+        rating: avgRating,
+        reviewCount,
+        likesCount,
+        userHasLiked,
+      };
+    });
   } catch (error) {
     console.error('Error fetching city bookable services:', error);
     return [];
   }
 }
+
+export async function getOrganizationReviews(organizationId: string) {
+  try {
+    const reviews = await db.orm.public.Review.where({ organizationId }).all();
+
+    const sorted = reviews.sort((a, b) => {
+      const tA = (a.createdAt as any)?.getTime ? (a.createdAt as any).getTime() : 0;
+      const tB = (b.createdAt as any)?.getTime ? (b.createdAt as any).getTime() : 0;
+      return tB - tA;
+    });
+
+    const personMap = new Map<string, { firstName: string; lastName: string }>();
+    for (const r of sorted) {
+      if (!personMap.has(r.personId)) {
+        const person = await db.orm.public.Person.where({ id: r.personId }).all().first();
+        if (person) {
+          personMap.set(r.personId, {
+            firstName: person.firstName || 'Resident',
+            lastName: person.lastName || '',
+          });
+        }
+      }
+    }
+
+    const totalReviews = sorted.length;
+    const sumRatings = sorted.reduce((acc, r) => acc + r.rating, 0);
+    const averageRating = totalReviews > 0 ? Number((sumRatings / totalReviews).toFixed(1)) : null;
+
+    return {
+      success: true,
+      averageRating,
+      totalReviews,
+      reviews: sorted.map((r) => {
+        const p = personMap.get(r.personId);
+        const authorName = p ? `${p.firstName} ${p.lastName ? p.lastName[0] + '.' : ''}`.trim() : 'Verified Resident';
+        return {
+          id: r.id,
+          organizationId: r.organizationId,
+          personId: r.personId,
+          rating: r.rating,
+          body: r.body,
+          authorName,
+          createdAt: (r.createdAt as any)?.toISOString ? (r.createdAt as any).toISOString() : String(r.createdAt),
+        };
+      }),
+    };
+  } catch (error: any) {
+    console.error('Error fetching organization reviews:', error);
+    return { success: false, reviews: [], averageRating: null, totalReviews: 0 };
+  }
+}
+
+export async function submitOrganizationReview(input: {
+  organizationId: string;
+  rating: number;
+  body?: string;
+}) {
+  let session: any = null;
+  try {
+    session = await getServerSession(authOptions);
+  } catch {
+    session = null;
+  }
+  if (!session?.user?.personId) {
+    return {
+      success: false,
+      requiresAuth: true,
+      error: 'Please sign in to submit a review.',
+    };
+  }
+
+  try {
+    const personId = session.user.personId as string;
+    const rating = Math.min(5, Math.max(1, Math.round(Number(input.rating))));
+    const body = (input.body || '').trim();
+
+    // Verify organization exists
+    const org = await db.orm.public.Organization.where({ id: input.organizationId }).all().first();
+    if (!org) {
+      return { success: false, error: 'Organization not found.' };
+    }
+
+    // Upsert review (Review has @@unique([personId, organizationId]))
+    const existing = await db.orm.public.Review.where({
+      personId,
+      organizationId: input.organizationId,
+    }).all().first();
+
+    let review;
+    if (existing) {
+      review = await db.orm.public.Review.where({ id: existing.id }).update({
+        rating,
+        body: body || null,
+      });
+    } else {
+      review = await db.orm.public.Review.create({
+        organizationId: input.organizationId,
+        personId,
+        rating,
+        body: body || null,
+      });
+    }
+
+    try {
+      revalidatePath('/services');
+      revalidatePath(`/org/${input.organizationId}`);
+    } catch {}
+
+    return {
+      success: true,
+      review: JSON.parse(JSON.stringify(review)),
+    };
+  } catch (error: any) {
+    console.error('Error submitting review:', error);
+    return { success: false, error: error.message || 'Failed to submit review.' };
+  }
+}
+
+export async function toggleOrganizationLike(organizationId: string) {
+  let session: any = null;
+  try {
+    session = await getServerSession(authOptions);
+  } catch {
+    session = null;
+  }
+  if (!session?.user?.personId) {
+    return {
+      success: false,
+      requiresAuth: true,
+      error: 'Please sign in to like this provider.',
+    };
+  }
+
+  try {
+    const personId = session.user.personId as string;
+    const existing = await db.orm.public.SavedItem.where({
+      personId,
+      entityType: 'service_org',
+      entityId: organizationId,
+    }).all().first();
+
+    let liked = false;
+    if (existing) {
+      await db.orm.public.SavedItem.where({ id: existing.id }).delete();
+      liked = false;
+    } else {
+      await db.orm.public.SavedItem.create({
+        personId,
+        entityType: 'service_org',
+        entityId: organizationId,
+      });
+      liked = true;
+    }
+
+    const totalLikes = await db.orm.public.SavedItem.where({
+      entityType: 'service_org',
+      entityId: organizationId,
+    }).all();
+
+    try {
+      revalidatePath('/services');
+    } catch {}
+
+    return {
+      success: true,
+      liked,
+      likesCount: totalLikes.length,
+    };
+  } catch (error: any) {
+    console.error('Error toggling organization like:', error);
+    return { success: false, error: error.message || 'Failed to update like.' };
+  }
+}
+
+export async function getOrganizationSocialData(organizationId: string) {
+  try {
+    const [reviews, likes] = await Promise.all([
+      db.orm.public.Review.where({ organizationId }).all(),
+      db.orm.public.SavedItem.where({ entityType: 'service_org', entityId: organizationId }).all(),
+    ]);
+
+    let currentPersonId: string | null = null;
+    try {
+      const session = await getServerSession(authOptions);
+      currentPersonId = session?.user?.personId ?? null;
+    } catch {}
+
+    const totalReviews = reviews.length;
+    const sumRatings = reviews.reduce((acc, r) => acc + r.rating, 0);
+    const averageRating = totalReviews > 0 ? Number((sumRatings / totalReviews).toFixed(1)) : null;
+    const userHasLiked = currentPersonId ? likes.some((l) => l.personId === currentPersonId) : false;
+
+    return {
+      averageRating,
+      reviewCount: totalReviews,
+      likesCount: likes.length,
+      userHasLiked,
+    };
+  } catch (error) {
+    console.error('Error fetching organization social data:', error);
+    return { averageRating: null, reviewCount: 0, likesCount: 0, userHasLiked: false };
+  }
+}
+
 
 
 

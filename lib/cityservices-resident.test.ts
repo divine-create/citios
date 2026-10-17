@@ -52,6 +52,11 @@ test('CityServices Resident Discovery and Booking Suite', async (t) => {
       assert.ok(first.organizationId, 'Service item should have an organizationId');
       assert.ok(first.orgName, 'Service item should have orgName');
       assert.ok(first.category, 'Service item should have an assigned category');
+      assert.ok('whatsapp' in first, 'Service item should include whatsapp property');
+      assert.ok('phone' in first, 'Service item should include phone property');
+      assert.ok('reviewCount' in first, 'Service item should include reviewCount');
+      assert.ok('likesCount' in first, 'Service item should include likesCount');
+      assert.ok('userHasLiked' in first, 'Service item should include userHasLiked');
     }
   });
 
@@ -80,4 +85,25 @@ test('CityServices Resident Discovery and Booking Suite', async (t) => {
     assert.equal(res.success, false, 'Empty call should fail');
     assert.ok(res.error, 'Should return validation error');
   });
+
+  await t.test('5. Service reviews and likes require authentication', async () => {
+    const { submitOrganizationReview, toggleOrganizationLike, getOrganizationReviews } = await import('@/lib/actions/service');
+
+    const revRes = await submitOrganizationReview({
+      organizationId: 'dummy-org-id',
+      rating: 5,
+      body: 'Excellent and timely work!',
+    });
+    assert.equal(revRes.success, false, 'Anonymous review submission must fail');
+    assert.equal(revRes.requiresAuth, true, 'Should flag requiresAuth: true');
+
+    const likeRes = await toggleOrganizationLike('dummy-org-id');
+    assert.equal(likeRes.success, false, 'Anonymous like toggle must fail');
+    assert.equal(likeRes.requiresAuth, true, 'Should flag requiresAuth: true');
+
+    const publicReviews = await getOrganizationReviews('dummy-org-id');
+    assert.equal(publicReviews.success, true, 'Public review fetching should succeed gracefully');
+    assert.ok(Array.isArray(publicReviews.reviews), 'Should return reviews array');
+  });
 });
+

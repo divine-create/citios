@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  ShoppingCart,
   ArrowLeft,
   Loader2,
   CalendarClock,
@@ -16,11 +15,29 @@ import {
   X,
   ShieldCheck,
   ArrowRight,
+  Star,
+  Heart,
+  MessageSquare,
+  Send,
 } from 'lucide-react';
 import { useMoney } from '@/components/cityos/CityProvider';
 import { FallbackImg, PriceTag } from '@/components/cityos/CityUI';
-import { useCart } from '@/components/cityos/CartStore';
-import { getCityServiceItem, bookResidentService } from '@/app/actions/service';
+import {
+  getCityServiceItem,
+  bookResidentService,
+  getOrganizationReviews,
+  submitOrganizationReview,
+  toggleOrganizationLike,
+} from '@/app/actions/service';
+import { buildWhatsAppServiceUrl, buildWhatsAppInquiryUrl } from '@/lib/whatsapp';
+
+function WhatsAppIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+    </svg>
+  );
+}
 
 const TIME_SLOTS = [
   '08:00', '09:00', '10:00', '11:00',
@@ -28,20 +45,29 @@ const TIME_SLOTS = [
   '16:00', '17:00'
 ];
 
+interface ReviewItem {
+  id: string;
+  rating: number;
+  body: string | null;
+  authorName: string;
+  createdAt: string;
+}
+
 export default function ServiceDetail({ id }: { id: string }) {
   const { fmt } = useMoney();
   const router = useRouter();
   const [s, setS] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  
-  const { add } = useCart();
-  const [added, setAdded] = useState(false);
 
-  // Booking Modal State
+  // Like state
+  const [liked, setLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(0);
+
+  // Booking Modal State (WhatsApp Direct)
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [bookingDate, setBookingDate] = useState(() => {
     const d = new Date();
-    d.setDate(d.getDate() + 1); // default to tomorrow
+    d.setDate(d.getDate() + 1);
     return d.toISOString().split('T')[0];
   });
   const [bookingTime, setBookingTime] = useState('09:00');
@@ -49,12 +75,32 @@ export default function ServiceDetail({ id }: { id: string }) {
   const [bookingNotes, setBookingNotes] = useState('');
   const [bookingSubmitting, setBookingSubmitting] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
-  const [bookingSuccessJobId, setBookingSuccessJobId] = useState<string | null>(null);
+  const [bookingSuccessWaUrl, setBookingSuccessWaUrl] = useState<string | null>(null);
+
+  // Reviews Modal State
+  const [showReviewsModal, setShowReviewsModal] = useState(false);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewsList, setReviewsList] = useState<ReviewItem[]>([]);
+  const [reviewsAvgRating, setReviewsAvgRating] = useState<number | null>(null);
+  const [reviewsTotal, setReviewsTotal] = useState(0);
+
+  // Review Form inside modal
+  const [myRating, setMyRating] = useState(5);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [myComment, setMyComment] = useState('');
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewFormError, setReviewFormError] = useState<string | null>(null);
+  const [reviewSuccessMsg, setReviewSuccessMsg] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
       const prod = await getCityServiceItem(id);
       setS(prod);
+      if (prod) {
+        setLiked(Boolean(prod.userHasLiked));
+        setLikesCount(prod.likesCount || 0);
+        if (prod.address) setBookingAddress(prod.address);
+      }
       setLoading(false);
     }
     load();
@@ -80,19 +126,91 @@ export default function ServiceDetail({ id }: { id: string }) {
     );
   }
 
-  const handleAdd = () => {
-    add({
-      productId: s.id,
-      qty: 1,
-      name: s.name,
-      price: s.price,
-      image: s.imageAssetId,
-      orgId: s.organizationId,
-      orgName: s.organization?.name || 'Unknown',
-      kind: 'service' as any
-    });
-    setAdded(true);
-    setTimeout(() => setAdded(false), 2000);
+  const handleToggleLike = async () => {
+    const nextLiked = !liked;
+    const nextCount = nextLiked ? likesCount + 1 : Math.max(0, likesCount - 1);
+    setLiked(nextLiked);
+    setLikesCount(nextCount);
+
+    try {
+      const res = await toggleOrganizationLike(s.organizationId);
+      if (!res.success) {
+        if (res.requiresAuth) {
+          router.push(`/login?callbackUrl=/service/${id}`);
+          return;
+        }
+        setLiked(liked);
+        setLikesCount(likesCount);
+      } else {
+        setLiked(Boolean(res.liked));
+        if (typeof res.likesCount === 'number') {
+          setLikesCount(res.likesCount);
+        }
+      }
+    } catch {
+      setLiked(liked);
+      setLikesCount(likesCount);
+    }
+  };
+
+  const handleOpenReviews = async () => {
+    setShowReviewsModal(true);
+    setReviewsLoading(true);
+    setReviewFormError(null);
+    setReviewSuccessMsg(null);
+    setMyComment('');
+    setMyRating(5);
+
+    try {
+      const res = await getOrganizationReviews(s.organizationId);
+      if (res.success) {
+        setReviewsList(res.reviews || []);
+        setReviewsAvgRating(res.averageRating);
+        setReviewsTotal(res.totalReviews);
+      }
+    } catch (err) {
+      console.error('Error fetching reviews:', err);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setReviewSubmitting(true);
+    setReviewFormError(null);
+    setReviewSuccessMsg(null);
+
+    try {
+      const res = await submitOrganizationReview({
+        organizationId: s.organizationId,
+        rating: myRating,
+        body: myComment.trim() || undefined,
+      });
+
+      if (!res.success) {
+        if (res.requiresAuth) {
+          router.push(`/login?callbackUrl=/service/${id}`);
+          return;
+        }
+        setReviewFormError(res.error || 'Failed to submit review.');
+        return;
+      }
+
+      setReviewSuccessMsg('Your review has been submitted successfully!');
+      setMyComment('');
+
+      const updated = await getOrganizationReviews(s.organizationId);
+      if (updated.success) {
+        setReviewsList(updated.reviews || []);
+        setReviewsAvgRating(updated.averageRating);
+        setReviewsTotal(updated.totalReviews);
+      }
+    } catch (err: any) {
+      setReviewFormError(err.message || 'Error submitting review.');
+    } finally {
+      setReviewSubmitting(false);
+    }
   };
 
   const handleBookSubmit = async (e: React.FormEvent) => {
@@ -100,41 +218,59 @@ export default function ServiceDetail({ id }: { id: string }) {
     setBookingSubmitting(true);
     setBookingError(null);
 
+    const targetPhone = s.whatsapp || s.phone || '2348112417171';
+    const waUrl = buildWhatsAppServiceUrl({
+      phone: targetPhone,
+      orgName: s.organization?.name || 'Local Pro',
+      serviceName: s.name,
+      price: s.price,
+      date: bookingDate,
+      timeSlot: bookingTime,
+      address: bookingAddress.trim() || undefined,
+      notes: bookingNotes.trim() || undefined,
+    });
+
     try {
-      const res = await bookResidentService({
+      await bookResidentService({
         serviceId: s.id,
         date: bookingDate,
         timeSlot: bookingTime,
-        address: bookingAddress,
-        notes: bookingNotes,
+        address: bookingAddress.trim() || undefined,
+        notes: bookingNotes.trim() ? `${bookingNotes.trim()} [Via WhatsApp]` : 'Service booking routed and completed via WhatsApp.',
       });
+    } catch {
+      // Non-blocking
+    }
 
-      if (res.requiresAuth) {
-        const callback = encodeURIComponent(window.location.pathname);
-        router.push(`/login?callbackUrl=${callback}`);
-        return;
-      }
+    setBookingSubmitting(false);
+    setBookingSuccessWaUrl(waUrl);
 
-      if (!res.success) {
-        setBookingError(res.error || 'Failed to submit booking request.');
-        return;
-      }
+    if (typeof window !== 'undefined') {
+      window.open(waUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
 
-      setBookingSuccessJobId(res.jobId || 'created');
-    } catch (err: any) {
-      setBookingError(err.message || 'An unexpected error occurred. Please try again.');
-    } finally {
-      setBookingSubmitting(false);
+  const handleQuickWhatsApp = () => {
+    const targetPhone = s.whatsapp || s.phone || '2348112417171';
+    const waUrl = buildWhatsAppServiceUrl({
+      phone: targetPhone,
+      orgName: s.organization?.name || 'Local Pro',
+      serviceName: s.name,
+      price: s.price,
+    });
+    if (typeof window !== 'undefined') {
+      window.open(waUrl, '_blank', 'noopener,noreferrer');
     }
   };
 
   const todayStr = new Date().toISOString().split('T')[0];
+  const displayRating = s.rating !== null && s.rating !== undefined ? s.rating : 5.0;
 
   return (
-    <div className="max-w-2xl mx-auto animate-in fade-in duration-500 pb-20">
+    <div className="max-w-2xl mx-auto animate-in fade-in duration-500 pb-20 px-2 sm:px-0">
       <div className="mb-4">
         <button onClick={() => router.back()} className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-teal-800 transition-colors">
-          <ArrowLeft className="w-3.5 h-3.5" /> Back
+          <ArrowLeft className="w-3.5 h-3.5" /> Back to Services
         </button>
       </div>
       
@@ -152,10 +288,47 @@ export default function ServiceDetail({ id }: { id: string }) {
         )}
         
         <div className="p-6 sm:p-8">
-          <Link href={`/org/${s.organization?.slug || s.organizationId}`} className="inline-flex items-center gap-1.5 opacity-80 hover:opacity-100 transition-opacity">
-            <span className="text-[11px] font-black tracking-wide uppercase text-teal-800 bg-teal-50 px-2 py-1 rounded-md">{s.organization?.name}</span>
-          </Link>
-          <h1 className="text-2xl font-black text-ink mt-3 leading-tight">{s.name}</h1>
+          {/* Provider badge, rating & like button */}
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <Link href={`/org/${s.organization?.slug || s.organizationId}`} className="inline-flex items-center gap-1.5 opacity-90 hover:opacity-100 transition-opacity">
+              <span className="text-[11px] font-black tracking-wide uppercase text-teal-800 bg-teal-50 px-2.5 py-1 rounded-md">
+                {s.organization?.name}
+              </span>
+            </Link>
+
+            <div className="flex items-center gap-2">
+              {/* Rating Trigger */}
+              <button
+                type="button"
+                onClick={handleOpenReviews}
+                className="inline-flex items-center gap-1 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded-lg transition-colors border border-amber-200/60"
+              >
+                <Star size={12} className="fill-amber-400 text-amber-500" />
+                <span>{displayRating.toFixed(1)}</span>
+                <span className="text-amber-600/70">
+                  ({(s.reviewCount || 0) > 0 ? `${s.reviewCount}` : 'Reviews'})
+                </span>
+              </button>
+
+              {/* Like Button */}
+              <button
+                type="button"
+                onClick={handleToggleLike}
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                  liked
+                    ? 'bg-rose-50 text-rose-600 border border-rose-200'
+                    : 'bg-slate-50 text-slate-500 hover:bg-rose-50 hover:text-rose-600 border border-slate-100'
+                }`}
+                title={liked ? 'Unlike provider' : 'Like provider'}
+              >
+                <Heart size={13} className={liked ? 'fill-rose-500 text-rose-500' : 'text-slate-400'} />
+                <span>{likesCount}</span>
+              </button>
+            </div>
+          </div>
+
+          <h1 className="text-2xl font-black text-ink mt-2 leading-tight">{s.name}</h1>
+          
           <div className="flex items-center gap-3 mt-4">
             <PriceTag amount={s.price} />
             {s.durationMinutes && (
@@ -163,55 +336,76 @@ export default function ServiceDetail({ id }: { id: string }) {
                 <CalendarClock className="w-3.5 h-3.5" /> {s.durationMinutes} min
               </span>
             )}
+            <span className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/60 px-2.5 py-1 rounded-lg flex items-center gap-1">
+              <WhatsAppIcon className="w-3 h-3 text-emerald-600" /> WhatsApp Direct
+            </span>
           </div>
-          <p className="text-sm text-slate-600 font-medium leading-relaxed mt-6">
-            {s.description || 'No description provided for this service.'}
+
+          <p className="text-sm text-slate-600 font-medium leading-relaxed mt-5">
+            {s.description || 'Verified local service pro in Calabar with guaranteed satisfaction and upfront pricing.'}
           </p>
 
-          <div className="mt-8 pt-6 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {s.address && (
+            <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-3">
+              <MapPin size={13} className="text-slate-400 shrink-0" />
+              <span>{s.address}</span>
+            </p>
+          )}
+
+          <div className="mt-7 pt-5 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50/70 border border-slate-100">
               <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
               <div>
                 <p className="text-xs font-bold text-slate-800">Verified City Pro</p>
-                <p className="text-[11px] text-slate-500">Service backed by licensed provider</p>
+                <p className="text-[11px] text-slate-500">Service backed by licensed provider in Calabar</p>
               </div>
             </div>
             <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50/70 border border-slate-100">
               <Clock className="w-4 h-4 text-teal-700 shrink-0 mt-0.5" />
               <div>
-                <p className="text-xs font-bold text-slate-800">Prompt Scheduling</p>
-                <p className="text-[11px] text-slate-500">Direct booking with guaranteed time slots</p>
+                <p className="text-xs font-bold text-slate-800">WhatsApp Instant Routing</p>
+                <p className="text-[11px] text-slate-500">Confirm date & slot directly on WhatsApp with provider</p>
               </div>
             </div>
           </div>
         </div>
         
+        {/* Actions Bar */}
         <div className="p-6 sm:p-8 bg-slate-50/50 border-t border-slate-100 flex flex-col sm:flex-row gap-3">
           <button
             onClick={() => setShowBookingModal(true)}
-            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-teal-800 text-white text-sm font-black hover:bg-teal-900 transition-colors shadow-sm shadow-teal-900/10 cursor-pointer"
+            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-emerald-600 text-white text-sm font-black hover:bg-emerald-700 transition-colors shadow-sm shadow-emerald-900/10 cursor-pointer"
           >
-            <Calendar className="w-4 h-4" />
-            Book Appointment
+            <WhatsAppIcon className="w-4 h-4" />
+            Book on WhatsApp
           </button>
+          
           <button
-            onClick={handleAdd}
-            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-white border border-slate-200 text-slate-800 text-sm font-black hover:bg-slate-50 transition-colors shadow-xs cursor-pointer"
+            onClick={handleQuickWhatsApp}
+            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-white border border-slate-200 text-slate-800 text-sm font-bold hover:bg-slate-50 transition-colors shadow-xs cursor-pointer"
           >
-            <ShoppingCart className="w-4 h-4 text-slate-500" />
-            {added ? 'Added to bag!' : 'Add to cart'}
+            <WhatsAppIcon className="w-4 h-4 text-emerald-600" />
+            Quick Chat
+          </button>
+
+          <button
+            onClick={handleOpenReviews}
+            className="px-4 py-3.5 rounded-xl bg-white border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50 transition-colors flex items-center justify-center gap-1.5 shadow-xs"
+          >
+            <MessageSquare className="w-4 h-4 text-slate-500" />
+            Reviews
           </button>
         </div>
       </div>
 
-      {/* Direct Booking Modal */}
+      {/* Direct WhatsApp Booking Modal */}
       {showBookingModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-100 p-6 sm:p-8 relative">
             <button
               onClick={() => {
                 setShowBookingModal(false);
-                setBookingSuccessJobId(null);
+                setBookingSuccessWaUrl(null);
                 setBookingError(null);
               }}
               className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
@@ -219,21 +413,21 @@ export default function ServiceDetail({ id }: { id: string }) {
               <X className="w-5 h-5" />
             </button>
 
-            {bookingSuccessJobId ? (
+            {bookingSuccessWaUrl ? (
               <div className="text-center py-6">
                 <div className="w-14 h-14 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle2 className="w-8 h-8" />
+                  <WhatsAppIcon className="w-8 h-8" />
                 </div>
                 <h3 className="text-xl font-black text-slate-900 mb-2">
-                  Appointment Requested!
+                  Directing to WhatsApp!
                 </h3>
                 <p className="text-sm text-slate-600 mb-6 max-w-sm mx-auto leading-relaxed">
                   Your appointment for <span className="font-bold text-slate-900">{s.name}</span> has been dispatched to{' '}
-                  <span className="font-bold text-slate-900">{s.organization?.name}</span>. The provider will confirm your booking shortly.
+                  <span className="font-bold text-slate-900">{s.organization?.name}</span> via WhatsApp.
                 </p>
                 <div className="p-4 bg-slate-50 rounded-xl text-left text-xs space-y-2 mb-6 border border-slate-100">
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Date & Time:</span>
+                    <span className="text-slate-500">Date & Slot:</span>
                     <span className="font-bold text-slate-800">{bookingDate} at {bookingTime}</span>
                   </div>
                   <div className="flex justify-between">
@@ -253,28 +447,28 @@ export default function ServiceDetail({ id }: { id: string }) {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3">
+                  <a
+                    href={bookingSuccessWaUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm text-center transition-colors inline-flex items-center justify-center gap-1.5"
+                  >
+                    <WhatsAppIcon className="w-4 h-4" /> Open WhatsApp
+                  </a>
                   <Link
                     href="/tasks"
-                    className="flex-1 py-3 px-4 bg-teal-800 hover:bg-teal-900 text-white rounded-xl font-bold text-sm text-center transition-colors inline-flex items-center justify-center gap-1.5"
+                    className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-sm text-center transition-colors inline-flex items-center justify-center gap-1.5"
                   >
                     View in Tasks <ArrowRight className="w-4 h-4" />
                   </Link>
-                  <button
-                    onClick={() => {
-                      setShowBookingModal(false);
-                      setBookingSuccessJobId(null);
-                    }}
-                    className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-sm text-center transition-colors"
-                  >
-                    Close
-                  </button>
                 </div>
               </div>
             ) : (
               <form onSubmit={handleBookSubmit}>
                 <div className="mb-6">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-teal-700 bg-teal-50 px-2.5 py-1 rounded-md">
-                    Direct Booking
+                  <span className="text-[11px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-200/60 px-2.5 py-1 rounded-md inline-flex items-center gap-1">
+                    <WhatsAppIcon className="w-3 h-3 text-emerald-600" />
+                    Direct WhatsApp Booking
                   </span>
                   <h2 className="text-xl font-black text-slate-900 mt-2">
                     Book {s.name}
@@ -320,7 +514,7 @@ export default function ServiceDetail({ id }: { id: string }) {
                           onClick={() => setBookingTime(slot)}
                           className={`py-2 px-1 text-xs font-bold rounded-lg border transition-all text-center ${
                             bookingTime === slot
-                              ? 'bg-teal-800 text-white border-teal-800 shadow-xs'
+                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
                               : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
                           }`}
                         >
@@ -342,7 +536,6 @@ export default function ServiceDetail({ id }: { id: string }) {
                         placeholder="e.g. 14 Marian Road, Calabar"
                         value={bookingAddress}
                         onChange={(e) => setBookingAddress(e.target.value)}
-                        required
                         className="w-full pl-9 pr-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-teal-700"
                       />
                     </div>
@@ -362,13 +555,18 @@ export default function ServiceDetail({ id }: { id: string }) {
                     />
                   </div>
 
-                  {/* Payment Policy Note */}
-                  <div className="p-3 bg-teal-50/70 border border-teal-100 rounded-xl text-teal-900 text-xs flex items-center justify-between">
+                  {/* WhatsApp Policy Note */}
+                  <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl text-emerald-900 text-xs flex items-center justify-between">
                     <div>
-                      <span className="font-bold block">Inspection-First Policy</span>
-                      <span className="text-[11px] text-teal-700">Pay {fmt(s.price)} upon satisfactory job completion via Transfer or Cash.</span>
+                      <span className="font-bold block flex items-center gap-1">
+                        <WhatsAppIcon className="w-3.5 h-3.5 text-emerald-600" />
+                        Inspection-First Policy on WhatsApp
+                      </span>
+                      <span className="text-[11px] text-emerald-700">
+                        Chat directly on WhatsApp to finalize appointment. Pay {fmt(s.price)} upon satisfactory job completion.
+                      </span>
                     </div>
-                    <ShieldCheck className="w-4 h-4 text-teal-700 shrink-0" />
+                    <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0 ml-2" />
                   </div>
                 </div>
 
@@ -380,20 +578,207 @@ export default function ServiceDetail({ id }: { id: string }) {
                   <button
                     type="submit"
                     disabled={bookingSubmitting}
-                    className="py-3 px-6 bg-teal-800 hover:bg-teal-900 disabled:opacity-50 text-white rounded-xl font-bold text-sm transition-colors flex items-center gap-2 shadow-sm shadow-teal-900/10 cursor-pointer"
+                    className="py-3 px-6 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl font-bold text-sm transition-colors flex items-center gap-2 shadow-sm shadow-emerald-900/10 cursor-pointer"
                   >
                     {bookingSubmitting ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        Booking...
+                        Connecting...
                       </>
                     ) : (
-                      <>Confirm Booking</>
+                      <>
+                        <WhatsAppIcon className="w-4 h-4" />
+                        Complete on WhatsApp
+                      </>
                     )}
                   </button>
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Reviews Modal */}
+      {showReviewsModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] flex flex-col p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95">
+            <div className="flex justify-between items-start pb-4 border-b border-slate-100">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-teal-800 bg-teal-50 px-2 py-0.5 rounded">
+                  Verified Reviews & Ratings
+                </span>
+                <h3 className="text-lg font-black text-slate-900 mt-1">
+                  {s.organization?.name}
+                </h3>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="flex items-center gap-1 text-amber-500">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        size={14}
+                        className={
+                          reviewsAvgRating && star <= Math.round(reviewsAvgRating)
+                            ? 'fill-amber-400 text-amber-500'
+                            : 'text-slate-200'
+                        }
+                      />
+                    ))}
+                  </div>
+                  <span className="text-xs font-bold text-slate-700">
+                    {reviewsAvgRating !== null ? reviewsAvgRating.toFixed(1) : '5.0'}
+                  </span>
+                  <span className="text-xs text-slate-400">
+                    ({reviewsTotal} {reviewsTotal === 1 ? 'review' : 'reviews'})
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowReviewsModal(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 py-4 space-y-5 pr-1">
+              <div className="p-4 bg-slate-50/70 border border-slate-200/70 rounded-xl space-y-3">
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">
+                  Rate & Review this Provider
+                </h4>
+
+                {reviewFormError && (
+                  <div className="p-2.5 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs flex items-center gap-1.5">
+                    <AlertCircle size={13} />
+                    {reviewFormError}
+                  </div>
+                )}
+
+                {reviewSuccessMsg && (
+                  <div className="p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg text-xs flex items-center gap-1.5">
+                    <CheckCircle2 size={13} />
+                    {reviewSuccessMsg}
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmitReview} className="space-y-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                      Your Rating (1 to 5 Stars)
+                    </label>
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onMouseEnter={() => setHoverRating(star)}
+                          onMouseLeave={() => setHoverRating(0)}
+                          onClick={() => setMyRating(star)}
+                          className="p-1 transition-transform hover:scale-110"
+                        >
+                          <Star
+                            size={20}
+                            className={
+                              (hoverRating || myRating) >= star
+                                ? 'fill-amber-400 text-amber-500'
+                                : 'text-slate-300'
+                            }
+                          />
+                        </button>
+                      ))}
+                      <span className="ml-2 text-xs font-bold text-slate-600">
+                        {hoverRating || myRating} / 5
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <textarea
+                      rows={2}
+                      value={myComment}
+                      onChange={(e) => setMyComment(e.target.value)}
+                      placeholder="Share your experience (punctuality, skill quality, pricing, communication)..."
+                      className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-teal-700/20 focus:border-teal-700"
+                    />
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={reviewSubmitting}
+                      className="px-4 py-2 bg-teal-800 hover:bg-teal-900 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shadow-xs"
+                    >
+                      {reviewSubmitting ? (
+                        <>
+                          <Loader2 size={12} className="animate-spin" /> Submitting...
+                        </>
+                      ) : (
+                        <>
+                          <Send size={12} /> Post Review
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">
+                  Customer Reviews ({reviewsList.length})
+                </h4>
+
+                {reviewsLoading ? (
+                  <div className="py-8 text-center text-slate-400 flex items-center justify-center gap-2 text-xs">
+                    <Loader2 size={16} className="animate-spin" /> Loading reviews...
+                  </div>
+                ) : reviewsList.length === 0 ? (
+                  <div className="p-6 text-center rounded-xl border border-dashed border-slate-200 text-slate-400">
+                    <p className="text-xs font-semibold">No reviews yet for this provider.</p>
+                    <p className="text-[11px] mt-0.5">Be the first verified resident in Calabar to leave feedback!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {reviewsList.map((rev) => (
+                      <div key={rev.id} className="p-3.5 bg-white rounded-xl border border-slate-100 shadow-2xs space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-800">{rev.authorName}</span>
+                          <div className="flex items-center gap-0.5 text-amber-500">
+                            {[1, 2, 3, 4, 5].map((st) => (
+                              <Star
+                                key={st}
+                                size={11}
+                                className={st <= rev.rating ? 'fill-amber-400 text-amber-500' : 'text-slate-200'}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                        {rev.body && (
+                          <p className="text-xs text-slate-600 leading-relaxed">{rev.body}</p>
+                        )}
+                        <div className="text-[10px] text-slate-400">
+                          {new Date(rev.createdAt).toLocaleDateString(undefined, {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowReviewsModal(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
