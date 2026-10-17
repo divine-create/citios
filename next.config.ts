@@ -29,6 +29,18 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'cdni.iconscout.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'unicons.iconscout.com',
+        port: '',
+        pathname: '/**',
+      },
     ],
   },
   output: 'standalone',

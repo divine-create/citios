@@ -646,6 +646,167 @@ export default function RealisticIcon({
     );
   }
 
+  // 19b. Service Category: Trades & Repair (Crossed Hammer & Adjustable Wrench)
+  if (key === 'trades-repair' || key === 'trades' || key === 'repair' || key === 'plumbing') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn('select-none drop-shadow-sm', className)}>
+        <defs>
+          <linearGradient id="tr_hammer_head" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#94A3B8" />
+            <stop offset="50%" stopColor="#475569" />
+            <stop offset="100%" stopColor="#1E293B" />
+          </linearGradient>
+          <linearGradient id="tr_handle" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#F59E0B" />
+            <stop offset="100%" stopColor="#B45309" />
+          </linearGradient>
+          <linearGradient id="tr_wrench_chrome" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#FFFFFF" />
+            <stop offset="40%" stopColor="#CBD5E1" />
+            <stop offset="100%" stopColor="#64748B" />
+          </linearGradient>
+        </defs>
+        <ellipse cx="32" cy="56" rx="18" ry="3.5" fill="#000000" fillOpacity="0.14" />
+        {/* Hammer Handle & Head */}
+        <path d="M20 50L44 26" stroke="url(#tr_handle)" strokeWidth="5" strokeLinecap="round" />
+        <rect x="36" y="16" width="16" height="8" rx="2" fill="url(#tr_hammer_head)" transform="rotate(-45 44 20)" />
+        {/* Chrome Wrench Crossed */}
+        <path d="M44 50L20 26" stroke="url(#tr_wrench_chrome)" strokeWidth="4.5" strokeLinecap="round" />
+        <circle cx="20" cy="26" r="5" stroke="url(#tr_wrench_chrome)" strokeWidth="3" fill="none" />
+      </svg>
+    );
+  }
+
+  // 19c. Service Category: Home & Cleaning (Spray Bottle & Bubbles)
+  if (key === 'home-cleaning' || key === 'cleaning' || key === 'laundry') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn('select-none drop-shadow-sm', className)}>
+        <defs>
+          <linearGradient id="hc_bottle" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#06B6D4" />
+            <stop offset="100%" stopColor="#0891B2" />
+          </linearGradient>
+          <linearGradient id="hc_liquid" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#22D3EE" />
+            <stop offset="100%" stopColor="#0284C7" />
+          </linearGradient>
+          <radialGradient id="hc_bubble" cx="30%" cy="30%" r="70%">
+            <stop offset="0%" stopColor="#E0F2FE" />
+            <stop offset="70%" stopColor="#BAE6FD" />
+            <stop offset="100%" stopColor="#38BDF8" />
+          </radialGradient>
+        </defs>
+        <ellipse cx="28" cy="56" rx="16" ry="3.5" fill="#000000" fillOpacity="0.14" />
+        {/* Spray Bottle Body */}
+        <path d="M22 28L20 50H36L34 28H22Z" fill="url(#hc_bottle)" rx="3" />
+        <path d="M21 36L20 50H36L35 36H21Z" fill="url(#hc_liquid)" />
+        {/* Nozzle & Trigger */}
+        <rect x="25" y="22" width="6" height="6" fill="#E2E8F0" />
+        <path d="M23 18H35L33 22H25L23 18Z" fill="#0284C7" />
+        <path d="M21 24C21 21 23 20 25 20H20" stroke="#0284C7" strokeWidth="2.5" strokeLinecap="round" />
+        <rect x="18" y="17" width="5" height="4" rx="1" fill="#F59E0B" />
+        {/* Floating Soap Bubbles */}
+        <circle cx="44" cy="22" r="5" fill="url(#hc_bubble)" fillOpacity="0.85" />
+        <circle cx="48" cy="34" r="3.5" fill="url(#hc_bubble)" fillOpacity="0.75" />
+        <circle cx="40" cy="14" r="2.5" fill="url(#hc_bubble)" fillOpacity="0.6" />
+      </svg>
+    );
+  }
+
+  // 19d. Service Category: Tech & Solar (Solar Panel & High Energy Spark)
+  if (key === 'tech-solar' || key === 'solar' || key === 'inverter') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn('select-none drop-shadow-sm', className)}>
+        <defs>
+          <linearGradient id="ts_panel" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#1E3A8A" />
+            <stop offset="100%" stopColor="#172554" />
+          </linearGradient>
+          <linearGradient id="ts_frame" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#E2E8F0" />
+            <stop offset="100%" stopColor="#94A3B8" />
+          </linearGradient>
+          <linearGradient id="ts_bolt" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#FACC15" />
+            <stop offset="100%" stopColor="#F59E0B" />
+          </linearGradient>
+        </defs>
+        <ellipse cx="32" cy="56" rx="18" ry="3.5" fill="#000000" fillOpacity="0.14" />
+        {/* Solar Panel Frame */}
+        <rect x="14" y="20" width="36" height="28" rx="3" fill="url(#ts_frame)" />
+        <rect x="16" y="22" width="32" height="24" rx="2" fill="url(#ts_panel)" />
+        {/* Grid lines */}
+        <line x1="26" y1="22" x2="26" y2="46" stroke="#60A5FA" strokeWidth="1" strokeOpacity="0.7" />
+        <line x1="38" y1="22" x2="38" y2="46" stroke="#60A5FA" strokeWidth="1" strokeOpacity="0.7" />
+        <line x1="16" y1="34" x2="48" y2="34" stroke="#60A5FA" strokeWidth="1" strokeOpacity="0.7" />
+        {/* Energy Bolt */}
+        <path d="M42 12L34 26H42L36 40L48 24H40L42 12Z" fill="url(#ts_bolt)" stroke="#FFFFFF" strokeWidth="1.2" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+
+  // 19e. Service Category: Automotive & Power (Car Wheel & Generator Battery)
+  if (key === 'automotive-power' || key === 'automotive' || key === 'auto' || key === 'generator') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn('select-none drop-shadow-sm', className)}>
+        <defs>
+          <radialGradient id="ap_tire" cx="50%" cy="40%" r="60%">
+            <stop offset="0%" stopColor="#334155" />
+            <stop offset="100%" stopColor="#0F172A" />
+          </radialGradient>
+          <radialGradient id="ap_rim" cx="40%" cy="30%" r="70%">
+            <stop offset="0%" stopColor="#FFFFFF" />
+            <stop offset="60%" stopColor="#CBD5E1" />
+            <stop offset="100%" stopColor="#64748B" />
+          </radialGradient>
+          <linearGradient id="ap_spark" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#EF4444" />
+            <stop offset="100%" stopColor="#DC2626" />
+          </linearGradient>
+        </defs>
+        <ellipse cx="32" cy="56" rx="18" ry="3.5" fill="#000000" fillOpacity="0.14" />
+        {/* Tire & Alloy Rim */}
+        <circle cx="32" cy="34" r="18" fill="url(#ap_tire)" />
+        <circle cx="32" cy="34" r="11" fill="url(#ap_rim)" />
+        <circle cx="32" cy="34" r="4" fill="#1E293B" />
+        {/* Spokes */}
+        <path d="M32 23V27M32 41V45M21 34H25M39 34H43" stroke="#475569" strokeWidth="2.5" strokeLinecap="round" />
+        {/* Power Spark Indicator */}
+        <circle cx="45" cy="18" r="7" fill="url(#ap_spark)" stroke="#FFFFFF" strokeWidth="1.5" />
+        <path d="M45 14L43 18H47L45 22" stroke="#FFFFFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+
+  // 19f. Service Category: Beauty & Wellness (Salon Scissors & Bottle)
+  if (key === 'beauty-wellness' || key === 'beauty' || key === 'salon' || key === 'barbing') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn('select-none drop-shadow-sm', className)}>
+        <defs>
+          <linearGradient id="bw_scissors" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#FDA4AF" />
+            <stop offset="50%" stopColor="#F43F5E" />
+            <stop offset="100%" stopColor="#BE123C" />
+          </linearGradient>
+          <linearGradient id="bw_lotion" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#C084FC" />
+            <stop offset="100%" stopColor="#7E22CE" />
+          </linearGradient>
+        </defs>
+        <ellipse cx="32" cy="56" rx="18" ry="3.5" fill="#000000" fillOpacity="0.14" />
+        {/* Spa Lotion Flask */}
+        <rect x="36" y="24" width="14" height="24" rx="4" fill="url(#bw_lotion)" />
+        <rect x="40" y="18" width="6" height="6" rx="1" fill="#E2E8F0" />
+        <rect x="42" y="15" width="2" height="3" fill="#A855F7" />
+        {/* Salon Scissor Blades */}
+        <path d="M16 48L32 20M32 48L16 20" stroke="url(#bw_scissors)" strokeWidth="3" strokeLinecap="round" />
+        <circle cx="16" cy="48" r="4" stroke="url(#bw_scissors)" strokeWidth="2.5" fill="none" />
+        <circle cx="32" cy="48" r="4" stroke="url(#bw_scissors)" strokeWidth="2.5" fill="none" />
+        <circle cx="24" cy="34" r="1.5" fill="#FFFFFF" />
+      </svg>
+    );
+  }
+
   // 20. Home Portal: Events
   if (key === 'events' || key === 'event' || key === 'tickets') {
     return (

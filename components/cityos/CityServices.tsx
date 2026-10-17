@@ -21,6 +21,7 @@ import {
   MessageSquare,
   Send,
 } from 'lucide-react';
+import RealisticIcon from '@/components/ui/RealisticIcon';
 import { fmtNaira } from '@/lib/format';
 import { bookResidentService } from '@/app/actions/service';
 import {
@@ -72,40 +73,13 @@ interface ReviewItem {
 }
 
 const CATEGORIES = [
-  { id: 'All', label: 'All Services' },
-  { id: 'Trades & Repair', label: 'Trades & Repair' },
-  { id: 'Home & Cleaning', label: 'Home & Cleaning' },
-  { id: 'Tech & Solar', label: 'Tech & Solar' },
-  { id: 'Automotive & Power', label: 'Automotive & Power' },
-  { id: 'Beauty & Wellness', label: 'Beauty & Wellness' },
-  { id: 'Health & Care', label: 'Health & Care' },
-];
-
-const SPECIALIZED_HUBS = [
-  {
-    title: 'Healthcare & Care',
-    desc: 'Consultations, home nursing & clinic visits',
-    href: '/services/healthcare',
-    badge: 'Healthcare',
-  },
-  {
-    title: 'Rides & Haulage',
-    desc: 'On-demand transport, delivery & couriers',
-    href: '/services/ride',
-    badge: 'On-Demand',
-  },
-  {
-    title: 'Local Trades',
-    desc: 'Artisans, carpenters, welders & masonry',
-    href: '/services/local',
-    badge: 'Trades Pro',
-  },
-  {
-    title: 'Tutors & Education',
-    desc: 'Private tutors, academies & course bookings',
-    href: '/services/education',
-    badge: 'Education',
-  },
+  { id: 'All', label: 'All Services', iconKey: 'services' },
+  { id: 'Trades & Repair', label: 'Trades & Repair', iconKey: 'trades-repair' },
+  { id: 'Home & Cleaning', label: 'Home & Cleaning', iconKey: 'home-cleaning' },
+  { id: 'Tech & Solar', label: 'Tech & Solar', iconKey: 'tech-solar' },
+  { id: 'Automotive & Power', label: 'Automotive & Power', iconKey: 'automotive-power' },
+  { id: 'Beauty & Wellness', label: 'Beauty & Wellness', iconKey: 'beauty-wellness' },
+  { id: 'Health & Care', label: 'Health & Care', iconKey: 'health-care' },
 ];
 
 export default function CityServices({
@@ -383,38 +357,6 @@ export default function CityServices({
         </Link>
       </div>
 
-      {/* Specialized Hub Shortcuts */}
-      <section className="space-y-3">
-        <h2 className="text-xs font-black uppercase tracking-wider text-slate-400">
-          Specialized City Hubs
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {SPECIALIZED_HUBS.map((hub) => (
-            <Link
-              key={hub.title}
-              href={hub.href}
-              className="group p-4 bg-white rounded-2xl border border-slate-100 hover:border-teal-200 hover:shadow-md transition-all flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-2.5">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-teal-800 bg-teal-50 px-2.5 py-1 rounded-full border border-teal-200/60">
-                    {hub.badge}
-                  </span>
-                </div>
-                <h3 className="font-bold text-slate-900 text-sm group-hover:text-teal-800 transition-colors">
-                  {hub.title}
-                </h3>
-                <p className="text-xs text-slate-500 mt-1 line-clamp-1">{hub.desc}</p>
-              </div>
-              <div className="mt-3 pt-2 border-t border-slate-50 flex items-center justify-between text-xs font-bold text-teal-800">
-                <span>Explore Hub</span>
-                <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
-
       {/* Search & Category Filter Section */}
       <section className="space-y-4 pt-2">
         <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
@@ -443,7 +385,7 @@ export default function CityServices({
           </div>
         </div>
 
-        {/* Category Capsule Pills */}
+        {/* Category Capsule Pills with Iconscout 3D Icons */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1.5 no-scrollbar scroll-smooth snap-x">
           {CATEGORIES.map((cat) => {
             const count = categoryCounts[cat.id] || 0;
@@ -453,16 +395,17 @@ export default function CityServices({
                 key={cat.id}
                 type="button"
                 onClick={() => setActiveCategory(cat.id)}
-                className={`px-4 py-2 rounded-full text-xs sm:text-[13px] font-bold whitespace-nowrap transition-all border shrink-0 snap-start active:scale-95 flex items-center ${
+                className={`px-3.5 py-2 rounded-full text-xs sm:text-[13px] font-bold whitespace-nowrap transition-all border shrink-0 snap-start active:scale-95 flex items-center gap-2 ${
                   active
                     ? 'border-teal-800 bg-teal-800 text-white shadow-xs'
                     : 'border-slate-200/90 bg-white text-slate-700 hover:border-slate-300 hover:text-slate-900 hover:bg-slate-50'
                 }`}
               >
+                <RealisticIcon name={cat.iconKey} size={18} className="shrink-0" />
                 <span>{cat.label}</span>
                 {count > 0 && (
                   <span
-                    className={`ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] ${
+                    className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] ${
                       active ? 'bg-teal-900 text-teal-100' : 'bg-slate-100 text-slate-500'
                     }`}
                   >
