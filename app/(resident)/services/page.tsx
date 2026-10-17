@@ -1,6 +1,6 @@
 import { db } from '@/src/prisma/db';
 import { getCurrentCity } from '@/lib/city';
-import { getCityBookableServices } from '@/lib/actions/service';
+import { getCityServiceCategoryCounts } from '@/lib/actions/service';
 import { getVerticalsConfig } from '@/lib/actions/verticals-config';
 import VerticalPausedNotice from '@/components/cityos/VerticalPausedNotice';
 import CityServices from '@/components/cityos/CityServices';
@@ -35,8 +35,9 @@ export default async function ServicesPage() {
     locs = await db.orm.public.Location.all();
   }
 
-  const [services, contacts, reviews, likes] = await Promise.all([
-    getCityBookableServices(city?.slug),
+  // Fast category counts without loading all service catalog rows or running N+1 org queries!
+  const [categoryCounts, contacts, reviews, likes] = await Promise.all([
+    getCityServiceCategoryCounts(city?.slug),
     db.orm.public.OrganizationContactPoint.all(),
     db.orm.public.Review.all(),
     db.orm.public.SavedItem.where({ entityType: 'service_org' }).all(),
@@ -110,7 +111,8 @@ export default async function ServicesPage() {
   return (
     <CityServices
       orgs={enrichedOrgs}
-      services={services}
+      services={[]}
+      initialCategoryCounts={categoryCounts}
       cityName={city?.name || 'City'}
     />
   );

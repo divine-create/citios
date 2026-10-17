@@ -1,3 +1,68 @@
+export interface ServiceCategoryDef {
+  id: string;
+  slug: string;
+  label: string;
+  iconKey: string;
+  description: string;
+}
+
+export const SERVICE_CATEGORIES: ServiceCategoryDef[] = [
+  {
+    id: 'Trades & Repair',
+    slug: 'trades-repair',
+    label: 'Trades & Repair',
+    iconKey: 'trades-repair',
+    description: 'Plumbing, electrical wiring, AC servicing, carpentry, masonry & structural repairs.',
+  },
+  {
+    id: 'Home & Cleaning',
+    slug: 'home-cleaning',
+    label: 'Home & Cleaning',
+    iconKey: 'home-cleaning',
+    description: 'Deep house cleaning, post-construction cleanup, laundry, dry cleaning & fumigation.',
+  },
+  {
+    id: 'Tech & Solar',
+    slug: 'tech-solar',
+    label: 'Tech & Solar',
+    iconKey: 'tech-solar',
+    description: 'Solar inverter installation, battery BMS setups, CCTV surveillance & device repairs.',
+  },
+  {
+    id: 'Automotive & Power',
+    slug: 'automotive-power',
+    label: 'Automotive & Power',
+    iconKey: 'automotive-power',
+    description: 'Generator servicing, vehicle diagnostics, mobile mechanic callouts & tyre care.',
+  },
+  {
+    id: 'Beauty & Wellness',
+    slug: 'beauty-wellness',
+    label: 'Beauty & Wellness',
+    iconKey: 'beauty-wellness',
+    description: 'Professional barbing, salon braiding, luxury manicure/pedicure, massage & spa therapy.',
+  },
+  {
+    id: 'Health & Care',
+    slug: 'health-care',
+    label: 'Health & Care',
+    iconKey: 'health-care',
+    description: 'Clinical home nursing, phlebotomy & lab tests, physio rehabilitation & wellness care.',
+  },
+];
+
+export function getCategoryBySlug(slug?: string | null): ServiceCategoryDef | undefined {
+  if (!slug) return undefined;
+  const s = slug.toLowerCase().trim();
+  return SERVICE_CATEGORIES.find((c) => c.slug === s || c.id.toLowerCase() === s);
+}
+
+export function getCategoryById(id?: string | null): ServiceCategoryDef | undefined {
+  if (!id) return undefined;
+  const s = id.toLowerCase().trim();
+  return SERVICE_CATEGORIES.find((c) => c.id.toLowerCase() === s || c.slug === s);
+}
+
 export function matchServiceCategory(text: string): string | null {
   const t = text.toLowerCase();
   if (t.includes('solar') || t.includes('inverter') || t.includes('cctv') || t.includes('network') || t.includes('software') || t.includes('laptop') || t.includes('computer') || t.includes('battery') || t.includes('lithium') || t.includes('bms')) {
@@ -32,3 +97,4 @@ export function inferServiceCategory(name: string, description?: string | null):
 
   return 'General Services';
 }
+

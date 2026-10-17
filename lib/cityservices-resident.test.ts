@@ -105,5 +105,32 @@ test('CityServices Resident Discovery and Booking Suite', async (t) => {
     assert.equal(publicReviews.success, true, 'Public review fetching should succeed gracefully');
     assert.ok(Array.isArray(publicReviews.reviews), 'Should return reviews array');
   });
+
+  await t.test('6. Scoped category querying and slug resolution', async () => {
+    const { getCategoryBySlug, getCategoryById, SERVICE_CATEGORIES } = await import('@/lib/service-categories');
+    const { getCityServiceCategoryCounts } = await import('@/lib/actions/service');
+
+    assert.equal(SERVICE_CATEGORIES.length, 6, 'Should define exactly 6 service categories');
+    
+    const tradesDef = getCategoryBySlug('trades-repair');
+    assert.ok(tradesDef, 'Should resolve category by slug');
+    assert.equal(tradesDef?.id, 'Trades & Repair');
+
+    const techDef = getCategoryById('Tech & Solar');
+    assert.ok(techDef, 'Should resolve category by id');
+    assert.equal(techDef?.slug, 'tech-solar');
+
+    // Scoped query by category
+    const scopedServices = await getCityBookableServices('calabar', 'trades-repair');
+    assert.ok(Array.isArray(scopedServices));
+    for (const s of scopedServices) {
+      assert.equal(s.category, 'Trades & Repair', 'All returned services must belong to the scoped category');
+    }
+
+    // Category counts query
+    const counts = await getCityServiceCategoryCounts('calabar');
+    assert.ok(typeof counts.All === 'number');
+    assert.ok('Trades & Repair' in counts);
+  });
 });
 

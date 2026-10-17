@@ -4,8 +4,13 @@ import '@js-temporal/polyfill'
 import { db } from '@/src/prisma/db'
 import { requireMembership } from '@/lib/actions/tenant'
 import { notifyPerson, personIdForCustomerData } from '@/lib/notify'
-import { inferServiceCategory as inferCategoryUtil } from '@/lib/service-categories'
-import { getServerSession } from 'next-auth'
+import {
+  inferServiceCategory as inferCategoryUtil,
+  getCategoryBySlug,
+  getCategoryById,
+  SERVICE_CATEGORIES,
+} from '@/lib/service-categories';
+import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { formatWhatsAppNumber } from '@/lib/whatsapp'
@@ -639,7 +644,7 @@ export async function getServiceRevenueStats(organizationId: string) {
   }
 }
 
-export async function getCityBookableServices(citySlug?: string) {
+export async function getCityBookableServices(citySlug?: string, categoryFilter?: string) {
   try {
     const { isTestOrDemoOrganization } = await import('@/lib/storefront-filter');
     let orgIds: string[] = [];
@@ -652,7 +657,14 @@ export async function getCityBookableServices(citySlug?: string) {
     }
 
     const allItems = await db.orm.public.ServiceCatalogItem.where({ isActive: true }).all();
-    const rawItems = orgIds.length > 0 ? allItems.filter((i: any) => orgIds.includes(i.organizationId)) : allItems;
+    let rawItems = orgIds.length > 0 ? allItems.filter((i: any) => orgIds.includes(i.organizationId)) : allItems;
+
+    // Scoped category filter: filter raw items early to avoid unnecessary N+1 org queries
+    if (categoryFilter && categoryFilter !== 'All') {
+      const catDef = getCategoryBySlug(categoryFilter) || getCategoryById(categoryFilter);
+      const targetCategory = catDef ? catDef.id : categoryFilter;
+      rawItems = rawItems.filter((i: any) => inferCategoryUtil(i.name, i.description) === targetCategory);
+    }
 
     // Collect distinct organization IDs
     const distinctOrgIds = Array.from(new Set(rawItems.map((i: any) => i.organizationId)));
@@ -756,6 +768,35 @@ export async function getCityBookableServices(citySlug?: string) {
   } catch (error) {
     console.error('Error fetching city bookable services:', error);
     return [];
+  }
+}
+
+export async function getCityServiceCategoryCounts(citySlug?: string): Promise<Record<string, number>> {
+  try {
+    let orgIds: string[] = [];
+    if (citySlug) {
+      const city = await db.orm.public.City.where({ slug: citySlug }).all().first();
+      if (city) {
+        const locs = await db.orm.public.Location.where({ cityId: city.id }).all();
+        orgIds = Array.from(new Set(locs.map((l) => l.organizationId)));
+      }
+    }
+
+    const allItems = await db.orm.public.ServiceCatalogItem.where({ isActive: true }).all();
+    const rawItems = orgIds.length > 0 ? allItems.filter((i: any) => orgIds.includes(i.organizationId)) : allItems;
+
+    const counts: Record<string, number> = { All: rawItems.length };
+    for (const cat of SERVICE_CATEGORIES) {
+      counts[cat.id] = 0;
+    }
+    for (const item of rawItems) {
+      const cat = inferCategoryUtil(item.name, item.description);
+      counts[cat] = (counts[cat] || 0) + 1;
+    }
+    return counts;
+  } catch (error) {
+    console.error('Error fetching city service category counts:', error);
+    return { All: 0 };
   }
 }
 

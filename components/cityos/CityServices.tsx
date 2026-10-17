@@ -22,6 +22,7 @@ import {
   Send,
 } from 'lucide-react';
 import RealisticIcon from '@/components/ui/RealisticIcon';
+import { SERVICE_CATEGORIES } from '@/lib/service-categories';
 import { fmtNaira } from '@/lib/format';
 import { bookResidentService } from '@/app/actions/service';
 import {
@@ -75,60 +76,30 @@ interface ReviewItem {
 const CATEGORIES = [
   {
     id: 'All',
+    slug: '',
     label: 'All Categories',
     iconKey: 'services',
     description: 'Explore all skilled trades and professional services in Calabar.',
   },
-  {
-    id: 'Trades & Repair',
-    label: 'Trades & Repair',
-    iconKey: 'trades-repair',
-    description: 'Plumbing, electrical wiring, AC servicing, carpentry, masonry & structural repairs.',
-  },
-  {
-    id: 'Home & Cleaning',
-    label: 'Home & Cleaning',
-    iconKey: 'home-cleaning',
-    description: 'Deep house cleaning, post-construction cleanup, laundry, dry cleaning & fumigation.',
-  },
-  {
-    id: 'Tech & Solar',
-    label: 'Tech & Solar',
-    iconKey: 'tech-solar',
-    description: 'Solar inverter installation, battery BMS setups, CCTV surveillance & device repairs.',
-  },
-  {
-    id: 'Automotive & Power',
-    label: 'Automotive & Power',
-    iconKey: 'automotive-power',
-    description: 'Generator servicing, vehicle diagnostics, mobile mechanic callouts & tyre care.',
-  },
-  {
-    id: 'Beauty & Wellness',
-    label: 'Beauty & Wellness',
-    iconKey: 'beauty-wellness',
-    description: 'Professional barbing, salon braiding, luxury manicure/pedicure, massage & spa therapy.',
-  },
-  {
-    id: 'Health & Care',
-    label: 'Health & Care',
-    iconKey: 'health-care',
-    description: 'Clinical home nursing, phlebotomy & lab tests, physio rehabilitation & wellness care.',
-  },
+  ...SERVICE_CATEGORIES,
 ];
 
 export default function CityServices({
-  orgs,
+  orgs = [],
   services = [],
   cityName = 'Calabar',
+  initialCategory = 'All',
+  initialCategoryCounts,
 }: {
-  orgs: CityServicesOrg[];
+  orgs?: CityServicesOrg[];
   services?: BookableServiceItem[];
   cityName?: string;
+  initialCategory?: string;
+  initialCategoryCounts?: Record<string, number>;
 }) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState('All');
+  const [activeCategory, setActiveCategory] = useState(initialCategory);
 
   // Likes Local State for instant optimistic updates
   const [likesMap, setLikesMap] = useState<Record<string, { count: number; liked: boolean }>>(() => {
@@ -175,13 +146,14 @@ export default function CityServices({
 
   // Category counts
   const categoryCounts = useMemo(() => {
+    if (initialCategoryCounts) return initialCategoryCounts;
     const counts: Record<string, number> = { All: services.length };
     for (const s of services) {
       const cat = s.category || 'Trades & Repair';
       counts[cat] = (counts[cat] || 0) + 1;
     }
     return counts;
-  }, [services]);
+  }, [services, initialCategoryCounts]);
 
   // Filtered Services
   const filteredServices = useMemo(() => {
@@ -579,14 +551,12 @@ export default function CityServices({
           {CATEGORIES.map((cat) => {
             const count = categoryCounts[cat.id] || 0;
             const active = activeCategory === cat.id;
+            const href = cat.id === 'All' ? '/services' : `/services/${cat.slug}`;
+
             return (
-              <button
+              <Link
                 key={cat.id}
-                type="button"
-                onClick={() => {
-                  setActiveCategory(cat.id);
-                  setSearchQuery('');
-                }}
+                href={href}
                 className={`px-3.5 py-2 rounded-full text-xs sm:text-[13px] font-bold whitespace-nowrap transition-all border shrink-0 snap-start active:scale-95 flex items-center gap-2 ${
                   active
                     ? 'border-teal-800 bg-teal-800 text-white shadow-xs'
@@ -604,7 +574,7 @@ export default function CityServices({
                     {count}
                   </span>
                 )}
-              </button>
+              </Link>
             );
           })}
         </div>
@@ -630,10 +600,9 @@ export default function CityServices({
             {CATEGORIES.filter((c) => c.id !== 'All').map((cat) => {
               const count = categoryCounts[cat.id] || 0;
               return (
-                <button
+                <Link
                   key={cat.id}
-                  type="button"
-                  onClick={() => setActiveCategory(cat.id)}
+                  href={`/services/${cat.slug}`}
                   className="text-left group bg-white rounded-2xl border border-slate-100 p-5 shadow-xs hover:shadow-md hover:border-teal-700/40 hover:-translate-y-0.5 transition-all flex flex-col justify-between"
                 >
                   <div>
@@ -658,7 +627,7 @@ export default function CityServices({
                     <span>Explore {cat.label}</span>
                     <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                   </div>
-                </button>
+                </Link>
               );
             })}
           </div>
@@ -742,13 +711,12 @@ export default function CityServices({
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setActiveCategory('All')}
+            <Link
+              href="/services"
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-teal-900 text-xs font-bold border border-slate-200 transition-colors shadow-2xs self-start sm:self-auto shrink-0"
             >
               ← Back to All Categories
-            </button>
+            </Link>
           </div>
 
           {/* Services Grid for This Category */}
@@ -759,12 +727,12 @@ export default function CityServices({
           ) : (
             <div className="rounded-2xl border border-dashed border-slate-200 p-12 text-center bg-white space-y-3">
               <p className="text-sm font-bold text-slate-800">No services found in {activeCategory}</p>
-              <button
-                onClick={() => setActiveCategory('All')}
-                className="px-4 py-2 bg-teal-50 text-teal-800 hover:bg-teal-100 rounded-xl text-xs font-bold transition-colors"
+              <Link
+                href="/services"
+                className="inline-block px-4 py-2 bg-teal-50 text-teal-800 hover:bg-teal-100 rounded-xl text-xs font-bold transition-colors"
               >
                 Return to Categories
-              </button>
+              </Link>
             </div>
           )}
         </section>
