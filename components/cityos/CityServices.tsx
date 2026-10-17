@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -8,16 +8,10 @@ import {
   ArrowRight,
   Clock,
   Calendar,
-  Briefcase,
   Search,
   CheckCircle2,
   X,
   MapPin,
-  Sparkles,
-  Car,
-  Zap,
-  Scissors,
-  HeartPulse,
   AlertCircle,
   Loader2,
   ChevronRight,
@@ -25,7 +19,6 @@ import {
   Star,
   Heart,
   MessageSquare,
-  Phone,
   Send,
 } from 'lucide-react';
 import { fmtNaira } from '@/lib/format';
@@ -36,14 +29,6 @@ import {
   toggleOrganizationLike,
 } from '@/lib/actions/service';
 import { buildWhatsAppServiceUrl, buildWhatsAppInquiryUrl } from '@/lib/whatsapp';
-
-function WhatsAppIcon({ className = 'w-4 h-4' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
-    </svg>
-  );
-}
 
 export interface CityServicesOrg {
   id: string;
@@ -87,13 +72,13 @@ interface ReviewItem {
 }
 
 const CATEGORIES = [
-  { id: 'All', label: 'All Services', icon: Briefcase },
-  { id: 'Trades & Repair', label: 'Trades & Repair', icon: Wrench },
-  { id: 'Home & Cleaning', label: 'Home & Cleaning', icon: Sparkles },
-  { id: 'Tech & Solar', label: 'Tech & Solar', icon: Zap },
-  { id: 'Automotive & Power', label: 'Automotive & Power', icon: Car },
-  { id: 'Beauty & Wellness', label: 'Beauty & Wellness', icon: Scissors },
-  { id: 'Health & Care', label: 'Health & Care', icon: HeartPulse },
+  { id: 'All', label: 'All Services' },
+  { id: 'Trades & Repair', label: 'Trades & Repair' },
+  { id: 'Home & Cleaning', label: 'Home & Cleaning' },
+  { id: 'Tech & Solar', label: 'Tech & Solar' },
+  { id: 'Automotive & Power', label: 'Automotive & Power' },
+  { id: 'Beauty & Wellness', label: 'Beauty & Wellness' },
+  { id: 'Health & Care', label: 'Health & Care' },
 ];
 
 const SPECIALIZED_HUBS = [
@@ -101,33 +86,25 @@ const SPECIALIZED_HUBS = [
     title: 'Healthcare & Care',
     desc: 'Consultations, home nursing & clinic visits',
     href: '/services/healthcare',
-    icon: HeartPulse,
-    badge: 'Verified Health',
-    gradient: 'from-rose-500 to-red-600',
+    badge: 'Healthcare',
   },
   {
     title: 'Rides & Haulage',
     desc: 'On-demand transport, delivery & couriers',
     href: '/services/ride',
-    icon: Car,
     badge: 'On-Demand',
-    gradient: 'from-amber-500 to-orange-600',
   },
   {
     title: 'Local Trades',
     desc: 'Artisans, carpenters, welders & masonry',
     href: '/services/local',
-    icon: Wrench,
-    badge: 'Skilled Pros',
-    gradient: 'from-teal-600 to-emerald-700',
+    badge: 'Trades Pro',
   },
   {
     title: 'Tutors & Education',
     desc: 'Private tutors, academies & course bookings',
     href: '/services/education',
-    icon: Briefcase,
-    badge: 'Learning',
-    gradient: 'from-blue-600 to-indigo-700',
+    badge: 'Education',
   },
 ];
 
@@ -158,7 +135,7 @@ export default function CityServices({
     return map;
   });
 
-  // Booking Modal State (WhatsApp Routing)
+  // Booking Modal State
   const [selectedService, setSelectedService] = useState<BookableServiceItem | null>(null);
   const [bookingDate, setBookingDate] = useState(() => {
     const d = new Date();
@@ -215,7 +192,7 @@ export default function CityServices({
     });
   }, [services, activeCategory, searchQuery]);
 
-  // Open WhatsApp Booking Modal
+  // Open Booking Modal
   const handleOpenBooking = (service: BookableServiceItem) => {
     setSelectedService(service);
     setBookingError(null);
@@ -228,7 +205,7 @@ export default function CityServices({
     setBookingTime('09:00');
   };
 
-  // Submit and Route Booking to WhatsApp
+  // Submit Booking (opens chat with provider and records task in background)
   const handleSubmitBooking = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedService) return;
@@ -236,10 +213,8 @@ export default function CityServices({
     setBookingSubmitting(true);
     setBookingError(null);
 
-    // Compute target WhatsApp phone
     const targetPhone = selectedService.whatsapp || selectedService.phone || '2348112417171';
 
-    // Build the WhatsApp deep link
     const waUrl = buildWhatsAppServiceUrl({
       phone: targetPhone,
       orgName: selectedService.orgName,
@@ -251,7 +226,6 @@ export default function CityServices({
       notes: bookingNotes.trim() || undefined,
     });
 
-    // Best-effort background task recording on CityOS so resident can track in /tasks
     try {
       await bookResidentService({
         serviceId: selectedService.id,
@@ -259,38 +233,23 @@ export default function CityServices({
         timeSlot: bookingTime,
         address: bookingAddress.trim() || undefined,
         notes: bookingNotes.trim()
-          ? `${bookingNotes.trim()} [Routed to WhatsApp]`
-          : 'Service booking routed and initiated via WhatsApp.',
+          ? `${bookingNotes.trim()} [Direct Booking]`
+          : 'Service booking request initiated.',
       });
     } catch {
-      // Non-blocking: WhatsApp direct connection must always succeed
+      // Non-blocking
     }
 
     setBookingSubmitting(false);
     setBookingSuccessWaUrl(waUrl);
 
-    // Immediately open WhatsApp in a new tab
     if (typeof window !== 'undefined') {
       window.open(waUrl, '_blank', 'noopener,noreferrer');
     }
   };
 
-  // Direct Quick WhatsApp Chat with Provider
-  const handleQuickWhatsApp = (service: BookableServiceItem) => {
-    const targetPhone = service.whatsapp || service.phone || '2348112417171';
-    const waUrl = buildWhatsAppServiceUrl({
-      phone: targetPhone,
-      orgName: service.orgName,
-      serviceName: service.name,
-      price: service.price,
-    });
-    if (typeof window !== 'undefined') {
-      window.open(waUrl, '_blank', 'noopener,noreferrer');
-    }
-  };
-
-  // Direct WhatsApp Inquiry for Provider
-  const handleProviderWhatsApp = (org: CityServicesOrg) => {
+  // Direct Inquiry for Provider in Directory
+  const handleProviderChat = (org: CityServicesOrg) => {
     const targetPhone = org.whatsapp || org.phone || '2348112417171';
     const waUrl = buildWhatsAppInquiryUrl({
       phone: targetPhone,
@@ -308,7 +267,6 @@ export default function CityServices({
     const nextLiked = !current.liked;
     const nextCount = nextLiked ? current.count + 1 : Math.max(0, current.count - 1);
 
-    // Optimistic state
     setLikesMap((prev) => ({
       ...prev,
       [orgId]: { count: nextCount, liked: nextLiked },
@@ -321,7 +279,6 @@ export default function CityServices({
           router.push(`/login?callbackUrl=/services`);
           return;
         }
-        // Rollback
         setLikesMap((prev) => ({ ...prev, [orgId]: current }));
       } else {
         setLikesMap((prev) => ({
@@ -333,7 +290,6 @@ export default function CityServices({
         }));
       }
     } catch {
-      // Rollback
       setLikesMap((prev) => ({ ...prev, [orgId]: current }));
     }
   };
@@ -389,7 +345,6 @@ export default function CityServices({
       setReviewSuccessMsg('Your review has been submitted successfully!');
       setMyComment('');
 
-      // Refresh reviews
       const updated = await getOrganizationReviews(reviewModalOrg.id);
       if (updated.success) {
         setReviewsList(updated.reviews || []);
@@ -410,15 +365,12 @@ export default function CityServices({
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-black text-ink tracking-tight">Services</h1>
-            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200/60">
+            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200/60">
               {cityName}
-            </span>
-            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/60 flex items-center gap-1">
-              <WhatsAppIcon className="w-3 h-3 text-emerald-600" /> WhatsApp Direct
             </span>
           </div>
           <p className="text-xs text-slate-500 font-medium mt-1">
-            Connect directly with verified local trades, maintenance pros, and personal services in {cityName} via WhatsApp.
+            Book verified local trades, maintenance pros, and skilled services across {cityName}.
           </p>
         </div>
 
@@ -429,26 +381,6 @@ export default function CityServices({
           <Clock size={14} className="text-teal-700" />
           My Scheduled Tasks & Jobs →
         </Link>
-      </div>
-
-      {/* WhatsApp Notice Banner */}
-      <div className="rounded-2xl bg-gradient-to-r from-emerald-900 to-teal-900 text-white p-4.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-300 shrink-0">
-            <WhatsAppIcon className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="text-xs font-black uppercase tracking-wider text-emerald-200">
-              Instant WhatsApp Service Dispatch
-            </h3>
-            <p className="text-xs text-emerald-100/90 font-medium mt-0.5">
-              All bookings are routed and completed directly on WhatsApp with provider verification, upfront Naira pricing, and inspection-first guarantee.
-            </p>
-          </div>
-        </div>
-        <div className="text-[11px] font-bold text-emerald-200 bg-emerald-800/60 border border-emerald-700/60 px-3 py-1.5 rounded-xl shrink-0">
-          Fast & Direct Booking
-        </div>
       </div>
 
       {/* Specialized Hub Shortcuts */}
@@ -464,18 +396,15 @@ export default function CityServices({
               className="group p-4 bg-white rounded-2xl border border-slate-100 hover:border-teal-200 hover:shadow-md transition-all flex flex-col justify-between"
             >
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className={`p-2 rounded-xl bg-gradient-to-br ${hub.gradient} text-white shadow-xs`}>
-                    <hub.icon size={16} />
-                  </div>
-                  <span className="text-[10px] font-black uppercase tracking-wider text-teal-800 bg-teal-50 px-2 py-0.5 rounded-md">
+                <div className="flex items-center justify-between mb-2.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-teal-800 bg-teal-50 px-2.5 py-1 rounded-full border border-teal-200/60">
                     {hub.badge}
                   </span>
                 </div>
                 <h3 className="font-bold text-slate-900 text-sm group-hover:text-teal-800 transition-colors">
                   {hub.title}
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{hub.desc}</p>
+                <p className="text-xs text-slate-500 mt-1 line-clamp-1">{hub.desc}</p>
               </div>
               <div className="mt-3 pt-2 border-t border-slate-50 flex items-center justify-between text-xs font-bold text-teal-800">
                 <span>Explore Hub</span>
@@ -514,26 +443,26 @@ export default function CityServices({
           </div>
         </div>
 
-        {/* Category Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-none">
+        {/* Category Capsule Pills */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1.5 no-scrollbar scroll-smooth snap-x">
           {CATEGORIES.map((cat) => {
             const count = categoryCounts[cat.id] || 0;
             const active = activeCategory === cat.id;
             return (
               <button
                 key={cat.id}
+                type="button"
                 onClick={() => setActiveCategory(cat.id)}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all shadow-2xs ${
+                className={`px-4 py-2 rounded-full text-xs sm:text-[13px] font-bold whitespace-nowrap transition-all border shrink-0 snap-start active:scale-95 flex items-center ${
                   active
-                    ? 'bg-teal-800 text-white shadow-teal-900/10'
-                    : 'bg-white text-slate-600 border border-slate-200/80 hover:bg-slate-50'
+                    ? 'border-teal-800 bg-teal-800 text-white shadow-xs'
+                    : 'border-slate-200/90 bg-white text-slate-700 hover:border-slate-300 hover:text-slate-900 hover:bg-slate-50'
                 }`}
               >
-                <cat.icon size={13} className={active ? 'text-white' : 'text-slate-400'} />
-                {cat.label}
+                <span>{cat.label}</span>
                 {count > 0 && (
                   <span
-                    className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] ${
+                    className={`ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] ${
                       active ? 'bg-teal-900 text-teal-100' : 'bg-slate-100 text-slate-500'
                     }`}
                   >
@@ -552,9 +481,8 @@ export default function CityServices({
           <h2 className="text-base font-black text-ink">
             {activeCategory === 'All' ? 'Bookable Services in Calabar' : activeCategory}
           </h2>
-          <span className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/60 px-2.5 py-1 rounded-md flex items-center gap-1">
-            <WhatsAppIcon className="w-3 h-3 text-emerald-600" />
-            WhatsApp Dispatch Ready
+          <span className="text-xs font-bold text-teal-800 bg-teal-50 px-2.5 py-1 rounded-md">
+            Direct Scheduling
           </span>
         </div>
 
@@ -649,17 +577,15 @@ export default function CityServices({
 
                     {/* Booking Actions */}
                     <div className="grid grid-cols-2 gap-2 pt-1">
-                      {/* WhatsApp Direct Booking Button */}
                       <button
                         type="button"
                         onClick={() => handleOpenBooking(s)}
-                        className="w-full py-2 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-xs"
+                        className="w-full py-2 px-3 rounded-xl bg-teal-800 hover:bg-teal-900 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-xs"
                       >
-                        <WhatsAppIcon className="w-3.5 h-3.5" />
-                        Book on WhatsApp
+                        <Calendar size={13} />
+                        Book Pro
                       </button>
 
-                      {/* Details Page Link */}
                       <Link
                         href={`/service/${s.id}`}
                         className="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors flex items-center justify-center gap-1 text-center"
@@ -667,16 +593,6 @@ export default function CityServices({
                         Details <ArrowRight size={12} />
                       </Link>
                     </div>
-
-                    {/* Quick WhatsApp One-Click Chat */}
-                    <button
-                      type="button"
-                      onClick={() => handleQuickWhatsApp(s)}
-                      className="w-full py-1 text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 flex items-center justify-center gap-1 hover:underline transition-all"
-                    >
-                      <WhatsAppIcon className="w-3 h-3 text-emerald-600" />
-                      Quick chat with provider on WhatsApp
-                    </button>
                   </div>
                 </div>
               );
@@ -778,7 +694,7 @@ export default function CityServices({
                     </div>
                   </div>
 
-                  {/* Provider Actions: Reviews & WhatsApp */}
+                  {/* Provider Actions: Reviews & Chat */}
                   <div className="flex items-center justify-between pt-2 border-t border-slate-50 gap-2">
                     <button
                       type="button"
@@ -794,11 +710,11 @@ export default function CityServices({
 
                     <button
                       type="button"
-                      onClick={() => handleProviderWhatsApp(o)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold border border-emerald-200/60 transition-colors"
+                      onClick={() => handleProviderChat(o)}
+                      className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-teal-900 text-[11px] font-bold border border-slate-200/60 transition-colors"
                     >
-                      <WhatsAppIcon className="w-3 h-3 text-emerald-600" />
-                      WhatsApp
+                      <MessageSquare size={12} className="text-teal-700" />
+                      Chat
                     </button>
                   </div>
                 </div>
@@ -817,7 +733,7 @@ export default function CityServices({
           <div>
             <h3 className="text-base font-black">Run a skilled trade or service business in Calabar?</h3>
             <p className="text-xs text-teal-100/70 font-medium mt-0.5 max-w-xl">
-              Publish your catalog on CityOS, accept instant WhatsApp appointments, dispatch technicians, and manage invoices with ServiceOS.
+              Publish your catalog on CityOS, accept instant appointments, dispatch technicians, and manage invoices with ServiceOS.
             </p>
           </div>
         </div>
@@ -829,23 +745,17 @@ export default function CityServices({
         </Link>
       </div>
 
-      {/* Direct WhatsApp Booking Modal */}
+      {/* Direct Booking Modal */}
       {selectedService && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-5 animate-in zoom-in-95">
             {/* Modal Header */}
             <div className="flex justify-between items-start">
               <div>
-                <div className="flex items-center gap-1.5 mb-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded flex items-center gap-1">
-                    <WhatsAppIcon className="w-3 h-3 text-emerald-600" />
-                    Direct WhatsApp Booking
-                  </span>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-teal-800 bg-teal-50 px-2 py-0.5 rounded">
-                    {selectedService.orgName}
-                  </span>
-                </div>
-                <h3 className="text-lg font-black text-slate-900">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-teal-800 bg-teal-50 px-2 py-0.5 rounded">
+                  {selectedService.orgName}
+                </span>
+                <h3 className="text-lg font-black text-slate-900 mt-1.5">
                   Book {selectedService.name}
                 </h3>
                 <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 font-medium">
@@ -865,31 +775,31 @@ export default function CityServices({
               </button>
             </div>
 
-            {/* Success State: Directed to WhatsApp */}
+            {/* Success State */}
             {bookingSuccessWaUrl ? (
               <div className="py-6 text-center space-y-4">
                 <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
-                  <WhatsAppIcon className="w-8 h-8" />
+                  <CheckCircle2 size={32} />
                 </div>
                 <div>
-                  <h4 className="text-base font-bold text-slate-900">Directing to WhatsApp!</h4>
+                  <h4 className="text-base font-bold text-slate-900">Booking Dispatched!</h4>
                   <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
-                    We prepared your appointment details and opened a direct chat with{' '}
-                    <span className="font-bold text-slate-800">{selectedService.orgName}</span> on WhatsApp.
+                    Your request has been prepared and opened in chat with{' '}
+                    <span className="font-bold text-slate-800">{selectedService.orgName}</span>.
                   </p>
                 </div>
 
-                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-left text-xs text-emerald-900 space-y-1.5">
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-left text-xs text-slate-800 space-y-1.5">
                   <div className="flex justify-between">
-                    <span className="text-emerald-700">Service:</span>
+                    <span className="text-slate-500">Service:</span>
                     <span className="font-bold">{selectedService.name}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-emerald-700">Fee:</span>
-                    <span className="font-bold">{fmtNaira(selectedService.price)}</span>
+                    <span className="text-slate-500">Fee:</span>
+                    <span className="font-bold text-teal-800">{fmtNaira(selectedService.price)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-emerald-700">Date & Slot:</span>
+                    <span className="text-slate-500">Date & Slot:</span>
                     <span className="font-bold">{bookingDate} ({bookingTime})</span>
                   </div>
                 </div>
@@ -899,10 +809,10 @@ export default function CityServices({
                     href={bookingSuccessWaUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-colors shadow-xs flex items-center justify-center gap-1.5"
+                    className="px-5 py-2.5 bg-teal-800 hover:bg-teal-900 text-white text-xs font-bold rounded-xl transition-colors shadow-xs flex items-center justify-center gap-1.5"
                   >
-                    <WhatsAppIcon className="w-4 h-4" />
-                    Open WhatsApp Chat Again
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    Open Chat Again
                   </a>
                   <Link
                     href="/tasks"
@@ -989,7 +899,7 @@ export default function CityServices({
                         onClick={() => setBookingTime(t.slot)}
                         className={`py-2 px-2 text-xs font-bold rounded-xl border text-center transition-all ${
                           bookingTime === t.slot
-                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                            ? 'bg-teal-800 text-white border-teal-800 shadow-xs'
                             : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                         }`}
                       >
@@ -1030,18 +940,15 @@ export default function CityServices({
                   />
                 </div>
 
-                {/* WhatsApp Routing Explanation */}
-                <div className="p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl text-emerald-900 text-xs flex items-center justify-between">
+                {/* Inspection-First Policy Note */}
+                <div className="p-3 bg-teal-50/70 border border-teal-100 rounded-xl text-teal-900 text-xs flex items-center justify-between">
                   <div>
-                    <span className="font-bold flex items-center gap-1">
-                      <WhatsAppIcon className="w-3.5 h-3.5 text-emerald-600" />
-                      Direct WhatsApp Completion
-                    </span>
-                    <span className="text-[11px] text-emerald-700">
-                      Submitting opens WhatsApp with your pre-filled details to chat directly with {selectedService.orgName}. Pay {fmtNaira(selectedService.price)} upon job inspection.
+                    <span className="font-bold block">Inspection-First Policy</span>
+                    <span className="text-[11px] text-teal-700">
+                      Direct chat to confirm your schedule. Pay {fmtNaira(selectedService.price)} upon job completion via Transfer or Cash.
                     </span>
                   </div>
-                  <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0 ml-2" />
+                  <ShieldCheck className="w-4 h-4 text-teal-700 shrink-0 ml-2" />
                 </div>
 
                 {/* Actions */}
@@ -1056,16 +963,15 @@ export default function CityServices({
                   <button
                     type="submit"
                     disabled={bookingSubmitting}
-                    className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-colors shadow-xs flex items-center gap-1.5 disabled:opacity-50"
+                    className="px-6 py-2.5 bg-teal-800 hover:bg-teal-900 text-white text-xs font-bold rounded-xl transition-colors shadow-xs flex items-center gap-1.5 disabled:opacity-50"
                   >
                     {bookingSubmitting ? (
                       <>
-                        <Loader2 size={13} className="animate-spin" /> Connecting to WhatsApp...
+                        <Loader2 size={13} className="animate-spin" /> Submitting...
                       </>
                     ) : (
                       <>
-                        <WhatsAppIcon className="w-4 h-4" />
-                        Complete on WhatsApp
+                        <CheckCircle2 size={14} /> Confirm & Book
                       </>
                     )}
                   </button>

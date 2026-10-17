@@ -2,12 +2,6 @@
 
 import React, { useState } from 'react';
 import { 
-  Wrench, 
-  Paintbrush, 
-  Trash2, 
-  Truck, 
-  Hammer, 
-  Monitor, 
   Star,
   Clock,
   CheckCircle2,
@@ -26,12 +20,12 @@ interface Pro {
 }
 
 const CATEGORIES = [
-  { id: 'plumbing', name: 'Plumbing', icon: Wrench, color: 'bg-blue-100 text-blue-600' },
-  { id: 'cleaning', name: 'Cleaning', icon: Trash2, color: 'bg-green-100 text-green-600' },
-  { id: 'moving', name: 'Moving', icon: Truck, color: 'bg-yellow-100 text-yellow-600' },
-  { id: 'assembly', name: 'Assembly', icon: Hammer, color: 'bg-purple-100 text-purple-600' },
-  { id: 'painting', name: 'Painting', icon: Paintbrush, color: 'bg-pink-100 text-pink-600' },
-  { id: 'tech', name: 'Tech Help', icon: Monitor, color: 'bg-gray-100 text-gray-600' },
+  { id: 'plumbing', name: 'Plumbing' },
+  { id: 'cleaning', name: 'Cleaning' },
+  { id: 'moving', name: 'Moving' },
+  { id: 'assembly', name: 'Assembly' },
+  { id: 'painting', name: 'Painting' },
+  { id: 'tech', name: 'Tech Help' },
 ];
 
 
@@ -74,24 +68,33 @@ export default function LocalServicesView({ initialOrgs }: { initialOrgs?: any[]
         <p className="text-gray-500">Hire trusted locals for your everyday tasks.</p>
       </div>
 
-      {/* Categories Grid */}
-      <section>
-        <h2 className="text-xl font-semibold mb-4 text-gray-800">What do you need help with?</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      {/* Categories Capsule Rail */}
+      <section className="space-y-3">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-gray-400">Filter by Trade</h2>
+        <div className="flex items-center gap-2 overflow-x-auto pb-1.5 no-scrollbar scroll-smooth snap-x">
+          <button
+            type="button"
+            onClick={() => setSelectedCategory(null)}
+            className={`px-4 py-2 rounded-full text-xs sm:text-[13px] font-bold whitespace-nowrap transition-all border shrink-0 snap-start active:scale-95 ${
+              selectedCategory === null
+                ? 'border-slate-900 bg-slate-900 text-white shadow-xs'
+                : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+            }`}
+          >
+            All Trades
+          </button>
           {CATEGORIES.map(cat => (
             <button
               key={cat.id}
+              type="button"
               onClick={() => setSelectedCategory(selectedCategory === cat.id ? null : cat.id)}
-              className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${
+              className={`px-4 py-2 rounded-full text-xs sm:text-[13px] font-bold whitespace-nowrap transition-all border shrink-0 snap-start active:scale-95 ${
                 selectedCategory === cat.id 
-                  ? 'border-blue-500 bg-blue-50' 
-                  : 'border-transparent bg-white shadow-sm hover:shadow-md'
+                  ? 'border-blue-600 bg-blue-600 text-white shadow-xs' 
+                  : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
               }`}
             >
-              <div className={`p-3 rounded-full mb-3 ${cat.color}`}>
-                <cat.icon className="w-6 h-6" />
-              </div>
-              <span className="font-medium text-sm text-gray-700">{cat.name}</span>
+              {cat.name}
             </button>
           ))}
         </div>

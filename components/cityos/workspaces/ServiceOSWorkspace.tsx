@@ -10,6 +10,7 @@ import {
   Store,
   CalendarCheck,
   ArrowLeftRight,
+  Lock,
 } from 'lucide-react';
 import { useAccountSwitcher } from '@/components/cityos/AccountSwitcherContext';
 import { fmtNaira } from '@/lib/format';
@@ -92,7 +93,9 @@ export default function ServiceOSWorkspace({ slug }: { slug: string }) {
   if (notFound || !org) {
     return (
       <div className="max-w-lg mx-auto text-center py-20 space-y-4">
-        <p className="text-5xl">🔧</p>
+        <div className="w-14 h-14 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center mx-auto">
+          <Wrench className="w-7 h-7" />
+        </div>
         <h1 className="text-lg font-black text-ink">Workspace not found.</h1>
         <p className="text-sm text-slate-500">This business does not exist on CityOS.</p>
         <Link href="/business" className="inline-block px-5 py-2.5 rounded-xl bg-teal-800 text-white text-xs font-black hover:bg-teal-900 transition-colors">
@@ -105,7 +108,9 @@ export default function ServiceOSWorkspace({ slug }: { slug: string }) {
   if (denied) {
     return (
       <div className="max-w-lg mx-auto text-center py-20 space-y-4">
-        <p className="text-5xl">🔒</p>
+        <div className="w-14 h-14 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center mx-auto">
+          <Lock className="w-7 h-7" />
+        </div>
         <h1 className="text-lg font-black text-ink">Members only</h1>
         <p className="text-sm text-slate-500">You are not a member of this organization&apos;s workspace.</p>
         <Link href="/business" className="inline-block px-5 py-2.5 rounded-xl bg-teal-800 text-white text-xs font-black hover:bg-teal-900 transition-colors">

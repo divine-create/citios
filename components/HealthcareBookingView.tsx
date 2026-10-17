@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Star, Calendar, Clock, ShieldCheck, Globe, Stethoscope, Activity, Sun, Brain, Eye } from 'lucide-react';
+import { Search, MapPin, Star, Calendar, Clock, ShieldCheck, Globe } from 'lucide-react';
 import { getHealthcareSpecialties, searchHealthcareProviders, bookAppointment } from '@/lib/actions/healthcare';
 
 export default function HealthcareBookingView() {
@@ -28,17 +28,6 @@ export default function HealthcareBookingView() {
     const provs = await searchHealthcareProviders(searchQuery, selectedSpecialty || undefined);
     setProviders(provs);
     setLoading(false);
-  };
-
-  const getIcon = (iconName: string) => {
-    switch (iconName) {
-      case 'Stethoscope': return <Stethoscope className="w-6 h-6" />;
-      case 'Activity': return <Activity className="w-6 h-6" />;
-      case 'Sun': return <Sun className="w-6 h-6" />;
-      case 'Brain': return <Brain className="w-6 h-6" />;
-      case 'Eye': return <Eye className="w-6 h-6" />;
-      default: return <Stethoscope className="w-6 h-6" />;
-    }
   };
 
   return (
@@ -77,27 +66,39 @@ export default function HealthcareBookingView() {
         </div>
       </div>
 
-      {/* Specialties */}
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Top Specialties</h2>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      {/* Specialties Capsule Rail */}
+      <div className="space-y-3">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-gray-500">Filter by Specialty</h2>
+        <div className="flex items-center gap-2 overflow-x-auto pb-1.5 no-scrollbar scroll-smooth snap-x">
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedSpecialty(null);
+              handleSearch();
+            }}
+            className={`px-4 py-2 rounded-full text-xs sm:text-[13px] font-bold whitespace-nowrap transition-all border shrink-0 snap-start active:scale-95 ${
+              selectedSpecialty === null
+                ? 'border-slate-900 bg-slate-900 text-white shadow-xs'
+                : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+            }`}
+          >
+            All Specialties
+          </button>
           {specialties.map(spec => (
             <button
               key={spec.id}
+              type="button"
               onClick={() => {
                 setSelectedSpecialty(selectedSpecialty === spec.name ? null : spec.name);
                 handleSearch();
               }}
-              className={`p-4 rounded-xl flex flex-col items-center justify-center gap-2 border transition-colors ${
+              className={`px-4 py-2 rounded-full text-xs sm:text-[13px] font-bold whitespace-nowrap transition-all border shrink-0 snap-start active:scale-95 ${
                 selectedSpecialty === spec.name 
-                  ? 'bg-blue-50 border-blue-200 text-blue-700' 
-                  : 'bg-white border-gray-100 hover:border-blue-200 hover:shadow-sm'
+                  ? 'border-blue-600 bg-blue-600 text-white shadow-xs' 
+                  : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
               }`}
             >
-              <div className={selectedSpecialty === spec.name ? 'text-blue-600' : 'text-gray-600'}>
-                {getIcon(spec.icon)}
-              </div>
-              <span className="text-sm font-medium">{spec.name}</span>
+              {spec.name}
             </button>
           ))}
         </div>

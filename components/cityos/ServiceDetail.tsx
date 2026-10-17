@@ -31,14 +31,6 @@ import {
 } from '@/app/actions/service';
 import { buildWhatsAppServiceUrl, buildWhatsAppInquiryUrl } from '@/lib/whatsapp';
 
-function WhatsAppIcon({ className = 'w-4 h-4' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
-    </svg>
-  );
-}
-
 const TIME_SLOTS = [
   '08:00', '09:00', '10:00', '11:00',
   '12:00', '13:00', '14:00', '15:00',
@@ -336,8 +328,8 @@ export default function ServiceDetail({ id }: { id: string }) {
                 <CalendarClock className="w-3.5 h-3.5" /> {s.durationMinutes} min
               </span>
             )}
-            <span className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/60 px-2.5 py-1 rounded-lg flex items-center gap-1">
-              <WhatsAppIcon className="w-3 h-3 text-emerald-600" /> WhatsApp Direct
+            <span className="text-xs font-bold text-teal-800 bg-teal-50 border border-teal-200/60 px-2.5 py-1 rounded-lg flex items-center gap-1">
+              <CalendarClock className="w-3.5 h-3.5 text-teal-700" /> Direct Scheduling
             </span>
           </div>
 
@@ -363,8 +355,8 @@ export default function ServiceDetail({ id }: { id: string }) {
             <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50/70 border border-slate-100">
               <Clock className="w-4 h-4 text-teal-700 shrink-0 mt-0.5" />
               <div>
-                <p className="text-xs font-bold text-slate-800">WhatsApp Instant Routing</p>
-                <p className="text-[11px] text-slate-500">Confirm date & slot directly on WhatsApp with provider</p>
+                <p className="text-xs font-bold text-slate-800">Direct Scheduling</p>
+                <p className="text-[11px] text-slate-500">Confirm date & slot directly with the verified local provider</p>
               </div>
             </div>
           </div>
@@ -374,18 +366,18 @@ export default function ServiceDetail({ id }: { id: string }) {
         <div className="p-6 sm:p-8 bg-slate-50/50 border-t border-slate-100 flex flex-col sm:flex-row gap-3">
           <button
             onClick={() => setShowBookingModal(true)}
-            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-emerald-600 text-white text-sm font-black hover:bg-emerald-700 transition-colors shadow-sm shadow-emerald-900/10 cursor-pointer"
+            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-teal-800 text-white text-sm font-black hover:bg-teal-900 transition-colors shadow-sm shadow-teal-950/10 cursor-pointer"
           >
-            <WhatsAppIcon className="w-4 h-4" />
-            Book on WhatsApp
+            <CalendarClock className="w-4 h-4" />
+            Book Appointment
           </button>
           
           <button
             onClick={handleQuickWhatsApp}
             className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-white border border-slate-200 text-slate-800 text-sm font-bold hover:bg-slate-50 transition-colors shadow-xs cursor-pointer"
           >
-            <WhatsAppIcon className="w-4 h-4 text-emerald-600" />
-            Quick Chat
+            <MessageSquare className="w-4 h-4 text-teal-700" />
+            Chat Provider
           </button>
 
           <button
@@ -415,15 +407,15 @@ export default function ServiceDetail({ id }: { id: string }) {
 
             {bookingSuccessWaUrl ? (
               <div className="text-center py-6">
-                <div className="w-14 h-14 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <WhatsAppIcon className="w-8 h-8" />
+                <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle2 className="w-8 h-8" />
                 </div>
                 <h3 className="text-xl font-black text-slate-900 mb-2">
-                  Directing to WhatsApp!
+                  Booking Dispatched!
                 </h3>
                 <p className="text-sm text-slate-600 mb-6 max-w-sm mx-auto leading-relaxed">
-                  Your appointment for <span className="font-bold text-slate-900">{s.name}</span> has been dispatched to{' '}
-                  <span className="font-bold text-slate-900">{s.organization?.name}</span> via WhatsApp.
+                  Your appointment for <span className="font-bold text-slate-900">{s.name}</span> has been prepared. Continue in chat with{' '}
+                  <span className="font-bold text-slate-900">{s.organization?.name}</span> to finalize details.
                 </p>
                 <div className="p-4 bg-slate-50 rounded-xl text-left text-xs space-y-2 mb-6 border border-slate-100">
                   <div className="flex justify-between">
@@ -440,7 +432,7 @@ export default function ServiceDetail({ id }: { id: string }) {
                   </div>
                   {bookingAddress && (
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Address:</span>
+                    <span className="text-slate-500">Address:</span>
                       <span className="font-bold text-slate-800 truncate max-w-[200px]">{bookingAddress}</span>
                     </div>
                   )}
@@ -451,9 +443,9 @@ export default function ServiceDetail({ id }: { id: string }) {
                     href={bookingSuccessWaUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm text-center transition-colors inline-flex items-center justify-center gap-1.5"
+                    className="flex-1 py-3 px-4 bg-teal-800 hover:bg-teal-900 text-white rounded-xl font-bold text-sm text-center transition-colors inline-flex items-center justify-center gap-1.5 shadow-xs"
                   >
-                    <WhatsAppIcon className="w-4 h-4" /> Open WhatsApp
+                    <MessageSquare className="w-4 h-4" /> Continue to Chat
                   </a>
                   <Link
                     href="/tasks"
@@ -466,9 +458,9 @@ export default function ServiceDetail({ id }: { id: string }) {
             ) : (
               <form onSubmit={handleBookSubmit}>
                 <div className="mb-6">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-200/60 px-2.5 py-1 rounded-md inline-flex items-center gap-1">
-                    <WhatsAppIcon className="w-3 h-3 text-emerald-600" />
-                    Direct WhatsApp Booking
+                  <span className="text-[11px] font-black uppercase tracking-wider text-teal-800 bg-teal-50 border border-teal-200/60 px-2.5 py-1 rounded-md inline-flex items-center gap-1">
+                    <CalendarClock className="w-3 h-3 text-teal-600" />
+                    Direct Booking
                   </span>
                   <h2 className="text-xl font-black text-slate-900 mt-2">
                     Book {s.name}
@@ -555,18 +547,18 @@ export default function ServiceDetail({ id }: { id: string }) {
                     />
                   </div>
 
-                  {/* WhatsApp Policy Note */}
-                  <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl text-emerald-900 text-xs flex items-center justify-between">
+                  {/* Inspection-First Policy Note */}
+                  <div className="p-3 bg-teal-50/70 border border-teal-200/80 rounded-xl text-teal-950 text-xs flex items-center justify-between">
                     <div>
-                      <span className="font-bold block flex items-center gap-1">
-                        <WhatsAppIcon className="w-3.5 h-3.5 text-emerald-600" />
-                        Inspection-First Policy on WhatsApp
+                      <span className="font-bold block flex items-center gap-1 text-slate-800">
+                        <ShieldCheck className="w-3.5 h-3.5 text-teal-700" />
+                        Inspection-First Policy
                       </span>
-                      <span className="text-[11px] text-emerald-700">
-                        Chat directly on WhatsApp to finalize appointment. Pay {fmt(s.price)} upon satisfactory job completion.
+                      <span className="text-[11px] text-slate-600">
+                        Direct chat to confirm your schedule and inspect details. Pay {fmt(s.price)} upon satisfactory job completion.
                       </span>
                     </div>
-                    <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0 ml-2" />
+                    <ShieldCheck className="w-4 h-4 text-teal-700 shrink-0 ml-2" />
                   </div>
                 </div>
 
@@ -578,17 +570,17 @@ export default function ServiceDetail({ id }: { id: string }) {
                   <button
                     type="submit"
                     disabled={bookingSubmitting}
-                    className="py-3 px-6 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl font-bold text-sm transition-colors flex items-center gap-2 shadow-sm shadow-emerald-900/10 cursor-pointer"
+                    className="py-3 px-6 bg-teal-800 hover:bg-teal-900 disabled:opacity-50 text-white rounded-xl font-bold text-sm transition-colors flex items-center gap-2 shadow-sm shadow-teal-950/10 cursor-pointer"
                   >
                     {bookingSubmitting ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        Connecting...
+                        Booking...
                       </>
                     ) : (
                       <>
-                        <WhatsAppIcon className="w-4 h-4" />
-                        Complete on WhatsApp
+                        <CheckCircle2 className="w-4 h-4" />
+                        Confirm Booking
                       </>
                     )}
                   </button>
