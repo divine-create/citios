@@ -142,7 +142,7 @@ export default function CartView() {
           ))}
         </div>
 
-        {/* Order Summary & Delivery Breakdown */}
+        {/* Order Summary */}
         <div className="w-full lg:w-[380px] shrink-0">
           <div className="bg-slate-50 rounded-3xl p-6 md:p-8 border border-slate-200/60 sticky top-6 space-y-6">
             <h2 className="text-xl font-black text-slate-900">Order Summary</h2>
@@ -152,17 +152,11 @@ export default function CartView() {
                 <span>Subtotal ({count} items)</span>
                 <span className="text-slate-900 font-bold">{fmt(subtotal)}</span>
               </div>
-              {deliveryFee > 0 && (
-                <div className="flex justify-between items-center">
-                  <span>Delivery Fee</span>
-                  <span className="font-bold text-slate-900">{fmt(deliveryFee)}</span>
-                </div>
-              )}
             </div>
 
             <div className="border-t border-slate-200/80 pt-4 flex justify-between items-end">
               <span className="font-bold text-slate-900">Total</span>
-              <span className="text-2xl md:text-3xl font-black text-orange-700">{fmt(previewTotal)}</span>
+              <span className="text-2xl md:text-3xl font-black text-orange-700">{fmt(subtotal)}</span>
             </div>
 
             {hasUnavailableItems && (
@@ -171,31 +165,21 @@ export default function CartView() {
               </div>
             )}
 
-            <div className="bg-white border border-slate-200/80 p-3.5 rounded-2xl flex items-center gap-3 shadow-sm">
-              <span className="w-8 h-8 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center shrink-0">
-                <Zap className="w-4 h-4" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-black text-slate-900">Delivery Guarantee</p>
-                <p className="text-[11px] text-slate-500 font-medium">Dispatched via City Courier Network</p>
-              </div>
-            </div>
-
-            <div className="bg-[#25D366]/10 border border-[#25D366]/25 p-3 rounded-2xl flex items-center gap-2.5 text-xs text-slate-800">
+            <div className="bg-[#25D366]/10 border border-[#25D366]/25 p-3.5 rounded-2xl flex items-center gap-2.5 text-xs text-slate-800">
               <MessageSquare className="w-4 h-4 text-[#25D366] shrink-0" />
-              <span className="font-bold text-[11px] text-emerald-950">Direct WhatsApp Checkout Available</span>
+              <span className="font-bold text-[11px] text-emerald-950">Direct WhatsApp Checkout Only</span>
             </div>
 
             <Link 
               href={hasUnavailableItems ? '#' : '/checkout'}
               className={cn(
-                "flex items-center justify-center gap-2 w-full py-4 bg-gradient-to-r from-orange-600 to-amber-600 text-white rounded-2xl font-black shadow-lg shadow-orange-600/25 transition-all",
+                "flex items-center justify-center gap-2 w-full py-4 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-2xl font-black shadow-lg shadow-emerald-600/25 transition-all",
                 hasUnavailableItems
                   ? "opacity-50 cursor-not-allowed pointer-events-none"
-                  : "hover:brightness-105 active:scale-[0.98]"
+                  : "active:scale-[0.98]"
               )}
             >
-              Proceed to Checkout <ArrowRight className="w-5 h-5" />
+              Checkout via WhatsApp <ArrowRight className="w-5 h-5" />
             </Link>
           </div>
         </div>

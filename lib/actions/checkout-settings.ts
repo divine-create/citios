@@ -21,9 +21,9 @@ export interface PlatformCheckoutConfig {
 
 const DEFAULT_CHECKOUT_CONFIG: PlatformCheckoutConfig = {
   enableWhatsApp: true,
-  enableWallet: true,
-  enableCard: true,
-  enableTransfer: true,
+  enableWallet: false,
+  enableCard: false,
+  enableTransfer: false,
   defaultMethod: 'whatsapp',
   conciergeWhatsAppNumber: '2348000000000',
   allowPayOnDelivery: false,
@@ -35,7 +35,7 @@ const CONFIG_SLUG = 'platform-checkout-config';
 
 /**
  * Public/Resident read: Get current platform checkout configuration.
- * Safe fallback to DEFAULT_CHECKOUT_CONFIG if not yet configured.
+ * Enforces WhatsApp-only checkout and disables delivery for now.
  */
 export async function getCheckoutConfig(): Promise<PlatformCheckoutConfig> {
   try {
@@ -45,6 +45,11 @@ export async function getCheckoutConfig(): Promise<PlatformCheckoutConfig> {
       return {
         ...DEFAULT_CHECKOUT_CONFIG,
         ...parsed,
+        enableWhatsApp: true,
+        enableWallet: false,
+        enableCard: false,
+        enableTransfer: false,
+        defaultMethod: 'whatsapp',
         allowPayOnDelivery: false,
         requireDeliveryAddress: false,
       };

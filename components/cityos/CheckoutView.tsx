@@ -224,7 +224,7 @@ export default function CheckoutView() {
           {[
             { id: 'call', label: '📞 Call me to choose a replacement', desc: 'The merchant will call your phone' },
             { id: 'replace', label: '🔄 Pick the closest replacement', desc: 'Merchant will choose the most similar brand or option' },
-            { id: 'refund', label: '❌ Do not replace (refund item)', desc: 'Automatically credit your CityOS wallet balance' },
+            { id: 'refund', label: '❌ Do not replace (remove item)', desc: 'Skip any unavailable item from my order' },
           ].map((opt) => (
             <button
               key={opt.id}
@@ -256,101 +256,28 @@ export default function CheckoutView() {
 
       <div className="bg-white rounded-[24px] border border-slate-100 overflow-hidden p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-black text-ink">Payment Method</h2>
+          <h2 className="text-sm font-black text-ink">Checkout Channel</h2>
         </div>
 
-        {(checkoutConfig === null || checkoutConfig.enableWhatsApp) && (
-          <button 
-            onClick={() => setMethod('whatsapp')}
-            className={cn("w-full flex items-center justify-between p-4 rounded-xl border text-left transition-all", 
-              method === 'whatsapp' ? "border-emerald-600 bg-emerald-50/80 shadow-[0_0_0_1px_#059669]" : "border-slate-100 hover:border-slate-200"
-            )}
-          >
-            <div className="flex items-center gap-3">
-              <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", method === 'whatsapp' ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-600")}>
-                <MessageSquare className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <p className="text-sm font-black text-ink">WhatsApp Direct Order</p>
-                  <span className="text-[10px] bg-emerald-100 text-emerald-800 font-extrabold px-1.5 py-0.5 rounded-full">POPULAR</span>
-                </div>
-                <p className="text-[11px] font-bold text-slate-500">Send order directly to merchant on WhatsApp for instant confirmation</p>
-              </div>
+        <div 
+          className="w-full flex items-center justify-between p-4 rounded-xl border border-emerald-600 bg-emerald-50/80 shadow-[0_0_0_1px_#059669] text-left transition-all"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-emerald-600 text-white shrink-0">
+              <MessageSquare className="w-5 h-5" />
             </div>
-            <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center", method === 'whatsapp' ? "border-emerald-600" : "border-slate-200")}>
-              {method === 'whatsapp' && <div className="w-2.5 h-2.5 bg-emerald-600 rounded-full" />}
-            </div>
-          </button>
-        )}
-        
-        {(checkoutConfig === null || checkoutConfig.enableWallet) && (
-          <button 
-            onClick={() => setMethod('wallet')}
-            className={cn("w-full flex items-center justify-between p-4 rounded-xl border text-left transition-all", 
-              method === 'wallet' ? "border-teal-800 bg-teal-50 shadow-[0_0_0_1px_#115e59]" : "border-slate-100 hover:border-slate-200"
-            )}
-          >
-            <div className="flex items-center gap-3">
-              <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", method === 'wallet' ? "bg-teal-800 text-white" : "bg-slate-50 text-slate-400")}>
-                <Wallet className="w-5 h-5" />
+            <div>
+              <div className="flex items-center gap-1.5">
+                <p className="text-sm font-black text-ink">WhatsApp Direct Order</p>
+                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-extrabold px-1.5 py-0.5 rounded-full">ACTIVE</span>
               </div>
-              <div>
-                <p className="text-sm font-black text-ink">CityOS Wallet</p>
-                <p className="text-[11px] font-bold text-slate-500">
-                  {walletBalance !== null ? `Balance: ${fmt(walletBalance)}` : 'Loading...'}
-                </p>
-              </div>
+              <p className="text-[11px] font-bold text-slate-500">Send order directly to merchant on WhatsApp for instant confirmation</p>
             </div>
-            <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center", method === 'wallet' ? "border-teal-800" : "border-slate-200")}>
-              {method === 'wallet' && <div className="w-2.5 h-2.5 bg-teal-800 rounded-full" />}
-            </div>
-          </button>
-        )}
-
-        {(checkoutConfig === null || checkoutConfig.enableCard) && (
-          <button 
-            onClick={() => setMethod('card')}
-            className={cn("w-full flex items-center justify-between p-4 rounded-xl border text-left transition-all", 
-              method === 'card' ? "border-teal-800 bg-teal-50 shadow-[0_0_0_1px_#115e59]" : "border-slate-100 hover:border-slate-200"
-            )}
-          >
-            <div className="flex items-center gap-3">
-              <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", method === 'card' ? "bg-teal-800 text-white" : "bg-slate-50 text-slate-400")}>
-                <CreditCard className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-sm font-black text-ink">Credit / Debit Card</p>
-                <p className="text-[11px] font-bold text-slate-500">Secure gateway</p>
-              </div>
-            </div>
-            <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center", method === 'card' ? "border-teal-800" : "border-slate-200")}>
-              {method === 'card' && <div className="w-2.5 h-2.5 bg-teal-800 rounded-full" />}
-            </div>
-          </button>
-        )}
-
-        {(checkoutConfig === null || checkoutConfig.enableTransfer) && (
-          <button 
-            onClick={() => setMethod('transfer')}
-            className={cn("w-full flex items-center justify-between p-4 rounded-xl border text-left transition-all", 
-              method === 'transfer' ? "border-teal-800 bg-teal-50 shadow-[0_0_0_1px_#115e59]" : "border-slate-100 hover:border-slate-200"
-            )}
-          >
-            <div className="flex items-center gap-3">
-              <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", method === 'transfer' ? "bg-teal-800 text-white" : "bg-slate-50 text-slate-400")}>
-                <Landmark className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-sm font-black text-ink">Bank Transfer</p>
-                <p className="text-[11px] font-bold text-slate-500">Pay via bank account</p>
-              </div>
-            </div>
-            <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center", method === 'transfer' ? "border-teal-800" : "border-slate-200")}>
-              {method === 'transfer' && <div className="w-2.5 h-2.5 bg-teal-800 rounded-full" />}
-            </div>
-          </button>
-        )}
+          </div>
+          <div className="w-5 h-5 rounded-full border-2 border-emerald-600 flex items-center justify-center shrink-0">
+            <div className="w-2.5 h-2.5 bg-emerald-600 rounded-full" />
+          </div>
+        </div>
       </div>
 
       <div className="space-y-4">

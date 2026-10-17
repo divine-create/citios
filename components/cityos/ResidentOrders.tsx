@@ -90,7 +90,7 @@ export default function ResidentOrders() {
                 : "bg-slate-100 text-slate-600 hover:bg-slate-200"
             )}
           >
-            {t === 'ALL' ? 'All Orders' : t === 'MARKET' ? 'Marketplace' : 'Food Delivery'}
+            {t === 'ALL' ? 'All Orders' : t === 'MARKET' ? 'Marketplace' : 'Food & Dining'}
           </button>
         ))}
       </div>
@@ -124,9 +124,8 @@ export default function ResidentOrders() {
                               : order.status === 'CANCELLED' || order.status === 'REJECTED' ? 'text-slate-500 bg-slate-100 border-slate-200' 
                               : 'text-sky-700 bg-sky-50 border-sky-200';
 
-            // Fulfillment/Delivery state logic
+            // Fulfillment state logic
             const fulfillmentState = order.fulfillmentStatus || 'UNFULFILLED';
-            const isDelivering = fulfillmentState === 'IN_TRANSIT' || fulfillmentState === 'OUT_FOR_DELIVERY';
             const isWhatsApp = order.paymentMethod === 'WHATSAPP' || order.payment?.method === 'WHATSAPP' || order.payment?.provider === 'WHATSAPP';
 
             return (
@@ -191,16 +190,14 @@ export default function ResidentOrders() {
                   </div>
 
                   <div>
-                    <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Delivery</div>
+                    <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Channel</div>
                     <div className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600">
                       {isWhatsApp ? (
                         <><MessageCircle className="w-3.5 h-3.5 text-emerald-600 fill-emerald-600/20" /> WhatsApp Direct</>
-                      ) : isDelivering ? (
-                        <><Truck className="w-3.5 h-3.5 text-blue-500" /> On the way</>
-                      ) : fulfillmentState === 'DELIVERED' ? (
-                        <><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Arrived</>
+                      ) : fulfillmentState === 'COMPLETED' || fulfillmentState === 'DELIVERED' ? (
+                        <><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Fulfilled</>
                       ) : (
-                        <><Clock className="w-3.5 h-3.5 text-slate-400" /> Preparing</>
+                        <><Clock className="w-3.5 h-3.5 text-slate-400" /> In Store</>
                       )}
                     </div>
                   </div>
