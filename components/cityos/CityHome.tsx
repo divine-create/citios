@@ -19,6 +19,8 @@ import CityPicker from '@/components/cityos/CityPicker';
 import CityFeed from '@/components/cityos/CityFeed';
 import AirbnbSearchCapsule from '@/components/cityos/AirbnbSearchCapsule';
 
+import RealisticIcon from '@/components/ui/RealisticIcon';
+
 function greeting() {
   const h = new Date().getHours();
   if (h < 12) return 'Good morning';
@@ -30,44 +32,44 @@ const TOP_MENU_ITEMS = [
   { 
     label: 'Food', 
     href: '/food', 
-    icon: UtensilsCrossed,
-    color: 'group-hover:text-[#FF385C]'
+    iconKey: 'all',
+    fallbackIcon: UtensilsCrossed,
   },
   { 
     label: 'Stay', 
     href: '/stay', 
-    icon: BedDouble,
-    color: 'group-hover:text-[#FF385C]'
+    iconKey: 'stay',
+    fallbackIcon: BedDouble,
   },
   { 
     label: 'Shop', 
     href: '/market', 
-    icon: ShoppingBag,
-    color: 'group-hover:text-[#FF385C]'
+    iconKey: 'shop',
+    fallbackIcon: ShoppingBag,
   },
   { 
     label: 'Events', 
     href: '/events', 
-    icon: Calendar,
-    color: 'group-hover:text-[#FF385C]'
+    iconKey: 'events',
+    fallbackIcon: Calendar,
   },
   { 
     label: 'Services', 
     href: '/services', 
-    icon: Wrench,
-    color: 'group-hover:text-[#FF385C]'
+    iconKey: 'services',
+    fallbackIcon: Wrench,
   },
   { 
     label: 'Jobs', 
     href: '/jobs', 
-    icon: Briefcase,
-    color: 'group-hover:text-[#FF385C]'
+    iconKey: 'jobs',
+    fallbackIcon: Briefcase,
   },
   { 
     label: 'Explore', 
     href: '/explore', 
-    icon: Compass,
-    color: 'group-hover:text-[#FF385C]'
+    iconKey: 'explore',
+    fallbackIcon: Compass,
   },
 ];
 
@@ -97,17 +99,22 @@ export default function CityHome({
       <section className="px-1">
         <div className="grid grid-cols-4 sm:grid-cols-7 gap-3 sm:gap-4">
           {TOP_MENU_ITEMS.map((item) => {
-            const Icon = item.icon;
+            const FallbackIcon = item.fallbackIcon;
             return (
               <Link
                 key={item.label}
                 href={item.href}
                 className="group flex flex-col items-center gap-2 p-2 rounded-2xl transition-all duration-200"
               >
-                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white border border-[#EBEBEB] shadow-[0_2px_8px_rgba(0,0,0,0.04)] flex items-center justify-center text-[#222222] group-hover:border-[#222222] group-hover:shadow-[0_8px_20px_rgba(0,0,0,0.08)] group-hover:-translate-y-1 transition-all duration-200">
-                  <Icon className={`w-6 h-6 stroke-[1.9] text-[#222222] ${item.color} transition-colors`} />
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white border border-[#EBEBEB] shadow-[0_2px_8px_rgba(0,0,0,0.04)] flex items-center justify-center p-2 text-[#222222] group-hover:border-[#222222] group-hover:shadow-[0_8px_20px_rgba(0,0,0,0.08)] group-hover:-translate-y-1 transition-all duration-200">
+                  <RealisticIcon
+                    name={item.iconKey}
+                    size={38}
+                    fallback={<FallbackIcon className="w-6 h-6 stroke-[1.9] text-[#222222]" />}
+                    className="transition-transform duration-200 group-hover:scale-110"
+                  />
                 </div>
-                <span className={`text-[12px] font-bold text-[#222222] tracking-tight ${item.color} transition-colors text-center`}>
+                <span className="text-[12px] font-bold text-[#222222] tracking-tight group-hover:text-black transition-colors text-center">
                   {item.label}
                 </span>
               </Link>

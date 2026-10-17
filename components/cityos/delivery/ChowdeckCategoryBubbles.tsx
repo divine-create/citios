@@ -3,6 +3,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { STANDARDIZED_FOOD_CATEGORIES } from '@/lib/food-categories';
+import RealisticIcon from '@/components/ui/RealisticIcon';
 
 export interface CategoryBubbleItem {
   id: string;
@@ -97,13 +98,18 @@ export default function ChowdeckCategoryBubbles({
             >
               <div
                 className={cn(
-                  'w-13 h-13 sm:w-15 sm:h-15 rounded-2xl flex items-center justify-center text-xl sm:text-2xl transition-all duration-200 border shadow-2xs',
+                  'w-13 h-13 sm:w-15 sm:h-15 rounded-2xl flex items-center justify-center p-2 transition-all duration-200 border shadow-2xs',
                   isActive
                     ? 'bg-slate-900 border-slate-900 text-white scale-105 shadow-md shadow-slate-900/15'
                     : 'bg-white border-slate-200/80 text-slate-800 hover:border-slate-300 hover:bg-slate-50'
                 )}
               >
-                <span>{emoji}</span>
+                <RealisticIcon
+                  name={cat.id}
+                  size={36}
+                  fallback={emoji}
+                  className="transition-transform group-hover:scale-110"
+                />
               </div>
               <div className="flex items-center gap-1 max-w-[76px] sm:max-w-[84px] justify-center">
                 <span
