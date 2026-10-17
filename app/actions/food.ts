@@ -168,8 +168,9 @@ export async function getCityFood(citySlug?: string) {
     };
   }
 
+  const { isTestOrDemoOrganization } = await import('@/lib/storefront-filter');
   const allOrgs = await db.orm.public.Organization.where({ type: 'RESTAURANT' }).all();
-  const orgs = allOrgs.filter((o: any) => orgIdsWithLoc.includes(o.id));
+  const orgs = allOrgs.filter((o: any) => orgIdsWithLoc.includes(o.id) && !isTestOrDemoOrganization(o));
   const orgIds = orgs.map((o) => o.id);
   if (orgIds.length === 0) {
     return {

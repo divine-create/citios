@@ -6,6 +6,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { notifyPerson } from '@/lib/notify';
 import { classifyRetailProduct } from '@/lib/taxonomy/retail-categorizer';
+import { isTestOrDemoProduct } from '@/lib/storefront-filter';
 
 export async function getCanonicalOrganization(id: string) {
   let org = await db.orm.public.Organization.where({ id }).first();
@@ -22,7 +23,7 @@ export async function getCanonicalOrganization(id: string) {
   const retailCategories = await db.orm.public.RetailCategory.where({ organizationId: org.id }).all();
   const categoryNameMap = new Map(retailCategories.map((c: any) => [c.id, c.name]));
   const products = rawProducts
-    .filter((p: any) => !p.parentId)
+    .filter((p: any) => !p.parentId && !isTestOrDemoProduct(p))
     .map((p: any) => {
       const classified = classifyRetailProduct({
         name: p.name,

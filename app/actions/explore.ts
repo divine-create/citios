@@ -2,6 +2,7 @@
 
 import { db } from '@/src/prisma/db';
 import { getCurrentCity, getCityBySlug } from '@/lib/city';
+import { isTestOrDemoOrganization } from '@/lib/storefront-filter';
 
 export async function searchCityExplore(citySlug: string | undefined, query: string, cat: string) {
   const city = citySlug ? await getCityBySlug(citySlug) : await getCurrentCity();
@@ -9,11 +10,20 @@ export async function searchCityExplore(citySlug: string | undefined, query: str
     return { organizations: [], products: [] };
   }
 
-  const listings = await db.orm.public.DiscoveryListing
+  const rawListings = await db.orm.public.DiscoveryListing
     .where({ cityId: city.id, isActive: true })
     .include('organization', (org: any) => org.select('name', 'type', 'address', 'description'))
     .include('location', (loc: any) => loc.select('address', 'name'))
     .all();
+
+  const listings = rawListings.filter(
+    (l: any) =>
+      !isTestOrDemoOrganization({
+        id: l.organizationId,
+        name: l.title || l.organization?.name,
+        slug: l.slug,
+      })
+  );
 
   const q = query.trim().toLowerCase();
   

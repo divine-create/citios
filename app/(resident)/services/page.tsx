@@ -17,6 +17,7 @@ export default async function ServicesPage() {
   }
 
   // Canonical source: SERVICE-type organizations scoped to the current city.
+  const { isTestOrDemoOrganization } = await import('@/lib/storefront-filter');
   const city = await getCurrentCity();
   
   let orgs: any[] = [];
@@ -25,11 +26,12 @@ export default async function ServicesPage() {
     locs = await db.orm.public.Location.where({ cityId: city.id }).all();
     const cityOrgIds = new Set(locs.map((l) => l.organizationId));
     const allServices = await db.orm.public.Organization.where({ type: 'SERVICES' }).all();
-    orgs = allServices.filter((o) => cityOrgIds.has(o.id));
+    orgs = allServices.filter((o) => cityOrgIds.has(o.id) && !isTestOrDemoOrganization(o));
   }
 
   if (orgs.length === 0) {
-    orgs = await db.orm.public.Organization.where({ type: 'SERVICES' }).all();
+    const allServices = await db.orm.public.Organization.where({ type: 'SERVICES' }).all();
+    orgs = allServices.filter((o) => !isTestOrDemoOrganization(o));
     locs = await db.orm.public.Location.all();
   }
 

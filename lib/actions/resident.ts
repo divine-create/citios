@@ -4,6 +4,7 @@ import { db } from '@/src/prisma/db'
 import { getCurrentCity, getCityBySlug } from '@/lib/city'
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { isTestOrDemoOrganization } from '@/lib/storefront-filter';
 
 // City scope: resident-facing org listings only surface orgs operating in
 // the current city. When no city resolves (unseeded DB), the filter is
@@ -12,6 +13,7 @@ async function getOrgsByType(type: string) {
   const city = await getCurrentCity();
   // @ts-ignore
   let orgs = await db.orm.public.Organization.where({ type }).all();
+  orgs = orgs.filter((o: any) => !isTestOrDemoOrganization(o));
   if (city) {
     const locs = await db.orm.public.Location.where({ cityId: city.id }).all();
     const cityOrgIds = new Set(locs.map(l => l.organizationId));
@@ -133,6 +135,7 @@ export async function getHotelOrgs(citySlug?: string) {
   const city = citySlug ? await getCityBySlug(citySlug) : await getCurrentCity();
   // @ts-ignore
   let orgs = await db.orm.public.Organization.where({ type: 'HOTEL' }).all();
+  orgs = orgs.filter((o: any) => !isTestOrDemoOrganization(o));
   if (city) {
     const locs = await db.orm.public.Location.where({ cityId: city.id }).all();
     const cityOrgIds = new Set(locs.map(l => l.organizationId));

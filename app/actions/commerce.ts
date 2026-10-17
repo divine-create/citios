@@ -323,6 +323,7 @@ export async function fetchRetailOrders(orgId: string) {
 
 import { getStorefrontPromotions } from '@/lib/actions/storefront-management';
 import { classifyRetailProduct, inferStoreProfileTaxonomy } from '@/lib/taxonomy/retail-categorizer';
+import { isTestOrDemoOrganization, isTestOrDemoProduct } from '@/lib/storefront-filter';
 
 export async function getCityMartProducts(citySlug?: string, cat: string = 'All') {
   // Explicit slug wins; otherwise resolve the session's current city.
@@ -332,7 +333,9 @@ export async function getCityMartProducts(citySlug?: string, cat: string = 'All'
   const locs = await db.orm.public.Location.where({ cityId: city.id }).all();
   const orgIdsInCity = Array.from(new Set(locs.map((l: any) => l.organizationId)));
   const allOrgs = await db.orm.public.Organization.all();
-  const orgs = allOrgs.filter((o: any) => o.type === 'RETAIL' && orgIdsInCity.includes(o.id));
+  const orgs = allOrgs.filter(
+    (o: any) => o.type === 'RETAIL' && orgIdsInCity.includes(o.id) && !isTestOrDemoOrganization(o)
+  );
   const orgIds = orgs.map(o => o.id);
 
   if (orgIds.length === 0) return [];
@@ -342,7 +345,7 @@ export async function getCityMartProducts(citySlug?: string, cat: string = 'All'
   const categoryNameMap = new Map(retailCategories.map((c: any) => [c.id, c.name]));
 
   const enrichedAll = allProducts
-    .filter((p: any) => orgIds.includes(p.organizationId) && !p.parentId)
+    .filter((p: any) => orgIds.includes(p.organizationId) && !p.parentId && !isTestOrDemoProduct(p))
     .map((p: any) => {
       const org = orgs.find((o) => o.id === p.organizationId);
       const classified = classifyRetailProduct({
@@ -385,19 +388,24 @@ export async function getCityMartStores(citySlug?: string) {
   const locs = await db.orm.public.Location.where({ cityId: city.id }).all();
   const orgIdsInCity = Array.from(new Set(locs.map((l: any) => l.organizationId)));
   const allOrgs = await db.orm.public.Organization.all();
-  const orgs = allOrgs.filter((o: any) => o.type === 'RETAIL' && orgIdsInCity.includes(o.id));
+  const orgs = allOrgs.filter(
+    (o: any) => o.type === 'RETAIL' && orgIdsInCity.includes(o.id) && !isTestOrDemoOrganization(o)
+  );
 
   const listings = await db.orm.public.DiscoveryListing.where({ cityId: city.id }).all();
   const listingMap = new Map(listings.map((l: any) => [l.organizationId, l]));
   const allProducts = await db.orm.public.RetailProduct.all();
 
-  return orgs.map((o: any) => {
-    const listing = listingMap.get(o.id);
-    const orgProducts = allProducts.filter((p: any) => p.organizationId === o.id && !p.parentId);
-    const inferred = inferStoreProfileTaxonomy(orgProducts, o.storeCategory);
+  return orgs
+    .map((o: any) => {
+      const listing = listingMap.get(o.id);
+      const orgProducts = allProducts.filter(
+        (p: any) => p.organizationId === o.id && !p.parentId && !isTestOrDemoProduct(p)
+      );
+      const inferred = inferStoreProfileTaxonomy(orgProducts, o.storeCategory);
 
-    let cover = o.logoAssetId || listing?.coverAssetId;
-    let rating: number | null = null;
+      let cover = o.logoAssetId || listing?.coverAssetId;
+      let rating: number | null = null;
     let meta: any = null;
     if (listing?.metadata) {
       try {

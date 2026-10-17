@@ -641,6 +641,7 @@ export async function getServiceRevenueStats(organizationId: string) {
 
 export async function getCityBookableServices(citySlug?: string) {
   try {
+    const { isTestOrDemoOrganization } = await import('@/lib/storefront-filter');
     let orgIds: string[] = [];
     if (citySlug) {
       const city = await db.orm.public.City.where({ slug: citySlug }).all().first();
@@ -651,17 +652,23 @@ export async function getCityBookableServices(citySlug?: string) {
     }
 
     const allItems = await db.orm.public.ServiceCatalogItem.where({ isActive: true }).all();
-    const items = orgIds.length > 0 ? allItems.filter((i: any) => orgIds.includes(i.organizationId)) : allItems;
+    const rawItems = orgIds.length > 0 ? allItems.filter((i: any) => orgIds.includes(i.organizationId)) : allItems;
 
     // Collect distinct organization IDs
-    const distinctOrgIds = Array.from(new Set(items.map((i: any) => i.organizationId)));
+    const distinctOrgIds = Array.from(new Set(rawItems.map((i: any) => i.organizationId)));
 
-    // Fetch org names
+    // Fetch org names and filter out test/demo organizations
     const orgMap = new Map<string, string>();
+    const validOrgIds = new Set<string>();
     for (const orgId of distinctOrgIds) {
       const org = await db.orm.public.Organization.where({ id: orgId }).all().first();
-      orgMap.set(orgId, org?.name || 'Local Pro');
+      if (org && !isTestOrDemoOrganization(org)) {
+        orgMap.set(orgId, org.name || 'Local Pro');
+        validOrgIds.add(orgId);
+      }
     }
+
+    const items = rawItems.filter((i: any) => validOrgIds.has(i.organizationId));
 
     // Fetch contact points (phone and whatsapp)
     const contacts = await db.orm.public.OrganizationContactPoint.all();

@@ -87,7 +87,8 @@ export async function fetchFeed(
     postsClause.createdAt = { lt: new Date(cursor) };
   }
 
-  const rawPosts = await db.orm.public.Post.where(postsClause)
+  const { isTestOrDemoOrganization } = await import('@/lib/storefront-filter');
+  const fetchedPosts = await db.orm.public.Post.where(postsClause)
     .orderBy((p: any) => p.createdAt.desc())
     .limit(limit)
     .include('person', (p: any) => p.select('firstName', 'lastName', 'id').include('profile', (prof: any) => prof.select('avatarUrl')))
@@ -95,6 +96,12 @@ export async function fetchFeed(
     .include('likes', (likes: any) => likes.count())
     .include('comments', (comments: any) => comments.count())
     .all();
+
+  const rawPosts = fetchedPosts.filter(
+    (p: any) =>
+      !p.organizationId ||
+      !isTestOrDemoOrganization({ id: p.organizationId, name: p.organization?.name })
+  );
 
   const myLikes = personId
     ? await db.orm.public.PostLike.where({ personId }).select('postId').all()
