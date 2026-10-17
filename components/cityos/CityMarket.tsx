@@ -22,37 +22,12 @@ import GlovoProductCard, { GlovoProductItem } from '@/components/cityos/delivery
 import ChowdeckBasketDock from '@/components/cityos/delivery/ChowdeckBasketDock';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { cn } from '@/lib/utils';
+import { CANONICAL_ECOMMERCE_CATEGORIES } from '@/lib/taxonomy/retail-categorizer';
 
 const SECTION_PREVIEW_LIMIT = 10;
 
-// Priority order for frontpage category shelves so flagship departments lead
-const CATEGORY_PRIORITY_ORDER: string[] = [
-  'iphone-16-17-air-series',
-  'iphone-14-15-series',
-  'iphone-12-13-series',
-  'apple-ipads',
-  'phones-communication',
-  'apple-macbooks',
-  'laptops-computers',
-  'power-banks-fast-portable-power',
-  'power-backup-stations',
-  'earbuds-headsets-earphones',
-  'airpods-wireless-audio',
-  'bluetooth-speakers-audio',
-  'smartwatches-fitness-bands',
-  'apple-watch',
-  'chargers-cables-extensions',
-  'starlink-networking',
-  '4g-mifi-wifi-routers',
-  'microphones-creator-audio',
-  'gaming-consoles',
-  'monitors-displays',
-  'flash-drives-memory-cards',
-  'batteries-screen-guards-parts',
-  'clippers-smart-appliances',
-  'apple-keyboards-mice-pencil',
-  'webcams-stands-smart-gadgets',
-];
+// Priority order for frontpage category shelves (the 9 core categories + universal Jumia/Jiji/Amazon departments)
+const CATEGORY_PRIORITY_ORDER: string[] = CANONICAL_ECOMMERCE_CATEGORIES.map((c) => c.id);
 
 function interleaveByStore(items: GlovoProductItem[]): GlovoProductItem[] {
   const byStore = new Map<string, GlovoProductItem[]>();
@@ -233,7 +208,7 @@ export default function CityMarket() {
     return list;
   }, [products, activeSector, activeAisle, activeArea, inStockOnly, searchQuery, sortBy]);
 
-  // Group filteredProducts into Categorized Sections when browsing "All Goods"
+  // Group filteredProducts into the 9 Canonical Category Sections when browsing "All Goods"
   const categorizedSections = useMemo(() => {
     const map = new Map<
       string,
@@ -247,12 +222,12 @@ export default function CityMarket() {
 
     for (const p of filteredProducts) {
       const rawLabel = (
-        (p as any).categoryName ||
         p.globalCategory ||
+        (p as any).categoryName ||
         p.category ||
         'General Goods'
       ).trim();
-      const id = rawLabel.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      const id = rawLabel.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
       if (!map.has(id)) {
         map.set(id, { id, label: rawLabel, items: [], storeNames: new Set() });
       }
@@ -334,16 +309,6 @@ export default function CityMarket() {
                   )}
                 >
                   <span>{sector.label}</span>
-                  {typeof sector.count === 'number' && sector.count > 0 && (
-                    <span
-                      className={cn(
-                        'text-[10px] font-black px-1.5 py-0.2 rounded-full',
-                        isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
-                      )}
-                    >
-                      {sector.count}
-                    </span>
-                  )}
                 </button>
               );
             })}
@@ -355,7 +320,7 @@ export default function CityMarket() {
           <div className="space-y-2">
             <div className="flex items-center justify-between px-1">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Product Categories & Aisles
+                Product Categories
               </h3>
               {hasActiveFilters && (
                 <button
@@ -427,7 +392,7 @@ export default function CityMarket() {
               href="/explore?cat=Retail"
               className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center gap-1 transition-colors"
             >
-              <span>View all ({filteredStores.length})</span>
+              <span>View all</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
@@ -471,8 +436,8 @@ export default function CityMarket() {
             </h2>
             <p className="text-xs text-slate-500 font-medium">
               {showSectionedView
-                ? `${filteredProducts.length} items across ${categorizedSections.length} categories · Showing up to ${SECTION_PREVIEW_LIMIT} per section`
-                : `${filteredProducts.length} item${filteredProducts.length === 1 ? '' : 's'} available`}
+                ? 'Explore products organized by category'
+                : 'Browse available products'}
             </p>
           </div>
 
@@ -575,9 +540,6 @@ export default function CityMarket() {
                       <h3 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">
                         {section.label}
                       </h3>
-                      <span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200/60">
-                        {section.totalCount} {section.totalCount === 1 ? 'item' : 'items'}
-                      </span>
                     </div>
                     {section.storeNames.length > 0 && (
                       <p className="text-[11px] text-slate-500 font-medium mt-0.5">
@@ -591,7 +553,7 @@ export default function CityMarket() {
                     onClick={() => handleSelectAisle(section.id)}
                     className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-slate-900 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shrink-0"
                   >
-                    <span>View all ({section.totalCount})</span>
+                    <span>View all</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -611,9 +573,7 @@ export default function CityMarket() {
                       onClick={() => handleSelectAisle(section.id)}
                       className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-2xl bg-slate-100 hover:bg-emerald-50 text-slate-800 hover:text-emerald-800 border border-slate-200/80 hover:border-emerald-300 text-xs font-extrabold transition-all"
                     >
-                      <span>
-                        View all {section.totalCount} products in {section.label}
-                      </span>
+                      <span>View all in {section.label}</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   </div>

@@ -22,11 +22,11 @@ export default function ClientProductList({
   const [sortBy, setSortBy] = useState<'popular' | 'price-asc' | 'price-desc'>('popular');
   const [groupByAisle, setGroupByAisle] = useState(true);
 
-  // Extract unique human-readable in-store aisles with counts
+  // Extract unique canonical categories
   const aisleTabs = useMemo(() => {
     const counts = new Map<string, number>();
     for (const p of products) {
-      const catLabel = (p.categoryName || p.globalCategory || 'General Goods').trim();
+      const catLabel = (p.globalCategory || p.categoryName || 'General Goods').trim();
       counts.set(catLabel, (counts.get(catLabel) || 0) + 1);
     }
     const sorted = Array.from(counts.entries())
@@ -51,8 +51,9 @@ export default function ClientProductList({
   const filtered = useMemo(() => {
     let list = products.filter((p) => {
       if (activeAisle !== 'All') {
-        const catLabel = (p.categoryName || p.globalCategory || 'General Goods').trim();
-        if (catLabel !== activeAisle) return false;
+        const catLabel = (p.globalCategory || p.categoryName || 'General Goods').trim();
+        const subLabel = (p.categoryName || '').trim();
+        if (catLabel !== activeAisle && subLabel !== activeAisle) return false;
       }
       if (activePriceRange !== 'all') {
         const price = p.price || 0;
@@ -85,11 +86,11 @@ export default function ClientProductList({
     return list;
   }, [products, activeAisle, activePriceRange, inStockOnly, searchQuery, sortBy]);
 
-  // Group filtered products by aisle when showing all aisles in default sort
+  // Group filtered products by canonical category when showing all categories in default sort
   const groupedSections = useMemo(() => {
     const map = new Map<string, any[]>();
     for (const p of filtered) {
-      const catLabel = (p.categoryName || p.globalCategory || 'General Goods').trim();
+      const catLabel = (p.globalCategory || p.categoryName || 'General Goods').trim();
       const arr = map.get(catLabel) || [];
       arr.push(p);
       map.set(catLabel, arr);
@@ -114,10 +115,10 @@ export default function ClientProductList({
           <div>
             <h2 className="text-lg sm:text-xl font-black text-slate-900 flex items-center gap-2">
               <ShoppingBag className="w-5 h-5 text-emerald-600" />
-              Shop Store Aisles
+              Shop Store Categories
             </h2>
             <p className="text-xs text-slate-500 font-medium mt-0.5">
-              {products.length} products across {Math.max(1, aisleTabs.length - 1)} categories · Tap an aisle or search by model/spec
+              Tap a category below or search by model and specification
             </p>
           </div>
 
@@ -143,7 +144,7 @@ export default function ClientProductList({
           </div>
         </div>
 
-        {/* Primary In-Store Aisle Filter Pills */}
+        {/* Primary In-Store Category Filter Pills */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-1 px-1 no-scrollbar pt-1 border-t border-slate-100">
           {aisleTabs.map((tab) => {
             const active = activeAisle === tab.label;
@@ -160,14 +161,6 @@ export default function ClientProductList({
                 )}
               >
                 <span>{tab.label === 'All' ? 'All Categories' : tab.label}</span>
-                <span
-                  className={cn(
-                    'text-[10px] font-black px-1.5 py-0.2 rounded-full',
-                    active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
-                  )}
-                >
-                  {tab.count}
-                </span>
               </button>
             );
           })}
@@ -261,21 +254,18 @@ export default function ClientProductList({
                     <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
                       {section.title}
                     </h3>
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-black">
-                      {section.items.length} {section.items.length === 1 ? 'item' : 'items'}
-                    </span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setActiveAisle(section.title)}
                     className="text-xs font-bold text-emerald-700 hover:text-emerald-900 transition-colors"
                   >
-                    Filter this category →
+                    View all →
                   </button>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
-                  {section.items.map((p: any) => (
+                  {section.items.slice(0, 10).map((p: any) => (
                     <GlovoProductCard
                       key={p.id}
                       product={{

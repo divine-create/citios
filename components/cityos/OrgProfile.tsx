@@ -82,8 +82,8 @@ export default async function OrgProfile({ id }: { id: string }) {
     });
   } else if (shop && shop.products.length > 0) {
     factCells.push({
-      label: `${shop.products.length} ${shop.products.length === 1 ? 'Product' : 'Products'}`,
-      sub: 'In-Store Catalog',
+      label: 'Active Catalog',
+      sub: 'In-Store Shopping',
     });
   }
   factCells.push({

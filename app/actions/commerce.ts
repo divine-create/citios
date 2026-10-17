@@ -322,7 +322,11 @@ export async function fetchRetailOrders(orgId: string) {
 }
 
 import { getStorefrontPromotions } from '@/lib/actions/storefront-management';
-import { classifyRetailProduct, inferStoreProfileTaxonomy } from '@/lib/taxonomy/retail-categorizer';
+import {
+  classifyRetailProduct,
+  inferStoreProfileTaxonomy,
+  CANONICAL_ECOMMERCE_CATEGORIES,
+} from '@/lib/taxonomy/retail-categorizer';
 import { isTestOrDemoOrganization, isTestOrDemoProduct } from '@/lib/storefront-filter';
 
 export async function getCityMartProducts(citySlug?: string, cat: string = 'All') {
@@ -358,7 +362,7 @@ export async function getCityMartProducts(citySlug?: string, cat: string = 'All'
       const area = org?.address ? org.address.split(',')[0].trim() : city.name;
       return {
         ...p,
-        globalCategory: p.globalCategory || classified.globalCategory,
+        globalCategory: classified.globalCategory,
         categoryName: explicitAisle || classified.inStoreCategory,
         brand: classified.brand,
         specTags: classified.specTags,
@@ -460,7 +464,7 @@ export async function getCityMarketFeed(citySlug?: string, activeAisle: string =
     };
   }
 
-  // Always fetch all city products so category counts remain stable and client-side filtering is instant
+  // Always fetch all city products so client-side filtering is instant
   const [stores, allProducts, campaigns] = await Promise.all([
     getCityMartStores(city.slug),
     getCityMartProducts(city.slug, 'All'),
@@ -500,39 +504,37 @@ export async function getCityMarketFeed(citySlug?: string, activeAisle: string =
     ...Array.from(sectorMap.values()).sort((a, b) => b.count - a.count),
   ];
 
-  // 2. Dynamically derive Product Aisles / Categories
-  const categoryMap = new Map<string, { id: string; label: string; count: number }>();
-  const addCategoryCount = (rawLabel: string) => {
-    const clean = rawLabel.trim();
-    if (!clean || clean.toLowerCase() === 'all') return;
-    const id = clean.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    const existing = categoryMap.get(id);
-    if (existing) {
-      existing.count += 1;
-    } else {
-      categoryMap.set(id, { id, label: clean, count: 1 });
-    }
-  };
-
+  // 2. Build Canonical Product Categories (the 9 core categories + universal Jumia/Jiji/Amazon categories)
+  const categoryCountMap = new Map<string, number>();
   for (const p of allProducts) {
-    const aisleLabel = (p as any).categoryName?.trim() || p.globalCategory?.trim() || (p as any).category?.trim();
-    if (aisleLabel) {
-      addCategoryCount(aisleLabel);
-    } else if (p.storeCategory && p.storeCategory !== 'Supermarket') {
-      addCategoryCount(p.storeCategory);
+    const gCat = (p.globalCategory || '').trim();
+    if (!gCat) continue;
+    categoryCountMap.set(gCat, (categoryCountMap.get(gCat) || 0) + 1);
+  }
+
+  // Preserve canonical order from CANONICAL_ECOMMERCE_CATEGORIES for categories with products
+  const dynamicCategories: { id: string; label: string; count: number }[] = [];
+  const seenLabels = new Set<string>();
+
+  for (const canonical of CANONICAL_ECOMMERCE_CATEGORIES) {
+    const count = categoryCountMap.get(canonical.label) || 0;
+    if (count > 0) {
+      dynamicCategories.push({
+        id: canonical.id,
+        label: canonical.label,
+        count,
+      });
+      seenLabels.add(canonical.label);
     }
   }
 
-  // If no products had categories, fallback to store aisles
-  if (categoryMap.size === 0) {
-    for (const s of stores) {
-      for (const a of s.aisles || []) {
-        addCategoryCount(a);
-      }
+  // Include any remaining globalCategory that wasn't in the canonical list
+  for (const [label, count] of categoryCountMap.entries()) {
+    if (!seenLabels.has(label) && count > 0) {
+      const id = label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      dynamicCategories.push({ id, label, count });
     }
   }
-
-  const dynamicCategories = Array.from(categoryMap.values()).sort((a, b) => b.count - a.count);
 
   const categories = [
     { id: 'all', label: 'All Goods', count: allProducts.length },

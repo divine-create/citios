@@ -36,7 +36,7 @@ export async function getCanonicalOrganization(id: string) {
         ...p,
         storeName: org.name,
         categoryName: explicitAisle || classified.inStoreCategory || p.globalCategory || 'General Goods',
-        globalCategory: p.globalCategory || classified.globalCategory || 'General Goods',
+        globalCategory: classified.globalCategory || p.globalCategory || 'General Goods',
         brand: classified.brand,
         specTags: classified.specTags,
       };

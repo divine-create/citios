@@ -105,16 +105,6 @@ export default function ChowdeckCategoryBubbles({
                 )}
               >
                 <span>{label}</span>
-                {typeof cat.count === 'number' && cat.count > 0 && cat.id !== 'all' && (
-                  <span
-                    className={cn(
-                      'text-[10px] font-black px-1.5 py-0.5 rounded-full shrink-0',
-                      isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-                    )}
-                  >
-                    {cat.count}
-                  </span>
-                )}
               </button>
             );
           })}
@@ -163,16 +153,6 @@ export default function ChowdeckCategoryBubbles({
                 >
                   {cat.shortLabel || cat.label}
                 </span>
-                {typeof cat.count === 'number' && cat.count > 0 && cat.id !== 'all' && (
-                  <span
-                    className={cn(
-                      'text-[9px] font-extrabold px-1 rounded-full shrink-0',
-                      isActive ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500'
-                    )}
-                  >
-                    {cat.count}
-                  </span>
-                )}
               </div>
             </button>
           );
