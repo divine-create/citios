@@ -1,5 +1,5 @@
-import CartView from '@/components/cityos/CartView';
+import { redirect } from 'next/navigation';
 
 export default function CartPage() {
-    return <CartView />;
-}
+  redirect('/checkout');
+}

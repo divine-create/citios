@@ -679,8 +679,8 @@ export default function CityFood() {
         orgName={customizerItem?.orgName}
       />
 
-      {/* 7. Persistent Chowdeck Floating Order Basket Dock */}
-      <ChowdeckBasketDock label="View Food Basket" />
+      {/* 7. Persistent Floating Checkout Dock */}
+      <ChowdeckBasketDock label="Checkout" />
     </div>
   );
 }

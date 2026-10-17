@@ -13,7 +13,7 @@ interface ChowdeckBasketDockProps {
 }
 
 export default function ChowdeckBasketDock({
-  label = 'View Food Basket',
+  label = 'Checkout',
   className,
 }: ChowdeckBasketDockProps) {
   const { count, subtotal, lines } = useCart();
@@ -27,14 +27,14 @@ export default function ChowdeckBasketDock({
 
   return (
     <aside
-      aria-label="Order Basket Dock"
+      aria-label="Checkout Dock"
       className={cn(
         'fixed bottom-5 left-4 right-4 max-w-lg mx-auto z-40 animate-in slide-in-from-bottom-6 duration-300 pointer-events-auto',
         className
       )}
     >
       <Link
-        href="/cart"
+        href="/checkout"
         className="flex items-center justify-between bg-slate-950 text-white p-3.5 px-5 rounded-full shadow-2xl hover:bg-black transition-all group border border-white/15"
       >
         <div className="flex items-center gap-3.5">
@@ -58,7 +58,7 @@ export default function ChowdeckBasketDock({
         </div>
 
         <div className="flex items-center gap-2 text-xs font-black text-orange-400 group-hover:text-orange-300 group-hover:translate-x-1 transition-all">
-          <span>{label}</span>
+          <span>Checkout</span>
           <div className="w-7 h-7 rounded-full bg-orange-500/20 flex items-center justify-center">
             <ArrowRight className="w-4 h-4" />
           </div>

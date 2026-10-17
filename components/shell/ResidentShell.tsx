@@ -56,8 +56,8 @@ function CartBell() {
   const { count } = useCart();
   return (
     <Link
-      href="/cart"
-      title="Cart"
+      href="/checkout"
+      title="Checkout"
       className="relative p-2.5 text-slate-600 hover:bg-slate-200/60 rounded-xl transition-colors flex items-center justify-center"
     >
       <ShoppingCart className="w-5 h-5" />

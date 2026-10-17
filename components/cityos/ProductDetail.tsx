@@ -99,7 +99,7 @@ export default function ProductDetail({ id }: { id: string }) {
   const handleBuyNow = () => {
     if (isOutOfStock) return;
     handleAdd();
-    router.push('/cart');
+    router.push('/checkout');
   };
 
   const variantOptions = hasVariants ? p.variants.map((v:any) => ({

@@ -256,11 +256,11 @@ export default function RestaurantStorefrontView({ restaurant, location, menuIte
         </div>
       )}
 
-      {/* Floating Glovo-Style Bottom Basket Bar */}
+      {/* Floating Bottom Checkout Bar */}
       {storeCartCount > 0 && (
         <div className="fixed bottom-4 left-0 right-0 z-40 px-4 max-w-lg mx-auto animate-in slide-in-from-bottom-5 duration-300">
           <Link
-            href="/cart"
+            href="/checkout"
             className="w-full p-4 rounded-2xl bg-gradient-to-r from-orange-600 to-amber-600 text-white font-black text-sm flex items-center justify-between shadow-2xl shadow-orange-600/40 active:scale-[0.98] transition-all hover:brightness-105"
           >
             <div className="flex items-center gap-3">
@@ -268,7 +268,7 @@ export default function RestaurantStorefrontView({ restaurant, location, menuIte
                 <ShoppingBag className="w-5 h-5" />
               </span>
               <div>
-                <p className="text-xs uppercase tracking-wider text-orange-100 font-bold">Your Basket</p>
+                <p className="text-xs uppercase tracking-wider text-orange-100 font-bold">Checkout</p>
                 <p className="text-sm font-black text-white">{storeCartCount} {storeCartCount === 1 ? 'item' : 'items'}</p>
               </div>
             </div>
@@ -276,7 +276,7 @@ export default function RestaurantStorefrontView({ restaurant, location, menuIte
             <div className="flex items-center gap-2">
               <span className="text-base font-black">{fmt(storeCartTotal)}</span>
               <span className="text-xs bg-white text-orange-700 px-3 py-1.5 rounded-xl font-black">
-                View Cart ➔
+                Checkout ➔
               </span>
             </div>
           </Link>

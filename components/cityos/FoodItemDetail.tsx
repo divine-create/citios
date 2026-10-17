@@ -129,7 +129,7 @@ export default function FoodItemDetail({ id }: { id: string }) {
                     </>
                   )}
                 </button>
-                <Link href="/cart" className="relative shrink-0 flex items-center justify-center w-14 h-14 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl transition-colors">
+                <Link href="/checkout" className="relative shrink-0 flex items-center justify-center w-14 h-14 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl transition-colors">
                   <ShoppingCart className="w-5 h-5" />
                   {count > 0 && (
                     <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-sm">

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Wallet, CreditCard, Landmark, ShieldCheck, Loader2, AlertCircle, ArrowLeft, PhoneCall, MessageSquare, MapPin } from 'lucide-react';
+import { Wallet, CreditCard, Landmark, ShieldCheck, Loader2, AlertCircle, ArrowLeft, PhoneCall, MessageSquare, MapPin, Minus, Plus, Trash2 } from 'lucide-react';
 import { useMoney } from '@/components/cityos/CityProvider';
 import { useCart } from '@/components/cityos/CartStore';
 import { getResidentWallet } from '@/app/actions/resident_wallet';
@@ -17,7 +17,7 @@ type MethodId = 'wallet' | 'whatsapp' | 'card' | 'transfer';
 export default function CheckoutView() {
   const { fmt } = useMoney();
   const router = useRouter();
-  const { lines, subtotal, deliveryFee, removeOrg, syncCart } = useCart();
+  const { lines, subtotal, deliveryFee, setQty, remove, removeOrg, syncCart } = useCart();
   
   const [method, setMethod] = useState<MethodId>('whatsapp');
   const [substitutionRule, setSubstitutionRule] = useState<'call' | 'replace' | 'refund'>('call');
@@ -163,9 +163,13 @@ export default function CheckoutView() {
   return (
     <div className="max-w-xl mx-auto space-y-6 animate-in fade-in duration-500 pb-20">
       <div>
-        <Link href="/cart" className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-500 hover:text-ink transition-colors mb-4">
-          <ArrowLeft className="w-4 h-4" /> Back to Cart
-        </Link>
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-500 hover:text-ink transition-colors mb-4"
+        >
+          <ArrowLeft className="w-4 h-4" /> Continue Shopping
+        </button>
         <h1 className="text-2xl font-black text-ink">Checkout</h1>
       </div>
 
@@ -281,10 +285,12 @@ export default function CheckoutView() {
       </div>
 
       <div className="space-y-4">
-        <h2 className="text-sm font-black text-ink">Merchant Obligations</h2>
-        <p className="text-xs text-slate-500 leading-relaxed mb-4">
-          Your cart contains items from multiple merchants. You must checkout with each merchant separately.
-        </p>
+        <h2 className="text-sm font-black text-ink">Order Summary</h2>
+        {Object.keys(groupedLines).length > 1 && (
+          <p className="text-xs text-slate-500 leading-relaxed mb-4">
+            Your order contains items from multiple merchants. Complete checkout with each merchant below.
+          </p>
+        )}
 
         {Object.entries(groupedLines).map(([orgId, group]) => {
           const isBelowMin = !!(checkoutConfig?.minOrderAmount && group.total > 0 && group.total < checkoutConfig.minOrderAmount);
@@ -299,14 +305,49 @@ export default function CheckoutView() {
                 )}
               </div>
               
-              <div className="p-4 space-y-3">
+              <div className="p-4 divide-y divide-slate-100">
                 {group.items.map((l: any, i: number) => (
-                  <div key={i} className="flex justify-between items-start">
-                    <div>
-                      <p className="text-[13px] font-bold text-ink">{l.qty}x {l.name}</p>
-                      {l.kind === 'service' && <p className="text-[10px] text-teal-700 font-bold bg-teal-50 px-1.5 py-0.5 rounded uppercase w-max mt-1">Service Request</p>}
+                  <div key={l.productId || i} className="py-3 first:pt-0 last:pb-0 flex items-center justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13px] font-bold text-ink line-clamp-1">{l.name}</p>
+                      {l.kind === 'service' ? (
+                        <p className="text-[10px] text-teal-700 font-bold bg-teal-50 px-1.5 py-0.5 rounded uppercase w-max mt-1">Service Request</p>
+                      ) : (
+                        <p className="text-[11px] font-bold text-slate-500">{fmt(l.price)} each</p>
+                      )}
                     </div>
-                    {l.kind !== 'service' && <p className="text-[12px] font-black text-slate-600">{fmt(l.price * l.qty)}</p>}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center bg-slate-50 rounded-xl p-0.5 border border-slate-200/80">
+                        <button
+                          type="button"
+                          onClick={() => setQty(l.productId, l.qty - 1)}
+                          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white text-slate-600 transition-colors"
+                          aria-label="Decrease quantity"
+                        >
+                          <Minus className="w-3 h-3" />
+                        </button>
+                        <span className="w-7 text-center text-xs font-black text-slate-900">{l.qty}</span>
+                        <button
+                          type="button"
+                          onClick={() => setQty(l.productId, l.qty + 1)}
+                          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white text-slate-600 transition-colors"
+                          aria-label="Increase quantity"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+                      {l.kind !== 'service' && (
+                        <p className="text-[12px] font-black text-slate-900 min-w-[72px] text-right">{fmt(l.price * l.qty)}</p>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => remove(l.productId)}
+                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                        aria-label="Remove item"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

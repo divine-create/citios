@@ -402,8 +402,8 @@ export default function CityMarket() {
         )}
       </section>
 
-      {/* 5. Persistent Floating Basket Dock */}
-      <ChowdeckBasketDock label="View Shopping Basket" />
+      {/* 5. Persistent Floating Checkout Dock */}
+      <ChowdeckBasketDock label="Checkout" />
     </div>
   );
 }
