@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { findPersonByEmail } from '@/lib/identity';
+import { getVerticalsConfig } from '@/lib/actions/verticals-config';
 import CityHome from '@/components/cityos/CityHome';
 
 export default async function HomePage() {
@@ -18,5 +19,7 @@ export default async function HomePage() {
     console.error('Home page session fetch error', e);
   }
 
-  return <CityHome firstName={firstName} />;
+  const verticalsConfig = await getVerticalsConfig();
+
+  return <CityHome firstName={firstName} verticalsConfig={verticalsConfig} />;
 }

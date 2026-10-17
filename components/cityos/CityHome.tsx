@@ -21,6 +21,8 @@ import AirbnbSearchCapsule from '@/components/cityos/AirbnbSearchCapsule';
 
 import RealisticIcon from '@/components/ui/RealisticIcon';
 
+import { PlatformVerticalsConfig, VerticalId } from '@/lib/actions/verticals-config';
+
 function greeting() {
   const h = new Date().getHours();
   if (h < 12) return 'Good morning';
@@ -28,42 +30,56 @@ function greeting() {
   return 'Good evening';
 }
 
-const TOP_MENU_ITEMS = [
+interface MenuItemDef {
+  label: string;
+  href: string;
+  iconKey: string;
+  fallbackIcon: any;
+  verticalId?: VerticalId;
+}
+
+const TOP_MENU_ITEMS: MenuItemDef[] = [
   { 
     label: 'Food', 
     href: '/food', 
     iconKey: 'all',
     fallbackIcon: UtensilsCrossed,
+    verticalId: 'food',
   },
   { 
     label: 'Stay', 
     href: '/stay', 
     iconKey: 'stay',
     fallbackIcon: BedDouble,
+    verticalId: 'houses',
   },
   { 
     label: 'Shop', 
     href: '/market', 
     iconKey: 'shop',
     fallbackIcon: ShoppingBag,
+    verticalId: 'shops',
   },
   { 
     label: 'Events', 
     href: '/events', 
     iconKey: 'events',
     fallbackIcon: Calendar,
+    verticalId: 'events',
   },
   { 
     label: 'Services', 
     href: '/services', 
     iconKey: 'services',
     fallbackIcon: Wrench,
+    verticalId: 'services',
   },
   { 
     label: 'Jobs', 
     href: '/jobs', 
     iconKey: 'jobs',
     fallbackIcon: Briefcase,
+    verticalId: 'jobs',
   },
   { 
     label: 'Explore', 
@@ -75,13 +91,20 @@ const TOP_MENU_ITEMS = [
 
 export default function CityHome({ 
   firstName,
+  verticalsConfig,
 }: { 
   firstName?: string;
   wallet?: { balance: number; currency: string } | null;
+  verticalsConfig?: PlatformVerticalsConfig;
 }) {
   const { city } = useCity();
   const cityName = city?.name ?? 'Calabar';
   const [greet, setGreet] = useState('Good day');
+
+  const visibleMenuItems = TOP_MENU_ITEMS.filter((item) => {
+    if (!item.verticalId || !verticalsConfig) return true;
+    return verticalsConfig[item.verticalId] !== false;
+  });
 
   useEffect(() => {
     setGreet(greeting());
@@ -98,7 +121,7 @@ export default function CityHome({
       {/* Top Menu Grid with Beautiful Icons (Food, Stay, Shop, Events, Services, Jobs, Explore) */}
       <section className="px-1">
         <div className="grid grid-cols-4 sm:grid-cols-7 gap-3 sm:gap-4">
-          {TOP_MENU_ITEMS.map((item) => {
+          {visibleMenuItems.map((item) => {
             const FallbackIcon = item.fallbackIcon;
             return (
               <Link

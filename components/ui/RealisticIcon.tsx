@@ -732,6 +732,485 @@ export default function RealisticIcon({
     );
   }
 
+  // 24. Sidemenu: Home
+  if (key === 'home') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn('select-none drop-shadow-sm', className)}>
+        <defs>
+          <linearGradient id="home_roof" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#FF5A5F" />
+            <stop offset="100%" stopColor="#D93B41" />
+          </linearGradient>
+          <linearGradient id="home_body" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#FFFFFF" />
+            <stop offset="100%" stopColor="#E2E8F0" />
+          </linearGradient>
+          <linearGradient id="home_door" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#78350F" />
+            <stop offset="100%" stopColor="#451A03" />
+          </linearGradient>
+        </defs>
+        <ellipse cx="32" cy="56" rx="18" ry="3.5" fill="#000000" fillOpacity="0.14" />
+        <rect x="18" y="26" width="28" height="26" rx="2" fill="url(#home_body)" stroke="#CBD5E1" strokeWidth="1" />
+        <path d="M12 28L32 12L52 28H12Z" fill="url(#home_roof)" />
+        <rect x="40" y="14" width="5" height="10" fill="#991B1B" rx="1" />
+        <rect x="22" y="32" width="7" height="7" rx="1" fill="#FEF08A" stroke="#F59E0B" strokeWidth="1" />
+        <rect x="33" y="36" width="9" height="16" rx="1.5" fill="url(#home_door)" />
+        <circle cx="40" cy="44" r="1" fill="#FDE047" />
+      </svg>
+    );
+  }
+
+  // 25. Sidemenu: Schools & Education (Mortarboard & rolled diploma)
+  if (key === 'schools' || key === 'education' || key === 'school' || key === 'cityschools') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn('select-none drop-shadow-sm', className)}>
+        <defs>
+          <linearGradient id="mortarboard" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#1E3A8A" />
+            <stop offset="50%" stopColor="#1E293B" />
+            <stop offset="100%" stopColor="#0F172A" />
+          </linearGradient>
+          <linearGradient id="gold_tassel" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#FDE047" />
+            <stop offset="100%" stopColor="#D97706" />
+          </linearGradient>
+          <linearGradient id="diploma" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#FFFBEB" />
+            <stop offset="100%" stopColor="#FEF3C7" />
+          </linearGradient>
+        </defs>
+        <ellipse cx="32" cy="56" rx="18" ry="3.5" fill="#000000" fillOpacity="0.14" />
+        <rect x="18" y="44" width="28" height="8" rx="4" fill="url(#diploma)" stroke="#FDE68A" strokeWidth="1" />
+        <rect x="30" y="44" width="4" height="8" fill="#EF4444" />
+        <path d="M22 28V36C22 41 42 41 42 36V28" fill="#0F172A" />
+        <polygon points="32,14 54,24 32,34 10,24" fill="url(#mortarboard)" stroke="#334155" strokeWidth="1" />
+        <circle cx="32" cy="24" r="2.5" fill="url(#gold_tassel)" />
+        <path d="M32 24C38 26 44 30 46 38" stroke="url(#gold_tassel)" strokeWidth="2" strokeLinecap="round" fill="none" />
+        <rect x="44" y="38" width="4" height="6" rx="1" fill="url(#gold_tassel)" />
+      </svg>
+    );
+  }
+
+  // 26. Sidemenu: Homes & Real Estate (Modern Duplex Architecture)
+  if (key === 'house' || key === 'homes' || key === 'cityhomes') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn('select-none drop-shadow-sm', className)}>
+        <defs>
+          <linearGradient id="duplex_main" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#FFFFFF" />
+            <stop offset="100%" stopColor="#CBD5E1" />
+          </linearGradient>
+          <linearGradient id="duplex_accent" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#3B82F6" />
+            <stop offset="100%" stopColor="#1D4ED8" />
+          </linearGradient>
+        </defs>
+        <ellipse cx="32" cy="56" rx="20" ry="3.5" fill="#000000" fillOpacity="0.14" />
+        <rect x="14" y="24" width="22" height="28" rx="2" fill="url(#duplex_main)" stroke="#94A3B8" strokeWidth="1" />
+        <rect x="34" y="16" width="16" height="36" rx="2" fill="url(#duplex_accent)" />
+        <rect x="18" y="28" width="14" height="6" rx="1" fill="#38BDF8" fillOpacity="0.8" />
+        <rect x="18" y="38" width="14" height="6" rx="1" fill="#38BDF8" fillOpacity="0.8" />
+        <rect x="38" y="20" width="8" height="12" rx="1" fill="#BAE6FD" />
+        <rect x="38" y="38" width="8" height="14" rx="1" fill="#1E293B" />
+      </svg>
+    );
+  }
+
+  // 27. Sidemenu: Health & Care (Glossy Medical Kit with Red Cross)
+  if (key === 'care' || key === 'health' || key === 'healthcare' || key === 'cityhealth') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn('select-none drop-shadow-sm', className)}>
+        <defs>
+          <linearGradient id="medkit" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#FFFFFF" />
+            <stop offset="100%" stopColor="#E2E8F0" />
+          </linearGradient>
+          <linearGradient id="medcross" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#EF4444" />
+            <stop offset="100%" stopColor="#B91C1C" />
+          </linearGradient>
+        </defs>
+        <ellipse cx="32" cy="56" rx="18" ry="3.5" fill="#000000" fillOpacity="0.14" />
+        <rect x="14" y="24" width="36" height="28" rx="5" fill="url(#medkit)" stroke="#CBD5E1" strokeWidth="1.5" />
+        <path d="M26 24V18C26 16.5 27.5 15 29 15H35C36.5 15 38 16.5 38 18V24" stroke="#94A3B8" strokeWidth="3" strokeLinecap="round" fill="none" />
+        <rect x="29" y="30" width="6" height="16" rx="2" fill="url(#medcross)" />
+        <rect x="24" y="35" width="16" height="6" rx="2" fill="url(#medcross)" />
+      </svg>
+    );
+  }
+
+  // 28. Sidemenu: Community & Social Network
+  if (key === 'community' || key === 'citycommunity' || key === 'users') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn('select-none drop-shadow-sm', className)}>
+        <defs>
+          <linearGradient id="avatar_teal" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#2DD4BF" />
+            <stop offset="100%" stopColor="#0F766E" />
+          </linearGradient>
+          <linearGradient id="avatar_coral" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#FB7185" />
+            <stop offset="100%" stopColor="#BE123C" />
+          </linearGradient>
+          <linearGradient id="avatar_amber" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#FBBF24" />
+            <stop offset="100%" stopColor="#B45309" />
+          </linearGradient>
+        </defs>
+        <ellipse cx="32" cy="56" rx="20" ry="3.5" fill="#000000" fillOpacity="0.14" />
+        <circle cx="20" cy="28" r="6" fill="url(#avatar_amber)" />
+        <path d="M12 48C12 41 16 38 20 38C24 38 28 41 28 48" fill="url(#avatar_amber)" opacity="0.85" />
+        <circle cx="44" cy="28" r="6" fill="url(#avatar_coral)" />
+        <path d="M36 48C36 41 40 38 44 38C48 38 52 41 52 48" fill="url(#avatar_coral)" opacity="0.85" />
+        <circle cx="32" cy="22" r="7.5" fill="url(#avatar_teal)" stroke="#FFFFFF" strokeWidth="1.5" />
+        <path d="M22 48C22 39 26 36 32 36C38 36 42 39 42 48" fill="url(#avatar_teal)" stroke="#FFFFFF" strokeWidth="1.5" />
+      </svg>
+    );
+  }
+
+  // 29. Sidemenu: Newsfeed & Broadcast Signals
+  if (key === 'feed' || key === 'newsfeed' || key === 'rss') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn('select-none drop-shadow-sm', className)}>
+        <defs>
+          <linearGradient id="broadcast_dish" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#06B6D4" />
+            <stop offset="100%" stopColor="#0E7490" />
+          </linearGradient>
+          <linearGradient id="signal_wave" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#22D3EE" />
+            <stop offset="100%" stopColor="#0284C7" />
+          </linearGradient>
+        </defs>
+        <ellipse cx="32" cy="56" rx="16" ry="3.5" fill="#000000" fillOpacity="0.14" />
+        <path d="M22 52L30 36H34L42 52H36L32 43L28 52H22Z" fill="#475569" />
+        <circle cx="32" cy="34" r="5" fill="url(#broadcast_dish)" />
+        <path d="M24 24C28 20 36 20 40 24" stroke="url(#signal_wave)" strokeWidth="3" strokeLinecap="round" fill="none" />
+        <path d="M18 17C26 10 38 10 46 17" stroke="url(#signal_wave)" strokeWidth="3" strokeLinecap="round" fill="none" opacity="0.75" />
+        <path d="M12 11C23 1 41 1 52 11" stroke="url(#signal_wave)" strokeWidth="3" strokeLinecap="round" fill="none" opacity="0.45" />
+      </svg>
+    );
+  }
+
+  // 30. Sidemenu: Folded City Map & Geolocation Pin
+  if (key === 'map' || key === 'citymap') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn('select-none drop-shadow-sm', className)}>
+        <defs>
+          <linearGradient id="map_fold1" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#E2E8F0" />
+            <stop offset="100%" stopColor="#CBD5E1" />
+          </linearGradient>
+          <linearGradient id="map_fold2" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#F8FAFC" />
+            <stop offset="100%" stopColor="#E2E8F0" />
+          </linearGradient>
+          <linearGradient id="pin_red" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#FF385C" />
+            <stop offset="100%" stopColor="#BE123C" />
+          </linearGradient>
+        </defs>
+        <ellipse cx="32" cy="56" rx="19" ry="3.5" fill="#000000" fillOpacity="0.14" />
+        <polygon points="12,24 24,18 24,48 12,54" fill="url(#map_fold1)" />
+        <polygon points="24,18 40,24 40,54 24,48" fill="url(#map_fold2)" />
+        <polygon points="40,24 52,18 52,48 40,54" fill="url(#map_fold1)" />
+        <path d="M14 36L24 30L40 38L50 32" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+        <g transform="translate(4, -4)">
+          <path d="M28 12C24 12 21 15 21 19C21 25 28 34 28 34C28 34 35 25 35 19C35 15 32 12 28 12Z" fill="url(#pin_red)" />
+          <circle cx="28" cy="19" r="3" fill="#FFFFFF" />
+        </g>
+      </svg>
+    );
+  }
+
+  // 31. Sidemenu: Nearby Places & Radar
+  if (key === 'nearby') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn('select-none drop-shadow-sm', className)}>
+        <defs>
+          <linearGradient id="radar_core" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#10B981" />
+            <stop offset="100%" stopColor="#047857" />
+          </linearGradient>
+        </defs>
+        <ellipse cx="32" cy="56" rx="18" ry="3.5" fill="#000000" fillOpacity="0.14" />
+        <circle cx="32" cy="32" r="22" stroke="#6EE7B7" strokeWidth="2" fill="#ECFDF5" />
+        <circle cx="32" cy="32" r="14" stroke="#34D399" strokeWidth="2" fill="none" strokeDasharray="3 3" />
+        <circle cx="32" cy="32" r="6" fill="url(#radar_core)" />
+        <path d="M32 32L46 20" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" />
+        <circle cx="42" cy="24" r="2" fill="#EF4444" />
+      </svg>
+    );
+  }
+
+  // 32. Sidemenu: Saved Items (Metallic Gold Ribbon Bookmark)
+  if (key === 'saved' || key === 'bookmark' || key === 'bookmarks') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn('select-none drop-shadow-sm', className)}>
+        <defs>
+          <linearGradient id="gold_ribbon" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#FDE047" />
+            <stop offset="50%" stopColor="#F59E0B" />
+            <stop offset="100%" stopColor="#D97706" />
+          </linearGradient>
+        </defs>
+        <ellipse cx="32" cy="56" rx="16" ry="3.5" fill="#000000" fillOpacity="0.14" />
+        <path d="M20 12H44V50L32 40L20 50V12Z" fill="url(#gold_ribbon)" stroke="#B45309" strokeWidth="1" />
+        <path d="M24 16H40V40L32 33L24 40V16Z" fill="#FEF08A" opacity="0.5" />
+        <circle cx="32" cy="24" r="3" fill="#D97706" />
+      </svg>
+    );
+  }
+
+  // 33. Sidemenu: Ask CityOS / AI Holographic Gem
+  if (key === 'ai' || key === 'sparkles' || key === 'ask-cityos' || key === 'ask') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn('select-none drop-shadow-sm', className)}>
+        <defs>
+          <linearGradient id="ai_sparkle" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#818CF8" />
+            <stop offset="50%" stopColor="#C084FC" />
+            <stop offset="100%" stopColor="#EC4899" />
+          </linearGradient>
+          <linearGradient id="ai_star" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#FDE047" />
+            <stop offset="100%" stopColor="#F59E0B" />
+          </linearGradient>
+        </defs>
+        <ellipse cx="32" cy="56" rx="16" ry="3.5" fill="#000000" fillOpacity="0.14" />
+        <path d="M32 10C32 22 22 32 10 32C22 32 32 42 32 54C32 42 42 32 54 32C42 32 32 22 32 10Z" fill="url(#ai_sparkle)" />
+        <circle cx="32" cy="32" r="4" fill="#FFFFFF" opacity="0.9" />
+        <path d="M48 14C48 18 45 20 42 20C45 20 48 22 48 26C48 22 51 20 54 20C51 20 48 18 48 14Z" fill="url(#ai_star)" />
+      </svg>
+    );
+  }
+
+  // 34. Sidemenu: City News Gazette
+  if (key === 'news') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn('select-none drop-shadow-sm', className)}>
+        <defs>
+          <linearGradient id="newspaper" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#FFFFFF" />
+            <stop offset="100%" stopColor="#E2E8F0" />
+          </linearGradient>
+        </defs>
+        <ellipse cx="32" cy="56" rx="18" ry="3.5" fill="#000000" fillOpacity="0.14" />
+        <rect x="16" y="16" width="32" height="36" rx="2" fill="url(#newspaper)" stroke="#CBD5E1" strokeWidth="1" />
+        <rect x="20" y="20" width="24" height="4" rx="1" fill="#0F172A" />
+        <rect x="20" y="27" width="10" height="10" rx="1" fill="#94A3B8" />
+        <rect x="32" y="27" width="12" height="2" rx="0.5" fill="#64748B" />
+        <rect x="32" y="31" width="12" height="2" rx="0.5" fill="#64748B" />
+        <rect x="32" y="35" width="8" height="2" rx="0.5" fill="#64748B" />
+        <rect x="20" y="40" width="24" height="2" rx="0.5" fill="#64748B" />
+        <rect x="20" y="44" width="20" height="2" rx="0.5" fill="#64748B" />
+      </svg>
+    );
+  }
+
+  // 35. Sidemenu: Orders & Package Delivery
+  if (key === 'orders' || key === 'package' || key === 'parcel') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn('select-none drop-shadow-sm', className)}>
+        <defs>
+          <linearGradient id="parcel_box" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#D97706" />
+            <stop offset="100%" stopColor="#92400E" />
+          </linearGradient>
+          <linearGradient id="parcel_tape" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#FDE68A" />
+            <stop offset="100%" stopColor="#F59E0B" />
+          </linearGradient>
+        </defs>
+        <ellipse cx="32" cy="56" rx="18" ry="3.5" fill="#000000" fillOpacity="0.14" />
+        <path d="M14 26L32 16L50 26V46L32 54L14 46V26Z" fill="url(#parcel_box)" />
+        <polygon points="14,26 32,36 32,54 14,46" fill="#B45309" opacity="0.6" />
+        <polygon points="50,26 32,36 32,54 50,46" fill="#78350F" opacity="0.3" />
+        <polygon points="28,18 36,22 36,40 28,36" fill="url(#parcel_tape)" />
+        <polygon points="18,32 26,36 26,42 18,38" fill="#FFFFFF" />
+      </svg>
+    );
+  }
+
+  // 36. Sidemenu: Service Requests & Tasks (Clipboard with Checkmark)
+  if (key === 'requests' || key === 'tasks' || key === 'servicerequests') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn('select-none drop-shadow-sm', className)}>
+        <defs>
+          <linearGradient id="clipboard" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#78350F" />
+            <stop offset="100%" stopColor="#451A03" />
+          </linearGradient>
+          <linearGradient id="check_green" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#22C55E" />
+            <stop offset="100%" stopColor="#15803D" />
+          </linearGradient>
+        </defs>
+        <ellipse cx="32" cy="56" rx="18" ry="3.5" fill="#000000" fillOpacity="0.14" />
+        <rect x="18" y="16" width="28" height="38" rx="3" fill="url(#clipboard)" />
+        <rect x="21" y="22" width="22" height="30" rx="1.5" fill="#FFFFFF" />
+        <rect x="26" y="14" width="12" height="6" rx="2" fill="#94A3B8" />
+        <circle cx="26" cy="28" r="2" fill="url(#check_green)" />
+        <rect x="30" y="27" width="10" height="2" rx="0.5" fill="#64748B" />
+        <circle cx="26" cy="35" r="2" fill="url(#check_green)" />
+        <rect x="30" y="34" width="10" height="2" rx="0.5" fill="#64748B" />
+        <circle cx="26" cy="42" r="2" fill="#E2E8F0" />
+        <rect x="30" y="41" width="8" height="2" rx="0.5" fill="#94A3B8" />
+      </svg>
+    );
+  }
+
+  // 37. Sidemenu: Job Applications Portfolio
+  if (key === 'apps' || key === 'applications' || key === 'jobapplications') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn('select-none drop-shadow-sm', className)}>
+        <defs>
+          <linearGradient id="folder" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#38BDF8" />
+            <stop offset="100%" stopColor="#0284C7" />
+          </linearGradient>
+        </defs>
+        <ellipse cx="32" cy="56" rx="18" ry="3.5" fill="#000000" fillOpacity="0.14" />
+        <path d="M14 24C14 22 16 20 18 20H26L30 24H46C48 24 50 26 50 28V48C50 50 48 52 46 52H18C16 52 14 50 14 48V24Z" fill="url(#folder)" />
+        <rect x="20" y="16" width="24" height="20" rx="2" fill="#FFFFFF" stroke="#BAE6FD" strokeWidth="1" />
+        <circle cx="25" cy="22" r="2" fill="#0284C7" />
+        <rect x="29" y="21" width="11" height="2" rx="0.5" fill="#94A3B8" />
+        <rect x="23" y="27" width="17" height="2" rx="0.5" fill="#CBD5E1" />
+        <rect x="23" y="31" width="13" height="2" rx="0.5" fill="#CBD5E1" />
+      </svg>
+    );
+  }
+
+  // 38. Sidemenu: Settings (3D Precision Chrome Gear)
+  if (key === 'settings') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn('select-none drop-shadow-sm', className)}>
+        <defs>
+          <radialGradient id="gear_metal" cx="45%" cy="35%" r="65%">
+            <stop offset="0%" stopColor="#F8FAFC" />
+            <stop offset="60%" stopColor="#94A3B8" />
+            <stop offset="100%" stopColor="#475569" />
+          </radialGradient>
+        </defs>
+        <ellipse cx="32" cy="56" rx="16" ry="3.5" fill="#000000" fillOpacity="0.14" />
+        <circle cx="32" cy="32" r="16" fill="url(#gear_metal)" stroke="#334155" strokeWidth="1.5" />
+        {/* Teeth protrusions */}
+        <rect x="29" y="12" width="6" height="5" rx="1" fill="#64748B" />
+        <rect x="29" y="47" width="6" height="5" rx="1" fill="#64748B" />
+        <rect x="12" y="29" width="5" height="6" rx="1" fill="#64748B" />
+        <rect x="47" y="29" width="5" height="6" rx="1" fill="#64748B" />
+        <circle cx="32" cy="32" r="7" fill="#0F172A" />
+      </svg>
+    );
+  }
+
+  // 39. Sidemenu: Help & Support (3D Nautical Lifebuoy)
+  if (key === 'help' || key === 'support') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn('select-none drop-shadow-sm', className)}>
+        <defs>
+          <radialGradient id="buoy_red" cx="40%" cy="35%" r="65%">
+            <stop offset="0%" stopColor="#F87171" />
+            <stop offset="70%" stopColor="#EF4444" />
+            <stop offset="100%" stopColor="#991B1B" />
+          </radialGradient>
+        </defs>
+        <ellipse cx="32" cy="56" rx="18" ry="3.5" fill="#000000" fillOpacity="0.14" />
+        <circle cx="32" cy="32" r="18" fill="url(#buoy_red)" stroke="#7F1D1D" strokeWidth="1" />
+        <circle cx="32" cy="32" r="8" fill="#F8FAFC" />
+        <rect x="29" y="14" width="6" height="36" fill="#FFFFFF" />
+        <rect x="14" y="29" width="36" height="6" fill="#FFFFFF" />
+        <circle cx="32" cy="32" r="8" fill="#F8FAFC" />
+      </svg>
+    );
+  }
+
+  // 40. Primary Nav: Create & Publish
+  if (key === 'create' || key === 'write' || key === 'post') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn('select-none drop-shadow-sm', className)}>
+        <defs>
+          <linearGradient id="pencil" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#F59E0B" />
+            <stop offset="100%" stopColor="#B45309" />
+          </linearGradient>
+        </defs>
+        <ellipse cx="32" cy="56" rx="16" ry="3.5" fill="#000000" fillOpacity="0.14" />
+        <g transform="rotate(-40 32 32)">
+          <rect x="28" y="12" width="8" height="32" rx="1" fill="url(#pencil)" />
+          <polygon points="28,44 36,44 32,54" fill="#FDE68A" />
+          <polygon points="30,50 34,50 32,54" fill="#0F172A" />
+          <rect x="28" y="12" width="8" height="6" fill="#FB7185" rx="1" />
+        </g>
+      </svg>
+    );
+  }
+
+  // 41. Primary Nav: Activity & Golden Notification Bell
+  if (key === 'activity' || key === 'bell' || key === 'notifications') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn('select-none drop-shadow-sm', className)}>
+        <defs>
+          <linearGradient id="bell_gold" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#FDE047" />
+            <stop offset="50%" stopColor="#F59E0B" />
+            <stop offset="100%" stopColor="#B45309" />
+          </linearGradient>
+        </defs>
+        <ellipse cx="32" cy="56" rx="16" ry="3.5" fill="#000000" fillOpacity="0.14" />
+        <path d="M32 14C24 14 20 20 20 34C20 40 16 44 16 44H48C48 44 44 40 44 34C44 20 40 14 32 14Z" fill="url(#bell_gold)" />
+        <ellipse cx="32" cy="44" rx="17" ry="3.5" fill="#B45309" />
+        <circle cx="32" cy="48" r="4" fill="#78350F" />
+        <path d="M30 14V11C30 9.8 30.8 9 32 9C33.2 9 34 9.8 34 11V14" stroke="#D97706" strokeWidth="2.5" fill="none" />
+      </svg>
+    );
+  }
+
+  // 42. Primary Nav: Profile & Resident Identity Card
+  if (key === 'profile' || key === 'user') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn('select-none drop-shadow-sm', className)}>
+        <defs>
+          <linearGradient id="badge_card" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#38BDF8" />
+            <stop offset="100%" stopColor="#0284C7" />
+          </linearGradient>
+        </defs>
+        <ellipse cx="32" cy="56" rx="16" ry="3.5" fill="#000000" fillOpacity="0.14" />
+        <rect x="18" y="16" width="28" height="38" rx="4" fill="#FFFFFF" stroke="#CBD5E1" strokeWidth="1" />
+        <rect x="18" y="16" width="28" height="12" rx="4" fill="url(#badge_card)" />
+        <circle cx="32" cy="32" r="5" fill="#0284C7" />
+        <path d="M24 44C24 40 28 38 32 38C36 38 40 40 40 44" fill="#0284C7" />
+        <rect x="29" y="18" width="6" height="2" rx="1" fill="#FFFFFF" />
+      </svg>
+    );
+  }
+
+  // 43. Primary Nav: CityPay Wallet & Smart Card
+  if (key === 'wallet' || key === 'citypay') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn('select-none drop-shadow-sm', className)}>
+        <defs>
+          <linearGradient id="wallet_leather" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#0F766E" />
+            <stop offset="100%" stopColor="#115E59" />
+          </linearGradient>
+          <linearGradient id="gold_chip" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#FDE047" />
+            <stop offset="100%" stopColor="#F59E0B" />
+          </linearGradient>
+        </defs>
+        <ellipse cx="32" cy="56" rx="18" ry="3.5" fill="#000000" fillOpacity="0.14" />
+        <rect x="20" y="18" width="28" height="18" rx="2" fill="url(#gold_chip)" />
+        <rect x="24" y="24" width="5" height="4" rx="0.5" fill="#B45309" />
+        <rect x="16" y="26" width="32" height="26" rx="3" fill="url(#wallet_leather)" />
+        <path d="M38 34H48V44H38C35.8 44 34 42.2 34 40V38C34 35.8 35.8 34 38 34Z" fill="#042F2E" />
+        <circle cx="44" cy="39" r="1.5" fill="#FDE047" />
+      </svg>
+    );
+  }
+
   // Default Fallback
   if (fallback) {
     if (typeof fallback === 'string') {

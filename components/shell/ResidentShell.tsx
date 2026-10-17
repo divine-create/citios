@@ -49,6 +49,7 @@ import { cn } from '@/lib/utils';
 import { AccountSwitcherProvider } from '@/components/cityos/AccountSwitcherContext';
 import AccountSwitcher, { ActiveBusinessBanner } from '@/components/cityos/AccountSwitcher';
 import CreateBusinessModal from '@/components/cityos/CreateBusinessModal';
+import RealisticIcon from '@/components/ui/RealisticIcon';
 
 function CartBell() {
   const { count } = useCart();
@@ -301,57 +302,57 @@ export default function ResidentShell({
   const { data: session } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  type NavItem = { id: string; path: string; label: string; icon: any; secondary?: boolean };
+  type NavItem = { id: string; path: string; label: string; icon: any; iconKey?: string; secondary?: boolean };
 
   const PRIMARY_NAV: NavItem[] = [
-    { id: 'home', path: '/', label: 'Home', icon: LayoutGrid },
-    { id: 'map', path: '/map', label: 'Map', icon: MapIcon },
-    { id: 'create', path: '/create', label: 'Create', icon: PenSquare },
-    { id: 'activity', path: '/activity', label: 'Activity', icon: Bell },
-    { id: 'profile', path: '/profile', label: 'Profile', icon: UserIcon },
+    { id: 'home', path: '/', label: 'Home', icon: LayoutGrid, iconKey: 'home' },
+    { id: 'map', path: '/map', label: 'Map', icon: MapIcon, iconKey: 'map' },
+    { id: 'create', path: '/create', label: 'Create', icon: PenSquare, iconKey: 'create' },
+    { id: 'activity', path: '/activity', label: 'Activity', icon: Bell, iconKey: 'activity' },
+    { id: 'profile', path: '/profile', label: 'Profile', icon: UserIcon, iconKey: 'profile' },
   ];
 
-const navGroups: { label: string; items: NavItem[] }[] = [
+  const navGroups: { label: string; items: NavItem[] }[] = [
     {
       label: 'Explore',
       items: [
-        { id: 'market', path: '/market', label: 'CityMart', icon: Store },
-        { id: 'food', path: '/food', label: 'CityFood', icon: UtensilsCrossed },
-        { id: 'services', path: '/services', label: 'CityServices', icon: Wrench },
-        { id: 'schools', path: '/schools', label: 'CitySchools', icon: GraduationCap },
-        { id: 'jobs', path: '/jobs', label: 'CityJobs', icon: Briefcase },
-        { id: 'events', path: '/events', label: 'CityEvents', icon: Calendar },
-        { id: 'house', path: '/house', label: 'CityHomes', icon: Building2 },
-        { id: 'care', path: '/care', label: 'CityHealth', icon: Stethoscope },
-        { id: 'community', path: '/community', label: 'CityCommunity', icon: UsersIcon },
+        { id: 'market', path: '/market', label: 'CityMart', icon: Store, iconKey: 'shop' },
+        { id: 'food', path: '/food', label: 'CityFood', icon: UtensilsCrossed, iconKey: 'food' },
+        { id: 'services', path: '/services', label: 'CityServices', icon: Wrench, iconKey: 'services' },
+        { id: 'schools', path: '/schools', label: 'CitySchools', icon: GraduationCap, iconKey: 'schools' },
+        { id: 'jobs', path: '/jobs', label: 'CityJobs', icon: Briefcase, iconKey: 'jobs' },
+        { id: 'events', path: '/events', label: 'CityEvents', icon: Calendar, iconKey: 'events' },
+        { id: 'house', path: '/house', label: 'CityHomes', icon: Building2, iconKey: 'house' },
+        { id: 'care', path: '/care', label: 'CityHealth', icon: Stethoscope, iconKey: 'care' },
+        { id: 'community', path: '/community', label: 'CityCommunity', icon: UsersIcon, iconKey: 'community' },
       ],
     },
     {
       label: 'Discover',
       items: [
-        { id: 'feed', path: '/feed', label: 'Newsfeed', icon: Rss },
-        { id: 'map', path: '/map', label: 'Map', icon: MapIcon },
-        { id: 'nearby', path: '/explore', label: 'Nearby', icon: MapPin },
-        { id: 'saved', path: '/saved', label: 'Saved', icon: Bookmark },
-        { id: 'ai', path: '/ai', label: 'Ask CityOS', icon: Sparkles },
-        { id: 'news', path: '/news', label: 'News', icon: Newspaper, secondary: true },
+        { id: 'feed', path: '/feed', label: 'Newsfeed', icon: Rss, iconKey: 'feed' },
+        { id: 'map', path: '/map', label: 'Map', icon: MapIcon, iconKey: 'map' },
+        { id: 'nearby', path: '/explore', label: 'Nearby', icon: MapPin, iconKey: 'nearby' },
+        { id: 'saved', path: '/saved', label: 'Saved', icon: Bookmark, iconKey: 'saved' },
+        { id: 'ai', path: '/ai', label: 'Ask CityOS', icon: Sparkles, iconKey: 'ai' },
+        { id: 'news', path: '/news', label: 'News', icon: Newspaper, iconKey: 'news', secondary: true },
       ],
     },
     {
       label: 'Your Activity',
       items: [
-        { id: 'orders', path: '/orders', label: 'Orders', icon: ShoppingBag },
-        { id: 'requests', path: '/tasks', label: 'Service Requests', icon: Wrench },
-        { id: 'apps', path: '/jobs', label: 'Job Applications', icon: Briefcase },
-        { id: 'events', path: '/events', label: 'Events', icon: Calendar },
-        { id: 'communities', path: '/community', label: 'Communities', icon: UsersIcon },
+        { id: 'orders', path: '/orders', label: 'Orders', icon: ShoppingBag, iconKey: 'orders' },
+        { id: 'requests', path: '/tasks', label: 'Service Requests', icon: Wrench, iconKey: 'requests' },
+        { id: 'apps', path: '/jobs', label: 'Job Applications', icon: Briefcase, iconKey: 'apps' },
+        { id: 'events', path: '/events', label: 'Events', icon: Calendar, iconKey: 'events' },
+        { id: 'communities', path: '/community', label: 'Communities', icon: UsersIcon, iconKey: 'community' },
       ],
     },
     {
       label: 'Settings',
       items: [
-        { id: 'settings', path: '/profile', label: 'Settings', icon: Settings },
-        { id: 'help', path: '/ai', label: 'Help', icon: HelpCircle },
+        { id: 'settings', path: '/profile', label: 'Settings', icon: Settings, iconKey: 'settings' },
+        { id: 'help', path: '/ai', label: 'Help', icon: HelpCircle, iconKey: 'help' },
       ],
     },
   ];
@@ -431,14 +432,20 @@ const navGroups: { label: string; items: NavItem[] }[] = [
                       key={item.id}
                       href={item.path}
                       className={cn(
-                        'w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-bold transition-all',
+                        'w-full flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-bold transition-all group',
                         active
                           ? 'bg-[#FF385C]/10 text-[#FF385C]'
                           : 'text-neutral-500 hover:text-[#222222] hover:bg-neutral-50',
                       )}
                     >
-                      <item.icon className={cn('w-4 h-4', active ? 'text-[#FF385C]' : 'text-neutral-400')} />
-                      {item.label}
+                      <div className="w-6 h-6 rounded-lg bg-neutral-50 border border-neutral-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                        <RealisticIcon
+                          name={item.iconKey || item.id}
+                          size={18}
+                          fallback={<item.icon className={cn('w-4 h-4', active ? 'text-[#FF385C]' : 'text-neutral-400')} />}
+                        />
+                      </div>
+                      <span className="truncate">{item.label}</span>
                       {active ? <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#FF385C]" /> : null}
                     </Link>
                   );
@@ -460,8 +467,8 @@ const navGroups: { label: string; items: NavItem[] }[] = [
                         key={item.id}
                         href={item.path}
                         className={cn(
-                          'w-full flex items-center gap-3 rounded-xl transition-all',
-                          secondary ? 'px-3 pb-1 pt-1 text-[11px] font-bold text-slate-400 hover:text-slate-900 hover:bg-slate-50' : 'px-3 py-2.5 text-[13px] font-bold',
+                          'w-full flex items-center gap-3 rounded-xl transition-all group',
+                          secondary ? 'px-3 pb-1 pt-1 text-[11px] font-bold text-slate-400 hover:text-slate-900 hover:bg-slate-50' : 'px-3 py-2 text-[13px] font-bold',
                           active
                             ? 'bg-teal-50 text-teal-900 ring-1 ring-teal-100'
                             : secondary
@@ -469,10 +476,17 @@ const navGroups: { label: string; items: NavItem[] }[] = [
                               : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50',
                         )}
                       >
-                        <item.icon
-                          className={cn('w-4 h-4', active ? 'text-teal-800' : secondary ? 'text-slate-300' : 'text-slate-400')}
-                        />
-                        {item.label}
+                        <div className={cn(
+                          'rounded-lg flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform',
+                          secondary ? 'w-5 h-5 bg-transparent' : 'w-6 h-6 bg-slate-50 border border-slate-100/80'
+                        )}>
+                          <RealisticIcon
+                            name={item.iconKey || item.id}
+                            size={secondary ? 15 : 18}
+                            fallback={<item.icon className={cn(secondary ? 'w-3.5 h-3.5' : 'w-4 h-4', active ? 'text-teal-800' : secondary ? 'text-slate-300' : 'text-slate-400')} />}
+                          />
+                        </div>
+                        <span className="truncate">{item.label}</span>
                         {active ? <span className="ml-auto w-1.5 h-1.5 rounded-full bg-teal-600" /> : null}
                       </Link>
                     );
@@ -609,7 +623,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
                     <h3 className="px-3 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
                       CityOS
                     </h3>
-                    <div>
+                    <div className="space-y-0.5">
                       {PRIMARY_NAV.map((item) => {
                         const active = isActive(item.path);
                         return (
@@ -618,14 +632,20 @@ const navGroups: { label: string; items: NavItem[] }[] = [
                             href={item.path}
                             onClick={() => setMenuOpen(false)}
                             className={cn(
-                              'w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-bold transition-colors',
+                              'w-full flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-bold transition-colors group',
                               active
                                 ? 'bg-teal-50 text-teal-900'
                                 : 'text-slate-600 hover:bg-slate-50',
                             )}
                           >
-                            <item.icon className={cn('w-4 h-4 shrink-0', active ? 'text-teal-800' : 'text-slate-400')} />
-                            {item.label}
+                            <div className="w-6 h-6 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
+                              <RealisticIcon
+                                name={item.iconKey || item.id}
+                                size={18}
+                                fallback={<item.icon className={cn('w-4 h-4 shrink-0', active ? 'text-teal-800' : 'text-slate-400')} />}
+                              />
+                            </div>
+                            <span className="truncate">{item.label}</span>
                           </Link>
                         );
                       })}
@@ -637,7 +657,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
                       <h3 className="px-3 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
                         {group.label}
                       </h3>
-                      <div>
+                      <div className="space-y-0.5">
                         {group.items.map((item) => {
                           const active = isActive(item.path);
                           const secondary = item.secondary;
@@ -647,8 +667,8 @@ const navGroups: { label: string; items: NavItem[] }[] = [
                               href={item.path}
                               onClick={() => setMenuOpen(false)}
                               className={cn(
-                                'w-full flex items-center gap-3 rounded-xl transition-colors',
-                                secondary ? 'px-3 py-1.5 text-[12px] font-bold text-slate-400' : 'px-3 py-2.5 text-[13px] font-bold',
+                                'w-full flex items-center gap-3 rounded-xl transition-colors group',
+                                secondary ? 'px-3 py-1 text-[11px] font-bold text-slate-400' : 'px-3 py-2 text-[13px] font-bold',
                                 active
                                   ? 'bg-teal-50 text-teal-900'
                                   : secondary
@@ -656,8 +676,17 @@ const navGroups: { label: string; items: NavItem[] }[] = [
                                     : 'text-slate-600 hover:bg-slate-50',
                               )}
                             >
-                              <item.icon className={cn('w-4 h-4 shrink-0', active ? 'text-teal-800' : secondary ? 'text-slate-300' : 'text-slate-400')} />
-                              {item.label}
+                              <div className={cn(
+                                'rounded-lg flex items-center justify-center shrink-0',
+                                secondary ? 'w-5 h-5' : 'w-6 h-6 bg-slate-50 border border-slate-100/80'
+                              )}>
+                                <RealisticIcon
+                                  name={item.iconKey || item.id}
+                                  size={secondary ? 15 : 18}
+                                  fallback={<item.icon className={cn('w-4 h-4 shrink-0', active ? 'text-teal-800' : secondary ? 'text-slate-300' : 'text-slate-400')} />}
+                                />
+                              </div>
+                              <span className="truncate">{item.label}</span>
                             </Link>
                           );
                         })}
