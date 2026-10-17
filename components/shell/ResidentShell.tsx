@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import { signIn, signOut, useSession } from 'next-auth/react';
-import { PlatformVerticalsConfig, VerticalId } from '@/lib/actions/verticals-config';
+import { PlatformVerticalsConfig, VerticalId } from '@/lib/verticals-constants';
 import {
   LayoutGrid,
   Sparkles,

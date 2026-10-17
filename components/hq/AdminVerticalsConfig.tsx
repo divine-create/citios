@@ -24,8 +24,8 @@ import {
   PlatformVerticalsConfig,
   VerticalId,
   VERTICAL_DEFINITIONS,
-  saveVerticalsConfig,
-} from '@/lib/actions/verticals-config';
+} from '@/lib/verticals-constants';
+import { saveVerticalsConfig } from '@/lib/actions/verticals-config';
 import { cn } from '@/lib/utils';
 
 interface AdminVerticalsConfigProps {

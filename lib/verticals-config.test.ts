@@ -3,9 +3,11 @@ import assert from 'node:assert/strict';
 import {
   DEFAULT_VERTICALS_CONFIG,
   VERTICAL_DEFINITIONS,
+  VerticalId,
+} from './verticals-constants';
+import {
   getVerticalsConfig,
   saveVerticalsConfig,
-  VerticalId,
 } from './actions/verticals-config';
 
 test('HQ Verticals Master Switch & Governance Suite', async (t) => {

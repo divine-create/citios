@@ -21,7 +21,7 @@ import AirbnbSearchCapsule from '@/components/cityos/AirbnbSearchCapsule';
 
 import RealisticIcon from '@/components/ui/RealisticIcon';
 
-import { PlatformVerticalsConfig, VerticalId } from '@/lib/actions/verticals-config';
+import { PlatformVerticalsConfig, VerticalId } from '@/lib/verticals-constants';
 
 function greeting() {
   const h = new Date().getHours();
