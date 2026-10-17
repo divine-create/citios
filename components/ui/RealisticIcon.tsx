@@ -979,7 +979,7 @@ export default function RealisticIcon({
   }
 
   // 27. Sidemenu: Health & Care (Glossy Medical Kit with Red Cross)
-  if (key === 'care' || key === 'health' || key === 'healthcare' || key === 'cityhealth') {
+  if (key === 'care' || key === 'health' || key === 'healthcare' || key === 'cityhealth' || key === 'health-care') {
     return (
       <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn('select-none drop-shadow-sm', className)}>
         <defs>

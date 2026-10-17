@@ -166,6 +166,37 @@ export default function CityServices({
     });
   }, [services, activeCategory, searchQuery]);
 
+  // Group services by category for structured shelf display
+  const servicesByCategory = useMemo(() => {
+    const map = new Map<string, BookableServiceItem[]>();
+    for (const cat of CATEGORIES) {
+      if (cat.id === 'All') continue;
+      map.set(cat.id, []);
+    }
+    for (const s of filteredServices) {
+      const cat = s.category || 'Trades & Repair';
+      if (!map.has(cat)) {
+        map.set(cat, []);
+      }
+      map.get(cat)!.push(s);
+    }
+    return map;
+  }, [filteredServices]);
+
+  // Categories list for shelf rendering
+  const shelfCategories = useMemo(() => {
+    const knownIds = CATEGORIES.filter((c) => c.id !== 'All').map((c) => c.id);
+    const result: { id: string; label: string; iconKey: string }[] = CATEGORIES.filter(
+      (c) => c.id !== 'All'
+    );
+    for (const catId of Array.from(servicesByCategory.keys())) {
+      if (!knownIds.includes(catId)) {
+        result.push({ id: catId, label: catId, iconKey: 'services' });
+      }
+    }
+    return result;
+  }, [servicesByCategory]);
+
   // Open Booking Modal
   const handleOpenBooking = (service: BookableServiceItem) => {
     setSelectedService(service);
@@ -332,6 +363,117 @@ export default function CityServices({
     }
   };
 
+  // Reusable Service Card Component
+  const renderServiceCard = (s: BookableServiceItem) => {
+    const orgLikes = likesMap[s.organizationId] || { count: s.likesCount || 0, liked: Boolean(s.userHasLiked) };
+    const displayRating = s.rating !== null && s.rating !== undefined ? s.rating : 5.0;
+    const hasReviews = (s.reviewCount || 0) > 0;
+
+    return (
+      <div
+        key={s.id}
+        className="group bg-white rounded-2xl border border-slate-100 p-5 shadow-xs hover:shadow-md hover:border-slate-200 transition-all flex flex-col justify-between"
+      >
+        <div>
+          {/* Provider Badge, Reviews, Likes */}
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <div className="flex items-center gap-1.5 truncate max-w-[190px]">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-teal-800 bg-teal-50 px-2 py-0.5 rounded-md truncate">
+                {s.orgName}
+              </span>
+              <ShieldCheck size={14} className="text-teal-700 shrink-0" />
+            </div>
+
+            {/* Like button */}
+            <button
+              type="button"
+              onClick={() => handleToggleLike(s.organizationId)}
+              className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                orgLikes.liked
+                  ? 'bg-rose-50 text-rose-600 border border-rose-200'
+                  : 'bg-slate-50 text-slate-500 hover:bg-rose-50 hover:text-rose-600 border border-slate-100'
+              }`}
+              title={orgLikes.liked ? 'Unlike provider' : 'Like provider'}
+            >
+              <Heart
+                size={12}
+                className={orgLikes.liked ? 'fill-rose-500 text-rose-500' : 'text-slate-400'}
+              />
+              <span>{orgLikes.count}</span>
+            </button>
+          </div>
+
+          {/* Service Name & Price */}
+          <div className="flex items-baseline justify-between gap-2 mt-1">
+            <h3 className="font-bold text-slate-900 text-sm leading-snug flex-1">
+              {s.name}
+            </h3>
+            <span className="text-sm font-black text-slate-900 shrink-0">
+              {fmtNaira(s.price)}
+            </span>
+          </div>
+
+          <p className="text-xs text-slate-500 mt-1.5 line-clamp-2 leading-relaxed">
+            {s.description || 'Professional service delivered by verified local providers in Calabar.'}
+          </p>
+
+          {/* Rating & Reviews Trigger */}
+          <div className="mt-3 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => handleOpenReviews(s.organizationId, s.orgName)}
+              className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200/60 px-2 py-0.5 rounded-md transition-colors"
+            >
+              <Star size={11} className="fill-amber-400 text-amber-500" />
+              <span>{displayRating.toFixed(1)}</span>
+              <span className="text-amber-600/70">
+                ({hasReviews ? `${s.reviewCount} ${s.reviewCount === 1 ? 'review' : 'reviews'}` : 'New'})
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleOpenReviews(s.organizationId, s.orgName)}
+              className="text-[11px] text-slate-400 hover:text-teal-800 font-medium transition-colors flex items-center gap-0.5"
+            >
+              <MessageSquare size={11} /> Review
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-5 pt-3.5 border-t border-slate-100 space-y-3">
+          <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
+            <span className="flex items-center gap-1">
+              <Clock size={13} className="text-slate-400" /> {s.durationMinutes} min
+            </span>
+            <span className="text-[10px] font-semibold text-slate-400 bg-slate-50 px-2 py-0.5 rounded truncate max-w-[150px]">
+              {s.category || 'Trades & Repair'}
+            </span>
+          </div>
+
+          {/* Booking Actions */}
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => handleOpenBooking(s)}
+              className="w-full py-2 px-3 rounded-xl bg-teal-800 hover:bg-teal-900 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-xs"
+            >
+              <Calendar size={13} />
+              Book Pro
+            </button>
+
+            <Link
+              href={`/service/${s.id}`}
+              className="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors flex items-center justify-center gap-1 text-center"
+            >
+              Details <ArrowRight size={12} />
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20 px-2 sm:px-4">
       {/* Header */}
@@ -418,154 +560,100 @@ export default function CityServices({
         </div>
       </section>
 
-      {/* Bookable Services Grid */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-black text-ink">
-            {activeCategory === 'All' ? 'Bookable Services in Calabar' : activeCategory}
-          </h2>
-          <span className="text-xs font-bold text-teal-800 bg-teal-50 px-2.5 py-1 rounded-md">
-            Direct Scheduling
-          </span>
+      {/* Services Organized by Category Shelves */}
+      {filteredServices.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-slate-200 p-12 text-center bg-white space-y-3">
+          <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
+            <Search size={20} />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-slate-800">No services match your search</p>
+            <p className="text-xs text-slate-400 mt-1">
+              Try searching for another trade, keyword or clear your filters.
+            </p>
+          </div>
+          {(searchQuery || activeCategory !== 'All') && (
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setActiveCategory('All');
+              }}
+              className="px-4 py-2 bg-teal-50 text-teal-800 hover:bg-teal-100 rounded-xl text-xs font-bold transition-colors"
+            >
+              Clear all filters
+            </button>
+          )}
         </div>
+      ) : activeCategory === 'All' ? (
+        <div className="space-y-10">
+          {shelfCategories.map((cat) => {
+            const catServices = servicesByCategory.get(cat.id) || [];
+            if (catServices.length === 0) return null;
 
-        {filteredServices.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredServices.map((s) => {
-              const orgLikes = likesMap[s.organizationId] || { count: s.likesCount || 0, liked: Boolean(s.userHasLiked) };
-              const displayRating = s.rating !== null && s.rating !== undefined ? s.rating : 5.0;
-              const hasReviews = (s.reviewCount || 0) > 0;
-
-              return (
-                <div
-                  key={s.id}
-                  className="group bg-white rounded-2xl border border-slate-100 p-5 shadow-xs hover:shadow-md hover:border-slate-200 transition-all flex flex-col justify-between"
-                >
-                  <div>
-                    {/* Provider Badge, Reviews, Likes */}
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="flex items-center gap-1.5 truncate max-w-[190px]">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-teal-800 bg-teal-50 px-2 py-0.5 rounded-md truncate">
-                          {s.orgName}
-                        </span>
-                        <ShieldCheck size={14} className="text-teal-700 shrink-0" />
-                      </div>
-
-                      {/* Like button */}
-                      <button
-                        type="button"
-                        onClick={() => handleToggleLike(s.organizationId)}
-                        className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-bold transition-all ${
-                          orgLikes.liked
-                            ? 'bg-rose-50 text-rose-600 border border-rose-200'
-                            : 'bg-slate-50 text-slate-500 hover:bg-rose-50 hover:text-rose-600 border border-slate-100'
-                        }`}
-                        title={orgLikes.liked ? 'Unlike provider' : 'Like provider'}
-                      >
-                        <Heart
-                          size={12}
-                          className={orgLikes.liked ? 'fill-rose-500 text-rose-500' : 'text-slate-400'}
-                        />
-                        <span>{orgLikes.count}</span>
-                      </button>
-                    </div>
-
-                    {/* Service Name & Price */}
-                    <div className="flex items-baseline justify-between gap-2 mt-1">
-                      <h3 className="font-bold text-slate-900 text-sm leading-snug flex-1">
-                        {s.name}
-                      </h3>
-                      <span className="text-sm font-black text-slate-900 shrink-0">
-                        {fmtNaira(s.price)}
-                      </span>
-                    </div>
-
-                    <p className="text-xs text-slate-500 mt-1.5 line-clamp-2 leading-relaxed">
-                      {s.description || 'Professional service delivered by verified local providers in Calabar.'}
-                    </p>
-
-                    {/* Rating & Reviews Trigger */}
-                    <div className="mt-3 flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenReviews(s.organizationId, s.orgName)}
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200/60 px-2 py-0.5 rounded-md transition-colors"
-                      >
-                        <Star size={11} className="fill-amber-400 text-amber-500" />
-                        <span>{displayRating.toFixed(1)}</span>
-                        <span className="text-amber-600/70">
-                          ({hasReviews ? `${s.reviewCount} ${s.reviewCount === 1 ? 'review' : 'reviews'}` : 'New'})
-                        </span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleOpenReviews(s.organizationId, s.orgName)}
-                        className="text-[11px] text-slate-400 hover:text-teal-800 font-medium transition-colors flex items-center gap-0.5"
-                      >
-                        <MessageSquare size={11} /> Review
-                      </button>
-                    </div>
+            return (
+              <section key={cat.id} className="space-y-4">
+                {/* Category Shelf Header */}
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <RealisticIcon name={cat.iconKey} size={24} className="shrink-0" />
+                    <h2 className="text-base sm:text-lg font-black text-ink tracking-tight">
+                      {cat.label}
+                    </h2>
+                    <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                      {catServices.length} {catServices.length === 1 ? 'service' : 'services'}
+                    </span>
                   </div>
 
-                  <div className="mt-5 pt-3.5 border-t border-slate-100 space-y-3">
-                    <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
-                      <span className="flex items-center gap-1">
-                        <Clock size={13} className="text-slate-400" /> {s.durationMinutes} min
-                      </span>
-                      <span className="text-[10px] font-semibold text-slate-400 bg-slate-50 px-2 py-0.5 rounded truncate max-w-[150px]">
-                        {s.category || 'Trades & Repair'}
-                      </span>
-                    </div>
-
-                    {/* Booking Actions */}
-                    <div className="grid grid-cols-2 gap-2 pt-1">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenBooking(s)}
-                        className="w-full py-2 px-3 rounded-xl bg-teal-800 hover:bg-teal-900 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-xs"
-                      >
-                        <Calendar size={13} />
-                        Book Pro
-                      </button>
-
-                      <Link
-                        href={`/service/${s.id}`}
-                        className="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors flex items-center justify-center gap-1 text-center"
-                      >
-                        Details <ArrowRight size={12} />
-                      </Link>
-                    </div>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveCategory(cat.id)}
+                    className="text-xs font-bold text-teal-800 hover:text-teal-900 flex items-center gap-1 group transition-colors"
+                  >
+                    <span>View all {cat.label}</span>
+                    <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
+                  </button>
                 </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="rounded-2xl border border-dashed border-slate-200 p-12 text-center bg-white space-y-3">
-            <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
-              <Search size={20} />
+
+                {/* Services Grid for Category */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {catServices.map(renderServiceCard)}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      ) : (
+        /* Single Active Category View */
+        <section className="space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-2.5">
+              <RealisticIcon
+                name={CATEGORIES.find((c) => c.id === activeCategory)?.iconKey || 'services'}
+                size={24}
+                className="shrink-0"
+              />
+              <h2 className="text-base sm:text-lg font-black text-ink tracking-tight">
+                {activeCategory}
+              </h2>
+              <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200/60">
+                {filteredServices.length} {filteredServices.length === 1 ? 'service' : 'services'}
+              </span>
             </div>
-            <div>
-              <p className="text-sm font-bold text-slate-800">No services match your filter</p>
-              <p className="text-xs text-slate-400 mt-1">
-                Try searching for another keyword or switch category.
-              </p>
-            </div>
-            {(searchQuery || activeCategory !== 'All') && (
-              <button
-                onClick={() => {
-                  setSearchQuery('');
-                  setActiveCategory('All');
-                }}
-                className="px-4 py-2 bg-teal-50 text-teal-800 hover:bg-teal-100 rounded-xl text-xs font-bold transition-colors"
-              >
-                Clear all filters
-              </button>
-            )}
+
+            <button
+              type="button"
+              onClick={() => setActiveCategory('All')}
+              className="text-xs font-bold text-slate-500 hover:text-teal-800 flex items-center gap-1 transition-colors"
+            >
+              ← Show All Categories
+            </button>
           </div>
-        )}
-      </section>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredServices.map(renderServiceCard)}
+          </div>
+        </section>
+      )}
 
       {/* Service Businesses Directory */}
       <section className="rounded-2xl bg-white border border-slate-100 p-5 space-y-4">
