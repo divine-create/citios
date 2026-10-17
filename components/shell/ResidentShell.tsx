@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import { signIn, signOut, useSession } from 'next-auth/react';
+import { PlatformVerticalsConfig, VerticalId } from '@/lib/actions/verticals-config';
 import {
   LayoutGrid,
   Sparkles,
@@ -291,10 +292,12 @@ export default function ResidentShell({
   city,
   cities,
   children,
+  verticalsConfig,
 }: {
   city: CityInfo | null;
   cities: CityInfo[];
   children: React.ReactNode;
+  verticalsConfig?: PlatformVerticalsConfig | null;
 }) {
   const cityName = city?.name ?? 'CityOS';
   const pathname = usePathname();
@@ -302,7 +305,7 @@ export default function ResidentShell({
   const { data: session } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  type NavItem = { id: string; path: string; label: string; icon: any; iconKey?: string; secondary?: boolean };
+  type NavItem = { id: string; path: string; label: string; icon: any; iconKey?: string; secondary?: boolean; verticalId?: VerticalId };
 
   const PRIMARY_NAV: NavItem[] = [
     { id: 'home', path: '/', label: 'Home', icon: LayoutGrid, iconKey: 'home' },
@@ -312,20 +315,24 @@ export default function ResidentShell({
     { id: 'profile', path: '/profile', label: 'Profile', icon: UserIcon, iconKey: 'profile' },
   ];
 
+  const ALL_EXPLORE_ITEMS: (NavItem & { verticalId?: VerticalId })[] = [
+    { id: 'market', path: '/market', label: 'CityMart', icon: Store, iconKey: 'shop', verticalId: 'shops' },
+    { id: 'food', path: '/food', label: 'CityFood', icon: UtensilsCrossed, iconKey: 'food', verticalId: 'food' },
+    { id: 'services', path: '/services', label: 'CityServices', icon: Wrench, iconKey: 'services', verticalId: 'services' },
+    { id: 'jobs', path: '/jobs', label: 'CityJobs', icon: Briefcase, iconKey: 'jobs', verticalId: 'jobs' },
+    { id: 'events', path: '/events', label: 'CityEvents', icon: Calendar, iconKey: 'events', verticalId: 'events' },
+    { id: 'house', path: '/stay', label: 'CityHomes & Stays', icon: Building2, iconKey: 'house', verticalId: 'houses' },
+  ];
+
+  const exploreItems = ALL_EXPLORE_ITEMS.filter((item) => {
+    if (!item.verticalId || !verticalsConfig) return true;
+    return verticalsConfig[item.verticalId] !== false;
+  });
+
   const navGroups: { label: string; items: NavItem[] }[] = [
     {
       label: 'Explore',
-      items: [
-        { id: 'market', path: '/market', label: 'CityMart', icon: Store, iconKey: 'shop' },
-        { id: 'food', path: '/food', label: 'CityFood', icon: UtensilsCrossed, iconKey: 'food' },
-        { id: 'services', path: '/services', label: 'CityServices', icon: Wrench, iconKey: 'services' },
-        { id: 'schools', path: '/schools', label: 'CitySchools', icon: GraduationCap, iconKey: 'schools' },
-        { id: 'jobs', path: '/jobs', label: 'CityJobs', icon: Briefcase, iconKey: 'jobs' },
-        { id: 'events', path: '/events', label: 'CityEvents', icon: Calendar, iconKey: 'events' },
-        { id: 'house', path: '/house', label: 'CityHomes', icon: Building2, iconKey: 'house' },
-        { id: 'care', path: '/care', label: 'CityHealth', icon: Stethoscope, iconKey: 'care' },
-        { id: 'community', path: '/community', label: 'CityCommunity', icon: UsersIcon, iconKey: 'community' },
-      ],
+      items: exploreItems,
     },
     {
       label: 'Discover',
