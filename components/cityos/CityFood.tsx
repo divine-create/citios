@@ -230,6 +230,7 @@ export default function CityFood() {
             onSelectCategory={(id) => {
               setActiveBubble(id);
             }}
+            variant="capsule"
           />
         </section>
       )}

@@ -73,6 +73,7 @@ interface ChowdeckCategoryBubblesProps {
   activeCategoryId: string;
   onSelectCategory: (id: string) => void;
   className?: string;
+  variant?: 'capsule' | 'bubbles';
 }
 
 export default function ChowdeckCategoryBubbles({
@@ -80,7 +81,49 @@ export default function ChowdeckCategoryBubbles({
   activeCategoryId,
   onSelectCategory,
   className,
+  variant = 'capsule',
 }: ChowdeckCategoryBubblesProps) {
+  // Capsule text-only variant (default): clean, modern pill buttons without heavy icons
+  if (variant === 'capsule') {
+    return (
+      <div className={cn('relative select-none py-1', className)}>
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-1 px-1 no-scrollbar scroll-smooth snap-x">
+          {categories.map((cat) => {
+            const isActive = activeCategoryId === cat.id;
+            const label = cat.shortLabel || cat.label;
+
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => onSelectCategory(cat.id)}
+                className={cn(
+                  'px-4 py-2 rounded-full text-xs sm:text-[13px] font-bold transition-all shrink-0 border flex items-center gap-1.5 focus:outline-none snap-start active:scale-95 whitespace-nowrap',
+                  isActive
+                    ? 'border-slate-900 bg-slate-900 text-white shadow-xs scale-[1.02]'
+                    : 'border-slate-200/90 bg-white text-slate-700 hover:border-slate-300 hover:text-slate-900 hover:bg-slate-50'
+                )}
+              >
+                <span>{label}</span>
+                {typeof cat.count === 'number' && cat.count > 0 && cat.id !== 'all' && (
+                  <span
+                    className={cn(
+                      'text-[10px] font-black px-1.5 py-0.5 rounded-full shrink-0',
+                      isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                    )}
+                  >
+                    {cat.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // Legacy icon-bubbles variant
   return (
     <div className={cn('relative select-none py-1', className)}>
       <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 -mx-1 px-1 no-scrollbar scroll-smooth snap-x">
