@@ -8,6 +8,7 @@ import {
   ShoppingBag,
   MapPin,
   SlidersHorizontal,
+  Building2,
 } from 'lucide-react';
 import { useCity } from '@/components/cityos/CityProvider';
 import { getCityMarketFeed } from '@/app/actions/commerce';
@@ -26,6 +27,7 @@ export default function CityMarket() {
   const [stores, setStores] = useState<StoreCardData[]>([]);
   const [products, setProducts] = useState<GlovoProductItem[]>([]);
   const [categories, setCategories] = useState<CategoryBubbleItem[]>([]);
+  const [storeSectors, setStoreSectors] = useState<CategoryBubbleItem[]>([]);
   const [deliveryHubs, setDeliveryHubs] = useState<DeliveryHubOption[]>([]);
   const [defaultAddress, setDefaultAddress] = useState<string | null>(null);
   const [topSearchTags, setTopSearchTags] = useState<string[]>([]);
@@ -33,6 +35,7 @@ export default function CityMarket() {
 
   // Instant Client-Side Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeSector, setActiveSector] = useState('all');
   const [activeAisle, setActiveAisle] = useState('all');
   const [activeArea, setActiveArea] = useState('all');
   const [inStockOnly, setInStockOnly] = useState(false);
@@ -48,6 +51,7 @@ export default function CityMarket() {
         setStores((feed.stores || []) as unknown as StoreCardData[]);
         setProducts((feed.products || []) as unknown as GlovoProductItem[]);
         if (feed.categories) setCategories(feed.categories as CategoryBubbleItem[]);
+        if ((feed as any).storeSectors) setStoreSectors((feed as any).storeSectors as CategoryBubbleItem[]);
         if (feed.deliveryHubs) setDeliveryHubs(feed.deliveryHubs as DeliveryHubOption[]);
         if (feed.defaultAddress) setDefaultAddress(feed.defaultAddress);
         if (feed.topSearchTags) setTopSearchTags(feed.topSearchTags);
@@ -81,9 +85,13 @@ export default function CityMarket() {
     return ['all', ...Array.from(areaSet)];
   }, [stores, products, cityName]);
 
-  // Filter stores by area and search
+  // Filter stores by sector, area, aisle, and search
   const filteredStores = useMemo(() => {
     return stores.filter((s) => {
+      if (activeSector !== 'all') {
+        const sCatSlug = (s.storeCategory || '').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        if (sCatSlug !== activeSector) return false;
+      }
       if (activeArea !== 'all') {
         const storeArea = (s.area || s.neighborhood || '').toLowerCase();
         if (!storeArea.includes(activeArea.toLowerCase())) return false;
@@ -94,7 +102,8 @@ export default function CityMarket() {
         const hasAisleProduct = products.some(
           (p) =>
             p.organizationId === s.id &&
-            ((p.globalCategory || p.category || '').toLowerCase().replace(/[^a-z0-9]+/g, '-') === aisleSlug ||
+            (((p as any).categoryName || '').toLowerCase().replace(/[^a-z0-9]+/g, '-') === aisleSlug ||
+              (p.globalCategory || p.category || '').toLowerCase().replace(/[^a-z0-9]+/g, '-') === aisleSlug ||
               (p.storeCategory || '').toLowerCase().replace(/[^a-z0-9]+/g, '-') === aisleSlug)
         );
         if (sCat !== aisleSlug && !hasAisleProduct) return false;
@@ -103,20 +112,26 @@ export default function CityMarket() {
         const q = searchQuery.toLowerCase();
         const matchStore = s.name.toLowerCase().includes(q);
         const matchArea = (s.area || s.neighborhood || '').toLowerCase().includes(q);
-        return matchStore || matchArea;
+        const matchCat = (s.storeCategory || '').toLowerCase().includes(q);
+        return matchStore || matchArea || matchCat;
       }
       return true;
     });
-  }, [stores, products, activeArea, activeAisle, searchQuery]);
+  }, [stores, products, activeSector, activeArea, activeAisle, searchQuery]);
 
-  // Client-side filtering across products (aisle, area, stock, search, sort)
+  // Client-side filtering across products (sector, aisle, area, stock, search, sort)
   const filteredProducts = useMemo(() => {
     let list = products.filter((p) => {
+      if (activeSector !== 'all') {
+        const sCatSlug = (p.storeCategory || '').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        if (sCatSlug !== activeSector) return false;
+      }
       if (activeAisle !== 'all') {
         const aisleSlug = activeAisle.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        const aCat = ((p as any).categoryName || '').toLowerCase().replace(/[^a-z0-9]+/g, '-');
         const pCat = (p.globalCategory || p.category || '').toLowerCase().replace(/[^a-z0-9]+/g, '-');
         const sCat = (p.storeCategory || '').toLowerCase().replace(/[^a-z0-9]+/g, '-');
-        if (pCat !== aisleSlug && sCat !== aisleSlug) return false;
+        if (aCat !== aisleSlug && pCat !== aisleSlug && sCat !== aisleSlug) return false;
       }
       if (activeArea !== 'all') {
         const prodArea = (p.area || p.neighborhood || '').toLowerCase();
@@ -130,8 +145,10 @@ export default function CityMarket() {
         const q = searchQuery.toLowerCase();
         const matchName = p.name.toLowerCase().includes(q);
         const matchStore = p.storeName?.toLowerCase().includes(q);
-        const matchCat = (p.globalCategory || p.category || '').toLowerCase().includes(q);
-        return matchName || matchStore || matchCat;
+        const matchCat = ((p as any).categoryName || p.globalCategory || p.category || '').toLowerCase().includes(q);
+        const matchBrand = (p.brand || '').toLowerCase().includes(q);
+        const matchSpec = Array.isArray(p.specTags) && p.specTags.some((t) => t.toLowerCase().includes(q));
+        return matchName || matchStore || matchCat || matchBrand || matchSpec;
       }
       return true;
     });
@@ -143,18 +160,22 @@ export default function CityMarket() {
     }
 
     return list;
-  }, [products, activeAisle, activeArea, inStockOnly, searchQuery, sortBy]);
+  }, [products, activeSector, activeAisle, activeArea, inStockOnly, searchQuery, sortBy]);
 
   const hasActiveFilters =
-    activeAisle !== 'all' || activeArea !== 'all' || inStockOnly || Boolean(searchQuery.trim());
+    activeSector !== 'all' ||
+    activeAisle !== 'all' ||
+    activeArea !== 'all' ||
+    inStockOnly ||
+    Boolean(searchQuery.trim());
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300 pb-32">
-      {/* 1. Chowdeck Delivery Location, Mode & Search Bar */}
+      {/* 1. Location & Search Header */}
       <ChowdeckDeliveryHeader
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        placeholder={`Search supermarket groceries and market produce in ${cityName}...`}
+        placeholder={`Search shops, laptops, gadgets & goods in ${cityName}...`}
         trendingTags={topSearchTags}
         onSelectTag={(tag) => setSearchQuery(tag)}
         vertical="market"
@@ -162,75 +183,119 @@ export default function CityMarket() {
         defaultAddress={defaultAddress}
       />
 
-      {/* 2. Dynamic Categories / Aisles from DB */}
-      {categories.length > 1 && (
-        <section className="space-y-2.5">
-          <div className="flex items-center justify-between px-1">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Aisles & Categories
-            </h3>
-            {hasActiveFilters && (
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveAisle('all');
-                  setActiveArea('all');
-                  setInStockOnly(false);
-                  setSearchQuery('');
-                }}
-                className="text-xs font-bold text-orange-600 hover:text-orange-700"
-              >
-                Reset All Filters
-              </button>
-            )}
+      {/* 2. Shop Sectors & Product Categories */}
+      <section className="space-y-3">
+        {/* Shop Sectors Bar */}
+        {storeSectors.length > 1 && (
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-1 px-1 no-scrollbar">
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider pr-1 shrink-0">
+              <Building2 className="w-3.5 h-3.5" /> Shop Sector:
+            </span>
+            {storeSectors.map((sector) => {
+              const isActive = activeSector === sector.id;
+              return (
+                <button
+                  key={sector.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveSector(sector.id);
+                    setActiveAisle('all');
+                  }}
+                  className={cn(
+                    'px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 border flex items-center gap-1.5',
+                    isActive
+                      ? 'bg-emerald-700 text-white border-emerald-700 shadow-2xs'
+                      : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
+                  )}
+                >
+                  <span>{sector.label}</span>
+                  {typeof sector.count === 'number' && sector.count > 0 && (
+                    <span
+                      className={cn(
+                        'text-[10px] font-black px-1.5 py-0.2 rounded-full',
+                        isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+                      )}
+                    >
+                      {sector.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
+        )}
 
-          <ChowdeckCategoryBubbles
-            categories={categories}
-            activeCategoryId={activeAisle}
-            onSelectCategory={(id) => setActiveAisle(id)}
-          />
-
-          {/* Area / Neighborhood Filter Pills + Quick Controls */}
-          {areaPills.length > 1 && (
-            <div className="flex items-center gap-2 overflow-x-auto pt-1 pb-1 -mx-1 px-1 no-scrollbar">
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider pr-1 shrink-0">
-                <MapPin className="w-3 h-3" /> Area:
-              </span>
-              {areaPills.map((area) => {
-                const isActive = activeArea === area;
-                return (
-                  <button
-                    key={area}
-                    type="button"
-                    onClick={() => setActiveArea(area)}
-                    className={cn(
-                      'px-3 py-1 rounded-full text-xs font-bold transition-all shrink-0 border',
-                      isActive
-                        ? 'bg-emerald-700 text-white border-emerald-700 shadow-2xs'
-                        : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
-                    )}
-                  >
-                    {area === 'all' ? `All ${cityName}` : area}
-                  </button>
-                );
-              })}
+        {/* Product Categories / Aisles */}
+        {categories.length > 1 && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between px-1">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Product Categories & Aisles
+              </h3>
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveSector('all');
+                    setActiveAisle('all');
+                    setActiveArea('all');
+                    setInStockOnly(false);
+                    setSearchQuery('');
+                  }}
+                  className="text-xs font-bold text-orange-600 hover:text-orange-700"
+                >
+                  Reset All Filters
+                </button>
+              )}
             </div>
-          )}
-        </section>
-      )}
 
-      {/* 3. Partner Supermarkets Horizontal Rail (DB Stores) */}
+            <ChowdeckCategoryBubbles
+              categories={categories}
+              activeCategoryId={activeAisle}
+              onSelectCategory={(id) => setActiveAisle(id)}
+            />
+          </div>
+        )}
+
+        {/* Area / Neighborhood Filter Pills */}
+        {areaPills.length > 1 && (
+          <div className="flex items-center gap-2 overflow-x-auto pt-1 pb-1 -mx-1 px-1 no-scrollbar">
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider pr-1 shrink-0">
+              <MapPin className="w-3 h-3" /> Area:
+            </span>
+            {areaPills.map((area) => {
+              const isActive = activeArea === area;
+              return (
+                <button
+                  key={area}
+                  type="button"
+                  onClick={() => setActiveArea(area)}
+                  className={cn(
+                    'px-3 py-1 rounded-full text-xs font-bold transition-all shrink-0 border',
+                    isActive
+                      ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
+                      : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                  )}
+                >
+                  {area === 'all' ? `All ${cityName}` : area}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* 3. Partner Stores Horizontal Rail */}
       {filteredStores.length > 0 && (
         <section className="space-y-3 pt-1">
           <div className="flex items-center justify-between px-1">
             <div>
               <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-1.5">
                 <Store className="w-4 h-4 text-emerald-600" />
-                Partner Supermarkets & Stores
+                Verified Shops & Stores
               </h2>
               <p className="text-xs text-slate-500 font-medium">
-                Tap a store to shop its full aisles in {activeArea === 'all' ? cityName : activeArea}
+                Tap a shop to browse its categorized aisles in {activeArea === 'all' ? cityName : activeArea}
               </p>
             </div>
             <Link
@@ -258,7 +323,7 @@ export default function CityMarket() {
         </section>
       )}
 
-      {/* 4. MAIN PRODUCTS CATALOG: Multi-Aisle Grid with Instant Steppers */}
+      {/* 4. MAIN PRODUCTS CATALOG */}
       <section className="space-y-4 pt-1">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 pb-3">
           <div>
@@ -266,8 +331,8 @@ export default function CityMarket() {
               {searchQuery
                 ? `Results for "${searchQuery}"`
                 : activeAisle === 'all'
-                ? `All Supermarket Goods in ${activeArea === 'all' ? cityName : activeArea}`
-                : `${categories.find((c) => c.id === activeAisle)?.label || 'Selected Aisle'} Items`}
+                ? `All Products in ${activeArea === 'all' ? cityName : activeArea}`
+                : `${categories.find((c) => c.id === activeAisle)?.label || 'Selected Category'} Products`}
             </h2>
             <p className="text-xs text-slate-500 font-medium">
               {filteredProducts.length} item{filteredProducts.length === 1 ? '' : 's'} available
@@ -323,8 +388,8 @@ export default function CityMarket() {
               title={`No items found in ${activeArea === 'all' ? cityName : activeArea}`}
               description={
                 searchQuery
-                  ? 'Try searching for generic terms like rice, oil, soap or bread.'
-                  : "Reset your aisle or area filters to view all available supermarket products."
+                  ? 'Try searching for another product name, brand, or specification.'
+                  : 'Reset your category or area filters to view all available products.'
               }
             />
           </div>
@@ -337,8 +402,8 @@ export default function CityMarket() {
         )}
       </section>
 
-      {/* 5. Persistent Floating Grocery Basket Dock */}
-      <ChowdeckBasketDock label="View Grocery Basket" />
+      {/* 5. Persistent Floating Basket Dock */}
+      <ChowdeckBasketDock label="View Shopping Basket" />
     </div>
   );
 }

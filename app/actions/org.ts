@@ -5,6 +5,7 @@ import { getCurrentCity, getCityBySlug } from '@/lib/city';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { notifyPerson } from '@/lib/notify';
+import { classifyRetailProduct } from '@/lib/taxonomy/retail-categorizer';
 
 export async function getCanonicalOrganization(id: string) {
   let org = await db.orm.public.Organization.where({ id }).first();
@@ -22,12 +23,23 @@ export async function getCanonicalOrganization(id: string) {
   const categoryNameMap = new Map(retailCategories.map((c: any) => [c.id, c.name]));
   const products = rawProducts
     .filter((p: any) => !p.parentId)
-    .map((p: any) => ({
-      ...p,
-      storeName: org.name,
-      categoryName: (p.categoryId && categoryNameMap.get(p.categoryId)) || p.globalCategory || 'General Goods',
-      globalCategory: p.globalCategory || (p.categoryId && categoryNameMap.get(p.categoryId)) || 'General Goods',
-    }));
+    .map((p: any) => {
+      const classified = classifyRetailProduct({
+        name: p.name,
+        description: p.description,
+        price: p.price,
+        storeCategory: (org as any).storeCategory,
+      });
+      const explicitAisle = p.categoryId ? categoryNameMap.get(p.categoryId) : null;
+      return {
+        ...p,
+        storeName: org.name,
+        categoryName: explicitAisle || classified.inStoreCategory || p.globalCategory || 'General Goods',
+        globalCategory: p.globalCategory || classified.globalCategory || 'General Goods',
+        brand: classified.brand,
+        specTags: classified.specTags,
+      };
+    });
   const menuItems = await db.orm.public.MenuItem.where({ organizationId: org.id }).all();
   const memberships = await db.orm.public.Membership.where({ organizationId: org.id }).all();
   const contactPoints = await db.orm.public.OrganizationContactPoint.where({ organizationId: org.id }).all();

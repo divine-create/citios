@@ -20,7 +20,10 @@ export interface GlovoProductItem {
   orgSlug?: string;
   organizationId: string;
   globalCategory?: string;
+  categoryName?: string;
   category?: string;
+  brand?: string | null;
+  specTags?: string[];
   stockQuantity?: number;
   isWeighed?: boolean;
   unit?: string;
@@ -60,8 +63,10 @@ export default function GlovoProductCard({
       ? Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100)
       : 0;
 
-  // Infer unit badge from title or unit property
-  let unitBadge: string | null = product.unit || null;
+  // Infer unit or category badge from product properties
+  let unitBadge: string | null =
+    product.brand ||
+    (product.unit && product.unit !== 'ea' ? product.unit : null);
   if (!unitBadge) {
     const lower = product.name.toLowerCase();
     if (lower.includes('1kg') || lower.includes('1 kg')) unitBadge = '1 kg';
@@ -72,6 +77,8 @@ export default function GlovoProductCard({
     else if (lower.includes('tin')) unitBadge = 'Tin';
     else if (lower.includes('bottle') || lower.includes('750ml')) unitBadge = 'Bottle';
   }
+
+  const aisleBadge = product.categoryName || product.globalCategory || product.storeName || 'Store';
 
   return (
     <div
@@ -120,14 +127,26 @@ export default function GlovoProductCard({
           )}
         </div>
 
-        {/* Store & Title */}
+        {/* Category / Store & Title */}
         <div className="flex flex-col gap-0.5">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate">
-            {product.storeName || 'Supermarket'}
+          <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider truncate">
+            {aisleBadge}
           </span>
           <h4 className="text-xs sm:text-[13px] font-bold text-slate-900 leading-snug line-clamp-2 group-hover:text-orange-600 transition-colors">
             {product.name}
           </h4>
+          {product.specTags && product.specTags.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1">
+              {product.specTags.slice(0, 3).map((tag) => (
+                <span
+                  key={tag}
+                  className="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[9px] font-bold tracking-tight"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </Link>
 

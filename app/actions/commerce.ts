@@ -321,6 +321,9 @@ export async function fetchRetailOrders(orgId: string) {
   }));
 }
 
+import { getStorefrontPromotions } from '@/lib/actions/storefront-management';
+import { classifyRetailProduct, inferStoreProfileTaxonomy } from '@/lib/taxonomy/retail-categorizer';
+
 export async function getCityMartProducts(citySlug?: string, cat: string = 'All') {
   // Explicit slug wins; otherwise resolve the session's current city.
   const city = citySlug ? await getCityBySlug(citySlug) : await getCurrentCity();
@@ -335,36 +338,45 @@ export async function getCityMartProducts(citySlug?: string, cat: string = 'All'
   if (orgIds.length === 0) return [];
 
   const allProducts = await db.orm.public.RetailProduct.all();
-  const products = allProducts.filter((p: any) => {
-    if (!orgIds.includes(p.organizationId) || p.parentId) return false;
-    if (!cat || cat.toLowerCase() === 'all') return true;
+  const retailCategories = await db.orm.public.RetailCategory.all();
+  const categoryNameMap = new Map(retailCategories.map((c: any) => [c.id, c.name]));
 
-    const catSlug = cat.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    const pCat = (p.globalCategory || (p as any).category || '').toLowerCase();
-    const pCatSlug = pCat.replace(/[^a-z0-9]+/g, '-');
-    if (pCat === cat.toLowerCase() || pCatSlug === catSlug) return true;
+  const enrichedAll = allProducts
+    .filter((p: any) => orgIds.includes(p.organizationId) && !p.parentId)
+    .map((p: any) => {
+      const org = orgs.find((o) => o.id === p.organizationId);
+      const classified = classifyRetailProduct({
+        name: p.name,
+        description: p.description,
+        price: p.price,
+        storeCategory: (org as any)?.storeCategory,
+      });
+      const explicitAisle = p.categoryId ? categoryNameMap.get(p.categoryId) : null;
+      const area = org?.address ? org.address.split(',')[0].trim() : city.name;
+      return {
+        ...p,
+        globalCategory: p.globalCategory || classified.globalCategory,
+        categoryName: explicitAisle || classified.inStoreCategory,
+        brand: classified.brand,
+        specTags: classified.specTags,
+        storeName: org?.name || 'Unknown Store',
+        storeCategory: (org as any)?.storeCategory || 'Electronics & Computers',
+        orgSlug: org?.id,
+        area,
+        neighborhood: area,
+      };
+    });
 
-    const org = orgs.find((o) => o.id === p.organizationId);
-    const orgCat = ((org as any)?.storeCategory || '').toLowerCase();
-    if (orgCat === cat.toLowerCase() || orgCat.replace(/[^a-z0-9]+/g, '-') === catSlug) return true;
+  if (!cat || cat.toLowerCase() === 'all') return enrichedAll;
 
-    return false;
-  });
-  return products.map(p => {
-    const org = orgs.find(o => o.id === p.organizationId);
-    const area = org?.address ? org.address.split(',')[0].trim() : city.name;
-    return {
-      ...p,
-      storeName: org?.name || 'Unknown Store',
-      storeCategory: (org as any)?.storeCategory || 'Supermarket',
-      orgSlug: org?.id,
-      area,
-      neighborhood: area,
-    };
+  const catSlug = cat.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  return enrichedAll.filter((p: any) => {
+    const pCatSlug = (p.globalCategory || '').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const aCatSlug = (p.categoryName || '').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const sCatSlug = (p.storeCategory || '').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    return pCatSlug === catSlug || aCatSlug === catSlug || sCatSlug === catSlug;
   });
 }
-
-import { getStorefrontPromotions } from '@/lib/actions/storefront-management';
 
 export async function getCityMartStores(citySlug?: string) {
   const city = citySlug ? await getCityBySlug(citySlug) : await getCurrentCity();
@@ -377,9 +389,13 @@ export async function getCityMartStores(citySlug?: string) {
 
   const listings = await db.orm.public.DiscoveryListing.where({ cityId: city.id }).all();
   const listingMap = new Map(listings.map((l: any) => [l.organizationId, l]));
+  const allProducts = await db.orm.public.RetailProduct.all();
 
   return orgs.map((o: any) => {
     const listing = listingMap.get(o.id);
+    const orgProducts = allProducts.filter((p: any) => p.organizationId === o.id && !p.parentId);
+    const inferred = inferStoreProfileTaxonomy(orgProducts, o.storeCategory);
+
     let cover = o.logoAssetId || listing?.coverAssetId;
     let rating: number | null = null;
     let meta: any = null;
@@ -393,12 +409,16 @@ export async function getCityMartStores(citySlug?: string) {
     const isVerified = Boolean(meta?.isVerified);
     const isFeatured = Boolean(meta?.isFeatured);
     const reviewCount = typeof meta?.reviewCount === 'number' ? meta.reviewCount : 0;
-    const aisles = Array.isArray(meta?.aisles) && meta.aisles.length > 0 
+    const aisles = inferred.aisles.length > 0
+      ? inferred.aisles
+      : Array.isArray(meta?.aisles) && meta.aisles.length > 0 
       ? meta.aisles 
       : (o.storeCategory ? [o.storeCategory] : []);
 
     return {
       ...o,
+      storeCategory: o.storeCategory || inferred.storeCategory,
+      productCount: orgProducts.length,
       image: cover,
       storeCoverImage: cover,
       rating,
@@ -425,6 +445,7 @@ export async function getCityMarketFeed(citySlug?: string, activeAisle: string =
       products: [],
       campaigns: [],
       categories: [{ id: 'all', label: 'All Goods', count: 0 }],
+      storeSectors: [],
       deliveryHubs: [],
       defaultAddress: null,
       topSearchTags: [],
@@ -454,7 +475,24 @@ export async function getCityMarketFeed(citySlug?: string, activeAisle: string =
     } catch {}
   }
 
-  // Dynamically derive backend categories from the full product catalog and store aisles
+  // 1. Dynamically derive Shop Sectors (Store-level categories)
+  const sectorMap = new Map<string, { id: string; label: string; count: number }>();
+  for (const s of stores) {
+    const rawSector = (s.storeCategory || 'General Merchandise').trim();
+    const id = rawSector.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const existing = sectorMap.get(id);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      sectorMap.set(id, { id, label: rawSector, count: 1 });
+    }
+  }
+  const storeSectors = [
+    { id: 'all', label: 'All Shops', count: stores.length },
+    ...Array.from(sectorMap.values()).sort((a, b) => b.count - a.count),
+  ];
+
+  // 2. Dynamically derive Product Aisles / Categories
   const categoryMap = new Map<string, { id: string; label: string; count: number }>();
   const addCategoryCount = (rawLabel: string) => {
     const clean = rawLabel.trim();
@@ -469,9 +507,9 @@ export async function getCityMarketFeed(citySlug?: string, activeAisle: string =
   };
 
   for (const p of allProducts) {
-    const gc = p.globalCategory?.trim() || (p as any).category?.trim();
-    if (gc) {
-      addCategoryCount(gc);
+    const aisleLabel = (p as any).categoryName?.trim() || p.globalCategory?.trim() || (p as any).category?.trim();
+    if (aisleLabel) {
+      addCategoryCount(aisleLabel);
     } else if (p.storeCategory && p.storeCategory !== 'Supermarket') {
       addCategoryCount(p.storeCategory);
     }
@@ -499,9 +537,10 @@ export async function getCityMarketFeed(citySlug?: string, activeAisle: string =
       ? allProducts
       : allProducts.filter((p: any) => {
           const aisleSlug = activeAisle.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+          const aCat = ((p as any).categoryName || '').toLowerCase().replace(/[^a-z0-9]+/g, '-');
           const pCat = (p.globalCategory || (p as any).category || '').toLowerCase().replace(/[^a-z0-9]+/g, '-');
           const sCat = (p.storeCategory || '').toLowerCase().replace(/[^a-z0-9]+/g, '-');
-          return pCat === aisleSlug || sCat === aisleSlug;
+          return aCat === aisleSlug || pCat === aisleSlug || sCat === aisleSlug;
         });
 
   const topSearchTags = Array.from(
@@ -516,6 +555,7 @@ export async function getCityMarketFeed(citySlug?: string, activeAisle: string =
     products,
     campaigns,
     categories,
+    storeSectors,
     deliveryHubs,
     defaultAddress,
     topSearchTags,

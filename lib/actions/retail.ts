@@ -12,6 +12,7 @@ import { sendWhatsAppOrderNotification } from '@/lib/whatsapp'
 import { notifyPerson, personIdForCustomerData } from '@/lib/notify'
 import { pusherServer } from '@/lib/pusher'
 import { requireWithinLimit } from '@/lib/actions/entitlements'
+import { classifyRetailProduct } from '@/lib/taxonomy/retail-categorizer'
 
 export type ActionResponse<T = any> = { error?: string } & T;
 
@@ -249,7 +250,32 @@ export async function createProduct(input: {
     const nextSku = generateUniqueSku(existingSkus, input.name || 'ITEM');
     const normalizedSku = (input.sku ?? '').trim() || nextSku;
     
+    const classification = classifyRetailProduct({
+      name: input.name,
+      description: input.description,
+      price: input.price,
+    });
+
     const product = await db.transaction(async (tx: any) => {
+      let resolvedCategoryId = input.categoryId || null;
+      if (!resolvedCategoryId && classification.inStoreCategory) {
+        const existingCats = await tx.orm.public.RetailCategory.where({ organizationId: input.organizationId }).all();
+        const match = existingCats.find(
+          (c: any) => c.name.toLowerCase() === classification.inStoreCategory.toLowerCase()
+        );
+        if (match) {
+          resolvedCategoryId = match.id;
+        } else {
+          const createdCat = await tx.orm.public.RetailCategory.create({
+            organizationId: input.organizationId,
+            name: classification.inStoreCategory,
+            description: `Auto-categorized aisle for ${classification.inStoreCategory}`,
+            parentId: null,
+          });
+          resolvedCategoryId = createdCat.id;
+        }
+      }
+
       const createdProduct = await tx.orm.public.RetailProduct.create({
         organizationId: input.organizationId,
         name: input.name,
@@ -261,7 +287,8 @@ export async function createProduct(input: {
         lowStockLevel: input.lowStockLevel,
         isWeighed: input.isWeighed ?? false,
         unit: input.unit ?? 'ea',
-        categoryId: input.categoryId,
+        categoryId: resolvedCategoryId,
+        globalCategory: classification.globalCategory,
         imageAssetId: input.imageAssetId,
       });
 
