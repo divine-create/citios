@@ -132,29 +132,27 @@ export async function saveVerticalsConfig(payload: Partial<PlatformVerticalsConf
     await db.orm.public.DiscoveryListing.where({ id: existing.id }).update({
       metadata,
       title: 'Platform Verticals Configuration',
-      summary: 'HQ Control configuration for active CityOS verticals.',
-      verified: true,
+      description: 'HQ Control configuration for active CityOS verticals.',
+      isActive: true,
     });
   } else {
-    // Resolve fallback category
-    let category = await db.orm.public.DiscoveryCategory.all().first();
-    if (!category) {
-      category = await db.orm.public.DiscoveryCategory.create({
-        id: uuidv4(),
-        name: 'System Config',
-        slug: 'system-config',
-      });
+    const city = (await db.orm.public.City.all().first()) || null;
+    const org = (await db.orm.public.Organization.all().first()) || null;
+
+    if (!city || !org) {
+      throw new Error('System bootstrap incomplete: no anchor city or organization found.');
     }
 
     await db.orm.public.DiscoveryListing.create({
       id: uuidv4(),
-      categoryId: category.id,
-      title: 'Platform Verticals Configuration',
+      organizationId: org.id,
+      cityId: city.id,
+      vertical: 'SETTINGS',
       slug: CONFIG_SLUG,
-      summary: 'HQ Control configuration for active CityOS verticals.',
+      title: 'Platform Verticals Configuration',
+      description: 'HQ Control configuration for active CityOS verticals.',
       metadata,
-      verified: true,
-      kind: 'COMMERCIAL',
+      isActive: true,
     });
   }
 
