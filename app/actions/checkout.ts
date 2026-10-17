@@ -113,14 +113,40 @@ export async function processMerchantCheckout(
   try {
 
     if (retailItems.length > 0) {
+      const residentProfileForRetail = await db.orm.public.ResidentProfile.where({ personId }).all().first();
+      const baseAddress = options?.deliveryAddress || residentProfileForRetail?.defaultDeliveryAddress || '';
+      const phonePart = options?.customerPhone || residentProfileForRetail?.phone || '';
+      const notesPart = options?.deliveryNotes || '';
+      const substPref = options?.substitutionPreference;
+      const substLabel =
+        substPref === 'call'
+          ? 'Call me for replacement'
+          : substPref === 'replace'
+          ? 'Pick closest replacement'
+          : substPref === 'refund'
+          ? 'Refund unavailable item'
+          : '';
+
+      const formattedAddress = [
+        baseAddress,
+        phonePart ? `Phone: ${phonePart}` : '',
+        notesPart ? `Notes: ${notesPart}` : '',
+        substLabel ? `Substitution: ${substLabel}` : '',
+      ]
+        .filter(Boolean)
+        .join(' | ');
+
       const retRes = await placeRetailOrder({
+        locationId,
         items: retailItems.map((i: any) => ({ productId: i.productId, qty: i.qty, name: i.name })),
         method,
         idempotencyKey: idempotencyKey + '_ret',
         paymentReference: retailItems.length > 0 && foodItems.length === 0 ? reference : reference + '_RET',
-        expectedTotal: retailItems.reduce((acc: number, i: any) => acc + (i.price * i.qty), 0)
+        expectedTotal: retailItems.reduce((acc: number, i: any) => acc + (i.price * i.qty), 0),
+        deliveryAddress: formattedAddress || undefined,
       });
-      if ((retRes as any)?.orderId) placedOrderId = (retRes as any).orderId;
+      if (retRes?.orderIds && retRes.orderIds[0]) placedOrderId = retRes.orderIds[0];
+      else if ((retRes as any)?.orderId) placedOrderId = (retRes as any).orderId;
       // Clear them from cart
       for (const item of retailItems) await removeVoiceCartItem(personId, item.productId);
     }

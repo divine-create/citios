@@ -17,7 +17,17 @@ export async function getCanonicalOrganization(id: string) {
   const jobs = await db.orm.public.Job.where({ organizationId: org.id }).all();
   const events = await db.orm.public.Event.where({ organizationId: org.id }).all();
   const services = await db.orm.public.ServiceCatalogItem.where({ organizationId: org.id }).all();
-  const products = await db.orm.public.RetailProduct.where({ organizationId: org.id }).all();
+  const rawProducts = await db.orm.public.RetailProduct.where({ organizationId: org.id }).all();
+  const retailCategories = await db.orm.public.RetailCategory.where({ organizationId: org.id }).all();
+  const categoryNameMap = new Map(retailCategories.map((c: any) => [c.id, c.name]));
+  const products = rawProducts
+    .filter((p: any) => !p.parentId)
+    .map((p: any) => ({
+      ...p,
+      storeName: org.name,
+      categoryName: (p.categoryId && categoryNameMap.get(p.categoryId)) || p.globalCategory || 'General Goods',
+      globalCategory: p.globalCategory || (p.categoryId && categoryNameMap.get(p.categoryId)) || 'General Goods',
+    }));
   const menuItems = await db.orm.public.MenuItem.where({ organizationId: org.id }).all();
   const memberships = await db.orm.public.Membership.where({ organizationId: org.id }).all();
   const contactPoints = await db.orm.public.OrganizationContactPoint.where({ organizationId: org.id }).all();
@@ -32,7 +42,8 @@ export async function getCanonicalOrganization(id: string) {
   return {
     id: org.id,
     name: org.name,
-    type: ('Organization'),
+    type: org.type || 'Organization',
+    storeCategory: (org as any).storeCategory || null,
     description: org.description,
     
     citySlug: orgCity?.slug ?? null,
@@ -45,7 +56,7 @@ export async function getCanonicalOrganization(id: string) {
     isClaimed,
     contactPoints: JSON.parse(JSON.stringify(contactPoints)),
     capabilities: {
-      retail: products.length > 0,
+      retail: products.length > 0 || org.type === 'RETAIL',
       restaurant: menuItems.length > 0,
       services: services.length > 0,
       jobs: jobs.length > 0,

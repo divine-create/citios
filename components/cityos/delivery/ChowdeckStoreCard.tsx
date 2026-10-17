@@ -18,6 +18,8 @@ export interface StoreCardData {
   description?: string;
   address?: string;
   area?: string;
+  neighborhood?: string;
+  storeCategory?: string;
   image?: string;
   images?: string[];
   rating?: number | null;

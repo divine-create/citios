@@ -13,6 +13,7 @@ export interface StepperProduct {
   orgId: string;
   orgName?: string;
   kind?: CartKind;
+  maxQty?: number;
 }
 
 export default function InlineQuantityStepper({
@@ -27,10 +28,13 @@ export default function InlineQuantityStepper({
   const { lines, add, setQty, remove } = useCart();
   const line = lines.find((l) => l.productId === product.id);
   const qty = line?.qty ?? 0;
+  const isOutOfStock = typeof product.maxQty === 'number' && product.maxQty <= 0;
+  const isAtMax = typeof product.maxQty === 'number' && qty >= product.maxQty;
 
   const handleAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (isOutOfStock) return;
     add({
       productId: product.id,
       name: product.name,
@@ -46,6 +50,7 @@ export default function InlineQuantityStepper({
   const handleIncrement = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (isAtMax) return;
     setQty(product.id, qty + 1);
   };
 
@@ -58,6 +63,22 @@ export default function InlineQuantityStepper({
       setQty(product.id, qty - 1);
     }
   };
+
+  if (isOutOfStock && qty === 0) {
+    return (
+      <span
+        className={cn(
+          'inline-flex items-center justify-center font-bold rounded-full bg-slate-100 text-slate-400 border border-slate-200/80 select-none cursor-not-allowed',
+          size === 'sm' && 'h-7 px-2.5 text-[10px]',
+          size === 'md' && 'h-8 px-3 text-[11px]',
+          size === 'lg' && 'h-9 px-4 text-[12px]',
+          className
+        )}
+      >
+        Sold out
+      </span>
+    );
+  }
 
   if (qty === 0) {
     return (
@@ -108,8 +129,15 @@ export default function InlineQuantityStepper({
       <button
         type="button"
         onClick={handleIncrement}
+        disabled={isAtMax}
         aria-label="Increase quantity"
-        className="w-6 h-6 rounded-full flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 active:scale-90 transition-all"
+        title={isAtMax ? `Max available stock (${product.maxQty})` : 'Increase quantity'}
+        className={cn(
+          'w-6 h-6 rounded-full flex items-center justify-center transition-all',
+          isAtMax
+            ? 'text-white/30 cursor-not-allowed'
+            : 'text-white/80 hover:text-white hover:bg-white/20 active:scale-90'
+        )}
       >
         <Plus className="w-3.5 h-3.5" />
       </button>

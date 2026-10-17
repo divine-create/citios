@@ -162,13 +162,18 @@ export default async function OrgProfile({ id }: { id: string }) {
           being browsed — always labelled, never silently mixed. */}
       <CityMismatchChip citySlug={org.citySlug} />
 
+      {/* Storefront Catalog First for Retail Supermarkets & Shops */}
+      {shop && shop.products.length > 0 ? (
+        <ClientProductList products={shop.products} storeName={org.name} />
+      ) : null}
+
       {/* Fact bar */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: addressStr, sub: `${category}` },
+          { label: addressStr || city?.name || 'Local Store', sub: `${(org as any).storeCategory || category}` },
           { label: hours.split('·')[0].trim(), sub: hours.split('·')[1]?.trim() ?? 'Open' },
-          { label: `Staffed`, sub: `Operates from ${osLabel}` },
-          { label: `Active community`, sub: `CityConnect Verified` },
+          { label: org.metadata?.deliveryEta || '20–35 min', sub: 'Express City Delivery' },
+          { label: org.isClaimed ? 'Verified Merchant' : 'Directory Listing', sub: `Operates on ${osLabel}` },
         ].map((cell, i) => (
           <div key={i} className="bg-white rounded-2xl border border-slate-100 p-4">
             <p className="text-[12px] font-black text-ink leading-snug">{cell.label}</p>
@@ -179,7 +184,7 @@ export default async function OrgProfile({ id }: { id: string }) {
 
       {/* About */}
       <section className="bg-white rounded-2xl border border-slate-100 p-5 md:p-6">
-        <h2 className="text-base font-black text-ink mb-2">About</h2>
+        <h2 className="text-base font-black text-ink mb-2">About {org.name}</h2>
         <p className="text-[13px] text-slate-600 leading-relaxed">{org.description || 'A verified organization in CityConnect.'}</p>
         <div className="mt-4 flex items-center gap-2 flex-wrap">
           <LocationRow text={`${addressStr}`} className="text-[11px]" />
@@ -246,10 +251,6 @@ export default async function OrgProfile({ id }: { id: string }) {
              <p className="text-[12px] text-slate-500 font-medium mt-1">School operating on SchoolOS. Enrollment open.</p>
           </div>
         </section>
-      ) : null}
-
-      {shop && shop.products.length > 0 ? (
-        <ClientProductList products={shop.products} />
       ) : null}
 
       {restaurant && restaurant.menu.length > 0 ? (

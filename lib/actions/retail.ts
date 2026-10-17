@@ -1074,6 +1074,7 @@ async function enrichOrders(organizationId: string, orders: any[]) {
 
   const customerIds = [...new Set(orders.map((o) => o.customerDataId).filter(Boolean))] as string[];
   const customers: Record<string, string> = {};
+  const customerPhones: Record<string, string> = {};
   for (const id of customerIds) {
     const cd = await db.orm.public.CustomerData.where({ id }).all().first();
     if (cd) {
@@ -1081,6 +1082,13 @@ async function enrichOrders(organizationId: string, orders: any[]) {
        if (rel) {
            const person = await db.orm.public.Person.where({ id: rel.personId }).all().first();
            customers[id] = person ? `${person.firstName} ${person.lastName}`.trim() : 'Unknown';
+           const profile = await db.orm.public.ResidentProfile.where({ personId: rel.personId }).all().first().catch(() => null);
+           if (profile?.phone) {
+             customerPhones[id] = profile.phone;
+           } else {
+             const phoneIdent = await db.orm.public.PersonIdentifier.where({ personId: rel.personId, type: 'PHONE' }).all().first().catch(() => null);
+             if (phoneIdent?.normalizedValue) customerPhones[id] = phoneIdent.normalizedValue;
+           }
        }
     }
   }
@@ -1092,6 +1100,7 @@ async function enrichOrders(organizationId: string, orders: any[]) {
       ...order,
       cashierName: cashiers[order.cashierId] ?? 'Unknown',
       customerName: order.customerDataId ? (customers[order.customerDataId] ?? 'Unknown') : null,
+      customerPhone: order.customerDataId ? (customerPhones[order.customerDataId] ?? null) : null,
       items: items.map((i) => ({ ...i, productName: products.find((p) => p.id === i.productId)?.name ?? 'Unknown' })),
     });
   }

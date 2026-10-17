@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { 
-  Store, 
-  ArrowRight, 
-  ShoppingBag, 
+import {
+  Store,
+  ArrowRight,
+  ShoppingBag,
+  MapPin,
+  SlidersHorizontal,
 } from 'lucide-react';
-import { useMoney, useCity } from '@/components/cityos/CityProvider';
-import { useCart } from '@/components/cityos/CartStore';
+import { useCity } from '@/components/cityos/CityProvider';
 import { getCityMarketFeed } from '@/app/actions/commerce';
 import ChowdeckDeliveryHeader, { DeliveryHubOption } from '@/components/cityos/delivery/ChowdeckDeliveryHeader';
 import ChowdeckCategoryBubbles, { CategoryBubbleItem } from '@/components/cityos/delivery/ChowdeckCategoryBubbles';
@@ -21,8 +22,6 @@ import { cn } from '@/lib/utils';
 export default function CityMarket() {
   const { city } = useCity();
   const cityName = city?.name ?? 'Calabar';
-  const { fmt } = useMoney();
-  const { count } = useCart();
 
   const [stores, setStores] = useState<StoreCardData[]>([]);
   const [products, setProducts] = useState<GlovoProductItem[]>([]);
@@ -32,16 +31,19 @@ export default function CityMarket() {
   const [topSearchTags, setTopSearchTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Search & Filter state
+  // Instant Client-Side Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
   const [activeAisle, setActiveAisle] = useState('all');
+  const [activeArea, setActiveArea] = useState('all');
+  const [inStockOnly, setInStockOnly] = useState(false);
+  const [sortBy, setSortBy] = useState<'popular' | 'price-asc' | 'price-desc'>('popular');
 
   useEffect(() => {
     let active = true;
     async function load() {
       setLoading(true);
       try {
-        const feed = await getCityMarketFeed(city?.slug, activeAisle);
+        const feed = await getCityMarketFeed(city?.slug, 'All');
         if (!active) return;
         setStores((feed.stores || []) as unknown as StoreCardData[]);
         setProducts((feed.products || []) as unknown as GlovoProductItem[]);
@@ -59,19 +61,92 @@ export default function CityMarket() {
     return () => {
       active = false;
     };
-  }, [activeAisle, city?.slug]);
+  }, [city?.slug]);
 
-  // Client-side search filtering across products and stores
-  const filteredProducts = useMemo(() => {
-    if (!searchQuery.trim()) return products;
-    const q = searchQuery.toLowerCase();
-    return products.filter((p) => {
-      const matchName = p.name.toLowerCase().includes(q);
-      const matchStore = p.storeName?.toLowerCase().includes(q);
-      const matchCat = p.globalCategory?.toLowerCase().includes(q);
-      return matchName || matchStore || matchCat;
+  // Derive distinct areas/neighborhoods from stores and products
+  const areaPills = useMemo(() => {
+    const areaSet = new Set<string>();
+    for (const s of stores) {
+      const a = (s.area || s.neighborhood || '').trim();
+      if (a && a.toLowerCase() !== cityName.toLowerCase()) {
+        areaSet.add(a);
+      }
+    }
+    for (const p of products) {
+      const a = (p.area || p.neighborhood || '').trim();
+      if (a && a.toLowerCase() !== cityName.toLowerCase()) {
+        areaSet.add(a);
+      }
+    }
+    return ['all', ...Array.from(areaSet)];
+  }, [stores, products, cityName]);
+
+  // Filter stores by area and search
+  const filteredStores = useMemo(() => {
+    return stores.filter((s) => {
+      if (activeArea !== 'all') {
+        const storeArea = (s.area || s.neighborhood || '').toLowerCase();
+        if (!storeArea.includes(activeArea.toLowerCase())) return false;
+      }
+      if (activeAisle !== 'all') {
+        const aisleSlug = activeAisle.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        const sCat = (s.storeCategory || '').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        const hasAisleProduct = products.some(
+          (p) =>
+            p.organizationId === s.id &&
+            ((p.globalCategory || p.category || '').toLowerCase().replace(/[^a-z0-9]+/g, '-') === aisleSlug ||
+              (p.storeCategory || '').toLowerCase().replace(/[^a-z0-9]+/g, '-') === aisleSlug)
+        );
+        if (sCat !== aisleSlug && !hasAisleProduct) return false;
+      }
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchStore = s.name.toLowerCase().includes(q);
+        const matchArea = (s.area || s.neighborhood || '').toLowerCase().includes(q);
+        return matchStore || matchArea;
+      }
+      return true;
     });
-  }, [products, searchQuery]);
+  }, [stores, products, activeArea, activeAisle, searchQuery]);
+
+  // Client-side filtering across products (aisle, area, stock, search, sort)
+  const filteredProducts = useMemo(() => {
+    let list = products.filter((p) => {
+      if (activeAisle !== 'all') {
+        const aisleSlug = activeAisle.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        const pCat = (p.globalCategory || p.category || '').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        const sCat = (p.storeCategory || '').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        if (pCat !== aisleSlug && sCat !== aisleSlug) return false;
+      }
+      if (activeArea !== 'all') {
+        const prodArea = (p.area || p.neighborhood || '').toLowerCase();
+        if (!prodArea.includes(activeArea.toLowerCase())) return false;
+      }
+      if (inStockOnly) {
+        const hasStock = p.isWeighed || (typeof p.stockQuantity === 'number' ? p.stockQuantity > 0 : true);
+        if (!hasStock) return false;
+      }
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchName = p.name.toLowerCase().includes(q);
+        const matchStore = p.storeName?.toLowerCase().includes(q);
+        const matchCat = (p.globalCategory || p.category || '').toLowerCase().includes(q);
+        return matchName || matchStore || matchCat;
+      }
+      return true;
+    });
+
+    if (sortBy === 'price-asc') {
+      list = [...list].sort((a, b) => (a.price || 0) - (b.price || 0));
+    } else if (sortBy === 'price-desc') {
+      list = [...list].sort((a, b) => (b.price || 0) - (a.price || 0));
+    }
+
+    return list;
+  }, [products, activeAisle, activeArea, inStockOnly, searchQuery, sortBy]);
+
+  const hasActiveFilters =
+    activeAisle !== 'all' || activeArea !== 'all' || inStockOnly || Boolean(searchQuery.trim());
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300 pb-32">
@@ -88,19 +163,24 @@ export default function CityMarket() {
       />
 
       {/* 2. Dynamic Categories / Aisles from DB */}
-      {!searchQuery && categories.length > 1 && (
-        <section className="space-y-2">
+      {categories.length > 1 && (
+        <section className="space-y-2.5">
           <div className="flex items-center justify-between px-1">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
               Aisles & Categories
             </h3>
-            {activeAisle !== 'all' && (
+            {hasActiveFilters && (
               <button
                 type="button"
-                onClick={() => setActiveAisle('all')}
+                onClick={() => {
+                  setActiveAisle('all');
+                  setActiveArea('all');
+                  setInStockOnly(false);
+                  setSearchQuery('');
+                }}
                 className="text-xs font-bold text-orange-600 hover:text-orange-700"
               >
-                Reset to All
+                Reset All Filters
               </button>
             )}
           </div>
@@ -110,11 +190,38 @@ export default function CityMarket() {
             activeCategoryId={activeAisle}
             onSelectCategory={(id) => setActiveAisle(id)}
           />
+
+          {/* Area / Neighborhood Filter Pills + Quick Controls */}
+          {areaPills.length > 1 && (
+            <div className="flex items-center gap-2 overflow-x-auto pt-1 pb-1 -mx-1 px-1 no-scrollbar">
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider pr-1 shrink-0">
+                <MapPin className="w-3 h-3" /> Area:
+              </span>
+              {areaPills.map((area) => {
+                const isActive = activeArea === area;
+                return (
+                  <button
+                    key={area}
+                    type="button"
+                    onClick={() => setActiveArea(area)}
+                    className={cn(
+                      'px-3 py-1 rounded-full text-xs font-bold transition-all shrink-0 border',
+                      isActive
+                        ? 'bg-emerald-700 text-white border-emerald-700 shadow-2xs'
+                        : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                    )}
+                  >
+                    {area === 'all' ? `All ${cityName}` : area}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </section>
       )}
 
       {/* 3. Partner Supermarkets Horizontal Rail (DB Stores) */}
-      {!searchQuery && activeAisle === 'all' && stores.length > 0 && (
+      {filteredStores.length > 0 && (
         <section className="space-y-3 pt-1">
           <div className="flex items-center justify-between px-1">
             <div>
@@ -123,20 +230,20 @@ export default function CityMarket() {
                 Partner Supermarkets & Stores
               </h2>
               <p className="text-xs text-slate-500 font-medium">
-                Verified retail stores in {cityName}
+                Tap a store to shop its full aisles in {activeArea === 'all' ? cityName : activeArea}
               </p>
             </div>
             <Link
               href="/explore?cat=Retail"
               className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center gap-1 transition-colors"
             >
-              <span>View all ({stores.length})</span>
+              <span>View all ({filteredStores.length})</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
           <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1 no-scrollbar snap-x">
-            {stores.map((store) => (
+            {filteredStores.map((store) => (
               <div key={store.id} className="w-72 sm:w-80 shrink-0 snap-start">
                 <ChowdeckStoreCard
                   store={{
@@ -153,18 +260,48 @@ export default function CityMarket() {
 
       {/* 4. MAIN PRODUCTS CATALOG: Multi-Aisle Grid with Instant Steppers */}
       <section className="space-y-4 pt-1">
-        <div className="flex items-center justify-between border-b border-slate-200/80 pb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 pb-3">
           <div>
             <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
               {searchQuery
                 ? `Results for "${searchQuery}"`
                 : activeAisle === 'all'
-                ? `All Supermarket Goods in ${cityName}`
+                ? `All Supermarket Goods in ${activeArea === 'all' ? cityName : activeArea}`
                 : `${categories.find((c) => c.id === activeAisle)?.label || 'Selected Aisle'} Items`}
             </h2>
             <p className="text-xs text-slate-500 font-medium">
               {filteredProducts.length} item{filteredProducts.length === 1 ? '' : 's'} available
             </p>
+          </div>
+
+          {/* Stock & Sort Controls */}
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <button
+              type="button"
+              onClick={() => setInStockOnly((v) => !v)}
+              className={cn(
+                'px-3 py-1.5 rounded-full text-xs font-bold border transition-all',
+                inStockOnly
+                  ? 'bg-emerald-600 text-white border-emerald-600'
+                  : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+              )}
+            >
+              In Stock Only
+            </button>
+
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-slate-200 text-xs font-bold text-slate-700">
+              <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                aria-label="Sort products"
+                className="bg-transparent focus:outline-none cursor-pointer font-bold text-slate-800"
+              >
+                <option value="popular">Sort: Popular</option>
+                <option value="price-asc">Price: Low to High</option>
+                <option value="price-desc">Price: High to Low</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -183,8 +320,12 @@ export default function CityMarket() {
           <div className="col-span-full">
             <EmptyState
               icon={<ShoppingBag className="w-8 h-8 text-emerald-500" />}
-              title={`No items found in ${cityName}`}
-              description={searchQuery ? 'Try searching for generic terms like rice, oil, soap or bread.' : "Select 'All Goods' to view all available products."}
+              title={`No items found in ${activeArea === 'all' ? cityName : activeArea}`}
+              description={
+                searchQuery
+                  ? 'Try searching for generic terms like rice, oil, soap or bread.'
+                  : "Reset your aisle or area filters to view all available supermarket products."
+              }
             />
           </div>
         ) : (

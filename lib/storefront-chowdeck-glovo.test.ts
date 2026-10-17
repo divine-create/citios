@@ -7,7 +7,8 @@ import {
   updateStorefrontPlacement,
 } from '@/lib/actions/storefront-management';
 import { getCityFood } from '@/app/actions/food';
-import { getCityMarketFeed, getCityMartStores } from '@/app/actions/commerce';
+import { getCityMarketFeed, getCityMartStores, getCityMartProduct } from '@/app/actions/commerce';
+import { getCanonicalOrganization } from '@/app/actions/org';
 import { getHotelOrgs } from '@/lib/actions/resident';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -179,7 +180,37 @@ test('Chowdeck & Glovo Storefront Integration Suite', async (t) => {
     assert.ok(foodData.deliveryHubs.some((h: any) => h.id === locFoodId));
   });
 
-  await t.test('4. getCityMarketFeed returns stores with Glovo metadata and market campaigns', async () => {
+  await t.test('4. getCityMarketFeed returns stores with Glovo metadata, stable aisle counts, and relatedProducts', async () => {
+    const catId = `cat-${uuidv4().substring(0, 8)}`;
+    const prod1Id = `prod1-${uuidv4().substring(0, 8)}`;
+    const prod2Id = `prod2-${uuidv4().substring(0, 8)}`;
+
+    await db.orm.public.RetailCategory.create({
+      id: catId,
+      organizationId: orgRetailId,
+      name: 'Fresh Bakery',
+    });
+
+    await db.orm.public.RetailProduct.create({
+      id: prod1Id,
+      organizationId: orgRetailId,
+      categoryId: catId,
+      name: 'Calabar Coconut Bread',
+      price: 1500,
+      stockQuantity: 12,
+      globalCategory: 'Bakery',
+    });
+
+    await db.orm.public.RetailProduct.create({
+      id: prod2Id,
+      organizationId: orgRetailId,
+      categoryId: catId,
+      name: 'Butter Croissant Pack',
+      price: 2200,
+      stockQuantity: 8,
+      globalCategory: 'Groceries',
+    });
+
     const feed = await getCityMarketFeed(citySlug, 'All');
     assert.ok(Array.isArray(feed.stores));
     const store = feed.stores.find((s: any) => s.id === orgRetailId);
@@ -193,6 +224,30 @@ test('Chowdeck & Glovo Storefront Integration Suite', async (t) => {
     assert.ok(feed.categories.some((c: any) => c.id === 'all'));
     assert.ok(Array.isArray(feed.deliveryHubs));
     assert.ok(feed.deliveryHubs.some((h: any) => h.id === locRetailId));
+
+    // Verify category counts remain stable even when filtered by a single aisle
+    const filteredFeed = await getCityMarketFeed(citySlug, 'Bakery');
+    assert.equal(filteredFeed.categories.length, feed.categories.length);
+    assert.equal(filteredFeed.products.length, 1);
+    assert.equal(filteredFeed.products[0].id, prod1Id);
+    assert.equal(filteredFeed.products[0].area, '44 Calabar Mall');
+
+    // Verify getCityMartProduct returns relatedProducts from the same store
+    const detail = await getCityMartProduct(prod1Id);
+    assert.ok(detail);
+    assert.ok(Array.isArray(detail.relatedProducts));
+    assert.ok(detail.relatedProducts.some((rp: any) => rp.id === prod2Id));
+
+    // Verify getCanonicalOrganization resolves RetailCategory name onto productsData
+    const canonicalOrg = await getCanonicalOrganization(orgRetailId);
+    assert.ok(canonicalOrg);
+    const enrichedProd = canonicalOrg.productsData.find((p: any) => p.id === prod1Id);
+    assert.ok(enrichedProd);
+    assert.equal(enrichedProd.categoryName, 'Fresh Bakery');
+
+    await db.orm.public.RetailProduct.where({ id: prod1Id }).delete();
+    await db.orm.public.RetailProduct.where({ id: prod2Id }).delete();
+    await db.orm.public.RetailCategory.where({ id: catId }).delete();
   });
 
   await t.test('5. saveStorefrontPromotions saves custom hero slides and getStorefrontPromotions retrieves them', async () => {

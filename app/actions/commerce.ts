@@ -9,6 +9,7 @@ import { getCurrentCity, getCityBySlug } from '@/lib/city';
 import { revalidatePath } from 'next/cache';
 import { notifyPerson } from '@/lib/notify';
 import { debitResidentWallet } from '@/app/actions/resident_wallet';
+import { resolveResidentCustomerIds } from '@/lib/resident-activity/compose';
 
 /**
  * Place a retail order.
@@ -262,7 +263,7 @@ export async function placeRetailOrder(input: {
       type: 'ORDER_CONFIRMED',
       title: `Order placed at ${org.name}`,
       body: `${group.items.length} item${group.items.length === 1 ? '' : 's'} · total ₦${group.total.toLocaleString()}`,
-      href: '/orders',
+      href: `/orders/${order.id}`,
     });
   }
 
@@ -351,11 +352,14 @@ export async function getCityMartProducts(citySlug?: string, cat: string = 'All'
   });
   return products.map(p => {
     const org = orgs.find(o => o.id === p.organizationId);
+    const area = org?.address ? org.address.split(',')[0].trim() : city.name;
     return {
       ...p,
       storeName: org?.name || 'Unknown Store',
       storeCategory: (org as any)?.storeCategory || 'Supermarket',
       orgSlug: org?.id,
+      area,
+      neighborhood: area,
     };
   });
 }
@@ -430,9 +434,10 @@ export async function getCityMarketFeed(citySlug?: string, activeAisle: string =
     };
   }
 
-  const [stores, products, campaigns] = await Promise.all([
+  // Always fetch all city products so category counts remain stable and client-side filtering is instant
+  const [stores, allProducts, campaigns] = await Promise.all([
     getCityMartStores(city.slug),
-    getCityMartProducts(city.slug, activeAisle),
+    getCityMartProducts(city.slug, 'All'),
     getStorefrontPromotions(city.slug, 'MARKET'),
   ]);
 
@@ -452,41 +457,60 @@ export async function getCityMarketFeed(citySlug?: string, activeAisle: string =
     } catch {}
   }
 
-  // Dynamically derive backend categories directly from DB store aisles, store categories, and retail products
-  const categoryCounter = new Map<string, number>();
-  for (const s of stores) {
-    if (s.storeCategory && s.storeCategory !== 'Supermarket') {
-      categoryCounter.set(s.storeCategory, (categoryCounter.get(s.storeCategory) || 0) + 1);
+  // Dynamically derive backend categories from the full product catalog and store aisles
+  const categoryMap = new Map<string, { id: string; label: string; count: number }>();
+  const addCategoryCount = (rawLabel: string) => {
+    const clean = rawLabel.trim();
+    if (!clean || clean.toLowerCase() === 'all') return;
+    const id = clean.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const existing = categoryMap.get(id);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      categoryMap.set(id, { id, label: clean, count: 1 });
     }
-    for (const a of s.aisles || []) {
-      const clean = a.trim();
-      if (clean) categoryCounter.set(clean, (categoryCounter.get(clean) || 0) + 1);
-    }
-  }
-  for (const p of products) {
+  };
+
+  for (const p of allProducts) {
     const gc = p.globalCategory?.trim() || (p as any).category?.trim();
     if (gc) {
-      categoryCounter.set(gc, (categoryCounter.get(gc) || 0) + 1);
+      addCategoryCount(gc);
+    } else if (p.storeCategory && p.storeCategory !== 'Supermarket') {
+      addCategoryCount(p.storeCategory);
     }
   }
 
-  const dynamicCategories = Array.from(categoryCounter.entries())
-    .map(([label, count]) => ({
-      id: label.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-      label,
-      count,
-    }))
-    .sort((a, b) => b.count - a.count);
+  // If no products had categories, fallback to store aisles
+  if (categoryMap.size === 0) {
+    for (const s of stores) {
+      for (const a of s.aisles || []) {
+        addCategoryCount(a);
+      }
+    }
+  }
+
+  const dynamicCategories = Array.from(categoryMap.values()).sort((a, b) => b.count - a.count);
 
   const categories = [
-    { id: 'all', label: 'All Goods', count: products.length },
+    { id: 'all', label: 'All Goods', count: allProducts.length },
     ...dynamicCategories,
   ];
+
+  // Filter products if activeAisle was explicitly passed to server action
+  const products =
+    !activeAisle || activeAisle.toLowerCase() === 'all'
+      ? allProducts
+      : allProducts.filter((p: any) => {
+          const aisleSlug = activeAisle.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+          const pCat = (p.globalCategory || (p as any).category || '').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+          const sCat = (p.storeCategory || '').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+          return pCat === aisleSlug || sCat === aisleSlug;
+        });
 
   const topSearchTags = Array.from(
     new Set([
       ...dynamicCategories.slice(0, 4).map((c) => c.label),
-      ...products.slice(0, 4).map((p: any) => p.name),
+      ...allProducts.slice(0, 4).map((p: any) => p.name),
     ])
   ).slice(0, 6);
 
@@ -502,10 +526,9 @@ export async function getCityMarketFeed(citySlug?: string, activeAisle: string =
 }
 
 export async function getCityMartProduct(productId: string) {
-  // @ts-ignore
-    const p = await db.orm.public.RetailProduct.where({ id: productId }).include({ variants: true }).first();
+  const p = await db.orm.public.RetailProduct.where({ id: productId }).all().first();
   if (!p) return null;
-  const org = await db.orm.public.Organization.where({ id: p.organizationId }).first();
+  const org = await db.orm.public.Organization.where({ id: p.organizationId }).all().first();
 
   const activeCity = await getCurrentCity();
   let locs = await db.orm.public.Location.where({ organizationId: p.organizationId }).all();
@@ -518,26 +541,47 @@ export async function getCityMartProduct(productId: string) {
     }
   }
 
+  // Fetch child variants and up to 6 other products from the same store
+  const storeProducts = await db.orm.public.RetailProduct.where({ organizationId: p.organizationId }).all();
+  const variants = storeProducts.filter((sp: any) => sp.parentId === p.id);
+  const relatedProducts = storeProducts
+    .filter((sp: any) => sp.id !== p.id && !sp.parentId && (sp.isWeighed || (sp.stockQuantity ?? 0) > 0))
+    .slice(0, 6)
+    .map((sp: any) => ({
+      id: sp.id,
+      name: sp.name,
+      price: sp.price,
+      description: sp.description,
+      imageAssetId: sp.imageAssetId,
+      imageUrl: (sp as any).imageUrl,
+      storeName: org?.name || 'Unknown Store',
+      orgSlug: org?.id,
+      organizationId: sp.organizationId,
+      globalCategory: sp.globalCategory,
+      stockQuantity: sp.stockQuantity,
+      isWeighed: sp.isWeighed,
+      unit: sp.unit,
+    }));
+
   return {
     ...p,
+    variants,
     storeName: org?.name || 'Unknown Store',
     orgSlug: org?.id,
     citySlug: activeCity?.slug ?? null,
+    relatedProducts,
   };
 }
-
-
-
-
 
 export async function fetchMyOrders() {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.personId) return { error: 'Unauthorized' };
-    const cust = await db.orm.public.CustomerData.where({ personId: session.user.personId }).all().first();
-    if (!cust) return [];
-    // @ts-ignore
-      const orders = await db.orm.public.RetailOrder.where({ customerDataId: cust.id }).all();
+    const customerIds = await resolveResidentCustomerIds(session.user.personId);
+    if (customerIds.length === 0) return [];
+    const orders = await db.orm.public.RetailOrder
+      .where((o: any) => o.customerDataId.in(customerIds))
+      .all();
     orders.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     
     // Fetch delivery statuses efficiently
