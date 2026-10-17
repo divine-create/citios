@@ -196,7 +196,6 @@ export default function OnlineOrdersTab({
     { value: "NEW", label: `New (${orders.filter(o => o.status === "PENDING").length})` },
     { value: "PROCESSING", label: "Processing" },
     { value: "READY", label: "Ready" },
-    { value: "DELIVERY", label: "Delivery" },
     { value: "COMPLETED", label: "Completed" },
   ];
 
@@ -210,7 +209,7 @@ export default function OnlineOrdersTab({
       </div>
 
       <FilterBar>
-        <SearchInput value={search} onChange={setSearch} placeholder="Search order ID, customer, address..." />
+        <SearchInput value={search} onChange={setSearch} placeholder="Search order ID, customer..." />
         <PillTabs tabs={tabs as any} active={activeTab} onChange={(val) => setActiveTab(val as any)} />
       </FilterBar>
 
@@ -225,22 +224,18 @@ export default function OnlineOrdersTab({
           {/* MOBILE CARDS */}
           <div className="block md:hidden divide-y divide-slate-100">
             {filtered.map((order) => {
-              const details = parseDeliveryDetails(order);
               let primaryAction = null;
               if (order.status === "PENDING") {
                 primaryAction = (
                   <button onClick={(e) => { e.stopPropagation(); setActionConfirm({ action: "ACCEPT", order }); }} className="bg-brand-600 text-white px-4 py-2 rounded-xl font-bold w-full mt-3">Accept Order</button>
                 );
-              } else if (order.status === "CONFIRMED" && order.fulfillmentStatus === "PROCESSING" && !order.logistics) {
+              } else if (order.status === "CONFIRMED" && order.fulfillmentStatus === "PROCESSING") {
                 primaryAction = (
                   <button onClick={(e) => { e.stopPropagation(); setActionConfirm({ action: "READY", order }); }} className="bg-blue-600 text-white px-4 py-2 rounded-xl font-bold w-full mt-3">Mark Ready</button>
                 );
-              } else if (order.status === "CONFIRMED" && order.fulfillmentStatus === "READY" && !order.logistics) {
+              } else if (order.status === "CONFIRMED" && order.fulfillmentStatus === "READY") {
                 primaryAction = (
-                  <div className="grid grid-cols-2 gap-2 mt-3">
-                    <button onClick={(e) => { e.stopPropagation(); setActionConfirm({ action: "FULFILL", order }); }} className="bg-violet-600 text-white px-3 py-2 rounded-xl font-bold text-xs">Request Courier</button>
-                    <button onClick={(e) => { e.stopPropagation(); setActionConfirm({ action: "COMPLETE", order }); }} className="bg-emerald-600 text-white px-3 py-2 rounded-xl font-bold text-xs">Self-Deliver</button>
-                  </div>
+                  <button onClick={(e) => { e.stopPropagation(); setActionConfirm({ action: "COMPLETE", order }); }} className="bg-emerald-600 text-white px-4 py-2 rounded-xl font-bold w-full mt-3">Mark Completed</button>
                 );
               }
 
@@ -250,12 +245,6 @@ export default function OnlineOrdersTab({
                     <div>
                       <div className="font-bold text-ink">#{order.id.slice(0, 8)}</div>
                       <div className="text-xs text-slate-500">{order.customerName || "Guest"} · {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                      {details.address && (
-                        <div className="text-xs text-slate-600 font-medium mt-1 flex items-center gap-1 truncate max-w-[240px]">
-                          <MapPin size={12} className="text-slate-400 shrink-0" />
-                          <span className="truncate">{details.address}</span>
-                        </div>
-                      )}
                     </div>
                     <OrderStatusBadge status={order.status === 'CONFIRMED' ? order.fulfillmentStatus : order.status} toneOverride={order.fulfillmentStatus === 'UNFULFILLED' ? 'slate' : undefined} />
                   </div>
@@ -263,11 +252,6 @@ export default function OnlineOrdersTab({
                     <span>{order.items?.length || 0} items</span>
                     <PriceDisplay amount={order.totalAmount || 0} />
                   </div>
-                  {order.logistics && (
-                    <div className="mt-2 inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-xs font-bold border border-blue-100">
-                      <Truck size={14} /> {order.logistics.status}
-                    </div>
-                  )}
                   {primaryAction}
                 </div>
               );
@@ -280,32 +264,27 @@ export default function OnlineOrdersTab({
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold">
                   <th className="px-5 py-4">Order</th>
-                  <th className="px-5 py-4">Customer & Delivery</th>
+                  <th className="px-5 py-4">Customer</th>
                   <th className="px-5 py-4">Total</th>
                   <th className="px-5 py-4">Payment</th>
                   <th className="px-5 py-4">Order State</th>
-                  <th className="px-5 py-4">Logistics</th>
                   <th className="px-5 py-4 text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filtered.map((order) => {
-                  const details = parseDeliveryDetails(order);
                   let primaryAction = null;
                   if (order.status === "PENDING") {
                     primaryAction = (
                       <button onClick={(e) => { e.stopPropagation(); setActionConfirm({ action: "ACCEPT", order }); }} className="bg-brand-600 text-white px-3 py-1.5 rounded-lg font-bold text-xs hover:bg-brand-700">Accept Order</button>
                     );
-                  } else if (order.status === "CONFIRMED" && order.fulfillmentStatus === "PROCESSING" && !order.logistics) {
+                  } else if (order.status === "CONFIRMED" && order.fulfillmentStatus === "PROCESSING") {
                     primaryAction = (
                       <button onClick={(e) => { e.stopPropagation(); setActionConfirm({ action: "READY", order }); }} className="bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold text-xs hover:bg-blue-700">Mark Ready</button>
                     );
-                  } else if (order.status === "CONFIRMED" && order.fulfillmentStatus === "READY" && !order.logistics) {
+                  } else if (order.status === "CONFIRMED" && order.fulfillmentStatus === "READY") {
                     primaryAction = (
-                      <div className="inline-flex items-center gap-1.5">
-                        <button onClick={(e) => { e.stopPropagation(); setActionConfirm({ action: "FULFILL", order }); }} className="bg-violet-600 text-white px-3 py-1.5 rounded-lg font-bold text-xs hover:bg-violet-700">Request Courier</button>
-                        <button onClick={(e) => { e.stopPropagation(); setActionConfirm({ action: "COMPLETE", order }); }} className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-bold text-xs hover:bg-emerald-700">Self-Deliver</button>
-                      </div>
+                      <button onClick={(e) => { e.stopPropagation(); setActionConfirm({ action: "COMPLETE", order }); }} className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-bold text-xs hover:bg-emerald-700">Mark Completed</button>
                     );
                   }
 
@@ -319,14 +298,6 @@ export default function OnlineOrdersTab({
                         <div className="font-semibold text-slate-800">{order.customerName || "Guest"}</div>
                         <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-1.5">
                           <span>{order.items?.length || 0} items</span>
-                          {details.address && (
-                            <>
-                              <span>·</span>
-                              <span className="text-slate-600 font-medium truncate max-w-[220px]" title={details.address}>
-                                {details.address}
-                              </span>
-                            </>
-                          )}
                         </div>
                       </td>
                       <td className="px-5 py-4">
@@ -337,15 +308,6 @@ export default function OnlineOrdersTab({
                       </td>
                       <td className="px-5 py-4">
                         <OrderStatusBadge status={order.fulfillmentStatus} toneOverride={order.fulfillmentStatus === 'UNFULFILLED' ? 'slate' : undefined} />
-                      </td>
-                      <td className="px-5 py-4">
-                        {order.logistics ? (
-                          <div className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-xs font-bold border border-blue-100">
-                            <Truck size={14} /> {order.logistics.status}
-                          </div>
-                        ) : (
-                          <span className="text-slate-300">-</span>
-                        )}
                       </td>
                       <td className="px-5 py-4 text-right">
                         {primaryAction ? primaryAction : (
@@ -367,8 +329,7 @@ export default function OnlineOrdersTab({
             <p className="text-slate-600 font-medium text-[15px]">
               {actionConfirm.action === "ACCEPT" && "Accept this order and begin processing?"}
               {actionConfirm.action === "READY" && "Mark this order as ready for pickup?"}
-              {actionConfirm.action === "FULFILL" && "Request a CityRides courier delivery for this ready order?"}
-              {actionConfirm.action === "COMPLETE" && "Mark this order as delivered / fulfilled via store rider or customer pickup?"}
+              {actionConfirm.action === "COMPLETE" && "Mark this order as completed / picked up?"}
               {(actionConfirm.action === "REJECT" || actionConfirm.action === "CANCEL") && "Cancel this order? This action cannot be undone."}
             </p>
             <div className="mt-8 flex justify-end gap-3">
@@ -406,18 +367,9 @@ export default function OnlineOrdersTab({
                   </div>
                 </div>
 
-                {(details.address || details.notes || details.substitution || details.whatsappCustomerUrl) && (
-                  <SectionCard title="Delivery & Customer Preferences">
+                {(details.notes || details.substitution || details.whatsappCustomerUrl) && (
+                  <SectionCard title="Customer Contact & Preferences">
                     <div className="p-4 space-y-3">
-                      {details.address && (
-                        <div className="flex gap-3">
-                          <MapPin className="text-slate-400 mt-0.5 shrink-0" size={18} />
-                          <div>
-                            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Delivery Address</p>
-                            <p className="text-sm text-slate-800 font-semibold">{details.address}</p>
-                          </div>
-                        </div>
-                      )}
                       {details.substitution && (
                         <div className="flex items-center justify-between bg-amber-50 border border-amber-200/80 rounded-xl px-3.5 py-2.5">
                           <span className="text-xs font-bold text-amber-900">If item unavailable:</span>
@@ -426,7 +378,7 @@ export default function OnlineOrdersTab({
                       )}
                       {details.notes && (
                         <div className="bg-slate-100 rounded-xl px-3.5 py-2.5">
-                          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Delivery Notes</p>
+                          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Order Notes</p>
                           <p className="text-xs font-medium text-slate-800 mt-0.5">{details.notes}</p>
                         </div>
                       )}
@@ -478,16 +430,13 @@ export default function OnlineOrdersTab({
                         <button disabled={actionLoading} onClick={() => setActionConfirm({ action: "REJECT", order: viewingOrder })} className="w-full py-2.5 rounded-xl font-bold bg-white border-2 border-rose-200 text-rose-700 hover:bg-rose-50 transition-colors">Reject Order</button>
                       </>
                     )}
-                    {viewingOrder.status === "CONFIRMED" && viewingOrder.fulfillmentStatus === "PROCESSING" && !viewingOrder.logistics && (
+                    {viewingOrder.status === "CONFIRMED" && viewingOrder.fulfillmentStatus === "PROCESSING" && (
                       <button disabled={actionLoading} onClick={() => setActionConfirm({ action: "READY", order: viewingOrder })} className="w-full py-2.5 rounded-xl font-bold bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-sm flex justify-center items-center gap-2"><CheckCircle2 size={18}/> Mark Ready</button>
                     )}
-                    {viewingOrder.status === "CONFIRMED" && viewingOrder.fulfillmentStatus === "READY" && !viewingOrder.logistics && (
-                      <>
-                        <button disabled={actionLoading} onClick={() => setActionConfirm({ action: "FULFILL", order: viewingOrder })} className="w-full py-2.5 rounded-xl font-bold bg-violet-600 text-white hover:bg-violet-700 transition-colors shadow-sm flex justify-center items-center gap-2"><Truck size={18}/> Request CityRides Courier</button>
-                        <button disabled={actionLoading} onClick={() => setActionConfirm({ action: "COMPLETE", order: viewingOrder })} className="w-full py-2.5 rounded-xl font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-sm flex justify-center items-center gap-2"><Check size={18}/> Mark Fulfilled (Store Rider / Pickup)</button>
-                      </>
+                    {viewingOrder.status === "CONFIRMED" && viewingOrder.fulfillmentStatus === "READY" && (
+                      <button disabled={actionLoading} onClick={() => setActionConfirm({ action: "COMPLETE", order: viewingOrder })} className="w-full py-2.5 rounded-xl font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-sm flex justify-center items-center gap-2"><Check size={18}/> Mark Fulfilled (Customer Pickup)</button>
                     )}
-                    {viewingOrder.status === "CONFIRMED" && viewingOrder.fulfillmentStatus !== "FULFILLED" && (!viewingOrder.logistics || viewingOrder.logistics.status === 'CANCELLED') && (
+                    {viewingOrder.status === "CONFIRMED" && viewingOrder.fulfillmentStatus !== "FULFILLED" && (
                        <button disabled={actionLoading} onClick={() => setActionConfirm({ action: "CANCEL", order: viewingOrder })} className="w-full py-2.5 rounded-xl font-bold text-rose-600 hover:bg-rose-50 transition-colors mt-4">Cancel Order</button>
                     )}
                   </div>

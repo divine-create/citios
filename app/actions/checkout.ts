@@ -214,8 +214,7 @@ export async function processMerchantCheckout(
     const residentProfile = await db.orm.public.ResidentProfile.where({ personId }).all().first();
     const customerName = session.user.name || 'Resident';
     const customerPhone = options?.customerPhone || residentProfile?.phone || '';
-    const deliveryAddress = options?.deliveryAddress || residentProfile?.defaultDeliveryAddress || 'Calabar Urban / Direct Handover';
-    const deliveryNotes = options?.deliveryNotes || '';
+    const orderNotes = options?.deliveryNotes || '';
     
     const substPref = options?.substitutionPreference || 'call';
     const substText = substPref === 'call'
@@ -235,17 +234,16 @@ export async function processMerchantCheckout(
       `--------------------------------`,
       `🏬 *Merchant:* ${org?.name || 'Local Merchant'}`,
       `👤 *Customer:* ${customerName}${customerPhone ? ` (${customerPhone})` : ''}`,
-      `📍 *Delivery Address:* ${deliveryAddress}`,
-      deliveryNotes ? `📝 *Delivery Notes:* ${deliveryNotes}` : null,
+      orderNotes ? `📝 *Order Notes:* ${orderNotes}` : null,
       `🔄 *If item unavailable:* ${substText}`,
       `--------------------------------`,
       `📦 *ITEMS ORDERED:*`,
       itemsSummary,
       `--------------------------------`,
       `*Total Amount:* ₦${calculatedTotal.toLocaleString()}`,
-      `💳 *Payment Method:* WhatsApp Order / Transfer / Pay on Delivery`,
+      `💳 *Payment Method:* WhatsApp Direct Order`,
       ``,
-      `🔐 *Track & Confirm Order on CityOS:*`,
+      `🔐 *View Order on CityOS:*`,
       trackingUrl,
       `--------------------------------`,
       `_Sent via CityOS Hyperlocal Commerce_`

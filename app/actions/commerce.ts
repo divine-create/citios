@@ -392,9 +392,6 @@ export async function getCityMartStores(citySlug?: string) {
     }
     const isVerified = Boolean(meta?.isVerified);
     const isFeatured = Boolean(meta?.isFeatured);
-    const isFastCourier = Boolean(meta?.isFastCourier);
-    const deliveryFee = typeof meta?.deliveryFee === 'number' ? meta.deliveryFee : null;
-    const deliveryEta = meta?.deliveryEta || null;
     const reviewCount = typeof meta?.reviewCount === 'number' ? meta.reviewCount : 0;
     const aisles = Array.isArray(meta?.aisles) && meta.aisles.length > 0 
       ? meta.aisles 
@@ -406,12 +403,12 @@ export async function getCityMartStores(citySlug?: string) {
       storeCoverImage: cover,
       rating,
       reviewCount,
-      deliveryEta,
-      deliveryFee,
-      freeDeliveryOver: typeof meta?.freeDeliveryOver === 'number' ? meta.freeDeliveryOver : null,
+      deliveryEta: null,
+      deliveryFee: null,
+      freeDeliveryOver: null,
       isVerified,
       isFeatured,
-      isFastCourier,
+      isFastCourier: false,
       aisles,
       badge: meta?.badge || (isFeatured ? 'Featured Partner' : undefined),
       neighborhood: o.address ? o.address.split(',')[0].trim() : city.name,

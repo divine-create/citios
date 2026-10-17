@@ -80,11 +80,6 @@ export default async function OrgProfile({ id }: { id: string }) {
       label: org.metadata.landmark,
       sub: 'Landmark / Directions',
     });
-  } else if (org.metadata?.deliveryEta) {
-    factCells.push({
-      label: org.metadata.deliveryEta,
-      sub: 'Estimated Delivery',
-    });
   } else if (shop && shop.products.length > 0) {
     factCells.push({
       label: `${shop.products.length} ${shop.products.length === 1 ? 'Product' : 'Products'}`,

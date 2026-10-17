@@ -73,26 +73,26 @@ export default function LiveOrderTracker({ order }: OrderTrackingProps) {
     {
       stage: 1,
       title: 'Order Placed',
-      description: 'Kitchen received your order',
+      description: 'Store received your order',
       icon: Receipt,
     },
     {
       stage: 2,
-      title: 'In the Kitchen',
-      description: 'Chef is preparing your meal',
+      title: 'Confirmed',
+      description: 'Order is being prepared',
       icon: ChefHat,
     },
     {
       stage: 3,
-      title: 'Out for Delivery',
-      description: 'Courier is heading your way',
-      icon: Bike,
+      title: 'Ready for Pickup',
+      description: 'Ready at merchant store',
+      icon: Store,
     },
     {
       stage: 4,
-      title: 'Delivered',
-      description: 'Enjoy your food!',
-      icon: MapPin,
+      title: 'Completed',
+      description: 'Order fulfilled',
+      icon: CheckCircle2,
     },
   ];
 
@@ -134,14 +134,6 @@ export default function LiveOrderTracker({ order }: OrderTrackingProps) {
     return `https://wa.me/${clean}?text=${text}`;
   })();
 
-  // Courier simulated/resolved details (for standard orders)
-  const courier = {
-    name: order.delivery?.courierName || 'Sunday Bassey',
-    vehicle: order.delivery?.vehicle || 'Bajaj Boxer 150 (CAL-721-CR)',
-    phone: order.delivery?.contactPhone || '08023456789',
-    rating: 4.9,
-  };
-
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-20 animate-in fade-in duration-500">
       
@@ -178,12 +170,12 @@ export default function LiveOrderTracker({ order }: OrderTrackingProps) {
             className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-emerald-600 text-white text-xs font-black hover:bg-emerald-700 transition-all shadow-md shadow-emerald-700/20 shrink-0 disabled:opacity-50"
           >
             {isAccepting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-            Accept & Start Cooking
+            Accept Order
           </button>
         </div>
       )}
 
-      {/* Conditional: WhatsApp Direct Order Card vs Glovo Live Delivery Tracker */}
+      {/* Conditional: WhatsApp Direct Order Card vs Standard Order Status Card */}
       {isWhatsAppOrder ? (
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden p-6 md:p-8 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-slate-100 pb-6">
@@ -197,7 +189,7 @@ export default function LiveOrderTracker({ order }: OrderTrackingProps) {
                   ? 'Order Fulfilled'
                   : order.status === 'PREPARING' || order.status === 'CONFIRMED'
                   ? 'Order Accepted & In Preparation'
-                  : 'Order Forwarded to Kitchen'}
+                  : 'Order Forwarded to Store'}
               </h1>
               <p className="text-xs font-medium text-slate-500">
                 Order #{order.id.slice(0, 8).toUpperCase()} • Placed at {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -213,14 +205,14 @@ export default function LiveOrderTracker({ order }: OrderTrackingProps) {
             </div>
           </div>
 
-          {/* Explanation Callout: No simulated driver tracking */}
+          {/* Explanation Callout */}
           <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 space-y-2">
             <h4 className="text-xs font-black text-slate-800 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500" />
               Direct Merchant Coordination Active
             </h4>
             <p className="text-xs text-slate-600 leading-relaxed font-medium">
-              This order was placed directly via WhatsApp chat. Live GPS courier tracking is disabled for direct WhatsApp orders. Payment (cash on delivery or bank transfer), meal preparation, and delivery handover are arranged directly in your WhatsApp conversation with <strong>{order.org?.name || 'the kitchen'}</strong>.
+              This order was placed directly via WhatsApp chat. Payment and in-store pickup are arranged directly in your WhatsApp conversation with <strong>{order.org?.name || 'the store'}</strong>.
             </p>
           </div>
 
@@ -232,7 +224,7 @@ export default function LiveOrderTracker({ order }: OrderTrackingProps) {
                   Direct Merchant Communication
                 </span>
                 <h4 className="text-sm font-black text-slate-900">
-                  {order.org?.name || 'Kitchen'} on WhatsApp
+                  {order.org?.name || 'Store'} on WhatsApp
                 </h4>
                 <p className="text-xs text-slate-500 font-medium">
                   Click to open or resume your chat with the store operator.
@@ -263,42 +255,35 @@ export default function LiveOrderTracker({ order }: OrderTrackingProps) {
             </div>
           ) : (
             <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs font-medium text-slate-600">
-              The merchant will contact you directly on your provided phone number to confirm preparation.
+              The merchant will contact you directly on your provided phone number to confirm your order.
             </div>
           )}
         </div>
       ) : (
-        /* Main Delivery Status Card (The Glovo Tracker - Only for online card/wallet orders) */
+        /* Main Order Status Card */
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden p-6 md:p-8 space-y-6">
           
-          {/* Estimated Time & Current Status Banner */}
+          {/* Current Status Banner */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-6">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                 <span className="text-xs font-black text-emerald-700 uppercase tracking-wider">
-                  {currentStage === 4 ? 'Order Completed' : 'Live Order Tracking'}
+                  {currentStage === 4 ? 'Order Completed' : 'Order Status'}
                 </span>
               </div>
               <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
                 {currentStage === 4
-                  ? 'Your order has arrived!'
+                  ? 'Order fulfilled!'
                   : currentStage === 3
-                  ? 'Courier is on the way!'
+                  ? 'Ready for pickup at store'
                   : currentStage === 2
-                  ? 'Preparing your food fresh'
-                  : 'Confirming with restaurant'}
+                  ? 'Preparing your order'
+                  : 'Confirming with store'}
               </h1>
               <p className="text-xs font-medium text-slate-500">
                 Order #{order.id.slice(0, 8).toUpperCase()} • Placed at {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </p>
-            </div>
-
-            <div className="bg-orange-50 border border-orange-100 rounded-2xl p-4 text-right shrink-0">
-              <span className="text-[10px] font-black uppercase tracking-wider text-orange-600">Estimated Arrival</span>
-              <div className="text-xl md:text-2xl font-black text-orange-700">
-                {currentStage === 4 ? 'Arrived' : '20 - 30 min'}
-              </div>
             </div>
           </div>
 
@@ -345,83 +330,20 @@ export default function LiveOrderTracker({ order }: OrderTrackingProps) {
               })}
             </div>
           </div>
-
-          {/* Assigned Courier Card (Glovo Badge) */}
-          {currentStage >= 2 && currentStage < 4 && (
-            <div className="bg-slate-50/80 rounded-2xl border border-slate-100 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-6">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-orange-100 text-orange-700 flex items-center justify-center font-black text-base shrink-0 shadow-sm">
-                  <Bike className="w-6 h-6" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h4 className="text-sm font-black text-slate-900">{courier.name}</h4>
-                    <span className="text-[10px] font-black bg-teal-100 text-teal-800 px-1.5 py-0.5 rounded">
-                      Verified Courier
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500 font-medium mt-0.5">
-                    Calabar City Rider • {courier.vehicle}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <a
-                  href={`tel:${courier.phone}`}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-black hover:bg-slate-100 transition-colors shadow-sm"
-                >
-                  <Phone className="w-3.5 h-3.5 text-slate-500" />
-                  Call Rider
-                </a>
-                <a
-                  href={`https://wa.me/234${courier.phone.replace(/^0/, '')}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 text-white text-xs font-black hover:bg-emerald-700 transition-colors shadow-sm"
-                >
-                  <MessageCircle className="w-3.5 h-3.5" />
-                  WhatsApp
-                </a>
-              </div>
-            </div>
-          )}
-
         </div>
       )}
 
-      {/* Restaurant & Delivery Addresses */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Merchant Card */}
-        <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm space-y-3">
-          <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-400">
-            <Store className="w-4 h-4 text-orange-600" />
-            <span>Store / Kitchen</span>
-          </div>
-          <div className="space-y-1">
-            <h3 className="text-base font-black text-slate-900">{order.org?.name || 'Local Kitchen'}</h3>
-            <p className="text-xs text-slate-500 font-medium">
-              {order.location?.address || order.org?.address || 'Calabar, Cross River'}
-            </p>
-          </div>
+      {/* Store Location Card */}
+      <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm space-y-3">
+        <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-400">
+          <Store className="w-4 h-4 text-orange-600" />
+          <span>Store / Merchant Location</span>
         </div>
-
-        {/* Delivery Destination */}
-        <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm space-y-3">
-          <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-400">
-            <MapPin className="w-4 h-4 text-emerald-600" />
-            <span>Delivery Destination</span>
-          </div>
-          <div className="space-y-1">
-            <h3 className="text-base font-black text-slate-900">
-              {order.deliveryAddress || (isWhatsAppOrder ? 'Direct Handover / In-Chat Address' : 'Your Address')}
-            </h3>
-            <p className="text-xs text-slate-500 font-medium">
-              {isWhatsAppOrder
-                ? 'Delivery or pickup location coordinated directly via WhatsApp'
-                : 'Calabar Urban Resident • Handover to Customer'}
-            </p>
-          </div>
+        <div className="space-y-1">
+          <h3 className="text-base font-black text-slate-900">{order.org?.name || 'Store'}</h3>
+          <p className="text-xs text-slate-500 font-medium">
+            {order.location?.address || order.org?.address || 'Calabar, Cross River'}
+          </p>
         </div>
       </div>
 
@@ -448,12 +370,6 @@ export default function LiveOrderTracker({ order }: OrderTrackingProps) {
             <span>Subtotal</span>
             <span className="text-slate-900 font-bold">{fmt(order.totalAmount)}</span>
           </div>
-          <div className="flex justify-between">
-            <span>{isWhatsAppOrder ? 'Delivery & Handover' : 'Express Courier'}</span>
-            <span className={cn("font-bold", isWhatsAppOrder ? "text-slate-600" : "text-emerald-600")}>
-              {isWhatsAppOrder ? 'Arranged on WhatsApp' : 'Included'}
-            </span>
-          </div>
           <div className="flex justify-between items-center pt-2 border-t border-slate-100 text-sm font-black text-slate-900">
             <span>{isWhatsAppOrder ? 'Total Order Amount' : 'Total Paid'}</span>
             <span className="text-lg text-orange-700">{fmt(order.totalAmount)}</span>
@@ -469,7 +385,7 @@ export default function LiveOrderTracker({ order }: OrderTrackingProps) {
           {isWhatsAppOrder ? (
             <>
               <MessageCircle className="w-4 h-4 shrink-0 text-[#25D366]" />
-              <span>Payment & fulfillment settled directly with merchant via WhatsApp (Bank transfer, cash on delivery, or store pickup).</span>
+              <span>Payment & in-store pickup coordinated directly with merchant via WhatsApp.</span>
             </>
           ) : (
             <>

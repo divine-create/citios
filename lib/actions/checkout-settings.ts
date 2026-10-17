@@ -26,8 +26,8 @@ const DEFAULT_CHECKOUT_CONFIG: PlatformCheckoutConfig = {
   enableTransfer: true,
   defaultMethod: 'whatsapp',
   conciergeWhatsAppNumber: '2348000000000',
-  allowPayOnDelivery: true,
-  requireDeliveryAddress: true,
+  allowPayOnDelivery: false,
+  requireDeliveryAddress: false,
   minOrderAmount: 0,
 };
 
@@ -45,6 +45,8 @@ export async function getCheckoutConfig(): Promise<PlatformCheckoutConfig> {
       return {
         ...DEFAULT_CHECKOUT_CONFIG,
         ...parsed,
+        allowPayOnDelivery: false,
+        requireDeliveryAddress: false,
       };
     }
   } catch (err) {

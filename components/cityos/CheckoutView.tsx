@@ -176,68 +176,54 @@ export default function CheckoutView() {
         </div>
       )}
 
-      {/* Delivery Destination & Contact Info */}
+      {/* Customer Contact & Order Notes */}
       <div className="bg-white rounded-[24px] border border-slate-100 overflow-hidden p-6 space-y-4 shadow-xs">
         <div className="flex items-center gap-2">
-          <MapPin className="w-4 h-4 text-emerald-600" />
-          <h2 className="text-sm font-black text-ink">Delivery Destination & Phone</h2>
+          <PhoneCall className="w-4 h-4 text-emerald-600" />
+          <h2 className="text-sm font-black text-ink">Customer Contact & Order Notes</h2>
         </div>
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="text-[11px] font-black uppercase text-slate-400 block mb-1">
-              Delivery Address / Landmark (Calabar)
+              Contact Phone (WhatsApp)
             </label>
             <input
-              type="text"
-              value={deliveryAddress}
-              onChange={(e) => setDeliveryAddress(e.target.value)}
-              placeholder="e.g. 14 Marian Road, Near Total Fuel Station, Calabar"
+              type="tel"
+              value={customerPhone}
+              onChange={(e) => setCustomerPhone(e.target.value)}
+              placeholder="e.g. 0803 123 4567"
               className="w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-teal-700 transition-colors"
             />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="text-[11px] font-black uppercase text-slate-400 block mb-1">
-                Contact Phone (WhatsApp)
-              </label>
-              <input
-                type="tel"
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
-                placeholder="e.g. 0803 123 4567"
-                className="w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-teal-700 transition-colors"
-              />
-            </div>
-            <div>
-              <label className="text-[11px] font-black uppercase text-slate-400 block mb-1">
-                Delivery Instructions (Optional)
-              </label>
-              <input
-                type="text"
-                value={deliveryNotes}
-                onChange={(e) => setDeliveryNotes(e.target.value)}
-                placeholder="e.g. Yellow gate, call on arrival"
-                className="w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-teal-700 transition-colors"
-              />
-            </div>
+          <div>
+            <label className="text-[11px] font-black uppercase text-slate-400 block mb-1">
+              Order Notes (Optional)
+            </label>
+            <input
+              type="text"
+              value={deliveryNotes}
+              onChange={(e) => setDeliveryNotes(e.target.value)}
+              placeholder="e.g. Preferred pickup time or special request"
+              className="w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-teal-700 transition-colors"
+            />
           </div>
         </div>
       </div>
 
-      {/* Glovo Out-of-stock Substitution Preferences */}
+      {/* Out-of-stock Substitution Preferences */}
       <div className="bg-white rounded-[24px] border border-slate-100 overflow-hidden p-6 space-y-4">
         <div className="flex items-center gap-2">
           <PhoneCall className="w-4 h-4 text-[#FF385C]" />
           <h2 className="text-sm font-black text-ink">If an item is out of stock</h2>
         </div>
         <p className="text-xs text-slate-500 leading-relaxed">
-          How should the merchant or courier handle items that are out of stock?
+          How should the merchant handle items that are out of stock?
         </p>
 
         <div className="space-y-2.5">
           {[
-            { id: 'call', label: '📞 Call me to choose a replacement', desc: 'The rider or merchant will call your phone' },
-            { id: 'replace', label: '🔄 Pick the closest replacement', desc: 'Merchant will choose the most similar brand or weight' },
+            { id: 'call', label: '📞 Call me to choose a replacement', desc: 'The merchant will call your phone' },
+            { id: 'replace', label: '🔄 Pick the closest replacement', desc: 'Merchant will choose the most similar brand or option' },
             { id: 'refund', label: '❌ Do not replace (refund item)', desc: 'Automatically credit your CityOS wallet balance' },
           ].map((opt) => (
             <button
@@ -271,11 +257,6 @@ export default function CheckoutView() {
       <div className="bg-white rounded-[24px] border border-slate-100 overflow-hidden p-6 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-black text-ink">Payment Method</h2>
-          {checkoutConfig?.allowPayOnDelivery && (
-            <span className="text-[10px] font-bold text-teal-800 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-100">
-              Pay on Delivery Available
-            </span>
-          )}
         </div>
 
         {(checkoutConfig === null || checkoutConfig.enableWhatsApp) && (
