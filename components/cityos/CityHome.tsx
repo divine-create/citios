@@ -113,9 +113,9 @@ export default function CityHome({
   return (
     <div className="space-y-8 md:space-y-10 animate-in fade-in duration-500 pb-16">
       
-      {/* Floating Airbnb Search Capsule */}
+      {/* Clean Direct City Search Bar */}
       <section className="pt-2">
-        <AirbnbSearchCapsule />
+        <AirbnbSearchCapsule placeholder={`Search food, stays, markets in ${cityName}...`} />
       </section>
 
       {/* Top Menu Grid with Beautiful Icons (Food, Stay, Shop, Events, Services, Jobs, Explore) */}
