@@ -5,10 +5,13 @@ import Link from 'next/link';
 import {
   Store,
   ArrowRight,
+  ArrowLeft,
   ShoppingBag,
   MapPin,
   SlidersHorizontal,
   Building2,
+  LayoutGrid,
+  Layers,
 } from 'lucide-react';
 import { useCity } from '@/components/cityos/CityProvider';
 import { getCityMarketFeed } from '@/app/actions/commerce';
@@ -19,6 +22,63 @@ import GlovoProductCard, { GlovoProductItem } from '@/components/cityos/delivery
 import ChowdeckBasketDock from '@/components/cityos/delivery/ChowdeckBasketDock';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { cn } from '@/lib/utils';
+
+const SECTION_PREVIEW_LIMIT = 10;
+
+// Priority order for frontpage category shelves so flagship departments lead
+const CATEGORY_PRIORITY_ORDER: string[] = [
+  'iphone-16-17-air-series',
+  'iphone-14-15-series',
+  'iphone-12-13-series',
+  'apple-ipads',
+  'phones-communication',
+  'apple-macbooks',
+  'laptops-computers',
+  'power-banks-fast-portable-power',
+  'power-backup-stations',
+  'earbuds-headsets-earphones',
+  'airpods-wireless-audio',
+  'bluetooth-speakers-audio',
+  'smartwatches-fitness-bands',
+  'apple-watch',
+  'chargers-cables-extensions',
+  'starlink-networking',
+  '4g-mifi-wifi-routers',
+  'microphones-creator-audio',
+  'gaming-consoles',
+  'monitors-displays',
+  'flash-drives-memory-cards',
+  'batteries-screen-guards-parts',
+  'clippers-smart-appliances',
+  'apple-keyboards-mice-pencil',
+  'webcams-stands-smart-gadgets',
+];
+
+function interleaveByStore(items: GlovoProductItem[]): GlovoProductItem[] {
+  const byStore = new Map<string, GlovoProductItem[]>();
+  for (const item of items) {
+    const key = item.organizationId || item.storeName || 'default';
+    if (!byStore.has(key)) byStore.set(key, []);
+    byStore.get(key)!.push(item);
+  }
+  if (byStore.size <= 1) return items;
+
+  const queues = Array.from(byStore.values());
+  const result: GlovoProductItem[] = [];
+  let added = true;
+  let idx = 0;
+  while (added) {
+    added = false;
+    for (const q of queues) {
+      if (idx < q.length) {
+        result.push(q[idx]);
+        added = true;
+      }
+    }
+    idx++;
+  }
+  return result;
+}
 
 export default function CityMarket() {
   const { city } = useCity();
@@ -40,6 +100,17 @@ export default function CityMarket() {
   const [activeArea, setActiveArea] = useState('all');
   const [inStockOnly, setInStockOnly] = useState(false);
   const [sortBy, setSortBy] = useState<'popular' | 'price-asc' | 'price-desc'>('popular');
+  const [viewMode, setViewMode] = useState<'sections' | 'grid'>('sections');
+
+  const handleSelectAisle = (aisleId: string) => {
+    setActiveAisle(aisleId);
+    if (typeof window !== 'undefined') {
+      const el = document.getElementById('market-catalog-section');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -161,6 +232,60 @@ export default function CityMarket() {
 
     return list;
   }, [products, activeSector, activeAisle, activeArea, inStockOnly, searchQuery, sortBy]);
+
+  // Group filteredProducts into Categorized Sections when browsing "All Goods"
+  const categorizedSections = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        id: string;
+        label: string;
+        items: GlovoProductItem[];
+        storeNames: Set<string>;
+      }
+    >();
+
+    for (const p of filteredProducts) {
+      const rawLabel = (
+        (p as any).categoryName ||
+        p.globalCategory ||
+        p.category ||
+        'General Goods'
+      ).trim();
+      const id = rawLabel.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      if (!map.has(id)) {
+        map.set(id, { id, label: rawLabel, items: [], storeNames: new Set() });
+      }
+      const group = map.get(id)!;
+      group.items.push(p);
+      if (p.storeName) group.storeNames.add(p.storeName);
+    }
+
+    const sections = Array.from(map.values()).map((sec) => {
+      const orderedItems = sortBy === 'popular' ? interleaveByStore(sec.items) : sec.items;
+      return {
+        id: sec.id,
+        label: sec.label,
+        totalCount: orderedItems.length,
+        previewItems: orderedItems.slice(0, SECTION_PREVIEW_LIMIT),
+        storeNames: Array.from(sec.storeNames),
+      };
+    });
+
+    sections.sort((a, b) => {
+      const idxA = CATEGORY_PRIORITY_ORDER.indexOf(a.id);
+      const idxB = CATEGORY_PRIORITY_ORDER.indexOf(b.id);
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      if (idxA !== -1) return -1;
+      if (idxB !== -1) return 1;
+      return b.totalCount - a.totalCount;
+    });
+
+    return sections;
+  }, [filteredProducts, sortBy]);
+
+  const showSectionedView =
+    activeAisle === 'all' && !searchQuery.trim() && viewMode === 'sections' && categorizedSections.length > 1;
 
   const hasActiveFilters =
     activeSector !== 'all' ||
@@ -324,23 +449,66 @@ export default function CityMarket() {
       )}
 
       {/* 4. MAIN PRODUCTS CATALOG */}
-      <section className="space-y-4 pt-1">
+      <section id="market-catalog-section" className="space-y-6 pt-1 scroll-mt-20">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 pb-3">
-          <div>
+          <div className="flex flex-col gap-1">
+            {activeAisle !== 'all' && (
+              <button
+                type="button"
+                onClick={() => setActiveAisle('all')}
+                className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 hover:text-emerald-800 w-fit"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                Back to All Categories
+              </button>
+            )}
             <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
               {searchQuery
                 ? `Results for "${searchQuery}"`
                 : activeAisle === 'all'
                 ? `All Products in ${activeArea === 'all' ? cityName : activeArea}`
-                : `${categories.find((c) => c.id === activeAisle)?.label || 'Selected Category'} Products`}
+                : `${categories.find((c) => c.id === activeAisle)?.label || 'Selected Category'}`}
             </h2>
             <p className="text-xs text-slate-500 font-medium">
-              {filteredProducts.length} item{filteredProducts.length === 1 ? '' : 's'} available
+              {showSectionedView
+                ? `${filteredProducts.length} items across ${categorizedSections.length} categories · Showing up to ${SECTION_PREVIEW_LIMIT} per section`
+                : `${filteredProducts.length} item${filteredProducts.length === 1 ? '' : 's'} available`}
             </p>
           </div>
 
-          {/* Stock & Sort Controls */}
-          <div className="flex items-center gap-2 self-start sm:self-auto">
+          {/* View Mode, Stock & Sort Controls */}
+          <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+            {activeAisle === 'all' && !searchQuery.trim() && (
+              <div className="inline-flex items-center rounded-full bg-slate-100 p-0.5 border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('sections')}
+                  className={cn(
+                    'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all',
+                    viewMode === 'sections'
+                      ? 'bg-white text-slate-900 shadow-2xs'
+                      : 'text-slate-500 hover:text-slate-800'
+                  )}
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  Sections
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('grid')}
+                  className={cn(
+                    'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all',
+                    viewMode === 'grid'
+                      ? 'bg-white text-slate-900 shadow-2xs'
+                      : 'text-slate-500 hover:text-slate-800'
+                  )}
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  All Grid
+                </button>
+              </div>
+            )}
+
             <button
               type="button"
               onClick={() => setInStockOnly((v) => !v)}
@@ -392,6 +560,66 @@ export default function CityMarket() {
                   : 'Reset your category or area filters to view all available products.'
               }
             />
+          </div>
+        ) : showSectionedView ? (
+          <div className="space-y-10">
+            {categorizedSections.map((section) => (
+              <div
+                key={section.id}
+                className="space-y-4 rounded-3xl bg-white/70 border border-slate-200/80 p-4 sm:p-5 shadow-2xs"
+              >
+                {/* Section Header */}
+                <div className="flex items-start sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">
+                        {section.label}
+                      </h3>
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                        {section.totalCount} {section.totalCount === 1 ? 'item' : 'items'}
+                      </span>
+                    </div>
+                    {section.storeNames.length > 0 && (
+                      <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                        Available at {section.storeNames.join(' · ')}
+                      </p>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleSelectAisle(section.id)}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-slate-900 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shrink-0"
+                  >
+                    <span>View all ({section.totalCount})</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {/* Top 10 Products in this Section */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5 sm:gap-4">
+                  {section.previewItems.map((product) => (
+                    <GlovoProductCard key={product.id} product={product} />
+                  ))}
+                </div>
+
+                {/* Section Footer CTA to View All */}
+                {section.totalCount > SECTION_PREVIEW_LIMIT && (
+                  <div className="pt-1 flex justify-center">
+                    <button
+                      type="button"
+                      onClick={() => handleSelectAisle(section.id)}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-2xl bg-slate-100 hover:bg-emerald-50 text-slate-800 hover:text-emerald-800 border border-slate-200/80 hover:border-emerald-300 text-xs font-extrabold transition-all"
+                    >
+                      <span>
+                        View all {section.totalCount} products in {section.label}
+                      </span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5 sm:gap-4">
