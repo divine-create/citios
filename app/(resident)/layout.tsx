@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { getCurrentCity, getActiveCities } from '@/lib/city';
 import { getVerticalsConfig } from '@/lib/actions/verticals-config';
 import ResidentShell from '@/components/shell/ResidentShell';

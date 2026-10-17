@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createSupportCase, requestRefund } from '@/lib/actions/resident-support';
 import Link from 'next/link';
 
-export default function ResidentSupportHub() {
+function ResidentSupportContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -142,5 +142,13 @@ export default function ResidentSupportHub() {
         </form>
       )}
     </div>
+  );
+}
+
+export default function ResidentSupportHub() {
+  return (
+    <Suspense fallback={<div className="max-w-xl mx-auto p-6 text-center text-slate-400">Loading support hub...</div>}>
+      <ResidentSupportContent />
+    </Suspense>
   );
 }
