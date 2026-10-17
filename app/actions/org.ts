@@ -257,9 +257,14 @@ export async function getResidentOrganization(identifier: string) {
   let orgId = listing?.organizationId;
 
   if (!orgId) {
-    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(identifier)) {
-      orgId = identifier;
-      listing = await db.orm.public.DiscoveryListing.where({ organizationId: orgId }).first();
+    listing = await db.orm.public.DiscoveryListing.where({ organizationId: identifier }).first();
+    if (listing) {
+      orgId = listing.organizationId;
+    } else {
+      const org = await db.orm.public.Organization.where({ id: identifier }).first();
+      if (org) {
+        orgId = org.id;
+      }
     }
   }
 
