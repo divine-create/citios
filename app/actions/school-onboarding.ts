@@ -3,7 +3,10 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/src/prisma/db';
-import { OrgType } from '@/types/next-auth'; // Or string if not exported
+
+function toTemporal(date: Date) {
+  return (globalThis as any).Temporal.Instant.fromEpochMilliseconds(date.getTime());
+}
 
 export async function createSchool(data: {
   name: string;
@@ -24,47 +27,83 @@ export async function createSchool(data: {
     throw new Error('Unauthorized');
   }
 
+  const trimmedName = (data.name || '').trim();
+  const cleanSlug = (data.slug || '').trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+  if (!trimmedName || !cleanSlug) {
+    throw new Error('School name and web address are required.');
+  }
+
   // 1. Check if slug is taken
-  // @ts-ignore
-  const existingMicrosite = await db.orm.public.Microsite.where({ slug: data.slug }).all().first();
+  const existingMicrosite = await db.orm.public.Microsite.where({ slug: cleanSlug }).all().first();
   if (existingMicrosite) {
     throw new Error('This web address is already taken. Please choose another.');
   }
 
+  const city = await db.orm.public.City.where({ isActive: true }).all().first();
+  if (!city) {
+    throw new Error('No active city found in the registry.');
+  }
+
   // 2. Perform everything in a transaction
-  await db.transaction(async (tx) => {
+  const organizationId = await db.transaction(async (tx: any) => {
     // A. Create Organization
     const org = await tx.orm.public.Organization.create({
-      name: data.name,
-      // @ts-ignore
-      type: 'SCHOOL',
+      name: trimmedName,
+      type: 'SCHOOL' as any,
       description: data.tagline || 'A new school on CityConnect.',
+      address: data.address || city.name,
     });
 
-    // B. Create Microsite
+    // B. Create Location, Wallet, and DiscoveryListing
+    const location = await tx.orm.public.Location.create({
+      organizationId: org.id,
+      name: data.shortName || 'Main Campus',
+      address: data.address || city.name,
+      cityId: city.id,
+    });
+
+    await tx.orm.public.Wallet.create({
+      organizationId: org.id,
+      balance: 0.0,
+      currency: city.currency || 'NGN',
+    });
+
+    const listingSlug = `${cleanSlug}-${org.id.slice(0, 8)}`;
+    await tx.orm.public.DiscoveryListing.create({
+      organizationId: org.id,
+      locationId: location.id,
+      cityId: city.id,
+      vertical: 'SCHOOL',
+      slug: listingSlug,
+      title: trimmedName,
+      description: data.tagline || data.address || null,
+      isActive: true,
+    });
+
+    // C. Create Microsite
     await tx.orm.public.Microsite.create({
       organizationId: org.id,
-      slug: data.slug,
-      title: data.name,
-      tagline: data.tagline,
+      slug: cleanSlug,
+      title: trimmedName,
+      tagline: data.tagline || null,
       theme: 'minimal',
       status: 'published',
     });
 
-    // C. Create SchoolSettings
+    // D. Create SchoolSettings
     await tx.orm.public.SchoolSettings.create({
       organizationId: org.id,
-      name: data.name,
-      shortName: data.shortName,
-      address: data.address,
-      state: data.state,
-      lga: data.lga,
-      phone: data.phone,
-      email: data.email,
+      name: trimmedName,
+      shortName: data.shortName || trimmedName.slice(0, 8).toUpperCase(),
+      address: data.address || null,
+      state: data.state || null,
+      lga: data.lga || null,
+      phone: data.phone || null,
+      email: data.email || null,
       currentYear: data.academicYear,
     });
 
-    // D. Membership & Role
+    // E. Membership & Role
     const membership = await tx.orm.public.Membership.create({
       organizationId: org.id,
       personId: session.user.personId as string,
@@ -75,13 +114,18 @@ export async function createSchool(data: {
       role: 'OWNER',
     });
 
-    // E. Academic Year & Terms
+    await tx.orm.public.MembershipLocation.create({
+      membershipId: membership.id,
+      locationId: location.id,
+    });
+
+    // F. Academic Year & Terms (using Temporal.Instant for Prisma 8 DateTime)
     const startYear = data.academicYear;
     const academicYear = await tx.orm.public.AcademicYear.create({
       organizationId: org.id,
       year: startYear,
-      startDate: new Date(`${startYear}-09-01`),
-      endDate: new Date(`${startYear + 1}-07-31`),
+      startDate: toTemporal(new Date(`${startYear}-09-01T00:00:00Z`)),
+      endDate: toTemporal(new Date(`${startYear + 1}-07-31T00:00:00Z`)),
       active: true,
     });
 
@@ -93,13 +137,13 @@ export async function createSchool(data: {
 
       if (numTerms === 3) {
         tName = i === 1 ? 'First Term' : i === 2 ? 'Second Term' : 'Third Term';
-        if (i === 1) { tStart = new Date(`${startYear}-09-01`); tEnd = new Date(`${startYear}-12-15`); }
-        if (i === 2) { tStart = new Date(`${startYear + 1}-01-05`); tEnd = new Date(`${startYear + 1}-03-30`); }
-        if (i === 3) { tStart = new Date(`${startYear + 1}-04-15`); tEnd = new Date(`${startYear + 1}-07-20`); }
+        if (i === 1) { tStart = new Date(`${startYear}-09-01T00:00:00Z`); tEnd = new Date(`${startYear}-12-15T00:00:00Z`); }
+        if (i === 2) { tStart = new Date(`${startYear + 1}-01-05T00:00:00Z`); tEnd = new Date(`${startYear + 1}-03-30T00:00:00Z`); }
+        if (i === 3) { tStart = new Date(`${startYear + 1}-04-15T00:00:00Z`); tEnd = new Date(`${startYear + 1}-07-20T00:00:00Z`); }
       } else {
         tName = i === 1 ? 'Fall Semester' : 'Spring Semester';
-        if (i === 1) { tStart = new Date(`${startYear}-09-01`); tEnd = new Date(`${startYear + 1}-01-15`); }
-        if (i === 2) { tStart = new Date(`${startYear + 1}-01-20`); tEnd = new Date(`${startYear + 1}-06-15`); }
+        if (i === 1) { tStart = new Date(`${startYear}-09-01T00:00:00Z`); tEnd = new Date(`${startYear + 1}-01-15T00:00:00Z`); }
+        if (i === 2) { tStart = new Date(`${startYear + 1}-01-20T00:00:00Z`); tEnd = new Date(`${startYear + 1}-06-15T00:00:00Z`); }
       }
 
       await tx.orm.public.Term.create({
@@ -107,12 +151,12 @@ export async function createSchool(data: {
         academicYearId: academicYear.id,
         termNumber: i,
         name: tName,
-        startDate: tStart,
-        endDate: tEnd,
+        startDate: toTemporal(tStart),
+        endDate: toTemporal(tEnd),
       });
     }
 
-    // F. Grading Scale
+    // G. Grading Scale
     const scale = await tx.orm.public.GradingScale.create({
       organizationId: org.id,
       name: data.gradingScale === 'LETTER' ? 'Standard A-F' : 'Percentage',
@@ -149,7 +193,9 @@ export async function createSchool(data: {
         maxPercent: 49,
       });
     }
+
+    return org.id;
   });
 
-  return { success: true };
+  return { success: true, organizationId };
 }

@@ -37,11 +37,19 @@ export default function SchoolOnboarding() {
     setError('');
 
     try {
-      await createSchool(data);
+      const res = await createSchool(data);
+      const targetUrl = res?.organizationId
+        ? `/school/admin?org=${res.organizationId}`
+        : '/school/admin';
+      try {
+        if (res?.organizationId) {
+          localStorage.setItem('cityconnect_active_business_id', res.organizationId);
+        }
+      } catch {}
       // Wait a moment so the success state feels deliberate
       setTimeout(() => {
-        router.push('/school/admin');
-      }, 1000);
+        router.push(targetUrl);
+      }, 800);
     } catch (err: any) {
       setError(err.message || 'Failed to create school');
       setLoading(false);

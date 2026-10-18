@@ -69,16 +69,25 @@ function mapPost(post: any, myLikedPostIds: Set<string>, myReactions: Map<string
       }
     : undefined;
 
-  const href = parsedRawMeta?.href || (
-    post.linkedEntityType === 'MENU_ITEM' && post.organizationId ? { url: `/org/${post.organizationId}`, label: 'Order Dish' } :
-    post.linkedEntityType === 'RETAIL_PRODUCT' && post.organizationId ? { url: `/org/${post.organizationId}`, label: 'View in Shop' } :
-    post.linkedEntityType === 'SERVICE' && post.organizationId ? { url: `/org/${post.organizationId}`, label: 'Book Service' } :
-    post.linkedEntityType === 'EVENT' ? { url: '/events', label: 'View Event' } :
-    post.linkedEntityType === 'HOTEL' && post.organizationId ? { url: `/org/${post.organizationId}`, label: 'Book Stay' } :
-    post.linkedEntityType === 'JOB' ? { url: '/jobs', label: 'View Job' } :
-    post.organizationId ? { url: `/org/${post.organizationId}`, label: 'Visit Storefront' } :
-    undefined
-  );
+  let href: { url: string; label: string } | undefined = undefined;
+
+  if (post.linkedEntityType === 'MENU_ITEM' && post.linkedEntityId) {
+    href = { url: `/food/item/${post.linkedEntityId}`, label: 'Order Dish →' };
+  } else if (post.linkedEntityType === 'RETAIL_PRODUCT' && post.linkedEntityId) {
+    href = { url: `/product/${post.linkedEntityId}`, label: 'View Product →' };
+  } else if (post.linkedEntityType === 'SERVICE' && post.linkedEntityId) {
+    href = { url: `/service/${post.linkedEntityId}`, label: 'Book Service →' };
+  } else if (post.linkedEntityType === 'EVENT') {
+    href = { url: post.linkedEntityId ? `/events/${post.linkedEntityId}` : '/events', label: 'View Event & RSVP →' };
+  } else if (post.linkedEntityType === 'JOB') {
+    href = { url: post.linkedEntityId ? `/jobs/${post.linkedEntityId}` : '/jobs', label: 'View Job Opening →' };
+  } else if (post.linkedEntityType === 'HOTEL' && (post.linkedEntityId || post.organizationId)) {
+    href = { url: `/org/${post.linkedEntityId || post.organizationId}`, label: 'Book Stay →' };
+  } else if (parsedRawMeta?.href) {
+    href = parsedRawMeta.href;
+  } else if (isOrg && post.organizationId) {
+    href = { url: `/org/${post.organizationId}`, label: 'Visit Storefront →' };
+  }
 
   return {
     id: post.id,
@@ -162,7 +171,7 @@ export async function fetchFeed(
     .orderBy((p: any) => p.createdAt.desc())
     .limit(limit)
     .include('person', (p: any) => p.select('firstName', 'lastName', 'id').include('profile', (prof: any) => prof.select('avatarUrl')))
-    .include('organization', (o: any) => o.select('name', 'id'))
+    .include('organization', (o: any) => o.select('name', 'id', 'type'))
     .include('likes', (likes: any) => likes.count())
     .include('comments', (comments: any) => comments.count())
     .all();
@@ -281,7 +290,7 @@ export async function createPost(data: {
     title: data.title,
     content: data.body,
     category: data.category,
-    personId: verifiedOrgId ? undefined : personId,
+    personId,
     organizationId: verifiedOrgId ?? undefined,
     status: 'PUBLISHED',
     isEmergency: false,
@@ -294,6 +303,12 @@ export async function createPost(data: {
       ? serializePostMetadata(getPostBackground(data.postBackground).id)
       : data.postMetadata,
   });
+
+  try {
+    const { revalidatePath } = await import('next/cache');
+    revalidatePath('/feed');
+    revalidatePath('/create');
+  } catch { /* non-fatal in test runners */ }
 }
 
 export async function reactToPost(postId: string, reaction: ReactionType | null) {

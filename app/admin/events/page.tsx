@@ -4,8 +4,9 @@ import { getEventsAdminData } from '@/lib/actions/events';
 import { redirect } from 'next/navigation';
 import { requireOrgAccess, resolveTenantOrg } from '@/lib/rbac';
 
-export default async function EventsAdminPage() {
-  const resolvedOrgId = await resolveTenantOrg('EVENT_ORGANIZER');
+export default async function EventsAdminPage({ searchParams }: { searchParams?: Promise<{ org?: string }> }) {
+  const params = searchParams ? await searchParams : {};
+  const resolvedOrgId = await resolveTenantOrg('EVENT_ORGANIZER', params.org);
   await requireOrgAccess(resolvedOrgId);
   const initialData = await getEventsAdminData(resolvedOrgId);
   

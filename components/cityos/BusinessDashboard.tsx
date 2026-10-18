@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { 
   Banknote, 
@@ -17,13 +18,19 @@ import {
   MapPin,
   ExternalLink,
   Layers,
-  ArrowRight
+  ArrowRight,
+  Briefcase,
+  CalendarPlus,
+  X,
+  Loader2
 } from 'lucide-react';
 import { fmtNaira, parseNaira } from '@/lib/format';
 import { StatTile, Pill, SectionHead } from '@/components/cityos/CityUI';
 import { useAccountSwitcher } from '@/components/cityos/AccountSwitcherContext';
 import { cn } from '@/lib/utils';
 import { getUnifiedBusinessAnalytics } from '@/app/actions/business';
+import { createOrgJob, getOrgJobs } from '@/lib/actions/business';
+import { createOrgEvent } from '@/lib/actions/events';
 import BranchManagerModal from '@/components/cityos/BranchManagerModal';
 import TeamManagerModal from '@/components/cityos/TeamManagerModal';
 
@@ -53,20 +60,119 @@ const EMPTY_DASHBOARD = {
 export default function BusinessDashboard() {
   const d = EMPTY_DASHBOARD;
   const maxWeek = Math.max(...d.week);
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [live, setLive] = useState<LiveOrder[]>([]);
   const [realData, setRealData] = useState<any>(null);
   const [showBranchModal, setShowBranchModal] = useState(false);
   const [showTeamModal, setShowTeamModal] = useState(false);
+  const [showJobModal, setShowJobModal] = useState(false);
+  const [showEventModal, setShowEventModal] = useState(false);
+
+  // Job form state
+  const [jobTitle, setJobTitle] = useState('');
+  const [jobType, setJobType] = useState('FULL_TIME');
+  const [jobPay, setJobPay] = useState('');
+  const [jobArea, setJobArea] = useState('');
+  const [jobCategory, setJobCategory] = useState('Operations');
+  const [jobDesc, setJobDesc] = useState('');
+  const [jobSubmitting, setJobSubmitting] = useState(false);
+  const [jobError, setJobError] = useState<string | null>(null);
+
+  // Event form state
+  const [evTitle, setEvTitle] = useState('');
+  const [evDate, setEvDate] = useState('');
+  const [evLocation, setEvLocation] = useState('');
+  const [evPrice, setEvPrice] = useState('0');
+  const [evCapacity, setEvCapacity] = useState('150');
+  const [evDesc, setEvDesc] = useState('');
+  const [evImageUrl, setEvImageUrl] = useState('');
+  const [evUrl, setEvUrl] = useState('');
+  const [evSubmitting, setEvSubmitting] = useState(false);
+  const [evError, setEvError] = useState<string | null>(null);
+
   const { data: session } = useSession();
-  const { myBusinesses, activeBusiness, switchToBusiness, openCreateModal } = useAccountSwitcher();
+  const { myBusinesses, activeBusiness, switchToBusiness, openCreateModal, isLoading } = useAccountSwitcher();
 
   const currentBusiness = activeBusiness || myBusinesses[0] || null;
 
   useEffect(() => {
     if (currentBusiness) {
       getUnifiedBusinessAnalytics(currentBusiness.id).then(res => setRealData(res)).catch(console.error);
+      setJobArea(currentBusiness.address || 'Calabar');
+      setEvLocation(currentBusiness.address || 'Calabar');
     }
   }, [currentBusiness]);
+
+  useEffect(() => {
+    const action = searchParams?.get('action');
+    if (!action || isLoading) return;
+    if (action === 'post-job') {
+      if (currentBusiness) setShowJobModal(true);
+      else openCreateModal();
+    } else if (action === 'create-event') {
+      if (currentBusiness) setShowEventModal(true);
+      else openCreateModal('EVENT_ORGANIZER');
+    } else if (action === 'create-page') {
+      openCreateModal();
+    }
+  }, [searchParams, currentBusiness, isLoading, openCreateModal]);
+
+  const handleCreateJob = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentBusiness) return;
+    setJobSubmitting(true);
+    setJobError(null);
+    const res = await createOrgJob({
+      organizationId: currentBusiness.id,
+      title: jobTitle,
+      type: jobType,
+      pay: jobPay,
+      area: jobArea,
+      category: jobCategory,
+      description: jobDesc,
+    });
+    setJobSubmitting(false);
+    if (res.error) {
+      setJobError(res.error);
+      return;
+    }
+    setShowJobModal(false);
+    setJobTitle('');
+    setJobPay('');
+    setJobDesc('');
+    router.push('/jobs');
+  };
+
+  const handleCreateEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentBusiness) return;
+    setEvSubmitting(true);
+    setEvError(null);
+    const res = await createOrgEvent({
+      organizationId: currentBusiness.id,
+      title: evTitle,
+      date: evDate,
+      location: evLocation,
+      price: Number(evPrice) || 0,
+      capacity: Number(evCapacity) || 150,
+      description: evDesc,
+      imageUrl: evImageUrl,
+      eventUrl: evUrl,
+    });
+    setEvSubmitting(false);
+    if (res.error) {
+      setEvError(res.error);
+      return;
+    }
+    setShowEventModal(false);
+    setEvTitle('');
+    setEvDate('');
+    setEvDesc('');
+    setEvImageUrl('');
+    setEvUrl('');
+    router.push('/events');
+  };
 
   const currentMerchant = currentBusiness?.name || d.merchant;
 
@@ -278,6 +384,40 @@ export default function BusinessDashboard() {
                   <p className="text-[10px] text-slate-400 mt-0.5">Manage branch addresses & store outlets</p>
                 </div>
               </button>
+
+              <button
+                type="button"
+                onClick={() => setShowJobModal(true)}
+                className="p-3.5 rounded-xl bg-slate-800/90 hover:bg-slate-750 border border-slate-700/70 hover:border-amber-500/50 transition-all text-left group flex flex-col justify-between gap-2 cursor-pointer"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                    <Briefcase className="w-4 h-4" />
+                  </div>
+                  <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">Hiring</span>
+                </div>
+                <div>
+                  <p className="text-xs font-black text-white group-hover:text-amber-300 transition-colors">Post a Job Opening</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">Recruit local talent for {currentBusiness.name}</p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowEventModal(true)}
+                className="p-3.5 rounded-xl bg-slate-800/90 hover:bg-slate-750 border border-slate-700/70 hover:border-pink-500/50 transition-all text-left group flex flex-col justify-between gap-2 cursor-pointer"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="w-8 h-8 rounded-lg bg-pink-500/20 text-pink-400 flex items-center justify-center">
+                    <CalendarPlus className="w-4 h-4" />
+                  </div>
+                  <span className="text-[10px] font-bold text-pink-400 bg-pink-500/10 px-1.5 py-0.5 rounded">Events</span>
+                </div>
+                <div>
+                  <p className="text-xs font-black text-white group-hover:text-pink-300 transition-colors">Host a City Event</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">Publish an official event or experience</p>
+                </div>
+              </button>
             </div>
           </div>
         </div>
@@ -468,6 +608,245 @@ export default function BusinessDashboard() {
             organizationId={currentBusiness.id}
             organizationName={currentBusiness.name}
           />
+
+          {/* Post a Job Modal */}
+          {showJobModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+              <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden">
+                <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+                  <div>
+                    <h3 className="font-black text-base">Post a Job Opening</h3>
+                    <p className="text-xs text-slate-400">Hiring for {currentBusiness.name}</p>
+                  </div>
+                  <button onClick={() => setShowJobModal(false)} className="text-white/70 hover:text-white">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <form onSubmit={handleCreateJob} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+                  {jobError && (
+                    <div className="p-3 rounded-xl bg-red-50 text-red-700 text-xs font-bold border border-red-200">
+                      {jobError}
+                    </div>
+                  )}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Role / Job Title *</label>
+                    <input
+                      type="text"
+                      required
+                      value={jobTitle}
+                      onChange={(e) => setJobTitle(e.target.value)}
+                      placeholder="e.g. Store Supervisor, Kitchen Chef, Sales Executive"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Employment Type</label>
+                      <select
+                        value={jobType}
+                        onChange={(e) => setJobType(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium"
+                      >
+                        <option value="FULL_TIME">Full-Time</option>
+                        <option value="PART_TIME">Part-Time</option>
+                        <option value="CONTRACT">Contract</option>
+                        <option value="INTERNSHIP">Internship</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Department / Category</label>
+                      <input
+                        type="text"
+                        value={jobCategory}
+                        onChange={(e) => setJobCategory(e.target.value)}
+                        placeholder="e.g. Operations, Sales, Hospitality"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Salary / Pay Range</label>
+                      <input
+                        type="text"
+                        value={jobPay}
+                        onChange={(e) => setJobPay(e.target.value)}
+                        placeholder="e.g. ₦80,000 - ₦120,000 / mo"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Location / Area</label>
+                      <input
+                        type="text"
+                        value={jobArea}
+                        onChange={(e) => setJobArea(e.target.value)}
+                        placeholder="e.g. Marian Road, Calabar"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Role Description & Requirements</label>
+                    <textarea
+                      rows={4}
+                      value={jobDesc}
+                      onChange={(e) => setJobDesc(e.target.value)}
+                      placeholder="Responsibilities, qualifications, and how candidates should prepare..."
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm font-medium resize-none"
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setShowJobModal(false)}
+                      className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={jobSubmitting}
+                      className="px-5 py-2 rounded-xl bg-teal-800 hover:bg-teal-900 text-white text-xs font-bold flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      {jobSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                      Publish Job
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Create Event Modal */}
+          {showEventModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+              <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden">
+                <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+                  <div>
+                    <h3 className="font-black text-base">Host a City Event</h3>
+                    <p className="text-xs text-slate-400">Hosted by {currentBusiness.name}</p>
+                  </div>
+                  <button onClick={() => setShowEventModal(false)} className="text-white/70 hover:text-white">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <form onSubmit={handleCreateEvent} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+                  {evError && (
+                    <div className="p-3 rounded-xl bg-red-50 text-red-700 text-xs font-bold border border-red-200">
+                      {evError}
+                    </div>
+                  )}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Event Title *</label>
+                    <input
+                      type="text"
+                      required
+                      value={evTitle}
+                      onChange={(e) => setEvTitle(e.target.value)}
+                      placeholder="e.g. Live Acoustic Night & Tasting"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Date & Time *</label>
+                      <input
+                        type="datetime-local"
+                        required
+                        value={evDate}
+                        onChange={(e) => setEvDate(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Venue / Location *</label>
+                      <input
+                        type="text"
+                        required
+                        value={evLocation}
+                        onChange={(e) => setEvLocation(e.target.value)}
+                        placeholder="e.g. Marian Road, Calabar"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Ticket Price (₦)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={evPrice}
+                        onChange={(e) => setEvPrice(e.target.value)}
+                        placeholder="0 for Free"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Capacity</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={evCapacity}
+                        onChange={(e) => setEvCapacity(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Description</label>
+                    <textarea
+                      rows={3}
+                      value={evDesc}
+                      onChange={(e) => setEvDesc(e.target.value)}
+                      placeholder="What should attendees expect?"
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm font-medium resize-none"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Banner Image URL (optional)</label>
+                      <input
+                        type="url"
+                        value={evImageUrl}
+                        onChange={(e) => setEvImageUrl(e.target.value)}
+                        placeholder="https://..."
+                        className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">External Event Link (optional)</label>
+                      <input
+                        type="url"
+                        value={evUrl}
+                        onChange={(e) => setEvUrl(e.target.value)}
+                        placeholder="https://..."
+                        className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setShowEventModal(false)}
+                      className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={evSubmitting}
+                      className="px-5 py-2 rounded-xl bg-teal-800 hover:bg-teal-900 text-white text-xs font-bold flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      {evSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                      Publish Event
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>

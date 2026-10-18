@@ -51,7 +51,7 @@ test('CityOS Newsfeed Reality Verification', async (t) => {
     assert.strictEqual(overlap.length, 0, 'Page 2 items must not overlap with Page 1');
   });
 
-  await t.test('4. Posts have valid interactive deep links (href)', async () => {
+  await t.test('4. Posts have valid interactive direct item links (href)', async () => {
     const feed = await fetchFeed('For You', 'All', undefined, 20);
     const withLinks = feed.posts.filter((p: any) => p.href != null);
     assert.ok(withLinks.length > 0, 'At least some feed posts should have interactive href links');
@@ -59,5 +59,23 @@ test('CityOS Newsfeed Reality Verification', async (t) => {
       assert.ok(post.href.url.startsWith('/'), `Href url must be a valid internal path: ${post.href.url}`);
       assert.ok(post.href.label, 'Href must have a user-facing label');
     }
+
+    // Specific direct item route tests
+    const food = await fetchFeed('For You', 'Food');
+    const dishPost = food.posts.find((p: any) => p.href != null);
+    assert.ok(dishPost, 'Food post should have direct item link');
+    assert.ok(dishPost.href.url.startsWith('/food/item/'), `Dish link must point to /food/item/: ${dishPost.href.url}`);
+
+    const market = await fetchFeed('For You', 'Marketplace');
+    const prodPost = market.posts.find((p: any) => p.href?.url.startsWith('/product/'));
+    assert.ok(prodPost, 'Marketplace post should have direct product link');
+
+    const events = await fetchFeed('For You', 'Events');
+    const eventPost = events.posts.find((p: any) => p.href?.url.startsWith('/events/'));
+    assert.ok(eventPost, 'Event post should have direct event link');
+
+    const jobs = await fetchFeed('For You', 'Jobs');
+    const jobPost = jobs.posts.find((p: any) => p.href?.url.startsWith('/jobs/'));
+    assert.ok(jobPost, 'Job post should have direct job link');
   });
 });

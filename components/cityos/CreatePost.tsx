@@ -1,12 +1,11 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { Loader2, Globe, Users, PenSquare, Check, Image as ImageIcon, Video, X, Calendar, MapPin, DollarSign, Tag, ChevronDown, Store, UtensilsCrossed, Wrench, GraduationCap, Building2, Ticket, Stethoscope, Building } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { Loader2, Globe, Users, PenSquare, Check, Image as ImageIcon, Video, X, Calendar, MapPin, DollarSign, Tag, ChevronDown, Store, UtensilsCrossed, Wrench, GraduationCap, Building2, Ticket, Stethoscope, Building, AlertCircle } from 'lucide-react';
 import { ChipButton } from '@/components/cityos/CityUI';
 import { cn } from '@/lib/utils';
 import { createPost } from '@/app/actions/newsfeed';
-import { getPresignedUploadUrl } from '@/app/actions/upload';
 import { useCity } from '@/components/cityos/CityProvider';
 import { useSession } from 'next-auth/react';
 import { POST_BACKGROUNDS, type PostBackgroundId } from '@/lib/post-background';
@@ -16,10 +15,14 @@ const POST_CATEGORIES = ['Community', 'Ask the city', 'Offer', 'Event', 'Housing
 
 export default function CreatePost() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session } = useSession();
   const cityName = useCity().city?.name ?? 'CityOS';
   
-  const [category, setCategory] = useState(POST_CATEGORIES[0]);
+  const initialCat = searchParams?.get('category');
+  const [category, setCategory] = useState(
+    initialCat && POST_CATEGORIES.includes(initialCat) ? initialCat : POST_CATEGORIES[0]
+  );
   const [audience, setAudience] = useState<'public' | 'following'>('public');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
@@ -38,10 +41,26 @@ export default function CreatePost() {
 
   const [publishing, setPublishing] = useState(false);
   const [published, setPublished] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
 
   const { myBusinesses, activeBusiness } = useAccountSwitcher();
-  const [selectedOrgId, setSelectedOrgId] = useState<string | null>(activeBusiness?.id ?? null);
+  const paramOrgId = searchParams?.get('org');
+  const [selectedOrgId, setSelectedOrgId] = useState<string | null>(paramOrgId || activeBusiness?.id || null);
   const [showAuthorMenu, setShowAuthorMenu] = useState(false);
+
+  useEffect(() => {
+    if (initialCat && POST_CATEGORIES.includes(initialCat)) {
+      setCategory(initialCat);
+    }
+  }, [initialCat]);
+
+  useEffect(() => {
+    if (paramOrgId) {
+      setSelectedOrgId(paramOrgId);
+    } else if (activeBusiness?.id && selectedOrgId === null) {
+      setSelectedOrgId(activeBusiness.id);
+    }
+  }, [paramOrgId, activeBusiness?.id]);
 
   const selectedBusiness = myBusinesses.find((b) => b.id === selectedOrgId);
   const isBusinessAuthor = Boolean(selectedBusiness);
@@ -58,11 +77,12 @@ export default function CreatePost() {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    if (file.size > 4 * 1024 * 1024) {
-      alert("Image is too large. Please select an image under 4MB.");
+    if (file.size > 10 * 1024 * 1024) {
+      setPublishError('Image is too large. Please select an image under 10MB.');
       return;
     }
 
+    setPublishError(null);
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
   };
@@ -70,26 +90,24 @@ export default function CreatePost() {
   const publish = async () => {
     if (!canPublish) return;
     setPublishing(true);
+    setPublishError(null);
     
     try {
       let finalImageUrl = imageUrl;
       
-      // Upload image to S3 if a file was selected
+      // Upload image via /api/upload (handles S3 when configured, or local/data-URI fallback)
       if (imageFile) {
-        const ext = imageFile.name.split('.').pop() || 'png';
-        const type = imageFile.type || 'image/png';
-        const { signedUrl, publicUrl } = await getPresignedUploadUrl(type, ext);
-        
-        const uploadRes = await fetch(signedUrl, {
-          method: 'PUT',
-          headers: { 'Content-Type': type },
-          body: imageFile,
+        const formData = new FormData();
+        formData.append('file', imageFile);
+        const uploadRes = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
         });
-        
-        if (!uploadRes.ok) {
-           throw new Error('Failed to upload image to S3');
+        const uploadData = await uploadRes.json();
+        if (!uploadRes.ok || !uploadData?.url) {
+          throw new Error(uploadData?.error || 'Failed to upload image');
         }
-        finalImageUrl = publicUrl;
+        finalImageUrl = uploadData.url;
       }
       
       await createPost({
@@ -109,7 +127,7 @@ export default function CreatePost() {
     } catch (e) {
       console.error(e);
       setPublishing(false);
-      alert('Failed to publish post: ' + (e instanceof Error ? e.message : JSON.stringify(e)));
+      setPublishError('Failed to publish post: ' + (e instanceof Error ? e.message : String(e)));
     }
   };
 
@@ -288,10 +306,10 @@ export default function CreatePost() {
           )}
           {/* Dynamic Fields Based on Category */}
           <div className="space-y-3 pt-2 border-t border-slate-100">
-            {category === 'Event' && (
-              <div className="flex gap-4">
-                <div className="flex-1 flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200 focus-within:border-teal-600 transition-colors">
-                  <Calendar className="w-4 h-4 text-slate-400" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {category === 'Event' && (
+                <div className="flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200 focus-within:border-teal-600 transition-colors">
+                  <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
                   <input 
                     type="datetime-local" 
                     value={eventDate}
@@ -299,36 +317,39 @@ export default function CreatePost() {
                     className="w-full bg-transparent text-[13px] outline-none text-slate-700" 
                   />
                 </div>
-                <div className="flex-1 flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200 focus-within:border-teal-600 transition-colors">
-                  <MapPin className="w-4 h-4 text-slate-400" />
+              )}
+
+              {(category === 'Event' || category === 'Offer' || category === 'Housing' || category === 'Community') && (
+                <div className="flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200 focus-within:border-teal-600 transition-colors">
+                  <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
                   <input 
                     type="text" 
-                    placeholder="Location"
+                    placeholder="Area / Location (e.g. Marian Rd, State Housing)"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
                     className="w-full bg-transparent text-[13px] outline-none text-slate-700 placeholder:text-slate-400" 
                   />
                 </div>
-              </div>
-            )}
+              )}
 
-            {category === 'Offer' && (
-              <div className="flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200 focus-within:border-teal-600 transition-colors max-w-[200px]">
-                <DollarSign className="w-4 h-4 text-slate-400" />
-                <input 
-                  type="number" 
-                  placeholder="Price"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  className="w-full bg-transparent text-[13px] outline-none text-slate-700 placeholder:text-slate-400" 
-                />
-              </div>
-            )}
+              {(category === 'Offer' || category === 'Housing' || category === 'Event') && (
+                <div className="flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200 focus-within:border-teal-600 transition-colors">
+                  <DollarSign className="w-4 h-4 text-slate-400 shrink-0" />
+                  <input 
+                    type="number" 
+                    placeholder={category === 'Event' ? 'Ticket Price in ₦ (0 for Free)' : 'Price in ₦ (optional)'}
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    className="w-full bg-transparent text-[13px] outline-none text-slate-700 placeholder:text-slate-400" 
+                  />
+                </div>
+              )}
+            </div>
             
             {/* Universal Media Links */}
-            <div className="flex gap-4">
-              <div className="flex-1 flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200 hover:border-teal-600 transition-colors relative overflow-hidden group">
-                <ImageIcon className="w-4 h-4 text-slate-400 group-hover:text-teal-600" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200 hover:border-teal-600 transition-colors relative overflow-hidden group">
+                <ImageIcon className="w-4 h-4 text-slate-400 group-hover:text-teal-600 shrink-0" />
                 <input 
                   type="file" 
                   accept="image/*"
@@ -337,7 +358,7 @@ export default function CreatePost() {
                   title="Upload an image"
                 />
                 <span className="text-[13px] text-slate-700 truncate select-none pointer-events-none">
-                  {(imagePreview || imageUrl) ? 'Image Selected (Click to change)' : 'Upload Image'}
+                  {(imagePreview || imageUrl) ? 'Image Selected (Click to change)' : 'Upload Image File'}
                 </span>
                 {(imagePreview || imageUrl) && (
                   <button 
@@ -349,11 +370,11 @@ export default function CreatePost() {
                   </button>
                 )}
               </div>
-              <div className="flex-1 flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200 focus-within:border-teal-600 transition-colors">
-                <Video className="w-4 h-4 text-slate-400" />
+              <div className="flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200 focus-within:border-teal-600 transition-colors">
+                <Video className="w-4 h-4 text-slate-400 shrink-0" />
                 <input 
                   type="url" 
-                  placeholder="Video URL"
+                  placeholder="Video URL (optional)"
                   value={videoUrl}
                   onChange={(e) => setVideoUrl(e.target.value)}
                   className="w-full bg-transparent text-[13px] outline-none text-slate-700 placeholder:text-slate-400" 
@@ -362,9 +383,17 @@ export default function CreatePost() {
             </div>
           </div>
 
+          {publishError && (
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{publishError}</span>
+            </div>
+          )}
+
           <div className="flex items-center justify-between pt-2 border-t border-slate-100">
             <div className="flex gap-2">
               <button
+                type="button"
                 onClick={() => setAudience('public')}
                 className={cn(
                   'px-3 py-1.5 rounded-lg text-[11px] font-bold inline-flex items-center gap-1.5 transition-colors',
@@ -375,6 +404,7 @@ export default function CreatePost() {
                 Public
               </button>
               <button
+                type="button"
                 onClick={() => setAudience('following')}
                 className={cn(
                   'px-3 py-1.5 rounded-lg text-[11px] font-bold inline-flex items-center gap-1.5 transition-colors',
@@ -386,6 +416,7 @@ export default function CreatePost() {
               </button>
             </div>
             <button
+              type="button"
               onClick={publish}
               disabled={!canPublish}
               className={cn(

@@ -546,7 +546,15 @@ function PostCard({ post, follows, onFollowToggle, onDelete, isGuest, onRequireA
         ) : (
           <>
             {currentTitle && currentTitle !== 'Post' && !currentBody.startsWith(currentTitle) && (
-              <h3 className="text-[15px] font-black text-ink leading-snug mb-1">{currentTitle}</h3>
+              post.href ? (
+                <Link href={post.href.url} className="block group">
+                  <h3 className="text-[15px] font-black text-ink leading-snug mb-1 group-hover:text-teal-700 transition-colors">
+                    {currentTitle}
+                  </h3>
+                </Link>
+              ) : (
+                <h3 className="text-[15px] font-black text-ink leading-snug mb-1">{currentTitle}</h3>
+              )
             )}
             <p className={cn('text-[14px] text-slate-800 leading-relaxed whitespace-pre-line', !isExpanded && currentBody.length > 250 && 'line-clamp-4')}>
               {currentBody}
@@ -842,7 +850,7 @@ export default function CityFeed({ hideHeader = false }: { hideHeader?: boolean 
   return (
     <div className="max-w-2xl mx-auto w-full animate-in fade-in duration-500">
       {!hideHeader && (
-        <div className="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-slate-100 pt-3 px-4 sm:px-0 mb-4">
+        <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-slate-100 pt-3 px-4 sm:px-0 mb-4">
           <div className="flex items-center gap-6 px-2">
             {TABS.map(tab => (
               <button key={tab} onClick={() => setActiveTab(tab)}
@@ -852,20 +860,55 @@ export default function CityFeed({ hideHeader = false }: { hideHeader?: boolean 
               </button>
             ))}
           </div>
-          <div className="py-3 flex items-center justify-between gap-3 px-2 border-t border-slate-100/50">
-            <Link href="/feed/new" className="flex-1 bg-slate-100 hover:bg-slate-200 transition-colors rounded-full px-4 py-2 flex items-center gap-2 cursor-text group">
-              <div className="w-7 h-7 rounded-full bg-slate-300 flex items-center justify-center text-white shrink-0 group-hover:bg-teal-500 transition-colors">
-                <span className="text-xs font-black">+</span>
-              </div>
-              <span className="text-[13px] text-slate-500 font-medium">What's going on in {cityName}?</span>
-            </Link>
-            <select value={activeTopic} onChange={(e) => setActiveTopic(e.target.value)}
-              className="bg-transparent text-[13px] font-bold text-slate-600 outline-none cursor-pointer py-2 pl-2">
-              {TOPICS.map(t => <option key={t} value={t}>{t === 'All' ? 'All Topics' : t}</option>)}
-            </select>
+
+          {/* Topic Pills Bar */}
+          <div className="py-2.5 px-2 border-t border-slate-100 flex items-center gap-2 overflow-x-auto no-scrollbar">
+            {TOPICS.map(t => (
+              <button
+                key={t}
+                onClick={() => setActiveTopic(t)}
+                className={cn(
+                  'px-3.5 py-1.5 rounded-full text-[12px] font-bold shrink-0 transition-all cursor-pointer',
+                  activeTopic === t
+                    ? 'bg-teal-800 text-white shadow-sm'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                )}
+              >
+                {t === 'All' ? '🌟 All' : t === 'Reviews' ? '⭐ Reviews' : t === 'Food' ? '🍔 Food' : t === 'Marketplace' ? '🛍️ Market' : t === 'Events' ? '🎉 Events' : t === 'Stays' ? '🏨 Stays' : t === 'Jobs' ? '💼 Jobs' : '💬 Community'}
+              </button>
+            ))}
           </div>
         </div>
       )}
+
+      {/* Resident Post Composer */}
+      <div className="bg-white rounded-2xl border border-slate-100 p-3.5 mb-4 shadow-sm mx-2 sm:mx-0">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-800 font-bold shrink-0 text-base">
+            ✍️
+          </div>
+          <Link
+            href="/feed/new"
+            className="flex-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-full px-4 py-2.5 text-[13px] text-slate-500 font-medium transition-colors cursor-pointer"
+          >
+            Share what&apos;s happening in {cityName}...
+          </Link>
+        </div>
+        <div className="flex items-center justify-between border-t border-slate-100 mt-3 pt-2.5 px-2 text-[12px] font-bold text-slate-600">
+          <Link href="/feed/new?category=Community" className="inline-flex items-center gap-1.5 hover:text-teal-700 transition-colors">
+            💬 <span>Discussion</span>
+          </Link>
+          <Link href="/feed/new?category=Offer" className="inline-flex items-center gap-1.5 hover:text-teal-700 transition-colors">
+            🏷️ <span>Offer / Sell</span>
+          </Link>
+          <Link href="/feed/new?category=Event" className="inline-flex items-center gap-1.5 hover:text-teal-700 transition-colors">
+            📅 <span>Event</span>
+          </Link>
+          <Link href="/feed/new?category=Ask+the+city" className="inline-flex items-center gap-1.5 hover:text-teal-700 transition-colors">
+            ❓ <span>Ask Calabar</span>
+          </Link>
+        </div>
+      </div>
 
       <div className="space-y-0 pb-8">
         {isGuest && activeTab === 'Following' ? (

@@ -39,18 +39,43 @@ export async function POST(req: NextRequest) {
       ext = file.type.split('/')[1] || 'jpg';
     }
 
-    const uniqueFileName = `${uuidv4()}.${ext}`;
-
-    // Target public/uploads folder
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
+    // 1. Try S3 if AWS credentials are configured
+    try {
+      const { getS3Config, uploadBufferToS3 } = await import('@/lib/s3');
+      if (getS3Config()) {
+        const { publicUrl } = await uploadBufferToS3({
+          buffer,
+          contentType: file.type,
+          fileName: file.name,
+          folder: 'uploads',
+        });
+        return NextResponse.json({
+          success: true,
+          url: publicUrl,
+          fileName: file.name,
+          size: file.size,
+          mimeType: file.type,
+        });
+      }
+    } catch (s3Err) {
+      console.warn('S3 upload failed, falling back to local storage:', s3Err);
     }
 
-    const filePath = path.join(uploadsDir, uniqueFileName);
-    fs.writeFileSync(filePath, buffer);
+    const uniqueFileName = `${uuidv4()}.${ext}`;
 
-    const publicUrl = `/uploads/${uniqueFileName}`;
+    // 2. Target public/uploads folder on local filesystem, with base64 fallback for read-only serverless
+    let publicUrl = `/uploads/${uniqueFileName}`;
+    try {
+      const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+      const filePath = path.join(uploadsDir, uniqueFileName);
+      fs.writeFileSync(filePath, buffer);
+    } catch (fsErr) {
+      console.warn('Filesystem write unavailable, falling back to inline data URL:', fsErr);
+      publicUrl = `data:${file.type};base64,${buffer.toString('base64')}`;
+    }
 
     return NextResponse.json({
       success: true,

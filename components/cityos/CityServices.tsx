@@ -29,7 +29,7 @@ import {
   submitOrganizationReview,
   toggleOrganizationLike,
 } from '@/lib/actions/service';
-import { buildWhatsAppServiceUrl, buildWhatsAppInquiryUrl } from '@/lib/whatsapp';
+import { buildWhatsAppServiceUrl } from '@/lib/whatsapp';
 import {
   ServicesVerticalConfig,
   DEFAULT_SERVICES_CONFIG,
@@ -471,8 +471,8 @@ export default function CityServices({
           </div>
 
           {/* Action Buttons */}
-          <div className={`grid gap-2 pt-1 ${config.enableBooking || (config.enableDirectChat && (s.whatsapp || s.phone)) ? 'grid-cols-2' : 'grid-cols-1'}`}>
-            {config.enableBooking ? (
+          <div className={`grid gap-2 pt-1 ${config.enableBooking ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            {config.enableBooking && (
               <button
                 type="button"
                 onClick={() => handleOpenBooking(s)}
@@ -481,27 +481,18 @@ export default function CityServices({
                 <Calendar size={13} />
                 Book Pro
               </button>
-            ) : config.enableDirectChat && (s.whatsapp || s.phone) ? (
-              <a
-                href={buildWhatsAppInquiryUrl({
-                  phone: s.whatsapp || s.phone!,
-                  orgName: s.orgName,
-                  cityName,
-                })}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-2 px-3 rounded-xl bg-teal-800 hover:bg-teal-900 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-xs text-center"
-              >
-                <MessageSquare size={13} />
-                Chat Pro
-              </a>
-            ) : null}
+            )}
 
             <Link
               href={`/service/${s.id}`}
-              className="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors flex items-center justify-center gap-1 text-center"
+              className={`w-full py-2.5 px-3 rounded-xl ${
+                config.enableBooking
+                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  : 'bg-teal-800 hover:bg-teal-900 text-white shadow-xs'
+              } text-xs font-bold transition-colors flex items-center justify-center gap-1.5 text-center`}
             >
-              Details <ArrowRight size={12} />
+              <span>View Service Details</span>
+              <ArrowRight size={13} />
             </Link>
           </div>
         </div>

@@ -160,10 +160,11 @@ export async function registerSchool(data: {
     }
 
     const orgId = await db.transaction(async (tx: any) => {
+      const fullAddress = `${data.address}, ${data.lga}, ${data.state}`;
       const org = await tx.orm.public.Organization.create({
         name: data.name,
         type: 'SCHOOL' as any,
-        address: `${data.address}, ${data.lga}, ${data.state}`,
+        address: fullAddress,
       });
 
       const membership = await tx.orm.public.Membership.create({
@@ -176,10 +177,34 @@ export async function registerSchool(data: {
         role: 'OWNER',
       });
 
+      const location = await tx.orm.public.Location.create({
+        organizationId: org.id,
+        name: data.shortName || 'Main Campus',
+        address: fullAddress,
+        cityId: city.id,
+      });
+
+      await tx.orm.public.MembershipLocation.create({
+        membershipId: membership.id,
+        locationId: location.id,
+      });
+
       await tx.orm.public.Wallet.create({
         organizationId: org.id,
         balance: 0.0,
-        currency: city.currency || "USD",
+        currency: city.currency || "NGN",
+      });
+
+      const listingSlug = `${data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}-${org.id.slice(0, 8)}`;
+      await tx.orm.public.DiscoveryListing.create({
+        organizationId: org.id,
+        locationId: location.id,
+        cityId: city.id,
+        vertical: 'SCHOOL',
+        slug: listingSlug,
+        title: data.name,
+        description: fullAddress,
+        isActive: true,
       });
 
       await tx.orm.public.SchoolSettings.create({
@@ -248,16 +273,21 @@ export async function getMyBusinesses() {
       const org = await db.orm.public.Organization.where({ id: m.organizationId }).all().first();
       if (!org) continue;
 
-      const roles = await db.orm.public.MembershipRole.where({ membershipId: m.id }).all();
-      const city: any = null;
+      const [roles, loc] = await Promise.all([
+        db.orm.public.MembershipRole.where({ membershipId: m.id }).all(),
+        db.orm.public.Location.where({ organizationId: org.id }).all().first(),
+      ]);
+      const city = loc?.cityId
+        ? await db.orm.public.City.where({ id: loc.cityId }).all().first()
+        : null;
 
       businesses.push({
         id: org.id,
         name: org.name,
         type: org.type,
         description: org.description,
-        address: org.address,
-        
+        address: org.address || loc?.address || null,
+        cityId: city?.id ?? null,
         citySlug: city?.slug ?? null,
         cityName: city?.name ?? null,
         role: roles[0]?.role || 'MEMBER',
@@ -295,47 +325,77 @@ export async function quickCreateBusiness(data: {
     return { error: "Invalid business category." };
   }
 
+  // Prevent duplicate organization registration by the same owner
+  const existingOrgs = await db.orm.public.Organization.where({ name }).all();
+  if (existingOrgs.length > 0) {
+    for (const existingOrg of existingOrgs) {
+      const mem = await db.orm.public.Membership.where({
+        organizationId: existingOrg.id,
+        personId: session.user.personId,
+      }).all().first();
+      if (mem) {
+        return { error: `You already own or belong to a business page named "${name}".` };
+      }
+    }
+  }
+
   try {
     const city = await resolveRegistrationCity(data.citySlug);
     if (!city) {
       return { error: "Unable to resolve active city. Please ensure at least one city is configured." };
     }
 
-    const org = await db.orm.public.Organization.create({
-      name,
-      type: data.type as any,
-      description: (data.description || '').trim(),
-      address: (data.address || '').trim() || city.name,
-      
-    });
+    const org = await db.transaction(async (tx: any) => {
+      const createdOrg = await tx.orm.public.Organization.create({
+        name,
+        type: data.type as any,
+        description: (data.description || '').trim(),
+        address: (data.address || '').trim() || city.name,
+      });
 
-    const membership = await db.orm.public.Membership.create({
-      personId: session.user.personId,
-      organizationId: org.id,
-    });
+      const membership = await tx.orm.public.Membership.create({
+        personId: session.user.personId,
+        organizationId: createdOrg.id,
+      });
 
-    await db.orm.public.MembershipRole.create({
-      membershipId: membership.id,
-      role: 'OWNER',
-    });
+      await tx.orm.public.MembershipRole.create({
+        membershipId: membership.id,
+        role: 'OWNER',
+      });
 
-    // Provision primary location & wallet
-    const location = await db.orm.public.Location.create({
-      organizationId: org.id,
-      name: 'Main Location',
-      address: org.address || null,
-      cityId: city.id,
-    });
+      // Provision primary location & wallet
+      const location = await tx.orm.public.Location.create({
+        organizationId: createdOrg.id,
+        name: 'Main Location',
+        address: createdOrg.address || null,
+        cityId: city.id,
+      });
 
-    await db.orm.public.MembershipLocation.create({
-      membershipId: membership.id,
-      locationId: location.id,
-    });
+      await tx.orm.public.MembershipLocation.create({
+        membershipId: membership.id,
+        locationId: location.id,
+      });
 
-    await db.orm.public.Wallet.create({
-      organizationId: org.id,
-      balance: 0.0,
-      currency: city.currency || 'NGN',
+      await tx.orm.public.Wallet.create({
+        organizationId: createdOrg.id,
+        balance: 0.0,
+        currency: city.currency || 'NGN',
+      });
+
+      // Provision canonical DiscoveryListing for marketplace & public /org/[id] visibility
+      const listingSlug = `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}-${createdOrg.id.slice(0, 8)}`;
+      await tx.orm.public.DiscoveryListing.create({
+        organizationId: createdOrg.id,
+        locationId: location.id,
+        cityId: city.id,
+        vertical: data.type,
+        slug: listingSlug,
+        title: name,
+        description: (data.description || '').trim() || null,
+        isActive: true,
+      });
+
+      return createdOrg;
     });
 
     // Auto-provision vertical configurations
@@ -375,7 +435,7 @@ export async function quickCreateBusiness(data: {
         type: org.type,
         description: org.description,
         address: org.address,
-        
+        cityId: city.id,
         citySlug: city.slug,
         cityName: city.name,
         role: 'OWNER',
@@ -487,10 +547,17 @@ export async function createOrgLocation(input: { organizationId: string; name: s
   try {
     await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
     if (!input.name?.trim()) return { error: 'Location name is required.' };
+    const existingLoc = await db.orm.public.Location.where({ organizationId: input.organizationId }).all().first();
+    const fallbackCity = existingLoc?.cityId
+      ? null
+      : await resolveRegistrationCity();
+    const cityId = existingLoc?.cityId || fallbackCity?.id || null;
+
     const location = await db.orm.public.Location.create({
       organizationId: input.organizationId,
       name: input.name.trim(),
       address: input.address?.trim() || null,
+      cityId,
     });
     return { success: true, location: JSON.parse(JSON.stringify(location)) };
   } catch (error: any) {
@@ -499,6 +566,68 @@ export async function createOrgLocation(input: { organizationId: string; name: s
   }
 }
 
+export async function getOrgJobs(organizationId: string) {
+  try {
+    await requireMembership(organizationId);
+    const jobs = await db.orm.public.Job.where({ organizationId })
+      .include('applications', (a: any) => a.count())
+      .all();
+    return JSON.parse(JSON.stringify(jobs));
+  } catch (error) {
+    console.error('Error fetching org jobs:', error);
+    return [];
+  }
+}
 
+export async function createOrgJob(input: {
+  organizationId: string;
+  title: string;
+  description?: string;
+  type?: string;
+  pay?: string;
+  area?: string;
+  category?: string;
+}) {
+  try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
+    const title = (input.title || '').trim();
+    if (!title) return { error: 'Job title is required.' };
 
+    const job = await db.orm.public.Job.create({
+      organizationId: input.organizationId,
+      title,
+      description: (input.description || '').trim() || null,
+      type: input.type || 'FULL_TIME',
+      pay: (input.pay || '').trim() || null,
+      area: (input.area || '').trim() || null,
+      category: (input.category || '').trim() || 'Operations',
+    });
 
+    try {
+      const { revalidatePath } = await import('next/cache');
+      revalidatePath('/jobs');
+      revalidatePath('/business');
+    } catch {}
+
+    return { success: true, job: JSON.parse(JSON.stringify(job)) };
+  } catch (error: any) {
+    console.error('Error creating org job:', error);
+    return { error: error?.message || 'Failed to post job.' };
+  }
+}
+
+export async function deleteOrgJob(input: { organizationId: string; jobId: string }) {
+  try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
+    const existing = await db.orm.public.Job.where({
+      id: input.jobId,
+      organizationId: input.organizationId,
+    }).all().first();
+    if (!existing) return { error: 'Job not found.' };
+    await db.orm.public.Job.where({ id: input.jobId }).delete();
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error deleting org job:', error);
+    return { error: error?.message || 'Failed to delete job.' };
+  }
+}

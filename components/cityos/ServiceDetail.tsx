@@ -28,7 +28,7 @@ import {
   submitOrganizationReview,
   toggleOrganizationLike,
 } from '@/app/actions/service';
-import { buildWhatsAppServiceUrl, buildWhatsAppInquiryUrl } from '@/lib/whatsapp';
+import { buildWhatsAppServiceUrl } from '@/lib/whatsapp';
 
 const TIME_SLOTS = [
   '08:00', '09:00', '10:00', '11:00',
@@ -41,6 +41,15 @@ interface ReviewItem {
   rating: number;
   body: string | null;
   authorName: string;
+  authorInitials?: string;
+  isVerifiedCustomer?: boolean;
+  tags?: string[];
+  photos?: string[];
+  ownerReply?: {
+    text: string;
+    repliedAt: string;
+    authorName: string;
+  } | null;
   createdAt: string;
 }
 
@@ -67,14 +76,14 @@ export default function ServiceDetail({ id }: { id: string }) {
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [bookingSuccessWaUrl, setBookingSuccessWaUrl] = useState<string | null>(null);
 
-  // Reviews Modal State
-  const [showReviewsModal, setShowReviewsModal] = useState(false);
+  // Reviews State (Loaded directly inline)
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [reviewsList, setReviewsList] = useState<ReviewItem[]>([]);
   const [reviewsAvgRating, setReviewsAvgRating] = useState<number | null>(null);
   const [reviewsTotal, setReviewsTotal] = useState(0);
 
-  // Review Form inside modal
+  // Write Review State
+  const [showWriteReview, setShowWriteReview] = useState(false);
   const [myRating, setMyRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
   const [myComment, setMyComment] = useState('');
@@ -90,6 +99,21 @@ export default function ServiceDetail({ id }: { id: string }) {
         setLiked(Boolean(prod.userHasLiked));
         setLikesCount(prod.likesCount || 0);
         if (prod.address) setBookingAddress(prod.address);
+
+        // Fetch reviews immediately on page load
+        setReviewsLoading(true);
+        try {
+          const res = await getOrganizationReviews(prod.organizationId);
+          if (res.success) {
+            setReviewsList(res.reviews || []);
+            setReviewsAvgRating(res.averageRating);
+            setReviewsTotal(res.totalReviews);
+          }
+        } catch (err) {
+          console.error('Error fetching reviews:', err);
+        } finally {
+          setReviewsLoading(false);
+        }
       }
       setLoading(false);
     }
@@ -143,26 +167,16 @@ export default function ServiceDetail({ id }: { id: string }) {
     }
   };
 
-  const handleOpenReviews = async () => {
-    setShowReviewsModal(true);
-    setReviewsLoading(true);
-    setReviewFormError(null);
-    setReviewSuccessMsg(null);
-    setMyComment('');
-    setMyRating(5);
-
-    try {
-      const res = await getOrganizationReviews(s.organizationId);
-      if (res.success) {
-        setReviewsList(res.reviews || []);
-        setReviewsAvgRating(res.averageRating);
-        setReviewsTotal(res.totalReviews);
-      }
-    } catch (err) {
-      console.error('Error fetching reviews:', err);
-    } finally {
-      setReviewsLoading(false);
+  const handleScrollToReviews = () => {
+    const el = document.getElementById('reviews-section');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
     }
+  };
+
+  const handleOpenWriteReview = () => {
+    setShowWriteReview(true);
+    handleScrollToReviews();
   };
 
   const handleSubmitReview = async (e: React.FormEvent) => {
@@ -270,7 +284,7 @@ export default function ServiceDetail({ id }: { id: string }) {
         {s.imageAssetId ? (
           <div className="aspect-video bg-slate-50 relative">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`/api/assets/${s.imageAssetId}`} alt={s.name} className="w-full h-full object-cover" />
+            <img src={s.imageAssetId.startsWith('http') || s.imageAssetId.startsWith('/') ? s.imageAssetId : `/api/assets/${s.imageAssetId}`} alt={s.name} className="w-full h-full object-cover" />
           </div>
         ) : (
           <div className="aspect-video bg-slate-50 flex flex-col items-center justify-center text-slate-300">
@@ -292,13 +306,13 @@ export default function ServiceDetail({ id }: { id: string }) {
               {/* Rating Trigger */}
               <button
                 type="button"
-                onClick={handleOpenReviews}
-                className="inline-flex items-center gap-1 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded-lg transition-colors border border-amber-200/60"
+                onClick={handleScrollToReviews}
+                className="inline-flex items-center gap-1 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded-lg transition-colors border border-amber-200/60 cursor-pointer"
               >
                 <Star size={12} className="fill-amber-400 text-amber-500" />
-                <span>{displayRating.toFixed(1)}</span>
+                <span>{reviewsAvgRating !== null ? reviewsAvgRating.toFixed(1) : displayRating.toFixed(1)}</span>
                 <span className="text-amber-600/70">
-                  ({(s.reviewCount || 0) > 0 ? `${s.reviewCount}` : 'Reviews'})
+                  ({reviewsTotal > 0 ? `${reviewsTotal}` : (s.reviewCount || 0) > 0 ? `${s.reviewCount}` : 'Reviews'})
                 </span>
               </button>
 
@@ -391,14 +405,302 @@ export default function ServiceDetail({ id }: { id: string }) {
           </button>
 
           <button
-            onClick={handleOpenReviews}
+            type="button"
+            onClick={handleScrollToReviews}
             className="px-4 py-3.5 rounded-xl bg-white border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50 transition-colors flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
           >
-            <MessageSquare className="w-4 h-4 text-slate-500" />
-            Reviews
+            <Star className="w-4 h-4 text-amber-500 fill-amber-400" />
+            Reviews ({reviewsTotal > 0 ? reviewsTotal : (s.reviewCount || 0)})
           </button>
         </div>
       </div>
+
+      {/* Customer Reviews & Ratings Section */}
+      <section id="reviews-section" className="mt-8 bg-white rounded-[24px] border border-slate-100 p-6 sm:p-8 shadow-xs space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-black text-ink tracking-tight">Customer Reviews</h2>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-teal-800 bg-teal-50 border border-teal-200/60 px-2.5 py-0.5 rounded-md">
+                Verified Resident Feedback
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              Real reviews and ratings from other residents in {s.organization?.name ? s.organization.name : 'Calabar'}.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setShowWriteReview(!showWriteReview);
+              setReviewSuccessMsg(null);
+              setReviewFormError(null);
+            }}
+            className="px-4 py-2.5 rounded-xl bg-teal-800 hover:bg-teal-900 text-white text-xs font-bold transition-colors inline-flex items-center gap-1.5 self-start sm:self-auto shadow-xs cursor-pointer"
+          >
+            <Star size={13} className="fill-amber-300 text-amber-300" />
+            <span>{showWriteReview ? 'Hide Review Form' : 'Write a Review'}</span>
+          </button>
+        </div>
+
+        {/* Rating Breakdown & Overview */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 p-5 rounded-2xl bg-slate-50/70 border border-slate-100 items-center">
+          <div className="text-center sm:text-left sm:border-r sm:border-slate-200/80 sm:pr-6">
+            <div className="text-4xl font-black text-ink tracking-tight">
+              {reviewsAvgRating !== null ? reviewsAvgRating.toFixed(1) : (s.rating ? Number(s.rating).toFixed(1) : '5.0')}
+            </div>
+            <div className="flex items-center justify-center sm:justify-start gap-1 mt-1.5 text-amber-500">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
+                  size={16}
+                  className={
+                    (reviewsAvgRating ?? s.rating ?? 5) >= star
+                      ? 'fill-amber-400 text-amber-500'
+                      : (reviewsAvgRating ?? s.rating ?? 5) >= star - 0.5
+                      ? 'fill-amber-300 text-amber-400'
+                      : 'text-slate-200'
+                  }
+                />
+              ))}
+            </div>
+            <p className="text-xs font-semibold text-slate-500 mt-1.5">
+              Based on {reviewsTotal > 0 ? reviewsTotal : (s.reviewCount || 0)} {reviewsTotal === 1 ? 'review' : 'reviews'}
+            </p>
+          </div>
+
+          <div className="sm:col-span-2 space-y-1.5">
+            {[5, 4, 3, 2, 1].map((star) => {
+              const count = reviewsList.filter((r) => Math.round(r.rating) === star).length;
+              const pct = reviewsList.length > 0 ? Math.round((count / reviewsList.length) * 100) : star === 5 ? 100 : 0;
+              return (
+                <div key={star} className="flex items-center gap-2 text-xs">
+                  <span className="font-bold text-slate-600 w-3">{star}</span>
+                  <Star size={11} className="fill-amber-400 text-amber-400 shrink-0" />
+                  <div className="flex-1 h-2 bg-slate-200/80 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-amber-400 rounded-full transition-all duration-500"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  <span className="text-[11px] text-slate-400 font-semibold w-8 text-right">
+                    {reviewsList.length > 0 ? `${pct}%` : '-'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Write a Review Section */}
+        {showWriteReview && (
+          <div className="p-5 bg-teal-50/40 border border-teal-100 rounded-2xl space-y-4 animate-in fade-in duration-200">
+            <div>
+              <h3 className="text-sm font-black text-slate-800">Leave Your Review</h3>
+              <p className="text-xs text-slate-500">
+                Share your feedback to help fellow residents make confident decisions.
+              </p>
+            </div>
+
+            {reviewFormError && (
+              <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs flex items-center gap-2">
+                <AlertCircle size={14} className="shrink-0" />
+                <span>{reviewFormError}</span>
+              </div>
+            )}
+
+            {reviewSuccessMsg && (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center gap-2">
+                <CheckCircle2 size={14} className="shrink-0" />
+                <span>{reviewSuccessMsg}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmitReview} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Rating (1 to 5 Stars)
+                </label>
+                <div className="flex items-center gap-1.5">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onMouseEnter={() => setHoverRating(star)}
+                      onMouseLeave={() => setHoverRating(0)}
+                      onClick={() => setMyRating(star)}
+                      className="p-1 transition-transform hover:scale-110 cursor-pointer"
+                    >
+                      <Star
+                        size={22}
+                        className={
+                          (hoverRating || myRating) >= star
+                            ? 'fill-amber-400 text-amber-500'
+                            : 'text-slate-300'
+                        }
+                      />
+                    </button>
+                  ))}
+                  <span className="ml-2 text-xs font-bold text-slate-700 bg-white px-2 py-0.5 rounded border border-slate-200">
+                    {hoverRating || myRating} of 5 Stars
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Your Feedback
+                </label>
+                <textarea
+                  rows={3}
+                  value={myComment}
+                  onChange={(e) => setMyComment(e.target.value)}
+                  placeholder="Share details about the service (speed, quality, pricing, communication)..."
+                  className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:outline-hidden focus:ring-2 focus:ring-teal-700/20 focus:border-teal-700"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowWriteReview(false)}
+                  className="px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 text-xs font-bold hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={reviewSubmitting}
+                  className="px-5 py-2 rounded-xl bg-teal-800 hover:bg-teal-900 disabled:opacity-50 text-white text-xs font-bold transition-colors inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
+                >
+                  {reviewSubmitting ? (
+                    <>
+                      <Loader2 size={13} className="animate-spin" /> Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <Send size={13} /> Submit Review
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Reviews Feed */}
+        <div className="space-y-4">
+          <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">
+            Reviews from Other Users ({reviewsList.length})
+          </h3>
+
+          {reviewsLoading ? (
+            <div className="py-12 text-center text-slate-400 flex items-center justify-center gap-2 text-xs">
+              <Loader2 size={16} className="animate-spin" /> Loading reviews...
+            </div>
+          ) : reviewsList.length === 0 ? (
+            <div className="p-8 text-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 space-y-2">
+              <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
+                <MessageSquare size={18} />
+              </div>
+              <p className="text-xs font-bold text-slate-700">No reviews yet for this provider.</p>
+              <p className="text-[11px] text-slate-400 max-w-sm mx-auto">
+                Be the first resident to leave feedback and help fellow residents discover trusted services!
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowWriteReview(true)}
+                className="mt-2 px-3.5 py-1.5 rounded-lg bg-teal-800 hover:bg-teal-900 text-white text-xs font-bold transition-colors inline-flex items-center gap-1 shadow-xs cursor-pointer"
+              >
+                <Star size={11} className="fill-amber-300 text-amber-300" />
+                Write First Review
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3.5">
+              {reviewsList.map((rev) => {
+                const initials = rev.authorInitials || rev.authorName.charAt(0) || 'R';
+                return (
+                  <div
+                    key={rev.id}
+                    className="p-4 sm:p-5 bg-white rounded-2xl border border-slate-100 shadow-2xs space-y-2.5 transition-all hover:border-slate-200"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-teal-800 text-white font-bold text-xs flex items-center justify-center shadow-2xs shrink-0">
+                          {initials}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-slate-900">{rev.authorName}</span>
+                            {rev.isVerifiedCustomer && (
+                              <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-1.5 py-0.2 rounded">
+                                <ShieldCheck size={10} className="text-emerald-600" />
+                                Verified Customer
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[10px] text-slate-400">
+                            {new Date(rev.createdAt).toLocaleDateString(undefined, {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                            })}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-0.5 text-amber-500">
+                        {[1, 2, 3, 4, 5].map((st) => (
+                          <Star
+                            key={st}
+                            size={13}
+                            className={st <= rev.rating ? 'fill-amber-400 text-amber-500' : 'text-slate-200'}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    {rev.tags && rev.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 pt-0.5">
+                        {rev.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {rev.body && (
+                      <p className="text-xs text-slate-700 leading-relaxed font-normal pt-1">
+                        {rev.body}
+                      </p>
+                    )}
+
+                    {rev.ownerReply && (
+                      <div className="mt-3 p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-1">
+                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700">
+                          <span className="text-teal-800 font-extrabold">{rev.ownerReply.authorName}</span>
+                          <span className="text-[10px] text-slate-400 font-normal">
+                            • {new Date(rev.ownerReply.repliedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-600 italic">
+                          "{rev.ownerReply.text}"
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* Direct WhatsApp Booking Modal */}
       {showBookingModal && (
@@ -593,190 +895,6 @@ export default function ServiceDetail({ id }: { id: string }) {
                 </div>
               </form>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* Reviews Modal */}
-      {showReviewsModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] flex flex-col p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95">
-            <div className="flex justify-between items-start pb-4 border-b border-slate-100">
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-teal-800 bg-teal-50 px-2 py-0.5 rounded">
-                  Verified Reviews & Ratings
-                </span>
-                <h3 className="text-lg font-black text-slate-900 mt-1">
-                  {s.organization?.name}
-                </h3>
-                <div className="flex items-center gap-2 mt-1">
-                  <div className="flex items-center gap-1 text-amber-500">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star
-                        key={star}
-                        size={14}
-                        className={
-                          reviewsAvgRating && star <= Math.round(reviewsAvgRating)
-                            ? 'fill-amber-400 text-amber-500'
-                            : 'text-slate-200'
-                        }
-                      />
-                    ))}
-                  </div>
-                  <span className="text-xs font-bold text-slate-700">
-                    {reviewsAvgRating !== null ? reviewsAvgRating.toFixed(1) : '5.0'}
-                  </span>
-                  <span className="text-xs text-slate-400">
-                    ({reviewsTotal} {reviewsTotal === 1 ? 'review' : 'reviews'})
-                  </span>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowReviewsModal(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="overflow-y-auto flex-1 py-4 space-y-5 pr-1">
-              <div className="p-4 bg-slate-50/70 border border-slate-200/70 rounded-xl space-y-3">
-                <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">
-                  Rate & Review this Provider
-                </h4>
-
-                {reviewFormError && (
-                  <div className="p-2.5 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs flex items-center gap-1.5">
-                    <AlertCircle size={13} />
-                    {reviewFormError}
-                  </div>
-                )}
-
-                {reviewSuccessMsg && (
-                  <div className="p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg text-xs flex items-center gap-1.5">
-                    <CheckCircle2 size={13} />
-                    {reviewSuccessMsg}
-                  </div>
-                )}
-
-                <form onSubmit={handleSubmitReview} className="space-y-3">
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-500 mb-1">
-                      Your Rating (1 to 5 Stars)
-                    </label>
-                    <div className="flex items-center gap-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          type="button"
-                          onMouseEnter={() => setHoverRating(star)}
-                          onMouseLeave={() => setHoverRating(0)}
-                          onClick={() => setMyRating(star)}
-                          className="p-1 transition-transform hover:scale-110"
-                        >
-                          <Star
-                            size={20}
-                            className={
-                              (hoverRating || myRating) >= star
-                                ? 'fill-amber-400 text-amber-500'
-                                : 'text-slate-300'
-                            }
-                          />
-                        </button>
-                      ))}
-                      <span className="ml-2 text-xs font-bold text-slate-600">
-                        {hoverRating || myRating} / 5
-                      </span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <textarea
-                      rows={2}
-                      value={myComment}
-                      onChange={(e) => setMyComment(e.target.value)}
-                      placeholder="Share your experience (punctuality, skill quality, pricing, communication)..."
-                      className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-teal-700/20 focus:border-teal-700"
-                    />
-                  </div>
-
-                  <div className="flex justify-end">
-                    <button
-                      type="submit"
-                      disabled={reviewSubmitting}
-                      className="px-4 py-2 bg-teal-800 hover:bg-teal-900 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shadow-xs"
-                    >
-                      {reviewSubmitting ? (
-                        <>
-                          <Loader2 size={12} className="animate-spin" /> Submitting...
-                        </>
-                      ) : (
-                        <>
-                          <Send size={12} /> Post Review
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </form>
-              </div>
-
-              <div className="space-y-3">
-                <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">
-                  Customer Reviews ({reviewsList.length})
-                </h4>
-
-                {reviewsLoading ? (
-                  <div className="py-8 text-center text-slate-400 flex items-center justify-center gap-2 text-xs">
-                    <Loader2 size={16} className="animate-spin" /> Loading reviews...
-                  </div>
-                ) : reviewsList.length === 0 ? (
-                  <div className="p-6 text-center rounded-xl border border-dashed border-slate-200 text-slate-400">
-                    <p className="text-xs font-semibold">No reviews yet for this provider.</p>
-                    <p className="text-[11px] mt-0.5">Be the first verified resident in Calabar to leave feedback!</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {reviewsList.map((rev) => (
-                      <div key={rev.id} className="p-3.5 bg-white rounded-xl border border-slate-100 shadow-2xs space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-slate-800">{rev.authorName}</span>
-                          <div className="flex items-center gap-0.5 text-amber-500">
-                            {[1, 2, 3, 4, 5].map((st) => (
-                              <Star
-                                key={st}
-                                size={11}
-                                className={st <= rev.rating ? 'fill-amber-400 text-amber-500' : 'text-slate-200'}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                        {rev.body && (
-                          <p className="text-xs text-slate-600 leading-relaxed">{rev.body}</p>
-                        )}
-                        <div className="text-[10px] text-slate-400">
-                          {new Date(rev.createdAt).toLocaleDateString(undefined, {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="pt-3 border-t border-slate-100 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setShowReviewsModal(false)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors"
-              >
-                Close
-              </button>
-            </div>
           </div>
         </div>
       )}

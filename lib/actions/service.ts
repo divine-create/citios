@@ -15,6 +15,7 @@ import { authOptions } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { formatWhatsAppNumber } from '@/lib/whatsapp'
 import { getServicesConfig } from '@/lib/actions/services-config'
+import { parseReviewBody } from '@/lib/reviews'
 
 function toInstant(date: Date) {
   return (globalThis as any).Temporal.Instant.fromEpochMilliseconds(date.getTime());
@@ -839,15 +840,23 @@ export async function getOrganizationReviews(organizationId: string) {
       totalReviews,
       reviews: sorted.map((r) => {
         const p = personMap.get(r.personId);
-        const authorName = p ? `${p.firstName} ${p.lastName ? p.lastName[0] + '.' : ''}`.trim() : 'Verified Resident';
-        const cleanBody = r.body ? r.body.split('\n---CITYOS_REVIEW_META---\n')[0] : r.body;
+        const firstName = p?.firstName || 'Resident';
+        const lastName = p?.lastName || '';
+        const authorName = p ? `${firstName} ${lastName ? lastName[0] + '.' : ''}`.trim() : 'Verified Resident';
+        const authorInitials = `${firstName.charAt(0)}${lastName ? lastName.charAt(0) : ''}`.toUpperCase() || 'R';
+        const parsed = parseReviewBody(r.body);
         return {
           id: r.id,
           organizationId: r.organizationId,
           personId: r.personId,
           rating: r.rating,
-          body: cleanBody,
+          body: parsed.text || r.body || '',
+          tags: parsed.tags,
+          photos: parsed.photos,
+          isVerifiedCustomer: parsed.isVerifiedCustomer,
+          ownerReply: parsed.ownerReply,
           authorName,
+          authorInitials,
           createdAt: (r.createdAt as any)?.toISOString ? (r.createdAt as any).toISOString() : String(r.createdAt),
         };
       }),

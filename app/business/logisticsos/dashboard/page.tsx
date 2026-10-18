@@ -6,10 +6,15 @@ import { PackageOpen, MapPin, AlertTriangle, CheckCircle2, Truck, DollarSign, Cl
 
 export const dynamic = 'force-dynamic';
 
-export default async function LogisticsDashboardPage() {
-  // Try to find the first valid logistics provider in the system
-  const provider = await db.orm.public.Organization.where({ type: 'LOGISTICS' }).first() || 
-                   await db.orm.public.Organization.all().first();
+export default async function LogisticsDashboardPage({ searchParams }: { searchParams?: Promise<{ org?: string }> }) {
+  const params = searchParams ? await searchParams : {};
+  let provider = params.org
+    ? await db.orm.public.Organization.where({ id: params.org }).first()
+    : null;
+  if (!provider) {
+    provider = await db.orm.public.Organization.where({ type: 'LOGISTICS' }).first() || 
+               await db.orm.public.Organization.all().first();
+  }
 
   if (!provider) {
     return <div className="p-10 text-center text-slate-500">No organizations found in database.</div>;
@@ -20,6 +25,7 @@ export default async function LogisticsDashboardPage() {
   
   // Find stuck/breached deliveries to alert the dispatcher
   const stuckDeliveries = await findStuckDeliveries({ maxTransitMinutes: 60 });
+  const recentJobs: any[] = Array.isArray((overview as any).recentJobs) ? (overview as any).recentJobs : [];
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -74,7 +80,7 @@ export default async function LogisticsDashboardPage() {
           <div>
             <h3 className="text-slate-500 font-bold text-xs uppercase tracking-wider">Settled Amount</h3>
             <p className="text-3xl font-black text-slate-900 mt-1">
-              ${(0 || 0).toFixed(2)}
+              ₦{(0).toFixed(2)}
             </p>
           </div>
         </Card>
@@ -118,12 +124,12 @@ export default async function LogisticsDashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {(overview as any).recentJobs || [].length === 0 ? (
+                {recentJobs.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-6 py-8 text-center text-slate-400">No active deliveries.</td>
                   </tr>
                 ) : (
-                  (((overview as any).recentJobs as any[]) || []).map((job: any) => (
+                  recentJobs.map((job: any) => (
                     <tr key={job?.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-4 font-mono text-slate-600">{job?.id.slice(0, 8)}...</td>
                       <td className="px-6 py-4">

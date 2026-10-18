@@ -79,3 +79,108 @@ export async function updateTicketStatus(ticketId: string, status: 'VALID' | 'SC
     return { error: error.message };
   }
 }
+
+export async function createOrgEvent(input: {
+  organizationId: string;
+  title: string;
+  description?: string;
+  location: string;
+  date: string;
+  capacity?: number;
+  price?: number;
+  imageUrl?: string;
+  eventUrl?: string;
+}) {
+  try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
+    const title = (input.title || '').trim();
+    const location = (input.location || '').trim();
+    if (!title || !location || !input.date) {
+      return { error: 'Title, location, and date are required.' };
+    }
+
+    const parsedDate = new Date(input.date);
+    if (isNaN(parsedDate.getTime())) {
+      return { error: 'Invalid event date.' };
+    }
+
+    let fullDescription = (input.description || '').trim();
+    if (input.eventUrl?.trim()) {
+      fullDescription += `\nEVENT_URL: ${input.eventUrl.trim()}`;
+    }
+    if (input.imageUrl?.trim()) {
+      fullDescription += `\nIMAGE_URL: ${input.imageUrl.trim()}`;
+    }
+
+    const temporalDate = (globalThis as any).Temporal.Instant.fromEpochMilliseconds(parsedDate.getTime());
+
+    const created = await db.orm.public.Event.create({
+      organizationId: input.organizationId,
+      title,
+      description: fullDescription.trim() || null,
+      location,
+      date: temporalDate,
+      capacity: Math.max(1, Number(input.capacity) || 100),
+      price: Math.max(0, Number(input.price) || 0),
+    });
+
+    try {
+      const { revalidatePath } = await import('next/cache');
+      revalidatePath('/events');
+      revalidatePath('/admin/events');
+    } catch {}
+
+    return JSON.parse(JSON.stringify({
+      success: true,
+      event: {
+        ...created,
+        date: created.date ? created.date.toString() : parsedDate.toISOString(),
+        tickets: [],
+        ticketTiers: [],
+      },
+    }));
+  } catch (error: any) {
+    console.error('Error creating event:', error);
+    return { error: error?.message || 'Failed to create event.' };
+  }
+}
+
+export async function createRentalResource(input: {
+  organizationId: string;
+  name: string;
+  description?: string;
+  type: string;
+  pricePerDay: number;
+}) {
+  try {
+    await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
+    const name = (input.name || '').trim();
+    if (!name) {
+      return { error: 'Resource name is required.' };
+    }
+
+    const resource = await db.orm.public.RentalResource.create({
+      organizationId: input.organizationId,
+      name,
+      description: (input.description || '').trim() || null,
+      type: input.type || 'VENUE',
+      pricePerDay: Math.max(0, Number(input.pricePerDay) || 0),
+    });
+
+    try {
+      const { revalidatePath } = await import('next/cache');
+      revalidatePath('/admin/events');
+    } catch {}
+
+    return JSON.parse(JSON.stringify({
+      success: true,
+      rental: {
+        ...resource,
+        bookings: [],
+      },
+    }));
+  } catch (error: any) {
+    console.error('Error creating rental resource:', error);
+    return { error: error?.message || 'Failed to create rental resource.' };
+  }
+}

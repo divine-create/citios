@@ -36,12 +36,12 @@ interface CreateAction {
 
 const ACTIONS: CreateAction[] = [
   { icon: PenSquare, title: 'Post to the feed', desc: 'An offer, an ask, or a city notice for everyone.', href: '/feed/new', tone: 'from-orange-500 to-amber-500', label: 'Compose', demo: false },
-  { icon: PackagePlus, title: 'List a product', desc: 'Manage your retail inventory via ShopOS.', href: '/business', tone: 'from-teal-800 to-emerald-600', label: 'Business', demo: false },
+  { icon: PackagePlus, title: 'List a product', desc: 'Manage your retail inventory via ShopOS or post a direct deal.', href: '/feed/new?category=Offer', tone: 'from-teal-800 to-emerald-600', label: 'List Deal', demo: false },
   { icon: Wrench, title: 'Request a service', desc: 'AC, cleaning, installs — quoted before work starts.', href: '/services', tone: 'from-sky-700 to-cyan-500', label: 'Services', demo: false },
-  { icon: Briefcase, title: 'Post a job', desc: 'Manage your organization roles and openings.', href: '/business', tone: 'from-indigo-700 to-brand-600', label: 'Business', demo: false },
-  { icon: CalendarPlus, title: 'Create an event', desc: 'Host a tasting, a fitting night, a sports day.', href: '/business', tone: 'from-fuchsia-700 to-brand-500', label: 'Business', demo: false },
-  { icon: HousePlus, title: 'List a property', desc: 'Manage your properties and rentals.', href: '/business', tone: 'from-amber-700 to-orange-500', label: 'Business', demo: false },
-  { icon: Users, title: 'Start a community', desc: 'A neighbourhood circle with its own notice board.', href: '/community', tone: 'from-emerald-700 to-teal-500', label: 'Community', demo: false },
+  { icon: Briefcase, title: 'Post a job', desc: 'Publish organization roles and openings to the city job board.', href: '/business?action=post-job', tone: 'from-indigo-700 to-brand-600', label: 'Post Opening', demo: false },
+  { icon: CalendarPlus, title: 'Create an event', desc: 'Host a tasting, a fitting night, a conference, or sports day.', href: '/business?action=create-event', tone: 'from-fuchsia-700 to-brand-500', label: 'Host Event', demo: false },
+  { icon: HousePlus, title: 'List a property', desc: 'Post apartments, short-lets, and commercial rentals.', href: '/feed/new?category=Housing', tone: 'from-amber-700 to-orange-500', label: 'List Property', demo: false },
+  { icon: Users, title: 'Start a community', desc: 'Post to the neighbourhood circle and city notice board.', href: '/community', tone: 'from-emerald-700 to-teal-500', label: 'Community', demo: false },
   { icon: GraduationCap, title: 'Register a school', desc: 'Create your digital campus on EduOS.', href: '/school/onboarding', tone: 'from-blue-700 to-indigo-500', label: 'Education', demo: false },
 ];
 
@@ -157,15 +157,25 @@ export default function CityCreate() {
       <section>
         <SectionHead title="Your recent activity" sub="Your recent activity in the city ecosystem" />
         <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-50">
-          {recent.map((a) => (
-            <Link key={a.id} href={a.href ?? '#'} className="flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50/60 transition-colors">
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-black text-ink truncate">{a.title}</p>
-                <p className="text-[11px] font-bold text-slate-400 truncate">{a.order?.label || a.sourceType}</p>
-              </div>
-              <span className="text-[10px] font-bold text-slate-400 shrink-0">{new Date(a.date).toLocaleDateString()}</span>
-            </Link>
-          ))}
+          {recent.length === 0 ? (
+            <div className="px-5 py-6 text-center text-xs font-bold text-slate-400">
+              No recent activity yet. Create a post, business page, or service request above to get started!
+            </div>
+          ) : (
+            recent.map((a) => {
+              const rawDate = a.activityAt || a.date;
+              const formattedDate = rawDate ? new Date(rawDate).toLocaleDateString() : '';
+              return (
+                <Link key={a.key || a.id} href={a.href ?? '#'} className="flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50/60 transition-colors">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-black text-ink truncate">{a.title}</p>
+                    <p className="text-[11px] font-bold text-slate-400 truncate">{a.order?.label || a.subtitle || a.sourceType}</p>
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-400 shrink-0">{formattedDate}</span>
+                </Link>
+              );
+            })
+          )}
         </div>
       </section>
     </div>

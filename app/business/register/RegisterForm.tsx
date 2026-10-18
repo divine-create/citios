@@ -42,12 +42,14 @@ export default function RegisterForm({ initialType, isLoggedIn }: { initialType:
       const orgId = result.organizationId;
       let destination = '/';
       if (orgId) {
-        if (formData.type === 'RESTAURANT') destination = `/workspaces/restaurantos/${orgId}`;
+        if (formData.type === 'RESTAURANT') destination = `/workspaces/restaurantos/${orgId}/management/overview`;
         else if (formData.type === 'RETAIL') destination = `/workspaces/shopos/${orgId}`;
         else if (formData.type === 'SERVICES') destination = `/workspaces/serviceos/${orgId}`;
         else if (formData.type === 'SCHOOL') destination = `/school/admin?org=${orgId}`;
         else if (formData.type === 'HOTEL') destination = `/hotel/manager?org=${orgId}`;
         else if (formData.type === 'HEALTHCARE') destination = `/admin/healthcare?org=${orgId}`;
+        else if (formData.type === 'EVENT_ORGANIZER') destination = `/admin/events?org=${orgId}`;
+        else if (formData.type === 'LOGISTICS') destination = `/business/logisticsos/dashboard?org=${orgId}`;
         else destination = `/org/${orgId}`;
         try {
           localStorage.setItem('cityconnect_active_business_id', orgId);
@@ -70,7 +72,7 @@ export default function RegisterForm({ initialType, isLoggedIn }: { initialType:
         <input 
           required
           type="text" 
-          placeholder="e.g. Lincoln High School"
+          placeholder="e.g. Calabar Grand Events"
           value={formData.name}
           onChange={e => setFormData({...formData, name: e.target.value})}
           className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all font-medium text-slate-900"
@@ -81,15 +83,17 @@ export default function RegisterForm({ initialType, isLoggedIn }: { initialType:
         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Organization Type</label>
         <select 
           value={formData.type}
-          disabled={true}
           onChange={e => setFormData({...formData, type: e.target.value})}
-          className="w-full px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl focus:outline-none transition-all font-medium text-slate-600 opacity-80 cursor-not-allowed"
+          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium text-slate-900 cursor-pointer"
         >
-          <option value="SCHOOL">School / University</option>
-          <option value="SERVICES">Service Business</option>
           <option value="RETAIL">Retail / Shop</option>
+          <option value="RESTAURANT">Restaurant / Cafe</option>
+          <option value="SERVICES">Service Business</option>
+          <option value="SCHOOL">School / University</option>
           <option value="HOTEL">Hotel / Hospitality</option>
-          <option value="HEALTHCARE">Healthcare Facility</option>`n          <option value="LOGISTICS">Logistics / Courier Fleet</option>
+          <option value="EVENT_ORGANIZER">Events & Venue Organizer</option>
+          <option value="HEALTHCARE">Healthcare Facility</option>
+          <option value="LOGISTICS">Logistics / Courier Fleet</option>
         </select>
         <a
           href="/business/restaurantos/register"

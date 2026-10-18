@@ -54,19 +54,18 @@ export default function CityProfile() {
     setAvatarError(null);
     setUploadingAvatar(true);
     try {
-      const ext = file.name.split('.').pop() || 'png';
-      const type = file.type || 'image/png';
-      const { signedUrl, publicUrl } = await getPresignedUploadUrl(type, ext);
-
-      const res = await fetch(signedUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': type },
-        body: file,
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
       });
-
-      if (!res.ok) throw new Error('Failed to upload image');
-      await updateProfileAvatar(publicUrl);
-      setUserProfile((prev: any) => ({ ...prev, avatarUrl: publicUrl, image: publicUrl }));
+      const data = await res.json();
+      if (!res.ok || !data?.url) {
+        throw new Error(data?.error || 'Failed to upload image');
+      }
+      await updateProfileAvatar(data.url);
+      setUserProfile((prev: any) => ({ ...prev, avatarUrl: data.url, image: data.url }));
     } catch (err) {
       console.error(err);
       setAvatarError('Failed to upload profile photo. Please try again.');
