@@ -152,6 +152,14 @@ export async function getHotelOrgs(citySlug?: string) {
     roomsByOrg.get(r.organizationId)!.push(r);
   }
 
+  // Only surface hotels that actually have rooms or an active DiscoveryListing
+  orgs = orgs.filter((o: any) => {
+    const listing = listingMap.get(o.id);
+    const orgRooms = roomsByOrg.get(o.id) || [];
+    if (listing && listing.isActive === false) return false;
+    return orgRooms.length > 0 || Boolean(listing?.isActive);
+  });
+
   return orgs.map((o: any) => {
     const listing = listingMap.get(o.id);
     let cover = o.logoAssetId || listing?.coverAssetId;
@@ -206,7 +214,7 @@ export async function getHotelOrgs(citySlug?: string) {
       stars,
       price: minRate,
       startingPrice: minRate,
-      compareAtPrice: minRate ? Math.round(minRate * 1.25) : null,
+      compareAtPrice: typeof meta?.compareAtPrice === 'number' ? meta.compareAtPrice : null,
       roomsCount: orgRooms.length,
       rooms: orgRooms,
       roomType: orgRooms[0]?.type || null,
@@ -215,7 +223,7 @@ export async function getHotelOrgs(citySlug?: string) {
       area: o.address ? o.address.split(',')[0].trim() : (city?.name ?? ''),
       distanceFromCenter: meta?.distanceFromCenter || null,
       isVerified: Boolean(meta?.isVerified),
-      hasPowerGuarantee: meta?.hasPowerGuarantee !== undefined ? Boolean(meta.hasPowerGuarantee) : true,
+      hasPowerGuarantee: Boolean(meta?.hasPowerGuarantee),
       freeCancellation: Boolean(meta?.freeCancellation),
       breakfastIncluded: Boolean(meta?.breakfastIncluded),
     };
