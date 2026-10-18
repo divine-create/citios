@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Heart, MessageSquare, Share2, ChevronRight, UserPlus, UserCheck, Loader2, X, MoreHorizontal, Edit3, Trash2, CheckCircle2, MapPin, Building2 } from 'lucide-react';
 
 const TABS = ['For You', 'Following'] as const;
-const TOPICS = ['All', 'Reviews', 'Marketplace', 'Events', 'Housing', 'Community'];
+const TOPICS = ['All', 'Reviews', 'Food', 'Marketplace', 'Events', 'Stays', 'Jobs', 'Community'];
 
 import { FallbackImg, Pill, VerifiedBadge } from '@/components/cityos/CityUI';
 import { YelpStarRow } from '@/components/cityos/BusinessReviewsSection';
@@ -573,7 +573,7 @@ function PostCard({ post, follows, onFollowToggle, onDelete, isGuest, onRequireA
           <div className="mt-3 bg-slate-50 rounded-xl p-3 flex flex-wrap gap-x-4 gap-y-2 text-[12px] text-slate-600 font-medium border border-slate-100">
             {post.eventDate && <div className="flex items-center gap-1.5"><span>📅</span>{new Date(post.eventDate).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</div>}
             {post.location && <div className="flex items-center gap-1.5"><span>📍</span>{post.location}</div>}
-            {post.price != null && <div className="flex items-center gap-1.5 font-bold text-emerald-700"><span>💲</span>${post.price.toFixed(2)}</div>}
+            {post.price != null && <div className="flex items-center gap-1.5 font-bold text-emerald-700"><span>🏷️</span>₦{Number(post.price).toLocaleString()}</div>}
           </div>
         )}
         {!post.reviewCard && post.href && (

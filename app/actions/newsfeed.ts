@@ -9,6 +9,10 @@ import { getPostBackground, parsePostMetadata, serializePostMetadata, type PostB
 // Reaction types
 export type ReactionType = 'LIKE' | 'LOVE' | 'HAHA' | 'WOW' | 'SAD' | 'ANGRY';
 
+function toTemporal(date: Date = new Date()) {
+  return (globalThis as any).Temporal.Instant.fromEpochMilliseconds(date.getTime());
+}
+
 function mapPost(post: any, myLikedPostIds: Set<string>, myReactions: Map<string, ReactionType>, currentPersonId?: string, myOrgIds?: Set<string>) {
   let parsedRawMeta: any = null;
   if (post.postMetadata) {
@@ -65,6 +69,17 @@ function mapPost(post: any, myLikedPostIds: Set<string>, myReactions: Map<string
       }
     : undefined;
 
+  const href = parsedRawMeta?.href || (
+    post.linkedEntityType === 'MENU_ITEM' && post.organizationId ? { url: `/org/${post.organizationId}`, label: 'Order Dish' } :
+    post.linkedEntityType === 'RETAIL_PRODUCT' && post.organizationId ? { url: `/org/${post.organizationId}`, label: 'View in Shop' } :
+    post.linkedEntityType === 'SERVICE' && post.organizationId ? { url: `/org/${post.organizationId}`, label: 'Book Service' } :
+    post.linkedEntityType === 'EVENT' ? { url: '/events', label: 'View Event' } :
+    post.linkedEntityType === 'HOTEL' && post.organizationId ? { url: `/org/${post.organizationId}`, label: 'Book Stay' } :
+    post.linkedEntityType === 'JOB' ? { url: '/jobs', label: 'View Job' } :
+    post.organizationId ? { url: `/org/${post.organizationId}`, label: 'Visit Storefront' } :
+    undefined
+  );
+
   return {
     id: post.id,
     author,
@@ -72,13 +87,13 @@ function mapPost(post: any, myLikedPostIds: Set<string>, myReactions: Map<string
     isOrg,
     authorId: isOrg ? post.organizationId : post.personId,
     avatarImg: isOrg ? undefined : post.person?.profile?.avatarUrl,
-    time: typeof post.createdAt === 'string' ? new Date(post.createdAt).toISOString() : post.createdAt.toString(),
+    time: post.createdAt ? String(post.createdAt) : new Date().toISOString(),
     category: post.category,
     title: post.title,
     body: post.content,
     image: post.imageUrl,
     videoUrl: post.videoUrl,
-    eventDate: post.eventDate ? new Date(post.eventDate).toISOString() : undefined,
+    eventDate: post.eventDate ? String(post.eventDate) : undefined,
     location: post.location,
     price: post.price != null ? Number(post.price) : undefined,
     postBackground: isReviewPost ? 'auto' : parsePostMetadata(post.postMetadata).background,
@@ -90,6 +105,7 @@ function mapPost(post: any, myLikedPostIds: Set<string>, myReactions: Map<string
     myReaction: myReactions.get(post.id) ?? null,
     isMyPost,
     orgId: post.organizationId,
+    href,
     reviewCard,
   };
 }
@@ -100,36 +116,49 @@ export async function fetchFeed(
   cursor?: string,   // createdAt timestamp of the last post (for pagination)
   limit = 15
 ) {
-  const session = await getServerSession(authOptions);
-  const personId = session?.user?.personId;
+  let personId: string | undefined;
+  try {
+    const session = await getServerSession(authOptions);
+    personId = session?.user?.personId;
+  } catch {
+    personId = undefined;
+  }
 
-  let postsClause: any = {};
+  let query: any = db.orm.public.Post;
 
   if (feedType === 'Following') {
     if (!personId) return { posts: [], nextCursor: null };
     const follows = await db.orm.public.Follow.where({ personId }).select('organizationId').all();
     const followedOrgIds = follows.map((f: any) => f.organizationId);
     if (followedOrgIds.length === 0) return { posts: [], nextCursor: null };
-    postsClause.organizationId = { in: followedOrgIds };
+    query = query.where((p: any) => p.organizationId.in(followedOrgIds));
   }
 
   if (topic !== 'All') {
     if (topic === 'Marketplace') {
-      postsClause.category = { in: ['Offer', 'Marketplace'] };
+      query = query.where((p: any) => p.category.in(['Offer', 'Marketplace', 'RETAIL', 'Shops']));
     } else if (topic === 'Reviews') {
-      postsClause.category = 'Review';
+      query = query.where({ category: 'Review' });
+    } else if (topic === 'Food') {
+      query = query.where((p: any) => p.category.in(['Food', 'Restaurant', 'FOOD']));
+    } else if (topic === 'Events') {
+      query = query.where((p: any) => p.category.in(['Events', 'Event', 'EVENT']));
+    } else if (topic === 'Stays') {
+      query = query.where((p: any) => p.category.in(['Stays', 'Housing', 'Hotel', 'STAY']));
+    } else if (topic === 'Jobs') {
+      query = query.where((p: any) => p.category.in(['Jobs', 'Careers', 'JOB']));
     } else {
-      postsClause.category = topic;
+      query = query.where({ category: topic });
     }
   }
 
   // Cursor-based pagination using createdAt
   if (cursor) {
-    postsClause.createdAt = { lt: new Date(cursor) };
+    query = query.where((p: any) => p.createdAt.lt(toTemporal(new Date(cursor))));
   }
 
   const { isTestOrDemoOrganization } = await import('@/lib/storefront-filter');
-  const fetchedPosts = await db.orm.public.Post.where(postsClause)
+  const fetchedPosts = await query
     .orderBy((p: any) => p.createdAt.desc())
     .limit(limit)
     .include('person', (p: any) => p.select('firstName', 'lastName', 'id').include('profile', (prof: any) => prof.select('avatarUrl')))
@@ -172,9 +201,7 @@ export async function fetchFeed(
 
   const posts = rawPosts.map((post: any) => mapPost(post, myLikedPostIds, myReactions, personId, myOrgIds));
   const nextCursor = rawPosts.length === limit
-    ? typeof rawPosts[rawPosts.length - 1].createdAt === 'string'
-      ? new Date(rawPosts[rawPosts.length - 1].createdAt).toISOString()
-      : rawPosts[rawPosts.length - 1].createdAt.toString()
+    ? String(rawPosts[rawPosts.length - 1].createdAt)
     : null;
 
   return { posts, nextCursor };
@@ -260,7 +287,7 @@ export async function createPost(data: {
     isEmergency: false,
     imageUrl: data.imageUrl,
     videoUrl: data.videoUrl,
-    eventDate: data.eventDate ? new Date(data.eventDate) : undefined,
+    eventDate: data.eventDate ? toTemporal(new Date(data.eventDate)) : undefined,
     location: data.location,
     price: data.price,
     postMetadata: data.postBackground
