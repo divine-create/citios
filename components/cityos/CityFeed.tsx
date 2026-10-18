@@ -27,6 +27,7 @@ export type DBPost = {
   author: string;
   role: string;
   isOrg: boolean;
+  isVerified?: boolean;
   time: string;
   category: string;
   title: string;
@@ -58,6 +59,7 @@ export type DBPost = {
     reviewedOrgCategory?: string;
     reviewedOrgAddress?: string;
     reviewedOrgCover?: string;
+    isOrgVerified?: boolean;
   };
 };
 
@@ -350,7 +352,7 @@ function PostCard({ post, follows, onFollowToggle, onDelete, isGuest, onRequireA
               </>
             ) : (
               <>
-                {post.isOrg ? <VerifiedBadge /> : null}
+                {post.isVerified ? <VerifiedBadge /> : null}
                 <Pill tone="slate" className="ml-1">{currentCategory}</Pill>
               </>
             )}
@@ -438,7 +440,7 @@ function PostCard({ post, follows, onFollowToggle, onDelete, isGuest, onRequireA
                   <h4 className="text-[14px] font-black text-slate-900 group-hover:text-teal-700 truncate transition-colors">
                     {post.reviewCard.reviewedOrgName}
                   </h4>
-                  <VerifiedBadge />
+                  {post.reviewCard.isOrgVerified ? <VerifiedBadge /> : null}
                 </div>
                 <div className="flex items-center gap-2 flex-wrap mt-0.5 text-[11px] font-bold text-slate-500">
                   {post.reviewCard.reviewedOrgCategory && (

@@ -402,10 +402,9 @@ export default function BusinessDashboard() {
                 </div>
               </button>
 
-              <button
-                type="button"
-                onClick={() => setShowEventModal(true)}
-                className="p-3.5 rounded-xl bg-slate-800/90 hover:bg-slate-750 border border-slate-700/70 hover:border-pink-500/50 transition-all text-left group flex flex-col justify-between gap-2 cursor-pointer"
+              <Link
+                href={`/events/create?org=${currentBusiness.id}`}
+                className="p-3.5 rounded-xl bg-slate-800/90 hover:bg-slate-750 border border-slate-700/70 hover:border-pink-500/50 transition-all text-left group flex flex-col justify-between gap-2"
               >
                 <div className="flex items-center justify-between">
                   <div className="w-8 h-8 rounded-lg bg-pink-500/20 text-pink-400 flex items-center justify-center">
@@ -415,9 +414,9 @@ export default function BusinessDashboard() {
                 </div>
                 <div>
                   <p className="text-xs font-black text-white group-hover:text-pink-300 transition-colors">Host a City Event</p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">Publish an official event or experience</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">Publish an official event for {currentBusiness.name}</p>
                 </div>
-              </button>
+              </Link>
             </div>
           </div>
         </div>

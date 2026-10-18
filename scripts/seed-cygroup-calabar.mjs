@@ -201,7 +201,7 @@ async function main() {
 
     // 5. Upsert DiscoveryListing
     const listingMetadata = JSON.stringify({
-      isVerified: true,
+      isVerified: false,
       neighborhood: 'Ettagbor',
       area: 'Ettagbor',
       workingHours: 'Mon – Sat · 08:00 AM – 07:00 PM',

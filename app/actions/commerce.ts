@@ -610,6 +610,15 @@ export async function getCityMartProduct(productId: string) {
       unit: sp.unit,
     }));
 
+  const listing = await db.orm.public.DiscoveryListing.where({ organizationId: p.organizationId }).all().first();
+  let meta: any = null;
+  if (listing?.metadata) {
+    try {
+      meta = JSON.parse(listing.metadata);
+    } catch {}
+  }
+  const isVerified = Boolean(meta?.isVerified);
+
   return {
     ...p,
     variants,
@@ -617,6 +626,7 @@ export async function getCityMartProduct(productId: string) {
     orgSlug: org?.id,
     citySlug: activeCity?.slug ?? null,
     relatedProducts,
+    isVerified,
   };
 }
 

@@ -123,7 +123,7 @@ export default function ChowdeckStoreCard({
             <Link href={href} className="flex-1">
               <h3 className="text-sm font-bold text-slate-900 group-hover:text-orange-600 transition-colors line-clamp-1 flex items-center gap-1.5">
                 <span>{store.name}</span>
-                {store.isVerified !== false && (
+                {Boolean(store.isVerified) && (
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                 )}
               </h3>

@@ -250,7 +250,17 @@ export default function ProductDetail({ id }: { id: string }) {
             
             {/* TRUST BADGES */}
             <div className="mt-6 flex flex-wrap gap-4 text-xs font-semibold text-slate-500">
-              <div className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-slate-400" /> Verified Merchant Listing</div>
+              {p.isVerified ? (
+                <div className="flex items-center gap-1.5 text-emerald-700">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  Verified Merchant Listing
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 text-slate-500">
+                  <Store className="w-4 h-4 text-slate-400" />
+                  Local Merchant Listing
+                </div>
+              )}
             </div>
             
           </div>

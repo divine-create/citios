@@ -20,8 +20,6 @@ import {
 } from 'lucide-react';
 
 import { SectionHead } from '@/components/cityos/CityUI';
-import { fetchResidentActivity } from '@/app/actions/activity';
-import { useEffect, useState } from 'react';
 import { useAccountSwitcher } from '@/components/cityos/AccountSwitcherContext';
 
 interface CreateAction {
@@ -31,27 +29,21 @@ interface CreateAction {
   href: string;
   tone: string;
   label: string;
-  demo?: boolean;
 }
 
 const ACTIONS: CreateAction[] = [
-  { icon: PenSquare, title: 'Post to the feed', desc: 'An offer, an ask, or a city notice for everyone.', href: '/feed/new', tone: 'from-orange-500 to-amber-500', label: 'Compose', demo: false },
-  { icon: PackagePlus, title: 'List a product', desc: 'Manage your retail inventory via ShopOS or post a direct deal.', href: '/feed/new?category=Offer', tone: 'from-teal-800 to-emerald-600', label: 'List Deal', demo: false },
-  { icon: Wrench, title: 'Request a service', desc: 'AC, cleaning, installs — quoted before work starts.', href: '/services', tone: 'from-sky-700 to-cyan-500', label: 'Services', demo: false },
-  { icon: Briefcase, title: 'Post a job', desc: 'Publish organization roles and openings to the city job board.', href: '/business?action=post-job', tone: 'from-indigo-700 to-brand-600', label: 'Post Opening', demo: false },
-  { icon: CalendarPlus, title: 'Create an event', desc: 'Host a tasting, a fitting night, a conference, or sports day.', href: '/business?action=create-event', tone: 'from-fuchsia-700 to-brand-500', label: 'Host Event', demo: false },
-  { icon: HousePlus, title: 'List a property', desc: 'Post apartments, short-lets, and commercial rentals.', href: '/feed/new?category=Housing', tone: 'from-amber-700 to-orange-500', label: 'List Property', demo: false },
-  { icon: Users, title: 'Start a community', desc: 'Post to the neighbourhood circle and city notice board.', href: '/community', tone: 'from-emerald-700 to-teal-500', label: 'Community', demo: false },
-  { icon: GraduationCap, title: 'Register a school', desc: 'Create your digital campus on EduOS.', href: '/school/onboarding', tone: 'from-blue-700 to-indigo-500', label: 'Education', demo: false },
+  { icon: PenSquare, title: 'Post to the feed', desc: 'An offer, an ask, or a city notice for everyone.', href: '/feed/new', tone: 'from-orange-500 to-amber-500', label: 'Compose' },
+  { icon: PackagePlus, title: 'List a product', desc: 'Manage your retail inventory via ShopOS or post a direct deal.', href: '/feed/new?category=Offer', tone: 'from-teal-800 to-emerald-600', label: 'List Deal' },
+  { icon: Wrench, title: 'Request a service', desc: 'AC, cleaning, installs — quoted before work starts.', href: '/services', tone: 'from-sky-700 to-cyan-500', label: 'Services' },
+  { icon: Briefcase, title: 'Post a job', desc: 'Publish organization roles and openings to the city job board.', href: '/business?action=post-job', tone: 'from-indigo-700 to-brand-600', label: 'Post Opening' },
+  { icon: CalendarPlus, title: 'Create an event', desc: 'Host a concert, meetup, tasting, party, or festival as yourself or a business.', href: '/events/create', tone: 'from-fuchsia-700 to-brand-500', label: 'Host Event' },
+  { icon: HousePlus, title: 'List a property', desc: 'Post apartments, short-lets, and commercial rentals.', href: '/feed/new?category=Housing', tone: 'from-amber-700 to-orange-500', label: 'List Property' },
+  { icon: Users, title: 'Start a community', desc: 'Post to the neighbourhood circle and city notice board.', href: '/community', tone: 'from-emerald-700 to-teal-500', label: 'Community' },
+  { icon: GraduationCap, title: 'Register a school', desc: 'Create your digital campus on EduOS.', href: '/school/onboarding', tone: 'from-blue-700 to-indigo-500', label: 'Education' },
 ];
 
 export default function CityCreate() {
-  const [recent, setRecent] = useState<any[]>([]);
   const { openCreateModal } = useAccountSwitcher();
-
-  useEffect(() => {
-    fetchResidentActivity().then((a) => setRecent(a.items.slice(0, 5)));
-  }, []);
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
@@ -64,7 +56,7 @@ export default function CityCreate() {
           </span>
           <h1 className="mt-3 text-2xl md:text-3xl font-black tracking-tight">Put something in your city.</h1>
           <p className="mt-2 text-teal-50/80 text-[13px] font-medium max-w-xl leading-relaxed">
-            Create is the front door for participating in the city ecosystem — resident posts, business pages, service quotes, and more.
+            Create is the front door for participating in the city ecosystem — resident posts, events, business pages, service quotes, and more.
           </p>
         </div>
       </div>
@@ -77,7 +69,7 @@ export default function CityCreate() {
           </div>
           <h2 className="text-xl font-black tracking-tight">Create a Business Page</h2>
           <p className="text-xs text-teal-100/80 font-medium leading-relaxed">
-            Start selling or providing services across CityConnect. Create a dedicated page for your retail store, restaurant, service trade, school, hotel, or event brand with 1-click account switching.
+            Start selling or providing services across CityConnect. Create a dedicated page for your retail store, restaurant, service trade, school, or hotel with 1-click account switching.
           </p>
           <div className="flex flex-wrap gap-2 pt-1">
             <button
@@ -110,12 +102,12 @@ export default function CityCreate() {
             >
               <Building2 className="w-3 h-3 text-purple-400" /> Hotel
             </button>
-            <button
-              onClick={() => openCreateModal('EVENT_ORGANIZER')}
-              className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold transition-colors flex items-center gap-1"
+            <Link
+              href="/events/create"
+              className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 border border-rose-400/30 text-rose-200 text-[11px] font-bold transition-colors flex items-center gap-1"
             >
-              <Ticket className="w-3 h-3 text-rose-400" /> Events
-            </button>
+              <Ticket className="w-3 h-3 text-rose-400" /> Host an Event →
+            </Link>
           </div>
         </div>
 
@@ -151,31 +143,6 @@ export default function CityCreate() {
               </div>
             </Link>
           ))}
-        </div>
-      </section>
-
-      <section>
-        <SectionHead title="Your recent activity" sub="Your recent activity in the city ecosystem" />
-        <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-50">
-          {recent.length === 0 ? (
-            <div className="px-5 py-6 text-center text-xs font-bold text-slate-400">
-              No recent activity yet. Create a post, business page, or service request above to get started!
-            </div>
-          ) : (
-            recent.map((a) => {
-              const rawDate = a.activityAt || a.date;
-              const formattedDate = rawDate ? new Date(rawDate).toLocaleDateString() : '';
-              return (
-                <Link key={a.key || a.id} href={a.href ?? '#'} className="flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50/60 transition-colors">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-black text-ink truncate">{a.title}</p>
-                    <p className="text-[11px] font-bold text-slate-400 truncate">{a.order?.label || a.subtitle || a.sourceType}</p>
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-400 shrink-0">{formattedDate}</span>
-                </Link>
-              );
-            })
-          )}
         </div>
       </section>
     </div>

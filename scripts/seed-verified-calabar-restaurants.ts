@@ -592,7 +592,7 @@ async function main() {
         reviewCount: 0,
         isOpen: true,
         deliveryEta: resto.deliveryEta,
-        isVerified: true
+        isVerified: false
       });
 
       await client.query(`

@@ -149,7 +149,7 @@ async function main() {
       reviewCount: 0,
       isOpen: true,
       deliveryEta: '20 - 30 min',
-      isVerified: true
+      isVerified: false
     });
 
     await client.query(`

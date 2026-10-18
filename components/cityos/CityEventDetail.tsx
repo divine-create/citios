@@ -1,6 +1,6 @@
 import { getCanonicalEvent } from '@/app/actions/org';
 import Link from 'next/link';
-import { ChevronRight, ExternalLink, Calendar, Globe } from 'lucide-react';
+import { ChevronRight, ExternalLink, Calendar, Globe, Plus, User } from 'lucide-react';
 import { Pill, LocationRow, FallbackImg } from '@/components/cityos/CityUI';
 import { parseEventDescription, DEFAULT_EVENT_PLACEHOLDER_IMAGE } from '@/lib/event-utils';
 
@@ -32,13 +32,25 @@ export default async function CityEventDetail({ id }: { id: string }) {
         timeZone: 'Africa/Lagos',
       });
 
+  const isPersonalHost = Boolean(parsed.hostName);
+  const hostDisplayName = parsed.hostName || e.organization?.name || 'Event Host';
+
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in duration-500">
-      <nav className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400">
-        <Link href="/events" className="hover:text-teal-800">Events</Link>
-        <ChevronRight className="w-3 h-3" />
-        <span className="text-slate-700 truncate">{e.title}</span>
-      </nav>
+      <div className="flex items-center justify-between gap-3">
+        <nav className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 min-w-0">
+          <Link href="/events" className="hover:text-teal-800 shrink-0">Events</Link>
+          <ChevronRight className="w-3 h-3 shrink-0" />
+          <span className="text-slate-700 truncate">{e.title}</span>
+        </nav>
+        <Link
+          href="/events/create"
+          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 text-[11px] font-black shrink-0 transition-colors"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Host an Event
+        </Link>
+      </div>
 
       <div className="relative rounded-3xl overflow-hidden bg-slate-100 h-56 sm:h-72">
         <FallbackImg
@@ -49,14 +61,17 @@ export default async function CityEventDetail({ id }: { id: string }) {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/15 to-transparent" />
         <div className="absolute bottom-3 left-3 right-3 flex gap-2 flex-wrap">
-          <Pill tone="orange">Event</Pill>
+          <Pill tone="orange">{parsed.category || 'Event'}</Pill>
           <Pill tone="teal">{dateStr}</Pill>
         </div>
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-100 p-6">
         <h1 className="text-xl font-black text-ink">{e.title}</h1>
-        <p className="text-xs text-slate-500 font-medium mt-1">{`Hosted by ${e.organization?.name || 'Event Organizer'}`}</p>
+        <p className="text-xs text-slate-500 font-medium mt-1">
+          {`Hosted by ${hostDisplayName}`}
+          {isPersonalHost ? ' (Community Resident)' : ''}
+        </p>
         <LocationRow text={e.location || 'Calabar'} className="text-xs mt-2" />
         {parsed.summary && (
           <p className="text-[13px] text-slate-600 leading-relaxed mt-3 whitespace-pre-line">
@@ -102,6 +117,14 @@ export default async function CityEventDetail({ id }: { id: string }) {
               <span>{`Go to Event (${parsed.sourceName})`}</span>
               <ExternalLink className="w-4 h-4" />
             </a>
+          ) : isPersonalHost && parsed.hostPersonId ? (
+            <Link
+              href={`/profile/${parsed.hostPersonId}`}
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-black transition-all bg-teal-800 hover:bg-teal-900 text-white shadow-sm"
+            >
+              <User className="w-4 h-4" />
+              <span>View Host Profile</span>
+            </Link>
           ) : e.organizationId ? (
             <Link
               href={`/org/${e.organizationId}`}

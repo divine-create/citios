@@ -13,7 +13,53 @@ function toTemporal(date: Date = new Date()) {
   return (globalThis as any).Temporal.Instant.fromEpochMilliseconds(date.getTime());
 }
 
-function mapPost(post: any, myLikedPostIds: Set<string>, myReactions: Map<string, ReactionType>, currentPersonId?: string, myOrgIds?: Set<string>) {
+async function getVerifiedOrgIds(orgIds: string[]): Promise<Set<string>> {
+  const filtered = Array.from(new Set(orgIds.filter(Boolean)));
+  if (filtered.length === 0) return new Set();
+
+  const verifiedSet = new Set<string>();
+
+  try {
+    const listings = await db.orm.public.DiscoveryListing.where((l: any) => l.organizationId.in(filtered)).all();
+    for (const l of listings) {
+      if (l.metadata && l.organizationId) {
+        try {
+          const meta = typeof l.metadata === 'string' ? JSON.parse(l.metadata) : l.metadata;
+          if (Boolean(meta?.isVerified)) {
+            verifiedSet.add(l.organizationId);
+          }
+        } catch {}
+      }
+    }
+  } catch (err) {
+    console.warn('[newsfeed] Error checking discoveryListing verifications:', err);
+  }
+
+  try {
+    const { getServicesConfig } = await import('@/lib/actions/services-config');
+    const svcConfig = await getServicesConfig();
+    if (Array.isArray(svcConfig.verifiedOrgIds)) {
+      for (const id of svcConfig.verifiedOrgIds) {
+        if (filtered.includes(id)) {
+          verifiedSet.add(id);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[newsfeed] Error checking servicesConfig verifications:', err);
+  }
+
+  return verifiedSet;
+}
+
+function mapPost(
+  post: any,
+  myLikedPostIds: Set<string>,
+  myReactions: Map<string, ReactionType>,
+  currentPersonId?: string,
+  myOrgIds?: Set<string>,
+  verifiedOrgIds: Set<string> = new Set()
+) {
   let parsedRawMeta: any = null;
   if (post.postMetadata) {
     try {
@@ -49,6 +95,10 @@ function mapPost(post: any, myLikedPostIds: Set<string>, myReactions: Map<string
       (post.personId === currentPersonId || (!isReviewPost && post.organizationId && myOrgIds?.has(post.organizationId)))
   );
 
+  const reviewedOrgId = parsedRawMeta?.reviewedOrgId || post.organizationId || '';
+  const isPostOrgVerified = Boolean(post.organizationId && verifiedOrgIds.has(post.organizationId));
+  const isReviewedOrgVerified = Boolean(reviewedOrgId && verifiedOrgIds.has(reviewedOrgId));
+
   const reviewCard = isReviewPost
     ? {
         reviewId: parsedRawMeta?.reviewId || post.linkedEntityId || post.id,
@@ -60,12 +110,13 @@ function mapPost(post: any, myLikedPostIds: Set<string>, myReactions: Map<string
           : [],
         tags: Array.isArray(parsedRawMeta?.tags) ? parsedRawMeta.tags : [],
         isVerifiedCustomer: Boolean(parsedRawMeta?.isVerifiedCustomer),
-        reviewedOrgId: parsedRawMeta?.reviewedOrgId || post.organizationId || '',
+        reviewedOrgId,
         reviewedOrgName:
           parsedRawMeta?.reviewedOrgName || post.organization?.name || 'Local Business',
         reviewedOrgCategory: parsedRawMeta?.reviewedOrgCategory || 'Business',
         reviewedOrgAddress: parsedRawMeta?.reviewedOrgAddress || post.location || 'Calabar',
         reviewedOrgCover: parsedRawMeta?.reviewedOrgCover || null,
+        isOrgVerified: isReviewedOrgVerified,
       }
     : undefined;
 
@@ -94,6 +145,7 @@ function mapPost(post: any, myLikedPostIds: Set<string>, myReactions: Map<string
     author,
     role,
     isOrg,
+    isVerified: isOrg ? isPostOrgVerified : false,
     authorId: isOrg ? post.organizationId : post.personId,
     avatarImg: isOrg ? undefined : post.person?.profile?.avatarUrl,
     time: post.createdAt ? String(post.createdAt) : new Date().toISOString(),
@@ -208,7 +260,20 @@ export async function fetchFeed(
     : [];
   const myOrgIds = new Set(memberships.map((m: any) => m.organizationId));
 
-  const posts = rawPosts.map((post: any) => mapPost(post, myLikedPostIds, myReactions, personId, myOrgIds));
+  // Determine which organizations in these posts are verified
+  const allOrgIds = new Set<string>();
+  for (const p of rawPosts) {
+    if (p.organizationId) allOrgIds.add(p.organizationId);
+    if (p.postMetadata) {
+      try {
+        const meta = JSON.parse(p.postMetadata);
+        if (meta?.reviewedOrgId) allOrgIds.add(meta.reviewedOrgId);
+      } catch {}
+    }
+  }
+  const verifiedOrgIds = await getVerifiedOrgIds(Array.from(allOrgIds));
+
+  const posts = rawPosts.map((post: any) => mapPost(post, myLikedPostIds, myReactions, personId, myOrgIds, verifiedOrgIds));
   const nextCursor = rawPosts.length === limit
     ? String(rawPosts[rawPosts.length - 1].createdAt)
     : null;
@@ -251,7 +316,17 @@ export async function fetchSinglePost(postId: string) {
     await db.orm.public.Post.where({ id: postId }).update({ viewCount: (post.viewCount || 0) + 1 });
   } catch { /* non-fatal */ }
 
-  return mapPost(post, myLikedPostIds, myReactions, personId, myOrgIds);
+  const allOrgIds = new Set<string>();
+  if (post.organizationId) allOrgIds.add(post.organizationId);
+  if (post.postMetadata) {
+    try {
+      const meta = JSON.parse(post.postMetadata);
+      if (meta?.reviewedOrgId) allOrgIds.add(meta.reviewedOrgId);
+    } catch {}
+  }
+  const verifiedOrgIds = await getVerifiedOrgIds(Array.from(allOrgIds));
+
+  return mapPost(post, myLikedPostIds, myReactions, personId, myOrgIds, verifiedOrgIds);
 }
 
 export async function createPost(data: { 

@@ -67,6 +67,7 @@ export async function getCanonicalOrganization(id: string) {
     metadata: meta,
     locations,
     isClaimed,
+    isVerified: Boolean(meta.isVerified),
     contactPoints: JSON.parse(JSON.stringify(contactPoints)),
     capabilities: {
       retail: products.length > 0 || org.type === 'RETAIL',

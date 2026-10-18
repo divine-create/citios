@@ -196,7 +196,7 @@ async function main() {
 
     // 4. Upsert DiscoveryListing
     const listingMetadata = JSON.stringify({
-      isVerified: true,
+      isVerified: false,
       neighborhood: 'Marian Road',
       area: 'Marian Road',
       workingHours: 'Mon – Sat · 09:00 AM – 06:00 PM',

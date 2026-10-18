@@ -172,7 +172,7 @@ export default function PostDetailClient({ post }: { post: DBPost }) {
             <div className="flex items-center gap-2 flex-wrap">
               <Link href={post.isOrg ? `/org/${post.authorId}` : `/profile/${post.authorId}`}
                 className="text-[14px] font-black text-ink hover:underline">{post.author}</Link>
-              {post.isOrg && <VerifiedBadge />}
+              {post.isVerified && <VerifiedBadge />}
               {post.isMyPost && (
                 <div ref={menuRef} className="relative ml-auto">
                   <button

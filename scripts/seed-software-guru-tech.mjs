@@ -479,7 +479,7 @@ async function main() {
 
     // 4. Upsert DiscoveryListing with strictly real scraped Jiji data (no demo delivery/ratings)
     const listingMetadata = JSON.stringify({
-      isVerified: true,
+      isVerified: false,
       neighborhood: 'Ettagbor',
       area: 'Ettagbor',
       workingHours: 'Mon – Sat · 08:00 AM – 06:00 PM',

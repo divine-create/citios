@@ -268,10 +268,11 @@ export async function getMyBusinesses() {
       return [];
     }
 
+    const { isTestOrDemoOrganization } = await import('@/lib/storefront-filter');
     const businesses = [];
     for (const m of memberships) {
       const org = await db.orm.public.Organization.where({ id: m.organizationId }).all().first();
-      if (!org) continue;
+      if (!org || isTestOrDemoOrganization(org)) continue;
 
       const [roles, loc] = await Promise.all([
         db.orm.public.MembershipRole.where({ membershipId: m.id }).all(),

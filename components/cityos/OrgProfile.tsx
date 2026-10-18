@@ -92,7 +92,7 @@ export default async function OrgProfile({ id }: { id: string }) {
     });
   }
   factCells.push({
-    label: org.isClaimed ? 'Verified Merchant' : 'Directory Listing',
+    label: org.isVerified ? 'Verified Merchant' : org.isClaimed ? 'Registered Merchant' : 'Directory Listing',
     sub: `Operates on ${osLabel}`,
   });
 
@@ -146,7 +146,7 @@ export default async function OrgProfile({ id }: { id: string }) {
                 <h1 className="text-2xl font-black tracking-tight">{org.name}</h1>
               </div>
               <div className="flex items-center gap-2.5 mt-1.5 flex-wrap">
-                <span className="text-[11px] font-bold text-white/75">{org.isClaimed ? 'Verified Org' : 'Directory Listing'}</span>
+                <span className="text-[11px] font-bold text-white/75">{org.isVerified ? 'Verified Org' : org.isClaimed ? 'Registered Org' : 'Directory Listing'}</span>
                 {reviewsBundle.distribution.averageRating && (
                   <a
                     href="#reviews"
@@ -229,16 +229,16 @@ export default async function OrgProfile({ id }: { id: string }) {
       {/* About */}
       <section className="bg-white rounded-2xl border border-slate-100 p-5 md:p-6">
         <h2 className="text-base font-black text-ink mb-2">About {org.name}</h2>
-        <p className="text-[13px] text-slate-600 leading-relaxed">{org.description || 'A verified organization in CityConnect.'}</p>
+        <p className="text-[13px] text-slate-600 leading-relaxed">{org.description || `${org.name} on CityConnect.`}</p>
         <div className="mt-4 flex items-center gap-2 flex-wrap">
           <LocationRow text={`${addressStr}`} className="text-[11px]" />
-          {org.isClaimed ? (
+          {org.isVerified ? (
             <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-700">
               <CheckCircle2 className="w-3.5 h-3.5" /> Verified on CityOS
             </span>
           ) : (
             <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-400">
-              Public Directory Listing
+              {org.isClaimed ? 'Registered Merchant' : 'Public Directory Listing'}
             </span>
           )}
         </div>

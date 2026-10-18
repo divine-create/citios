@@ -97,18 +97,6 @@ export const VERTICAL_OPTIONS: VerticalOption[] = [
     placeholderBio: 'Luxury boutique accommodation with high-speed Wi-Fi and 24/7 room service.',
   },
   {
-    type: 'EVENT_ORGANIZER',
-    title: 'Events & Venues',
-    osName: 'EventsOS',
-    tagline: 'Tickets, guestlists & passes',
-    description: 'Host conferences, concerts, exhibitions, sell tickets, and manage attendee check-ins.',
-    icon: Ticket,
-    tone: 'from-rose-700 to-pink-600',
-    badgeTone: 'bg-rose-50 text-rose-800 border-rose-200',
-    placeholderName: 'e.g. Lagos City Vibes Experience',
-    placeholderBio: 'Curating the finest lifestyle events, music festivals, and business networking mixers.',
-  },
-  {
     type: 'HEALTHCARE',
     title: 'Healthcare & Clinic',
     osName: 'ClinicOS',
@@ -348,51 +336,55 @@ export default function CreateBusinessModal() {
                 type="text"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                placeholder="e.g. Victoria Island, Lagos"
+                placeholder={city?.name ? `e.g. Marian Road, ${city.name}` : 'Enter business address'}
                 className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-700/20 focus:border-teal-700 text-xs font-medium text-slate-900"
               />
             </div>
           </div>
 
           {/* Facebook-style Live Page Preview */}
-          <div>
-            <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-2">
-              Page Live Preview
-            </label>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 relative overflow-hidden">
-              <div className="flex items-start gap-3">
-                <div
-                  className={cn(
-                    'w-12 h-12 rounded-2xl flex items-center justify-center text-white bg-gradient-to-br shadow-md shrink-0',
-                    currentOption.tone
-                  )}
-                >
-                  <Icon className="w-6 h-6" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-sm font-black text-ink leading-tight truncate">
-                      {name.trim() || 'Your Business Name'}
-                    </h3>
-                    <span
-                      className={cn(
-                        'text-[10px] font-black px-2 py-0.5 rounded-full border',
-                        currentOption.badgeTone
-                      )}
-                    >
-                      {currentOption.title} · {currentOption.osName}
-                    </span>
+          {name.trim() && (
+            <div>
+              <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-2">
+                Page Live Preview
+              </label>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 relative overflow-hidden">
+                <div className="flex items-start gap-3">
+                  <div
+                    className={cn(
+                      'w-12 h-12 rounded-2xl flex items-center justify-center text-white bg-gradient-to-br shadow-md shrink-0',
+                      currentOption.tone
+                    )}
+                  >
+                    <Icon className="w-6 h-6" />
                   </div>
-                  <p className="text-[11px] text-slate-500 font-medium mt-1 line-clamp-2">
-                    {description.trim() || currentOption.placeholderBio}
-                  </p>
-                  <p className="text-[10px] text-slate-400 font-bold mt-1.5 flex items-center gap-1">
-                    📍 {address || city?.name || 'CityOS Network'}
-                  </p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-sm font-black text-ink leading-tight truncate">
+                        {name.trim()}
+                      </h3>
+                      <span
+                        className={cn(
+                          'text-[10px] font-black px-2 py-0.5 rounded-full border',
+                          currentOption.badgeTone
+                        )}
+                      >
+                        {currentOption.title} · {currentOption.osName}
+                      </span>
+                    </div>
+                    {description.trim() && (
+                      <p className="text-[11px] text-slate-500 font-medium mt-1 line-clamp-2">
+                        {description.trim()}
+                      </p>
+                    )}
+                    <p className="text-[10px] text-slate-400 font-bold mt-1.5 flex items-center gap-1">
+                      📍 {address || city?.name || 'Calabar'}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Error Banner */}
           {error ? (
