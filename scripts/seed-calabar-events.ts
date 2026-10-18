@@ -24,7 +24,7 @@ const CALABAR_EVENTS: SeedEventDef[] = [
     orgType: 'EVENT_ORGANIZER',
     orgDescription: 'Cross River State’s premier urban lifestyle radio station and entertainment event organizer.',
     orgAddress: '95.9 Hit FM Broadcast House, Marian Road, Calabar',
-    eventImage: 'https://cec.hitfmcalabar.com/wp-content/uploads/2026/09/PHOTO-2024-09-13-20-00-52-1024x572.jpg',
+    eventImage: 'https://cec.hitfmcalabar.com/wp-content/uploads/2026/09/WhatsApp-Image-2026-09-01-at-8.06.23-AM.jpeg',
     eventUrl: 'https://cec.hitfmcalabar.com',
     location: 'Hogis Royale Banquet Hall, Bishop Moynagh Ave, State Housing, Calabar',
     dateIso: '2026-10-23T09:00:00+01:00',
