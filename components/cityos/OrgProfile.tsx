@@ -324,15 +324,15 @@ export default async function OrgProfile({ id }: { id: string }) {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="text-[13px] font-black text-ink truncate">{j.title}</p>
-                    <p className="text-[11px] font-bold text-slate-400 truncate">{j.employmentType || 'Full-time'}</p>
+                    <p className="text-[11px] font-bold text-slate-400 truncate">{j.type ? j.type.replace(/_/g, ' ') : j.employmentType || 'Full-Time'}</p>
                   </div>
                   <Pill tone="blue">Hiring</Pill>
                 </div>
                 <div className="flex items-center justify-between mt-3">
                   <span className="inline-flex items-center gap-1.5 text-[11px] font-black text-teal-800">
-                    <Briefcase className="w-3.5 h-3.5" /> {j.salary || 'Competitive'}
+                    <Briefcase className="w-3.5 h-3.5" /> {j.pay || j.salary || 'Competitive'}
                   </span>
-                  <span className="text-[10px] font-bold text-slate-400">Recently</span>
+                  <span className="text-[10px] font-bold text-slate-400">{j.area || 'Calabar'}</span>
                 </div>
               </Link>
             ))}

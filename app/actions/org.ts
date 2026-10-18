@@ -87,25 +87,56 @@ export async function getCanonicalOrganization(id: string) {
 export async function getCityJobs() {
   // City scope: only jobs whose org operates in the current city.
   const city = await getCurrentCity();
-  const cityOrgIds = city
-    ? new Set((await db.orm.public.Location.where({ }).all()).map(o => o.organizationId))
-    : null;
-  const jobs = await db.orm.public.Job.include('organization', o => o.select('name', 'id')).all();
-  return cityOrgIds ? jobs.filter(j => cityOrgIds.has(j.organizationId)) : jobs;
+  const [locations, activeListings, jobs] = await Promise.all([
+    city ? db.orm.public.Location.where({}).all() : Promise.resolve([]),
+    db.orm.public.DiscoveryListing.where({ isActive: true }).all(),
+    db.orm.public.Job.include('organization', (o) =>
+      o.select('name', 'id', 'description', 'address')
+    ).all(),
+  ]);
+  const cityOrgIds = city ? new Set(locations.map((o) => o.organizationId)) : null;
+  const profileOrgIds = new Set(activeListings.map((l) => l.organizationId));
+  const scoped = cityOrgIds ? jobs.filter((j) => cityOrgIds.has(j.organizationId)) : jobs;
+  return scoped.map((j) => ({
+    ...j,
+    hasCityOSProfile:
+      profileOrgIds.has(j.organizationId) &&
+      !(j.description && /APPLY_URL:\s*https?:\/\//i.test(j.description)),
+  }));
 }
 
 export async function getCityEvents() {
   const city = await getCurrentCity();
   const cityOrgIds = city
-    ? new Set((await db.orm.public.Location.where({ }).all()).map(o => o.organizationId))
+    ? new Set((await db.orm.public.Location.where({ cityId: city.id }).all()).map(o => o.organizationId))
     : null;
-  const events = await db.orm.public.Event.include('organization', o => o.select('name', 'id')).all();
-  return cityOrgIds ? events.filter(e => cityOrgIds.has(e.organizationId)) : events;
+  const events = await db.orm.public.Event.include('organization', o => o.select('name', 'id', 'logoAssetId')).all();
+  const filtered = cityOrgIds ? events.filter(e => cityOrgIds.has(e.organizationId)) : events;
+  const normalized = filtered.map((e: any) => ({
+    ...e,
+    date: e.date ? e.date.toString() : new Date().toISOString(),
+    createdAt: e.createdAt ? e.createdAt.toString() : null,
+  }));
+  normalized.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  return JSON.parse(JSON.stringify(normalized));
 }
 
 export async function getCanonicalJob(id: string) {
-  const job = await db.orm.public.Job.where({ id }).include('organization', o => o.select('name', 'id')).first();
-  return job;
+  const job = await db.orm.public.Job.where({ id })
+    .include('organization', (o) => o.select('name', 'id', 'description', 'address'))
+    .first();
+  if (!job) return null;
+  const activeListing = await db.orm.public.DiscoveryListing.where({
+    organizationId: job.organizationId,
+    isActive: true,
+  }).first();
+  const hasExternalUrl = Boolean(
+    job.description && /APPLY_URL:\s*https?:\/\//i.test(job.description)
+  );
+  return {
+    ...job,
+    hasCityOSProfile: Boolean(activeListing) && !hasExternalUrl,
+  };
 }
 
 export async function checkJobApplication(jobId: string) {
@@ -143,8 +174,15 @@ export async function toggleJobApplication(jobId: string) {
 }
 
 export async function getCanonicalEvent(id: string) {
-  const event = await db.orm.public.Event.where({ id }).include('organization', o => o.select('name', 'id')).first();
-  return event;
+  const event = await db.orm.public.Event.where({ id }).include('organization', o => o.select('name', 'id', 'logoAssetId')).first();
+  if (!event) return null;
+  const tiers = await db.orm.public.EventTicketTier.where({ eventId: id }).all();
+  return JSON.parse(JSON.stringify({
+    ...event,
+    date: event.date ? event.date.toString() : new Date().toISOString(),
+    createdAt: event.createdAt ? event.createdAt.toString() : null,
+    ticketTiers: tiers,
+  }));
 }
 
 export async function checkEventRegistration(eventId: string) {
@@ -263,7 +301,12 @@ export async function getResolvedSavedItems() {
 }
 
 export async function getResidentOrganization(identifier: string) {
-  const session = await getServerSession(authOptions);
+  let session = null;
+  try {
+    session = await getServerSession(authOptions);
+  } catch {
+    session = null;
+  }
   const personId = session?.user?.personId;
 
   let listing = await db.orm.public.DiscoveryListing.where({ slug: identifier }).first();
@@ -293,6 +336,12 @@ export async function getResidentOrganization(identifier: string) {
   }
 
   if ((!listing || !listing.isActive) && !isManager) {
+    if (!listing) {
+      const hasOpenJob = await db.orm.public.Job.where({ organizationId: orgId }).first();
+      if (hasOpenJob) {
+        return { orgId, isManager, listing: null };
+      }
+    }
     return null;
   }
 
