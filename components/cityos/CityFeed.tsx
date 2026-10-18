@@ -795,6 +795,11 @@ export default function CityFeed({ hideHeader = false }: { hideHeader?: boolean 
   const [error, setError] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [showLogin, setShowLogin] = useState(false);
+  const [loginModalConfig, setLoginModalConfig] = useState<{ title?: string; message?: string; callbackUrl?: string }>({});
+  const promptLogin = (title: string, message: string, callbackUrl?: string) => {
+    setLoginModalConfig({ title, message, callbackUrl });
+    setShowLogin(true);
+  };
   const sentinelRef = useRef<HTMLDivElement>(null);
   const isGuest = status === 'unauthenticated';
 
@@ -891,22 +896,64 @@ export default function CityFeed({ hideHeader = false }: { hideHeader?: boolean 
           </div>
           <Link
             href="/feed/new"
+            onClick={(e) => {
+              if (isGuest) {
+                e.preventDefault();
+                promptLogin("Sign in to post", `Sign in or create an account to share what's happening in ${cityName}.`, "/feed/new");
+              }
+            }}
             className="flex-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-full px-4 py-2.5 text-[13px] text-slate-500 font-medium transition-colors cursor-pointer"
           >
             Share what&apos;s happening in {cityName}...
           </Link>
         </div>
         <div className="flex items-center justify-between border-t border-slate-100 mt-3 pt-2.5 px-2 text-[12px] font-bold text-slate-600">
-          <Link href="/feed/new?category=Community" className="inline-flex items-center gap-1.5 hover:text-teal-700 transition-colors">
+          <Link
+            href="/feed/new?category=Community"
+            onClick={(e) => {
+              if (isGuest) {
+                e.preventDefault();
+                promptLogin("Sign in to post", `Sign in or create an account to start a discussion with ${cityName} residents.`, "/feed/new?category=Community");
+              }
+            }}
+            className="inline-flex items-center gap-1.5 hover:text-teal-700 transition-colors"
+          >
             💬 <span>Discussion</span>
           </Link>
-          <Link href="/feed/new?category=Offer" className="inline-flex items-center gap-1.5 hover:text-teal-700 transition-colors">
+          <Link
+            href="/feed/new?category=Offer"
+            onClick={(e) => {
+              if (isGuest) {
+                e.preventDefault();
+                promptLogin("Sign in to post an offer", "Sign in or create an account to list items or services for sale.", "/feed/new?category=Offer");
+              }
+            }}
+            className="inline-flex items-center gap-1.5 hover:text-teal-700 transition-colors"
+          >
             🏷️ <span>Offer / Sell</span>
           </Link>
-          <Link href="/feed/new?category=Event" className="inline-flex items-center gap-1.5 hover:text-teal-700 transition-colors">
+          <Link
+            href="/feed/new?category=Event"
+            onClick={(e) => {
+              if (isGuest) {
+                e.preventDefault();
+                promptLogin("Sign in to create an event", "Sign in or create an account to publish an event to the city calendar.", "/feed/new?category=Event");
+              }
+            }}
+            className="inline-flex items-center gap-1.5 hover:text-teal-700 transition-colors"
+          >
             📅 <span>Event</span>
           </Link>
-          <Link href="/feed/new?category=Ask+the+city" className="inline-flex items-center gap-1.5 hover:text-teal-700 transition-colors">
+          <Link
+            href="/feed/new?category=Ask+the+city"
+            onClick={(e) => {
+              if (isGuest) {
+                e.preventDefault();
+                promptLogin("Sign in to ask the city", `Sign in or create an account to ask questions and get answers from ${cityName} residents.`, "/feed/new?category=Ask+the+city");
+              }
+            }}
+            className="inline-flex items-center gap-1.5 hover:text-teal-700 transition-colors"
+          >
             ❓ <span>Ask Calabar</span>
           </Link>
         </div>
@@ -935,7 +982,7 @@ export default function CityFeed({ hideHeader = false }: { hideHeader?: boolean 
                 onFollowToggle={onFollowToggle}
                 onDelete={(id) => setPosts(prev => prev.filter(p => p.id !== id))}
                 isGuest={isGuest}
-                onRequireAuth={() => setShowLogin(true)}
+                onRequireAuth={() => promptLogin("Sign in to interact", "Sign in or create an account to like posts, comment, and follow local businesses.")}
               />
             ))}
             {/* Infinite scroll sentinel */}
@@ -954,13 +1001,31 @@ export default function CityFeed({ hideHeader = false }: { hideHeader?: boolean 
             <p className="text-3xl mb-3">🏙️</p>
             <p className="text-sm font-black text-slate-700">Be the first to post in {cityName}!</p>
             <p className="text-xs text-slate-400 mt-1 mb-4">Share what's happening in your city.</p>
-            <Link href="/feed/new" className="inline-flex items-center gap-2 px-5 py-2.5 bg-teal-700 hover:bg-teal-800 text-white text-[13px] font-bold rounded-xl transition-colors">
+            <Link
+              href="/feed/new"
+              onClick={(e) => {
+                if (isGuest) {
+                  e.preventDefault();
+                  promptLogin("Sign in to post", `Be the first to share an update with ${cityName}.`, "/feed/new");
+                }
+              }}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-teal-700 hover:bg-teal-800 text-white text-[13px] font-bold rounded-xl transition-colors"
+            >
               Create a post
             </Link>
           </div>
         )}
       </div>
-      <LoginModal isOpen={showLogin} onClose={() => setShowLogin(false)} title="Join the conversation" message="Sign in to follow organizations, react to posts, and join local discussions." />
+      <LoginModal
+        isOpen={showLogin}
+        onClose={() => {
+          setShowLogin(false);
+          setLoginModalConfig({});
+        }}
+        title={loginModalConfig.title || "Join the conversation"}
+        message={loginModalConfig.message || "Sign in to follow organizations, react to posts, and join local discussions."}
+        callbackUrl={loginModalConfig.callbackUrl}
+      />
     </div>
   );
 }

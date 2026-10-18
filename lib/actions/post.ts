@@ -79,7 +79,7 @@ import { notifyPerson } from '@/lib/notify';
 export async function addComment(postId: string, content: string, parentId?: string) {
     try {
         const session = await getServerSession(authOptions);
-        if (!session?.user?.email) return JSON.parse(JSON.stringify({ error: 'Not logged in' }));
+        if (!session?.user?.email && !session?.user?.personId) return JSON.parse(JSON.stringify({ error: 'Not logged in' }));
     
         const { person } = await requireAuthenticatedAccount();
     
@@ -117,7 +117,7 @@ export async function addComment(postId: string, content: string, parentId?: str
 
 export async function toggleLike(postId: string) {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.email) return JSON.parse(JSON.stringify({ error: 'Not logged in' }));
+    if (!session?.user?.email && !session?.user?.personId) return JSON.parse(JSON.stringify({ error: 'Not logged in' }));
 
     const { person } = await requireAuthenticatedAccount();
 

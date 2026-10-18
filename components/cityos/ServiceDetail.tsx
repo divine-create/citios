@@ -20,6 +20,8 @@ import {
   MessageSquare,
   Send,
 } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import LoginModal from '@/components/LoginModal';
 import { FallbackImg } from '@/components/cityos/CityUI';
 import {
   getCityServiceItem,
@@ -60,7 +62,9 @@ export default function ServiceDetail({ id }: { id: string }) {
 
   // Like state
   const [liked, setLiked] = useState(false);
+  const { data: session } = useSession();
   const [likesCount, setLikesCount] = useState(0);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   // Booking Modal State (WhatsApp Direct)
   const [showBookingModal, setShowBookingModal] = useState(false);
@@ -175,12 +179,20 @@ export default function ServiceDetail({ id }: { id: string }) {
   };
 
   const handleOpenWriteReview = () => {
+    if (!session?.user) {
+      setShowLoginModal(true);
+      return;
+    }
     setShowWriteReview(true);
     handleScrollToReviews();
   };
 
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!session?.user) {
+      setShowLoginModal(true);
+      return;
+    }
     setReviewSubmitting(true);
     setReviewFormError(null);
     setReviewSuccessMsg(null);
@@ -433,6 +445,10 @@ export default function ServiceDetail({ id }: { id: string }) {
           <button
             type="button"
             onClick={() => {
+              if (!session?.user) {
+                setShowLoginModal(true);
+                return;
+              }
               setShowWriteReview(!showWriteReview);
               setReviewSuccessMsg(null);
               setReviewFormError(null);
@@ -610,7 +626,13 @@ export default function ServiceDetail({ id }: { id: string }) {
               </p>
               <button
                 type="button"
-                onClick={() => setShowWriteReview(true)}
+                onClick={() => {
+                  if (!session?.user) {
+                    setShowLoginModal(true);
+                    return;
+                  }
+                  setShowWriteReview(true);
+                }}
                 className="mt-2 px-3.5 py-1.5 rounded-lg bg-teal-800 hover:bg-teal-900 text-white text-xs font-bold transition-colors inline-flex items-center gap-1 shadow-xs cursor-pointer"
               >
                 <Star size={11} className="fill-amber-300 text-amber-300" />
@@ -898,6 +920,15 @@ export default function ServiceDetail({ id }: { id: string }) {
           </div>
         </div>
       )}
+
+      {/* Login Modal for unauthenticated reviewers */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        title="Sign in to write a review"
+        message="Sign in or register to share your honest review with the city."
+        callbackUrl={`/service/${id}`}
+      />
     </div>
   );
 }

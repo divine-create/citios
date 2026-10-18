@@ -9,15 +9,20 @@ interface LoginModalProps {
     onClose: () => void;
     title?: string;
     message?: string;
+    callbackUrl?: string;
 }
 
 export default function LoginModal({ 
     isOpen, 
     onClose, 
     title = 'Join Your Community', 
-    message = 'Connect with your neighbors, participate in local discussions, and discover what makes your city special.' 
+    message = 'Connect with your neighbors, participate in local discussions, and discover what makes your city special.',
+    callbackUrl
 }: LoginModalProps) {
     if (!isOpen) return null;
+
+    const loginHref = callbackUrl ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}` : '/login';
+    const registerHref = callbackUrl ? `/register?callbackUrl=${encodeURIComponent(callbackUrl)}` : '/register';
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-300">
@@ -56,7 +61,7 @@ export default function LoginModal({
 
                     <div className="space-y-3">
                         <a
-                            href="/login"
+                            href={loginHref}
                             className="w-full py-3.5 px-4 bg-teal-700 hover:bg-teal-800 text-white font-black text-sm rounded-xl transition-all shadow-md shadow-teal-900/10 flex items-center justify-center gap-2"
                         >
                             <LogIn className="w-4 h-4" />
@@ -64,7 +69,7 @@ export default function LoginModal({
                         </a>
 
                         <a
-                            href="/register"
+                            href={registerHref}
                             className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl transition-colors flex items-center justify-center border border-slate-200"
                         >
                             Create New Account

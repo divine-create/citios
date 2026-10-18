@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Heart, MessageSquare, Share2, MoreHorizontal, Edit3, Trash2, X, Loader2 } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import LoginModal from '@/components/LoginModal';
 import { VerifiedBadge, Pill } from '@/components/cityos/CityUI';
 import InlineComments from '@/components/InlineComments';
 import { cn } from '@/lib/utils';
@@ -37,6 +39,8 @@ function timeAgo(dateString: string) {
 
 export default function PostDetailClient({ post }: { post: DBPost }) {
   const router = useRouter();
+  const { data: session } = useSession();
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [liked, setLiked] = useState(post.isLikedByMe);
   const [likeCount, setLikeCount] = useState(post.likes);
   const [commentCount, setCommentCount] = useState(post.comments);
@@ -79,6 +83,10 @@ export default function PostDetailClient({ post }: { post: DBPost }) {
 
   const handleReact = async (reaction: ReactionType | null) => {
     setShowPicker(false);
+    if (!session?.user) {
+      setShowLoginModal(true);
+      return;
+    }
     const wasLiked = liked;
     const prevReaction = myReaction;
     if (reaction === null) {
@@ -444,6 +452,14 @@ export default function PostDetailClient({ post }: { post: DBPost }) {
           </div>
         </div>
       )}
+
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        title="Sign in to interact"
+        message="Sign in or register to react to posts and participate in the community."
+        callbackUrl={`/feed/${post.id}`}
+      />
     </div>
   );
 }

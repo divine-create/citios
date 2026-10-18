@@ -215,6 +215,34 @@ export default function BusinessDashboard() {
         )}
       </div>
 
+      {/* Unauthenticated banner */}
+      {!session?.user && (
+        <div className="bg-gradient-to-r from-teal-900 via-teal-800 to-slate-900 rounded-2xl p-5 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-teal-700/60 shadow-md">
+          <div className="space-y-1">
+            <h3 className="text-sm font-black text-white flex items-center gap-1.5">
+              <span>🏢</span> Own or operate a local business?
+            </h3>
+            <p className="text-xs text-teal-100/80 font-medium max-w-xl">
+              Sign in or create an account to manage your business presence, launch workspaces, manage menu or services, and accept city orders.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <a
+              href={`/login?callbackUrl=${encodeURIComponent('/business')}`}
+              className="px-4 py-2 rounded-xl bg-white text-teal-950 font-black text-xs hover:bg-teal-50 transition-colors shadow-xs"
+            >
+              Sign In
+            </a>
+            <a
+              href={`/register?callbackUrl=${encodeURIComponent('/business')}`}
+              className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition-colors border border-white/20"
+            >
+              Register
+            </a>
+          </div>
+        </div>
+      )}
+
       {/* Pages Switcher Bar */}
       <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-4">
         <div className="flex items-center justify-between">

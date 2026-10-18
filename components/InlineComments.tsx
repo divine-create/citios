@@ -1,10 +1,12 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
+import { useSession } from 'next-auth/react';
 import { getPostDetails, addComment } from '@/lib/actions/post';
-import { Send, Loader2, X } from 'lucide-react';
+import { Send, Loader2, X, LogIn } from 'lucide-react';
 import LoginModal from './LoginModal';
 
 export default function InlineComments({ postId, onCommentAdded }: { postId: string, onCommentAdded?: () => void }) {
+    const { data: session } = useSession();
     const [comments, setComments] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [commentText, setCommentText] = useState('');
@@ -17,9 +19,6 @@ export default function InlineComments({ postId, onCommentAdded }: { postId: str
     const inputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        if (inputRef.current) {
-            inputRef.current.focus();
-        }
         let mounted = true;
         getPostDetails(postId).then(data => {
             if (mounted && data && data.comments) {
@@ -31,6 +30,10 @@ export default function InlineComments({ postId, onCommentAdded }: { postId: str
     }, [postId]);
 
     const handleReplyClick = (comment: any) => {
+        if (!session?.user) {
+            setIsLoginModalOpen(true);
+            return;
+        }
         setReplyingTo(comment);
         if (inputRef.current) {
             inputRef.current.focus();
@@ -39,6 +42,10 @@ export default function InlineComments({ postId, onCommentAdded }: { postId: str
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!session?.user) {
+            setIsLoginModalOpen(true);
+            return;
+        }
         if (!commentText.trim()) return;
         
         setIsSubmitting(true);
@@ -49,7 +56,7 @@ export default function InlineComments({ postId, onCommentAdded }: { postId: str
         try {
             const res = await addComment(postId, commentText, actualParentId);
             if (res.error) {
-                if (res.error === 'Not logged in') {
+                if (res.error === 'Not logged in' || res.error.includes('logged in')) {
                     setIsLoginModalOpen(true);
                 } else {
                     setCommentError(res.error);
@@ -83,7 +90,7 @@ export default function InlineComments({ postId, onCommentAdded }: { postId: str
                     <p className="text-[13px] text-slate-800 leading-snug">{comment.content}</p>
                 </div>
                 <div className="flex items-center gap-3 px-2 mt-1">
-                    <span className="text-[11px] font-bold text-slate-500 cursor-pointer hover:underline">Like</span>
+                    <span onClick={() => { if (!session?.user) setIsLoginModalOpen(true); }} className="text-[11px] font-bold text-slate-500 cursor-pointer hover:underline">Like</span>
                     <span onClick={() => handleReplyClick(comment)} className="text-[11px] font-bold text-slate-500 cursor-pointer hover:underline">Reply</span>
                     <span className="text-[11px] text-slate-400">{new Date(comment.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
                 </div>
@@ -127,7 +134,7 @@ export default function InlineComments({ postId, onCommentAdded }: { postId: str
             <div className={`flex gap-2 items-center ${replyingTo ? 'border border-slate-100 p-2 rounded-b-xl rounded-tr-xl bg-white shadow-sm' : ''}`}>
                 {!replyingTo && (
                     <div className="w-8 h-8 rounded-full bg-slate-200 shrink-0 flex items-center justify-center font-bold text-[11px] text-slate-600">
-                        Me
+                        {session?.user?.name?.charAt(0) || 'Me'}
                     </div>
                 )}
                 <div className="flex-1 relative">
@@ -137,6 +144,16 @@ export default function InlineComments({ postId, onCommentAdded }: { postId: str
                         placeholder={replyingTo ? "Write a reply..." : "Write a comment..."}
                         value={commentText}
                         onChange={(e) => setCommentText(e.target.value)}
+                        onFocus={() => {
+                            if (!session?.user) {
+                                setIsLoginModalOpen(true);
+                            }
+                        }}
+                        onClick={() => {
+                            if (!session?.user) {
+                                setIsLoginModalOpen(true);
+                            }
+                        }}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                                 e.preventDefault();
@@ -159,10 +176,26 @@ export default function InlineComments({ postId, onCommentAdded }: { postId: str
             {commentError && (
                 <p className="text-xs font-bold text-red-500 mt-1 px-1">{commentError}</p>
             )}
+
+            {!session?.user && (
+                <div className="flex items-center justify-between text-[11px] text-slate-500 mt-2 px-1">
+                    <span>You must be signed in to comment or reply.</span>
+                    <button
+                        type="button"
+                        onClick={() => setIsLoginModalOpen(true)}
+                        className="text-teal-700 font-bold hover:underline"
+                    >
+                        Sign in or Register →
+                    </button>
+                </div>
+            )}
             
             <LoginModal 
                 isOpen={isLoginModalOpen} 
-                onClose={() => setIsLoginModalOpen(false)} 
+                onClose={() => setIsLoginModalOpen(false)}
+                title="Sign in to comment"
+                message="Sign in or create an account to leave a comment, reply to neighbors, and join city conversations."
+                callbackUrl={`/feed/${postId}`}
             />
         </div>
     );

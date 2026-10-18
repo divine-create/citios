@@ -125,7 +125,7 @@ export const VERTICAL_OPTIONS: VerticalOption[] = [
 export default function CreateBusinessModal() {
   const { isCreateModalOpen, closeCreateModal, preselectedType, refreshBusinesses, switchToBusiness } = useAccountSwitcher();
   const { city } = useCity();
-  const { update } = useSession();
+  const { data: session, update } = useSession();
 
   const [selectedType, setSelectedType] = useState<string>('RETAIL');
   const [name, setName] = useState('');
@@ -164,6 +164,52 @@ export default function CreateBusinessModal() {
   }, [isCreateModalOpen, preselectedType, city?.name]);
 
   if (!isCreateModalOpen) return null;
+
+  if (!session?.user) {
+    return (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 overflow-y-auto animate-in fade-in duration-200">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={closeCreateModal} />
+        <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden my-8 z-10 p-8 text-center animate-in zoom-in-95 duration-200">
+          <button
+            onClick={closeCreateModal}
+            className="absolute right-5 top-5 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          
+          <div className="w-16 h-16 bg-gradient-to-br from-teal-700 to-teal-900 rounded-2xl flex items-center justify-center text-white mx-auto mb-5 shadow-xl shadow-teal-950/10">
+            <Building2 className="w-8 h-8" />
+          </div>
+
+          <h2 className="text-xl font-black text-slate-900 mb-2">Sign in to Create a Business</h2>
+          <p className="text-xs text-slate-500 mb-6 leading-relaxed max-w-sm mx-auto">
+            You must be signed in to create and manage a business page on CityConnect. Sign in with your account or register to launch your business.
+          </p>
+
+          <div className="space-y-3">
+            <a
+              href="/login?callbackUrl=/create"
+              className="w-full py-3 px-4 bg-teal-800 hover:bg-teal-900 text-white font-black text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
+            >
+              Sign in to CityConnect
+            </a>
+            <a
+              href="/register?callbackUrl=/create"
+              className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl transition-colors flex items-center justify-center border border-slate-200"
+            >
+              Create New Account
+            </a>
+            <button
+              onClick={closeCreateModal}
+              className="w-full py-2 text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-wider mt-2"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const currentOption = VERTICAL_OPTIONS.find((v) => v.type === selectedType) || VERTICAL_OPTIONS[0];
   const Icon = currentOption.icon;

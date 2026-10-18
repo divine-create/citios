@@ -132,7 +132,38 @@ export default function CreatePost() {
   };
 
   if (!session?.user) {
-    return <div className="p-10 text-center text-slate-500">Sign in to post to the city.</div>;
+    const callbackUrl = '/feed/new' + (category ? `?category=${encodeURIComponent(category)}` : '');
+    return (
+      <div className="max-w-md mx-auto my-12 bg-white rounded-3xl border border-slate-200/80 shadow-xl p-8 text-center animate-in fade-in duration-300">
+        <div className="w-16 h-16 bg-gradient-to-br from-teal-700 to-teal-900 rounded-2xl flex items-center justify-center text-white mx-auto mb-5 shadow-xl shadow-teal-950/10">
+          <PenSquare className="w-8 h-8" />
+        </div>
+        <h2 className="text-xl font-black text-slate-900 mb-2">Sign in to Post to CityOS</h2>
+        <p className="text-xs text-slate-500 mb-6 leading-relaxed max-w-sm mx-auto">
+          Join your local city community to post announcements, offers, discussions, events, or questions for {cityName}.
+        </p>
+        <div className="space-y-3">
+          <a
+            href={`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`}
+            className="w-full py-3 px-4 bg-teal-800 hover:bg-teal-900 text-white font-black text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
+          >
+            Sign in to CityConnect
+          </a>
+          <a
+            href={`/register?callbackUrl=${encodeURIComponent(callbackUrl)}`}
+            className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl transition-colors flex items-center justify-center border border-slate-200"
+          >
+            Create New Account
+          </a>
+          <button
+            onClick={() => router.back()}
+            className="w-full py-2 text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-wider mt-2"
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
   }
 
   const activeName = session.user.name || 'Resident';

@@ -78,4 +78,11 @@ test('CityOS Newsfeed Reality Verification', async (t) => {
     const jobPost = jobs.posts.find((p: any) => p.href?.url.startsWith('/jobs/'));
     assert.ok(jobPost, 'Job post should have direct job link');
   });
+
+  await t.test('5. Zero Unsplash images exist in the feed', async () => {
+    const feed = await fetchFeed('For You', 'All', undefined, 50);
+    const unsplashPosts = feed.posts.filter((p: any) => p.image?.includes('unsplash.com') || p.media?.includes('unsplash.com'));
+    assert.strictEqual(unsplashPosts.length, 0, `Expected 0 Unsplash posts in feed, but found: ${unsplashPosts.length}`);
+  });
 });
+
