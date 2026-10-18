@@ -390,7 +390,7 @@ export default function ResidentShell({
     if (pathname.startsWith('/news')) return 'News';
     if (pathname.startsWith('/events')) return 'Events';
     if (pathname.startsWith('/activity')) return 'Activity';
-    if (pathname.startsWith('/business')) return 'Business Dashboard';
+    if (pathname.startsWith('/business')) return 'Business Hub';
     if (pathname.startsWith('/map')) return 'City Map';
     if (pathname.startsWith('/create')) return 'Create';
     if (pathname.startsWith('/jobs')) return 'Jobs';
