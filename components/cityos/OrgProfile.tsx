@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, Briefcase, BadgeCheck, Users, CalendarDays, ClipboardList, CheckCircle2, ShieldCheck, ArrowUpRight } from 'lucide-react';
+import { ArrowRight, Briefcase, BadgeCheck, Users, CalendarDays, ClipboardList, CheckCircle2, ShieldCheck, ArrowUpRight, Star } from 'lucide-react';
 import { getCanonicalOrganization } from '@/app/actions/org';
 import { formatMoney } from '@/lib/format';
 import { getCurrentCity } from '@/lib/city';
@@ -11,6 +11,8 @@ import { authOptions } from '@/lib/auth';
 import { db } from '@/src/prisma/db';
 import { getWorkspaceUrlForOrg } from '@/lib/actions/business';
 import EnquiryModal from '@/components/cityos/EnquiryModal';
+import BusinessReviewsSection from '@/components/cityos/BusinessReviewsSection';
+import { getOrganizationReviews } from '@/lib/actions/reviews';
 
 export default async function OrgProfile({ id }: { id: string }) {
   const org = await getCanonicalOrganization(id);
@@ -46,7 +48,10 @@ export default async function OrgProfile({ id }: { id: string }) {
     }
   }
 
-  const workspaceUrl = await getWorkspaceUrlForOrg(org.id, org.type);
+  const [workspaceUrl, reviewsBundle] = await Promise.all([
+    getWorkspaceUrlForOrg(org.id, org.type),
+    getOrganizationReviews(org.id),
+  ]);
 
   const { capabilities, jobsData, eventsData, servicesData, productsData, menuData, locations } = org;
   
@@ -140,12 +145,31 @@ export default async function OrgProfile({ id }: { id: string }) {
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-2xl font-black tracking-tight">{org.name}</h1>
               </div>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-[11px] font-bold text-white/70">{org.isClaimed ? 'Verified Org' : 'Directory Listing'}</span>
+              <div className="flex items-center gap-2.5 mt-1.5 flex-wrap">
+                <span className="text-[11px] font-bold text-white/75">{org.isClaimed ? 'Verified Org' : 'Directory Listing'}</span>
+                {reviewsBundle.distribution.averageRating && (
+                  <a
+                    href="#reviews"
+                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/15 hover:bg-white/25 text-white text-[11px] font-black transition-colors"
+                  >
+                    <Star className="w-3 h-3 fill-amber-300 text-amber-300" />
+                    <span>{reviewsBundle.distribution.averageRating.toFixed(1)}</span>
+                    <span className="text-white/75 font-bold">
+                      ({reviewsBundle.distribution.totalReviews})
+                    </span>
+                  </a>
+                )}
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <a
+              href="#reviews"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#f43939] hover:bg-[#d92b2b] text-white text-xs font-black shadow-sm transition-colors"
+            >
+              <Star className="w-3.5 h-3.5 fill-white" />
+              Write a Review
+            </a>
             <EnquiryModal
               organizationId={org.id}
               organizationName={org.name}
@@ -339,6 +363,17 @@ export default async function OrgProfile({ id }: { id: string }) {
           </div>
         </section>
       ) : null}
+
+      {/* Reviews & Ratings Section */}
+      <BusinessReviewsSection
+        organizationId={org.id}
+        organizationName={org.name}
+        initialReviews={reviewsBundle.reviews}
+        initialDistribution={reviewsBundle.distribution}
+        initialMyReview={reviewsBundle.myReview}
+        isManager={isManager}
+        isLoggedIn={Boolean(session?.user?.personId)}
+      />
 
       </div>
   );

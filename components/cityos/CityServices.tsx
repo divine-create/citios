@@ -23,7 +23,6 @@ import {
 } from 'lucide-react';
 import RealisticIcon from '@/components/ui/RealisticIcon';
 import { SERVICE_CATEGORIES } from '@/lib/service-categories';
-import { fmtNaira } from '@/lib/format';
 import { bookResidentService } from '@/app/actions/service';
 import {
   getOrganizationReviews,
@@ -236,7 +235,6 @@ export default function CityServices({
       phone: targetPhone,
       orgName: selectedService.orgName,
       serviceName: selectedService.name,
-      price: selectedService.price,
       date: bookingDate,
       timeSlot: bookingTime,
       address: bookingAddress.trim() || undefined,
@@ -402,14 +400,11 @@ export default function CityServices({
             </button>
           </div>
 
-          {/* Service Name & Price */}
-          <div className="flex items-baseline justify-between gap-2 mt-1">
-            <h3 className="font-bold text-slate-900 text-sm leading-snug flex-1">
+          {/* Service Name */}
+          <div className="mt-1">
+            <h3 className="font-bold text-slate-900 text-sm leading-snug">
               {s.name}
             </h3>
-            <span className="text-sm font-black text-slate-900 shrink-0">
-              {fmtNaira(s.price)}
-            </span>
           </div>
 
           <p className="text-xs text-slate-500 mt-1.5 line-clamp-2 leading-relaxed">
@@ -770,12 +765,12 @@ export default function CityServices({
                 <h3 className="text-lg font-black text-slate-900 mt-1.5">
                   Book {selectedService.name}
                 </h3>
-                <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 font-medium">
-                  <span className="font-bold text-teal-800">{fmtNaira(selectedService.price)}</span>
-                  <span>&bull;</span>
+                <div className="flex items-center gap-2 mt-1 text-xs text-slate-500 font-medium">
                   <span className="flex items-center gap-1">
                     <Clock size={12} /> {selectedService.durationMinutes} min
                   </span>
+                  <span>&bull;</span>
+                  <span className="text-teal-800 font-semibold">Quote upon Inspection</span>
                 </div>
               </div>
               <button
@@ -805,10 +800,6 @@ export default function CityServices({
                   <div className="flex justify-between">
                     <span className="text-slate-500">Service:</span>
                     <span className="font-bold">{selectedService.name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Fee:</span>
-                    <span className="font-bold text-teal-800">{fmtNaira(selectedService.price)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Date & Slot:</span>
@@ -952,12 +943,12 @@ export default function CityServices({
                   />
                 </div>
 
-                {/* Inspection-First Policy Note */}
+                {/* Inspection & Quote Policy Note */}
                 <div className="p-3 bg-teal-50/70 border border-teal-100 rounded-xl text-teal-900 text-xs flex items-center justify-between">
                   <div>
-                    <span className="font-bold block">Inspection-First Policy</span>
+                    <span className="font-bold block">Inspection & Quote Policy</span>
                     <span className="text-[11px] text-teal-700">
-                      Direct chat to confirm your schedule. Pay {fmtNaira(selectedService.price)} upon job completion via Transfer or Cash.
+                      Direct chat to confirm your schedule. Free inspection and transparent quote agreed before work begins.
                     </span>
                   </div>
                   <ShieldCheck className="w-4 h-4 text-teal-700 shrink-0 ml-2" />

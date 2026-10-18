@@ -3,12 +3,14 @@
 import Link from 'next/link';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Heart, MessageSquare, Share2, ChevronRight, UserPlus, UserCheck, Loader2, X, MoreHorizontal, Edit3, Trash2 } from 'lucide-react';
+import { Heart, MessageSquare, Share2, ChevronRight, UserPlus, UserCheck, Loader2, X, MoreHorizontal, Edit3, Trash2, CheckCircle2, MapPin, Building2 } from 'lucide-react';
 
 const TABS = ['For You', 'Following'] as const;
-const TOPICS = ['All', 'Marketplace', 'Events', 'Housing', 'Community'];
+const TOPICS = ['All', 'Reviews', 'Marketplace', 'Events', 'Housing', 'Community'];
 
 import { FallbackImg, Pill, VerifiedBadge } from '@/components/cityos/CityUI';
+import { YelpStarRow } from '@/components/cityos/BusinessReviewsSection';
+import { RATING_LABELS } from '@/lib/reviews';
 import InlineComments from '@/components/InlineComments';
 import { cn } from '@/lib/utils';
 import { sharePost } from '@/lib/actions/post';
@@ -45,6 +47,18 @@ export type DBPost = {
   postMetadata?: string;
   postBackground?: PostBackgroundId;
   isMyPost?: boolean;
+  reviewCard?: {
+    reviewId: string;
+    rating: number;
+    photos: string[];
+    tags: string[];
+    isVerifiedCustomer: boolean;
+    reviewedOrgId: string;
+    reviewedOrgName: string;
+    reviewedOrgCategory?: string;
+    reviewedOrgAddress?: string;
+    reviewedOrgCover?: string;
+  };
 };
 
 // ─── Reaction config ────────────────────────────────────────────────────────
@@ -304,9 +318,9 @@ function PostCard({ post, follows, onFollowToggle, onDelete, isGuest, onRequireA
   const selectedBackground = currentBackground && currentBackground !== 'auto'
     ? getPostBackground(currentBackground)
     : getPostBackground(autoBackground);
-  const isShortText = !post.image && !post.videoUrl && currentBody.length < 130;
-  const isTextOnly = !post.image && !post.videoUrl;
-  const hasCustomBackground = currentBackground && currentBackground !== 'auto';
+  const isShortText = !post.reviewCard && !post.image && !post.videoUrl && currentBody.length < 130;
+  const isTextOnly = !post.reviewCard && !post.image && !post.videoUrl;
+  const hasCustomBackground = !post.reviewCard && currentBackground && currentBackground !== 'auto';
 
   const inner = (
     <div className="flex flex-col bg-white border-b border-slate-100 last:border-b-0 pb-2 mb-2 hover:bg-slate-50/30 transition-colors">
@@ -324,9 +338,23 @@ function PostCard({ post, follows, onFollowToggle, onDelete, isGuest, onRequireA
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <p onClick={handleProfileClick} className="text-[13px] font-black text-ink cursor-pointer hover:underline">{post.author}</p>
-            {post.isOrg ? <VerifiedBadge /> : null}
-            <Pill tone="slate" className="ml-1">{currentCategory}</Pill>
-            {post.isOrg && post.orgId && (
+            {post.reviewCard ? (
+              <>
+                <span className="text-[12px] font-bold text-slate-500">wrote a review</span>
+                {post.reviewCard.isVerifiedCustomer && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-black uppercase tracking-wider">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Verified Customer
+                  </span>
+                )}
+              </>
+            ) : (
+              <>
+                {post.isOrg ? <VerifiedBadge /> : null}
+                <Pill tone="slate" className="ml-1">{currentCategory}</Pill>
+              </>
+            )}
+            {post.isOrg && post.orgId && !post.reviewCard && (
               <button onClick={handleFollow}
                 className={cn('ml-auto flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-md transition-colors',
                   isFollowing ? 'bg-slate-100 text-slate-500' : 'bg-teal-50 text-teal-700 hover:bg-teal-100')}>
@@ -386,7 +414,129 @@ function PostCard({ post, follows, onFollowToggle, onDelete, isGuest, onRequireA
 
       {/* Body */}
       <div className="px-5">
-        {isShortText || (isTextOnly && hasCustomBackground) ? (
+        {post.reviewCard ? (
+          <div className="space-y-3">
+            {/* Yelp-style Reviewed Business Mini-Card */}
+            <Link
+              href={`/org/${post.reviewCard.reviewedOrgId}`}
+              onClick={(e) => e.stopPropagation()}
+              className="group flex items-center gap-3.5 p-3 rounded-2xl bg-slate-50 hover:bg-slate-100/90 border border-slate-200/80 transition-all"
+            >
+              {post.reviewCard.reviewedOrgCover ? (
+                <img
+                  src={post.reviewCard.reviewedOrgCover}
+                  alt={post.reviewCard.reviewedOrgName}
+                  className="w-14 h-14 rounded-xl object-cover border border-slate-200 shrink-0"
+                />
+              ) : (
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-teal-600 to-teal-800 text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <Building2 className="w-6 h-6" />
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <h4 className="text-[14px] font-black text-slate-900 group-hover:text-teal-700 truncate transition-colors">
+                    {post.reviewCard.reviewedOrgName}
+                  </h4>
+                  <VerifiedBadge />
+                </div>
+                <div className="flex items-center gap-2 flex-wrap mt-0.5 text-[11px] font-bold text-slate-500">
+                  {post.reviewCard.reviewedOrgCategory && (
+                    <span className="text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-100">
+                      {post.reviewCard.reviewedOrgCategory}
+                    </span>
+                  )}
+                  {post.reviewCard.reviewedOrgAddress && (
+                    <span className="inline-flex items-center gap-1 truncate text-slate-500">
+                      <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                      <span className="truncate">{post.reviewCard.reviewedOrgAddress}</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+              <span className="hidden sm:inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-[11px] font-black text-slate-700 group-hover:border-teal-600 group-hover:text-teal-700 transition-colors shrink-0 shadow-xs">
+                View Business
+                <ChevronRight className="w-3.5 h-3.5" />
+              </span>
+            </Link>
+
+            {/* Yelp Star Row + Rating Label */}
+            <div className="flex items-center gap-2.5 flex-wrap pt-0.5">
+              <YelpStarRow rating={post.reviewCard.rating} size="md" />
+              <span className="text-[13px] font-black text-slate-900">
+                {post.reviewCard.rating}.0 / 5.0
+              </span>
+              {RATING_LABELS[post.reviewCard.rating] && (
+                <span className="text-[12px] font-bold text-slate-500">
+                  · {RATING_LABELS[post.reviewCard.rating]}
+                </span>
+              )}
+            </div>
+
+            {/* Review Text Body */}
+            <p className={cn('text-[14px] text-slate-800 leading-relaxed whitespace-pre-line', !isExpanded && currentBody.length > 280 && 'line-clamp-5')}>
+              {currentBody}
+            </p>
+            {!isExpanded && currentBody.length > 280 && (
+              <button
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsExpanded(true); }}
+                className="text-teal-600 text-sm font-bold mt-1 hover:underline"
+              >
+                Read full review
+              </button>
+            )}
+
+            {/* Vibe Tags */}
+            {post.reviewCard.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {post.reviewCard.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="px-2.5 py-1 rounded-full bg-amber-50/80 text-amber-900 border border-amber-200/70 text-[11px] font-bold"
+                  >
+                    ✨ {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Attached Review Photos Grid */}
+            {post.reviewCard.photos.length > 0 && (
+              <div
+                className={cn(
+                  'grid gap-2 pt-1',
+                  post.reviewCard.photos.length === 1
+                    ? 'grid-cols-1'
+                    : post.reviewCard.photos.length === 2
+                    ? 'grid-cols-2'
+                    : 'grid-cols-3'
+                )}
+              >
+                {post.reviewCard.photos.map((photoUrl, idx) => (
+                  <button
+                    key={`${photoUrl}-${idx}`}
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setFullImage(photoUrl);
+                    }}
+                    className={cn(
+                      'relative overflow-hidden rounded-xl border border-slate-200 group bg-slate-100',
+                      post.reviewCard!.photos.length === 1 ? 'max-h-[380px]' : 'aspect-square'
+                    )}
+                  >
+                    <img
+                      src={photoUrl}
+                      alt={`Review photo ${idx + 1}`}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : isShortText || (isTextOnly && hasCustomBackground) ? (
           <div className={cn('mt-1 -mx-5 px-8 py-10 text-white flex flex-col justify-center items-center text-center min-h-[180px]', selectedBackground.className)}>
             {currentTitle && currentTitle !== 'Post' && !currentBody.startsWith(currentTitle) && (
               <h3 className="text-[16px] font-black leading-snug mb-2 drop-shadow">{currentTitle}</h3>
@@ -407,26 +557,26 @@ function PostCard({ post, follows, onFollowToggle, onDelete, isGuest, onRequireA
           </>
         )}
 
-        {post.image && (
+        {!post.reviewCard && post.image && (
           <img src={post.image} alt={currentTitle}
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFullImage(post.image!); }}
             className="mt-3 w-full max-h-[480px] rounded-xl object-cover border border-slate-100 cursor-pointer hover:opacity-95 active:scale-[0.99] transition-all" />
         )}
-        {post.videoUrl && (
+        {!post.reviewCard && post.videoUrl && (
           <div className="mt-3 text-[13px] font-bold text-teal-700 bg-teal-50 px-3 py-2 rounded-lg inline-flex items-center gap-2">
             🔗 <a href={post.videoUrl} target="_blank" rel="noreferrer" className="hover:underline">Watch Video</a>
           </div>
         )}
 
         {/* Metadata */}
-        {(post.eventDate || post.location || post.price != null) && (
+        {!post.reviewCard && (post.eventDate || post.location || post.price != null) && (
           <div className="mt-3 bg-slate-50 rounded-xl p-3 flex flex-wrap gap-x-4 gap-y-2 text-[12px] text-slate-600 font-medium border border-slate-100">
             {post.eventDate && <div className="flex items-center gap-1.5"><span>📅</span>{new Date(post.eventDate).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</div>}
             {post.location && <div className="flex items-center gap-1.5"><span>📍</span>{post.location}</div>}
             {post.price != null && <div className="flex items-center gap-1.5 font-bold text-emerald-700"><span>💲</span>${post.price.toFixed(2)}</div>}
           </div>
         )}
-        {post.href && (
+        {!post.reviewCard && post.href && (
           <Link href={post.href.url} className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-teal-800 hover:bg-teal-900 text-white text-[11px] font-bold transition-colors">
             {post.href.label}<ChevronRight className="w-3.5 h-3.5" />
           </Link>

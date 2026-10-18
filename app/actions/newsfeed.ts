@@ -10,22 +10,60 @@ import { getPostBackground, parsePostMetadata, serializePostMetadata, type PostB
 export type ReactionType = 'LIKE' | 'LOVE' | 'HAHA' | 'WOW' | 'SAD' | 'ANGRY';
 
 function mapPost(post: any, myLikedPostIds: Set<string>, myReactions: Map<string, ReactionType>, currentPersonId?: string, myOrgIds?: Set<string>) {
+  let parsedRawMeta: any = null;
+  if (post.postMetadata) {
+    try {
+      parsedRawMeta = JSON.parse(post.postMetadata);
+    } catch {
+      parsedRawMeta = null;
+    }
+  }
+
+  const isReviewPost =
+    post.category === 'Review' ||
+    post.linkedEntityType === 'REVIEW' ||
+    Boolean(parsedRawMeta?.isReviewCard);
+
   let author = 'Unknown';
   let role = 'Resident';
   let isOrg = false;
 
-  if (post.organization) {
+  if (isReviewPost && post.person) {
+    author = `${post.person.firstName} ${post.person.lastName}`.trim();
+    role = 'Local Reviewer';
+    isOrg = false;
+  } else if (post.organization && !isReviewPost) {
     author = post.organization.name;
     role = post.organization.type ? `${post.organization.type.charAt(0)}${post.organization.type.slice(1).toLowerCase()}` : 'Organization';
     isOrg = true;
   } else if (post.person) {
-    author = `${post.person.firstName} ${post.person.lastName}`;
+    author = `${post.person.firstName} ${post.person.lastName}`.trim();
   }
 
   const isMyPost = Boolean(
     currentPersonId &&
-      (post.personId === currentPersonId || (post.organizationId && myOrgIds?.has(post.organizationId)))
+      (post.personId === currentPersonId || (!isReviewPost && post.organizationId && myOrgIds?.has(post.organizationId)))
   );
+
+  const reviewCard = isReviewPost
+    ? {
+        reviewId: parsedRawMeta?.reviewId || post.linkedEntityId || post.id,
+        rating: Number(parsedRawMeta?.rating) || 5,
+        photos: Array.isArray(parsedRawMeta?.photos)
+          ? parsedRawMeta.photos
+          : post.imageUrl
+          ? [post.imageUrl]
+          : [],
+        tags: Array.isArray(parsedRawMeta?.tags) ? parsedRawMeta.tags : [],
+        isVerifiedCustomer: Boolean(parsedRawMeta?.isVerifiedCustomer),
+        reviewedOrgId: parsedRawMeta?.reviewedOrgId || post.organizationId || '',
+        reviewedOrgName:
+          parsedRawMeta?.reviewedOrgName || post.organization?.name || 'Local Business',
+        reviewedOrgCategory: parsedRawMeta?.reviewedOrgCategory || 'Business',
+        reviewedOrgAddress: parsedRawMeta?.reviewedOrgAddress || post.location || 'Calabar',
+        reviewedOrgCover: parsedRawMeta?.reviewedOrgCover || null,
+      }
+    : undefined;
 
   return {
     id: post.id,
@@ -43,7 +81,7 @@ function mapPost(post: any, myLikedPostIds: Set<string>, myReactions: Map<string
     eventDate: post.eventDate ? new Date(post.eventDate).toISOString() : undefined,
     location: post.location,
     price: post.price != null ? Number(post.price) : undefined,
-    postBackground: parsePostMetadata(post.postMetadata).background,
+    postBackground: isReviewPost ? 'auto' : parsePostMetadata(post.postMetadata).background,
     likes: post.likes || 0,
     comments: post.comments || 0,
     shares: post.shareCount || 0,
@@ -52,6 +90,7 @@ function mapPost(post: any, myLikedPostIds: Set<string>, myReactions: Map<string
     myReaction: myReactions.get(post.id) ?? null,
     isMyPost,
     orgId: post.organizationId,
+    reviewCard,
   };
 }
 
@@ -77,6 +116,8 @@ export async function fetchFeed(
   if (topic !== 'All') {
     if (topic === 'Marketplace') {
       postsClause.category = { in: ['Offer', 'Marketplace'] };
+    } else if (topic === 'Reviews') {
+      postsClause.category = 'Review';
     } else {
       postsClause.category = topic;
     }

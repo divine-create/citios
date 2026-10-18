@@ -834,12 +834,13 @@ export async function getOrganizationReviews(organizationId: string) {
       reviews: sorted.map((r) => {
         const p = personMap.get(r.personId);
         const authorName = p ? `${p.firstName} ${p.lastName ? p.lastName[0] + '.' : ''}`.trim() : 'Verified Resident';
+        const cleanBody = r.body ? r.body.split('\n---CITYOS_REVIEW_META---\n')[0] : r.body;
         return {
           id: r.id,
           organizationId: r.organizationId,
           personId: r.personId,
           rating: r.rating,
-          body: r.body,
+          body: cleanBody,
           authorName,
           createdAt: (r.createdAt as any)?.toISOString ? (r.createdAt as any).toISOString() : String(r.createdAt),
         };
@@ -855,66 +856,23 @@ export async function submitOrganizationReview(input: {
   organizationId: string;
   rating: number;
   body?: string;
+  photos?: string[];
+  tags?: string[];
 }) {
-  let session: any = null;
-  try {
-    session = await getServerSession(authOptions);
-  } catch {
-    session = null;
-  }
-  if (!session?.user?.personId) {
+  const { submitBusinessReview } = await import('@/lib/actions/reviews');
+  const res = await submitBusinessReview(input);
+  if (!res.success) {
     return {
       success: false,
-      requiresAuth: true,
-      error: 'Please sign in to submit a review.',
+      requiresAuth: res.requiresAuth,
+      error: res.error,
     };
   }
-
-  try {
-    const personId = session.user.personId as string;
-    const rating = Math.min(5, Math.max(1, Math.round(Number(input.rating))));
-    const body = (input.body || '').trim();
-
-    // Verify organization exists
-    const org = await db.orm.public.Organization.where({ id: input.organizationId }).all().first();
-    if (!org) {
-      return { success: false, error: 'Organization not found.' };
-    }
-
-    // Upsert review (Review has @@unique([personId, organizationId]))
-    const existing = await db.orm.public.Review.where({
-      personId,
-      organizationId: input.organizationId,
-    }).all().first();
-
-    let review;
-    if (existing) {
-      review = await db.orm.public.Review.where({ id: existing.id }).update({
-        rating,
-        body: body || null,
-      });
-    } else {
-      review = await db.orm.public.Review.create({
-        organizationId: input.organizationId,
-        personId,
-        rating,
-        body: body || null,
-      });
-    }
-
-    try {
-      revalidatePath('/services');
-      revalidatePath(`/org/${input.organizationId}`);
-    } catch {}
-
-    return {
-      success: true,
-      review: JSON.parse(JSON.stringify(review)),
-    };
-  } catch (error: any) {
-    console.error('Error submitting review:', error);
-    return { success: false, error: error.message || 'Failed to submit review.' };
-  }
+  const latest = await db.orm.public.Review.where({ id: res.reviewId }).all().first();
+  return {
+    success: true,
+    review: latest ? JSON.parse(JSON.stringify(latest)) : { id: res.reviewId, rating: input.rating, body: input.body || null },
+  };
 }
 
 export async function toggleOrganizationLike(organizationId: string) {

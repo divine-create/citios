@@ -83,7 +83,7 @@ export function buildWhatsAppServiceUrl(params: {
   phone: string;
   orgName: string;
   serviceName: string;
-  price: number;
+  price?: number;
   date?: string;
   timeSlot?: string;
   address?: string;
@@ -95,8 +95,11 @@ export function buildWhatsAppServiceUrl(params: {
     ``,
     `I would like to book your service via *CityOS*:`,
     `🛠️ *Service:* ${params.serviceName}`,
-    `💰 *Fee:* ₦${params.price.toLocaleString()}`,
   ];
+
+  if (params.price && params.price > 0) {
+    lines.push(`💰 *Fee:* ₦${params.price.toLocaleString()}`);
+  }
 
   if (params.date) {
     lines.push(`📅 *Preferred Date:* ${params.date} (${params.timeSlot || 'Anytime'})`);

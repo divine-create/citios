@@ -129,7 +129,7 @@ export default function LocalServicesView({ initialOrgs }: { initialOrgs?: any[]
                     <span className="inline-block px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-md capitalize">
                       {pro.category}
                     </span>
-                    <span className="text-xl font-bold text-gray-900">${pro.hourlyRate}<span className="text-sm font-normal text-gray-500">/hr</span></span>
+                    <span className="text-xs font-semibold text-teal-800 bg-teal-50 px-2 py-0.5 rounded">Quote on Inspection</span>
                   </div>
                   <p className="text-sm text-gray-600 line-clamp-2 mb-4">{pro.bio}</p>
                 </div>
@@ -207,8 +207,8 @@ export default function LocalServicesView({ initialOrgs }: { initialOrgs?: any[]
                 
                 <div className="mt-8 pt-4 border-t border-gray-100">
                   <div className="flex justify-between items-center mb-4 text-sm text-gray-600">
-                    <span>Estimated Rate</span>
-                    <span className="font-semibold text-gray-900">${selectedPro.hourlyRate}/hr</span>
+                    <span>Pricing</span>
+                    <span className="font-semibold text-gray-900">Quote upon Inspection</span>
                   </div>
                   <button 
                     onClick={confirmBooking}

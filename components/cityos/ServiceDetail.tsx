@@ -20,8 +20,7 @@ import {
   MessageSquare,
   Send,
 } from 'lucide-react';
-import { useMoney } from '@/components/cityos/CityProvider';
-import { FallbackImg, PriceTag } from '@/components/cityos/CityUI';
+import { FallbackImg } from '@/components/cityos/CityUI';
 import {
   getCityServiceItem,
   bookResidentService,
@@ -46,7 +45,6 @@ interface ReviewItem {
 }
 
 export default function ServiceDetail({ id }: { id: string }) {
-  const { fmt } = useMoney();
   const router = useRouter();
   const [s, setS] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -215,7 +213,6 @@ export default function ServiceDetail({ id }: { id: string }) {
       phone: targetPhone,
       orgName: s.organization?.name || 'Local Pro',
       serviceName: s.name,
-      price: s.price,
       date: bookingDate,
       timeSlot: bookingTime,
       address: bookingAddress.trim() || undefined,
@@ -243,12 +240,15 @@ export default function ServiceDetail({ id }: { id: string }) {
   };
 
   const handleQuickWhatsApp = () => {
-    const targetPhone = s.whatsapp || s.phone || '2348112417171';
+    const targetPhone = s.whatsapp || s.phone;
+    if (!targetPhone) {
+      alert('Provider contact is currently unavailable.');
+      return;
+    }
     const waUrl = buildWhatsAppServiceUrl({
       phone: targetPhone,
       orgName: s.organization?.name || 'Local Pro',
       serviceName: s.name,
-      price: s.price,
     });
     if (typeof window !== 'undefined') {
       window.open(waUrl, '_blank', 'noopener,noreferrer');
@@ -322,7 +322,6 @@ export default function ServiceDetail({ id }: { id: string }) {
           <h1 className="text-2xl font-black text-ink mt-2 leading-tight">{s.name}</h1>
           
           <div className="flex items-center gap-3 mt-4">
-            <PriceTag amount={s.price} />
             {s.durationMinutes && (
               <span className="text-xs font-bold text-slate-500 bg-slate-50 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
                 <CalendarClock className="w-3.5 h-3.5" /> {s.durationMinutes} min
@@ -331,10 +330,13 @@ export default function ServiceDetail({ id }: { id: string }) {
             <span className="text-xs font-bold text-teal-800 bg-teal-50 border border-teal-200/60 px-2.5 py-1 rounded-lg flex items-center gap-1">
               <CalendarClock className="w-3.5 h-3.5 text-teal-700" /> Direct Scheduling
             </span>
+            <span className="text-xs font-bold text-slate-600 bg-slate-50 border border-slate-200/60 px-2.5 py-1 rounded-lg">
+              Quote on Inspection
+            </span>
           </div>
 
           <p className="text-sm text-slate-600 font-medium leading-relaxed mt-5">
-            {s.description || 'Verified local service pro in Calabar with guaranteed satisfaction and upfront pricing.'}
+            {s.description || 'Verified local service pro in Calabar with guaranteed satisfaction and transparent quotes.'}
           </p>
 
           {s.address && (
@@ -426,10 +428,6 @@ export default function ServiceDetail({ id }: { id: string }) {
                     <span className="text-slate-500">Provider:</span>
                     <span className="font-bold text-slate-800">{s.organization?.name}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Fee:</span>
-                    <span className="font-bold text-teal-800">{fmt(s.price)}</span>
-                  </div>
                   {bookingAddress && (
                     <div className="flex justify-between">
                     <span className="text-slate-500">Address:</span>
@@ -466,7 +464,7 @@ export default function ServiceDetail({ id }: { id: string }) {
                     Book {s.name}
                   </h2>
                   <p className="text-xs text-slate-500 mt-1">
-                    Provided by <span className="font-semibold text-slate-700">{s.organization?.name}</span> • {fmt(s.price)}
+                    Provided by <span className="font-semibold text-slate-700">{s.organization?.name}</span>
                   </p>
                 </div>
 
@@ -547,15 +545,15 @@ export default function ServiceDetail({ id }: { id: string }) {
                     />
                   </div>
 
-                  {/* Inspection-First Policy Note */}
+                  {/* Inspection & Quote Policy Note */}
                   <div className="p-3 bg-teal-50/70 border border-teal-200/80 rounded-xl text-teal-950 text-xs flex items-center justify-between">
                     <div>
                       <span className="font-bold block flex items-center gap-1 text-slate-800">
                         <ShieldCheck className="w-3.5 h-3.5 text-teal-700" />
-                        Inspection-First Policy
+                        Inspection & Quote Policy
                       </span>
                       <span className="text-[11px] text-slate-600">
-                        Direct chat to confirm your schedule and inspect details. Pay {fmt(s.price)} upon satisfactory job completion.
+                        Direct chat to confirm your schedule and inspect details. Transparent quote agreed before work begins.
                       </span>
                     </div>
                     <ShieldCheck className="w-4 h-4 text-teal-700 shrink-0 ml-2" />
@@ -564,8 +562,8 @@ export default function ServiceDetail({ id }: { id: string }) {
 
                 <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-bold">Total Service Fee</span>
-                    <span className="text-lg font-black text-slate-900">{fmt(s.price)}</span>
+                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-bold">Pricing</span>
+                    <span className="text-sm font-bold text-slate-800">Quote upon Inspection</span>
                   </div>
                   <button
                     type="submit"
