@@ -2,7 +2,7 @@ import { getCanonicalEvent } from '@/app/actions/org';
 import Link from 'next/link';
 import { ChevronRight, ExternalLink, Calendar, Globe } from 'lucide-react';
 import { Pill, LocationRow, FallbackImg } from '@/components/cityos/CityUI';
-import { parseEventDescription } from '@/lib/event-utils';
+import { parseEventDescription, DEFAULT_EVENT_PLACEHOLDER_IMAGE } from '@/lib/event-utils';
 
 export default async function CityEventDetail({ id }: { id: string }) {
   const e = await getCanonicalEvent(id);
@@ -18,7 +18,7 @@ export default async function CityEventDetail({ id }: { id: string }) {
     );
   }
 
-  const parsed = parseEventDescription(e.description, e.organization?.logoAssetId);
+  const parsed = parseEventDescription(e.description);
   const parsedDate = new Date(typeof e.date === 'string' ? e.date : e.date.toString());
   const dateStr = isNaN(parsedDate.getTime())
     ? String(e.date)
@@ -40,25 +40,19 @@ export default async function CityEventDetail({ id }: { id: string }) {
         <span className="text-slate-700 truncate">{e.title}</span>
       </nav>
 
-      {parsed.imageUrl ? (
-        <div className="relative rounded-3xl overflow-hidden bg-slate-100 h-56 sm:h-72">
-          <FallbackImg
-            src={parsed.imageUrl}
-            alt={e.title}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/15 to-transparent" />
-          <div className="absolute bottom-3 left-3 right-3 flex gap-2 flex-wrap">
-            <Pill tone="orange">Event</Pill>
-            <Pill tone="teal">{dateStr}</Pill>
-          </div>
-        </div>
-      ) : (
-        <div className="flex gap-2 flex-wrap">
+      <div className="relative rounded-3xl overflow-hidden bg-slate-100 h-56 sm:h-72">
+        <FallbackImg
+          src={parsed.imageUrl}
+          fallbackSrc={DEFAULT_EVENT_PLACEHOLDER_IMAGE}
+          alt={e.title}
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/15 to-transparent" />
+        <div className="absolute bottom-3 left-3 right-3 flex gap-2 flex-wrap">
           <Pill tone="orange">Event</Pill>
           <Pill tone="teal">{dateStr}</Pill>
         </div>
-      )}
+      </div>
 
       <div className="bg-white rounded-2xl border border-slate-100 p-6">
         <h1 className="text-xl font-black text-ink">{e.title}</h1>

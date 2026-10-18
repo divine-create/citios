@@ -6,7 +6,7 @@ import { Calendar, MapPin, ExternalLink } from 'lucide-react';
 import { CityCard, FallbackImg, Pill } from '@/components/cityos/CityUI';
 import { getCityEvents } from '@/app/actions/org';
 import { useCity } from '@/components/cityos/CityProvider';
-import { parseEventDescription } from '@/lib/event-utils';
+import { parseEventDescription, DEFAULT_EVENT_PLACEHOLDER_IMAGE } from '@/lib/event-utils';
 
 export default function CityEventsList({ initialEvents }: { initialEvents?: any[] }) {
   const { city } = useCity();
@@ -40,7 +40,7 @@ export default function CityEventsList({ initialEvents }: { initialEvents?: any[
           </div>
         ) : null}
         {events.map((e) => {
-          const parsed = parseEventDescription(e.description, e.organization?.logoAssetId);
+          const parsed = parseEventDescription(e.description);
           const parsedDate = new Date(typeof e.date === 'string' ? e.date : e.date?.toString());
           const formattedDate = isNaN(parsedDate.getTime())
             ? 'Upcoming'
@@ -52,7 +52,12 @@ export default function CityEventsList({ initialEvents }: { initialEvents?: any[
               });
           return (
             <CityCard key={e.id} href={`/events/${e.id}`} className="flex flex-col">
-              <FallbackImg src={parsed.imageUrl || undefined} alt={e.title} className="h-36 w-full object-cover" />
+              <FallbackImg
+                src={parsed.imageUrl}
+                fallbackSrc={DEFAULT_EVENT_PLACEHOLDER_IMAGE}
+                alt={e.title}
+                className="h-36 w-full object-cover"
+              />
               <div className="p-4 flex-1 flex flex-col gap-2">
                 <div className="flex items-center justify-between gap-2">
                   <Pill tone="orange">Event</Pill>

@@ -8,18 +8,21 @@ import { useMoney } from '@/components/cityos/CityProvider';
 
 export function FallbackImg({
   src,
+  fallbackSrc,
   alt,
   className,
   icon,
   gradient = 'from-teal-900 to-teal-700' }: {
   src?: string;
+  fallbackSrc?: string;
   alt: string;
   className?: string;
   icon?: React.ReactNode;
   gradient?: string;
 }) {
   const [failed, setFailed] = useState(false);
-  if (!src || failed) {
+  const activeSrc = !failed && src ? src : fallbackSrc;
+  if (!activeSrc) {
     return (
       <div
         className={cn(
@@ -37,10 +40,12 @@ export function FallbackImg({
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={src}
+      src={activeSrc}
       alt={alt}
       loading="lazy"
-      onError={() => setFailed(true)}
+      onError={() => {
+        if (!failed) setFailed(true);
+      }}
       className={cn('object-cover', className)}
     />
   );

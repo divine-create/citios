@@ -1,24 +1,27 @@
+export const DEFAULT_EVENT_PLACEHOLDER_IMAGE = '/images/event-placeholder.svg';
+
 export interface ParsedEventDetails {
   summary: string;
   eventUrl: string | null;
-  imageUrl: string | null;
+  imageUrl: string;
+  hasCustomImage: boolean;
   sourceName: string;
 }
 
 /**
  * Extracts clean summary, external event/registration URL, and event-specific image URL
- * from an Event's description field.
+ * from an Event's description field. Uses the event's own picture if present; otherwise
+ * uses the single unified placeholder image.
  */
 export function parseEventDescription(
-  rawDescription?: string | null,
-  fallbackOrgLogo?: string | null
+  rawDescription?: string | null
 ): ParsedEventDetails {
   let text = (rawDescription || '').trim();
   let eventUrl: string | null = null;
   let imageUrl: string | null = null;
 
   // 1. Extract IMAGE_URL: https://...
-  const imgMatch = text.match(/IMAGE_URL:\s*(https?:\/\/\S+)/i);
+  const imgMatch = text.match(/IMAGE_URL:\s*(\S+)/i);
   if (imgMatch) {
     imageUrl = imgMatch[1].trim();
     text = text.replace(imgMatch[0], '').trim();
@@ -53,7 +56,8 @@ export function parseEventDescription(
   return {
     summary: text || 'No description provided.',
     eventUrl,
-    imageUrl: imageUrl || fallbackOrgLogo || null,
+    imageUrl: imageUrl || DEFAULT_EVENT_PLACEHOLDER_IMAGE,
+    hasCustomImage: Boolean(imageUrl),
     sourceName,
   };
 }

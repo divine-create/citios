@@ -7,7 +7,7 @@ interface SeedEventDef {
   orgType: 'EVENT_ORGANIZER' | 'HOTEL' | 'RESTAURANT' | 'GOVERNMENT' | 'SCHOOL' | 'SERVICES';
   orgDescription: string;
   orgAddress: string;
-  eventImage: string;
+  eventImage?: string;
   eventUrl?: string;
   location: string;
   dateIso: string;
@@ -24,7 +24,7 @@ const CALABAR_EVENTS: SeedEventDef[] = [
     orgType: 'EVENT_ORGANIZER',
     orgDescription: 'Cross River State’s premier urban lifestyle radio station and entertainment event organizer.',
     orgAddress: '95.9 Hit FM Broadcast House, Marian Road, Calabar',
-    eventImage: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80',
+    eventImage: 'https://cec.hitfmcalabar.com/wp-content/uploads/2026/09/PHOTO-2024-09-13-20-00-52-1024x572.jpg',
     eventUrl: 'https://cec.hitfmcalabar.com',
     location: 'Hogis Royale Banquet Hall, Bishop Moynagh Ave, State Housing, Calabar',
     dateIso: '2026-10-23T09:00:00+01:00',
@@ -43,7 +43,7 @@ const CALABAR_EVENTS: SeedEventDef[] = [
     orgType: 'EVENT_ORGANIZER',
     orgDescription: 'Cross River State’s premier urban lifestyle radio station and entertainment event organizer.',
     orgAddress: '95.9 Hit FM Broadcast House, Marian Road, Calabar',
-    eventImage: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?auto=format&fit=crop&w=1200&q=80',
+    eventImage: 'https://cec.hitfmcalabar.com/wp-content/uploads/2026/09/WhatsApp-Image-2026-09-01-at-9.44.58-AMv-1024x684.jpeg',
     eventUrl: 'https://cec.hitfmcalabar.com',
     location: 'The Mirage Car Park, MCC Road, Calabar',
     dateIso: '2026-10-24T12:00:00+01:00',
@@ -63,7 +63,6 @@ const CALABAR_EVENTS: SeedEventDef[] = [
     orgType: 'EVENT_ORGANIZER',
     orgDescription: 'Community hub advancing youth entrepreneurship, specialty hospitality, and sustainable enterprise in Cross River State.',
     orgAddress: 'Marian Road (Ndidem Usang Iso), Calabar',
-    eventImage: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=1200&q=80',
     eventUrl: 'https://allevents.in/calabar',
     location: 'Cultural Centre Complex, Barracks Road, Calabar',
     dateIso: '2026-10-30T10:00:00+01:00',
@@ -79,10 +78,9 @@ const CALABAR_EVENTS: SeedEventDef[] = [
   {
     title: 'CMFR 1st Annual Local Musicians Challenge Show (Auditions & Live Showcase)',
     orgName: 'Channel View Hotel',
-    orgType: 'EVENT_ORGANIZER',
+    orgType: 'HOTEL',
     orgDescription: 'Premier hospitality and conference destination on MCC Road, Calabar.',
     orgAddress: '29 MCC Road, Calabar, Cross River State',
-    eventImage: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=1200&q=80',
     eventUrl: 'https://www.eventbrite.com/d/nigeria--calabar/events/',
     location: 'Channel View Hotel Hall, MCC Road, Calabar',
     dateIso: '2026-11-03T08:00:00+01:00',
@@ -97,10 +95,9 @@ const CALABAR_EVENTS: SeedEventDef[] = [
   {
     title: 'Calabar Social Hangout (Mask Party & Everything Native Edition)',
     orgName: 'Hogis Royale & Suites',
-    orgType: 'EVENT_ORGANIZER',
+    orgType: 'HOTEL',
     orgDescription: 'Luxury hospitality, lounge, cinema, and event center in Calabar.',
     orgAddress: '7 Bishop Moynagh Avenue, State Housing Estate, Calabar',
-    eventImage: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1200&q=80',
     eventUrl: 'https://tix.africa/discover/calabar',
     location: 'Hogis Royale Poolside & Lounge, State Housing, Calabar',
     dateIso: '2026-11-14T18:00:00+01:00',
@@ -119,7 +116,6 @@ const CALABAR_EVENTS: SeedEventDef[] = [
     orgType: 'GOVERNMENT',
     orgDescription: 'Official state commission organizing Carnival Calabar — Africa’s Biggest Street Party.',
     orgAddress: 'Millennium Park (Eleven-Eleven), Calabar',
-    eventImage: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?auto=format&fit=crop&w=1200&q=80',
     eventUrl: 'https://allevents.in/calabar/carnival',
     location: 'Millennium Park (Eleven-Eleven) along the 12km Carnival Route, Calabar',
     dateIso: '2026-11-22T14:00:00+01:00',
@@ -134,7 +130,6 @@ const CALABAR_EVENTS: SeedEventDef[] = [
     orgType: 'SCHOOL',
     orgDescription: 'Academic research and polytechnic education consortium in Cross River State.',
     orgAddress: 'Calabar – Ugep Corridor, Cross River State',
-    eventImage: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=1200&q=80',
     eventUrl: 'https://www.eventbrite.com/d/nigeria--calabar/conferences/',
     location: 'Federal Polytechnic Ugep & Calabar Virtual Hub, Cross River State',
     dateIso: '2026-11-25T09:00:00+01:00',
@@ -153,7 +148,6 @@ const CALABAR_EVENTS: SeedEventDef[] = [
     orgType: 'GOVERNMENT',
     orgDescription: 'Official tourism promotion and destination management agency of Cross River State.',
     orgAddress: 'Calabar Municipal, Cross River State',
-    eventImage: 'https://images.unsplash.com/photo-1512389142860-9c449e58a543?auto=format&fit=crop&w=1200&q=80',
     eventUrl: 'https://allevents.in/calabar',
     location: 'Millennium Park (Eleven-Eleven Roundabout) & Festival Village, Calabar',
     dateIso: '2026-11-30T19:00:00+01:00',
@@ -168,7 +162,6 @@ const CALABAR_EVENTS: SeedEventDef[] = [
     orgType: 'GOVERNMENT',
     orgDescription: 'Official state commission organizing Carnival Calabar — Africa’s Biggest Street Party.',
     orgAddress: 'Millennium Park (Eleven-Eleven), Calabar',
-    eventImage: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=1200&q=80',
     eventUrl: 'https://allevents.in/calabar/carnival',
     location: 'Millennium Park to U.J. Esuene Stadium (12km Carnival Route), Calabar',
     dateIso: '2026-12-06T14:00:00+01:00',
@@ -183,7 +176,6 @@ const CALABAR_EVENTS: SeedEventDef[] = [
     orgType: 'GOVERNMENT',
     orgDescription: 'Official state commission organizing Carnival Calabar — Africa’s Biggest Street Party.',
     orgAddress: 'Millennium Park (Eleven-Eleven), Calabar',
-    eventImage: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1200&q=80',
     eventUrl: 'https://allevents.in/calabar/carnival',
     location: 'Mary Slessor Avenue Carnival Corridor, Calabar',
     dateIso: '2026-12-13T13:00:00+01:00',
@@ -198,7 +190,6 @@ const CALABAR_EVENTS: SeedEventDef[] = [
     orgType: 'EVENT_ORGANIZER',
     orgDescription: 'Historic waterfront leisure, boat club, and tourism resort overlooking the Calabar River.',
     orgAddress: 'Marina Resort Waterfront, Duke Town, Calabar',
-    eventImage: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1200&q=80',
     eventUrl: 'https://allevents.in/calabar',
     location: 'Marina Resort Waterfront, Duke Town, Calabar',
     dateIso: '2026-12-18T11:00:00+01:00',
@@ -217,7 +208,6 @@ const CALABAR_EVENTS: SeedEventDef[] = [
     orgType: 'EVENT_ORGANIZER',
     orgDescription: 'Historic waterfront leisure, boat club, and tourism resort overlooking the Calabar River.',
     orgAddress: 'Marina Resort Waterfront, Duke Town, Calabar',
-    eventImage: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=1200&q=80',
     eventUrl: 'https://tix.africa/discover/calabar',
     location: 'Marina Resort Waterfront, Calabar',
     dateIso: '2026-12-22T15:00:00+01:00',
@@ -236,7 +226,6 @@ const CALABAR_EVENTS: SeedEventDef[] = [
     orgType: 'EVENT_ORGANIZER',
     orgDescription: 'Iconic summit, exhibition, and cultural convention complex at Summit Hills, Calabar.',
     orgAddress: 'Summit Hills, Odukpani Road, Calabar',
-    eventImage: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=1200&q=80',
     eventUrl: 'https://allevents.in/calabar/carnival',
     location: 'Millennium Park & CICC Summit Hills, Calabar',
     dateIso: '2026-12-26T10:00:00+01:00',
@@ -255,7 +244,6 @@ const CALABAR_EVENTS: SeedEventDef[] = [
     orgType: 'GOVERNMENT',
     orgDescription: 'Official state commission organizing Carnival Calabar — Africa’s Biggest Street Party.',
     orgAddress: 'Millennium Park (Eleven-Eleven), Calabar',
-    eventImage: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?auto=format&fit=crop&w=1200&q=80',
     eventUrl: 'https://allevents.in/calabar/carnival',
     location: 'Mary Slessor Avenue & Botanical Garden Route, Calabar',
     dateIso: '2026-12-27T12:00:00+01:00',
@@ -270,7 +258,6 @@ const CALABAR_EVENTS: SeedEventDef[] = [
     orgType: 'GOVERNMENT',
     orgDescription: 'Official state commission organizing Carnival Calabar — Africa’s Biggest Street Party.',
     orgAddress: 'Millennium Park (Eleven-Eleven), Calabar',
-    eventImage: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?auto=format&fit=crop&w=1200&q=80',
     eventUrl: 'https://allevents.in/calabar/carnival',
     location: '12km Carnival Route (Millennium Park → Mary Slessor → Marian → U.J. Esuene Stadium), Calabar',
     dateIso: '2026-12-28T09:00:00+01:00',
@@ -289,7 +276,6 @@ const CALABAR_EVENTS: SeedEventDef[] = [
     orgType: 'GOVERNMENT',
     orgDescription: 'Official state commission organizing Carnival Calabar — Africa’s Biggest Street Party.',
     orgAddress: 'Millennium Park (Eleven-Eleven), Calabar',
-    eventImage: 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=1200&q=80',
     eventUrl: 'https://allevents.in/calabar/carnival',
     location: 'Mary Slessor Avenue & Marian Road Corridor, Calabar',
     dateIso: '2026-12-29T10:00:00+01:00',
@@ -304,7 +290,6 @@ const CALABAR_EVENTS: SeedEventDef[] = [
     orgType: 'GOVERNMENT',
     orgDescription: 'Official tourism promotion and destination management agency of Cross River State.',
     orgAddress: 'Calabar Municipal, Cross River State',
-    eventImage: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=1200&q=80',
     eventUrl: 'https://allevents.in/calabar/carnival',
     location: 'Festival Village & Marian Road, Calabar',
     dateIso: '2026-12-30T14:00:00+01:00',
@@ -344,12 +329,12 @@ async function main() {
         type: item.orgType,
         description: item.orgDescription,
         address: item.orgAddress,
-        logoAssetId: item.eventImage,
+        logoAssetId: item.eventImage || null,
         status: 'ACTIVE',
       });
-    } else if (!org.logoAssetId && item.eventImage) {
+    } else if (org.logoAssetId && org.logoAssetId.includes('images.unsplash.com')) {
       await db.orm.public.Organization.where({ id: org.id }).update({
-        logoAssetId: item.eventImage,
+        logoAssetId: item.eventImage || null,
       });
     }
 
