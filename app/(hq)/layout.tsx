@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { requireSystemAdmin } from '@/lib/rbac';
-import { ShieldAlert, ShieldCheck, Users, Building, Activity, Map, ArrowLeft, LogOut, FileText, Truck, ShoppingBag, Sparkles, Tag, CreditCard, Layers } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, Users, Building, Activity, Map, ArrowLeft, LogOut, FileText, Truck, ShoppingBag, Sparkles, Tag, CreditCard, Layers, Wrench } from 'lucide-react';
 import { redirect } from 'next/navigation';
 
 export default async function HQLayout({ children }: { children: React.ReactNode }) {
@@ -25,6 +25,9 @@ export default async function HQLayout({ children }: { children: React.ReactNode
           </Link>
           <Link href="/hq/verticals" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-sm font-medium text-slate-300 hover:text-white transition-colors">
             <Layers className="w-4 h-4 text-purple-400" /> City Verticals
+          </Link>
+          <Link href="/hq/services" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-sm font-medium text-slate-300 hover:text-white transition-colors">
+            <Wrench className="w-4 h-4 text-teal-400" /> Services Settings
           </Link>
           <Link href="/hq/checkout" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-sm font-medium text-slate-300 hover:text-white transition-colors">
             <CreditCard className="w-4 h-4 text-emerald-400" /> Checkout Settings

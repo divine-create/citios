@@ -347,18 +347,20 @@ export default function ServiceDetail({ id }: { id: string }) {
           )}
 
           <div className="mt-7 pt-5 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50/70 border border-slate-100">
-              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-              <div>
-                <p className="text-xs font-bold text-slate-800">Verified City Pro</p>
-                <p className="text-[11px] text-slate-500">Service backed by licensed provider in Calabar</p>
+            {s.isVerified && (
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-emerald-50/70 border border-emerald-100">
+                <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-bold text-slate-800">Verified City Pro</p>
+                  <p className="text-[11px] text-slate-500">Service backed by licensed provider in Calabar</p>
+                </div>
               </div>
-            </div>
+            )}
             <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50/70 border border-slate-100">
               <Clock className="w-4 h-4 text-teal-700 shrink-0 mt-0.5" />
               <div>
-                <p className="text-xs font-bold text-slate-800">Direct Scheduling</p>
-                <p className="text-[11px] text-slate-500">Confirm date & slot directly with the verified local provider</p>
+                <p className="text-xs font-bold text-slate-800">Direct Inquiries</p>
+                <p className="text-[11px] text-slate-500">Confirm schedule and inspect quotes directly with the provider</p>
               </div>
             </div>
           </div>
@@ -366,25 +368,31 @@ export default function ServiceDetail({ id }: { id: string }) {
         
         {/* Actions Bar */}
         <div className="p-6 sm:p-8 bg-slate-50/50 border-t border-slate-100 flex flex-col sm:flex-row gap-3">
-          <button
-            onClick={() => setShowBookingModal(true)}
-            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-teal-800 text-white text-sm font-black hover:bg-teal-900 transition-colors shadow-sm shadow-teal-950/10 cursor-pointer"
-          >
-            <CalendarClock className="w-4 h-4" />
-            Book Appointment
-          </button>
+          {s.isBookingEnabled && (
+            <button
+              onClick={() => setShowBookingModal(true)}
+              className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-teal-800 text-white text-sm font-black hover:bg-teal-900 transition-colors shadow-sm shadow-teal-950/10 cursor-pointer"
+            >
+              <CalendarClock className="w-4 h-4" />
+              Book Appointment
+            </button>
+          )}
           
           <button
             onClick={handleQuickWhatsApp}
-            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-white border border-slate-200 text-slate-800 text-sm font-bold hover:bg-slate-50 transition-colors shadow-xs cursor-pointer"
+            className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl transition-colors shadow-xs cursor-pointer ${
+              s.isBookingEnabled
+                ? 'bg-white border border-slate-200 text-slate-800 text-sm font-bold hover:bg-slate-50'
+                : 'bg-teal-800 hover:bg-teal-900 text-white text-sm font-black'
+            }`}
           >
-            <MessageSquare className="w-4 h-4 text-teal-700" />
-            Chat Provider
+            <MessageSquare className="w-4 h-4 text-emerald-400" />
+            Chat Provider via WhatsApp
           </button>
 
           <button
             onClick={handleOpenReviews}
-            className="px-4 py-3.5 rounded-xl bg-white border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50 transition-colors flex items-center justify-center gap-1.5 shadow-xs"
+            className="px-4 py-3.5 rounded-xl bg-white border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50 transition-colors flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
           >
             <MessageSquare className="w-4 h-4 text-slate-500" />
             Reviews

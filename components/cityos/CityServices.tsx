@@ -29,7 +29,11 @@ import {
   submitOrganizationReview,
   toggleOrganizationLike,
 } from '@/lib/actions/service';
-import { buildWhatsAppServiceUrl } from '@/lib/whatsapp';
+import { buildWhatsAppServiceUrl, buildWhatsAppInquiryUrl } from '@/lib/whatsapp';
+import {
+  ServicesVerticalConfig,
+  DEFAULT_SERVICES_CONFIG,
+} from '@/lib/services-config-constants';
 
 export interface CityServicesOrg {
   id: string;
@@ -60,6 +64,7 @@ export interface BookableServiceItem {
   reviewCount?: number;
   likesCount?: number;
   userHasLiked?: boolean;
+  isVerified?: boolean;
 }
 
 interface ReviewItem {
@@ -89,12 +94,14 @@ export default function CityServices({
   cityName = 'Calabar',
   initialCategory = 'All',
   initialCategoryCounts,
+  config = DEFAULT_SERVICES_CONFIG,
 }: {
   orgs?: CityServicesOrg[];
   services?: BookableServiceItem[];
   cityName?: string;
   initialCategory?: string;
   initialCategoryCounts?: Record<string, number>;
+  config?: ServicesVerticalConfig;
 }) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
@@ -378,26 +385,32 @@ export default function CityServices({
               <span className="text-[10px] font-bold uppercase tracking-wider text-teal-800 bg-teal-50 px-2 py-0.5 rounded-md truncate">
                 {s.orgName}
               </span>
-              <ShieldCheck size={14} className="text-teal-700 shrink-0" />
+              {s.isVerified && (
+                <span title="Verified by CityOS Admin">
+                  <ShieldCheck size={14} className="text-emerald-700 shrink-0" />
+                </span>
+              )}
             </div>
 
             {/* Like button */}
-            <button
-              type="button"
-              onClick={() => handleToggleLike(s.organizationId)}
-              className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-bold transition-all ${
-                orgLikes.liked
-                  ? 'bg-rose-50 text-rose-600 border border-rose-200'
-                  : 'bg-slate-50 text-slate-500 hover:bg-rose-50 hover:text-rose-600 border border-slate-100'
-              }`}
-              title={orgLikes.liked ? 'Unlike provider' : 'Like provider'}
-            >
-              <Heart
-                size={12}
-                className={orgLikes.liked ? 'fill-rose-500 text-rose-500' : 'text-slate-400'}
-              />
-              <span>{orgLikes.count}</span>
-            </button>
+            {config.enableLikes !== false && (
+              <button
+                type="button"
+                onClick={() => handleToggleLike(s.organizationId)}
+                className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                  orgLikes.liked
+                    ? 'bg-rose-50 text-rose-600 border border-rose-200'
+                    : 'bg-slate-50 text-slate-500 hover:bg-rose-50 hover:text-rose-600 border border-slate-100'
+                }`}
+                title={orgLikes.liked ? 'Unlike provider' : 'Like provider'}
+              >
+                <Heart
+                  size={12}
+                  className={orgLikes.liked ? 'fill-rose-500 text-rose-500' : 'text-slate-400'}
+                />
+                <span>{orgLikes.count}</span>
+              </button>
+            )}
           </div>
 
           {/* Service Name */}
@@ -408,12 +421,12 @@ export default function CityServices({
           </div>
 
           <p className="text-xs text-slate-500 mt-1.5 line-clamp-2 leading-relaxed">
-            {s.description || 'Professional service delivered by verified local providers in Calabar.'}
+            {s.description || 'Professional service delivered by local trade and maintenance specialists in Calabar.'}
           </p>
 
           {/* Rating & Reviews Trigger */}
-          <div className="mt-3 flex items-center gap-2">
-            {displayRating !== null ? (
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
+            {displayRating !== null && config.enableReviews !== false ? (
               <button
                 type="button"
                 onClick={() => handleOpenReviews(s.organizationId, s.orgName)}
@@ -425,19 +438,25 @@ export default function CityServices({
                   ({s.reviewCount} {s.reviewCount === 1 ? 'review' : 'reviews'})
                 </span>
               </button>
-            ) : (
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-200/60 px-2 py-0.5 rounded-md">
+            ) : null}
+
+            {/* Verified Pro badge strictly for providers verified by admin */}
+            {s.isVerified && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-800 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-md">
+                <CheckCircle2 size={11} className="text-emerald-600" />
                 Verified Pro
               </span>
             )}
 
-            <button
-              type="button"
-              onClick={() => handleOpenReviews(s.organizationId, s.orgName)}
-              className="text-[11px] text-slate-400 hover:text-teal-800 font-medium transition-colors flex items-center gap-0.5"
-            >
-              <MessageSquare size={11} /> {hasReviews ? 'Reviews' : 'Add review'}
-            </button>
+            {config.enableReviews !== false && (
+              <button
+                type="button"
+                onClick={() => handleOpenReviews(s.organizationId, s.orgName)}
+                className="text-[11px] text-slate-400 hover:text-teal-800 font-medium transition-colors flex items-center gap-0.5"
+              >
+                <MessageSquare size={11} /> {hasReviews ? 'Reviews' : 'Add review'}
+              </button>
+            )}
           </div>
         </div>
 
@@ -451,16 +470,32 @@ export default function CityServices({
             </span>
           </div>
 
-          {/* Booking Actions */}
-          <div className="grid grid-cols-2 gap-2 pt-1">
-            <button
-              type="button"
-              onClick={() => handleOpenBooking(s)}
-              className="w-full py-2 px-3 rounded-xl bg-teal-800 hover:bg-teal-900 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-xs"
-            >
-              <Calendar size={13} />
-              Book Pro
-            </button>
+          {/* Action Buttons */}
+          <div className={`grid gap-2 pt-1 ${config.enableBooking || (config.enableDirectChat && (s.whatsapp || s.phone)) ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            {config.enableBooking ? (
+              <button
+                type="button"
+                onClick={() => handleOpenBooking(s)}
+                className="w-full py-2 px-3 rounded-xl bg-teal-800 hover:bg-teal-900 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-xs"
+              >
+                <Calendar size={13} />
+                Book Pro
+              </button>
+            ) : config.enableDirectChat && (s.whatsapp || s.phone) ? (
+              <a
+                href={buildWhatsAppInquiryUrl({
+                  phone: s.whatsapp || s.phone!,
+                  orgName: s.orgName,
+                  cityName,
+                })}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2 px-3 rounded-xl bg-teal-800 hover:bg-teal-900 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-xs text-center"
+              >
+                <MessageSquare size={13} />
+                Chat Pro
+              </a>
+            ) : null}
 
             <Link
               href={`/service/${s.id}`}
@@ -732,25 +767,27 @@ export default function CityServices({
       )}
 
       {/* Provider Onboarding CTA Banner */}
-      <div className="rounded-2xl bg-gradient-to-br from-slate-900 to-teal-950 text-white p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
-        <div className="flex items-center gap-4">
-          <span className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center text-teal-300 shrink-0">
-            <Wrench className="w-6 h-6" />
-          </span>
-          <div>
-            <h3 className="text-base font-black">Run a skilled trade or service business in Calabar?</h3>
-            <p className="text-xs text-teal-100/70 font-medium mt-0.5 max-w-xl">
-              Publish your catalog on CityOS, accept instant appointments, dispatch technicians, and manage invoices with ServiceOS.
-            </p>
+      {config.enableProviderOnboarding !== false && (
+        <div className="rounded-2xl bg-gradient-to-br from-slate-900 to-teal-950 text-white p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-center gap-4">
+            <span className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center text-teal-300 shrink-0">
+              <Wrench className="w-6 h-6" />
+            </span>
+            <div>
+              <h3 className="text-base font-black">Run a skilled trade or service business in Calabar?</h3>
+              <p className="text-xs text-teal-100/70 font-medium mt-0.5 max-w-xl">
+                Publish your catalog on CityOS, accept instant appointments, dispatch technicians, and manage invoices with ServiceOS.
+              </p>
+            </div>
           </div>
+          <Link
+            href="/business/register"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white text-teal-900 text-xs font-black hover:bg-teal-50 transition-colors shrink-0 shadow-sm"
+          >
+            Register Business <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
-        <Link
-          href="/business/register"
-          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white text-teal-900 text-xs font-black hover:bg-teal-50 transition-colors shrink-0 shadow-sm"
-        >
-          Register Business <ArrowRight className="w-3.5 h-3.5" />
-        </Link>
-      </div>
+      )}
 
       {/* Direct Booking Modal */}
       {selectedService && (

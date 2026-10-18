@@ -57,6 +57,7 @@ test('CityServices Resident Discovery and Booking Suite', async (t) => {
       assert.ok('reviewCount' in first, 'Service item should include reviewCount');
       assert.ok('likesCount' in first, 'Service item should include likesCount');
       assert.ok('userHasLiked' in first, 'Service item should include userHasLiked');
+      assert.ok('isVerified' in first, 'Service item should include isVerified property');
     }
   });
 
@@ -131,6 +132,14 @@ test('CityServices Resident Discovery and Booking Suite', async (t) => {
     const counts = await getCityServiceCategoryCounts('calabar');
     assert.ok(typeof counts.All === 'number');
     assert.ok('Trades & Repair' in counts);
+  });
+
+  await t.test('7. Services vertical governance config defaults with booking disabled and strict verification', async () => {
+    const { getServicesConfig } = await import('@/lib/actions/services-config');
+    const config = await getServicesConfig();
+    assert.strictEqual(config.enableBooking, false, 'Book Pro direct booking must be disabled by default');
+    assert.strictEqual(config.requireAdminVerification, true, 'Strict admin verification must be enforced by default');
+    assert.ok(Array.isArray(config.verifiedOrgIds), 'verifiedOrgIds must be an array');
   });
 });
 

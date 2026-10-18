@@ -14,6 +14,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { formatWhatsAppNumber } from '@/lib/whatsapp'
+import { getServicesConfig } from '@/lib/actions/services-config'
 
 function toInstant(date: Date) {
   return (globalThis as any).Temporal.Instant.fromEpochMilliseconds(date.getTime());
@@ -738,6 +739,9 @@ export async function getCityBookableServices(citySlug?: string, categoryFilter?
       currentPersonId ? allLikes.filter((l) => l.personId === currentPersonId).map((l) => l.entityId) : []
     );
 
+    const servicesConfig = await getServicesConfig();
+    const verifiedSet = new Set(servicesConfig.verifiedOrgIds || []);
+
     return items.map((it) => {
       const contact = contactMap.get(it.organizationId);
       const revStat = reviewsMap.get(it.organizationId);
@@ -746,6 +750,7 @@ export async function getCityBookableServices(citySlug?: string, categoryFilter?
       const likesCount = likesMap.get(it.organizationId) || 0;
       const userHasLiked = userLikedSet.has(it.organizationId);
       const address = locationMap.get(it.organizationId) || null;
+      const isVerified = verifiedSet.has(it.organizationId);
 
       return {
         id: it.id,
@@ -763,6 +768,7 @@ export async function getCityBookableServices(citySlug?: string, categoryFilter?
         reviewCount,
         likesCount,
         userHasLiked,
+        isVerified,
       };
     });
   } catch (error) {

@@ -341,6 +341,10 @@ export async function getCityServiceItem(id: string) {
   const averageRating = totalReviews > 0 ? Number((sumRatings / totalReviews).toFixed(1)) : null;
   const userHasLiked = currentPersonId ? likes.some((l) => l.personId === currentPersonId) : false;
 
+  const { getServicesConfig } = await import('@/lib/actions/services-config');
+  const servicesConfig = await getServicesConfig();
+  const isVerified = Boolean(servicesConfig.verifiedOrgIds?.includes(orgId));
+
   return {
     ...item,
     phone,
@@ -350,6 +354,8 @@ export async function getCityServiceItem(id: string) {
     reviewCount: totalReviews,
     likesCount: likes.length,
     userHasLiked,
+    isVerified,
+    isBookingEnabled: Boolean(servicesConfig.enableBooking),
   };
 }
 

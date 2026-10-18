@@ -41,11 +41,13 @@ export default async function ServiceCategoryPage({
   }
 
   const city = await getCurrentCity();
+  const { getServicesConfig } = await import('@/lib/actions/services-config');
 
-  // Scoped load: loads ONLY the bookable services strictly for this category!
-  const [services, categoryCounts] = await Promise.all([
+  // Scoped load: loads ONLY the bookable services strictly for this category and config
+  const [services, categoryCounts, servicesConfig] = await Promise.all([
     getCityBookableServices(city?.slug, categoryDef.id),
     getCityServiceCategoryCounts(city?.slug),
+    getServicesConfig(),
   ]);
 
   return (
@@ -55,6 +57,7 @@ export default async function ServiceCategoryPage({
       initialCategory={categoryDef.id}
       initialCategoryCounts={categoryCounts}
       cityName={city?.name || 'City'}
+      config={servicesConfig}
     />
   );
 }

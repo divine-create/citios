@@ -251,7 +251,18 @@ export default function AdminVerticalsConfig({ initialConfig }: AdminVerticalsCo
 
               {/* Card Footer */}
               <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs">
-                <span className="font-mono text-slate-500 text-[11px]">{def.path}</span>
+                {key === 'services' ? (
+                  <Link
+                    href="/hq/services"
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-teal-400 hover:text-teal-300 font-bold text-[11px] flex items-center gap-1"
+                  >
+                    <span>Configure Features</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </Link>
+                ) : (
+                  <span className="font-mono text-slate-500 text-[11px]">{def.path}</span>
+                )}
                 <Link
                   href={def.path}
                   target="_blank"

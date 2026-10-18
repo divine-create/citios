@@ -1,6 +1,7 @@
 import { getCurrentCity } from '@/lib/city';
 import { getCityServiceCategoryCounts } from '@/lib/actions/service';
 import { getVerticalsConfig } from '@/lib/actions/verticals-config';
+import { getServicesConfig } from '@/lib/actions/services-config';
 import VerticalPausedNotice from '@/components/cityos/VerticalPausedNotice';
 import CityServices from '@/components/cityos/CityServices';
 
@@ -12,7 +13,11 @@ export default async function ServicesPage() {
     return <VerticalPausedNotice verticalName="Services" verticalId="services" />;
   }
 
-  const city = await getCurrentCity();
+  const [city, servicesConfig] = await Promise.all([
+    getCurrentCity(),
+    getServicesConfig(),
+  ]);
+
   const categoryCounts = await getCityServiceCategoryCounts(city?.slug);
 
   return (
@@ -20,6 +25,7 @@ export default async function ServicesPage() {
       services={[]}
       initialCategoryCounts={categoryCounts}
       cityName={city?.name || 'City'}
+      config={servicesConfig}
     />
   );
 }
