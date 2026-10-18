@@ -87,9 +87,17 @@ export default async function CityJobDetail({ id }: { id: string }) {
         <div className="absolute -right-14 -top-14 w-56 h-56 rounded-full bg-indigo-500/15 blur-3xl" />
         <div className="relative">
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="w-9 h-9 rounded-xl bg-white/10 ring-1 ring-white/15 flex items-center justify-center">
-              <Building2 className="w-4 h-4 text-teal-200" />
-            </div>
+            {(job.organization as any)?.logoAssetId ? (
+              <img
+                src={(job.organization as any).logoAssetId}
+                alt={orgName}
+                className="w-9 h-9 rounded-xl object-cover ring-1 ring-white/20"
+              />
+            ) : (
+              <div className="w-9 h-9 rounded-xl bg-white/10 ring-1 ring-white/15 flex items-center justify-center">
+                <Building2 className="w-4 h-4 text-teal-200" />
+              </div>
+            )}
             <Pill tone="orange">{formatJobTypeLabel(job.type)}</Pill>
             {job.category && (
               <span className="px-3 py-1 rounded-full bg-white/10 ring-1 ring-white/15 text-[11px] font-bold text-teal-100">

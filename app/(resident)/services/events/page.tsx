@@ -1,6 +1,19 @@
+import { getVerticalsConfig } from '@/lib/actions/verticals-config';
+import { getCityEvents } from '@/app/actions/org';
+import VerticalPausedNotice from '@/components/cityos/VerticalPausedNotice';
+import CityEventsList from '@/components/cityos/CityEventsList';
 
-import EventsDiscoveryView from '@/components/EventsDiscoveryView';
+export const dynamic = 'force-dynamic';
 
-export default async function EventsPage() {
-    return <EventsDiscoveryView />;
+export default async function ServiceEventsPage() {
+  const [config, events] = await Promise.all([
+    getVerticalsConfig(),
+    getCityEvents(),
+  ]);
+
+  if (!config.events) {
+    return <VerticalPausedNotice verticalName="Events" verticalId="events" />;
+  }
+
+  return <CityEventsList initialEvents={events} />;
 }

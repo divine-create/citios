@@ -88,10 +88,10 @@ export async function getCityJobs() {
   // City scope: only jobs whose org operates in the current city.
   const city = await getCurrentCity();
   const [locations, activeListings, jobs] = await Promise.all([
-    city ? db.orm.public.Location.where({}).all() : Promise.resolve([]),
+    city ? db.orm.public.Location.where({ cityId: city.id }).all() : Promise.resolve([]),
     db.orm.public.DiscoveryListing.where({ isActive: true }).all(),
     db.orm.public.Job.include('organization', (o) =>
-      o.select('name', 'id', 'description', 'address')
+      o.select('name', 'id', 'description', 'address', 'logoAssetId')
     ).all(),
   ]);
   const cityOrgIds = city ? new Set(locations.map((o) => o.organizationId)) : null;
@@ -123,7 +123,7 @@ export async function getCityEvents() {
 
 export async function getCanonicalJob(id: string) {
   const job = await db.orm.public.Job.where({ id })
-    .include('organization', (o) => o.select('name', 'id', 'description', 'address'))
+    .include('organization', (o) => o.select('name', 'id', 'description', 'address', 'logoAssetId'))
     .first();
   if (!job) return null;
   const activeListing = await db.orm.public.DiscoveryListing.where({

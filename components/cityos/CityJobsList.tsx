@@ -103,9 +103,17 @@ export default function CityJobsList({ initialJobs }: { initialJobs?: any[] }) {
                   <div>
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-800 flex items-center justify-center shrink-0 mt-0.5">
-                          <Building2 className="w-5 h-5" />
-                        </div>
+                        {j.organization?.logoAssetId ? (
+                          <img
+                            src={j.organization.logoAssetId}
+                            alt={orgName}
+                            className="w-10 h-10 rounded-xl object-cover shrink-0 mt-0.5 border border-slate-100"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-800 flex items-center justify-center shrink-0 mt-0.5">
+                            <Building2 className="w-5 h-5" />
+                          </div>
+                        )}
                         <div className="min-w-0">
                           <Link
                             href={`/jobs/${j.id}`}

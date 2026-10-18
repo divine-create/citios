@@ -526,7 +526,7 @@ const CALABAR_JOBS: SeedJobDef[] = [
   },
   {
     orgName: 'Axari Hotel & Suites',
-    orgType: 'HOTEL',
+    orgType: 'SERVICES',
     orgDescription: 'Premier luxury hospitality and conference hotel located on Murtala Mohammed Highway, Calabar.',
     orgAddress: 'Murtala Mohammed Highway, Calabar',
     title: 'Food & Beverage Manager, Sous Chef & Pastry Chef',

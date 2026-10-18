@@ -30,7 +30,7 @@ import {
   submitOrganizationReview,
   toggleOrganizationLike,
 } from '@/lib/actions/service';
-import { buildWhatsAppServiceUrl, buildWhatsAppInquiryUrl } from '@/lib/whatsapp';
+import { buildWhatsAppServiceUrl } from '@/lib/whatsapp';
 
 export interface CityServicesOrg {
   id: string;
@@ -225,7 +225,12 @@ export default function CityServices({
     setBookingSubmitting(true);
     setBookingError(null);
 
-    const targetPhone = selectedService.whatsapp || selectedService.phone || '2348112417171';
+    const targetPhone = selectedService.whatsapp || selectedService.phone;
+    if (!targetPhone) {
+      setBookingError('Provider direct line is currently unavailable.');
+      setBookingSubmitting(false);
+      return;
+    }
 
     const waUrl = buildWhatsAppServiceUrl({
       phone: targetPhone,
@@ -255,19 +260,6 @@ export default function CityServices({
     setBookingSubmitting(false);
     setBookingSuccessWaUrl(waUrl);
 
-    if (typeof window !== 'undefined') {
-      window.open(waUrl, '_blank', 'noopener,noreferrer');
-    }
-  };
-
-  // Direct Inquiry for Provider in Directory
-  const handleProviderChat = (org: CityServicesOrg) => {
-    const targetPhone = org.whatsapp || org.phone || '2348112417171';
-    const waUrl = buildWhatsAppInquiryUrl({
-      phone: targetPhone,
-      orgName: org.name,
-      cityName,
-    });
     if (typeof window !== 'undefined') {
       window.open(waUrl, '_blank', 'noopener,noreferrer');
     }
@@ -373,8 +365,8 @@ export default function CityServices({
   // Reusable Service Card Component
   const renderServiceCard = (s: BookableServiceItem) => {
     const orgLikes = likesMap[s.organizationId] || { count: s.likesCount || 0, liked: Boolean(s.userHasLiked) };
-    const displayRating = s.rating !== null && s.rating !== undefined ? s.rating : 5.0;
-    const hasReviews = (s.reviewCount || 0) > 0;
+    const hasReviews = Boolean(s.reviewCount && s.reviewCount > 0);
+    const displayRating = hasReviews && s.rating !== null && s.rating !== undefined ? s.rating : null;
 
     return (
       <div
@@ -426,24 +418,30 @@ export default function CityServices({
 
           {/* Rating & Reviews Trigger */}
           <div className="mt-3 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => handleOpenReviews(s.organizationId, s.orgName)}
-              className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200/60 px-2 py-0.5 rounded-md transition-colors"
-            >
-              <Star size={11} className="fill-amber-400 text-amber-500" />
-              <span>{displayRating.toFixed(1)}</span>
-              <span className="text-amber-600/70">
-                ({hasReviews ? `${s.reviewCount} ${s.reviewCount === 1 ? 'review' : 'reviews'}` : 'New'})
+            {displayRating !== null ? (
+              <button
+                type="button"
+                onClick={() => handleOpenReviews(s.organizationId, s.orgName)}
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200/60 px-2 py-0.5 rounded-md transition-colors"
+              >
+                <Star size={11} className="fill-amber-400 text-amber-500" />
+                <span>{displayRating.toFixed(1)}</span>
+                <span className="text-amber-600/70">
+                  ({s.reviewCount} {s.reviewCount === 1 ? 'review' : 'reviews'})
+                </span>
+              </button>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-200/60 px-2 py-0.5 rounded-md">
+                Verified Pro
               </span>
-            </button>
+            )}
 
             <button
               type="button"
               onClick={() => handleOpenReviews(s.organizationId, s.orgName)}
               className="text-[11px] text-slate-400 hover:text-teal-800 font-medium transition-colors flex items-center gap-0.5"
             >
-              <MessageSquare size={11} /> Review
+              <MessageSquare size={11} /> {hasReviews ? 'Reviews' : 'Add review'}
             </button>
           </div>
         </div>
@@ -738,106 +736,6 @@ export default function CityServices({
         </section>
       )}
 
-      {/* Service Businesses Directory */}
-      <section className="rounded-2xl bg-white border border-slate-100 p-5 space-y-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-          <div>
-            <h2 className="text-base font-black text-ink">Registered Service Providers</h2>
-            <p className="text-xs text-slate-400 font-medium">
-              18 verified businesses offering trade, technical, and maintenance services across {cityName}.
-            </p>
-          </div>
-          <span className="text-[11px] font-bold text-slate-500 bg-slate-50 border border-slate-200/60 px-2.5 py-1 rounded-md">
-            {orgs.length} Active Businesses
-          </span>
-        </div>
-
-        {orgs.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-slate-200 p-8 text-center">
-            <p className="text-xs font-bold text-slate-600">No service providers registered in this city yet</p>
-            <p className="text-[11px] text-slate-400 mt-1">Providers appear here as they register on CityOS.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-            {orgs.map((o) => {
-              const orgLikes = likesMap[o.id] || { count: o.likesCount || 0, liked: Boolean(o.userHasLiked) };
-              const displayRating = o.rating !== null && o.rating !== undefined ? o.rating : 5.0;
-
-              return (
-                <div
-                  key={o.id}
-                  className="flex flex-col justify-between rounded-xl border border-slate-100 bg-white p-4 hover:shadow-md hover:border-slate-200 transition-all space-y-3"
-                >
-                  <div className="flex items-start gap-3">
-                    <span className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-800 to-teal-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
-                      {o.name.slice(0, 1).toUpperCase()}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between">
-                        <Link href={`/org/${o.id}`} className="hover:underline">
-                          <p className="text-xs font-black text-ink truncate">{o.name}</p>
-                        </Link>
-                        {/* Like Provider Button */}
-                        <button
-                          type="button"
-                          onClick={() => handleToggleLike(o.id)}
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all ${
-                            orgLikes.liked
-                              ? 'bg-rose-50 text-rose-600 border border-rose-200'
-                              : 'bg-slate-50 text-slate-500 hover:bg-rose-50 hover:text-rose-600'
-                          }`}
-                        >
-                          <Heart
-                            size={11}
-                            className={orgLikes.liked ? 'fill-rose-500 text-rose-500' : 'text-slate-400'}
-                          />
-                          <span>{orgLikes.count}</span>
-                        </button>
-                      </div>
-
-                      <p className="text-[11px] font-medium text-slate-400 line-clamp-1 mt-0.5">
-                        {o.description || 'Verified local service provider'}
-                      </p>
-
-                      {o.address && (
-                        <p className="text-[10px] text-slate-400 flex items-center gap-1 mt-1 truncate">
-                          <MapPin size={10} className="shrink-0 text-slate-400" />
-                          <span className="truncate">{o.address}</span>
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Provider Actions: Reviews & Chat */}
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-50 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleOpenReviews(o.id, o.name)}
-                      className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 px-2 py-1 rounded-lg transition-colors"
-                    >
-                      <Star size={11} className="fill-amber-400 text-amber-500" />
-                      <span>{displayRating.toFixed(1)}</span>
-                      <span className="text-amber-600/70">
-                        ({(o.reviewCount || 0) > 0 ? `${o.reviewCount}` : 'New'})
-                      </span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleProviderChat(o)}
-                      className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-teal-900 text-[11px] font-bold border border-slate-200/60 transition-colors"
-                    >
-                      <MessageSquare size={12} className="text-teal-700" />
-                      Chat
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
       {/* Provider Onboarding CTA Banner */}
       <div className="rounded-2xl bg-gradient-to-br from-slate-900 to-teal-950 text-white p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
         <div className="flex items-center gap-4">
@@ -1110,25 +1008,33 @@ export default function CityServices({
                   {reviewModalOrg.name}
                 </h3>
                 <div className="flex items-center gap-2 mt-1">
-                  <div className="flex items-center gap-1 text-amber-500">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star
-                        key={star}
-                        size={14}
-                        className={
-                          reviewsAvgRating && star <= Math.round(reviewsAvgRating)
-                            ? 'fill-amber-400 text-amber-500'
-                            : 'text-slate-200'
-                        }
-                      />
-                    ))}
-                  </div>
-                  <span className="text-xs font-bold text-slate-700">
-                    {reviewsAvgRating !== null ? reviewsAvgRating.toFixed(1) : '5.0'}
-                  </span>
-                  <span className="text-xs text-slate-400">
-                    ({reviewsTotal} {reviewsTotal === 1 ? 'review' : 'reviews'})
-                  </span>
+                  {reviewsAvgRating !== null ? (
+                    <>
+                      <div className="flex items-center gap-1 text-amber-500">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            size={14}
+                            className={
+                              star <= Math.round(reviewsAvgRating)
+                                ? 'fill-amber-400 text-amber-500'
+                                : 'text-slate-200'
+                            }
+                          />
+                        ))}
+                      </div>
+                      <span className="text-xs font-bold text-slate-700">
+                        {reviewsAvgRating.toFixed(1)}
+                      </span>
+                      <span className="text-xs text-slate-400">
+                        ({reviewsTotal} {reviewsTotal === 1 ? 'review' : 'reviews'})
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-xs text-slate-400">
+                      No customer reviews yet
+                    </span>
+                  )}
                 </div>
               </div>
               <button
