@@ -81,8 +81,12 @@ export default function InlineComments({ postId, onCommentAdded }: { postId: str
 
     const renderComment = (comment: any, isReply = false) => (
         <div key={comment.id} className="flex gap-2">
-            <div className="w-8 h-8 rounded-full bg-slate-200 shrink-0 flex items-center justify-center font-bold text-[11px] text-slate-600 overflow-hidden">
-                {comment.user?.name?.charAt(0) || 'U'}
+            <div className="w-8 h-8 rounded-full bg-slate-200 shrink-0 flex items-center justify-center font-bold text-[11px] text-slate-600 overflow-hidden border border-slate-100">
+                {comment.user?.avatarUrl ? (
+                    <img src={comment.user.avatarUrl} alt={comment.user?.name || 'Resident'} className="w-full h-full object-cover" />
+                ) : (
+                    comment.user?.name?.charAt(0) || 'U'
+                )}
             </div>
             <div className="flex flex-col w-full">
                 <div className="bg-slate-100 px-3 py-2 rounded-2xl w-fit max-w-full">
@@ -133,8 +137,12 @@ export default function InlineComments({ postId, onCommentAdded }: { postId: str
             {/* Input */}
             <div className={`flex gap-2 items-center ${replyingTo ? 'border border-slate-100 p-2 rounded-b-xl rounded-tr-xl bg-white shadow-sm' : ''}`}>
                 {!replyingTo && (
-                    <div className="w-8 h-8 rounded-full bg-slate-200 shrink-0 flex items-center justify-center font-bold text-[11px] text-slate-600">
-                        {session?.user?.name?.charAt(0) || 'Me'}
+                    <div className="w-8 h-8 rounded-full bg-slate-200 shrink-0 flex items-center justify-center font-bold text-[11px] text-slate-600 overflow-hidden border border-slate-100">
+                        {session?.user?.image ? (
+                            <img src={session.user.image} alt={session.user.name || 'Me'} className="w-full h-full object-cover" />
+                        ) : (
+                            session?.user?.name?.charAt(0) || 'Me'
+                        )}
                     </div>
                 )}
                 <div className="flex-1 relative">

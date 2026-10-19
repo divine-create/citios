@@ -219,13 +219,17 @@ export async function getHotelOrgs(citySlug?: string) {
       rooms: orgRooms,
       roomType: orgRooms[0]?.type || null,
       bedType: orgRooms[0]?.bedType || null,
-      neighborhood: o.address ? o.address.split(',')[0].trim() : (city?.name ?? ''),
-      area: o.address ? o.address.split(',')[0].trim() : (city?.name ?? ''),
+      neighborhood: meta?.neighborhood || (o.address ? o.address.split(',')[0].trim() : (city?.name ?? '')),
+      area: meta?.neighborhood || (o.address ? o.address.split(',')[0].trim() : (city?.name ?? '')),
       distanceFromCenter: meta?.distanceFromCenter || null,
       isVerified: Boolean(meta?.isVerified),
       hasPowerGuarantee: Boolean(meta?.hasPowerGuarantee),
       freeCancellation: Boolean(meta?.freeCancellation),
       breakfastIncluded: Boolean(meta?.breakfastIncluded),
+      whatsappPhone: meta?.whatsappPhone || null,
+      bookingUrl: meta?.bookingUrl || null,
+      amenities: Array.isArray(meta?.amenities) ? meta.amenities : [],
+      stayCategory: meta?.stayCategory || 'Hotel',
     };
   });
 }
@@ -239,7 +243,7 @@ export async function getHotelRooms(orgId: string) {
     }
     const validLocIds = new Set(locs.map(l => l.id));
     let items = await db.orm.public.HotelRoom.where({ organizationId: orgId }).all();
-    items = items.filter(i => i.locationId && validLocIds.has(i.locationId));
+    items = items.filter(i => !i.locationId || validLocIds.has(i.locationId));
     return JSON.parse(JSON.stringify(items));
 }
 

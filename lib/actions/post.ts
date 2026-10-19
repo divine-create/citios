@@ -16,16 +16,33 @@ export async function getPostDetails(postId: string) {
         const users = await db.orm.public.Person.all();
         const likes = await db.orm.public.PostLike.where({ postId: postId }).all();
 
+        const commenterPersonIds = Array.from(new Set(comments.map((c: any) => c.personId).filter(Boolean)));
+        const avatarMap = new Map<string, string>();
+        if (commenterPersonIds.length > 0) {
+            try {
+                const profiles = await db.orm.public.ResidentProfile.where((p: any) => p.personId.in(commenterPersonIds)).all();
+                profiles.forEach((p: any) => {
+                    if (p.avatarUrl) avatarMap.set(p.personId, p.avatarUrl);
+                });
+            } catch {}
+        }
+
         // V1 identity path: Comment.personId -> Person. `user` key + composed
         // `name` preserved for PostView.tsx compatibility (Person has
         // firstName/lastName, not the legacy User.name column).
         const commentsWithUsersMap = new Map();
         comments.forEach(c => {
             const author = users.find(u => u.id === c.personId);
+            const rawAvatar = c.personId ? avatarMap.get(c.personId) : null;
+            const avatarUrl = rawAvatar ? (rawAvatar.startsWith('http') || rawAvatar.startsWith('/') ? rawAvatar : `/api/assets/${rawAvatar}`) : null;
             commentsWithUsersMap.set(c.id, {
                 ...c,
                 createdAt: c.createdAt.toString(),
-                user: author ? { ...author, name: `${author.firstName} ${author.lastName}`.trim() } : null,
+                user: author ? {
+                    ...author,
+                    name: `${author.firstName} ${author.lastName}`.trim(),
+                    avatarUrl,
+                } : null,
                 replies: []
             });
         });

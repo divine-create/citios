@@ -84,5 +84,16 @@ test('CityOS Newsfeed Reality Verification', async (t) => {
     const unsplashPosts = feed.posts.filter((p: any) => p.image?.includes('unsplash.com') || p.media?.includes('unsplash.com'));
     assert.strictEqual(unsplashPosts.length, 0, `Expected 0 Unsplash posts in feed, but found: ${unsplashPosts.length}`);
   });
+
+  await t.test('6. Posts by merchants with logos return populated avatarImg', async () => {
+    const feed = await fetchFeed('For You', 'Food');
+    const crunchiesPost = feed.posts.find((p: any) => p.author.includes('Crunchies'));
+    assert.ok(crunchiesPost, 'Should find at least one Crunchies post in Food feed');
+    assert.ok(crunchiesPost.avatarImg, 'Crunchies post must have avatarImg populated');
+    assert.ok(
+      crunchiesPost.avatarImg.startsWith('http') || crunchiesPost.avatarImg.startsWith('/'),
+      `avatarImg must be a valid URL or path: ${crunchiesPost.avatarImg}`
+    );
+  });
 });
 

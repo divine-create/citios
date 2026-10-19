@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { ArrowLeft, Heart, MessageSquare, Share2, MoreHorizontal, Edit3, Trash2, X, Loader2 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import LoginModal from '@/components/LoginModal';
-import { VerifiedBadge, Pill } from '@/components/cityos/CityUI';
+import { VerifiedBadge, Pill, FallbackImg } from '@/components/cityos/CityUI';
 import InlineComments from '@/components/InlineComments';
 import { cn } from '@/lib/utils';
 import { reactToPost, togglePostLike, deletePost, updatePost, type ReactionType } from '@/app/actions/newsfeed';
@@ -168,13 +168,13 @@ export default function PostDetailClient({ post }: { post: DBPost }) {
         {/* Author */}
         <div className="p-5 pb-3 flex items-start gap-3">
           <Link href={post.isOrg ? `/org/${post.authorId}` : `/profile/${post.authorId}`} className="shrink-0">
-            {post.avatarImg ? (
-              <img src={post.avatarImg} alt={post.author} className="w-12 h-12 rounded-full object-cover border border-slate-100" />
-            ) : (
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white font-black border border-slate-100">
-                {post.author.slice(0, 1)}
-              </div>
-            )}
+            <FallbackImg
+              src={post.avatarImg}
+              alt={post.author}
+              className="w-12 h-12 rounded-full object-cover border border-slate-100 bg-white"
+              icon={<span className="text-white font-black">{post.author.slice(0, 1)}</span>}
+              gradient="from-teal-400 to-teal-600"
+            />
           </Link>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
