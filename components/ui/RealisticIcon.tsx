@@ -1170,8 +1170,8 @@ export default function RealisticIcon({
     );
   }
 
-  // 35. Sidemenu: Orders & Package Delivery
-  if (key === 'orders' || key === 'package' || key === 'parcel') {
+  // 35. Sidemenu: Orders & Package Delivery (used for Activity / Past Orders)
+  if (key === 'orders' || key === 'package' || key === 'parcel' || key === 'activity') {
     return (
       <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn('select-none drop-shadow-sm', className)}>
         <defs>
@@ -1308,8 +1308,8 @@ export default function RealisticIcon({
     );
   }
 
-  // 41. Primary Nav: Activity & Golden Notification Bell
-  if (key === 'activity' || key === 'bell' || key === 'notifications') {
+  // 41. Primary Nav: Golden Notification Bell
+  if (key === 'bell' || key === 'notifications') {
     return (
       <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn('select-none drop-shadow-sm', className)}>
         <defs>

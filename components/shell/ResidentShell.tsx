@@ -196,9 +196,16 @@ function NotificationsDropdown() {
       {open ? (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-12 z-40 w-80 bg-white rounded-2xl border border-slate-100 shadow-2xl overflow-hidden">
+          <div className="absolute right-0 top-12 z-40 w-[calc(100vw-2.5rem)] sm:w-80 max-w-sm bg-white rounded-2xl border border-slate-100 shadow-2xl overflow-hidden">
             <div className="px-3 py-2.5 flex items-center justify-between border-b border-slate-100">
-              <p className="text-xs font-black text-ink uppercase tracking-wider">Notifications</p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-xs font-black text-ink uppercase tracking-wider">Notifications</p>
+                {unread > 0 && (
+                  <span className="bg-orange-100 text-orange-700 text-[10px] font-extrabold px-1.5 py-0.2 rounded-full">
+                    {unread}
+                  </span>
+                )}
+              </div>
               {unread > 0 ? (
                 <button
                   onClick={async () => {
@@ -216,7 +223,7 @@ function NotificationsDropdown() {
                 </button>
               ) : null}
             </div>
-            <div className="max-h-[420px] overflow-y-auto">
+            <div className="max-h-[380px] overflow-y-auto">
               {loading && items.length === 0 ? (
                 <div className="p-4 space-y-2">
                   {[0, 1, 2].map((i) => (
@@ -224,8 +231,10 @@ function NotificationsDropdown() {
                   ))}
                 </div>
               ) : items.length === 0 ? (
-                <div className="p-4 text-center">
-                  <p className="text-[12px] font-bold text-slate-400">No new notifications</p>
+                <div className="p-6 text-center">
+                  <span className="text-2xl block mb-1">🔔</span>
+                  <p className="text-[12px] font-bold text-slate-500">No new notifications</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">Order updates and city alerts will appear here</p>
                 </div>
               ) : (
                 <div className="py-1">
@@ -255,6 +264,15 @@ function NotificationsDropdown() {
                   ))}
                 </div>
               )}
+            </div>
+            <div className="p-2.5 border-t border-slate-100 bg-slate-50/70 text-center">
+              <Link
+                href="/notifications"
+                onClick={() => setOpen(false)}
+                className="text-[11px] font-bold text-teal-700 hover:text-teal-900 inline-flex items-center gap-1 transition-colors"
+              >
+                View all notifications →
+              </Link>
             </div>
           </div>
         </>
@@ -311,7 +329,7 @@ export default function ResidentShell({
     { id: 'home', path: '/', label: 'Home', icon: LayoutGrid, iconKey: 'home' },
     { id: 'map', path: '/map', label: 'Map', icon: MapIcon, iconKey: 'map' },
     { id: 'create', path: '/create', label: 'Create', icon: PenSquare, iconKey: 'create' },
-    { id: 'activity', path: '/activity', label: 'Activity', icon: Bell, iconKey: 'activity' },
+    { id: 'activity', path: '/activity', label: 'Activity', icon: ShoppingBag, iconKey: 'activity' },
     { id: 'profile', path: '/profile', label: 'Profile', icon: UserIcon, iconKey: 'profile' },
   ];
 
@@ -338,6 +356,7 @@ export default function ResidentShell({
       label: 'Discover',
       items: [
         { id: 'feed', path: '/feed', label: 'Newsfeed', icon: Rss, iconKey: 'feed' },
+        { id: 'notifications', path: '/notifications', label: 'Notifications', icon: Bell, iconKey: 'notifications' },
         { id: 'map', path: '/map', label: 'Map', icon: MapIcon, iconKey: 'map' },
         { id: 'nearby', path: '/explore', label: 'Nearby', icon: MapPin, iconKey: 'nearby' },
         { id: 'saved', path: '/saved', label: 'Saved', icon: Bookmark, iconKey: 'saved' },
@@ -390,6 +409,7 @@ export default function ResidentShell({
     if (pathname.startsWith('/news')) return 'News';
     if (pathname.startsWith('/events')) return 'Events';
     if (pathname.startsWith('/activity')) return 'Activity';
+    if (pathname.startsWith('/notifications')) return 'Notifications';
     if (pathname.startsWith('/business')) return 'Business Hub';
     if (pathname.startsWith('/map')) return 'City Map';
     if (pathname.startsWith('/create')) return 'Create';
@@ -736,7 +756,7 @@ export default function ResidentShell({
               {[
                 { id: 'home', path: '/', label: 'Explore', icon: Search },
                 { id: 'explore', path: '/explore', label: 'Places', icon: LayoutGrid },
-                { id: 'activity', path: '/activity', label: 'Activity', icon: Bell },
+                { id: 'activity', path: '/activity', label: 'Activity', icon: ShoppingBag },
                 { id: 'wallet', path: '/wallet', label: 'CityPay', icon: WalletIcon },
                 { id: 'profile', path: '/profile', label: 'Profile', icon: UserIcon },
               ].map((item) => {
