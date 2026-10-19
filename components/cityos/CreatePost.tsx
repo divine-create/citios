@@ -705,9 +705,9 @@ export default function CreatePost() {
         )}
 
         {/* 5. Bottom Interactive Toolbar & Publish Button */}
-        <div className="px-4 sm:px-5 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-3">
+        <div className="px-3 sm:px-5 py-3 bg-slate-50 border-t border-slate-100 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5">
           {/* Action Tools */}
-          <div className="flex items-center gap-1 sm:gap-2">
+          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar shrink-0">
             {/* Hidden File Input */}
             <input
               type="file"
@@ -810,7 +810,7 @@ export default function CreatePost() {
             onClick={publish}
             disabled={!canPublish}
             className={cn(
-              'inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-2xl text-xs font-black transition-all shadow-sm',
+              'ml-auto inline-flex items-center justify-center gap-1.5 px-4 py-2 sm:px-6 sm:py-2.5 rounded-2xl text-xs font-black transition-all shadow-sm shrink-0',
               canPublish
                 ? 'bg-teal-800 hover:bg-teal-900 text-white shadow-teal-950/20 active:scale-95'
                 : 'bg-slate-200 text-slate-400 cursor-not-allowed',
@@ -830,7 +830,8 @@ export default function CreatePost() {
             ) : (
               <>
                 <PenSquare className="w-4 h-4" />
-                <span>Publish to City</span>
+                <span className="hidden sm:inline">Publish to City</span>
+                <span className="sm:hidden">Publish</span>
               </>
             )}
           </button>
