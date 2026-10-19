@@ -2,10 +2,23 @@ import React from 'react';
 import { getResidentWallet, getResidentWalletTransactions } from '@/app/actions/resident_wallet';
 import { AddMoneyForm } from './AddMoneyForm';
 import { requireAuthenticatedAccount } from '@/lib/actions/tenant';
+import { getVerticalsConfig } from '@/lib/actions/verticals-config';
+import VerticalPausedNotice from '@/components/cityos/VerticalPausedNotice';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ResidentWalletPage({ searchParams }: { searchParams: Promise<any> }) {
+  const verticalsConfig = await getVerticalsConfig();
+  if (!verticalsConfig.citypay) {
+    return (
+      <VerticalPausedNotice
+        verticalName="CityPay"
+        verticalId="citypay"
+        description="CityPay digital wallet and top-ups are currently disabled. Platform administrators can enable CityPay in HQ Command."
+      />
+    );
+  }
+
   await requireAuthenticatedAccount();
   const wallet = await getResidentWallet();
   const sp = await searchParams;

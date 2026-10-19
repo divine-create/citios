@@ -9,6 +9,7 @@ import {
   UtensilsCrossed,
   Wrench,
   Calendar,
+  Wallet,
   Save,
   Loader2,
   CheckCircle2,
@@ -39,6 +40,7 @@ const VERTICAL_ICONS: Record<VerticalId, React.ComponentType<{ className?: strin
   food: UtensilsCrossed,
   services: Wrench,
   events: Calendar,
+  citypay: Wallet,
 };
 
 export default function AdminVerticalsConfig({ initialConfig }: AdminVerticalsConfigProps) {
@@ -47,7 +49,7 @@ export default function AdminVerticalsConfig({ initialConfig }: AdminVerticalsCo
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const verticalKeys: VerticalId[] = ['jobs', 'houses', 'shops', 'food', 'services', 'events'];
+  const verticalKeys: VerticalId[] = ['jobs', 'houses', 'shops', 'food', 'services', 'events', 'citypay'];
 
   const activeCount = verticalKeys.filter((k) => config[k]).length;
 
@@ -68,6 +70,7 @@ export default function AdminVerticalsConfig({ initialConfig }: AdminVerticalsCo
       food: true,
       services: true,
       events: true,
+      citypay: true,
     }));
     setSaveSuccess(false);
   };
@@ -81,6 +84,7 @@ export default function AdminVerticalsConfig({ initialConfig }: AdminVerticalsCo
       food: false,
       services: false,
       events: false,
+      citypay: false,
     }));
     setSaveSuccess(false);
   };

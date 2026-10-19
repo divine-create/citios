@@ -281,7 +281,7 @@ function NotificationsDropdown() {
   );
 }
 
-function WalletChip() {
+function WalletChip({ showCityPay }: { showCityPay: boolean }) {
   const { balance } = useWallet();
   const { data: session } = useSession();
   const { fmt } = useMoney();
@@ -298,7 +298,7 @@ function WalletChip() {
       <div className="min-w-0 flex-1">
         <p className="text-[13px] font-bold leading-tight truncate">{name}</p>
         <p className="text-[10px] text-teal-100/80 font-bold tabular-nums">
-          {`CityPay · ${fmt(balance)}`}
+          {showCityPay ? `CityPay · ${fmt(balance)}` : 'Personal Profile'}
         </p>
       </div>
       <ChevronRight className="w-4 h-4 text-teal-100/70" />
@@ -322,6 +322,7 @@ export default function ResidentShell({
   const router = useRouter();
   const { data: session } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
+  const citypayEnabled = verticalsConfig?.citypay === true;
 
   type NavItem = { id: string; path: string; label: string; icon: any; iconKey?: string; secondary?: boolean; verticalId?: VerticalId };
 
@@ -394,7 +395,7 @@ export default function ResidentShell({
     if (pathname.startsWith('/org/')) return 'Business Profile';
     if (pathname.startsWith('/saved')) return 'Saved';
     if (pathname.startsWith('/cart')) return 'Your Cart';
-    if (pathname.startsWith('/checkout')) return 'CityPay Checkout';
+    if (pathname.startsWith('/checkout')) return citypayEnabled ? 'CityPay Checkout' : 'Checkout';
     if (pathname.startsWith('/pay/')) return 'CityPay';
     if (pathname.startsWith('/biz/')) return 'Business Profile';
     if (pathname.startsWith('/product/')) return 'Product';
@@ -524,8 +525,7 @@ export default function ResidentShell({
           </nav>
 
           <div className="p-4 border-t border-slate-100 space-y-3">
-            
-            <WalletChip />
+            <WalletChip showCityPay={citypayEnabled} />
           </div>
         </aside>
         )}
@@ -756,8 +756,10 @@ export default function ResidentShell({
               {[
                 { id: 'home', path: '/', label: 'Explore', icon: Search },
                 { id: 'explore', path: '/explore', label: 'Places', icon: LayoutGrid },
+                citypayEnabled
+                  ? { id: 'wallet', path: '/wallet', label: 'CityPay', icon: WalletIcon }
+                  : { id: 'create', path: '/create', label: 'Create', icon: PenSquare },
                 { id: 'activity', path: '/activity', label: 'Activity', icon: ShoppingBag },
-                { id: 'wallet', path: '/wallet', label: 'CityPay', icon: WalletIcon },
                 { id: 'profile', path: '/profile', label: 'Profile', icon: UserIcon },
               ].map((item) => {
                 const active = isActive(item.path);

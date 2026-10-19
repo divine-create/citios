@@ -19,7 +19,7 @@ export default function LoginForm() {
   const [error, setError] = useState<string>(() => {
     if (!urlError) return '';
     if (urlError === 'CredentialsSignin') return 'Incorrect email/phone or password. Please try again.';
-    if (urlError === 'OAuthSignin' || urlError === 'OAuthCallback') return 'Google Sign-In is not configured yet. Please log in with your email or phone.';
+    if (urlError === 'OAuthSignin' || urlError === 'OAuthCallback') return 'Google Sign-In could not complete (OAuth callback error). Please ensure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are configured in your deployment environment variables, or log in with email/phone.';
     if (urlError === 'Configuration') return 'Authentication server configuration update in progress. Please log in with email/phone.';
     return 'An authentication error occurred. Please try again with your email or phone.';
   });
@@ -68,13 +68,10 @@ export default function LoginForm() {
     try {
       setLoading(true);
       setError('');
-      const res = await signIn('google', { callbackUrl, redirect: false });
-      if (res?.error) {
-        setError('Google Sign-In is not configured on this server yet. Please log in with your email or phone.');
-        setLoading(false);
-      }
-    } catch {
-      setError('Google Sign-In is not configured on this server yet. Please log in with your email or phone.');
+      await signIn('google', { callbackUrl });
+    } catch (err: any) {
+      console.error('Google sign-in error:', err);
+      setError('Unable to initiate Google Sign-In. Please log in with your email or phone.');
       setLoading(false);
     }
   };

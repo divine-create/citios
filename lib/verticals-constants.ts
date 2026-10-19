@@ -1,4 +1,4 @@
-export type VerticalId = 'jobs' | 'houses' | 'shops' | 'food' | 'services' | 'events';
+export type VerticalId = 'jobs' | 'houses' | 'shops' | 'food' | 'services' | 'events' | 'citypay';
 
 export interface PlatformVerticalsConfig {
   jobs: boolean;
@@ -7,6 +7,7 @@ export interface PlatformVerticalsConfig {
   food: boolean;
   services: boolean;
   events: boolean;
+  citypay: boolean;
   updatedAt?: string;
   updatedBy?: string;
 }
@@ -69,6 +70,14 @@ export const VERTICAL_DEFINITIONS: Record<VerticalId, VerticalDefinition> = {
     iconKey: 'events',
     badge: 'Events & Tickets',
   },
+  citypay: {
+    id: 'citypay',
+    name: 'CityPay',
+    description: 'Resident digital wallet, ledger balances, top-ups, and instant CityPay payments.',
+    path: '/wallet',
+    iconKey: 'citypay',
+    badge: 'Wallet & Payments',
+  },
 };
 
 export const DEFAULT_VERTICALS_CONFIG: PlatformVerticalsConfig = {
@@ -78,4 +87,5 @@ export const DEFAULT_VERTICALS_CONFIG: PlatformVerticalsConfig = {
   food: true,
   services: true,
   events: true,
+  citypay: false,
 };

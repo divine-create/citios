@@ -141,5 +141,31 @@ test('CityServices Resident Discovery and Booking Suite', async (t) => {
     assert.strictEqual(config.requireAdminVerification, true, 'Strict admin verification must be enforced by default');
     assert.ok(Array.isArray(config.verifiedOrgIds), 'verifiedOrgIds must be an array');
   });
+
+  await t.test('8. Group services by provider creates unique classified organizations with service suites', async () => {
+    const services = await getCityBookableServices('calabar', 'home-cleaning');
+    assert.ok(Array.isArray(services));
+
+    // Group by organization
+    const orgMap = new Map<string, any>();
+    for (const s of services) {
+      if (!orgMap.has(s.organizationId)) {
+        orgMap.set(s.organizationId, {
+          organizationId: s.organizationId,
+          orgName: s.orgName,
+          services: [],
+        });
+      }
+      orgMap.get(s.organizationId).services.push(s);
+    }
+
+    const providers = Array.from(orgMap.values());
+    assert.ok(providers.length > 0, 'Should find at least 1 provider in Home & Cleaning');
+    const uniqueIds = new Set(providers.map((p: any) => p.organizationId));
+    assert.equal(uniqueIds.size, providers.length, 'Every provider card must be unique');
+    for (const p of providers) {
+      assert.ok(p.services.length > 0, 'Each provider must have at least one service offering');
+    }
+  });
 });
 

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
-import { Wallet, Plus, ChevronRight, Package, Car, Banknote, Truck, Building2, Bookmark, Settings, ArrowUp, Camera, Loader2 } from 'lucide-react';
+import { Wallet, Plus, ChevronRight, Package, Car, Banknote, Truck, Bookmark, Settings, ArrowUp, Camera, Loader2 } from 'lucide-react';
 import { useMoney } from '@/components/cityos/CityProvider';
 
 // Client wallet display top-up (fictional until the server ledger is wired).
@@ -14,19 +14,19 @@ import { useExperience } from '@/components/cityos/ExperienceStore';
 import { cn } from '@/lib/utils';
 import { fetchMyOrders } from '@/app/actions/commerce';
 import { getProfileAndWallet, updateProfileAvatar } from '@/lib/actions/profile';
-import { getPresignedUploadUrl } from '@/app/actions/upload';
 import { signOut } from 'next-auth/react';
 
-const TABS = ['Orders', 'Payments', 'CityHouse', 'Saved', 'Settings'] as const;
-type Tab = (typeof TABS)[number];
+const ALL_TABS = ['Orders', 'Payments', 'CityHouse', 'Saved', 'Settings'] as const;
+type Tab = (typeof ALL_TABS)[number];
 
-export default function CityProfile() {
+export default function CityProfile({ citypayEnabled = false }: { citypayEnabled?: boolean }) {
   const { fmt } = useMoney();
   const [tab, setTab] = useState<Tab>('Orders');
   const { balance, topUp, transactions } = useWallet();
   const { experience } = useExperience();
   const [toppedUp, setToppedUp] = useState(false);
-  
+  const visibleTabs = ALL_TABS.filter((t) => (t === 'Payments' ? citypayEnabled : true));
+
   const [realOrders, setRealOrders] = useState<any[] | null>(null);
   const [ordersError, setOrdersError] = useState(false);
   const [userProfile, setUserProfile] = useState<any | null>(null);
@@ -83,7 +83,7 @@ export default function CityProfile() {
 
   const tabs = (
     <div className="flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">
-      {TABS.map((t) => (
+      {visibleTabs.map((t) => (
         <ChipButton key={t} active={tab === t} onClick={() => setTab(t)}>
           {t}
         </ChipButton>
@@ -141,39 +141,41 @@ export default function CityProfile() {
         </div>
       </div>
 
-      {/* Wallet */}
-      <div className="rounded-3xl bg-gradient-to-br from-slate-900 via-teal-950 to-teal-800 text-white p-6 relative overflow-hidden">
-        <div className="absolute -right-10 -top-10 w-48 h-48 rounded-full bg-teal-400/20 blur-3xl" />
-        <div className="relative flex flex-col sm:flex-row gap-5 sm:items-end justify-between">
-          <div>
-            <p className="inline-flex items-center gap-1.5 text-[10px] font-black text-teal-200 uppercase tracking-widest">
-              <Wallet className="w-3.5 h-3.5" /> CityPay wallet
-            </p>
-            <p className="mt-2 text-3xl font-black tracking-tight">{fmt(balance)}</p>
-            <div className="flex items-center gap-2 mt-2 text-[11px] font-bold text-teal-200/80">
-              <span>{userProfile?.id ? `ID-${userProfile.id.slice(0,6).toUpperCase()}` : 'WALLET'}</span>
-              <span>Â·</span>
-              <span>{toppedUp ? 'just topped up' : 'all good'}</span>
+      {/* Wallet (shown only when CityPay is enabled in Admin HQ) */}
+      {citypayEnabled && (
+        <div className="rounded-3xl bg-gradient-to-br from-slate-900 via-teal-950 to-teal-800 text-white p-6 relative overflow-hidden">
+          <div className="absolute -right-10 -top-10 w-48 h-48 rounded-full bg-teal-400/20 blur-3xl" />
+          <div className="relative flex flex-col sm:flex-row gap-5 sm:items-end justify-between">
+            <div>
+              <p className="inline-flex items-center gap-1.5 text-[10px] font-black text-teal-200 uppercase tracking-widest">
+                <Wallet className="w-3.5 h-3.5" /> CityPay wallet
+              </p>
+              <p className="mt-2 text-3xl font-black tracking-tight">{fmt(balance)}</p>
+              <div className="flex items-center gap-2 mt-2 text-[11px] font-bold text-teal-200/80">
+                <span>{userProfile?.id ? `ID-${userProfile.id.slice(0, 6).toUpperCase()}` : 'WALLET'}</span>
+                <span>·</span>
+                <span>{toppedUp ? 'just topped up' : 'all good'}</span>
+              </div>
+              <div className="mt-3 h-1.5 w-40 rounded-full bg-white/10 overflow-hidden">
+                <div className="h-full rounded-full bg-emerald-400" style={{ width: `${walletPct}%` }} />
+              </div>
             </div>
-            <div className="mt-3 h-1.5 w-40 rounded-full bg-white/10 overflow-hidden">
-              <div className="h-full rounded-full bg-emerald-400" style={{ width: `${walletPct}%` }} />
-            </div>
+            <button
+              onClick={addToWallet}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-teal-950 text-xs font-black hover:bg-teal-50 transition-colors shadow-lg shrink-0"
+            >
+              <ArrowUp className="w-4 h-4" /> {`Top up ${fmt(TOP_UP_AMOUNT)}`}
+            </button>
           </div>
-          <button
-            onClick={addToWallet}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-teal-950 text-xs font-black hover:bg-teal-50 transition-colors shadow-lg shrink-0"
-          >
-            <ArrowUp className="w-4 h-4" /> {`Top up ${fmt(TOP_UP_AMOUNT)}`}
-          </button>
         </div>
-      </div>
+      )}
 
       {/* Quick stats */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className={cn('grid gap-3', citypayEnabled ? 'grid-cols-4' : 'grid-cols-3')}>
         {[
           { label: 'Orders', value: realOrders?.length || 0, icon: Package },
           { label: 'Rides', value: 0, icon: Car },
-          { label: 'Payments', value: 0, icon: Banknote },
+          ...(citypayEnabled ? [{ label: 'Payments', value: 0, icon: Banknote }] : []),
           { label: 'Deliveries', value: 0, icon: Truck },
         ].map((s) => (
           <div key={s.label} className="bg-white rounded-2xl border border-slate-100 p-4 text-center">
@@ -185,16 +187,15 @@ export default function CityProfile() {
       </div>
 
       {/* Experience switcher */}
-      <Link href="/demo/access" className="flex items-center gap-4 rounded-2xl bg-white border border-slate-100 p-4 hover:shadow-md hover:-translate-y-0.5 transition-all">
+      <Link href="/business" className="flex items-center gap-4 rounded-2xl bg-white border border-slate-100 p-4 hover:shadow-md hover:-translate-y-0.5 transition-all">
         <span className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-100 to-teal-100 text-indigo-800 flex items-center justify-center shrink-0">
           <Settings className="w-5 h-5" />
         </span>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <p className="text-[13px] font-black text-ink">Experience: {experience}</p>
-            <Pill tone="teal">demo</Pill>
           </div>
-          <p className="text-[11px] font-bold text-slate-400">Store owner, service provider, or school â€” manage your business profiles via Workspaces.</p>
+          <p className="text-[11px] font-bold text-slate-400">Store owner, service provider, hotel, or school — manage your business profiles via Workspaces.</p>
         </div>
         <ChevronRight className="w-4 h-4 text-teal-800 shrink-0" />
       </Link>
@@ -216,9 +217,11 @@ export default function CityProfile() {
           ) : realOrders.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center">
               <p className="text-[13px] font-black text-ink">No orders yet</p>
-              <p className="text-[11px] text-slate-400 font-medium mt-1 mb-3">Fresh from the market, paid with CityPay.</p>
-              <Link href="/biz/calabar-fresh" className="inline-flex items-center gap-1 px-4 py-2 rounded-xl bg-teal-800 text-white text-[11px] font-black">
-                Shop Calabar Fresh <ChevronRight className="w-3.5 h-3.5" />
+              <p className="text-[11px] text-slate-400 font-medium mt-1 mb-3">
+                {citypayEnabled ? 'Fresh from the market, paid with CityPay.' : 'Explore verified local shops and kitchens across Calabar.'}
+              </p>
+              <Link href="/market" className="inline-flex items-center gap-1 px-4 py-2 rounded-xl bg-teal-800 text-white text-[11px] font-black">
+                Explore Market <ChevronRight className="w-3.5 h-3.5" />
               </Link>
             </div>
           ) : (
@@ -232,37 +235,39 @@ export default function CityProfile() {
                         {o.status === 'enroute' ? 'En route' : o.status === 'packing' ? 'Packing' : o.status === 'paid' ? 'Paid' : 'Delivered'}
                       </Pill>
                     </div>
-                    <p className="text-[11px] font-bold text-slate-400 mt-0.5">{`${o.ref} Â· ${Array.isArray(o.items) ? o.items.length : o.items} Â· ${o.time}`}</p>
+                    <p className="text-[11px] font-bold text-slate-400 mt-0.5">{`${o.ref} · ${Array.isArray(o.items) ? o.items.length : o.items} · ${o.time}`}</p>
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-[15px] font-black text-ink">{fmt(o.total)}</p>
                     {o.status === 'enroute' ? (
-                      <Link href="/drive/delivery" className="text-[10px] font-bold text-teal-800 hover:underline">Track â–²</Link>
+                      <Link href="/drive/delivery" className="text-[10px] font-bold text-teal-800 hover:underline">Track ▲</Link>
                     ) : null}
                   </div>
                 </div>
               ))}
               <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center">
                 <p className="text-[13px] font-black text-ink">Start another order</p>
-                <p className="text-[11px] text-slate-400 font-medium mt-1 mb-3">Fresh from the market, paid with CityPay.</p>
-                <Link href="/biz/calabar-fresh" className="inline-flex items-center gap-1 px-4 py-2 rounded-xl bg-teal-800 text-white text-[11px] font-black">
-                  Shop Calabar Fresh <ChevronRight className="w-3.5 h-3.5" />
+                <p className="text-[11px] text-slate-400 font-medium mt-1 mb-3">
+                  {citypayEnabled ? 'Fresh from the market, paid with CityPay.' : 'Explore verified local shops and kitchens across Calabar.'}
+                </p>
+                <Link href="/market" className="inline-flex items-center gap-1 px-4 py-2 rounded-xl bg-teal-800 text-white text-[11px] font-black">
+                  Explore Market <ChevronRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
             </>
           )}
         </div>
-      ) : tab === 'Payments' ? (
+      ) : tab === 'Payments' && citypayEnabled ? (
         <div className="space-y-3">
           <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-50">
             {transactions.map((t) => (
               <div key={t.ref} className="px-5 py-3.5 flex items-center gap-3">
                 <span className={cn('w-9 h-9 rounded-xl flex items-center justify-center shrink-0', t.amount < 0 ? 'bg-orange-50 text-orange-500' : 'bg-emerald-50 text-emerald-600')}>
-                  {t.amount < 0 ? 'âˆ’' : '+'}
+                  {t.amount < 0 ? '−' : '+'}
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-black text-ink truncate">{t.note}</p>
-                  <p className="text-[11px] font-bold text-slate-400">{`${t.ref} Â· ${t.at}`}</p>
+                  <p className="text-[11px] font-bold text-slate-400">{`${t.ref} · ${t.at}`}</p>
                 </div>
                 <Money amount={t.amount} className={cn('text-[15px]', t.amount < 0 && 'text-red-600')} />
               </div>
@@ -301,15 +306,15 @@ export default function CityProfile() {
           </div>
         </div>
       ) : (
-                <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-50">
+        <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-50">
           {[
             { label: 'Personal Information', sub: 'Name, phone, and interests', icon: Settings, href: '/profile/edit' },
             { label: 'Notifications', sub: 'Rides, orders & offers', icon: Settings },
-            { label: 'Payment methods', sub: 'CityPay wallet, cards & transfer', icon: Wallet },
+            ...(citypayEnabled ? [{ label: 'Payment methods', sub: 'CityPay wallet, cards & transfer', icon: Wallet, href: '/wallet' }] : []),
             { label: 'Privacy', sub: 'Who can see your feed posts', icon: Settings },
             { label: 'Referral code', sub: userProfile?.id ? `REF-${userProfile.id.slice(0, 4).toUpperCase()}` : '-', icon: Settings },
             { label: 'Sign out', sub: 'From this device', icon: Settings, action: 'signout' },
-          ].map((s, i) => {
+          ].map((s) => {
             const inner = (
               <div className="px-5 py-4 flex items-center gap-3 hover:bg-slate-50 transition-colors">
                 <s.icon className="w-4 h-4 text-slate-400" />

@@ -20,6 +20,8 @@ import {
   Heart,
   MessageSquare,
   Send,
+  Building2,
+  Sparkles,
 } from 'lucide-react';
 import RealisticIcon from '@/components/ui/RealisticIcon';
 import { SERVICE_CATEGORIES } from '@/lib/service-categories';
@@ -56,6 +58,7 @@ export interface BookableServiceItem {
   durationMinutes: number;
   organizationId: string;
   orgName: string;
+  orgDescription?: string | null;
   category?: string;
   phone?: string | null;
   whatsapp?: string | null;
@@ -65,6 +68,22 @@ export interface BookableServiceItem {
   likesCount?: number;
   userHasLiked?: boolean;
   isVerified?: boolean;
+}
+
+export interface ProviderGroup {
+  organizationId: string;
+  orgName: string;
+  orgDescription?: string | null;
+  category: string;
+  phone?: string | null;
+  whatsapp?: string | null;
+  address?: string | null;
+  rating?: number | null;
+  reviewCount: number;
+  likesCount: number;
+  userHasLiked: boolean;
+  isVerified: boolean;
+  services: BookableServiceItem[];
 }
 
 interface ReviewItem {
@@ -178,6 +197,42 @@ export default function CityServices({
       return true;
     });
   }, [services, activeCategory, searchQuery]);
+
+  // Accordion state to toggle expanded service suite per provider
+  const [expandedProviders, setExpandedProviders] = useState<Record<string, boolean>>({});
+
+  const toggleProviderExpand = (orgId: string) => {
+    setExpandedProviders((prev) => ({
+      ...prev,
+      [orgId]: !prev[orgId],
+    }));
+  };
+
+  // Group filtered services by organization / provider
+  const providerGroups = useMemo<ProviderGroup[]>(() => {
+    const map = new Map<string, ProviderGroup>();
+    for (const s of filteredServices) {
+      if (!map.has(s.organizationId)) {
+        map.set(s.organizationId, {
+          organizationId: s.organizationId,
+          orgName: s.orgName,
+          orgDescription: s.orgDescription,
+          category: s.category || 'Services',
+          phone: s.phone,
+          whatsapp: s.whatsapp,
+          address: s.address,
+          rating: s.rating,
+          reviewCount: s.reviewCount || 0,
+          likesCount: s.likesCount || 0,
+          userHasLiked: Boolean(s.userHasLiked),
+          isVerified: Boolean(s.isVerified),
+          services: [],
+        });
+      }
+      map.get(s.organizationId)!.services.push(s);
+    }
+    return Array.from(map.values());
+  }, [filteredServices]);
 
   // Group services by category for structured shelf display
   const servicesByCategory = useMemo(() => {
@@ -367,28 +422,45 @@ export default function CityServices({
     }
   };
 
-  // Reusable Service Card Component
-  const renderServiceCard = (s: BookableServiceItem) => {
-    const orgLikes = likesMap[s.organizationId] || { count: s.likesCount || 0, liked: Boolean(s.userHasLiked) };
-    const hasReviews = Boolean(s.reviewCount && s.reviewCount > 0);
-    const displayRating = hasReviews && s.rating !== null && s.rating !== undefined ? s.rating : null;
+  // Reusable Provider Card Component (Option 1: Classified Provider Suite with Accordion)
+  const renderProviderCard = (p: ProviderGroup) => {
+    const orgLikes = likesMap[p.organizationId] || { count: p.likesCount, liked: p.userHasLiked };
+    const hasReviews = Boolean(p.reviewCount && p.reviewCount > 0);
+    const displayRating = hasReviews && p.rating !== null && p.rating !== undefined ? p.rating : null;
+    const isExpanded = Boolean(expandedProviders[p.organizationId]);
 
     return (
       <div
-        key={s.id}
+        key={p.organizationId}
         className="group bg-white rounded-2xl border border-slate-100 p-5 shadow-xs hover:shadow-md hover:border-slate-200 transition-all flex flex-col justify-between"
       >
         <div>
-          {/* Provider Badge, Reviews, Likes */}
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <div className="flex items-center gap-1.5 truncate max-w-[190px]">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-teal-800 bg-teal-50 px-2 py-0.5 rounded-md truncate">
-                {s.orgName}
-              </span>
-              {s.isVerified && (
-                <span title="Verified by CityOS Admin">
-                  <ShieldCheck size={14} className="text-emerald-700 shrink-0" />
-                </span>
+          {/* Provider Header: Name, Verified Badge, Rating, Likes */}
+          <div className="flex items-start justify-between gap-3 mb-2">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Link
+                  href={`/org/${p.organizationId}`}
+                  className="font-black text-slate-900 text-base leading-snug hover:text-teal-800 transition-colors"
+                >
+                  {p.orgName}
+                </Link>
+                {p.isVerified && (
+                  <span
+                    title="Verified by CityOS Admin"
+                    className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-800 bg-emerald-50 border border-emerald-200/70 px-2 py-0.5 rounded-md"
+                  >
+                    <CheckCircle2 size={11} className="text-emerald-600" />
+                    Verified Pro
+                  </span>
+                )}
+              </div>
+
+              {p.address && (
+                <div className="flex items-center gap-1 text-slate-400 text-xs mt-1">
+                  <MapPin size={12} className="shrink-0 text-slate-400" />
+                  <span className="truncate">{p.address}</span>
+                </div>
               )}
             </div>
 
@@ -396,8 +468,8 @@ export default function CityServices({
             {config.enableLikes !== false && (
               <button
                 type="button"
-                onClick={() => handleToggleLike(s.organizationId)}
-                className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                onClick={() => handleToggleLike(p.organizationId)}
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all shrink-0 ${
                   orgLikes.liked
                     ? 'bg-rose-50 text-rose-600 border border-rose-200'
                     : 'bg-slate-50 text-slate-500 hover:bg-rose-50 hover:text-rose-600 border border-slate-100'
@@ -413,88 +485,163 @@ export default function CityServices({
             )}
           </div>
 
-          {/* Service Name */}
-          <div className="mt-1">
-            <h3 className="font-bold text-slate-900 text-sm leading-snug">
-              {s.name}
-            </h3>
-          </div>
-
-          <p className="text-xs text-slate-500 mt-1.5 line-clamp-2 leading-relaxed">
-            {s.description || 'Professional service delivered by local trade and maintenance specialists in Calabar.'}
+          {/* Description */}
+          <p className="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed">
+            {p.orgDescription || 'Professional local service company and skilled maintenance experts in Calabar.'}
           </p>
 
-          {/* Rating & Reviews Trigger */}
+          {/* Reviews & Social Row */}
           <div className="mt-3 flex items-center gap-2 flex-wrap">
             {displayRating !== null && config.enableReviews !== false ? (
               <button
                 type="button"
-                onClick={() => handleOpenReviews(s.organizationId, s.orgName)}
+                onClick={() => handleOpenReviews(p.organizationId, p.orgName)}
                 className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200/60 px-2 py-0.5 rounded-md transition-colors"
               >
                 <Star size={11} className="fill-amber-400 text-amber-500" />
                 <span>{displayRating.toFixed(1)}</span>
                 <span className="text-amber-600/70">
-                  ({s.reviewCount} {s.reviewCount === 1 ? 'review' : 'reviews'})
+                  ({p.reviewCount} {p.reviewCount === 1 ? 'review' : 'reviews'})
                 </span>
               </button>
             ) : null}
 
-            {/* Verified Pro badge strictly for providers verified by admin */}
-            {s.isVerified && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-800 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-md">
-                <CheckCircle2 size={11} className="text-emerald-600" />
-                Verified Pro
-              </span>
-            )}
-
             {config.enableReviews !== false && (
               <button
                 type="button"
-                onClick={() => handleOpenReviews(s.organizationId, s.orgName)}
+                onClick={() => handleOpenReviews(p.organizationId, p.orgName)}
                 className="text-[11px] text-slate-400 hover:text-teal-800 font-medium transition-colors flex items-center gap-0.5"
               >
                 <MessageSquare size={11} /> {hasReviews ? 'Reviews' : 'Add review'}
               </button>
             )}
-          </div>
-        </div>
 
-        <div className="mt-5 pt-3.5 border-t border-slate-100 space-y-3">
-          <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
-            <span className="flex items-center gap-1">
-              <Clock size={13} className="text-slate-400" /> {s.durationMinutes} min
-            </span>
-            <span className="text-[10px] font-semibold text-slate-400 bg-slate-50 px-2 py-0.5 rounded truncate max-w-[150px]">
-              {s.category || 'Trades & Repair'}
+            <span className="text-[10px] font-semibold text-slate-400 bg-slate-50 px-2 py-0.5 rounded ml-auto">
+              {p.category}
             </span>
           </div>
 
-          {/* Action Buttons */}
-          <div className={`grid gap-2 pt-1 ${config.enableBooking ? 'grid-cols-2' : 'grid-cols-1'}`}>
-            {config.enableBooking && (
+          {/* Services Offered Suite (Badges / Tags) */}
+          <div className="mt-4 pt-3.5 border-t border-slate-100">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">
+                Services Offered ({p.services.length})
+              </span>
               <button
                 type="button"
-                onClick={() => handleOpenBooking(s)}
-                className="w-full py-2 px-3 rounded-xl bg-teal-800 hover:bg-teal-900 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-xs"
+                onClick={() => toggleProviderExpand(p.organizationId)}
+                className="text-xs font-bold text-teal-800 hover:text-teal-900 inline-flex items-center gap-1 transition-colors"
               >
-                <Calendar size={13} />
-                Book Pro
+                <span>{isExpanded ? 'Hide services' : 'View all'}</span>
+                <ChevronRight
+                  size={14}
+                  className={`transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
+                />
               </button>
-            )}
+            </div>
 
-            <Link
-              href={`/service/${s.id}`}
-              className={`w-full py-2.5 px-3 rounded-xl ${
-                config.enableBooking
-                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                  : 'bg-teal-800 hover:bg-teal-900 text-white shadow-xs'
-              } text-xs font-bold transition-colors flex items-center justify-center gap-1.5 text-center`}
-            >
-              <span>View Service Details</span>
-              <ArrowRight size={13} />
-            </Link>
+            {/* Service Chips */}
+            <div className="flex flex-wrap gap-1.5">
+              {p.services.map((svc) => (
+                <span
+                  key={svc.id}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-teal-50/70 text-teal-900 border border-teal-100/80"
+                >
+                  <Wrench size={10} className="text-teal-700 shrink-0" />
+                  <span className="truncate max-w-[220px]">{svc.name}</span>
+                </span>
+              ))}
+            </div>
           </div>
+
+          {/* Expandable Accordion Drawer */}
+          {isExpanded && (
+            <div className="mt-4 pt-3 border-t border-dashed border-slate-200 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">
+                Available Service Options
+              </p>
+              <div className="space-y-2">
+                {p.services.map((svc) => (
+                  <div
+                    key={svc.id}
+                    className="p-3 bg-slate-50 hover:bg-slate-100/80 rounded-xl border border-slate-100 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-2.5"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-xs font-bold text-slate-900 truncate">{svc.name}</h4>
+                        <span className="text-[10px] text-slate-400 font-medium flex items-center gap-0.5 shrink-0">
+                          <Clock size={10} /> {svc.durationMinutes} min
+                        </span>
+                      </div>
+                      {svc.description && (
+                        <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
+                          {svc.description}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {config.enableBooking && (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenBooking(svc)}
+                          className="px-2.5 py-1 rounded-lg bg-teal-800 hover:bg-teal-900 text-white text-[11px] font-bold transition-colors flex items-center gap-1 shadow-2xs"
+                        >
+                          <Calendar size={11} /> Book
+                        </button>
+                      )}
+                      {p.whatsapp && (
+                        <a
+                          href={buildWhatsAppServiceUrl({
+                            phone: p.whatsapp,
+                            orgName: p.orgName,
+                            serviceName: svc.name,
+                            address: p.address || undefined,
+                          })}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition-colors flex items-center gap-1 shadow-2xs"
+                        >
+                          <MessageSquare size={11} /> WhatsApp
+                        </a>
+                      )}
+                      <Link
+                        href={`/service/${svc.id}`}
+                        className="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-200/60 border border-slate-200 text-slate-700 text-[11px] font-bold transition-colors inline-flex items-center gap-1"
+                      >
+                        Details <ArrowRight size={11} />
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Card Footer Actions */}
+        <div className="mt-5 pt-3.5 border-t border-slate-100 flex items-center justify-between gap-2">
+          {p.whatsapp ? (
+            <a
+              href={`https://wa.me/${p.whatsapp}?text=${encodeURIComponent(`Hello ${p.orgName}! I found your business on CityOS Services and would like to inquire about your services.`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/60 px-3 py-1.5 rounded-xl transition-colors"
+            >
+              <MessageSquare size={13} />
+              Inquire via WhatsApp
+            </a>
+          ) : (
+            <span />
+          )}
+
+          <Link
+            href={`/org/${p.organizationId}`}
+            className="inline-flex items-center gap-1 text-xs font-bold text-teal-800 hover:text-teal-900 transition-colors ml-auto"
+          >
+            <span>Visit Business Profile</span>
+            <ArrowRight size={13} />
+          </Link>
         </div>
       </div>
     );
@@ -555,11 +702,11 @@ export default function CityServices({
               </>
             ) : searchQuery.trim() ? (
               <>
-                Found <span className="font-bold text-slate-800">{filteredServices.length}</span> matching {filteredServices.length === 1 ? 'service' : 'services'}
+                Found <span className="font-bold text-slate-800">{providerGroups.length}</span> {providerGroups.length === 1 ? 'business' : 'businesses'} offering {filteredServices.length} {filteredServices.length === 1 ? 'service' : 'services'}
               </>
             ) : (
               <>
-                Showing <span className="font-bold text-slate-800">{filteredServices.length}</span> verified {filteredServices.length === 1 ? 'service' : 'services'} in {activeCategory}
+                Showing <span className="font-bold text-slate-800">{providerGroups.length}</span> verified {providerGroups.length === 1 ? 'business' : 'businesses'} ({filteredServices.length} {filteredServices.length === 1 ? 'service' : 'services'}) in {activeCategory}
               </>
             )}
           </div>
@@ -660,7 +807,7 @@ export default function CityServices({
                 Search Results for &ldquo;{searchQuery}&rdquo;
               </h2>
               <p className="text-xs text-slate-500 font-medium">
-                Found {filteredServices.length} matching {filteredServices.length === 1 ? 'service' : 'services'}
+                Found {providerGroups.length} {providerGroups.length === 1 ? 'business' : 'businesses'} offering {filteredServices.length} matching {filteredServices.length === 1 ? 'service' : 'services'}
               </p>
             </div>
             <button
@@ -675,9 +822,9 @@ export default function CityServices({
             </button>
           </div>
 
-          {filteredServices.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredServices.map(renderServiceCard)}
+          {providerGroups.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {providerGroups.map(renderProviderCard)}
             </div>
           ) : (
             <div className="rounded-2xl border border-dashed border-slate-200 p-12 text-center bg-white space-y-3">
@@ -685,7 +832,7 @@ export default function CityServices({
                 <Search size={20} />
               </div>
               <div>
-                <p className="text-sm font-bold text-slate-800">No services match your search</p>
+                <p className="text-sm font-bold text-slate-800">No businesses match your search</p>
                 <p className="text-xs text-slate-400 mt-1">
                   Try searching for another keyword or browse our service categories.
                 </p>
@@ -716,11 +863,14 @@ export default function CityServices({
                 />
               </div>
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <h2 className="text-lg sm:text-xl font-black text-ink tracking-tight">
                     {activeCategory}
                   </h2>
                   <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-teal-800 text-white">
+                    {providerGroups.length} {providerGroups.length === 1 ? 'business' : 'businesses'}
+                  </span>
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200/60">
                     {filteredServices.length} {filteredServices.length === 1 ? 'service' : 'services'}
                   </span>
                 </div>
@@ -738,14 +888,14 @@ export default function CityServices({
             </Link>
           </div>
 
-          {/* Services Grid for This Category */}
-          {filteredServices.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredServices.map(renderServiceCard)}
+          {/* Providers Grid for This Category */}
+          {providerGroups.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {providerGroups.map(renderProviderCard)}
             </div>
           ) : (
             <div className="rounded-2xl border border-dashed border-slate-200 p-12 text-center bg-white space-y-3">
-              <p className="text-sm font-bold text-slate-800">No services found in {activeCategory}</p>
+              <p className="text-sm font-bold text-slate-800">No service businesses found in {activeCategory}</p>
               <Link
                 href="/services"
                 className="inline-block px-4 py-2 bg-teal-50 text-teal-800 hover:bg-teal-100 rounded-xl text-xs font-bold transition-colors"

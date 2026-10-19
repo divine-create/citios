@@ -92,6 +92,9 @@ export async function saveVerticalsConfig(payload: Partial<PlatformVerticalsConf
     revalidatePath('/food');
     revalidatePath('/services');
     revalidatePath('/events');
+    revalidatePath('/wallet');
+    revalidatePath('/profile');
+    revalidatePath('/checkout');
   } catch {}
 
   return { success: true, config: updated };

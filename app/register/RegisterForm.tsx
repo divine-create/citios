@@ -86,13 +86,10 @@ export default function RegisterForm() {
     try {
       setLoading(true);
       setError('');
-      const res = await signIn('google', { callbackUrl, redirect: false });
-      if (res?.error) {
-        setError('Google Sign-In is not configured on this server yet. Please register with your email.');
-        setLoading(false);
-      }
-    } catch {
-      setError('Google Sign-In is not configured on this server yet. Please register with your email.');
+      await signIn('google', { callbackUrl });
+    } catch (err: any) {
+      console.error('Google registration error:', err);
+      setError('Unable to initiate Google Sign-In. Please register with your email.');
       setLoading(false);
     }
   };

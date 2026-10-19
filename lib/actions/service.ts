@@ -672,12 +672,12 @@ export async function getCityBookableServices(citySlug?: string, categoryFilter?
     const distinctOrgIds = Array.from(new Set(rawItems.map((i: any) => i.organizationId)));
 
     // Fetch org names and filter out test/demo organizations
-    const orgMap = new Map<string, string>();
+    const orgMap = new Map<string, { name: string; description: string | null }>();
     const validOrgIds = new Set<string>();
     for (const orgId of distinctOrgIds) {
       const org = await db.orm.public.Organization.where({ id: orgId }).all().first();
       if (org && !isTestOrDemoOrganization(org)) {
-        orgMap.set(orgId, org.name || 'Local Pro');
+        orgMap.set(orgId, { name: org.name || 'Local Pro', description: org.description || null });
         validOrgIds.add(orgId);
       }
     }
@@ -760,7 +760,8 @@ export async function getCityBookableServices(citySlug?: string, categoryFilter?
         price: it.price,
         durationMinutes: it.durationMinutes,
         organizationId: it.organizationId,
-        orgName: orgMap.get(it.organizationId) || 'Local Pro',
+        orgName: orgMap.get(it.organizationId)?.name || 'Local Pro',
+        orgDescription: orgMap.get(it.organizationId)?.description || null,
         category: inferCategoryUtil(it.name, it.description),
         phone: contact?.phone || null,
         whatsapp: contact?.whatsapp || null,

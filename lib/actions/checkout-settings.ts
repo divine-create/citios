@@ -45,13 +45,6 @@ export async function getCheckoutConfig(): Promise<PlatformCheckoutConfig> {
       return {
         ...DEFAULT_CHECKOUT_CONFIG,
         ...parsed,
-        enableWhatsApp: true,
-        enableWallet: false,
-        enableCard: false,
-        enableTransfer: false,
-        defaultMethod: 'whatsapp',
-        allowPayOnDelivery: false,
-        requireDeliveryAddress: false,
       };
     }
   } catch (err) {

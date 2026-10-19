@@ -15,8 +15,13 @@ const hasGoogleAuth = !!(
   !process.env.GOOGLE_CLIENT_ID.includes("mock")
 );
 
+const nextAuthUrl = (process.env.NEXTAUTH_URL || '').toLowerCase();
 const apexDomain = (process.env.NEXT_PUBLIC_APEX_DOMAIN || '').toLowerCase();
-const isSharedApex = apexDomain && apexDomain !== 'localhost' && !apexDomain.includes('localhost');
+const isSharedApex = 
+  apexDomain && 
+  apexDomain !== 'localhost' && 
+  !apexDomain.includes('localhost') &&
+  nextAuthUrl.includes(apexDomain);
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || "cityos-jwt-secret-key-2026",
@@ -193,5 +198,13 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: '/login',
     error: '/login', // Route all auth errors to /login to avoid Server Component render crash on /api/auth/error
+  },
+  logger: {
+    error(code, metadata) {
+      console.error(`[NextAuth Error] ${code}:`, metadata);
+    },
+    warn(code) {
+      console.warn(`[NextAuth Warn] ${code}`);
+    },
   },
 };
