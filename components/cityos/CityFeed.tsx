@@ -329,13 +329,13 @@ function PostCard({ post, follows, onFollowToggle, onDelete, isGuest, onRequireA
       {/* Header */}
       <div className="p-5 pb-3 flex items-start gap-3">
         <div onClick={handleProfileClick} className="cursor-pointer hover:opacity-80 transition-opacity shrink-0">
-          {post.avatarImg ? (
-            <img src={post.avatarImg} alt={post.author} className="w-11 h-11 rounded-full object-cover border border-slate-100" />
-          ) : (
-            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white font-black text-sm border border-slate-100">
-              {post.author.slice(0, 1)}
-            </div>
-          )}
+          <FallbackImg
+            src={post.avatarImg}
+            alt={post.author}
+            className="w-11 h-11 rounded-full object-cover border border-slate-100 bg-white"
+            icon={<span className="text-white font-black text-sm">{post.author.slice(0, 1)}</span>}
+            gradient="from-teal-400 to-teal-600"
+          />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
@@ -907,30 +907,30 @@ export default function CityFeed({ hideHeader = false }: { hideHeader?: boolean 
             Share what&apos;s happening in {cityName}...
           </Link>
         </div>
-        <div className="flex items-center justify-between border-t border-slate-100 mt-3 pt-2.5 px-2 text-[12px] font-bold text-slate-600">
+        <div className="flex items-center justify-between border-t border-slate-100 mt-3 pt-2.5 px-2 text-[12px] font-bold text-slate-600 overflow-x-auto no-scrollbar gap-3">
           <Link
-            href="/feed/new?category=Community"
+            href="/feed/new?category=Update"
             onClick={(e) => {
               if (isGuest) {
                 e.preventDefault();
-                promptLogin("Sign in to post", `Sign in or create an account to start a discussion with ${cityName} residents.`, "/feed/new?category=Community");
+                promptLogin("Sign in to post", `Sign in or create an account to share news and updates with ${cityName} residents.`, "/feed/new?category=Update");
               }
             }}
-            className="inline-flex items-center gap-1.5 hover:text-teal-700 transition-colors"
+            className="inline-flex items-center gap-1.5 hover:text-teal-700 transition-colors shrink-0"
           >
-            💬 <span>Discussion</span>
+            📢 <span>Update</span>
           </Link>
           <Link
-            href="/feed/new?category=Offer"
+            href="/feed/new?category=Sales"
             onClick={(e) => {
               if (isGuest) {
                 e.preventDefault();
-                promptLogin("Sign in to post an offer", "Sign in or create an account to list items or services for sale.", "/feed/new?category=Offer");
+                promptLogin("Sign in to post", "Sign in or create an account to list items or services for sale.", "/feed/new?category=Sales");
               }
             }}
-            className="inline-flex items-center gap-1.5 hover:text-teal-700 transition-colors"
+            className="inline-flex items-center gap-1.5 hover:text-teal-700 transition-colors shrink-0"
           >
-            🏷️ <span>Offer / Sell</span>
+            🏷️ <span>Sell</span>
           </Link>
           <Link
             href="/feed/new?category=Event"
@@ -940,21 +940,33 @@ export default function CityFeed({ hideHeader = false }: { hideHeader?: boolean 
                 promptLogin("Sign in to create an event", "Sign in or create an account to publish an event to the city calendar.", "/feed/new?category=Event");
               }
             }}
-            className="inline-flex items-center gap-1.5 hover:text-teal-700 transition-colors"
+            className="inline-flex items-center gap-1.5 hover:text-teal-700 transition-colors shrink-0"
           >
-            📅 <span>Event</span>
+            🎉 <span>Event</span>
           </Link>
           <Link
-            href="/feed/new?category=Ask+the+city"
+            href="/feed/new?category=Housing"
             onClick={(e) => {
               if (isGuest) {
                 e.preventDefault();
-                promptLogin("Sign in to ask the city", `Sign in or create an account to ask questions and get answers from ${cityName} residents.`, "/feed/new?category=Ask+the+city");
+                promptLogin("Sign in to list housing", "Sign in or create an account to list an apartment or rental property.", "/feed/new?category=Housing");
               }
             }}
-            className="inline-flex items-center gap-1.5 hover:text-teal-700 transition-colors"
+            className="inline-flex items-center gap-1.5 hover:text-teal-700 transition-colors shrink-0"
           >
-            ❓ <span>Ask Calabar</span>
+            🏠 <span>Housing</span>
+          </Link>
+          <Link
+            href="/feed/new?category=Question"
+            onClick={(e) => {
+              if (isGuest) {
+                e.preventDefault();
+                promptLogin("Sign in to ask", `Sign in or create an account to ask questions and get answers from ${cityName} residents.`, "/feed/new?category=Question");
+              }
+            }}
+            className="inline-flex items-center gap-1.5 hover:text-teal-700 transition-colors shrink-0"
+          >
+            ❓ <span>Ask</span>
           </Link>
         </div>
       </div>

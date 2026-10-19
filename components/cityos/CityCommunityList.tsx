@@ -55,13 +55,13 @@ export default function CityCommunityList() {
         </div>
         <div className="relative flex flex-wrap gap-2.5 shrink-0">
           <Link
-            href="/feed/new?category=Community"
+            href="/feed/new?category=Update"
             className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-black shadow-lg transition-all"
           >
             <PenSquare className="w-4 h-4" /> Post Community Notice
           </Link>
           <Link
-            href="/feed/new?category=Ask%20the%20city"
+            href="/feed/new?category=Question"
             className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-xs font-black border border-white/15 transition-all"
           >
             Ask {cityName}

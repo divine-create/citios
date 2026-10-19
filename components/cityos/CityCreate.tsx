@@ -33,7 +33,7 @@ interface CreateAction {
 
 const ACTIONS: CreateAction[] = [
   { icon: PenSquare, title: 'Post to the feed', desc: 'An offer, an ask, or a city notice for everyone.', href: '/feed/new', tone: 'from-orange-500 to-amber-500', label: 'Compose' },
-  { icon: PackagePlus, title: 'List a product', desc: 'Manage your retail inventory via ShopOS or post a direct deal.', href: '/feed/new?category=Offer', tone: 'from-teal-800 to-emerald-600', label: 'List Deal' },
+  { icon: PackagePlus, title: 'List a product', desc: 'Manage your retail inventory via ShopOS or post a direct deal.', href: '/feed/new?category=Sales', tone: 'from-teal-800 to-emerald-600', label: 'List Deal' },
   { icon: Wrench, title: 'Request a service', desc: 'AC, cleaning, installs — quoted before work starts.', href: '/services', tone: 'from-sky-700 to-cyan-500', label: 'Services' },
   { icon: Briefcase, title: 'Post a job', desc: 'Publish organization roles and openings to the city job board.', href: '/business?action=post-job', tone: 'from-indigo-700 to-brand-600', label: 'Post Opening' },
   { icon: CalendarPlus, title: 'Create an event', desc: 'Host a concert, meetup, tasting, party, or festival as yourself or a business.', href: '/events/create', tone: 'from-fuchsia-700 to-brand-500', label: 'Host Event' },

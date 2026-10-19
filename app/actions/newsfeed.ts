@@ -13,26 +13,48 @@ function toTemporal(date: Date = new Date()) {
   return (globalThis as any).Temporal.Instant.fromEpochMilliseconds(date.getTime());
 }
 
-async function getVerifiedOrgIds(orgIds: string[]): Promise<Set<string>> {
-  const filtered = Array.from(new Set(orgIds.filter(Boolean)));
-  if (filtered.length === 0) return new Set();
+function resolveAvatarUrl(raw?: string | null): string | undefined {
+  if (!raw) return undefined;
+  const trimmed = raw.trim();
+  if (!trimmed) return undefined;
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('/') || trimmed.startsWith('data:')) {
+    return trimmed;
+  }
+  return `/api/assets/${trimmed}`;
+}
 
+interface OrgMetadataBatch {
+  verifiedOrgIds: Set<string>;
+  orgLogos: Map<string, string>;
+}
+
+async function getOrgMetadataBatch(orgIds: string[]): Promise<OrgMetadataBatch> {
+  const filtered = Array.from(new Set(orgIds.filter(Boolean)));
   const verifiedSet = new Set<string>();
+  const logoMap = new Map<string, string>();
+  if (filtered.length === 0) return { verifiedOrgIds: verifiedSet, orgLogos: logoMap };
 
   try {
     const listings = await db.orm.public.DiscoveryListing.where((l: any) => l.organizationId.in(filtered)).all();
     for (const l of listings) {
-      if (l.metadata && l.organizationId) {
-        try {
-          const meta = typeof l.metadata === 'string' ? JSON.parse(l.metadata) : l.metadata;
-          if (Boolean(meta?.isVerified)) {
-            verifiedSet.add(l.organizationId);
-          }
-        } catch {}
+      if (l.organizationId) {
+        let meta: any = null;
+        if (l.metadata) {
+          try {
+            meta = typeof l.metadata === 'string' ? JSON.parse(l.metadata) : l.metadata;
+            if (Boolean(meta?.isVerified)) {
+              verifiedSet.add(l.organizationId);
+            }
+          } catch {}
+        }
+        const fallbackLogo = meta?.logoUrl || l.coverAssetId || meta?.coverImage || meta?.images?.[0];
+        if (fallbackLogo && !logoMap.has(l.organizationId)) {
+          logoMap.set(l.organizationId, fallbackLogo);
+        }
       }
     }
   } catch (err) {
-    console.warn('[newsfeed] Error checking discoveryListing verifications:', err);
+    console.warn('[newsfeed] Error checking discoveryListing metadata & verifications:', err);
   }
 
   try {
@@ -49,7 +71,7 @@ async function getVerifiedOrgIds(orgIds: string[]): Promise<Set<string>> {
     console.warn('[newsfeed] Error checking servicesConfig verifications:', err);
   }
 
-  return verifiedSet;
+  return { verifiedOrgIds: verifiedSet, orgLogos: logoMap };
 }
 
 function mapPost(
@@ -58,7 +80,8 @@ function mapPost(
   myReactions: Map<string, ReactionType>,
   currentPersonId?: string,
   myOrgIds?: Set<string>,
-  verifiedOrgIds: Set<string> = new Set()
+  verifiedOrgIds: Set<string> = new Set(),
+  orgLogos: Map<string, string> = new Map()
 ) {
   let parsedRawMeta: any = null;
   if (post.postMetadata) {
@@ -99,6 +122,14 @@ function mapPost(
   const isPostOrgVerified = Boolean(post.organizationId && verifiedOrgIds.has(post.organizationId));
   const isReviewedOrgVerified = Boolean(reviewedOrgId && verifiedOrgIds.has(reviewedOrgId));
 
+  let avatarImg: string | undefined = undefined;
+  if (isOrg) {
+    const rawLogo = post.organization?.logoAssetId || (post.organizationId ? orgLogos.get(post.organizationId) : undefined);
+    avatarImg = resolveAvatarUrl(rawLogo);
+  } else if (post.person) {
+    avatarImg = resolveAvatarUrl(post.person?.profile?.avatarUrl);
+  }
+
   const reviewCard = isReviewPost
     ? {
         reviewId: parsedRawMeta?.reviewId || post.linkedEntityId || post.id,
@@ -115,7 +146,7 @@ function mapPost(
           parsedRawMeta?.reviewedOrgName || post.organization?.name || 'Local Business',
         reviewedOrgCategory: parsedRawMeta?.reviewedOrgCategory || 'Business',
         reviewedOrgAddress: parsedRawMeta?.reviewedOrgAddress || post.location || 'Calabar',
-        reviewedOrgCover: parsedRawMeta?.reviewedOrgCover || null,
+        reviewedOrgCover: parsedRawMeta?.reviewedOrgCover || resolveAvatarUrl(post.organization?.logoAssetId || orgLogos.get(reviewedOrgId)) || null,
         isOrgVerified: isReviewedOrgVerified,
       }
     : undefined;
@@ -147,7 +178,7 @@ function mapPost(
     isOrg,
     isVerified: isOrg ? isPostOrgVerified : false,
     authorId: isOrg ? post.organizationId : post.personId,
-    avatarImg: isOrg ? undefined : post.person?.profile?.avatarUrl,
+    avatarImg,
     time: post.createdAt ? String(post.createdAt) : new Date().toISOString(),
     category: post.category,
     title: post.title,
@@ -197,7 +228,7 @@ export async function fetchFeed(
 
   if (topic !== 'All') {
     if (topic === 'Marketplace') {
-      query = query.where((p: any) => p.category.in(['Offer', 'Marketplace', 'RETAIL', 'Shops']));
+      query = query.where((p: any) => p.category.in(['Offer', 'Sales', 'Marketplace', 'RETAIL', 'Shops']));
     } else if (topic === 'Reviews') {
       query = query.where({ category: 'Review' });
     } else if (topic === 'Food') {
@@ -208,6 +239,8 @@ export async function fetchFeed(
       query = query.where((p: any) => p.category.in(['Stays', 'Housing', 'Hotel', 'STAY']));
     } else if (topic === 'Jobs') {
       query = query.where((p: any) => p.category.in(['Jobs', 'Careers', 'JOB']));
+    } else if (topic === 'Community') {
+      query = query.where((p: any) => p.category.in(['Community', 'Update', 'Question', 'Ask the city']));
     } else {
       query = query.where({ category: topic });
     }
@@ -223,7 +256,7 @@ export async function fetchFeed(
     .orderBy((p: any) => p.createdAt.desc())
     .limit(limit)
     .include('person', (p: any) => p.select('firstName', 'lastName', 'id').include('profile', (prof: any) => prof.select('avatarUrl')))
-    .include('organization', (o: any) => o.select('name', 'id', 'type'))
+    .include('organization', (o: any) => o.select('name', 'id', 'type', 'logoAssetId'))
     .include('likes', (likes: any) => likes.count())
     .include('comments', (comments: any) => comments.count())
     .all();
@@ -260,7 +293,7 @@ export async function fetchFeed(
     : [];
   const myOrgIds = new Set(memberships.map((m: any) => m.organizationId));
 
-  // Determine which organizations in these posts are verified
+  // Determine which organizations in these posts are verified and resolve logos
   const allOrgIds = new Set<string>();
   for (const p of rawPosts) {
     if (p.organizationId) allOrgIds.add(p.organizationId);
@@ -271,9 +304,9 @@ export async function fetchFeed(
       } catch {}
     }
   }
-  const verifiedOrgIds = await getVerifiedOrgIds(Array.from(allOrgIds));
+  const { verifiedOrgIds, orgLogos } = await getOrgMetadataBatch(Array.from(allOrgIds));
 
-  const posts = rawPosts.map((post: any) => mapPost(post, myLikedPostIds, myReactions, personId, myOrgIds, verifiedOrgIds));
+  const posts = rawPosts.map((post: any) => mapPost(post, myLikedPostIds, myReactions, personId, myOrgIds, verifiedOrgIds, orgLogos));
   const nextCursor = rawPosts.length === limit
     ? String(rawPosts[rawPosts.length - 1].createdAt)
     : null;
@@ -287,7 +320,7 @@ export async function fetchSinglePost(postId: string) {
 
   const post = await db.orm.public.Post.where({ id: postId })
     .include('person', (p: any) => p.select('firstName', 'lastName', 'id').include('profile', (prof: any) => prof.select('avatarUrl')))
-    .include('organization', (o: any) => o.select('name', 'id', 'type'))
+    .include('organization', (o: any) => o.select('name', 'id', 'type', 'logoAssetId'))
     .include('likes', (likes: any) => likes.count())
     .include('comments', (comments: any) => comments.count())
     .first();
@@ -324,9 +357,9 @@ export async function fetchSinglePost(postId: string) {
       if (meta?.reviewedOrgId) allOrgIds.add(meta.reviewedOrgId);
     } catch {}
   }
-  const verifiedOrgIds = await getVerifiedOrgIds(Array.from(allOrgIds));
+  const { verifiedOrgIds, orgLogos } = await getOrgMetadataBatch(Array.from(allOrgIds));
 
-  return mapPost(post, myLikedPostIds, myReactions, personId, myOrgIds, verifiedOrgIds);
+  return mapPost(post, myLikedPostIds, myReactions, personId, myOrgIds, verifiedOrgIds, orgLogos);
 }
 
 export async function createPost(data: { 
@@ -338,6 +371,7 @@ export async function createPost(data: {
   eventDate?: string;
   location?: string;
   price?: number;
+  phone?: string;
   postMetadata?: string;
   postBackground?: PostBackgroundId;
   organizationId?: string;
@@ -361,10 +395,91 @@ export async function createPost(data: {
     }
   }
 
+  const normalizedCategory = data.category.trim();
+
+  // 1. AUTO-BRIDGE: Event -> Create official Event in calendar + auto-linked Post
+  if (normalizedCategory === 'Event' && data.eventDate) {
+    const { createUniversalEvent } = await import('@/lib/actions/events');
+    const result = await createUniversalEvent({
+      hostType: verifiedOrgId ? 'ORGANIZATION' : 'PERSONAL',
+      organizationId: verifiedOrgId,
+      title: data.title,
+      description: data.body,
+      location: data.location || 'Calabar',
+      date: data.eventDate,
+      price: data.price ? Number(data.price) : 0,
+      imageUrl: data.imageUrl,
+      shareToFeed: true,
+    });
+    if ((result as any)?.error) {
+      throw new Error((result as any).error);
+    }
+    return { success: true };
+  }
+
+  // 2. AUTO-BRIDGE: Housing -> Create official DiscoveryListing in CityStay + auto-linked Post
+  if (normalizedCategory === 'Housing') {
+    const { createUniversalStay } = await import('@/lib/actions/stays');
+    let phone = data.phone?.trim();
+    if (!phone) {
+      try {
+        const profile = await db.orm.public.ResidentProfile.where({ personId }).first();
+        phone = profile?.phone || '';
+      } catch {}
+    }
+    if (!phone || phone.length < 8) {
+      phone = '08000000000'; // safe fallback to allow listing
+    }
+
+    const result = await createUniversalStay({
+      hostType: verifiedOrgId ? 'ORGANIZATION' : 'PERSONAL',
+      organizationId: verifiedOrgId,
+      title: data.title,
+      stayCategory: 'Short-Let',
+      description: data.body,
+      neighborhood: data.location || 'Calabar',
+      address: data.location || 'Calabar',
+      price: data.price ? Number(data.price) : 0,
+      whatsappPhone: phone,
+      images: data.imageUrl ? [data.imageUrl] : [],
+      shareToFeed: true,
+    });
+    if ((result as any)?.error) {
+      throw new Error((result as any).error);
+    }
+    return { success: true };
+  }
+
+  // 3. AUTO-BRIDGE: Sales -> If posting as a RETAIL store organization, create RetailProduct in ShopOS
+  let linkedEntityType: string | undefined;
+  let linkedEntityId: string | undefined;
+
+  if ((normalizedCategory === 'Sales' || normalizedCategory === 'Offer') && verifiedOrgId) {
+    try {
+      const org = await db.orm.public.Organization.where({ id: verifiedOrgId }).first();
+      if (org && org.type === 'RETAIL') {
+        const product = await db.orm.public.RetailProduct.create({
+          organizationId: org.id,
+          name: data.title,
+          description: data.body,
+          price: data.price ? Number(data.price) : 0,
+          imageAssetId: data.imageUrl,
+          stockQuantity: 99,
+          unit: 'ea',
+        });
+        linkedEntityType = 'RETAIL_PRODUCT';
+        linkedEntityId = product.id;
+      }
+    } catch (e) {
+      console.warn('[createPost] Auto-bridge to RetailProduct non-fatal error:', e);
+    }
+  }
+
+  // 4. Create Canonical Post Record
   await db.orm.public.Post.create({
     title: data.title,
     content: data.body,
-    category: data.category,
+    category: normalizedCategory,
     personId,
     organizationId: verifiedOrgId ?? undefined,
     status: 'PUBLISHED',
@@ -377,13 +492,20 @@ export async function createPost(data: {
     postMetadata: data.postBackground
       ? serializePostMetadata(getPostBackground(data.postBackground).id)
       : data.postMetadata,
+    linkedEntityType,
+    linkedEntityId,
   });
 
   try {
     const { revalidatePath } = await import('next/cache');
     revalidatePath('/feed');
     revalidatePath('/create');
+    revalidatePath('/market');
+    revalidatePath('/events');
+    revalidatePath('/stay');
   } catch { /* non-fatal in test runners */ }
+
+  return { success: true };
 }
 
 export async function reactToPost(postId: string, reaction: ReactionType | null) {
@@ -522,7 +644,37 @@ export async function deletePost(postId: string) {
     throw new Error('Forbidden: You can only delete your own posts');
   }
 
+  // Two-way deletion bridge: Clean up linked marketplace entities
+  if (post.linkedEntityType === 'EVENT' && post.linkedEntityId) {
+    try {
+      await db.orm.public.Event.where({ id: post.linkedEntityId }).delete();
+    } catch (e) {
+      console.warn('[deletePost] Failed to delete linked event:', e);
+    }
+  } else if (post.linkedEntityType === 'STAY' && post.linkedEntityId) {
+    try {
+      await db.orm.public.DiscoveryListing.where({ id: post.linkedEntityId }).delete();
+    } catch (e) {
+      console.warn('[deletePost] Failed to delete linked stay listing:', e);
+    }
+  } else if (post.linkedEntityType === 'RETAIL_PRODUCT' && post.linkedEntityId) {
+    try {
+      await db.orm.public.RetailProduct.where({ id: post.linkedEntityId }).delete();
+    } catch (e) {
+      console.warn('[deletePost] Failed to delete linked retail product:', e);
+    }
+  }
+
   await db.orm.public.Post.where({ id: postId }).delete();
+
+  try {
+    const { revalidatePath } = await import('next/cache');
+    revalidatePath('/feed');
+    revalidatePath('/events');
+    revalidatePath('/stay');
+    revalidatePath('/market');
+  } catch {}
+
   return { success: true };
 }
 
