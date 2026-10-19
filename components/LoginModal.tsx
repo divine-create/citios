@@ -49,9 +49,11 @@ export default function LoginModal({
                     
                     {/* Logo & Branding */}
                     <div className="flex flex-col items-center mb-8">
-                        <div className="w-16 h-16 bg-gradient-to-br from-teal-600 to-teal-800 rounded-2xl flex items-center justify-center mb-4 shadow-xl shadow-teal-900/10 rotate-3 transition-transform hover:rotate-6">
-                            <Building2 className="w-8 h-8 text-white -rotate-3" />
-                        </div>
+                        <img
+                            src="/images/9jalive-logo.jpg"
+                            alt="9jaLive"
+                            className="w-16 h-16 rounded-2xl object-cover mb-4 shadow-xl shadow-teal-900/10 rotate-3 transition-transform hover:rotate-6 border border-slate-100"
+                        />
                         <h1 className="text-2xl font-black text-teal-900 tracking-tight">9jaLive</h1>
                         <p className="text-[10px] text-teal-600/70 font-bold uppercase tracking-[0.2em] mt-1">Hyperlocal City Network</p>
                     </div>

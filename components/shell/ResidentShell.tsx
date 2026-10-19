@@ -438,9 +438,11 @@ export default function ResidentShell({
         <aside className="hidden md:flex flex-col w-[268px] bg-white border-r border-[#EBEBEB] z-20 h-full overflow-y-auto">
           <div className="p-6 pb-4 flex flex-col gap-1 sticky top-0 bg-white z-10 border-b border-[#EBEBEB]">
             <Link href="/" className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#FF385C] to-[#E00B41] flex items-center justify-center text-white shadow-md shadow-[#FF385C]/20">
-                <LayoutGrid className="w-5 h-5" />
-              </div>
+              <img
+                src="/images/9jalive-logo.jpg"
+                alt="9jaLive"
+                className="w-9 h-9 rounded-xl object-cover shadow-sm border border-slate-100 shrink-0"
+              />
               <div>
                 <h1 className="text-xl font-black tracking-tight text-[#222222] leading-none">9jaLive</h1>
                 <p className="text-[9px] text-neutral-400 font-bold uppercase tracking-[0.2em] mt-0.5">
@@ -537,9 +539,11 @@ export default function ResidentShell({
             <header className="h-11 bg-slate-900 text-white flex items-center justify-between px-4 sm:px-6 border-b border-slate-800 shrink-0 z-40 select-none">
               <div className="flex items-center gap-3">
                 <Link href="/" className="flex items-center gap-2 text-white hover:text-teal-300 transition-colors">
-                  <div className="w-6 h-6 rounded-lg bg-teal-600 flex items-center justify-center font-black text-[10px] text-white shadow-sm">
-                    9L
-                  </div>
+                  <img
+                    src="/images/9jalive-logo.jpg"
+                    alt="9jaLive"
+                    className="w-6 h-6 rounded-md object-cover shadow-sm shrink-0"
+                  />
                   <span className="font-black text-xs tracking-tight hidden sm:inline">9jaLive</span>
                 </Link>
                 <span className="text-slate-700 hidden sm:inline">/</span>
@@ -586,9 +590,11 @@ export default function ResidentShell({
               <header className="md:hidden flex flex-col px-5 pt-4 pb-3 bg-[#F6F7F8] sticky top-0 z-20">
                 <div className="flex items-center justify-between">
                   <Link href="/" className="flex items-center gap-2" onClick={() => setMenuOpen(false)}>
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-700 to-teal-500 flex items-center justify-center text-white">
-                      <LayoutGrid className="w-4 h-4" />
-                    </div>
+                    <img
+                      src="/images/9jalive-logo.jpg"
+                      alt="9jaLive"
+                      className="w-8 h-8 rounded-lg object-cover shadow-sm border border-slate-100 shrink-0"
+                    />
                     <div>
                       <h1 className="text-lg font-black tracking-tight text-ink leading-none">9jaLive</h1>
                       <CityPicker className="text-[8px]" />

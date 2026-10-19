@@ -1,7 +1,7 @@
 import React, { Suspense } from 'react';
 import LoginForm from './LoginForm';
 import Link from 'next/link';
-import { Building2, Store, Users, ShieldCheck } from 'lucide-react';
+import { Store, Users, ShieldCheck } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,8 +17,8 @@ export default function LoginPage() {
         {/* Left Column: Brand & Tagline (Facebook Style) */}
         <div className="text-center lg:text-left lg:max-w-md xl:max-w-lg space-y-4">
           <Link href="/" className="inline-flex items-center gap-3 group">
-            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-tr from-teal-800 to-teal-600 rounded-2xl flex items-center justify-center shadow-md shadow-teal-900/10 group-hover:scale-105 transition-transform">
-              <Building2 className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl overflow-hidden shadow-md shadow-teal-900/10 group-hover:scale-105 transition-transform border border-slate-100 flex-shrink-0">
+              <img src="/images/9jalive-logo.jpg" alt="9jaLive" className="w-full h-full object-cover" />
             </div>
             <span className="text-3xl sm:text-4xl font-black text-teal-800 tracking-tight">
               9ja<span className="text-slate-900">Live</span>

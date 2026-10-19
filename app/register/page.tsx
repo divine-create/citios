@@ -1,7 +1,6 @@
 import React, { Suspense } from 'react';
 import RegisterForm from './RegisterForm';
 import Link from 'next/link';
-import { Building2 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,9 +13,9 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center px-4">
-        <Link href="/" className="inline-flex items-center gap-2 mb-4 group">
-          <div className="w-12 h-12 bg-gradient-to-tr from-teal-700 to-teal-500 rounded-2xl flex items-center justify-center shadow-lg shadow-teal-900/10 group-hover:scale-105 transition-transform">
-            <Building2 className="w-6 h-6 text-white" />
+        <Link href="/" className="inline-flex items-center gap-2.5 mb-4 group">
+          <div className="w-12 h-12 rounded-2xl overflow-hidden shadow-lg shadow-teal-900/10 group-hover:scale-105 transition-transform border border-slate-100 flex-shrink-0">
+            <img src="/images/9jalive-logo.jpg" alt="9jaLive" className="w-full h-full object-cover" />
           </div>
           <span className="text-2xl font-black text-slate-900 tracking-tight">
             9ja<span className="text-teal-600">Live</span>
