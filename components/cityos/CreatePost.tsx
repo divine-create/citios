@@ -664,19 +664,20 @@ export default function CreatePost() {
           })}
         </div>
 
-        {/* 3. Auto-Bridge Context Banner */}
-        <div className="px-4 sm:px-5 py-2 text-[11px] font-bold border-b border-slate-100 flex items-center gap-2 bg-gradient-to-r from-teal-50/60 to-transparent text-teal-900">
-          <Sparkles className="w-3.5 h-3.5 text-teal-700 shrink-0" />
-          <span className="truncate">
-            {category === 'Event' && `🎉 Auto-Bridge: Published to Feed AND official ${cityName} Events Calendar.`}
-            {category === 'Housing' && `🏠 Auto-Bridge: Published to Feed AND official ${cityName} CityStay Directory.`}
-            {category === 'Sales' && (isBusinessAuthor
-              ? `🛍️ Auto-Bridge: Published to Feed AND your CityMart Storefront catalog.`
-              : `🏷️ Marketplace: Published to Feed under Marketplace category.`)}
-            {category === 'Update' && `📢 Broadcast: Instant news and updates shared with all residents.`}
-            {category === 'Question' && `❓ Resident Inquiry: Broadcast to neighbors, leaders, and verified services.`}
-          </span>
-        </div>
+        {/* 3. Context Banner */}
+        {category !== 'Housing' && (
+          <div className="px-4 sm:px-5 py-2 text-[11px] font-bold border-b border-slate-100 flex items-center gap-2 bg-gradient-to-r from-teal-50/60 to-transparent text-teal-900">
+            <Sparkles className="w-3.5 h-3.5 text-teal-700 shrink-0" />
+            <span className="truncate">
+              {category === 'Event' && `🎉 Auto-Bridge: Published to Feed AND official ${cityName} Events Calendar.`}
+              {category === 'Sales' && (isBusinessAuthor
+                ? `🛍️ Auto-Bridge: Published to Feed AND your CityMart Storefront catalog.`
+                : `🏷️ Marketplace: Published to Feed under Marketplace category.`)}
+              {category === 'Update' && `📢 Broadcast: Instant news and updates shared with all residents.`}
+              {category === 'Question' && `❓ Resident Inquiry: Broadcast to neighbors, leaders, and verified services.`}
+            </span>
+          </div>
+        )}
 
         {/* 4. Canvas Writing Area OR Live Preview Card */}
         {viewMode === 'preview' ? (
