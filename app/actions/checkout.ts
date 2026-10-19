@@ -253,7 +253,7 @@ export async function processMerchantCheckout(
     .join('\n');
 
   const messageLines = [
-    `🛍️ *NEW CITYOS ORDER* — #${shortRef}`,
+    `🛍️ *NEW 9JALIVE ORDER* — #${shortRef}`,
     `--------------------------------`,
     `🏬 *Store:* ${org?.name || 'Local Store'}`,
     `👤 *Customer:* ${customerName}${customerPhone ? ` (${customerPhone})` : ''}`,

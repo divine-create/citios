@@ -97,7 +97,7 @@ export default function SandboxPaymentView() {
 
         <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400">
           <ShieldCheck className="w-3.5 h-3.5 text-teal-600" />
-          <span>Secured by CityConnect Paystack Gateway</span>
+          <span>Secured by 9jaLive Paystack Gateway</span>
         </div>
       </div>
     </div>

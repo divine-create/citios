@@ -3,7 +3,7 @@ import { getOutletsData, getHotelAdminData } from '@/lib/actions/hotel';
 import OutletPOS from '@/components/hotel/OutletPOS';
 
 export const metadata = {
-  title: 'Outlets & POS | CityConnect Hotel Management',
+  title: 'Outlets & POS | 9jaLive Hotel Management',
   description: 'Restaurant, bar, and club point-of-sale with charge-to-room.',
 };
 

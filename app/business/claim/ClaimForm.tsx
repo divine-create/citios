@@ -50,7 +50,7 @@ export default function ClaimForm({
       } else {
         setResult({
           success: true,
-          message: res.message || 'Your claim request has been submitted. A CityOS administrator will verify your information.',
+          message: res.message || 'Your claim request has been submitted. A 9jaLive administrator will verify your information.',
         });
       }
     } catch (err: any) {
@@ -72,7 +72,7 @@ export default function ClaimForm({
         </p>
         <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 max-w-sm mx-auto text-left text-xs text-slate-600 space-y-1.5">
           <p className="font-bold text-slate-800">What happens next?</p>
-          <p>1. A CityOS administrator will review the phone and address information you submitted.</p>
+          <p>1. A 9jaLive administrator will review the phone and address information you submitted.</p>
           <p>2. The admin may reach out via phone at <strong className="text-teal-900">{claimantPhone}</strong> to confirm identity.</p>
           <p>3. Once verified, you will be granted OWNER access to manage {organizationName}.</p>
         </div>
@@ -115,7 +115,7 @@ export default function ClaimForm({
           No document uploads required
         </p>
         <p>
-          Simply provide your contact details, phone number, and physical business address. A CityOS administrator will verify the information before activating your owner dashboard.
+          Simply provide your contact details, phone number, and physical business address. A 9jaLive administrator will verify the information before activating your owner dashboard.
         </p>
       </div>
 
@@ -202,7 +202,7 @@ export default function ClaimForm({
       {/* Terms & Submit */}
       <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-slate-100">
         <p className="text-[11px] text-slate-400 font-medium max-w-sm">
-          By submitting, you confirm you are legally authorized to manage this business on CityOS.
+          By submitting, you confirm you are legally authorized to manage this business on 9jaLive.
         </p>
         <button
           type="submit"

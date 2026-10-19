@@ -5,8 +5,8 @@ import RegisterForm from "./RegisterForm";
 import Link from 'next/link';
 
 export const metadata = {
-  title: 'Register Institution | CityConnect',
-  description: 'Create your CityOS organization and start managing your institution.',
+  title: 'Register Institution | 9jaLive',
+  description: 'Create your 9jaLive organization and start managing your institution.',
 };
 
 export default async function RegisterBusinessPage({
@@ -39,7 +39,7 @@ export default async function RegisterBusinessPage({
         <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
           <div className="bg-blue-600 p-6 text-white text-center">
             <h1 className="text-2xl font-black mb-2">Register your {initialType.toLowerCase()}</h1>
-            <p className="text-blue-100 text-sm">Join the CityConnect operating system today.</p>
+            <p className="text-blue-100 text-sm">Join the 9jaLive operating system today.</p>
           </div>
           <div className="p-8">
             <RegisterForm initialType={initialType} isLoggedIn={!!session} />

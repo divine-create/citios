@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 export const metadata = {
-  title: 'HotelOS | CityConnect',
+  title: 'HotelOS | 9jaLive',
   description: 'The complete hospitality operating system for modern hotels, resorts, and lodges.',
 };
 
@@ -30,7 +30,7 @@ export default function HotelOSLandingPage() {
             <div className="w-9 h-9 bg-amber-600 rounded-xl flex items-center justify-center shadow-sm">
               <Building2 className="text-white" size={20} />
             </div>
-            <span className="font-bold text-xl tracking-tight text-slate-900">CityOS <span className="text-amber-600">HotelOS</span></span>
+            <span className="font-bold text-xl tracking-tight text-slate-900">9jaLive <span className="text-amber-600">HotelOS</span></span>
           </div>
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
             <Link href="#features" className="hover:text-amber-600 transition-colors">Features</Link>
@@ -58,7 +58,7 @@ export default function HotelOSLandingPage() {
             The Complete Operating System <br className="hidden lg:block"/> for Modern Hospitality.
           </h1>
           <p className="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto mb-10 leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
-            Replace fragmented property software. HotelOS unifies room reservations, visual tape charts, front desk check-in, guest folios, housekeeping, and outlet POS into one connected platform on CityConnect.
+            Replace fragmented property software. HotelOS unifies room reservations, visual tape charts, front desk check-in, guest folios, housekeeping, and outlet POS into one connected platform on 9jaLive.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-in fade-in slide-in-from-bottom-10 duration-700 delay-300">
             <Link href="/business/hotelos/register" className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white px-8 py-4 rounded-full text-lg font-bold transition-all shadow-xl shadow-amber-600/20 hover:shadow-amber-600/40 flex items-center justify-center gap-2">
@@ -139,7 +139,7 @@ export default function HotelOSLandingPage() {
               { icon: Sparkles, color: "text-blue-600", bg: "bg-blue-50", title: "Live Housekeeping", desc: "Real-time room status tracking (Clean, Dirty, Inspected, Out-of-Order) with maid assign and turnover alerts." },
               { icon: UtensilsCrossed, color: "text-purple-600", bg: "bg-purple-50", title: "Restaurant & Bar POS", desc: "Built-in outlet point-of-sale for poolside bars, room service, and restaurants directly charged to room folios." },
               { icon: Clock, color: "text-indigo-600", bg: "bg-indigo-50", title: "Automated Night Audit", desc: "Post room & tax, reconcile cash drawers, balance ledgers, and archive daily managerial reports in one click." },
-              { icon: Globe, color: "text-pink-600", bg: "bg-pink-50", title: "Microsite & Direct Bookings", desc: "Commission-free direct booking engine and branded hotel website built directly on the CityConnect platform." }
+              { icon: Globe, color: "text-pink-600", bg: "bg-pink-50", title: "Microsite & Direct Bookings", desc: "Commission-free direct booking engine and branded hotel website built directly on the 9jaLive platform." }
             ].map((feature, idx) => (
               <div key={idx} className="p-8 rounded-3xl bg-slate-50 border border-slate-100 hover:border-amber-200 hover:shadow-lg transition-all group">
                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 transition-transform group-hover:scale-110 ${feature.bg} ${feature.color}`}>
@@ -158,7 +158,7 @@ export default function HotelOSLandingPage() {
         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-amber-600/15 rounded-full blur-[140px] -translate-y-1/2 translate-x-1/3"></div>
         <div className="max-w-4xl mx-auto px-6 text-center relative z-10">
           <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-6">Ready to upgrade your property?</h2>
-          <p className="text-xl text-slate-300 mb-10">Join hospitality leaders using CityConnect HotelOS to deliver world-class guest experiences and maximize RevPAR.</p>
+          <p className="text-xl text-slate-300 mb-10">Join hospitality leaders using 9jaLive HotelOS to deliver world-class guest experiences and maximize RevPAR.</p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-12">
             <Link href="/business/hotelos/register" className="w-full sm:w-auto bg-amber-600 hover:bg-amber-500 text-white px-8 py-4 rounded-full text-lg font-bold transition-all shadow-xl shadow-amber-600/30 flex items-center justify-center gap-2">
@@ -176,7 +176,7 @@ export default function HotelOSLandingPage() {
 
       {/* Footer */}
       <footer className="bg-slate-50 py-12 border-t border-slate-200 text-center text-slate-500 text-sm">
-        <p>© {new Date().getFullYear()} CityConnect HotelOS. All rights reserved.</p>
+        <p>© {new Date().getFullYear()} 9jaLive HotelOS. All rights reserved.</p>
       </footer>
     </div>
   );

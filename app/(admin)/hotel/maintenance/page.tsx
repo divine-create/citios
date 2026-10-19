@@ -3,7 +3,7 @@ import { getHotelAdminData, getMaintenanceTickets } from '@/lib/actions/hotel';
 import MaintenanceView from '@/components/hotel/MaintenanceView';
 
 export const metadata = {
-  title: 'Maintenance | CityConnect Hotel Management',
+  title: 'Maintenance | 9jaLive Hotel Management',
   description: 'Maintenance ticketing for hotel rooms and facilities.',
 };
 

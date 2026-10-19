@@ -18,7 +18,7 @@ export default function CityNewsDetail({ id }: { id: string }) {
       </div>
       <h1 className="text-lg font-black text-ink">News stories aren&apos;t connected yet</h1>
       <p className="text-sm text-slate-500 max-w-sm mx-auto">
-        CityOS doesn&apos;t carry a news desk yet. Community updates from organizations you
+        9jaLive doesn&apos;t carry a news desk yet. Community updates from organizations you
         follow appear in the feed.
       </p>
       <Link href="/news" className="inline-block px-5 py-2.5 rounded-xl bg-teal-800 text-white text-xs font-black hover:bg-teal-900 transition-colors">

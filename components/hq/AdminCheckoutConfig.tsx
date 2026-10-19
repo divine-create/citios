@@ -145,7 +145,7 @@ export default function AdminCheckoutConfig({ initialConfig }: AdminCheckoutConf
             </div>
           </div>
 
-          {/* CityOS Resident Wallet */}
+          {/* 9jaLive Resident Wallet */}
           <div
             className={cn(
               'border rounded-2xl p-5 transition-all flex flex-col justify-between space-y-4',
@@ -166,7 +166,7 @@ export default function AdminCheckoutConfig({ initialConfig }: AdminCheckoutConf
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-black text-white">CityOS Resident Wallet</h3>
+                    <h3 className="text-sm font-black text-white">9jaLive Resident Wallet</h3>
                     <span className="text-[10px] font-extrabold bg-teal-500/20 text-teal-300 px-2 py-0.5 rounded-full">
                       INSTANT
                     </span>
@@ -326,7 +326,7 @@ export default function AdminCheckoutConfig({ initialConfig }: AdminCheckoutConf
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white focus:outline-none focus:border-teal-500"
             >
               {config.enableWhatsApp && <option value="whatsapp">WhatsApp Direct Order (Recommended)</option>}
-              {config.enableWallet && <option value="wallet">CityOS Wallet</option>}
+              {config.enableWallet && <option value="wallet">9jaLive Wallet</option>}
               {config.enableCard && <option value="card">Credit / Debit Card</option>}
               {config.enableTransfer && <option value="transfer">Bank Transfer</option>}
             </select>

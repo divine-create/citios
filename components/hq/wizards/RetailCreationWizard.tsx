@@ -142,7 +142,7 @@ export default function RetailCreationWizard({ onSuccess, onCancel }: RetailCrea
       setIsSubmitting(true);
       const diningOptions: string[] = [];
       if (inStore) diningOptions.push('In-Store Walk-in');
-      if (delivery) diningOptions.push('CityOS Delivery');
+      if (delivery) diningOptions.push('9jaLive Delivery');
       if (clickAndCollect) diningOptions.push('Click & Collect');
 
       const payload: CreateHQManagedBusinessPayload = {
@@ -267,7 +267,7 @@ export default function RetailCreationWizard({ onSuccess, onCancel }: RetailCrea
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer hover:text-white">
                   <input type="checkbox" checked={delivery} onChange={(e) => setDelivery(e.target.checked)} className="rounded bg-slate-900 border-slate-700 text-emerald-500 focus:ring-emerald-500" />
-                  <span>CityOS Courier Delivery</span>
+                  <span>9jaLive Courier Delivery</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer hover:text-white">
                   <input type="checkbox" checked={clickAndCollect} onChange={(e) => setClickAndCollect(e.target.checked)} className="rounded bg-slate-900 border-slate-700 text-emerald-500 focus:ring-emerald-500" />
@@ -489,7 +489,7 @@ Oral-B Complete Toothpaste (140g) - 1100 - 80 - ORALB-140G`}
                 <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
                   Configured Shelf Products ({products.length} items)
                 </span>
-                <span className="text-[11px] text-slate-500">Auto-created with CityOS Retail Stock</span>
+                <span className="text-[11px] text-slate-500">Auto-created with 9jaLive Retail Stock</span>
               </div>
 
               <div className="max-h-48 overflow-y-auto space-y-2 pr-1">

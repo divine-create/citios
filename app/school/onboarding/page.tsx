@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 
 export const metadata = {
-  title: 'Register School | CityConnect',
+  title: 'Register School | 9jaLive',
 };
 
 export default async function SchoolOnboardingPage() {

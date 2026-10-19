@@ -128,7 +128,7 @@ export async function saveCheckoutConfig(payload: Partial<PlatformCheckoutConfig
   if (existing) {
     await db.orm.public.DiscoveryListing.where({ id: existing.id }).update({
       metadata: metadataString,
-      title: 'CityOS Checkout & Payment Configuration',
+      title: '9jaLive Checkout & Payment Configuration',
       description: 'Platform-level active payment methods and checkout rules',
       isActive: true,
     });
@@ -139,7 +139,7 @@ export async function saveCheckoutConfig(payload: Partial<PlatformCheckoutConfig
       cityId: city.id,
       vertical: 'SETTINGS',
       slug: CONFIG_SLUG,
-      title: 'CityOS Checkout & Payment Configuration',
+      title: '9jaLive Checkout & Payment Configuration',
       description: 'Platform-level active payment methods and checkout rules',
       metadata: metadataString,
       isActive: true,

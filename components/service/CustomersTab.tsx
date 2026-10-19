@@ -147,7 +147,7 @@ export default function CustomersTab({
                           {customer.firstName} {customer.lastName}
                         </div>
                         {customer.globalUserId && (
-                          <span className="text-[10px] font-bold bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded uppercase tracking-wider">CityOS Verified</span>
+                          <span className="text-[10px] font-bold bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded uppercase tracking-wider">9jaLive Verified</span>
                         )}
                       </div>
                     </div>

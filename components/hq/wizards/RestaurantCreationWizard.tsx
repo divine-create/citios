@@ -313,7 +313,7 @@ export default function RestaurantCreationWizard({ onSuccess, onCancel }: Restau
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" checked={delivery} onChange={(e) => setDelivery(e.target.checked)} className="rounded bg-slate-900 border-slate-700 text-amber-500 focus:ring-amber-500" />
-                  <span>CityOS Delivery</span>
+                  <span>9jaLive Delivery</span>
                 </label>
               </div>
             </div>

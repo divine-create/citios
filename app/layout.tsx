@@ -15,13 +15,13 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'CityConnect - Hyperlocal Smart Commerce & Living',
-  description: 'City-wide super platform connecting local shops, restaurants, pharmacies, and residents.',
+  title: '9jaLive - Hyperlocal Smart Commerce & Living',
+  description: 'Nigeria’s hyperlocal super platform connecting local shops, restaurants, stays, events, services, and residents.',
   manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'CityConnect',
+    title: '9jaLive',
   },
   icons: {
     icon: '/icons/icon.svg',

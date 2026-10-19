@@ -53,7 +53,7 @@ function estimateDistance(from: string, to: string): number {
 }
 
 export default function RideView() {
-  const cityName = useCity().city?.name ?? 'CityOS';
+  const cityName = useCity().city?.name ?? '9jaLive';
   const { fmt } = useMoney();
   const [pickup, setPickup] = useState(HOME);
   const [dest, setDest] = useState('Marian Road');

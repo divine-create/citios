@@ -227,7 +227,7 @@ export default function MicrositeRenderer({ data }: { data: MicrositeData }) {
         return <Section key={section.id} id={section.id} micrositeId={data.id} type={section.type} content={content} theme={theme} products={data.products ?? []} hotelRooms={data.hotelRooms ?? []} currency={data.currencySymbol ?? "$"} />;
       })}
       <div style={{ textAlign: "center", padding: "1.5rem", fontSize: "0.75rem", color: theme.textMuted, borderTop: `1px solid ${theme.surface}` }}>
-        Powered by CityConnect
+        Powered by 9jaLive
       </div>
     </div>
   );

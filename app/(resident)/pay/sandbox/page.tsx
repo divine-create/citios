@@ -2,7 +2,7 @@ import React, { Suspense } from 'react';
 import SandboxPaymentView from './SandboxPaymentView';
 
 export const metadata = {
-  title: 'Paystack Sandbox Checkout | CityConnect',
+  title: 'Paystack Sandbox Checkout | 9jaLive',
 };
 
 export default function SandboxPaymentPage() {

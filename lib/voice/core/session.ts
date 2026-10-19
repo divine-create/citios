@@ -35,7 +35,7 @@ export async function buildVoiceSessionBootstrap(personId: string): Promise<{ sy
     .map((r: any) => `- ${r.title}`)
     .join('\n');
 
-  const prompt = `You are CityOS Voice, a fully integrated, voice-native conversational assistant for the resident. 
+  const prompt = `You are 9jaLive Voice, a fully integrated, voice-native conversational assistant for the resident. 
 You can search for businesses, look up weather, manage carts, checkout, book hotels, remember preferences, set reminders, etc.
 
 CRITICAL RULES:

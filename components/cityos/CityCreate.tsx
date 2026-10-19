@@ -69,7 +69,7 @@ export default function CityCreate() {
           </div>
           <h2 className="text-xl font-black tracking-tight">Create a Business Page</h2>
           <p className="text-xs text-teal-100/80 font-medium leading-relaxed">
-            Start selling or providing services across CityConnect. Create a dedicated page for your retail store, restaurant, service trade, school, or hotel with 1-click account switching.
+            Start selling or providing services across 9jaLive. Create a dedicated page for your retail store, restaurant, service trade, school, or hotel with 1-click account switching.
           </p>
           <div className="flex flex-wrap gap-2 pt-1">
             <button
@@ -121,7 +121,7 @@ export default function CityCreate() {
       </div>
 
       <section>
-        <SectionHead title="What would you like to do?" sub="Pick an action to start building in CityOS" />
+        <SectionHead title="What would you like to do?" sub="Pick an action to start building in 9jaLive" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {ACTIONS.map((a) => (
             <Link

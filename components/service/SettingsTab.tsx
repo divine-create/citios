@@ -90,7 +90,7 @@ export default function SettingsTab({
                 />
                 <div>
                   <div className="font-medium text-slate-900">Online Booking</div>
-                  <div className="text-xs text-slate-500">Allow customers to book themselves via CityOS.</div>
+                  <div className="text-xs text-slate-500">Allow customers to book themselves via 9jaLive.</div>
                 </div>
               </label>
             </div>

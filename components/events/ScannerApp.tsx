@@ -34,7 +34,7 @@ export default function ScannerApp({ event, tickets, persons }: { event: any, ti
       {/* Header / Venue Capacity */}
       <div className="flex items-center justify-between p-4 bg-zinc-900 border-b border-zinc-800">
         <div className="flex flex-col">
-          <span className="text-sm text-zinc-400">{event.title || 'CityConnect Event'}</span>
+          <span className="text-sm text-zinc-400">{event.title || '9jaLive Event'}</span>
           <span className="text-xl font-bold">Door Scanner</span>
         </div>
         <div className="flex items-center space-x-2 bg-zinc-800 px-3 py-1.5 rounded-full border border-zinc-700">

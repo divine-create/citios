@@ -317,7 +317,7 @@ export default function ResidentShell({
   children: React.ReactNode;
   verticalsConfig?: PlatformVerticalsConfig | null;
 }) {
-  const cityName = city?.name ?? 'CityOS';
+  const cityName = city?.name ?? '9jaLive';
   const pathname = usePathname();
   const router = useRouter();
   const { data: session } = useSession();
@@ -361,7 +361,7 @@ export default function ResidentShell({
         { id: 'map', path: '/map', label: 'Map', icon: MapIcon, iconKey: 'map' },
         { id: 'nearby', path: '/explore', label: 'Nearby', icon: MapPin, iconKey: 'nearby' },
         { id: 'saved', path: '/saved', label: 'Saved', icon: Bookmark, iconKey: 'saved' },
-        { id: 'ai', path: '/ai', label: 'Ask CityOS', icon: Sparkles, iconKey: 'ai' },
+        { id: 'ai', path: '/ai', label: 'Ask 9jaLive', icon: Sparkles, iconKey: 'ai' },
         { id: 'news', path: '/news', label: 'News', icon: Newspaper, iconKey: 'news', secondary: true },
       ],
     },
@@ -385,8 +385,8 @@ export default function ResidentShell({
   ];
 
   const getTitle = () => {
-    if (!pathname) return 'CityOS';
-    if (pathname.startsWith('/ai')) return 'Ask CityOS';
+    if (!pathname) return '9jaLive';
+    if (pathname.startsWith('/ai')) return 'Ask 9jaLive';
     if (pathname.startsWith('/feed')) return 'Newsfeed';
     if (pathname.startsWith('/explore')) return `Explore ${cityName}`;
     if (pathname.startsWith('/market')) return 'Shop';
@@ -404,9 +404,9 @@ export default function ResidentShell({
     if (pathname.startsWith('/drive/')) return 'CityDrive';
     if (pathname.startsWith('/house')) return 'Stay';
     if (pathname.startsWith('/stay')) return 'Stay';
-    if (pathname.startsWith('/care')) return 'CityHealth';
-    if (pathname.startsWith('/schools')) return 'CitySchools';
-    if (pathname.startsWith('/tasks')) return 'City Tasks';
+    if (pathname.startsWith('/care')) return 'Health & Clinics';
+    if (pathname.startsWith('/schools')) return 'Schools';
+    if (pathname.startsWith('/tasks')) return 'Service Tasks';
     if (pathname.startsWith('/news')) return 'News';
     if (pathname.startsWith('/events')) return 'Events';
     if (pathname.startsWith('/activity')) return 'Activity';
@@ -415,11 +415,11 @@ export default function ResidentShell({
     if (pathname.startsWith('/map')) return 'City Map';
     if (pathname.startsWith('/create')) return 'Create';
     if (pathname.startsWith('/jobs')) return 'Jobs';
-    if (pathname.startsWith('/community')) return 'CityCommunity';
+    if (pathname.startsWith('/community')) return 'Communities';
     if (pathname.startsWith('/workspaces')) return 'Workspaces';
     if (pathname.startsWith('/profile')) return 'Profile';
     if (pathname === '/explore') return `Explore ${cityName}`;
-    return 'CityOS';
+    return '9jaLive';
   };
 
   const isActive = (path: string) => (path === '/' ? pathname === '/' : pathname?.startsWith(path));
@@ -442,7 +442,7 @@ export default function ResidentShell({
                 <LayoutGrid className="w-5 h-5" />
               </div>
               <div>
-                <h1 className="text-xl font-black tracking-tight text-[#222222] leading-none">CityOS</h1>
+                <h1 className="text-xl font-black tracking-tight text-[#222222] leading-none">9jaLive</h1>
                 <p className="text-[9px] text-neutral-400 font-bold uppercase tracking-[0.2em] mt-0.5">
                   {cityName}
                 </p>
@@ -538,9 +538,9 @@ export default function ResidentShell({
               <div className="flex items-center gap-3">
                 <Link href="/" className="flex items-center gap-2 text-white hover:text-teal-300 transition-colors">
                   <div className="w-6 h-6 rounded-lg bg-teal-600 flex items-center justify-center font-black text-[10px] text-white shadow-sm">
-                    CC
+                    9L
                   </div>
-                  <span className="font-black text-xs tracking-tight hidden sm:inline">CityConnect</span>
+                  <span className="font-black text-xs tracking-tight hidden sm:inline">9jaLive</span>
                 </Link>
                 <span className="text-slate-700 hidden sm:inline">/</span>
                 <div className="flex items-center gap-1.5 text-xs text-teal-400 font-bold">
@@ -590,7 +590,7 @@ export default function ResidentShell({
                       <LayoutGrid className="w-4 h-4" />
                     </div>
                     <div>
-                      <h1 className="text-lg font-black tracking-tight text-ink leading-none">CityOS</h1>
+                      <h1 className="text-lg font-black tracking-tight text-ink leading-none">9jaLive</h1>
                       <CityPicker className="text-[8px]" />
                     </div>
                   </Link>
@@ -618,7 +618,7 @@ export default function ResidentShell({
               <div className="absolute right-0 top-0 bottom-0 w-[84%] max-w-xs bg-white shadow-2xl flex flex-col overflow-y-auto">
                 <div className="px-5 py-4 flex items-center justify-between border-b border-slate-100 sticky top-0 bg-white z-10">
                   <div>
-                    <p className="text-sm font-black text-ink leading-none">CityOS Menu</p>
+                    <p className="text-sm font-black text-ink leading-none">9jaLive Menu</p>
                     <p className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1">{cityName}</p>
                   </div>
                   <button
@@ -641,14 +641,14 @@ export default function ResidentShell({
                       onClick={() => setMenuOpen(false)}
                       className="w-full py-2.5 px-4 bg-teal-700 hover:bg-teal-800 text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-2 shadow-xs"
                     >
-                      Sign In to CityConnect
+                      Sign In to 9jaLive
                     </Link>
                   </div>
                 )}
                 <nav className="flex-1 px-4 py-4 space-y-6">
                   <div>
                     <h3 className="px-3 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
-                      CityOS
+                      9jaLive
                     </h3>
                     <div className="space-y-0.5">
                       {PRIMARY_NAV.map((item) => {

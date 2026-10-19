@@ -21,7 +21,7 @@ export default async function HQVerticalsPage() {
             <h1 className="text-3xl font-black text-white tracking-tight">City Verticals Master Switch</h1>
           </div>
           <p className="text-slate-400 mt-1">
-            Govern which commercial verticals are active across CityOS. Disabled verticals are instantly hidden from residents.
+            Govern which commercial verticals are active across 9jaLive. Disabled verticals are instantly hidden from residents.
           </p>
         </div>
       </div>

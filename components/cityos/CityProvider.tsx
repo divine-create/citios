@@ -42,7 +42,7 @@ export function useCity() {
 }
 
 /** Convenience: city display name with a neutral fallback. */
-export function useCityName(fallback = 'CityOS') {
+export function useCityName(fallback = '9jaLive') {
   return useContext(CityContext).city?.name ?? fallback;
 }
 

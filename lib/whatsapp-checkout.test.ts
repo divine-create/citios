@@ -137,7 +137,7 @@ test('WhatsApp Checkout End-to-End Integration Suite', async (t) => {
 
     // Decode message and verify contents
     const decodedMessage = decodeURIComponent(checkoutRes.whatsappUrl.split('?text=')[1]);
-    assert.match(decodedMessage, /NEW CITYOS ORDER/i);
+    assert.match(decodedMessage, /NEW (9JALIVE|CITYOS) ORDER/i);
     assert.match(decodedMessage, /Calabar Fisherman Spot/);
     assert.match(decodedMessage, /Emeka Okon/);
     assert.match(decodedMessage, /15 Target Road, Calabar/);

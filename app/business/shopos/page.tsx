@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'ShopOS | CityConnect Retail System',
+  title: 'ShopOS | 9jaLive Retail System',
   description: 'The ultimate point-of-sale and retail management system.',
 };
 
@@ -35,7 +35,7 @@ export default function ShopOSLandingPage() {
             <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white">
               <Store size={18} />
             </div>
-            CityConnect <span className="text-emerald-600">ShopOS</span>
+            9jaLive <span className="text-emerald-600">ShopOS</span>
           </Link>
           <div className="hidden md:flex items-center gap-8 font-medium text-slate-600 text-sm">
             <Link href="#features" className="hover:text-emerald-600 transition-colors">Features</Link>
@@ -138,7 +138,7 @@ export default function ShopOSLandingPage() {
               { icon: TrendingUp, color: "text-purple-600", bg: "bg-purple-50", title: "Supplier Sync", desc: "Draft automated Purchase Orders (POs) and update stock seamlessly via Goods Receiving workflows." },
               { icon: CreditCard, color: "text-orange-600", bg: "bg-orange-50", title: "Shift Management", desc: "Secure cash drawer reconciliation. Start floats, track cash drops, and print Z-Reports effortlessly." },
               { icon: Globe, color: "text-pink-600", bg: "bg-pink-50", title: "Omnichannel Sync", desc: "Deploy an online storefront in one click. In-store inventory instantly syncs with your public microsite." },
-              { icon: Users, color: "text-indigo-600", bg: "bg-indigo-50", title: "Customer Loyalty", desc: "Unified CRM profiles. Reward points for in-store purchases that customers can track via their CityOS app." }
+              { icon: Users, color: "text-indigo-600", bg: "bg-indigo-50", title: "Customer Loyalty", desc: "Unified CRM profiles. Reward points for in-store purchases that customers can track via their 9jaLive app." }
             ].map((feature, idx) => (
               <div key={idx} className="p-8 rounded-3xl bg-white border border-slate-200 hover:border-emerald-200 hover:shadow-lg transition-all group">
                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 transition-transform group-hover:scale-110 ${feature.bg} ${feature.color}`}>
@@ -157,14 +157,14 @@ export default function ShopOSLandingPage() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="text-3xl md:text-5xl font-bold text-slate-900 tracking-tight mb-4">Extends your whole workflow.</h2>
-            <p className="text-lg text-slate-500">ShopOS plugs straight into the CityConnect ecosystem you already use — no re-keying, no CSV dance.</p>
+            <p className="text-lg text-slate-500">ShopOS plugs straight into the 9jaLive ecosystem you already use — no re-keying, no CSV dance.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
               { icon: Wallet, color: "text-emerald-600", bg: "bg-emerald-50", title: "CityPay", desc: "Every sale settles into a real Shop Wallet. Cash your balance out or roll it straight into a Purchase Order." },
               { icon: Truck, color: "text-blue-600", bg: "bg-blue-50", title: "CityDrive", desc: "Accept delivery requests from customers and dispatch couriers from your POS tail — no second platform." },
               { icon: FileSpreadsheet, color: "text-purple-600", bg: "bg-purple-50", title: "Shop Reports", desc: "One-click CSV export of sales, products, and customers. Hand your ledger straight to your accountant." },
-              { icon: MessageSquare, color: "text-orange-600", bg: "bg-orange-50", title: "Customer Contact", desc: "Order-ready and restock notifications flow to staff and customers via their CityConnect app." }
+              { icon: MessageSquare, color: "text-orange-600", bg: "bg-orange-50", title: "Customer Contact", desc: "Order-ready and restock notifications flow to staff and customers via their 9jaLive app." }
             ].map((int, idx) => (
               <div key={idx} className="p-8 rounded-3xl bg-slate-50 border border-slate-100 hover:border-emerald-200 hover:bg-white hover:shadow-lg transition-all group">
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-5 ${int.bg} ${int.color}`}>
@@ -289,7 +289,7 @@ export default function ShopOSLandingPage() {
         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-emerald-600/20 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/3"></div>
         <div className="max-w-4xl mx-auto px-6 text-center relative z-10">
           <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-6">Ready to open your register?</h2>
-          <p className="text-xl text-slate-300 mb-10">Join the growing network of local businesses powering their growth with CityConnect ShopOS.</p>
+          <p className="text-xl text-slate-300 mb-10">Join the growing network of local businesses powering their growth with 9jaLive ShopOS.</p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-12">
             <Link href="/business/shopos/register" className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-white px-8 py-4 rounded-full text-lg font-bold transition-all shadow-xl shadow-emerald-500/30 flex items-center justify-center gap-2">
@@ -307,7 +307,7 @@ export default function ShopOSLandingPage() {
 
       {/* Footer */}
       <footer className="bg-slate-50 py-12 border-t border-slate-200 text-center text-slate-500 text-sm">
-        <p>&copy; {new Date().getFullYear()} CityConnect ShopOS. All rights reserved.</p>
+        <p>&copy; {new Date().getFullYear()} 9jaLive ShopOS. All rights reserved.</p>
       </footer>
     </div>
   );

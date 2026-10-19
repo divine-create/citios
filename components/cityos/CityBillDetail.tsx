@@ -18,7 +18,7 @@ export default function CityBillDetail({ slug }: { slug: string }) {
       </div>
       <h1 className="text-lg font-black text-ink">Bill payments aren&apos;t connected yet</h1>
       <p className="text-sm text-slate-500 max-w-sm mx-auto">
-        CityOS can&apos;t show or pay bills yet — biller accounts and real payment rails are not
+        9jaLive can&apos;t show or pay bills yet — biller accounts and real payment rails are not
         part of the live system. Nothing here is billable.
       </p>
       <Link href="/bills" className="inline-block px-5 py-2.5 rounded-xl bg-teal-800 text-white text-xs font-black hover:bg-teal-900 transition-colors">

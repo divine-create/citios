@@ -4,9 +4,9 @@
 export const CITY_NOTES = {
   weather: { temp: '29°C', note: 'Warm sun, afternoon showers', label: 'Partly cloudy' },
   topPickTitle: 'Popular around you',
-  aiPlaceholder: 'Ask CityOS — e.g. “best room under ₦10,000 tonight”',
+  aiPlaceholder: 'Ask 9jaLive — e.g. “best room under ₦10,000 tonight”',
   demoDisclaimer:
-    'Welcome to CityOS, the digital operating system for your city.',
+    'Welcome to 9jaLive, the digital operating system for your city.',
 };
 
 /** City-specific banner line shown above the feed on the home screen. */

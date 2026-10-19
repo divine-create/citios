@@ -119,7 +119,7 @@ export default function OnboardingForm() {
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 border-r-0 rounded-l-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all font-medium text-slate-900"
             />
             <div className="bg-slate-100 border border-slate-200 border-l-0 rounded-r-xl px-4 py-3 text-slate-500 font-medium flex items-center">
-              .cityconnect.shop
+              .9jalive.online
             </div>
           </div>
           <p className="text-xs text-slate-500 mt-2">You can purchase or connect a custom domain later.</p>

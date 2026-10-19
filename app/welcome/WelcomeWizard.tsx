@@ -106,7 +106,7 @@ export default function WelcomeWizard({
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-2xl sm:text-3xl font-black flex items-center gap-2.5">
             <Sparkles className="w-6 h-6 sm:w-7 sm:h-7 text-emerald-400" />
-            Welcome to CityOS!
+            Welcome to 9jaLive!
           </h1>
           {alreadyCompleted && (
             <Link
@@ -122,7 +122,7 @@ export default function WelcomeWizard({
           {alreadyCompleted
             ? 'You are already registered! You can review or update your city preferences anytime.'
             : isGuest
-            ? 'Previewing CityConnect Onboarding · Test the city selector, date of birth picker, and interests.'
+            ? 'Previewing 9jaLive Onboarding · Test the city selector, date of birth picker, and interests.'
             : "Let's personalize your city experience in two quick steps."}
         </p>
 

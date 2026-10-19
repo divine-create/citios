@@ -17,7 +17,7 @@ export default function CityOSLive({ name }: { orgId: string; name: string }) {
         <div>
           <p className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-teal-800">
             <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-            CityOS live
+            9jaLive live
           </p>
           <p className="text-[13px] font-black text-ink mt-0.5">No resident activity yet</p>
         </div>

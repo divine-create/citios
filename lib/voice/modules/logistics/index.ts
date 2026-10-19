@@ -4,7 +4,7 @@ import { listMyDeliveries, getDeliveryStatus } from '../../tools/impl/logistics'
 export const logisticsModule: VoiceModule = {
   id: 'logistics',
   name: 'Logistics Module',
-  description: 'Tools for tracking deliveries and shipments across CityOS.',
+  description: 'Tools for tracking deliveries and shipments across 9jaLive.',
   version: '1.0.0',
   tools: [
     listMyDeliveries,

@@ -136,7 +136,7 @@ export function formatReceiptPlainText(data: PrintableReceiptData, rollWidth: 80
 
   lines.push(sep);
   lines.push(center(data.footerMessage || 'Thank you for your patronage!'));
-  lines.push(center('Powered by CityConnect'));
+  lines.push(center('Powered by 9jaLive'));
   if (data.receiptUrl) {
     lines.push(center(data.receiptUrl));
   }

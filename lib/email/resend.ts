@@ -22,7 +22,7 @@ export interface SendEmailResult {
  */
 export async function sendResendEmail(payload: SendEmailPayload): Promise<SendEmailResult> {
   const apiKey = process.env.RESEND_API_KEY;
-  const fromEmail = process.env.RESEND_FROM_EMAIL || 'CityOS <notifications@cityos.ng>';
+  const fromEmail = process.env.RESEND_FROM_EMAIL || '9jaLive <notifications@cityos.ng>';
 
   // Check suppression table before sending
   const normalizedTo = payload.to.trim().toLowerCase();
@@ -104,7 +104,7 @@ export function buildEnquiryEmailHtml(params: {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>New Customer Enquiry via CityOS</title>
+  <title>New Customer Enquiry via 9jaLive</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; color: #1e293b; margin: 0; padding: 24px; }
     .card { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
@@ -127,7 +127,7 @@ export function buildEnquiryEmailHtml(params: {
   <div class="card">
     <div class="header">
       <h1>New Customer Enquiry</h1>
-      <p>A resident discovered <strong>${escapeHtml(params.businessName)}</strong> on CityOS.</p>
+      <p>A resident discovered <strong>${escapeHtml(params.businessName)}</strong> on 9jaLive.</p>
     </div>
     <div class="content">
       <div class="field">
@@ -152,13 +152,13 @@ export function buildEnquiryEmailHtml(params: {
       </div>
 
       <div class="claim-box">
-        <h3>Manage this listing on CityOS</h3>
+        <h3>Manage this listing on 9jaLive</h3>
         <p>Are you the owner or manager of <strong>${escapeHtml(params.businessName)}</strong>? Claim your free profile to update hours, accept direct bookings, and reply to leads from your owner dashboard.</p>
         <a href="${params.claimUrl}" class="btn">Claim & Manage Profile →</a>
       </div>
     </div>
     <div class="footer">
-      This lead was routed by CityOS Hyperlocal Discovery. If you received this by mistake or want to stop receiving enquiries, reply directly or submit a removal request.
+      This lead was routed by 9jaLive Hyperlocal Discovery. If you received this by mistake or want to stop receiving enquiries, reply directly or submit a removal request.
     </div>
   </div>
 </body>

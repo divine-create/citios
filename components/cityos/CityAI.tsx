@@ -45,9 +45,9 @@ export default function CityAI() {
   const answer = (q: string): string => {
     const text = q.toLowerCase();
     if (/hi|hello|hey|help|what can/.test(text)) {
-      return "I'm not a live assistant yet — I can't search the city in real time. Today you can browse markets in CityMart, food in CityFood, homes in CityHouse and more from the home screen. A real assistant over CityOS data is coming.";
+      return "I'm not a live assistant yet — I can't search the city in real time. Today you can browse shops, food, stays, events, and services from the home screen. A live AI assistant over 9jaLive data is coming soon.";
     }
-    return "I can't answer that yet — I'm not connected to live city data. Explore CityMart, CityFood, CityHouse and the feed for what's actually on CityOS right now.";
+    return "I can't answer that yet — I'm not connected to live city data. Explore Shop, Food, Stay, Events, and the feed for what's live on 9jaLive right now.";
   };
 
   const ask = (q: string) => {
@@ -69,7 +69,7 @@ export default function CityAI() {
           <Sparkles className="w-5 h-5" />
         </span>
         <div>
-          <h1 className="text-xl font-black text-ink">Ask CityOS</h1>
+          <h1 className="text-xl font-black text-ink">Ask 9jaLive</h1>
           <p className="text-xs text-slate-500 font-medium">Your city, one question away</p>
         </div>
         <Pill tone="slate" className="ml-auto">Preview</Pill>
@@ -90,7 +90,7 @@ export default function CityAI() {
               <p className="text-sm font-black text-ink">What do you need in the city right now?</p>
               <p className="text-xs text-slate-400 mt-1 max-w-sm">
                 The live assistant isn&apos;t connected yet — ask away and I&apos;ll tell you honestly
-                where to find things on CityOS today.
+                where to find things on 9jaLive today.
               </p>
             </div>
           ) : (
@@ -109,7 +109,7 @@ export default function CityAI() {
                   <div className="flex-1 min-w-0">
                     <div className="bg-slate-50 rounded-2xl rounded-tl-md px-4 py-3 text-[13px] text-slate-700 leading-relaxed">
                       <p className="font-bold text-ink mb-1.5 flex items-center gap-2 text-xs">
-                        CityOS Assistant
+                        9jaLive Assistant
                         <VerifiedBadge label="Preview" />
                       </p>
                       {m.text}
@@ -144,7 +144,7 @@ export default function CityAI() {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && ask(input)}
-                    placeholder="Ask CityOS…"
+                    placeholder="Ask 9jaLive…"
                     className="w-full bg-slate-50 rounded-xl pl-4 pr-4 py-3 text-[13px] font-medium text-slate-700 outline-none focus:ring-2 ring-brand-200 placeholder:text-slate-400"
                   />
                 </div>
@@ -162,7 +162,7 @@ export default function CityAI() {
                   className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-teal-800 text-white text-[11px] font-bold hover:bg-teal-700 transition-colors shadow-sm"
                 >
                   <Mic className="w-3.5 h-3.5" />
-                  Talk to CityOS
+                  Talk to 9jaLive
                 </button>
                 <div className="w-px h-4 bg-slate-200 mx-1"></div>
                 {SUGGESTIONS.map((s) => (
@@ -182,7 +182,7 @@ export default function CityAI() {
       </div>
 
       <p className="text-[11px] text-slate-400 text-center font-medium">
-        Ask CityOS is a preview — it is not connected to live city data yet.
+        Ask 9jaLive is a preview — it is not connected to live city data yet.
       </p>
     </div>
   );

@@ -23,7 +23,7 @@ export default async function CitySaved() {
           <Bookmark className="w-5 h-5 text-teal-800" /> Saved
         </h1>
         <p className="text-xs text-slate-500 font-medium">
-          Businesses, products, jobs, events and places you have saved across CityOS.
+          Businesses, products, jobs, events and places you have saved across 9jaLive.
         </p>
       </div>
 

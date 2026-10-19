@@ -22,7 +22,7 @@ interface MapEntity {
 
 export default function CityMap() {
   const { city } = useCity();
-  const cityName = city?.name ?? 'CityOS';
+  const cityName = city?.name ?? '9jaLive';
   const [entities, setEntities] = useState<MapEntity[]>([]);
   const [loading, setLoading] = useState(true);
   const [bounds, setBounds] = useState<{ n: number, s: number, e: number, w: number } | null>(null);

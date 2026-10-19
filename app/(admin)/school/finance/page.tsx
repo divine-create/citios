@@ -4,7 +4,7 @@ import { requireOrgRole, resolveTenantOrg } from '@/lib/rbac';
 import { getSchoolAdminData, getFinancePortalData } from '@/lib/actions/school';
 
 export const metadata: Metadata = {
-  title: "School Finance & Bursar Portal | CityConnect",
+  title: "School Finance & Bursar Portal | 9jaLive",
   description: "Manage tuition invoices, fee types, and staff attendance & leave.",
 };
 

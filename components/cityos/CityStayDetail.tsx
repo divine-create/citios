@@ -154,7 +154,7 @@ export default function CityStayDetail({
           ]
         : [`💰 *Rate:* ₦${basePrice.toLocaleString()} / ${pricePeriod}`]),
       `--------------------------------`,
-      `Hello! I found your property on CityOS and would like to confirm availability.`,
+      `Hello! I found your property on 9jaLive and would like to confirm availability.`,
     ];
 
     const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(lines.join('\n'))}`;

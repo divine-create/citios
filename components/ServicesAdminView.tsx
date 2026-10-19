@@ -22,7 +22,7 @@ export function ServicesAdminView({ initialData }: { initialData: any }) {
                 <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-bl-full -z-0" />
                 <div className="relative z-10 flex justify-between items-start mb-6">
                     <div>
-                        <h2 className="text-xl sm:text-3xl font-bold tracking-tight text-white">CityConnect Dispatch Center</h2>
+                        <h2 className="text-xl sm:text-3xl font-bold tracking-tight text-white">9jaLive Dispatch Center</h2>
                         <p className="text-teal-200 text-sm font-bold uppercase tracking-widest mt-2">Logistics & Services</p>
                     </div>
                 </div>

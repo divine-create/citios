@@ -172,7 +172,7 @@ export async function provisionShopOS(formData: any) {
             heading: "About " + trimmedName,
             body:
               trimmedName +
-              " is a retail store on CityConnect. We sell quality products at fair prices, in-store and online.",
+              " is a retail store on 9jaLive. We sell quality products at fair prices, in-store and online.",
           },
         },
         {
@@ -188,7 +188,7 @@ export async function provisionShopOS(formData: any) {
           type: "footer",
           content: {
             title: trimmedName,
-            subtitle: "Powered by CityConnect ShopOS",
+            subtitle: "Powered by 9jaLive ShopOS",
           },
         },
       ];

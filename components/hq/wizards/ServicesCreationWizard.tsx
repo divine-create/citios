@@ -482,7 +482,7 @@ Full Vehicle Computer Diagnostics - 10000 - 30 - OBD2 scanning and fault clearin
                 <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
                   Configured Services ({services.length} items)
                 </span>
-                <span className="text-[11px] text-slate-500">Auto-saved to CityOS Service Catalog</span>
+                <span className="text-[11px] text-slate-500">Auto-saved to 9jaLive Service Catalog</span>
               </div>
 
               <div className="max-h-48 overflow-y-auto space-y-2 pr-1">

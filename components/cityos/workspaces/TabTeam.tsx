@@ -84,7 +84,7 @@ export function TabTeam({ slug }: { slug: string }) {
           <div>
             <button onClick={() => setShowInvite(false)} className="text-sm font-bold text-slate-500 mb-4">&larr; Back to Team</button>
             <h3 className="text-xl font-black text-slate-800">Invite Team Member</h3>
-            <p className="text-sm text-slate-500">The user must have already registered a CityOS account using this email.</p>
+            <p className="text-sm text-slate-500">The user must have already registered a 9jaLive account using this email.</p>
           </div>
           
           <div className="max-w-md space-y-4">
@@ -93,7 +93,7 @@ export function TabTeam({ slug }: { slug: string }) {
               type="email"
               value={inviteEmail}
               onChange={e => setInviteEmail(e.target.value)}
-              placeholder="e.g. chef@cityos.com"
+              placeholder="e.g. chef@9jalive.online"
               leftIcon={<Mail className="w-5 h-5" />}
             />
             

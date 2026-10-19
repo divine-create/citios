@@ -116,7 +116,7 @@ export default function ShopOSWorkspace({ slug }: { slug: string }) {
       <div className="max-w-lg mx-auto text-center py-20 space-y-4">
         <p className="text-5xl">🏪</p>
         <h1 className="text-lg font-black text-ink">Workspace not found.</h1>
-        <p className="text-sm text-slate-500">This store does not exist on CityOS.</p>
+        <p className="text-sm text-slate-500">This store does not exist on 9jaLive.</p>
         <Link href="/business" className="inline-block px-5 py-2.5 rounded-xl bg-teal-800 text-white text-xs font-black hover:bg-teal-900 transition-colors">
           Back to business
         </Link>
@@ -152,7 +152,7 @@ export default function ShopOSWorkspace({ slug }: { slug: string }) {
                 <Pill tone="orange">ShopOS workspace</Pill>
               </div>
               <h1 className="mt-2 text-xl md:text-2xl font-black tracking-tight">{org.name}</h1>
-              <p className="text-[12px] text-teal-100/80 font-medium mt-0.5">{org.address || 'CityOS merchant'}</p>
+              <p className="text-[12px] text-teal-100/80 font-medium mt-0.5">{org.address || '9jaLive merchant'}</p>
             </div>
           </div>
           <div className="flex gap-2 flex-wrap">

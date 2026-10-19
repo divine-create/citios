@@ -88,7 +88,7 @@ export default function CheckoutView() {
         <h1 className="text-2xl font-black text-ink mb-2">Nothing to check out</h1>
         <p className="text-sm text-slate-500 mb-6">Your bag is empty.</p>
         <Link href="/explore" className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-teal-800 text-white text-sm font-bold hover:bg-teal-900 transition-colors shadow-sm shadow-teal-900/20">
-          Explore CityOS
+          Explore 9jaLive
         </Link>
       </div>
     );

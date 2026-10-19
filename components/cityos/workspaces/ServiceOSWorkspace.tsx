@@ -97,7 +97,7 @@ export default function ServiceOSWorkspace({ slug }: { slug: string }) {
           <Wrench className="w-7 h-7" />
         </div>
         <h1 className="text-lg font-black text-ink">Workspace not found.</h1>
-        <p className="text-sm text-slate-500">This business does not exist on CityOS.</p>
+        <p className="text-sm text-slate-500">This business does not exist on 9jaLive.</p>
         <Link href="/business" className="inline-block px-5 py-2.5 rounded-xl bg-teal-800 text-white text-xs font-black hover:bg-teal-900 transition-colors">
           Back to business
         </Link>
@@ -139,7 +139,7 @@ export default function ServiceOSWorkspace({ slug }: { slug: string }) {
                 <Pill tone="blue">ServiceOS workspace</Pill>
               </div>
               <h1 className="mt-2 text-xl md:text-2xl font-black tracking-tight">{org.name}</h1>
-              <p className="text-[12px] text-teal-100/80 font-medium mt-0.5">{org.address || 'CityOS service provider'}</p>
+              <p className="text-[12px] text-teal-100/80 font-medium mt-0.5">{org.address || '9jaLive service provider'}</p>
             </div>
           </div>
           <div className="flex gap-2 flex-wrap">

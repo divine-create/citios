@@ -24,7 +24,7 @@ export default function AdminLayout({
         <>
             <div className="p-6 flex items-center justify-between gap-0.5 sticky top-0 bg-slate-900 z-10 border-b border-slate-800">
                 <div>
-                    <h1 className="text-2xl font-bold text-white tracking-tight">CityConnect</h1>
+                    <h1 className="text-2xl font-bold text-white tracking-tight">9jaLive</h1>
                     <p className="text-[10px] text-teal-400 font-bold uppercase tracking-[0.2em]">Admin Portal</p>
                 </div>
                 <button
@@ -93,7 +93,7 @@ export default function AdminLayout({
                     >
                         <Menu className="w-5 h-5" />
                     </button>
-                    <h1 className="text-lg font-bold tracking-tight">CityConnect Admin</h1>
+                    <h1 className="text-lg font-bold tracking-tight">9jaLive Admin</h1>
                     <div className="w-9" />
                 </header>
 

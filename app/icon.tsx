@@ -33,7 +33,7 @@ export default function Icon() {
             justifyContent: 'center',
           }}
         >
-          <span style={{ fontSize: 180, lineHeight: 1, letterSpacing: -6 }}>CC</span>
+          <span style={{ fontSize: 180, lineHeight: 1, letterSpacing: -6 }}>9L</span>
           <span
             style={{
               fontSize: 32,
@@ -44,7 +44,7 @@ export default function Icon() {
               color: '#FACC15',
             }}
           >
-            CityConnect
+            9jaLive
           </span>
         </div>
       </div>

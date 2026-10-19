@@ -6,8 +6,8 @@ import { Building2, Store, Users, ShieldCheck } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: 'Log in to CityConnect',
-  description: 'Log into CityConnect to connect with your community, local businesses, schools, and city services.',
+  title: 'Log in to 9jaLive',
+  description: 'Log into 9jaLive to connect with your community, local businesses, stays, events, and city services.',
 };
 
 export default function LoginPage() {
@@ -21,12 +21,12 @@ export default function LoginPage() {
               <Building2 className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
             </div>
             <span className="text-3xl sm:text-4xl font-black text-teal-800 tracking-tight">
-              City<span className="text-slate-900">Connect</span>
+              9ja<span className="text-slate-900">Live</span>
             </span>
           </Link>
 
           <h2 className="text-xl sm:text-2xl xl:text-3xl font-bold text-slate-800 leading-snug">
-            CityConnect helps you connect with your city, discover local stores, and manage everyday life with your neighbors.
+            9jaLive helps you connect with your city, discover local stores, stays, and events, and manage everyday life with your neighbors.
           </h2>
 
           <div className="hidden lg:flex items-center gap-6 pt-2 text-xs font-semibold text-slate-500">
@@ -67,13 +67,13 @@ export default function LoginPage() {
         <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mb-2 font-medium">
           <Link href="/" className="hover:underline">Home</Link>
           <Link href="/explore" className="hover:underline">Explore</Link>
-          <Link href="/market" className="hover:underline">CityMart</Link>
-          <Link href="/schools" className="hover:underline">Schools</Link>
+          <Link href="/market" className="hover:underline">Shop</Link>
+          <Link href="/stay" className="hover:underline">Stay</Link>
           <Link href="/services" className="hover:underline">Services</Link>
           <Link href="#" className="hover:underline">Privacy</Link>
           <Link href="#" className="hover:underline">Terms</Link>
         </div>
-        <p>CityConnect Platform © {new Date().getFullYear()} · All rights reserved.</p>
+        <p>9jaLive Platform © {new Date().getFullYear()} · All rights reserved.</p>
       </footer>
     </div>
   );

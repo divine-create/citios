@@ -69,7 +69,7 @@ export default async function HQLayout({ children }: { children: React.ReactNode
 
         <div className="p-4 border-t border-slate-800">
           <Link href="/" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-sm font-medium text-slate-300 hover:text-white transition-colors">
-            <ArrowLeft className="w-4 h-4" /> Exit to CityOS
+            <ArrowLeft className="w-4 h-4" /> Exit to 9jaLive
           </Link>
         </div>
       </aside>

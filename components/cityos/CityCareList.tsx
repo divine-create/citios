@@ -10,7 +10,7 @@ import { useCity } from '@/components/cityos/CityProvider';
 const FILTERS = ['All', 'Open now', 'Free consult', 'Hospital'];
 
 export default function CityCareList() {
-  const cityName = useCity().city?.name ?? 'CityOS';
+  const cityName = useCity().city?.name ?? '9jaLive';
   const { fmt } = useMoney();
   const [filter, setFilter] = useState('All');
 

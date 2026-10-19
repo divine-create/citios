@@ -16,10 +16,10 @@ export async function generateMetadata({
   const { category } = await params;
   const categoryDef = getCategoryBySlug(category);
   if (!categoryDef) {
-    return { title: 'Services | CityOS' };
+    return { title: 'Services | 9jaLive' };
   }
   return {
-    title: `${categoryDef.label} Services | CityOS`,
+    title: `${categoryDef.label} Services | 9jaLive`,
     description: categoryDef.description,
   };
 }

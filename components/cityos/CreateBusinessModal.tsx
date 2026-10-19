@@ -183,7 +183,7 @@ export default function CreateBusinessModal() {
 
           <h2 className="text-xl font-black text-slate-900 mb-2">Sign in to Create a Business</h2>
           <p className="text-xs text-slate-500 mb-6 leading-relaxed max-w-sm mx-auto">
-            You must be signed in to create and manage a business page on CityConnect. Sign in with your account or register to launch your business.
+            You must be signed in to create and manage a business page on 9jaLive. Sign in with your account or register to launch your business.
           </p>
 
           <div className="space-y-3">
@@ -191,7 +191,7 @@ export default function CreateBusinessModal() {
               href="/login?callbackUrl=/create"
               className="w-full py-3 px-4 bg-teal-800 hover:bg-teal-900 text-white font-black text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
             >
-              Sign in to CityConnect
+              Sign in to 9jaLive
             </a>
             <a
               href="/register?callbackUrl=/create"
@@ -282,7 +282,7 @@ export default function CreateBusinessModal() {
             <div>
               <h2 className="text-base font-black text-white leading-tight">Create a Business Page</h2>
               <p className="text-[11px] text-teal-100/70 font-medium mt-0.5">
-                Launch your business presence on CityConnect in under 30 seconds
+                Launch your business presence on 9jaLive in under 30 seconds
               </p>
             </div>
           </div>

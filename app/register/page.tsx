@@ -6,8 +6,8 @@ import { Building2 } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: 'Create an Account | CityConnect',
-  description: 'Join CityConnect to access local businesses, resident services, and community networks.',
+  title: 'Create an Account | 9jaLive',
+  description: 'Join 9jaLive to access local businesses, stays, events, resident services, and community networks.',
 };
 
 export default function RegisterPage() {
@@ -19,7 +19,7 @@ export default function RegisterPage() {
             <Building2 className="w-6 h-6 text-white" />
           </div>
           <span className="text-2xl font-black text-slate-900 tracking-tight">
-            City<span className="text-teal-600">Connect</span>
+            9ja<span className="text-teal-600">Live</span>
           </span>
         </Link>
         <h2 className="text-2xl font-black text-slate-900 tracking-tight">

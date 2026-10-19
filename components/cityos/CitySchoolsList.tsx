@@ -7,7 +7,7 @@ import { CityCard, FallbackImg, Stars, Pill, LocationRow } from '@/components/ci
 import { useCity } from '@/components/cityos/CityProvider';
 
 export default function CitySchoolsList({ schools = [] }: { schools?: any[] }) {
-  const cityName = useCity().city?.name ?? 'CityOS';
+  const cityName = useCity().city?.name ?? '9jaLive';
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col gap-1">

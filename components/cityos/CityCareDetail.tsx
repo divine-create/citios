@@ -19,7 +19,7 @@ export default function CityCareDetail({ slug }: { slug: string }) {
       </div>
       <h1 className="text-lg font-black text-ink">Clinic profiles aren&apos;t connected yet</h1>
       <p className="text-sm text-slate-500 max-w-sm mx-auto">
-        CityOS can&apos;t show clinics or book appointments yet — a provider registry and real
+        9jaLive can&apos;t show clinics or book appointments yet — a provider registry and real
         booking flow are not part of the live system.
       </p>
       <Link href="/care" className="inline-block px-5 py-2.5 rounded-xl bg-teal-800 text-white text-xs font-black hover:bg-teal-900 transition-colors">

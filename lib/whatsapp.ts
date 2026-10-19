@@ -93,7 +93,7 @@ export function buildWhatsAppServiceUrl(params: {
   const lines: string[] = [
     `👋 Hello ${params.orgName}!`,
     ``,
-    `I would like to book your service via *CityOS*:`,
+    `I would like to book your service via *9jaLive*:`,
     `🛠️ *Service:* ${params.serviceName}`,
   ];
 
@@ -126,7 +126,7 @@ export function buildWhatsAppInquiryUrl(params: {
   cityName?: string;
 }): string {
   const cleanPhone = formatWhatsAppNumber(params.phone);
-  const text = `👋 Hello ${params.orgName}! I found your business on CityOS ${
+  const text = `👋 Hello ${params.orgName}! I found your business on 9jaLive ${
     params.cityName ? `(${params.cityName})` : ''
   } and would like to inquire about your services.`;
   return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;

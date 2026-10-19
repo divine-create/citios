@@ -19,7 +19,7 @@ export default function PropertyDetail({ id }: { id: string }) {
       </div>
       <h1 className="text-lg font-black text-ink">Property listings aren&apos;t connected yet</h1>
       <p className="text-sm text-slate-500 max-w-sm mx-auto">
-        CityOS can&apos;t show rental listings yet — a property and listings architecture is not
+        9jaLive can&apos;t show rental listings yet — a property and listings architecture is not
         part of the live system.
       </p>
       <Link href="/house" className="inline-block px-5 py-2.5 rounded-xl bg-teal-800 text-white text-xs font-black hover:bg-teal-900 transition-colors">

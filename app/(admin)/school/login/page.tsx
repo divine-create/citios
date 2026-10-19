@@ -97,7 +97,7 @@ export default function LoginPage() {
           <p className="text-xs text-slate-500">
             Need an account or different portal?{' '}
             <a href="/login" className="font-bold text-blue-600 hover:underline">
-              CityConnect Sign In
+              9jaLive Sign In
             </a>
           </p>
         </div>

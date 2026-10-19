@@ -36,7 +36,7 @@ export default async function CityJobDetail({ id }: { id: string }) {
   const orgName = job.organization?.name || 'Verified Employer';
   const orgDescription = (job.organization as any)?.description || null;
   const orgAddress = (job.organization as any)?.address || job.area || 'Calabar, Cross River State';
-  const isCityOSProfileJob = Boolean((job as any).hasCityOSProfile);
+  const is9jaLiveProfileJob = Boolean((job as any).hasCityOSProfile);
   const parsed = parseJobDescription(job.description);
 
   const allJobs = await getCityJobs();
@@ -124,7 +124,7 @@ export default async function CityJobDetail({ id }: { id: string }) {
           </div>
 
           <div className="mt-6 flex flex-wrap items-center gap-3">
-            {!isCityOSProfileJob ? (
+            {!is9jaLiveProfileJob ? (
               <a
                 href={externalJobHref}
                 target="_blank"
@@ -174,7 +174,7 @@ export default async function CityJobDetail({ id }: { id: string }) {
             </section>
           )}
 
-          {!isCityOSProfileJob && (
+          {!is9jaLiveProfileJob && (
             <section className="bg-teal-50/70 rounded-2xl border border-teal-100 p-5 space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
@@ -217,7 +217,7 @@ export default async function CityJobDetail({ id }: { id: string }) {
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">
               Company that posted this job
             </p>
-            {isCityOSProfileJob && job.organization ? (
+            {is9jaLiveProfileJob && job.organization ? (
               <Link
                 href={`/org/${job.organization.id}`}
                 className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-teal-50 transition-colors"
@@ -227,7 +227,7 @@ export default async function CityJobDetail({ id }: { id: string }) {
                 </div>
                 <div className="min-w-0">
                   <p className="text-[13px] font-black text-ink truncate">{orgName}</p>
-                  <p className="text-[10px] font-bold text-teal-700">Verified CityOS Business →</p>
+                  <p className="text-[10px] font-bold text-teal-700">Verified 9jaLive Business →</p>
                 </div>
               </Link>
             ) : (

@@ -189,7 +189,7 @@ export default function MicrositeBuilder({ organizationId }: { organizationId: s
           <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center"><Globe size={20} /></div>
           <div>
             <h3 className="font-bold text-slate-800">{site.title}</h3>
-            <p className="text-xs text-slate-400">{site.slug}.cityconnect.app</p>
+            <p className="text-xs text-slate-400">{site.slug}.9jalive.online</p>
           </div>
           <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${site.status === "published" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
             {site.status === "published" ? "Published" : "Draft"}

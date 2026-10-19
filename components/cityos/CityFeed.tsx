@@ -118,7 +118,7 @@ function ShareButton({ post, shareCount, setShareCount, isGuest }: { post: DBPos
       sharePost(post.id).catch(console.error);
     }
     if (typeof navigator !== 'undefined' && navigator.share) {
-      try { await navigator.share({ title: post.title || 'CityConnect post', text: post.body.slice(0, 120), url: postUrl }); }
+      try { await navigator.share({ title: post.title || '9jaLive post', text: post.body.slice(0, 120), url: postUrl }); }
       catch { setShareCount(s => s - 1); }
     } else {
       try { await navigator.clipboard.writeText(postUrl); setCopied(true); setTimeout(() => setCopied(false), 2500); }
@@ -785,7 +785,7 @@ function timeAgo(dateString: string) {
 export default function CityFeed({ hideHeader = false }: { hideHeader?: boolean }) {
   const { status } = useSession();
   const { city } = useCity();
-  const cityName = city?.name ?? 'CityOS';
+  const cityName = city?.name ?? '9jaLive';
   const [activeTab, setActiveTab] = useState<typeof TABS[number]>('For You');
   const [activeTopic, setActiveTopic] = useState('All');
   const [posts, setPosts] = useState<DBPost[]>([]);

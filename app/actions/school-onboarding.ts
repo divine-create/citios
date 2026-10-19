@@ -50,7 +50,7 @@ export async function createSchool(data: {
     const org = await tx.orm.public.Organization.create({
       name: trimmedName,
       type: 'SCHOOL' as any,
-      description: data.tagline || 'A new school on CityConnect.',
+      description: data.tagline || 'A new school on 9jaLive.',
       address: data.address || city.name,
     });
 

@@ -357,7 +357,7 @@ export default function FrontDeskCalendar({ organizationId, initialRooms, initia
           </div>
           <div>
             <h1 className="text-xl font-bold text-gray-900">Front Desk Portal</h1>
-            <p className="text-sm text-gray-500">CityConnect Hotel Management</p>
+            <p className="text-sm text-gray-500">9jaLive Hotel Management</p>
           </div>
         </div>
         <div className="flex items-center space-x-3">

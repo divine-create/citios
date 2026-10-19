@@ -411,7 +411,7 @@ export default function LogisticsCreationWizard({ onSuccess, onCancel }: Logisti
                 <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
                   Configured Delivery Tiers ({customTiers.length} options)
                 </span>
-                <span className="text-[11px] text-slate-500">Waybill fares auto-quoted on CityOS logistics</span>
+                <span className="text-[11px] text-slate-500">Waybill fares auto-quoted on 9jaLive logistics</span>
               </div>
 
               <div className="max-h-56 overflow-y-auto space-y-2 pr-1">

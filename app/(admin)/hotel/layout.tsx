@@ -53,7 +53,7 @@ export default function HotelAdminLayout({ children }: { children: React.ReactNo
           <Hotel size={20} />
         </div>
         <div>
-          <p className="font-bold text-gray-900 text-sm leading-tight">CityConnect</p>
+          <p className="font-bold text-gray-900 text-sm leading-tight">9jaLive</p>
           <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Hotel PMS</p>
         </div>
         <button
@@ -82,7 +82,7 @@ export default function HotelAdminLayout({ children }: { children: React.ReactNo
           href="/"
           className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-colors"
         >
-          <ArrowLeft size={14} /> Back to CityConnect
+          <ArrowLeft size={14} /> Back to 9jaLive
         </Link>
         {session && (
           <button

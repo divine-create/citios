@@ -481,7 +481,7 @@ function TabReports({ finance, orders, expenses }: any) {
                 <span className="font-bold text-slate-900">{fmt(today.revenueByMethod?.POS || 0)}</span>
               </div>
               <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-purple-500"></div><span className="text-sm font-bold text-slate-700">CityOS Wallet</span></div>
+                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-purple-500"></div><span className="text-sm font-bold text-slate-700">9jaLive Wallet</span></div>
                 <span className="font-bold text-slate-900">{fmt(today.revenueByMethod?.WALLET || 0)}</span>
               </div>
             </div>

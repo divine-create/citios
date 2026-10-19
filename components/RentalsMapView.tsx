@@ -11,7 +11,7 @@ export default function RentalsMapView() {
         </div>
         <h1 className="text-2xl font-black text-slate-900 mb-3">Property rentals aren&apos;t connected yet</h1>
         <p className="text-slate-500 mb-8">
-          CityOS can&apos;t show rental listings yet — a property and listings architecture is not part of the live system.
+          9jaLive can&apos;t show rental listings yet — a property and listings architecture is not part of the live system.
         </p>
         <Link href="/" className="inline-flex px-6 py-3 rounded-xl bg-teal-800 text-white font-bold hover:bg-teal-900 transition-colors">
           Return Home

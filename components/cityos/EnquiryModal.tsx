@@ -61,7 +61,7 @@ export default function EnquiryModal({
         serviceRequested ? `🛍️ *Item / Service:* ${serviceRequested}` : null,
         `💬 *Enquiry:* ${message}`,
         `--------------------------------`,
-        `_Sent via CityOS_`,
+        `_Sent via 9jaLive_`,
       ].filter(Boolean);
 
       const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waLines.join('\n'))}`;

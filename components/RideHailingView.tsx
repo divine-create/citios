@@ -53,7 +53,7 @@ export default function RideHailingView({ setView, organizations = [] }: { setVi
                 </button>
                 <div className="bg-white px-4 py-2 rounded-full shadow-lg pointer-events-auto flex items-center gap-2 font-bold text-slate-800">
                     <Shield className="w-4 h-4 text-teal-600" />
-                    CityConnect
+                    9jaLive
                 </div>
             </div>
 

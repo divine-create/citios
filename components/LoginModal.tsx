@@ -52,8 +52,8 @@ export default function LoginModal({
                         <div className="w-16 h-16 bg-gradient-to-br from-teal-600 to-teal-800 rounded-2xl flex items-center justify-center mb-4 shadow-xl shadow-teal-900/10 rotate-3 transition-transform hover:rotate-6">
                             <Building2 className="w-8 h-8 text-white -rotate-3" />
                         </div>
-                        <h1 className="text-2xl font-black text-teal-900 tracking-tight">CityConnect</h1>
-                        <p className="text-[10px] text-teal-600/70 font-bold uppercase tracking-[0.2em] mt-1">Urban Integration</p>
+                        <h1 className="text-2xl font-black text-teal-900 tracking-tight">9jaLive</h1>
+                        <p className="text-[10px] text-teal-600/70 font-bold uppercase tracking-[0.2em] mt-1">Hyperlocal City Network</p>
                     </div>
 
                     <h2 className="text-xl font-bold text-slate-900 mb-3">{title}</h2>
@@ -65,7 +65,7 @@ export default function LoginModal({
                             className="w-full py-3.5 px-4 bg-teal-700 hover:bg-teal-800 text-white font-black text-sm rounded-xl transition-all shadow-md shadow-teal-900/10 flex items-center justify-center gap-2"
                         >
                             <LogIn className="w-4 h-4" />
-                            Sign in to CityConnect
+                            Sign in to 9jaLive
                         </a>
 
                         <a

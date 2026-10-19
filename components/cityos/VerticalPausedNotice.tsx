@@ -41,7 +41,7 @@ export default function VerticalPausedNotice({
           href={backUrl}
           className="w-full sm:w-auto px-6 py-3 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold transition-colors inline-flex items-center justify-center gap-2 shadow-xs"
         >
-          <ArrowLeft className="w-4 h-4" /> Back to CityOS Home
+          <ArrowLeft className="w-4 h-4" /> Back to 9jaLive Home
         </Link>
         <Link
           href="/food"

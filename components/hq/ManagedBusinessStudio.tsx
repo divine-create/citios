@@ -327,7 +327,7 @@ export default function ManagedBusinessStudio({ businessData }: ManagedBusinessS
               </div>
               <div className="p-4 rounded-xl bg-slate-950 border border-slate-800">
                 <span className="text-slate-500 font-mono text-[10px] block">CLAIM STATUS</span>
-                <span className="text-amber-400 font-bold">Unclaimed (Managed by CityOS HQ)</span>
+                <span className="text-amber-400 font-bold">Unclaimed (Managed by 9jaLive HQ)</span>
               </div>
             </div>
           </div>

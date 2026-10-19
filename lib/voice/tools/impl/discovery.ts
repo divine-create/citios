@@ -27,7 +27,7 @@ export async function getResidentCitySlug(session: any): Promise<string | undefi
 
 export const searchCity: VoiceToolDefinition = {
   name: 'discovery.search', aliases: ['search_city'],
-  description: 'Search across CityOS discovery to find organizations, services, or local places.',
+  description: 'Search across 9jaLive discovery to find organizations, services, or local places.',
   domain: 'discovery',
   riskLevel: 'read',
   requiresConfirmation: false,
@@ -123,7 +123,7 @@ export const searchProducts: VoiceToolDefinition = {
 
 export const searchBusinesses: VoiceToolDefinition = {
   name: 'discovery.search_businesses', aliases: ['search_businesses'],
-  description: 'Search for CityOS businesses or merchants.',
+  description: 'Search for 9jaLive businesses or merchants.',
   domain: 'discovery',
   riskLevel: 'read',
   requiresConfirmation: false,

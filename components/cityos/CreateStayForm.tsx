@@ -281,7 +281,7 @@ export default function CreateStayForm() {
           <div>
             <p className="text-xs font-black text-amber-950">Sign in required to publish your listing</p>
             <p className="text-[11px] text-amber-800 mt-0.5">
-              Please sign in to your CityOS account so you can manage your stay listing and receive bookings.
+              Please sign in to your 9jaLive account so you can manage your stay listing and receive bookings.
             </p>
           </div>
           <Link

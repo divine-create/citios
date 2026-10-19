@@ -34,7 +34,7 @@ export default async function HQDashboardPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-white tracking-tight">CityOS HQ Command</h1>
+          <h1 className="text-3xl font-black text-white tracking-tight">9jaLive HQ Command</h1>
           <p className="text-slate-400 mt-1">Platform Control Plane & Operational Snapshot</p>
         </div>
         <div className="flex items-center gap-2">

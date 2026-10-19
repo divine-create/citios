@@ -4,8 +4,8 @@ import { requireOrgAccess, resolveTenantOrg } from '@/lib/rbac';
 import { getHotelAdminData, getNightAuditReports, getOutletsData, getRoomBlocks } from '@/lib/actions/hotel';
 
 export const metadata: Metadata = {
-  title: "General Manager Portal - CityConnect",
-  description: "Hotel Manager Dashboard for CityConnect.",
+  title: "General Manager Portal - 9jaLive",
+  description: "Hotel Manager Dashboard for 9jaLive.",
 };
 
 export default async function ManagerPage({ searchParams }: { searchParams?: Promise<{ org?: string }> }) {

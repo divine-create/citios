@@ -148,7 +148,7 @@ export default function DeliveryTrack() {
                 <p className="text-[11px] font-bold text-slate-400">{`${DRIVER.car} · ${DRIVER.plate}`}</p>
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className="text-[11px] font-black text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md">Verified Rider</span>
-                  <span className="text-[11px] text-slate-400 font-bold">CityOS Fleet</span>
+                  <span className="text-[11px] text-slate-400 font-bold">9jaLive Fleet</span>
                 </div>
               </div>
             </div>
@@ -196,7 +196,7 @@ export default function DeliveryTrack() {
           </div>
 
           <Link href="/" className="block text-center text-[11px] font-bold text-slate-400 hover:text-teal-800 transition-colors">
-            ← Back to CityOS home
+            ← Back to 9jaLive home
           </Link>
         </div>
       </div>

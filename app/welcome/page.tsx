@@ -6,7 +6,7 @@ import { db } from '@/src/prisma/db';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-export const metadata = { title: 'Welcome to CityConnect' };
+export const metadata = { title: 'Welcome to 9jaLive' };
 
 export default async function WelcomePage() {
   let session: any = null;

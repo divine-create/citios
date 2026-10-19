@@ -255,7 +255,7 @@ export default function CreateBusinessWizardModal({
         whatsapp: whatsapp.trim(),
         coverUrl: coverUrl.trim() || undefined,
         logoUrl: coverUrl.trim() || undefined,
-        description: `${name.trim()} is an active ${storeCategory.trim() || currentMeta.shortLabel} in Calabar, managed and verified by CityOS HQ.`,
+        description: `${name.trim()} is an active ${storeCategory.trim() || currentMeta.shortLabel} in Calabar, managed and verified by 9jaLive HQ.`,
         initialItems: !isHotel
           ? starterItems
               .filter(it => it.name.trim())
@@ -591,7 +591,7 @@ export default function CreateBusinessWizardModal({
                     value={coverUrl}
                     onChange={setCoverUrl}
                     placeholder="Paste image URL from their Facebook/Instagram or upload photo"
-                    description="Displayed as hero banner on CityOS app. You can add more photos later."
+                    description="Displayed as hero banner on 9jaLive app. You can add more photos later."
                   />
                 </div>
               </div>
@@ -710,7 +710,7 @@ export default function CreateBusinessWizardModal({
               ) : (
                 <>
                   <Rocket size={15} />
-                  <span>Launch Business onto CityOS</span>
+                  <span>Launch Business onto 9jaLive</span>
                 </>
               )}
             </button>

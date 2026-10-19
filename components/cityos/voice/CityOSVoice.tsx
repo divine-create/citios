@@ -107,7 +107,7 @@ export function CityOSVoice({ onTranscript, onClose }: CityOSVoiceProps) {
       // 3. Get Token
       setState('connecting');
       const tokenRes = await fetch('/api/voice/token');
-      if (!tokenRes.ok) throw new Error("We couldn't start CityOS Voice. Please try again.");
+      if (!tokenRes.ok) throw new Error("We couldn't start 9jaLive Voice. Please try again.");
       const { token, systemPrompt } = await tokenRes.json();
 
       // 3. Get Tools dynamically
@@ -122,8 +122,8 @@ export function CityOSVoice({ onTranscript, onClose }: CityOSVoiceProps) {
       ws.onopen = () => {
         // Send session.update
         const config: AgentSessionConfig = {
-          system_prompt: systemPrompt || "You are CityOS Voice. NEVER hallucinate. ALWAYS use tools.",
-          greeting: "Hi, I'm CityOS. How can I help?",
+          system_prompt: systemPrompt || "You are 9jaLive Voice. NEVER hallucinate. ALWAYS use tools.",
+          greeting: "Hi, I'm 9jaLive. How can I help?",
           output: { type: "audio" },
           tools: dynamicTools
         };
@@ -286,7 +286,7 @@ export function CityOSVoice({ onTranscript, onClose }: CityOSVoiceProps) {
           className="flex items-center gap-2 px-6 py-3 bg-teal-800 hover:bg-teal-700 text-white rounded-full font-bold shadow-lg transition-all"
         >
           <Mic className="w-5 h-5" />
-          Talk to CityOS
+          Talk to 9jaLive
         </button>
       </div>
     );
@@ -340,7 +340,7 @@ export function CityOSVoice({ onTranscript, onClose }: CityOSVoiceProps) {
           
           <div className="text-center">
             <p className="text-sm font-black text-ink">
-              {isExecutingTool ? 'Thinking...' : isSpeaking ? 'CityOS is speaking...' : 'Listening...'}
+              {isExecutingTool ? 'Thinking...' : isSpeaking ? '9jaLive is speaking...' : 'Listening...'}
             </p>
             <p className="text-xs text-slate-400 mt-1">
               You can interrupt at any time

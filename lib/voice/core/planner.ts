@@ -12,7 +12,7 @@ export async function planWorkflow(intent: string, session: any): Promise<Workfl
     `Tool: ${t.name}\nDescription: ${t.description}\nInput Schema: ${JSON.stringify(t.parameters)}`
   ).join('\n\n');
 
-  const systemPrompt = `You are the CityOS Voice Workflow Planner.
+  const systemPrompt = `You are the 9jaLive Voice Workflow Planner.
 Your job is to transform a user's intent into a structured, bounded workflow plan.
 You must select from the available tools to achieve the user's goal.
 

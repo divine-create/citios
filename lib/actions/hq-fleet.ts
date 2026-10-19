@@ -153,7 +153,7 @@ export async function getHQFleetData(filters: {
     .map((j: any) => ({
       id: String(j.id),
       trackingCode: String(j.trackingCode || `TRK-${j.id.slice(0, 8)}`),
-      providerName: String(j.provider?.name || 'CityOS Dispatch Pool'),
+      providerName: String(j.provider?.name || '9jaLive Dispatch Pool'),
       sourceType: String(j.sourceType || 'MANUAL'),
       status: String(j.status || 'REQUESTED'),
       pickupAddress: String(j.pickupAddress || 'Calabar Central Distribution'),

@@ -70,7 +70,7 @@ export async function createResidentWalletFunding(amount: number, provider: stri
   
   // Use email for payment intent if available
   const personIdentifier = await db.orm.public.PersonIdentifier.where({ personId, type: 'EMAIL' }).select('normalizedValue').all().first();
-  const email = personIdentifier?.normalizedValue || 'resident@cityos.com';
+  const email = personIdentifier?.normalizedValue || 'resident@9jalive.online';
 
   const idempotencyKey = crypto.randomUUID();
   const reference = `WAL-${wallet.id}-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;

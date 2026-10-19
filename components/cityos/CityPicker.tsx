@@ -38,7 +38,7 @@ export default function CityPicker({ className }: { className?: string }) {
         )}
       >
         <MapPin className="w-3 h-3" />
-        {city?.name ?? 'CityOS'}
+        {city?.name ?? '9jaLive'}
       </span>
     );
   }

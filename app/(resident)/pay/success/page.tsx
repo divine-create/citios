@@ -2,7 +2,7 @@ import React, { Suspense } from 'react';
 import PaymentSuccess from '@/components/cityos/PaymentSuccess';
 
 export const metadata = {
-  title: 'Order Confirmed | CityConnect',
+  title: 'Order Confirmed | 9jaLive',
 };
 
 export default function PaymentSuccessPage() {

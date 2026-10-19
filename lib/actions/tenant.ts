@@ -159,7 +159,7 @@ export async function inviteTeamMember(input: {
   // Try to find the person by email
   const person = await findPersonByEmail(input.email);
   if (!person) {
-    return { error: 'No user found with that email. They must sign up for CityOS first.' };
+    return { error: 'No user found with that email. They must sign up for 9jaLive first.' };
   }
 
   // Handle location verification before writing anything

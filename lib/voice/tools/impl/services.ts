@@ -6,7 +6,7 @@ import { getVoiceContext, updateVoiceContext, pushRecentEntity } from '../../cor
 
 export const searchServices: VoiceToolDefinition = {
   name: 'search_services',
-  description: 'Search for available CityOS services (e.g. plumbers, streetlights).',
+  description: 'Search for available 9jaLive services (e.g. plumbers, streetlights).',
   domain: 'services',
   riskLevel: 'read',
   requiresConfirmation: false,

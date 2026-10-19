@@ -2,9 +2,9 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'CityConnect - Hyperlocal Smart Commerce & Living',
-    short_name: 'CityConnect',
-    description: 'City-wide super platform connecting local commerce, dining, pharmacies, and residents.',
+    name: '9jaLive - Hyperlocal Smart Commerce & Living',
+    short_name: '9jaLive',
+    description: 'Nigeria’s hyperlocal super platform connecting local commerce, dining, stays, events, and residents.',
     start_url: '/',
     display: 'standalone',
     background_color: '#ffffff',

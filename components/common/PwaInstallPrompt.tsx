@@ -88,10 +88,10 @@ export default function PwaInstallPrompt() {
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center font-black text-white text-base shadow-inner">
-              CC
+              9L
             </div>
             <div>
-              <h4 className="font-extrabold text-sm text-white leading-tight">Install CityConnect</h4>
+              <h4 className="font-extrabold text-sm text-white leading-tight">Install 9jaLive</h4>
               <p className="text-[11px] text-slate-300 font-medium">Faster access & real-time order alerts</p>
             </div>
           </div>

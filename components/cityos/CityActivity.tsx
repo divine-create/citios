@@ -17,7 +17,7 @@ const FILTERS: { label: string, kind: ActivityKind | 'all' }[] = [
 ];
 
 export default function CityActivity() {
-  const cityName = useCity().city?.name ?? 'CityOS';
+  const cityName = useCity().city?.name ?? '9jaLive';
   const cityTimezone = useCity().city?.timezone ?? undefined;
   const [filter, setFilter] = useState<ActivityKind | 'all'>('all');
   const [page, setPage] = useState<ResidentActivityPage | null>(null);

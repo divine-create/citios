@@ -6,7 +6,7 @@ import { useCity } from '@/components/cityos/CityProvider';
 import { CityCard, FallbackImg, Pill } from '@/components/cityos/CityUI';
 
 export default function CityNewsList() {
-  const cityName = useCity().city?.name ?? 'CityOS';
+  const cityName = useCity().city?.name ?? '9jaLive';
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col gap-1">

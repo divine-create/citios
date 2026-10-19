@@ -289,7 +289,7 @@ export default function AdminVerticalsConfig({ initialConfig }: AdminVerticalsCo
           <span className="font-bold text-slate-200 block mb-1">
             Platform Vertical Governance & Cache Synchronization
           </span>
-          When a vertical is toggled off in HQ Command, CityOS immediately excludes it from the resident home screen menu, navigation drawers, and resident activity trackers. Direct visits to that vertical will display a maintenance pause banner until re-enabled by an authorized platform administrator.
+          When a vertical is toggled off in HQ Command, 9jaLive immediately excludes it from the resident home screen menu, navigation drawers, and resident activity trackers. Direct visits to that vertical will display a maintenance pause banner until re-enabled by an authorized platform administrator.
         </div>
       </div>
     </form>

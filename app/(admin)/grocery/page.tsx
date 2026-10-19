@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth";
 import ShopDashboard from "@/components/retail/ShopDashboard";
 
 export const metadata: Metadata = {
-  title: "ShopOS | CityConnect Retail",
+  title: "ShopOS | 9jaLive Retail",
   description: "Point of sale, inventory, and store management.",
 };
 

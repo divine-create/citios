@@ -7,7 +7,7 @@ import Link from "next/link";
 import { Wrench, Plus, ArrowRight } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "ServiceOS | CityConnect Service",
+  title: "ServiceOS | 9jaLive Service",
   description: "Appointments, jobs, scheduling, and service management.",
 };
 

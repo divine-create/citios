@@ -58,7 +58,7 @@ export async function saveVerticalsConfig(payload: Partial<PlatformVerticalsConf
     await db.orm.public.DiscoveryListing.where({ id: existing.id }).update({
       metadata,
       title: 'Platform Verticals Configuration',
-      description: 'HQ Control configuration for active CityOS verticals.',
+      description: 'HQ Control configuration for active 9jaLive verticals.',
       isActive: true,
     });
   } else {
@@ -76,7 +76,7 @@ export async function saveVerticalsConfig(payload: Partial<PlatformVerticalsConf
       vertical: 'SETTINGS',
       slug: CONFIG_SLUG,
       title: 'Platform Verticals Configuration',
-      description: 'HQ Control configuration for active CityOS verticals.',
+      description: 'HQ Control configuration for active 9jaLive verticals.',
       metadata,
       isActive: true,
     });

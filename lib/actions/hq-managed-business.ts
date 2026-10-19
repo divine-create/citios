@@ -575,7 +575,7 @@ export async function updateHQManagedOrderStatus(payload: {
     const statusTitles: Record<string, string> = {
       PREPARING: `Your order from ${org?.name || 'the restaurant'} is being prepared! 🍳`,
       READY: `Your order from ${org?.name || 'the restaurant'} is packaged and ready! 🛍️`,
-      DELIVERING: `A CityOS courier is on the way with your order! 🚴💨`,
+      DELIVERING: `A 9jaLive courier is on the way with your order! 🚴💨`,
       COMPLETED: `Your order from ${org?.name || 'the restaurant'} has been delivered. Enjoy! 😋`,
       CANCELLED: `Your order from ${org?.name || 'the restaurant'} was cancelled.`,
     };

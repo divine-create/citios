@@ -7,7 +7,7 @@ export async function generateMetadata({ params }: { params: Promise<{ postId: s
   const post = await fetchSinglePost(postId);
   if (!post) return { title: 'Post not found' };
   return {
-    title: `${post.author} on CityConnect`,
+    title: `${post.author} on 9jaLive`,
     description: post.body.slice(0, 160),
     openGraph: {
       images: post.image ? [post.image] : [],

@@ -63,7 +63,7 @@ export class MonnifyAdapter implements PaymentProviderAdapter {
           customerName: input.metadata?.customerName || 'Resident',
           customerEmail: input.email,
           paymentReference: input.reference,
-          paymentDescription: input.metadata?.description || 'CityOS Payment',
+          paymentDescription: input.metadata?.description || '9jaLive Payment',
           currencyCode: input.currency,
           contractCode: process.env.MONNIFY_CONTRACT_CODE || '',
           redirectUrl: input.callbackUrl,

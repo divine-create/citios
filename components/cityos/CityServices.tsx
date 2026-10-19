@@ -447,7 +447,7 @@ export default function CityServices({
                 </Link>
                 {p.isVerified && (
                   <span
-                    title="Verified by CityOS Admin"
+                    title="Verified by 9jaLive Admin"
                     className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-800 bg-emerald-50 border border-emerald-200/70 px-2 py-0.5 rounded-md"
                   >
                     <CheckCircle2 size={11} className="text-emerald-600" />
@@ -623,7 +623,7 @@ export default function CityServices({
         <div className="mt-5 pt-3.5 border-t border-slate-100 flex items-center justify-between gap-2">
           {p.whatsapp ? (
             <a
-              href={`https://wa.me/${p.whatsapp}?text=${encodeURIComponent(`Hello ${p.orgName}! I found your business on CityOS Services and would like to inquire about your services.`)}`}
+              href={`https://wa.me/${p.whatsapp}?text=${encodeURIComponent(`Hello ${p.orgName}! I found your business on 9jaLive Services and would like to inquire about your services.`)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/60 px-3 py-1.5 rounded-xl transition-colors"
@@ -917,7 +917,7 @@ export default function CityServices({
             <div>
               <h3 className="text-base font-black">Run a skilled trade or service business in Calabar?</h3>
               <p className="text-xs text-teal-100/70 font-medium mt-0.5 max-w-xl">
-                Publish your catalog on CityOS, accept instant appointments, dispatch technicians, and manage invoices with ServiceOS.
+                Publish your catalog on 9jaLive, accept instant appointments, dispatch technicians, and manage invoices with ServiceOS.
               </p>
             </div>
           </div>

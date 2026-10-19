@@ -25,7 +25,7 @@ export default async function ClaimPage({
         <div className="w-16 h-16 mx-auto rounded-3xl bg-teal-50 text-teal-700 flex items-center justify-center text-3xl">
           🏢
         </div>
-        <h1 className="text-xl font-black text-ink">Claim Your Business on CityOS</h1>
+        <h1 className="text-xl font-black text-ink">Claim Your Business on 9jaLive</h1>
         <p className="text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
           Search for your business listing in the city directory, then click <strong>"Claim Profile"</strong> to verify ownership and unlock your management workspace.
         </p>

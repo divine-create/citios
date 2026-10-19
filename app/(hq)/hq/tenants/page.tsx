@@ -63,7 +63,7 @@ export default async function HQTenantsPage({
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-white tracking-tight">Tenants & Organizations</h1>
-          <p className="text-slate-400 mt-2">Manage all businesses and institutions on CityOS.</p>
+          <p className="text-slate-400 mt-2">Manage all businesses and institutions on 9jaLive.</p>
         </div>
         <form className="flex flex-wrap gap-3 w-full sm:w-auto" method="GET">
           <div className="relative flex-1 sm:w-64">

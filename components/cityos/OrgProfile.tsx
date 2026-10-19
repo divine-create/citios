@@ -72,7 +72,7 @@ export default async function OrgProfile({ id }: { id: string }) {
   const addressStr = org.address || locations?.[0]?.address || '';
   const hours: string | null = org.metadata?.workingHours || org.metadata?.hours || null;
   const category = org.type || 'Business';
-  const osLabel = capabilities.retail ? 'ShopOS' : capabilities.restaurant ? 'RestaurantOS' : capabilities.school ? 'SchoolOS' : capabilities.services ? 'ServiceOS' : 'CityOS';
+  const osLabel = capabilities.retail ? 'ShopOS' : capabilities.restaurant ? 'RestaurantOS' : capabilities.school ? 'SchoolOS' : capabilities.services ? 'ServiceOS' : '9jaLive';
   const osPath = osLabel.toLowerCase();
 
   const factCells: { label: string; sub: string }[] = [
@@ -169,7 +169,7 @@ export default async function OrgProfile({ id }: { id: string }) {
           <div className="flex items-center gap-2 flex-wrap">
             {whatsappCp && (
               <a
-                href={`https://wa.me/${whatsappCp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${org.name}, I found your business on CityOS and would like to make an enquiry.`)}`}
+                href={`https://wa.me/${whatsappCp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${org.name}, I found your business on 9jaLive and would like to make an enquiry.`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-sm transition-colors"
@@ -253,12 +253,12 @@ export default async function OrgProfile({ id }: { id: string }) {
       {/* About */}
       <section className="bg-white rounded-2xl border border-slate-100 p-5 md:p-6">
         <h2 className="text-base font-black text-ink mb-2">About {org.name}</h2>
-        <p className="text-[13px] text-slate-600 leading-relaxed">{org.description || `${org.name} on CityConnect.`}</p>
+        <p className="text-[13px] text-slate-600 leading-relaxed">{org.description || `${org.name} on 9jaLive.`}</p>
         <div className="mt-4 flex items-center gap-2 flex-wrap">
           <LocationRow text={`${addressStr}`} className="text-[11px]" />
           {org.isVerified ? (
             <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-700">
-              <CheckCircle2 className="w-3.5 h-3.5" /> Verified on CityOS
+              <CheckCircle2 className="w-3.5 h-3.5" /> Verified on 9jaLive
             </span>
           ) : (
             <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-400">

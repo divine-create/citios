@@ -19,7 +19,7 @@ export default function CitySchoolDetail({ slug }: { slug: string }) {
       </div>
       <h1 className="text-lg font-black text-ink">School profiles aren&apos;t connected yet</h1>
       <p className="text-sm text-slate-500 max-w-sm mx-auto">
-        CityOS can&apos;t show school profiles yet. Schools on CityOS run on SchoolOS — a public
+        9jaLive can&apos;t show school profiles yet. Schools on 9jaLive run on SchoolOS — a public
         registry of participating schools is coming.
       </p>
       <Link href="/schools" className="inline-block px-5 py-2.5 rounded-xl bg-teal-800 text-white text-xs font-black hover:bg-teal-900 transition-colors">

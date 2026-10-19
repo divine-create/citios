@@ -90,7 +90,7 @@ export default function HQManagedOrdersConsole({ initialOrders }: HQManagedOrder
 
   const buildWhatsAppMessage = (order: OrderData) => {
     const itemsText = order.items.map((it) => `• ${it.quantity}x ${it.name} (₦${(it.quantity * it.unitPrice).toLocaleString()})`).join('\n');
-    return `*🚨 CITYOS CONCIERGE ORDER DISPATCH*\n` +
+    return `*🚨 9JALIVE CONCIERGE ORDER DISPATCH*\n` +
       `*Order #:* ${order.id.slice(0, 8)}\n` +
       `*Business:* ${order.organizationName}\n` +
       `*Customer:* ${order.customer.name} (${order.customer.phone})\n` +
@@ -98,7 +98,7 @@ export default function HQManagedOrdersConsole({ initialOrders }: HQManagedOrder
       `*Items Ordered:*\n${itemsText}\n\n` +
       `*Total Value:* ₦${order.totalAmount.toLocaleString()} (${order.paymentStatus})\n` +
       `*Current Status:* ${order.status}\n\n` +
-      `*Action Required:* Please prepare this order immediately for CityOS courier pickup!`;
+      `*Action Required:* Please prepare this order immediately for 9jaLive courier pickup!`;
   };
 
   const handleWhatsAppDispatch = (order: OrderData, phoneToUse?: string | null) => {

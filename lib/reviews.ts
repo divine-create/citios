@@ -45,7 +45,7 @@ export const RATING_LABELS: Record<number, string> = {
   5: 'Excellent!',
 };
 
-const REVIEW_META_DELIMITER = '\n---CITYOS_REVIEW_META---\n';
+const REVIEW_META_DELIMITER = '\n---9JALIVE_REVIEW_META---\n';
 
 /**
  * Serializes a review's text along with optional photos, tags, verified badge, and owner reply

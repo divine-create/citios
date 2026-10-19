@@ -5,7 +5,7 @@ import { getSchoolAdminData, getSchoolGrades, getClassSections, getSubjects, get
 import { getInquiries } from '@/lib/actions/microsite';
 
 export const metadata: Metadata = {
-  title: 'Super Admin Portal | CityConnect School Management',
+  title: 'Super Admin Portal | 9jaLive School Management',
   description: 'Global Command Center for School Administration',
 };
 

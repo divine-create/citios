@@ -4,7 +4,7 @@ import { requireOrgAccess, resolveTenantOrg } from '@/lib/rbac';
 import { getHotelAdminData } from '@/lib/actions/hotel';
 
 export const metadata = {
-  title: 'Front Desk | CityConnect Hotel Management',
+  title: 'Front Desk | 9jaLive Hotel Management',
   description: 'Manage reservations, room statuses, and front desk operations.',
 };
 

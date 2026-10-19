@@ -6,7 +6,7 @@ import EditProfileClient from './EditProfileClient';
 import { getProfileAndWallet } from '@/lib/actions/profile';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Edit Profile - CityConnect' };
+export const metadata = { title: 'Edit Profile - 9jaLive' };
 
 export default async function EditProfilePage() {
   const session = await getServerSession(authOptions);

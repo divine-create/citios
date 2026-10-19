@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import OnboardingForm from "./OnboardingForm";
 
 export const metadata = {
-  title: "ShopOS Onboarding | CityConnect",
+  title: "ShopOS Onboarding | 9jaLive",
 };
 
 export default async function ShopOSRegisterPage() {

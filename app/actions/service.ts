@@ -165,7 +165,7 @@ export async function fetchMyServiceJobs(): Promise<ActivityItem[]> {
     const service = j.serviceId ? await db.orm.public.ServiceCatalogItem.where({ id: j.serviceId }).all().first() : null;
     
     const ref = j.id.split('-')[0].toUpperCase();
-    const merchant = org?.name || 'CityOS Service Pro';
+    const merchant = org?.name || '9jaLive Service Pro';
     const srvName = service?.name || j.description || 'Custom Service';
 
     return {

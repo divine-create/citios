@@ -58,7 +58,7 @@ export default function ThermalReceiptModal({
         setData({
           orderId: order.id,
           orderNumber: order.id.slice(-8).toUpperCase(),
-          storeName: settings?.storeName || 'CityConnect Store',
+          storeName: settings?.storeName || '9jaLive Store',
           storeAddress: settings?.storeAddress || '',
           storePhone: (settings as any)?.storePhone || '',
           date: order.createdAt,
@@ -344,7 +344,7 @@ export default function ThermalReceiptModal({
                 {data.footerMessage || 'Thank you for your patronage!'}
               </p>
               <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
-                CityConnect Hyperlocal Platform
+                9jaLive Hyperlocal Platform
               </p>
             </div>
           </div>

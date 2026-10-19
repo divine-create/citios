@@ -102,7 +102,7 @@ export default function OnlineStoreTab({ organizationId, onChanged }: { organiza
     <div className="p-8 max-w-4xl mx-auto">
       <h2 className="text-2xl font-black text-ink mb-1">Online Store</h2>
       <p className="text-sm text-slate-500 mb-6">
-        Your customer-facing storefront lives at <span className="font-semibold text-slate-700">{slug ? `${slug}.cityconnect.app` : "your slug"}</span>. Nothing is public until you publish.
+        Your customer-facing storefront lives at <span className="font-semibold text-slate-700">{slug ? `${slug}.9jalive.online` : "your slug"}</span>. Nothing is public until you publish.
       </p>
 
       {error && <div className="mb-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-100">{error}</div>}
@@ -146,7 +146,7 @@ export default function OnlineStoreTab({ organizationId, onChanged }: { organiza
                     rel="noreferrer"
                     className="text-xs text-brand-700 hover:underline inline-flex items-center gap-1"
                   >
-                    {slug}.cityconnect.app <ExternalLink size={12} />
+                    {slug}.9jalive.online <ExternalLink size={12} />
                   </a>
                 )}
               </div>

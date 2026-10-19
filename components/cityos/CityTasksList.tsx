@@ -369,7 +369,7 @@ export default function CityTasksList() {
           <ShieldCheck className="w-5 h-5 text-teal-300" />
         </span>
         <div>
-          <p className="text-sm font-black">CityOS Verified Pro Guarantee</p>
+          <p className="text-sm font-black">9jaLive Verified Pro Guarantee</p>
           <p className="text-[12px] text-teal-100/70 font-medium">
             All tradesmen are background-verified and rate-capped. Pay directly upon satisfactory job completion.
           </p>

@@ -93,7 +93,7 @@ export default function CityJobsList({ initialJobs }: { initialJobs?: any[] }) {
             {filtered.map((j) => {
               const orgName = j.organization?.name || 'Verified Employer';
               const parsed = parseJobDescription(j.description);
-              const isCityOSProfileJob = Boolean(j.hasCityOSProfile);
+              const is9jaLiveProfileJob = Boolean(j.hasCityOSProfile);
 
               return (
                 <div
@@ -123,7 +123,7 @@ export default function CityJobsList({ initialJobs }: { initialJobs?: any[] }) {
                           </Link>
                           <div className="mt-1 flex items-center flex-wrap gap-1.5 text-[12px] font-bold text-slate-600">
                             <span className="text-slate-400 font-semibold">Posted by:</span>
-                            {isCityOSProfileJob && j.organization?.id ? (
+                            {is9jaLiveProfileJob && j.organization?.id ? (
                               <Link
                                 href={`/org/${j.organization.id}`}
                                 className="text-teal-800 hover:underline truncate"
@@ -184,7 +184,7 @@ export default function CityJobsList({ initialJobs }: { initialJobs?: any[] }) {
                           See Job
                           <ExternalLink className="w-3.5 h-3.5" />
                         </a>
-                      ) : isCityOSProfileJob && j.organization?.id ? (
+                      ) : is9jaLiveProfileJob && j.organization?.id ? (
                         <Link
                           href={`/org/${j.organization.id}`}
                           className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-teal-800 text-white hover:bg-teal-900 text-[11px] font-black transition-colors shadow-sm"

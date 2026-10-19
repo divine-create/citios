@@ -64,7 +64,7 @@ export default function OrganizerDashboard({ event, ticketTiers, tickets, person
         <div className="max-w-6xl mx-auto flex justify-between items-start">
           <div>
             <div className="flex items-center space-x-2 text-sm text-blue-600 font-semibold mb-2">
-              <span>CityConnect Events</span>
+              <span>9jaLive Events</span>
               <span>&bull;</span>
               <span>Organizer Portal</span>
             </div>

@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 export const metadata = {
-  title: 'SchoolOS | CityConnect',
+  title: 'SchoolOS | 9jaLive',
   description: 'The complete operating system for modern educational institutions.',
 };
 
@@ -28,7 +28,7 @@ export default function SchoolOSLandingPage() {
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
               <GraduationCap className="text-white" size={20} />
             </div>
-            <span className="font-bold text-xl tracking-tight text-slate-900">CityOS <span className="text-blue-600">School</span></span>
+            <span className="font-bold text-xl tracking-tight text-slate-900">9jaLive <span className="text-blue-600">School</span></span>
           </div>
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
             <Link href="#features" className="hover:text-blue-600 transition-colors">Features</Link>
@@ -56,7 +56,7 @@ export default function SchoolOSLandingPage() {
             The Complete Operating System <br className="hidden lg:block"/> for Modern Schools.
           </h1>
           <p className="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto mb-10 leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
-            Replace dozens of disconnected tools. SchoolOS unifies your admissions, grading, finance, and parent communications into one beautiful, centralized platform on CityConnect.
+            Replace dozens of disconnected tools. SchoolOS unifies your admissions, grading, finance, and parent communications into one beautiful, centralized platform on 9jaLive.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-in fade-in slide-in-from-bottom-10 duration-700 delay-300">
             <Link href="/business/schoolos/register" className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-full text-lg font-bold transition-all shadow-xl shadow-blue-600/20 hover:shadow-blue-600/40 flex items-center justify-center gap-2">
@@ -141,7 +141,7 @@ export default function SchoolOSLandingPage() {
         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-blue-600/20 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/3"></div>
         <div className="max-w-4xl mx-auto px-6 text-center relative z-10">
           <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-6">Ready to digitize your campus?</h2>
-          <p className="text-xl text-slate-300 mb-10">Join the growing network of educational institutions utilizing CityConnect to streamline their operations.</p>
+          <p className="text-xl text-slate-300 mb-10">Join the growing network of educational institutions utilizing 9jaLive to streamline their operations.</p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-12">
             <Link href="/business/schoolos/register" className="w-full sm:w-auto bg-blue-500 hover:bg-blue-400 text-white px-8 py-4 rounded-full text-lg font-bold transition-all shadow-xl shadow-blue-500/30 flex items-center justify-center gap-2">
@@ -159,7 +159,7 @@ export default function SchoolOSLandingPage() {
 
       {/* Footer */}
       <footer className="bg-slate-50 py-12 border-t border-slate-200 text-center text-slate-500 text-sm">
-        <p>© {new Date().getFullYear()} CityConnect SchoolOS. All rights reserved.</p>
+        <p>© {new Date().getFullYear()} 9jaLive SchoolOS. All rights reserved.</p>
       </footer>
     </div>
   );

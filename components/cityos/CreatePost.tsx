@@ -329,7 +329,7 @@ export default function CreatePost() {
         <div className="w-16 h-16 bg-gradient-to-br from-teal-700 to-teal-900 rounded-2xl flex items-center justify-center text-white mx-auto mb-5 shadow-xl shadow-teal-950/10">
           <PenSquare className="w-8 h-8" />
         </div>
-        <h2 className="text-xl font-black text-slate-900 mb-2">Sign in to Post to CityOS</h2>
+        <h2 className="text-xl font-black text-slate-900 mb-2">Sign in to Post to 9jaLive</h2>
         <p className="text-xs text-slate-500 mb-6 leading-relaxed max-w-sm mx-auto">
           Join your local city community to post announcements, offers, discussions, events, or questions for {cityName}.
         </p>
@@ -338,7 +338,7 @@ export default function CreatePost() {
             href={`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`}
             className="w-full py-3 px-4 bg-teal-800 hover:bg-teal-900 text-white font-black text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
           >
-            Sign in to CityConnect
+            Sign in to 9jaLive
           </a>
           <a
             href={`/register?callbackUrl=${encodeURIComponent(callbackUrl)}`}

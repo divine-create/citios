@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import RestaurantRegisterForm from "./RestaurantRegisterForm";
 
 export const metadata = {
-  title: "RestaurantOS Registration | CityConnect",
+  title: "RestaurantOS Registration | 9jaLive",
 };
 
 export default async function RestaurantOSRegisterPage() {

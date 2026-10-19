@@ -18,7 +18,7 @@ export default function RentPayment({ id }: { id: string }) {
       </div>
       <h1 className="text-lg font-black text-ink">Rent payments aren&apos;t connected yet</h1>
       <p className="text-sm text-slate-500 max-w-sm mx-auto">
-        CityOS can&apos;t process rent yet — property listings and landlord payments are not part
+        9jaLive can&apos;t process rent yet — property listings and landlord payments are not part
         of the live system.
       </p>
       <Link href="/house" className="inline-block px-5 py-2.5 rounded-xl bg-teal-800 text-white text-xs font-black hover:bg-teal-900 transition-colors">

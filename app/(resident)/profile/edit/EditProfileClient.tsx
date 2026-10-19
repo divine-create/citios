@@ -369,7 +369,7 @@ export default function EditProfileClient({
               placeholder="e.g. 42 Hacker Way, San Francisco"
             />
             <p className="text-[11px] text-slate-400">
-              CityOS Voice will automatically use this address when you order food or products.
+              9jaLive Voice will automatically use this address when you order food or products.
             </p>
           </div>
 

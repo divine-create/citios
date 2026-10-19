@@ -129,7 +129,7 @@ export default function RegisterForm({ initialType, isLoggedIn }: { initialType:
       </button>
 
       <p className="text-center text-xs text-slate-400 mt-4">
-        By registering, you agree to the CityOS Terms of Service and Privacy Policy.
+        By registering, you agree to the 9jaLive Terms of Service and Privacy Policy.
       </p>
     </form>
   );
