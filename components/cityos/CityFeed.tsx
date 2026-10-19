@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Heart, MessageSquare, Share2, ChevronRight, UserPlus, UserCheck, Loader2, X, MoreHorizontal, Edit3, Trash2, CheckCircle2, MapPin, Building2 } from 'lucide-react';
 
 const TABS = ['For You', 'Following'] as const;
-const TOPICS = ['All', 'Reviews', 'Food', 'Marketplace', 'Events', 'Stays', 'Jobs', 'Community'];
+const TOPICS = ['All', 'Food', 'Marketplace', 'Services', 'Events', 'Stays', 'Jobs', 'Reviews', 'Community'];
 
 import { FallbackImg, Pill, VerifiedBadge } from '@/components/cityos/CityUI';
 import { YelpStarRow } from '@/components/cityos/BusinessReviewsSection';

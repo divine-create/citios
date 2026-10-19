@@ -186,7 +186,7 @@ function mapPost(
     category: post.category,
     title: post.title,
     body: post.content,
-    image: post.imageUrl,
+    image: resolveAvatarUrl(post.imageUrl),
     videoUrl: post.videoUrl,
     eventDate: post.eventDate ? String(post.eventDate) : undefined,
     location: post.location,
@@ -232,6 +232,8 @@ export async function fetchFeed(
   if (topic !== 'All') {
     if (topic === 'Marketplace') {
       query = query.where((p: any) => p.category.in(['Offer', 'Sales', 'Marketplace', 'RETAIL', 'Shops']));
+    } else if (topic === 'Services') {
+      query = query.where((p: any) => p.category.in(['Services', 'Service', 'SERVICE']));
     } else if (topic === 'Reviews') {
       query = query.where({ category: 'Review' });
     } else if (topic === 'Food') {

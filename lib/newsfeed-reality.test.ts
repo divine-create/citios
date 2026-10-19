@@ -95,5 +95,18 @@ test('CityOS Newsfeed Reality Verification', async (t) => {
       `avatarImg must be a valid URL or path: ${crunchiesPost.avatarImg}`
     );
   });
+
+  await t.test('7. Services topic returns verified service posts with direct booking links', async () => {
+    const servicesFeed = await fetchFeed('For You', 'Services');
+    assert.ok(servicesFeed.posts.length > 0, 'Services topic should return populated posts');
+    assert.ok(
+      servicesFeed.posts.every((p: any) => ['Services', 'Service', 'SERVICE'].includes(p.category)),
+      'All returned posts must have Services category'
+    );
+
+    const bookingPost = servicesFeed.posts.find((p: any) => p.href?.url.startsWith('/service/'));
+    assert.ok(bookingPost, 'At least one service post must have a direct /service/ booking link');
+    assert.strictEqual(bookingPost.href?.label, 'Book Service →');
+  });
 });
 
