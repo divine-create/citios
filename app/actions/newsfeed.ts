@@ -163,8 +163,11 @@ function mapPost(
     href = { url: post.linkedEntityId ? `/events/${post.linkedEntityId}` : '/events', label: 'View Event & RSVP →' };
   } else if (post.linkedEntityType === 'JOB') {
     href = { url: post.linkedEntityId ? `/jobs/${post.linkedEntityId}` : '/jobs', label: 'View Job Opening →' };
-  } else if (post.linkedEntityType === 'HOTEL' && (post.linkedEntityId || post.organizationId)) {
-    href = { url: `/org/${post.linkedEntityId || post.organizationId}`, label: 'Book Stay →' };
+  } else if (
+    (post.linkedEntityType === 'STAY' || post.linkedEntityType === 'HOTEL' || post.organization?.type === 'HOTEL') &&
+    (post.linkedEntityId || post.organizationId)
+  ) {
+    href = { url: `/stay/${post.linkedEntityId || post.organizationId}`, label: 'View Stay & Book →' };
   } else if (parsedRawMeta?.href) {
     href = parsedRawMeta.href;
   } else if (isOrg && post.organizationId) {

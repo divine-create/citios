@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Loader2,
   Globe,
@@ -21,7 +21,14 @@ import {
   Sparkles,
   AlertCircle,
   ArrowLeft,
-  Building2,
+  Eye,
+  Edit3,
+  ThumbsUp,
+  MessageSquare,
+  Share2,
+  CheckCircle2,
+  RotateCcw,
+  Clock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createPost } from '@/app/actions/newsfeed';
@@ -29,6 +36,7 @@ import { useCity } from '@/components/cityos/CityProvider';
 import { useSession } from 'next-auth/react';
 import { POST_BACKGROUNDS, type PostBackgroundId } from '@/lib/post-background';
 import { useAccountSwitcher } from '@/components/cityos/AccountSwitcherContext';
+import { CANONICAL_CITY_AREAS } from '@/lib/city-areas';
 
 export const POST_CATEGORIES = [
   { id: 'Update', label: 'Update', icon: '📢', desc: 'News, announcements & thoughts' },
@@ -40,6 +48,8 @@ export const POST_CATEGORIES = [
 
 export type PostCategory = typeof POST_CATEGORIES[number]['id'];
 
+const DRAFT_STORAGE_KEY = 'cityos_composer_draft_v2';
+
 function resolveCategory(cat: string | null | undefined): PostCategory {
   if (!cat) return 'Update';
   if (cat === 'Offer') return 'Sales';
@@ -49,17 +59,30 @@ function resolveCategory(cat: string | null | undefined): PostCategory {
   return found ? (found.id as PostCategory) : 'Update';
 }
 
+function getQuickEventDate(offsetDays: number, hour: number, minute: number = 0): string {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  d.setHours(hour, minute, 0, 0);
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export default function CreatePost() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session } = useSession();
-  const cityName = useCity().city?.name ?? 'Calabar';
+  const { city } = useCity();
+  const cityName = city?.name ?? 'Calabar';
+  const citySlug = (city?.slug || 'calabar').toLowerCase();
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const initialCat = resolveCategory(searchParams?.get('category'));
   const [category, setCategory] = useState<PostCategory>(initialCat);
   const [audience, setAudience] = useState<'public' | 'following'>('public');
   const [showAudienceMenu, setShowAudienceMenu] = useState(false);
+  const [viewMode, setViewMode] = useState<'write' | 'preview'>('write');
 
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
@@ -88,11 +111,82 @@ export default function CreatePost() {
   const [publishing, setPublishing] = useState(false);
   const [published, setPublished] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
+  const [hasRestoredDraft, setHasRestoredDraft] = useState(false);
 
   const { myBusinesses, activeBusiness } = useAccountSwitcher();
   const paramOrgId = searchParams?.get('org');
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(paramOrgId || activeBusiness?.id || null);
   const [showAuthorMenu, setShowAuthorMenu] = useState(false);
+
+  // Auto-resize textarea smoothly as user types
+  const adjustTextareaHeight = useCallback(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.max(120, textareaRef.current.scrollHeight)}px`;
+    }
+  }, []);
+
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [body, category, adjustTextareaHeight]);
+
+  // Restore Draft on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.body || parsed.title) {
+          setTitle(parsed.title || '');
+          setBody(parsed.body || '');
+          if (parsed.category) setCategory(parsed.category);
+          if (parsed.location) setLocation(parsed.location);
+          if (parsed.price) setPrice(parsed.price);
+          if (parsed.eventDate) setEventDate(parsed.eventDate);
+          if (parsed.phone) setPhone(parsed.phone);
+          setHasRestoredDraft(true);
+        }
+      }
+    } catch {}
+  }, []);
+
+  // Save Draft to LocalStorage debounced
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try {
+        if (body.trim() || title.trim()) {
+          localStorage.setItem(
+            DRAFT_STORAGE_KEY,
+            JSON.stringify({
+              title,
+              body,
+              category,
+              location,
+              price,
+              eventDate,
+              phone,
+              savedAt: Date.now(),
+            })
+          );
+        }
+      } catch {}
+    }, 600);
+    return () => clearTimeout(t);
+  }, [title, body, category, location, price, eventDate, phone]);
+
+  const discardDraft = () => {
+    try {
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+    } catch {}
+    setTitle('');
+    setBody('');
+    setLocation('');
+    setPrice('');
+    setEventDate('');
+    setPhone('');
+    clearImage();
+    setHasRestoredDraft(false);
+  };
 
   useEffect(() => {
     if (searchParams?.get('category')) {
@@ -204,12 +298,27 @@ export default function CreatePost() {
         organizationId: selectedOrgId || undefined,
       });
 
+      // Clear draft on publish
+      try {
+        localStorage.removeItem(DRAFT_STORAGE_KEY);
+      } catch {}
+
       setPublished(true);
       window.setTimeout(() => router.push('/feed'), 700);
     } catch (e) {
       console.error(e);
       setPublishing(false);
       setPublishError('Failed to publish post: ' + (e instanceof Error ? e.message : String(e)));
+    }
+  };
+
+  // Keyboard shortcut: Cmd+Enter or Ctrl+Enter to publish
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault();
+      if (canPublish) {
+        publish();
+      }
     }
   };
 
@@ -250,6 +359,19 @@ export default function CreatePost() {
 
   const activeName = session.user.name || 'Resident';
   const activeInitials = activeName?.slice(0, 1) || 'U';
+  const activeBackground = POST_BACKGROUNDS.find((b) => b.id === postBackground) || POST_BACKGROUNDS[0];
+
+  // Quick neighborhood suggestions for Calabar / current city
+  const neighborhoodSuggestions =
+    CANONICAL_CITY_AREAS[citySlug]?.slice(0, 7) || [
+      { id: 'marian', shortName: 'Marian Road' },
+      { id: 'state-housing', shortName: 'State Housing' },
+      { id: 'etta-agbor', shortName: 'Etta Agbor' },
+      { id: 'federal-housing', shortName: 'Federal Housing' },
+      { id: 'unical', shortName: 'Unical Campus' },
+      { id: 'calabar-south', shortName: 'Calabar South' },
+      { id: 'watt-market', shortName: 'Watt Market' },
+    ];
 
   // Contextual Placeholders
   const getTitlePlaceholder = () => {
@@ -282,9 +404,17 @@ export default function CreatePost() {
     }
   };
 
+  // Character counter progress
+  const charCount = body.length;
+  const maxCharLimit = 1000;
+  const charPercent = Math.min(100, (charCount / maxCharLimit) * 100);
+
   return (
-    <div className="max-w-2xl mx-auto space-y-4 animate-in fade-in duration-300 pb-16">
-      {/* Top Header Row */}
+    <div
+      onKeyDown={handleKeyDown}
+      className="max-w-2xl mx-auto space-y-3.5 animate-in fade-in duration-300 pb-20 sm:pb-12"
+    >
+      {/* Top Header Row with Write / Preview Tabs */}
       <div className="flex items-center justify-between px-1">
         <button
           type="button"
@@ -294,15 +424,59 @@ export default function CreatePost() {
           <ArrowLeft className="w-4 h-4" />
           Back
         </button>
-        <span className="text-[11px] font-black uppercase tracking-widest text-teal-800 bg-teal-50 px-3 py-1 rounded-full border border-teal-100">
-          📍 {cityName} Feed
-        </span>
+
+        {/* View Mode Segmented Switcher */}
+        <div className="flex items-center bg-slate-200/80 p-0.5 rounded-full border border-slate-300/60 shadow-xs">
+          <button
+            type="button"
+            onClick={() => setViewMode('write')}
+            className={cn(
+              'flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black transition-all',
+              viewMode === 'write'
+                ? 'bg-white text-slate-900 shadow-xs'
+                : 'text-slate-500 hover:text-slate-800'
+            )}
+          >
+            <Edit3 className="w-3.5 h-3.5" />
+            <span>Write</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('preview')}
+            className={cn(
+              'flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black transition-all',
+              viewMode === 'preview'
+                ? 'bg-teal-800 text-white shadow-xs'
+                : 'text-slate-500 hover:text-slate-800'
+            )}
+          >
+            <Eye className="w-3.5 h-3.5" />
+            <span>Live Preview</span>
+          </button>
+        </div>
       </div>
+
+      {/* Restored Draft Banner */}
+      {hasRestoredDraft && (
+        <div className="p-2.5 px-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold flex items-center justify-between animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <Clock className="w-3.5 h-3.5 text-amber-700" />
+            <span>Restored an unsaved draft from your device.</span>
+          </div>
+          <button
+            type="button"
+            onClick={discardDraft}
+            className="text-[11px] font-black uppercase text-amber-800 hover:text-red-700 underline transition-colors"
+          >
+            Discard
+          </button>
+        </div>
+      )}
 
       {/* Main Composer Card */}
       <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden">
         {/* 1. Unified Identity & Audience Bar */}
-        <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between relative bg-slate-50/50">
+        <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between relative bg-slate-50/60">
           <div className="flex items-center gap-3">
             <div
               className={cn(
@@ -493,212 +667,433 @@ export default function CreatePost() {
         {/* 3. Auto-Bridge Context Banner */}
         <div className="px-4 sm:px-5 py-2 text-[11px] font-bold border-b border-slate-100 flex items-center gap-2 bg-gradient-to-r from-teal-50/60 to-transparent text-teal-900">
           <Sparkles className="w-3.5 h-3.5 text-teal-700 shrink-0" />
-          <span>
-            {category === 'Event' && `🎉 Auto-Bridge: Will appear on the City Feed AND in the official ${cityName} Events Calendar.`}
-            {category === 'Housing' && `🏠 Auto-Bridge: Will appear on the City Feed AND in the official ${cityName} CityStay Directory.`}
+          <span className="truncate">
+            {category === 'Event' && `🎉 Auto-Bridge: Published to Feed AND official ${cityName} Events Calendar.`}
+            {category === 'Housing' && `🏠 Auto-Bridge: Published to Feed AND official ${cityName} CityStay Directory.`}
             {category === 'Sales' && (isBusinessAuthor
-              ? `🛍️ Auto-Bridge: Will appear on the City Feed AND in your official CityMart Store catalog.`
-              : `🏷️ Marketplace: Will appear on the City Feed under the Marketplace category.`)}
+              ? `🛍️ Auto-Bridge: Published to Feed AND your CityMart Storefront catalog.`
+              : `🏷️ Marketplace: Published to Feed under Marketplace category.`)}
             {category === 'Update' && `📢 Broadcast: Instant news and updates shared with all residents.`}
             {category === 'Question' && `❓ Resident Inquiry: Broadcast to neighbors, leaders, and verified services.`}
           </span>
         </div>
 
-        {/* 4. Canvas Writing Area */}
-        <div className="p-4 sm:p-5 space-y-3">
-          {/* Title Input (Required for Sales, Event, Housing, Question) */}
-          {needsTitle && (
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder={getTitlePlaceholder()}
-              className="w-full bg-transparent text-base sm:text-lg font-black text-slate-900 placeholder:text-slate-300 outline-none pb-2 border-b border-slate-100 focus:border-teal-600 transition-colors"
-            />
-          )}
+        {/* 4. Canvas Writing Area OR Live Preview Card */}
+        {viewMode === 'preview' ? (
+          /* ================= LIVE FEED PREVIEW MODE ================= */
+          <div className="p-4 sm:p-6 bg-slate-100/70 space-y-3">
+            <div className="text-[11px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5 mb-1">
+              <Eye className="w-3.5 h-3.5 text-teal-700" />
+              <span>Live Feed Card Preview (How residents will see this)</span>
+            </div>
 
-          {/* Main Body Text Area */}
-          <textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            placeholder={getBodyPlaceholder()}
-            rows={category === 'Update' ? 4 : 5}
-            className="w-full bg-transparent text-[14px] text-slate-800 placeholder:text-slate-400 outline-none resize-none leading-relaxed"
-          />
+            {/* Mocked Feed Card */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+              {/* Header */}
+              <div className="p-4 pb-3 flex items-center gap-3">
+                <div
+                  className={cn(
+                    'w-10 h-10 rounded-full text-white flex items-center justify-center text-sm font-black shadow-sm shrink-0 bg-gradient-to-br',
+                    isBusinessAuthor ? 'from-amber-600 to-teal-800' : 'from-teal-800 to-emerald-700'
+                  )}
+                >
+                  {isBusinessAuthor ? <Store className="w-5 h-5" /> : activeInitials}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <p className="text-[13px] font-black text-slate-900">{authorName}</p>
+                    {isBusinessAuthor && <CheckCircle2 className="w-3.5 h-3.5 text-teal-600" />}
+                    <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                      {category}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 font-bold mt-0.5 uppercase tracking-wider">
+                    {authorSubtitle} • Just now
+                  </p>
+                </div>
+              </div>
 
-          {/* Gradient Card Style Selector (for short text updates without an image) */}
-          {category === 'Update' && !imagePreview && !imageUrl && showBackgroundPicker && (
-            <div className="pt-2 pb-3 border-t border-slate-100 flex items-center gap-3">
-              <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Card Theme</span>
-              <div className="flex items-center gap-2">
-                {POST_BACKGROUNDS.map((bg) => (
-                  <button
-                    key={bg.id}
-                    type="button"
-                    title={bg.label}
-                    onClick={() => setPostBackground(bg.id)}
-                    className={cn(
-                      'w-6 h-6 rounded-full bg-gradient-to-br transition-transform hover:scale-110',
-                      bg.className,
-                      postBackground === bg.id ? 'ring-2 ring-teal-700 scale-110' : 'ring-1 ring-slate-200'
-                    )}
+              {/* Body Content with Gradient Support */}
+              {category === 'Update' && !imagePreview && !imageUrl && postBackground !== 'auto' ? (
+                <div className={cn('px-6 py-8 text-white text-center font-bold', activeBackground.className)}>
+                  {title && <h3 className="text-base font-black mb-1 drop-shadow">{title}</h3>}
+                  <p className="text-xl font-bold leading-snug drop-shadow whitespace-pre-line">
+                    {body || 'Your update text will appear here...'}
+                  </p>
+                </div>
+              ) : (
+                <div className="px-4 pb-2 space-y-2">
+                  {title && <h3 className="text-[15px] font-black text-slate-900 leading-snug">{title}</h3>}
+                  <p className="text-[13px] text-slate-700 leading-relaxed whitespace-pre-line">
+                    {body || 'Type your content to see it previewed here...'}
+                  </p>
+                </div>
+              )}
+
+              {/* Image Preview */}
+              {(imagePreview || imageUrl) && (
+                <div className="mt-2 max-h-72 overflow-hidden bg-slate-900 flex justify-center">
+                  <img
+                    src={imagePreview || imageUrl}
+                    alt="Preview"
+                    className="max-h-72 w-full object-cover"
                   />
-                ))}
+                </div>
+              )}
+
+              {/* Contextual Badges Strip */}
+              {(location || price || eventDate || phone) && (
+                <div className="m-4 mt-3 bg-slate-50 rounded-xl p-3 flex flex-wrap gap-x-4 gap-y-2 text-[12px] text-slate-600 font-medium border border-slate-200/80">
+                  {eventDate && (
+                    <div className="flex items-center gap-1.5 text-teal-900 font-bold">
+                      <span>📅</span>
+                      <span>{new Date(eventDate).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</span>
+                    </div>
+                  )}
+                  {location && (
+                    <div className="flex items-center gap-1.5">
+                      <span>📍</span>
+                      <span>{location}</span>
+                    </div>
+                  )}
+                  {price && (
+                    <div className="flex items-center gap-1.5 font-black text-emerald-700">
+                      <span>🏷️</span>
+                      <span>₦{Number(price).toLocaleString()}</span>
+                    </div>
+                  )}
+                  {phone && (
+                    <div className="flex items-center gap-1.5 text-sky-800 font-bold">
+                      <span>💬</span>
+                      <span>WhatsApp: {phone}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Mock Interaction Footer */}
+              <div className="px-4 py-2.5 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-400">
+                <div className="flex items-center gap-4">
+                  <span className="flex items-center gap-1.5 hover:text-teal-600 cursor-pointer">
+                    <ThumbsUp className="w-3.5 h-3.5" /> Like
+                  </span>
+                  <span className="flex items-center gap-1.5 hover:text-teal-600 cursor-pointer">
+                    <MessageSquare className="w-3.5 h-3.5" /> Comment
+                  </span>
+                  <span className="flex items-center gap-1.5 hover:text-teal-600 cursor-pointer">
+                    <Share2 className="w-3.5 h-3.5" /> Share
+                  </span>
+                </div>
+                <span className="text-[11px] text-teal-700">View post →</span>
               </div>
             </div>
-          )}
-
-          {/* Image Thumbnail Preview with Remove Button */}
-          {(imagePreview || imageUrl) && (
-            <div className="relative rounded-2xl overflow-hidden border border-slate-200 max-h-56 bg-slate-950 flex items-center justify-center group">
-              <img
-                src={imagePreview || imageUrl}
-                alt="Upload preview"
-                className="max-h-56 w-full object-contain"
+          </div>
+        ) : (
+          /* ================= WRITE MODE ================= */
+          <div className="p-4 sm:p-5 space-y-3">
+            {/* Title Input (Required for Sales, Event, Housing, Question) */}
+            {needsTitle && (
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder={getTitlePlaceholder()}
+                className="w-full bg-transparent text-base sm:text-lg font-black text-slate-900 placeholder:text-slate-300 outline-none pb-2 border-b border-slate-100 focus:border-teal-600 transition-colors"
               />
-              <button
-                type="button"
-                onClick={clearImage}
-                className="absolute top-3 right-3 p-1.5 rounded-full bg-black/70 hover:bg-red-600 text-white transition-colors shadow-md"
-                title="Remove photo"
-              >
-                <X className="w-4 h-4" />
-              </button>
+            )}
+
+            {/* Main Body Text Area (Auto-resizing) */}
+            <div className="relative">
+              <textarea
+                ref={textareaRef}
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                placeholder={getBodyPlaceholder()}
+                rows={4}
+                className="w-full bg-transparent text-[14px] text-slate-800 placeholder:text-slate-400 outline-none resize-none leading-relaxed"
+              />
+
+              {/* Character Progress Ring Indicator */}
+              <div className="absolute right-1 bottom-1 flex items-center gap-1.5 text-[10px] font-bold text-slate-400 select-none pointer-events-none">
+                <svg className="w-4 h-4 -rotate-90" viewBox="0 0 36 36">
+                  <path
+                    className="text-slate-200"
+                    strokeWidth="3.5"
+                    stroke="currentColor"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                  <path
+                    className={cn(
+                      charCount > 800 ? 'text-amber-500' : 'text-teal-600',
+                      charCount >= maxCharLimit && 'text-red-500'
+                    )}
+                    strokeDasharray={`${charPercent}, 100`}
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    stroke="currentColor"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                </svg>
+                <span>{charCount}</span>
+              </div>
             </div>
-          )}
 
-          {/* Active Attachment Chips Bar */}
-          <div className="flex items-center gap-2 flex-wrap pt-1">
-            {location && (
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold">
-                <MapPin className="w-3 h-3 text-slate-500" />
-                <span className="truncate max-w-[180px]">{location}</span>
-                <button type="button" onClick={() => setLocation('')} className="hover:text-red-600">
-                  <X className="w-3 h-3" />
-                </button>
-              </span>
-            )}
-
-            {price && (
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-black">
-                <DollarSign className="w-3 h-3 text-emerald-600" />
-                <span>₦{Number(price).toLocaleString()}</span>
-                <button type="button" onClick={() => setPrice('')} className="hover:text-red-600">
-                  <X className="w-3 h-3" />
-                </button>
-              </span>
-            )}
-
-            {eventDate && (
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-teal-50 text-teal-800 border border-teal-200 text-xs font-bold">
-                <Calendar className="w-3 h-3 text-teal-600" />
-                <span>{new Date(eventDate).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
-                <button type="button" onClick={() => setEventDate('')} className="hover:text-red-600">
-                  <X className="w-3 h-3" />
-                </button>
-              </span>
-            )}
-
-            {phone && (
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-sky-50 text-sky-800 border border-sky-200 text-xs font-bold">
-                <Phone className="w-3 h-3 text-sky-600" />
-                <span>{phone}</span>
-                <button type="button" onClick={() => setPhone('')} className="hover:text-red-600">
-                  <X className="w-3 h-3" />
-                </button>
-              </span>
-            )}
-
-            {videoUrl && (
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-purple-50 text-purple-800 border border-purple-200 text-xs font-bold">
-                <Video className="w-3 h-3 text-purple-600" />
-                <span className="truncate max-w-[140px]">Video attached</span>
-                <button type="button" onClick={() => setVideoUrl('')} className="hover:text-red-600">
-                  <X className="w-3 h-3" />
-                </button>
-              </span>
-            )}
-          </div>
-
-          {/* Expanded Drawer Inputs (Revealed contextually) */}
-          <div className="space-y-2.5 pt-2 border-t border-slate-100">
-            {showLocationInput && (
-              <div className="flex items-center gap-2 bg-slate-50 rounded-xl px-3.5 py-2.5 border border-slate-200 focus-within:border-teal-600 focus-within:bg-white transition-all">
-                <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
-                <input
-                  type="text"
-                  placeholder="Area / Neighborhood (e.g. Marian Rd, State Housing, Etta Agbor)"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  className="w-full bg-transparent text-[13px] outline-none text-slate-800 placeholder:text-slate-400 font-medium"
-                />
+            {/* Gradient Card Style Selector */}
+            {category === 'Update' && !imagePreview && !imageUrl && showBackgroundPicker && (
+              <div className="pt-2 pb-3 border-t border-slate-100 flex items-center gap-3 animate-in fade-in">
+                <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Card Theme</span>
+                <div className="flex items-center gap-2">
+                  {POST_BACKGROUNDS.map((bg) => (
+                    <button
+                      key={bg.id}
+                      type="button"
+                      title={bg.label}
+                      onClick={() => setPostBackground(bg.id)}
+                      className={cn(
+                        'w-6 h-6 rounded-full bg-gradient-to-br transition-transform hover:scale-110',
+                        bg.className,
+                        postBackground === bg.id ? 'ring-2 ring-teal-700 scale-110' : 'ring-1 ring-slate-200'
+                      )}
+                    />
+                  ))}
+                </div>
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {showPriceInput && (
-                <div className="flex items-center gap-2 bg-slate-50 rounded-xl px-3.5 py-2.5 border border-slate-200 focus-within:border-teal-600 focus-within:bg-white transition-all">
-                  <span className="text-slate-400 font-bold text-xs">₦</span>
-                  <input
-                    type="number"
-                    placeholder={
-                      category === 'Event'
-                        ? 'Ticket Price in ₦ (0 for Free)'
-                        : category === 'Housing'
-                        ? 'Rent / Night Rate in ₦'
-                        : 'Item Price in ₦'
-                    }
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    className="w-full bg-transparent text-[13px] outline-none text-slate-800 placeholder:text-slate-400 font-medium"
-                  />
-                </div>
+            {/* Image Thumbnail Preview with Instant Remove */}
+            {(imagePreview || imageUrl) && (
+              <div className="relative rounded-2xl overflow-hidden border border-slate-200 max-h-60 bg-slate-950 flex items-center justify-center group animate-in fade-in">
+                <img
+                  src={imagePreview || imageUrl}
+                  alt="Upload preview"
+                  className="max-h-60 w-full object-contain"
+                />
+                <button
+                  type="button"
+                  onClick={clearImage}
+                  className="absolute top-3 right-3 p-1.5 rounded-full bg-black/70 hover:bg-red-600 text-white transition-colors shadow-md"
+                  title="Remove photo"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            {/* Active Attachment Chips Bar */}
+            <div className="flex items-center gap-2 flex-wrap pt-1">
+              {location && (
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold animate-in fade-in">
+                  <MapPin className="w-3 h-3 text-slate-500" />
+                  <span className="truncate max-w-[180px]">{location}</span>
+                  <button type="button" onClick={() => setLocation('')} className="hover:text-red-600">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
               )}
 
-              {showEventDateInput && (
-                <div className="flex items-center gap-2 bg-slate-50 rounded-xl px-3.5 py-2.5 border border-slate-200 focus-within:border-teal-600 focus-within:bg-white transition-all">
-                  <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
-                  <input
-                    type="datetime-local"
-                    value={eventDate}
-                    onChange={(e) => setEventDate(e.target.value)}
-                    className="w-full bg-transparent text-[13px] outline-none text-slate-800 font-medium"
-                  />
-                </div>
+              {price && (
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-black animate-in fade-in">
+                  <DollarSign className="w-3 h-3 text-emerald-600" />
+                  <span>₦{Number(price).toLocaleString()}</span>
+                  <button type="button" onClick={() => setPrice('')} className="hover:text-red-600">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
               )}
 
-              {showPhoneInput && (
-                <div className="flex items-center gap-2 bg-slate-50 rounded-xl px-3.5 py-2.5 border border-slate-200 focus-within:border-teal-600 focus-within:bg-white transition-all">
-                  <Phone className="w-4 h-4 text-slate-400 shrink-0" />
-                  <input
-                    type="tel"
-                    placeholder="Contact WhatsApp / Phone number"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="w-full bg-transparent text-[13px] outline-none text-slate-800 placeholder:text-slate-400 font-medium"
-                  />
-                </div>
+              {eventDate && (
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-teal-50 text-teal-800 border border-teal-200 text-xs font-bold animate-in fade-in">
+                  <Calendar className="w-3 h-3 text-teal-600" />
+                  <span>{new Date(eventDate).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
+                  <button type="button" onClick={() => setEventDate('')} className="hover:text-red-600">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
               )}
 
-              {showVideoInput && (
-                <div className="flex items-center gap-2 bg-slate-50 rounded-xl px-3.5 py-2.5 border border-slate-200 focus-within:border-teal-600 focus-within:bg-white transition-all">
-                  <Video className="w-4 h-4 text-slate-400 shrink-0" />
-                  <input
-                    type="url"
-                    placeholder="Video Link (YouTube, Vimeo, MP4)"
-                    value={videoUrl}
-                    onChange={(e) => setVideoUrl(e.target.value)}
-                    className="w-full bg-transparent text-[13px] outline-none text-slate-800 placeholder:text-slate-400 font-medium"
-                  />
-                </div>
+              {phone && (
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-sky-50 text-sky-800 border border-sky-200 text-xs font-bold animate-in fade-in">
+                  <Phone className="w-3 h-3 text-sky-600" />
+                  <span>{phone}</span>
+                  <button type="button" onClick={() => setPhone('')} className="hover:text-red-600">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+
+              {videoUrl && (
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-purple-50 text-purple-800 border border-purple-200 text-xs font-bold animate-in fade-in">
+                  <Video className="w-3 h-3 text-purple-600" />
+                  <span className="truncate max-w-[140px]">Video attached</span>
+                  <button type="button" onClick={() => setVideoUrl('')} className="hover:text-red-600">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
               )}
             </div>
+
+            {/* Expanded Drawer Inputs with Quick Presets */}
+            <div className="space-y-3 pt-2 border-t border-slate-100">
+              {/* Location Drawer + Neighborhood Quick Tap Chips */}
+              {showLocationInput && (
+                <div className="space-y-2 animate-in fade-in">
+                  <div className="flex items-center gap-2 bg-slate-50 rounded-xl px-3.5 py-2.5 border border-slate-200 focus-within:border-teal-600 focus-within:bg-white transition-all">
+                    <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
+                    <input
+                      type="text"
+                      placeholder="Area / Neighborhood (e.g. Marian Rd, State Housing, Etta Agbor)"
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      className="w-full bg-transparent text-[13px] outline-none text-slate-800 placeholder:text-slate-400 font-medium"
+                    />
+                  </div>
+
+                  {/* Quick Neighborhood Suggestions */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+                    <span className="text-[10px] font-black uppercase text-slate-400 shrink-0">Popular:</span>
+                    {neighborhoodSuggestions.map((area) => (
+                      <button
+                        key={area.id}
+                        type="button"
+                        onClick={() => setLocation(area.shortName)}
+                        className={cn(
+                          'px-2.5 py-1 rounded-full text-[11px] font-bold shrink-0 transition-colors',
+                          location === area.shortName
+                            ? 'bg-teal-800 text-white'
+                            : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                        )}
+                      >
+                        {area.shortName}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Price Drawer + Quick Price Chips */}
+              {showPriceInput && (
+                <div className="space-y-2 animate-in fade-in">
+                  <div className="flex items-center gap-2 bg-slate-50 rounded-xl px-3.5 py-2.5 border border-slate-200 focus-within:border-teal-600 focus-within:bg-white transition-all">
+                    <span className="text-slate-400 font-bold text-xs">₦</span>
+                    <input
+                      type="number"
+                      placeholder={
+                        category === 'Event'
+                          ? 'Ticket Price in ₦ (0 for Free)'
+                          : category === 'Housing'
+                          ? 'Rent / Night Rate in ₦'
+                          : 'Item Price in ₦'
+                      }
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
+                      className="w-full bg-transparent text-[13px] outline-none text-slate-800 placeholder:text-slate-400 font-medium"
+                    />
+                  </div>
+
+                  {/* Quick Price Presets */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+                    <span className="text-[10px] font-black uppercase text-slate-400 shrink-0">Presets:</span>
+                    {['0', '1000', '5000', '25000', '50000', '150000'].map((pVal) => (
+                      <button
+                        key={pVal}
+                        type="button"
+                        onClick={() => setPrice(pVal)}
+                        className={cn(
+                          'px-2.5 py-1 rounded-full text-[11px] font-bold shrink-0 transition-colors',
+                          price === pVal
+                            ? 'bg-emerald-700 text-white'
+                            : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                        )}
+                      >
+                        {pVal === '0' ? 'Free' : `₦${Number(pVal).toLocaleString()}`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Event Date Drawer + Quick Shortcuts */}
+              {showEventDateInput && (
+                <div className="space-y-2 animate-in fade-in">
+                  <div className="flex items-center gap-2 bg-slate-50 rounded-xl px-3.5 py-2.5 border border-slate-200 focus-within:border-teal-600 focus-within:bg-white transition-all">
+                    <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+                    <input
+                      type="datetime-local"
+                      value={eventDate}
+                      onChange={(e) => setEventDate(e.target.value)}
+                      className="w-full bg-transparent text-[13px] outline-none text-slate-800 font-medium"
+                    />
+                  </div>
+
+                  {/* Quick Date Presets */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+                    <span className="text-[10px] font-black uppercase text-slate-400 shrink-0">Quick Date:</span>
+                    <button
+                      type="button"
+                      onClick={() => setEventDate(getQuickEventDate(0, 18, 0))}
+                      className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 shrink-0"
+                    >
+                      Tonight 6 PM
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEventDate(getQuickEventDate(1, 17, 0))}
+                      className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 shrink-0"
+                    >
+                      Tomorrow 5 PM
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const today = new Date();
+                        const daysToSat = (6 - today.getDay() + 7) % 7 || 7;
+                        setEventDate(getQuickEventDate(daysToSat, 16, 0));
+                      }}
+                      className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 shrink-0"
+                    >
+                      This Saturday 4 PM
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Phone & Video Drawers */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {showPhoneInput && (
+                  <div className="flex items-center gap-2 bg-slate-50 rounded-xl px-3.5 py-2.5 border border-slate-200 focus-within:border-teal-600 focus-within:bg-white transition-all animate-in fade-in">
+                    <Phone className="w-4 h-4 text-slate-400 shrink-0" />
+                    <input
+                      type="tel"
+                      placeholder="WhatsApp contact phone"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="w-full bg-transparent text-[13px] outline-none text-slate-800 placeholder:text-slate-400 font-medium"
+                    />
+                  </div>
+                )}
+
+                {showVideoInput && (
+                  <div className="flex items-center gap-2 bg-slate-50 rounded-xl px-3.5 py-2.5 border border-slate-200 focus-within:border-teal-600 focus-within:bg-white transition-all animate-in fade-in">
+                    <Video className="w-4 h-4 text-slate-400 shrink-0" />
+                    <input
+                      type="url"
+                      placeholder="Video Link (YouTube, Vimeo, MP4)"
+                      value={videoUrl}
+                      onChange={(e) => setVideoUrl(e.target.value)}
+                      className="w-full bg-transparent text-[13px] outline-none text-slate-800 placeholder:text-slate-400 font-medium"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Publish Error Notification */}
         {publishError && (
-          <div className="mx-4 sm:mx-5 mb-3 p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold flex items-center gap-2">
+          <div className="mx-4 sm:mx-5 mb-3 p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold flex items-center gap-2 animate-in fade-in">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{publishError}</span>
           </div>
@@ -804,37 +1199,43 @@ export default function CreatePost() {
             </button>
           </div>
 
-          {/* Publish Action Button */}
-          <button
-            type="button"
-            onClick={publish}
-            disabled={!canPublish}
-            className={cn(
-              'ml-auto inline-flex items-center justify-center gap-1.5 px-4 py-2 sm:px-6 sm:py-2.5 rounded-2xl text-xs font-black transition-all shadow-sm shrink-0',
-              canPublish
-                ? 'bg-teal-800 hover:bg-teal-900 text-white shadow-teal-950/20 active:scale-95'
-                : 'bg-slate-200 text-slate-400 cursor-not-allowed',
-              published && 'bg-emerald-600 text-white'
-            )}
-          >
-            {published ? (
-              <>
-                <Check className="w-4 h-4" />
-                <span>Published!</span>
-              </>
-            ) : publishing ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Publishing...</span>
-              </>
-            ) : (
-              <>
-                <PenSquare className="w-4 h-4" />
-                <span className="hidden sm:inline">Publish to City</span>
-                <span className="sm:hidden">Publish</span>
-              </>
-            )}
-          </button>
+          {/* Right Action: Keyboard Hint + Publish Button */}
+          <div className="flex items-center gap-3 ml-auto shrink-0">
+            <span className="hidden md:inline-flex text-[11px] font-bold text-slate-400">
+              ⌘ + Enter
+            </span>
+
+            <button
+              type="button"
+              onClick={publish}
+              disabled={!canPublish}
+              className={cn(
+                'inline-flex items-center justify-center gap-1.5 px-5 py-2.5 sm:px-6 sm:py-2.5 rounded-2xl text-xs font-black transition-all shadow-sm',
+                canPublish
+                  ? 'bg-teal-800 hover:bg-teal-900 text-white shadow-teal-950/20 active:scale-95'
+                  : 'bg-slate-200 text-slate-400 cursor-not-allowed',
+                published && 'bg-emerald-600 text-white'
+              )}
+            >
+              {published ? (
+                <>
+                  <Check className="w-4 h-4" />
+                  <span>Published!</span>
+                </>
+              ) : publishing ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Publishing...</span>
+                </>
+              ) : (
+                <>
+                  <PenSquare className="w-4 h-4" />
+                  <span className="hidden sm:inline">Publish to City</span>
+                  <span className="sm:hidden">Publish</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>
