@@ -11,6 +11,10 @@ import {
   Coffee,
   ArrowRight,
   Camera,
+  User as UserIcon,
+  Building2,
+  Wifi,
+  ShieldCheck,
 } from 'lucide-react';
 import { FallbackImg } from '@/components/cityos/CityUI';
 import { useMoney } from '@/components/cityos/CityProvider';
@@ -20,6 +24,7 @@ export interface BookingHotelItem {
   id: string;
   name: string;
   type: string;
+  stayCategory?: string;
   description?: string;
   address?: string;
   neighborhood?: string;
@@ -28,22 +33,35 @@ export interface BookingHotelItem {
   imageUrl?: string;
   images?: string[];
   rating?: number | null;
-  reviewScore?: number;
+  reviewScore?: number | null;
   reviewText?: string;
   reviewCount?: number;
   stars?: number;
-  price?: number;
-  startingPrice?: number;
+  price?: number | null;
+  startingPrice?: number | null;
+  pricePeriod?: 'night' | 'month' | 'year' | string;
   compareAtPrice?: number;
   roomsCount?: number;
   roomType?: string;
   bedType?: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  maxGuests?: number;
+  amenities?: string[];
   freeCancellation?: boolean;
   breakfastIncluded?: boolean;
   hasPowerGuarantee?: boolean;
   distanceFromCenter?: string;
   badge?: string;
+  hostType?: 'PERSONAL' | 'ORGANIZATION' | string;
+  hostPersonId?: string | null;
+  hostName?: string;
+  organizationId?: string;
+  isHotelOrg?: boolean;
 }
+
+const DEFAULT_STAY_IMAGE =
+  'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1000&q=80';
 
 interface BookingHotelCardProps {
   hotel: BookingHotelItem;
@@ -55,6 +73,7 @@ export default function BookingHotelCard({ hotel, className }: BookingHotelCardP
   const [isFavorite, setIsFavorite] = useState(false);
 
   const price = hotel.startingPrice || hotel.price || null;
+  const pricePeriod = hotel.pricePeriod || 'night';
   const compareAtPrice =
     typeof hotel.compareAtPrice === 'number' && price && hotel.compareAtPrice > price
       ? hotel.compareAtPrice
@@ -82,8 +101,11 @@ export default function BookingHotelCard({ hotel, className }: BookingHotelCardP
       : null);
   const starsCount = typeof hotel.stars === 'number' && hotel.stars > 0 ? hotel.stars : null;
 
-  const coverPhoto = hotel.image || hotel.imageUrl || hotel.images?.[0];
-  const photosCount = hotel.images?.length || 0;
+  const coverPhoto = hotel.image || hotel.imageUrl || hotel.images?.[0] || DEFAULT_STAY_IMAGE;
+  const photosCount = hotel.images?.length || (coverPhoto ? 1 : 0);
+  const categoryLabel = hotel.stayCategory || (hotel.type === 'HOTEL' ? 'Hotel' : 'Stay');
+  const hasWifi = hotel.amenities?.some((a) => /wi-?fi|internet/i.test(a));
+  const hasSecurity = hotel.amenities?.some((a) => /security|gated/i.test(a));
 
   return (
     <div
@@ -102,6 +124,18 @@ export default function BookingHotelCard({ hotel, className }: BookingHotelCardP
           />
         </Link>
 
+        {/* Category Badge */}
+        <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5">
+          <span className="px-2.5 py-1 rounded-full bg-slate-900/80 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-wider">
+            {categoryLabel}
+          </span>
+          {discountPercent > 0 && (
+            <span className="px-2.5 py-1 rounded-full bg-emerald-600 text-white text-[10px] font-black shadow-md tracking-wider uppercase">
+              {discountPercent}% OFF
+            </span>
+          )}
+        </div>
+
         <button
           type="button"
           onClick={(e) => {
@@ -119,12 +153,6 @@ export default function BookingHotelCard({ hotel, className }: BookingHotelCardP
         >
           <Heart className={cn('w-4 h-4', isFavorite ? 'fill-white' : '')} />
         </button>
-
-        {discountPercent > 0 && (
-          <div className="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-full bg-emerald-600 text-white text-[10px] font-black shadow-md tracking-wider uppercase">
-            {discountPercent}% OFF
-          </div>
-        )}
 
         {photosCount > 1 && (
           <div className="absolute bottom-3 right-3 z-10 px-2 py-0.5 rounded-full bg-slate-950/70 backdrop-blur-md text-white text-[10px] font-bold flex items-center gap-1">
@@ -155,15 +183,22 @@ export default function BookingHotelCard({ hotel, className }: BookingHotelCardP
             </div>
 
             {(hotel.neighborhood || hotel.address) && (
-              <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+              <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium flex-wrap">
                 <MapPin className="w-3.5 h-3.5 text-teal-700 shrink-0" />
                 <span className="text-slate-700 font-bold">
                   {hotel.neighborhood || hotel.address}
                 </span>
-                {hotel.distanceFromCenter && (
+                {hotel.hostName && (
                   <>
                     <span>·</span>
-                    <span className="text-slate-400">{hotel.distanceFromCenter}</span>
+                    <span className="inline-flex items-center gap-1 text-slate-500 font-semibold">
+                      {hotel.hostType === 'PERSONAL' ? (
+                        <UserIcon className="w-3 h-3 text-teal-700" />
+                      ) : (
+                        <Building2 className="w-3 h-3 text-teal-700" />
+                      )}
+                      Hosted by {hotel.hostName}
+                    </span>
                   </>
                 )}
               </div>
@@ -200,8 +235,10 @@ export default function BookingHotelCard({ hotel, className }: BookingHotelCardP
           hotel.bedType ||
           hotel.freeCancellation ||
           hotel.breakfastIncluded ||
-          hotel.hasPowerGuarantee) && (
-          <div className="space-y-2 border-l-2 border-slate-200 pl-3">
+          hotel.hasPowerGuarantee ||
+          hasWifi ||
+          hasSecurity) && (
+          <div className="space-y-1.5 border-l-2 border-slate-200 pl-3">
             {hotel.roomType && (
               <p className="text-xs font-black text-slate-900">{hotel.roomType}</p>
             )}
@@ -209,7 +246,28 @@ export default function BookingHotelCard({ hotel, className }: BookingHotelCardP
               <p className="text-[11px] text-slate-500 font-medium">{hotel.bedType}</p>
             )}
 
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 text-xs font-bold text-emerald-700">
+            <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 pt-1 text-xs font-bold text-emerald-700">
+              {hotel.hasPowerGuarantee && (
+                <span className="flex items-center gap-1 text-amber-700">
+                  <Zap className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                  24/7 Power
+                </span>
+              )}
+
+              {hasWifi && (
+                <span className="flex items-center gap-1 text-teal-800">
+                  <Wifi className="w-3.5 h-3.5 text-teal-600" />
+                  Fast Wi-Fi
+                </span>
+              )}
+
+              {hasSecurity && (
+                <span className="flex items-center gap-1 text-slate-700">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  Gated Security
+                </span>
+              )}
+
               {hotel.freeCancellation && (
                 <span className="flex items-center gap-1">
                   <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" />
@@ -223,13 +281,6 @@ export default function BookingHotelCard({ hotel, className }: BookingHotelCardP
                   Breakfast included
                 </span>
               )}
-
-              {hotel.hasPowerGuarantee && (
-                <span className="flex items-center gap-1 text-amber-700">
-                  <Zap className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                  24/7 Power
-                </span>
-              )}
             </div>
           </div>
         )}
@@ -238,7 +289,7 @@ export default function BookingHotelCard({ hotel, className }: BookingHotelCardP
           <div>
             {price ? (
               <>
-                <span className="text-[11px] text-slate-500 font-medium">Starting from</span>
+                <span className="text-[11px] text-slate-500 font-medium">Rate</span>
                 <div className="flex items-baseline gap-2">
                   {compareAtPrice && compareAtPrice > price && (
                     <span className="text-xs text-rose-500 line-through font-bold">
@@ -248,20 +299,22 @@ export default function BookingHotelCard({ hotel, className }: BookingHotelCardP
                   <span className="text-xl sm:text-2xl font-black text-slate-950">
                     {fmt(price)}
                   </span>
-                  <span className="text-xs text-slate-500 font-medium">/ night</span>
+                  <span className="text-xs text-slate-500 font-medium">/ {pricePeriod}</span>
                 </div>
               </>
             ) : (
-              <span className="text-sm font-bold text-slate-700">Contact for room rates</span>
+              <span className="text-xs font-bold text-slate-500">
+                View rooms & live availability
+              </span>
             )}
           </div>
 
           <Link
             href={`/stay/${hotel.id}`}
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-teal-800 hover:bg-teal-900 text-white text-xs font-black shadow-md transition-all"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-teal-800 hover:bg-teal-900 text-white text-xs sm:text-sm font-black shadow-md shadow-teal-950/15 transition-all active:scale-95 shrink-0"
           >
-            <span>View Rooms</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            <span>View & Book</span>
+            <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
       </div>

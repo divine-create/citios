@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, Briefcase, BadgeCheck, Users, CalendarDays, ClipboardList, CheckCircle2, ShieldCheck, ArrowUpRight, Star } from 'lucide-react';
+import { ArrowRight, Briefcase, BadgeCheck, Users, CalendarDays, ClipboardList, CheckCircle2, ShieldCheck, ArrowUpRight, Star, Clock, Phone, MessageSquare } from 'lucide-react';
 import { getCanonicalOrganization } from '@/app/actions/org';
 import { formatMoney } from '@/lib/format';
 import { getCurrentCity } from '@/lib/city';
@@ -13,6 +13,7 @@ import { getWorkspaceUrlForOrg } from '@/lib/actions/business';
 import EnquiryModal from '@/components/cityos/EnquiryModal';
 import BusinessReviewsSection from '@/components/cityos/BusinessReviewsSection';
 import { getOrganizationReviews } from '@/lib/actions/reviews';
+import { buildWhatsAppServiceUrl } from '@/lib/whatsapp';
 
 export default async function OrgProfile({ id }: { id: string }) {
   const org = await getCanonicalOrganization(id);
@@ -55,6 +56,9 @@ export default async function OrgProfile({ id }: { id: string }) {
 
   const { capabilities, jobsData, eventsData, servicesData, productsData, menuData, locations } = org;
   
+  const phoneCp = org.contactPoints?.find((cp: any) => cp.type === 'PHONE')?.value || null;
+  const whatsappCp = org.contactPoints?.find((cp: any) => cp.type === 'WHATSAPP')?.value || null;
+
   const shop = capabilities.retail ? { products: productsData } : undefined;
   const restaurant = capabilities.restaurant ? { menu: menuData } : undefined;
   const svc = capabilities.services ? { services: servicesData } : undefined;
@@ -163,6 +167,26 @@ export default async function OrgProfile({ id }: { id: string }) {
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
+            {whatsappCp && (
+              <a
+                href={`https://wa.me/${whatsappCp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${org.name}, I found your business on CityOS and would like to make an enquiry.`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-sm transition-colors"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                WhatsApp
+              </a>
+            )}
+            {phoneCp && (
+              <a
+                href={`tel:${phoneCp}`}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-black shadow-sm transition-colors"
+              >
+                <Phone className="w-3.5 h-3.5" />
+                Call
+              </a>
+            )}
             <a
               href="#reviews"
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#f43939] hover:bg-[#d92b2b] text-white text-xs font-black shadow-sm transition-colors"
@@ -269,15 +293,34 @@ export default async function OrgProfile({ id }: { id: string }) {
             <span className="text-[11px] font-bold text-slate-400">{svc.services.length} live services</span>
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {svc.services.slice(0, 6).map((s: any) => (
-              <div key={s.id} className="bg-white rounded-2xl border border-slate-100 p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-[13px] font-black text-ink leading-snug">{s.name}</p>
-                  <Pill tone="blue">Service</Pill>
+            {svc.services.map((s: any) => (
+              <div key={s.id} className="bg-white rounded-2xl border border-slate-100 p-4 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-[13px] font-black text-ink leading-snug">{s.name}</p>
+                    <Pill tone="blue">Service</Pill>
+                  </div>
+                  <p className="text-[12px] text-slate-500 font-medium mt-1 line-clamp-2">{s.description || 'Service offered by this business.'}</p>
                 </div>
-                <p className="text-[12px] text-slate-500 font-medium mt-1 line-clamp-2">{s.description || 'Service offered by this org.'}</p>
-                <div className="flex items-center justify-between mt-3">
-                  <span className="text-[12px] font-black text-teal-900">{`from ${fmt(s.basePrice || 0)}`}</span>
+                <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-50">
+                  <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
+                    <Clock className="w-3 h-3 text-slate-400" />
+                    {s.durationMinutes ? `${s.durationMinutes} mins` : 'Available on Request'}
+                  </span>
+                  {whatsappCp ? (
+                    <a
+                      href={buildWhatsAppServiceUrl({
+                        phone: whatsappCp,
+                        orgName: org.name,
+                        serviceName: s.name,
+                      })}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] font-black text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg transition-colors"
+                    >
+                      Book on WhatsApp →
+                    </a>
+                  ) : null}
                 </div>
               </div>
             ))}

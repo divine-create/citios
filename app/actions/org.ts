@@ -321,11 +321,23 @@ export async function getResidentOrganization(identifier: string) {
       const org = await db.orm.public.Organization.where({ id: identifier }).first();
       if (org) {
         orgId = org.id;
+      } else {
+        const site = await db.orm.public.Microsite.where({ slug: identifier }).first();
+        if (site) {
+          orgId = site.organizationId;
+        }
       }
     }
   }
 
   if (!orgId) return null;
+
+  const org = await db.orm.public.Organization.where({ id: orgId }).first();
+  if (!org) return null;
+
+  if (!listing) {
+    listing = await db.orm.public.DiscoveryListing.where({ organizationId: orgId }).first();
+  }
 
   let isManager = false;
   if (personId) {
@@ -336,15 +348,15 @@ export async function getResidentOrganization(identifier: string) {
     if (membership) isManager = true;
   }
 
-  if ((!listing || !listing.isActive) && !isManager) {
-    if (!listing) {
-      const hasOpenJob = await db.orm.public.Job.where({ organizationId: orgId }).first();
-      if (hasOpenJob) {
-        return { orgId, isManager, listing: null };
-      }
-    }
+  // Suspended organizations are invisible to non-managers
+  if (org.status === 'SUSPENDED' && !isManager) {
     return null;
   }
 
-  return { orgId, isManager, listing };
+  // If a DiscoveryListing exists and has been explicitly unpublished or deactivated, hide from non-managers
+  if (listing && !listing.isActive && !isManager) {
+    return null;
+  }
+
+  return { orgId, isManager, listing: listing || null };
 }

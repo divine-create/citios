@@ -1,4 +1,4 @@
-import { getHotelOrgs } from '@/lib/actions/resident';
+import { getAllStays } from '@/lib/actions/stays';
 import { getVerticalsConfig } from '@/lib/actions/verticals-config';
 import VerticalPausedNotice from '@/components/cityos/VerticalPausedNotice';
 import CityStayList from '@/components/cityos/CityStayList';
@@ -11,6 +11,6 @@ export default async function StayPage() {
     return <VerticalPausedNotice verticalName="Stay" verticalId="houses" />;
   }
 
-  const hotels = await getHotelOrgs();
-  return <CityStayList hotels={hotels} />;
+  const stays = await getAllStays();
+  return <CityStayList hotels={stays} />;
 }

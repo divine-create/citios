@@ -37,7 +37,7 @@ const ACTIONS: CreateAction[] = [
   { icon: Wrench, title: 'Request a service', desc: 'AC, cleaning, installs — quoted before work starts.', href: '/services', tone: 'from-sky-700 to-cyan-500', label: 'Services' },
   { icon: Briefcase, title: 'Post a job', desc: 'Publish organization roles and openings to the city job board.', href: '/business?action=post-job', tone: 'from-indigo-700 to-brand-600', label: 'Post Opening' },
   { icon: CalendarPlus, title: 'Create an event', desc: 'Host a concert, meetup, tasting, party, or festival as yourself or a business.', href: '/events/create', tone: 'from-fuchsia-700 to-brand-500', label: 'Host Event' },
-  { icon: HousePlus, title: 'List a property', desc: 'Post apartments, short-lets, and commercial rentals.', href: '/feed/new?category=Housing', tone: 'from-amber-700 to-orange-500', label: 'List Property' },
+  { icon: HousePlus, title: 'List a property', desc: 'List short-lets, apartments, guest houses, hotels, or rental homes on CityStay.', href: '/stay/create', tone: 'from-amber-700 to-orange-500', label: 'List Stay' },
   { icon: Users, title: 'Start a community', desc: 'Post to the neighbourhood circle and city notice board.', href: '/community', tone: 'from-emerald-700 to-teal-500', label: 'Community' },
   { icon: GraduationCap, title: 'Register a school', desc: 'Create your digital campus on EduOS.', href: '/school/onboarding', tone: 'from-blue-700 to-indigo-500', label: 'Education' },
 ];

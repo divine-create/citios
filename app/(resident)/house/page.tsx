@@ -1,9 +1,5 @@
-import { getHotelOrgs } from '@/lib/actions/resident';
-import CityHouse from '@/components/cityos/CityHouseList';
+import { redirect } from 'next/navigation';
 
-export const dynamic = 'force-dynamic';
-
-export default async function HouseListPage() {
-  const stays = await getHotelOrgs();
-  return <CityHouse stays={stays} />;
+export default function HouseListPage() {
+  redirect('/stay');
 }
