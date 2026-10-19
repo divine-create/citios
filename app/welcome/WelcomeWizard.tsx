@@ -91,9 +91,8 @@ export default function WelcomeWizard({
       await getSession(); // refresh session so onboardingComplete flips to true
       setSaveSuccess(true);
       setTimeout(() => {
-        router.push('/');
-        router.refresh();
-      }, 800);
+        window.location.href = '/';
+      }, 600);
     } catch (err: any) {
       setError(err.message || 'Something went wrong.');
       setLoading(false);
@@ -107,7 +106,7 @@ export default function WelcomeWizard({
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-2xl sm:text-3xl font-black flex items-center gap-2.5">
             <Sparkles className="w-6 h-6 sm:w-7 sm:h-7 text-emerald-400" />
-            Welcome to CityConnect!
+            Welcome to CityOS!
           </h1>
           {alreadyCompleted && (
             <Link

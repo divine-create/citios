@@ -126,7 +126,13 @@ export const authOptions: NextAuthOptions = {
             if (!residentProfile) {
               residentProfile = await db.orm.public.ResidentProfile.create({
                 personId: dbPerson.id,
+                avatarUrl: user?.image ?? null,
               });
+            } else if (!residentProfile.avatarUrl && user?.image) {
+              await db.orm.public.ResidentProfile.where({ personId: dbPerson.id }).update({
+                avatarUrl: user.image,
+              });
+              residentProfile.avatarUrl = user.image;
             }
 
             const [orgMembers, gigProfile] = await Promise.all([

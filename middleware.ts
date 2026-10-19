@@ -129,8 +129,7 @@ export default withAuth(
       pathname.startsWith("/hotel-os") ||
       pathname.startsWith("/business") ||
       pathname.startsWith("/api/") ||
-      pathname.startsWith("/school/login") ||
-      pathname === "/";
+      pathname.startsWith("/school/login");
 
     if (token && token.onboardingComplete === false && !skipOnboarding) {
       const url = req.nextUrl.clone();
