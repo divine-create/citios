@@ -1,0 +1,22 @@
+# Dependencies and cache
+node_modules
+.next
+*.log
+
+# Development, testing, and agent tooling
+.agent
+.agents
+.claude
+.cursor
+.devin
+docs
+scratch
+scripts
+*.test.ts
+*.test.tsx
+*.test.js
+
+# Temporary archives and dumps
+*.tar.gz
+*.zip
+*.sql
