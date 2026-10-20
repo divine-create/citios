@@ -107,6 +107,8 @@ export async function initiateCheckout(input: InitiateCheckoutInput) {
     if (!room) return { error: 'Room not found.' };
     const checkIn = new Date(item.checkInDate);
     const checkOut = new Date(item.checkOutDate);
+    if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) return { error: 'Invalid dates.' };
+    if (checkOut.getTime() <= checkIn.getTime()) return { error: 'Check-out date must be after check-in date.' };
     totalAmount = await computeStayPrice(item.organizationId, room.baseRate, checkIn, checkOut);
   } else if (input.kind === 'retail') {
     for (const item of input.items) {

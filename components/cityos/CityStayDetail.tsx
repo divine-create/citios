@@ -23,7 +23,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { createHotelWhatsAppBooking } from '@/app/actions/checkout';
-import { bookResidentHotelReservation } from '@/lib/actions/hotel';
+import { bookResidentHotelReservation, type HotelReservationResult } from '@/lib/actions/hotel';
 import { deleteUniversalStay } from '@/lib/actions/stays';
 import { FallbackImg } from '@/components/cityos/CityUI';
 import { useMoney } from '@/components/cityos/CityProvider';
@@ -111,12 +111,13 @@ export default function CityStayDetail({
     try {
       if (isHotelOSEnabled) {
         // HotelOS-configured reservation flow: creates authoritative reservation in HotelOS
-        const res: any = await bookResidentHotelReservation({
+        const res: HotelReservationResult = await bookResidentHotelReservation({
           organizationId: data.organizationId || data.id,
           roomId: room.id,
           guestName: guestName.trim(),
           checkInDate: checkIn,
           checkOutDate: checkOut,
+          listingId: (data as any).listingId || undefined,
         });
         if (!res.success) {
           setMessage(res.error);

@@ -87,7 +87,75 @@ export type HotelReservationResult =
   | { success: true; reservationId: string; totalPrice: number; error?: never }
   | { success: false; error: string; reservationId?: never; totalPrice?: never };
 
-export async function isHotelOSReservationEnabled(organizationId: string): Promise<boolean> {
+/**
+ * Deterministic listing resolution for HotelOS.
+ * Ensures settings reads, settings updates, and reservation enablement
+ * target the exact same authoritative DiscoveryListing.
+ *
+ * Precedence / Ordering:
+ * 1. If explicit listingId provided: verify ownership (listing.organizationId === organizationId)
+ * 2. Organization-wide (listingId omitted):
+ *    - Filter out non-hotel verticals ('SETTINGS' and 'STAY_LISTING_*')
+ *    - Prefer organization-level listing (locationId is null or empty)
+ *    - Prefer vertical === 'HOTEL', then 'STAY'
+ *    - Prefer isActive === true
+ *    - Deterministic tie-breaker: oldest createdAt, then alphabetical by id
+ */
+export async function getAuthoritativeHotelListing(
+  organizationId: string,
+  listingId?: string | null
+): Promise<any | null> {
+  if (!organizationId) return null;
+
+  if (listingId) {
+    const specific = await db.orm.public.DiscoveryListing.where({
+      id: listingId,
+      organizationId,
+    }).all().first();
+    return specific || null;
+  }
+
+  const listings = await db.orm.public.DiscoveryListing.where({ organizationId }).all();
+  if (!listings || listings.length === 0) return null;
+
+  const eligible = listings.filter((l: any) => {
+    const v = String(l.vertical || '').toUpperCase();
+    return v !== 'SETTINGS' && !v.startsWith('STAY_LISTING_');
+  });
+
+  if (eligible.length === 0) return null;
+  if (eligible.length === 1) return eligible[0];
+
+  return eligible.sort((a: any, b: any) => {
+    // 1. Organization-level listing (null locationId) first
+    const aOrgLevel = !a.locationId ? 1 : 0;
+    const bOrgLevel = !b.locationId ? 1 : 0;
+    if (aOrgLevel !== bOrgLevel) return bOrgLevel - aOrgLevel;
+
+    // 2. Explicit 'HOTEL' vertical first
+    const aHotel = String(a.vertical || '').toUpperCase() === 'HOTEL' ? 1 : 0;
+    const bHotel = String(b.vertical || '').toUpperCase() === 'HOTEL' ? 1 : 0;
+    if (aHotel !== bHotel) return bHotel - aHotel;
+
+    // 3. Active listing first
+    const aActive = a.isActive ? 1 : 0;
+    const bActive = b.isActive ? 1 : 0;
+    if (aActive !== bActive) return bActive - aActive;
+
+    // 4. Oldest createdAt
+    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    if (aTime !== bTime) return aTime - bTime;
+
+    // 5. Stable ID comparison
+    return String(a.id).localeCompare(String(b.id));
+  })[0];
+}
+
+export async function isHotelOSReservationEnabled(
+  organizationId: string,
+  listingId?: string | null
+): Promise<boolean> {
   if (!organizationId) return false;
 
   const org = await db.orm.public.Organization.where({ id: organizationId }).all().first();
@@ -103,8 +171,8 @@ export async function isHotelOSReservationEnabled(organizationId: string): Promi
     return false;
   }
 
-  // Check DiscoveryListing settings metadata for explicit opt-out
-  const listing = await db.orm.public.DiscoveryListing.where({ organizationId }).all().first();
+  // Check authoritative DiscoveryListing settings metadata for explicit opt-out
+  const listing = await getAuthoritativeHotelListing(organizationId, listingId);
   if (listing?.metadata) {
     try {
       const meta = JSON.parse(listing.metadata);
@@ -119,7 +187,13 @@ export async function isHotelOSReservationEnabled(organizationId: string): Promi
 
 export async function updateHotelSettings(
   organizationId: string,
-  input: { name?: string; description?: string; address?: string; reservationEnabled?: boolean }
+  input: {
+    name?: string;
+    description?: string;
+    address?: string;
+    reservationEnabled?: boolean;
+    listingId?: string;
+  }
 ) {
   try {
     await requireMembership(organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
@@ -136,24 +210,52 @@ export async function updateHotelSettings(
     }
 
     if (input.reservationEnabled !== undefined) {
-      const listing = await db.orm.public.DiscoveryListing.where({ organizationId }).all().first();
-      if (listing) {
-        let meta: any = {};
+      if (input.listingId) {
+        // Specific listing requested: verify it exists and belongs to this organization (anti-IDOR)
+        const specificListing = await db.orm.public.DiscoveryListing.where({
+          id: input.listingId,
+          organizationId,
+        }).all().first();
+
+        if (!specificListing) {
+          return { error: 'Listing not found or does not belong to this organization.' };
+        }
+
+        let meta: Record<string, unknown> = {};
         try {
-          if (listing.metadata) meta = JSON.parse(listing.metadata);
+          if (specificListing.metadata) meta = JSON.parse(specificListing.metadata);
         } catch {}
         meta.reservationEnabled = input.reservationEnabled;
         meta.bookingEnabled = input.reservationEnabled;
-        await db.orm.public.DiscoveryListing.where({ id: listing.id }).update({
+        meta.hotelosReservationEnabled = input.reservationEnabled;
+        await db.orm.public.DiscoveryListing.where({ id: specificListing.id }).update({
           metadata: JSON.stringify(meta),
         });
+      } else {
+        // Authoritative organization-level listing resolved with the exact same rule as isHotelOSReservationEnabled
+        const listing = await getAuthoritativeHotelListing(organizationId);
+        if (listing) {
+          let meta: Record<string, unknown> = {};
+          try {
+            if (listing.metadata) meta = JSON.parse(listing.metadata);
+          } catch {}
+          meta.reservationEnabled = input.reservationEnabled;
+          meta.bookingEnabled = input.reservationEnabled;
+          meta.hotelosReservationEnabled = input.reservationEnabled;
+          await db.orm.public.DiscoveryListing.where({ id: listing.id }).update({
+            metadata: JSON.stringify(meta),
+          });
+        }
       }
     }
 
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.message?.startsWith('FORBIDDEN') || error?.message?.startsWith('UNAUTHENTICATED')) {
+      return { error: error.message };
+    }
     console.error('Error updating hotel settings:', error);
-    return { error: 'Failed to update settings.' };
+    return { error: error?.message || 'Failed to update settings.' };
   }
 }
 
@@ -163,11 +265,13 @@ export async function bookResidentHotelReservation(input: {
   guestName: string;
   checkInDate: string;
   checkOutDate: string;
-}) {
-  const isEnabled = await isHotelOSReservationEnabled(input.organizationId);
+  listingId?: string;
+}): Promise<HotelReservationResult> {
+  const isEnabled = await isHotelOSReservationEnabled(input.organizationId, input.listingId);
   if (!isEnabled) {
     return {
-      error: 'Direct HotelOS reservation is not configured for this hotel. Please enquire via WhatsApp.',
+      success: false,
+      error: 'Direct HotelOS reservation is not configured or enabled for this hotel. Please enquire via WhatsApp.',
     };
   }
 
@@ -189,7 +293,7 @@ export async function createReservation(input: {
   checkOutDate: string;
   roomBlockId?: string;
   byResident?: boolean;
-}) {
+}): Promise<HotelReservationResult> {
   try {
     if (!input.byResident) {
       await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST']);

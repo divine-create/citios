@@ -8,6 +8,7 @@ import {
   isHotelOSReservationEnabled,
   bookResidentHotelReservation,
   updateHotelSettings,
+  getAuthoritativeHotelListing,
 } from './actions/hotel';
 import {
   resolveHotelWhatsAppDestination,
@@ -348,5 +349,256 @@ test('Hotel Reservations & WhatsApp Fallback Product Rule Suite', async (t) => {
 
     assert.ok(tamperedCardCheckout.error, 'Must reject gateway card checkout for disabled hotel');
     assert.match(tamperedCardCheckout.error, /WhatsApp/i);
+  });
+
+  // --------------------------------------------------------------------------
+  // Requirement 8: Cross-organization room injection is strictly prevented
+  // --------------------------------------------------------------------------
+  await t.test('8. Cross-organization room injection is strictly rejected without records', async () => {
+    // Hotel B setup
+    const hotelB = await db.orm.public.Organization.create({
+      name: 'Calabar Residency Suites',
+      type: 'HOTEL',
+      status: 'ACTIVE',
+    });
+
+    const roomB = await db.orm.public.HotelRoom.create({
+      organizationId: hotelB.id,
+      roomNumber: '505',
+      type: 'Presidential Suite',
+      status: 'CLEAN',
+      baseRate: 85000,
+    });
+
+    const resCountBefore = (await db.orm.public.Reservation.all()).length;
+    const paymentCountBefore = (await db.orm.public.Payment.all()).length;
+
+    // Attacker passes operationalHotel.id (Org A) but roomId of Hotel B (Org B)
+    const injectionAttempt = await bookResidentHotelReservation({
+      organizationId: operationalHotel.id,
+      roomId: roomB.id,
+      guestName: 'Attacker Attempt',
+      checkInDate: futureCheckIn,
+      checkOutDate: futureCheckOut,
+    });
+
+    assert.strictEqual(injectionAttempt.success, false);
+    assert.match(injectionAttempt.error!, /Room not found/i);
+
+    // Verify no reservation or financial records created
+    const resCountAfter = (await db.orm.public.Reservation.all()).length;
+    const paymentCountAfter = (await db.orm.public.Payment.all()).length;
+    assert.strictEqual(resCountAfter, resCountBefore, 'No reservation records written');
+    assert.strictEqual(paymentCountAfter, paymentCountBefore, 'No payment records written');
+
+    const roomBReservations = await db.orm.public.Reservation.where({ roomId: roomB.id }).all();
+    assert.strictEqual(roomBReservations.length, 0, 'Room B has 0 reservations');
+  });
+
+  // --------------------------------------------------------------------------
+  // Requirement 9: Invalid booking dates are rejected before reservation or payment
+  // --------------------------------------------------------------------------
+  await t.test('9. Invalid booking dates are rejected before reservation or payment', async () => {
+    // 9.1 Check-in equal to check-out (0 nights)
+    const sameDayAttempt = await bookResidentHotelReservation({
+      organizationId: operationalHotel.id,
+      roomId: operationalRoom.id,
+      guestName: 'Amaka Eze',
+      checkInDate: futureCheckIn,
+      checkOutDate: futureCheckIn,
+    });
+    assert.strictEqual(sameDayAttempt.success, false);
+    assert.match(sameDayAttempt.error!, /after check-in/i);
+
+    // 9.2 Check-in after check-out (inverted interval)
+    const invertedDateAttempt = await bookResidentHotelReservation({
+      organizationId: operationalHotel.id,
+      roomId: operationalRoom.id,
+      guestName: 'Amaka Eze',
+      checkInDate: futureCheckOut,
+      checkOutDate: futureCheckIn,
+    });
+    assert.strictEqual(invertedDateAttempt.success, false);
+    assert.match(invertedDateAttempt.error!, /after check-in/i);
+
+    // 9.3 Invalid date format
+    const invalidDateAttempt = await bookResidentHotelReservation({
+      organizationId: operationalHotel.id,
+      roomId: operationalRoom.id,
+      guestName: 'Amaka Eze',
+      checkInDate: 'not-a-valid-date',
+      checkOutDate: 'invalid-date',
+    });
+    assert.strictEqual(invalidDateAttempt.success, false);
+    assert.match(invalidDateAttempt.error!, /Invalid dates/i);
+
+    // 9.4 Payment gateway checkout rejects invalid dates
+    const invalidGatewayCheckout = await initiateCheckout({
+      kind: 'hotel',
+      method: 'card',
+      items: [
+        {
+          productId: operationalRoom.id,
+          organizationId: operationalHotel.id,
+          name: 'Amaka Eze',
+          qty: 1,
+          checkInDate: futureCheckOut,
+          checkOutDate: futureCheckIn,
+        } as any,
+      ],
+    });
+    assert.ok(invalidGatewayCheckout.error);
+    assert.match(invalidGatewayCheckout.error, /after check-in/i);
+  });
+
+  // --------------------------------------------------------------------------
+  // Requirement 10: Multiple listing resolution is consistent, deterministic, and isolated
+  // --------------------------------------------------------------------------
+  await t.test('10. Multiple listing resolution is deterministic and update isolation is preserved', async () => {
+    const multiHotel = await db.orm.public.Organization.create({
+      name: 'Marina Grand Hotel',
+      type: 'HOTEL',
+      status: 'ACTIVE',
+      address: 'Marina Road, Calabar',
+    });
+
+    await db.orm.public.HotelRoom.create({
+      organizationId: multiHotel.id,
+      roomNumber: '101',
+      type: 'Standard',
+      status: 'CLEAN',
+      baseRate: 30000,
+    });
+
+    const city = await db.orm.public.City.all().first();
+    const cityId = city?.id || 'calabar-city-id';
+
+    // Listing 1: Org-level primary listing (locationId: null)
+    const primaryListing = await db.orm.public.DiscoveryListing.create({
+      organizationId: multiHotel.id,
+      cityId,
+      slug: `marina-main-${multiHotel.id.slice(0, 8)}`,
+      title: 'Marina Grand Hotel (Main Property)',
+      vertical: 'HOTEL',
+      locationId: null,
+      isActive: true,
+      metadata: JSON.stringify({ reservationEnabled: true }),
+    });
+
+    // Listing 2: Branch listing with locationId
+    const branchLocation = await db.orm.public.Location.create({
+      organizationId: multiHotel.id,
+      name: 'Marina Beach Annex',
+      cityId,
+    });
+
+    const branchListing = await db.orm.public.DiscoveryListing.create({
+      organizationId: multiHotel.id,
+      cityId,
+      slug: `marina-annex-${multiHotel.id.slice(0, 8)}`,
+      title: 'Marina Beach Annex',
+      vertical: 'HOTEL',
+      locationId: branchLocation.id,
+      isActive: true,
+      metadata: JSON.stringify({ reservationEnabled: true }),
+    });
+
+    // Non-hotel listing (vertical: 'SETTINGS')
+    await db.orm.public.DiscoveryListing.create({
+      organizationId: multiHotel.id,
+      cityId,
+      slug: `marina-cfg-${multiHotel.id.slice(0, 8)}`,
+      title: 'Marina Platform Config',
+      vertical: 'SETTINGS',
+      isActive: true,
+    });
+
+    // Verify getAuthoritativeHotelListing resolves the org-level primary listing
+    const authoritative = await getAuthoritativeHotelListing(multiHotel.id);
+    assert.ok(authoritative);
+    assert.strictEqual(authoritative.id, primaryListing.id, 'Must resolve org-level listing over branch or settings');
+
+    // Authoritative read matches
+    assert.strictEqual(await isHotelOSReservationEnabled(multiHotel.id), true);
+
+    // Manager setup for multiHotel
+    const manager = await db.orm.public.Person.create({
+      firstName: 'Hotel',
+      lastName: 'Manager',
+    });
+    const membership = await db.orm.public.Membership.create({
+      personId: manager.id,
+      organizationId: multiHotel.id,
+    });
+    await db.orm.public.MembershipRole.create({
+      membershipId: membership.id,
+      role: 'ADMIN',
+    });
+    await setSessionForPerson(manager);
+
+    // Disable reservations ONLY on the branch listing
+    const branchUpdate = await updateHotelSettings(multiHotel.id, {
+      reservationEnabled: false,
+      listingId: branchListing.id,
+    });
+    assert.strictEqual(branchUpdate.success, true);
+
+    // Verify branch listing is disabled
+    assert.strictEqual(await isHotelOSReservationEnabled(multiHotel.id, branchListing.id), false);
+
+    // Verify primary listing and org-level default remain ENABLED (isolation preserved)
+    assert.strictEqual(await isHotelOSReservationEnabled(multiHotel.id, primaryListing.id), true);
+    assert.strictEqual(await isHotelOSReservationEnabled(multiHotel.id), true);
+
+    // Anti-IDOR: verify trying to update another org's listing fails
+    const tamperedListingUpdate = await updateHotelSettings(multiHotel.id, {
+      reservationEnabled: false,
+      listingId: 'non-existent-or-other-org-listing',
+    });
+    assert.ok(tamperedListingUpdate.error);
+    assert.match(tamperedListingUpdate.error, /not belong/i);
+  });
+
+  // --------------------------------------------------------------------------
+  // Requirement 11: HotelOS settings authorization restricts unauthorized users
+  // --------------------------------------------------------------------------
+  await t.test('11. Unauthorized users cannot update HotelOS settings', async () => {
+    // Resident Amaka Eze has no membership in operationalHotel
+    await setSessionForPerson(resident);
+
+    const unauthorizedAttempt = await updateHotelSettings(operationalHotel.id, {
+      name: 'Hacked Hotel Name',
+      reservationEnabled: false,
+    });
+
+    assert.ok(unauthorizedAttempt.error);
+    assert.match(unauthorizedAttempt.error, /FORBIDDEN/i);
+
+    // Verify hotel name in database was untouched
+    const freshOrg = await db.orm.public.Organization.where({ id: operationalHotel.id }).all().first();
+    assert.strictEqual(freshOrg?.name, 'Transcorp Metropolitan Hotel');
+
+    // Create an authorized ADMIN membership for operationalHotel
+    const adminPerson = await db.orm.public.Person.create({
+      firstName: 'Authorized',
+      lastName: 'Admin',
+    });
+    const adminMem = await db.orm.public.Membership.create({
+      personId: adminPerson.id,
+      organizationId: operationalHotel.id,
+    });
+    await db.orm.public.MembershipRole.create({
+      membershipId: adminMem.id,
+      role: 'ADMIN',
+    });
+
+    await setSessionForPerson(adminPerson);
+    const authorizedUpdate = await updateHotelSettings(operationalHotel.id, {
+      description: 'Premier hospitality destination in the heart of Calabar.',
+    });
+    assert.strictEqual(authorizedUpdate.success, true);
+
+    const updatedOrg = await db.orm.public.Organization.where({ id: operationalHotel.id }).all().first();
+    assert.strictEqual(updatedOrg?.description, 'Premier hospitality destination in the heart of Calabar.');
   });
 });

@@ -6,7 +6,7 @@ import { authOptions } from '@/lib/auth';
 import { requireMembership } from '@/lib/actions/tenant';
 import { getCurrentCity, getCityBySlug } from '@/lib/city';
 import { getHotelOrgs, getHotelRooms } from '@/lib/actions/resident';
-import { isHotelOSReservationEnabled } from '@/lib/actions/hotel';
+import { isHotelOSReservationEnabled, getAuthoritativeHotelListing } from '@/lib/actions/hotel';
 import { revalidatePath } from 'next/cache';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -428,11 +428,9 @@ export async function getStayByIdOrSlug(slug: string) {
   const org = await db.orm.public.Organization.where({ id: slug, type: 'HOTEL' }).all().first();
   if (!org) return null;
 
-  const isHotelOSEnabled = await isHotelOSReservationEnabled(org.id);
+  const hotelListing = await getAuthoritativeHotelListing(org.id);
+  const isHotelOSEnabled = await isHotelOSReservationEnabled(org.id, hotelListing?.id);
   const rooms = await getHotelRooms(org.id);
-  const hotelListing = allListings.find(
-    (l: any) => l.organizationId === org.id && l.vertical !== 'SETTINGS' && !String(l.vertical || '').startsWith('STAY_LISTING_')
-  );
 
   let meta: any = {};
   if (hotelListing?.metadata) {
@@ -518,6 +516,7 @@ export async function getStayByIdOrSlug(slug: string) {
     rooms,
     isHotelOrg: true,
     isHotelOSEnabled,
+    listingId: hotelListing?.id || null,
     canManage,
   };
 }
