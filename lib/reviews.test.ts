@@ -5,6 +5,7 @@ import {
   parseReviewBody,
   computeRatingDistribution,
 } from './reviews';
+import { getTwoLetterInitials, resolveAvatarUrl } from './identity';
 
 describe('Review Serialization & Distribution Helpers', () => {
   it('parses legacy plain-text review body cleanly with empty photos and tags', () => {
@@ -63,5 +64,24 @@ describe('Review Serialization & Distribution Helpers', () => {
       4: 1,
       5: 3,
     });
+  });
+
+  it('generates distinct two-letter initials avoiding single R fallback', () => {
+    assert.equal(getTwoLetterInitials('Emeka Okafor'), 'EO');
+    assert.equal(getTwoLetterInitials('Aisha Mohammed'), 'AM');
+    assert.equal(getTwoLetterInitials('John'), 'JO');
+    assert.equal(getTwoLetterInitials('Resident'), 'RE');
+    assert.equal(getTwoLetterInitials(''), '9L');
+    assert.equal(getTwoLetterInitials(null), '9L');
+  });
+
+  it('resolves avatar URLs properly whether remote, root-relative, or raw asset UUIDs', () => {
+    assert.equal(resolveAvatarUrl('https://images.unsplash.com/photo-123'), 'https://images.unsplash.com/photo-123');
+    assert.equal(resolveAvatarUrl('/uploads/avatar.png'), '/uploads/avatar.png');
+    assert.equal(resolveAvatarUrl('data:image/png;base64,...'), 'data:image/png;base64,...');
+    assert.equal(resolveAvatarUrl('cl-avatar-asset-uuid-123'), '/api/assets/cl-avatar-asset-uuid-123');
+    assert.equal(resolveAvatarUrl(''), undefined);
+    assert.equal(resolveAvatarUrl(null), undefined);
+    assert.equal(resolveAvatarUrl(undefined), undefined);
   });
 });

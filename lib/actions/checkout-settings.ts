@@ -25,7 +25,7 @@ const DEFAULT_CHECKOUT_CONFIG: PlatformCheckoutConfig = {
   enableCard: false,
   enableTransfer: false,
   defaultMethod: 'whatsapp',
-  conciergeWhatsAppNumber: '2348000000000',
+  conciergeWhatsAppNumber: '2348065373747',
   allowPayOnDelivery: false,
   requireDeliveryAddress: false,
   minOrderAmount: 0,

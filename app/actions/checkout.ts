@@ -23,6 +23,8 @@ export type CheckoutResponse = {
   requiresPaymentAction?: boolean;
 };
 
+const DEFAULT_HOTEL_WHATSAPP = '2348065373747';
+
 export async function resolveOrgWhatsAppPhone(orgId: string, locationId?: string): Promise<string> {
   const checkoutConfig = await getCheckoutConfig();
   const contactPoints = await db.orm.public.OrganizationContactPoint.where({ organizationId: orgId }).all();
@@ -54,15 +56,67 @@ export async function resolveOrgWhatsAppPhone(orgId: string, locationId?: string
       if (ownerPhone?.normalizedValue) rawPhone = ownerPhone.normalizedValue;
     }
   }
-  if (!rawPhone) {
-    rawPhone = checkoutConfig.conciergeWhatsAppNumber || process.env.CITYOS_CONCIERGE_WHATSAPP || '2348067154233';
+  if (!rawPhone || rawPhone === '2348000000000' || rawPhone === '2348067154233') {
+    rawPhone = checkoutConfig.conciergeWhatsAppNumber || process.env.CITYOS_CONCIERGE_WHATSAPP || DEFAULT_HOTEL_WHATSAPP;
   }
 
   let cleanPhone = rawPhone.replace(/[^\d+]/g, '');
   if (cleanPhone.startsWith('+')) cleanPhone = cleanPhone.substring(1);
   if (cleanPhone.startsWith('0')) cleanPhone = '234' + cleanPhone.substring(1);
   if (!cleanPhone.startsWith('234') && cleanPhone.length === 10) cleanPhone = '234' + cleanPhone;
+  if (!cleanPhone || cleanPhone === '2348000000000' || cleanPhone === '2348067154233') {
+    cleanPhone = DEFAULT_HOTEL_WHATSAPP;
+  }
   return cleanPhone;
+}
+
+/**
+ * Resolves the destination WhatsApp number for hotel / accommodation enquiries:
+ * 1. Explicit merchant-configured WhatsApp or phone on the organization/location/listing
+ * 2. If valid and configured, that merchant-specific contact overrides the default
+ * 3. Otherwise defaults to canonical +2348065373747 (2348065373747)
+ * Never returns the obsolete fallback 2348067154233.
+ */
+export async function resolveHotelWhatsAppDestination(organizationId?: string, locationId?: string): Promise<string> {
+  if (!organizationId) {
+    return DEFAULT_HOTEL_WHATSAPP;
+  }
+
+  try {
+    const contactPoints = await db.orm.public.OrganizationContactPoint.where({ organizationId }).all();
+    const waContact =
+      contactPoints.find((c: any) => c.type === 'WHATSAPP') ||
+      contactPoints.find((c: any) => c.type === 'PHONE');
+
+    let rawPhone = waContact?.value;
+    if (!rawPhone && locationId) {
+      const locContact = contactPoints.find((c: any) => c.locationId === locationId);
+      if (locContact?.value) rawPhone = locContact.value;
+    }
+    if (!rawPhone) {
+      const listing = await db.orm.public.DiscoveryListing.where({ organizationId }).all().first();
+      if (listing?.metadata) {
+        try {
+          const meta = JSON.parse(listing.metadata);
+          if (meta.whatsappPhone || meta.phone) rawPhone = meta.whatsappPhone || meta.phone;
+        } catch {}
+      }
+    }
+
+    if (rawPhone) {
+      let clean = rawPhone.replace(/[^\d+]/g, '');
+      if (clean.startsWith('+')) clean = clean.substring(1);
+      if (clean.startsWith('0')) clean = '234' + clean.substring(1);
+      if (!clean.startsWith('234') && clean.length === 10) clean = '234' + clean;
+      if (clean && clean !== '2348067154233' && clean !== '2348000000000' && clean.length >= 8) {
+        return clean;
+      }
+    }
+  } catch (err) {
+    console.warn('[resolveHotelWhatsAppDestination] Error looking up hotel contact:', err);
+  }
+
+  return DEFAULT_HOTEL_WHATSAPP;
 }
 
 export async function processMerchantCheckout(
@@ -232,6 +286,7 @@ export async function processMerchantCheckout(
     : null;
   const customerName = session?.user?.name || 'Customer';
   const customerPhone = options?.customerPhone || residentProfile?.phone || '';
+  const deliveryAddress = options?.deliveryAddress || residentProfile?.defaultDeliveryAddress || '';
   const orderNotes = options?.deliveryNotes || '';
 
   const substPref = options?.substitutionPreference || 'call';
@@ -257,6 +312,7 @@ export async function processMerchantCheckout(
     `--------------------------------`,
     `🏬 *Store:* ${org?.name || 'Local Store'}`,
     `👤 *Customer:* ${customerName}${customerPhone ? ` (${customerPhone})` : ''}`,
+    deliveryAddress ? `📍 *Delivery Address:* ${deliveryAddress}` : null,
     orderNotes ? `📝 *Order Notes:* ${orderNotes}` : null,
     `🔄 *If item unavailable:* ${substText}`,
     `--------------------------------`,
@@ -282,43 +338,85 @@ export async function processMerchantCheckout(
   };
 }
 
-export async function createHotelWhatsAppBooking(input: {
-  organizationId: string;
-  roomId: string;
+export async function processHotelWhatsAppCheckout(input: {
+  organizationId?: string;
+  hotelName?: string;
+  roomId?: string;
+  roomPreference?: string;
   guestName: string;
   guestPhone?: string;
-  checkInDate: string;
-  checkOutDate: string;
-}): Promise<{ success: boolean; whatsappUrl?: string; error?: string }> {
-  const org = await db.orm.public.Organization.where({ id: input.organizationId }).all().first();
-  if (!org) return { success: false, error: 'Hotel not found.' };
+  checkInDate?: string;
+  checkOutDate?: string;
+  guestsCount?: number | string;
+  enquiryText?: string;
+}): Promise<{ success: boolean; whatsappUrl?: string; message?: string; error?: string }> {
+  if (!input.guestName || !input.guestName.trim()) {
+    return { success: false, error: 'Guest name is required for hotel enquiry.' };
+  }
 
-  const room = await db.orm.public.HotelRoom.where({ id: input.roomId }).all().first();
-  if (!room || room.organizationId !== org.id) return { success: false, error: 'Room not found.' };
+  let propertyName = input.hotelName || 'Property / Hotel';
+  let roomPref = input.roomPreference || 'Standard / Best Available Room';
+  let nightlyRate: number | null = null;
+  let locationId: string | undefined = undefined;
 
-  const inDate = new Date(input.checkInDate);
-  const outDate = new Date(input.checkOutDate);
-  const nights = Math.max(1, Math.ceil((outDate.getTime() - inDate.getTime()) / (1000 * 60 * 60 * 24)));
-  const totalRate = room.baseRate * nights;
+  if (input.organizationId) {
+    const org = await db.orm.public.Organization.where({ id: input.organizationId }).all().first();
+    if (org?.name) propertyName = org.name;
+  }
 
-  const cleanPhone = await resolveOrgWhatsAppPhone(org.id, room.locationId || undefined);
+  if (input.roomId) {
+    const room = await db.orm.public.HotelRoom.where({ id: input.roomId }).all().first();
+    if (room) {
+      roomPref = `${room.type} Room (Room #${room.roomNumber})`;
+      nightlyRate = room.baseRate;
+      locationId = room.locationId || undefined;
+    }
+  }
+
+  let nights = 0;
+  if (input.checkInDate && input.checkOutDate) {
+    const inDate = new Date(input.checkInDate);
+    const outDate = new Date(input.checkOutDate);
+    if (!isNaN(inDate.getTime()) && !isNaN(outDate.getTime()) && outDate > inDate) {
+      nights = Math.max(1, Math.ceil((outDate.getTime() - inDate.getTime()) / (1000 * 60 * 60 * 24)));
+    }
+  }
+
+  const cleanPhone = await resolveHotelWhatsAppDestination(input.organizationId, locationId);
 
   const lines = [
-    `🏨 *NEW HOTEL BOOKING REQUEST*`,
+    `🏨 *STAY & HOTEL BOOKING ENQUIRY*`,
     `--------------------------------`,
-    `🏢 *Hotel:* ${org.name}`,
-    `🛏️ *Room:* ${room.type} Room (Room ${room.roomNumber})`,
-    `👤 *Guest Name:* ${input.guestName}${input.guestPhone ? ` (${input.guestPhone})` : ''}`,
-    `📅 *Check-in:* ${input.checkInDate}`,
-    `📅 *Check-out:* ${input.checkOutDate} (${nights} ${nights === 1 ? 'night' : 'nights'})`,
-    `💰 *Rate:* ₦${room.baseRate.toLocaleString()}/night • *Total:* ₦${totalRate.toLocaleString()}`,
+    `🏢 *Property / Hotel:* ${propertyName}`,
+    `🛏️ *Room Preference:* ${roomPref}`,
+    `👤 *Guest Name:* ${input.guestName.trim()}${input.guestPhone ? ` (${input.guestPhone.trim()})` : ''}`,
+    input.guestsCount ? `👥 *Guests:* ${input.guestsCount}` : null,
+    input.checkInDate ? `📅 *Check-in Date:* ${input.checkInDate}` : null,
+    input.checkOutDate
+      ? `📅 *Check-out Date:* ${input.checkOutDate}${nights > 0 ? ` (${nights} ${nights === 1 ? 'night' : 'nights'})` : ''}`
+      : null,
+    nightlyRate && nights > 0
+      ? `💰 *Estimated Rate:* ₦${nightlyRate.toLocaleString()}/night · *Total:* ₦${(nightlyRate * nights).toLocaleString()}`
+      : nightlyRate
+      ? `💰 *Rate:* ₦${nightlyRate.toLocaleString()}/night`
+      : null,
+    input.enquiryText ? `📝 *Enquiry:* ${input.enquiryText}` : null,
     `--------------------------------`,
-    `Please confirm availability and payment details on WhatsApp. Thank you!`,
-  ];
+    `Hello! I would like to enquire about availability and arrange a reservation for this stay. Please let me know your available options. Thank you!`,
+  ].filter(Boolean);
 
-  const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(lines.join('\n'))}`;
-  return { success: true, whatsappUrl };
+  const whatsappMessage = lines.join('\n');
+  const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(whatsappMessage)}`;
+
+  // Explicit Product Rule: Opening WhatsApp does NOT create a falsely confirmed reservation or mark payment as successful.
+  return {
+    success: true,
+    whatsappUrl,
+    message: 'WhatsApp booking enquiry link generated successfully.',
+  };
 }
+
+export const createHotelWhatsAppBooking = processHotelWhatsAppCheckout;
 
 export async function getResidentCheckoutDefaults() {
   const session = await getServerSession(authOptions);

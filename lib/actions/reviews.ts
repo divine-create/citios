@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { notifyPerson } from '@/lib/notify';
+import { getTwoLetterInitials, resolveAvatarUrl } from '@/lib/identity';
 import {
   parseReviewBody,
   serializeReviewBody,
@@ -100,7 +101,9 @@ export async function getOrganizationReviews(organizationId: string): Promise<Or
     currentPersonId = null;
   }
 
-  const rawReviews = await db.orm.public.Review.where({ organizationId }).all();
+  const rawReviews = await db.orm.public.Review.where({ organizationId })
+    .include('person', (p: any) => p.include('profile'))
+    .all();
   const distribution = computeRatingDistribution(rawReviews);
 
   if (rawReviews.length === 0) {
@@ -111,22 +114,28 @@ export async function getOrganizationReviews(organizationId: string): Promise<Or
     };
   }
 
-  const personIds = Array.from(new Set(rawReviews.map((r: any) => r.personId).filter(Boolean)));
-  const persons =
-    personIds.length > 0
-      ? await db.orm.public.Person.where({ id: { in: personIds } as any })
-          .include('profile', (prof: any) => prof.select('avatarUrl'))
+  // Fallback for any reviews missing the eager relation
+  const missingPersonIds = Array.from(
+    new Set(rawReviews.filter((r: any) => !r.person).map((r: any) => r.personId).filter(Boolean))
+  );
+  const fallbackPersons =
+    missingPersonIds.length > 0
+      ? await db.orm.public.Person.where((p: any) => p.id.in(missingPersonIds))
+          .include('profile')
           .all()
       : [];
-  const personMap = new Map<string, any>(persons.map((p: any) => [p.id, p]));
+  const personMap = new Map<string, any>(fallbackPersons.map((p: any) => [p.id, p]));
 
   const hydrated: HydratedReviewItem[] = rawReviews
     .map((r: any) => {
-      const person = personMap.get(r.personId);
-      const firstName = person?.firstName || 'Resident';
-      const lastName = person?.lastName || '';
-      const authorName = `${firstName} ${lastName}`.trim();
-      const authorInitials = `${firstName.charAt(0)}${lastName.charAt(0) || ''}`.toUpperCase() || 'R';
+      const person = r.person || personMap.get(r.personId);
+      const firstName = (person?.firstName || '').trim();
+      const lastName = (person?.lastName || '').trim();
+      const fullName = `${firstName} ${lastName}`.trim();
+      const authorName = fullName || 'Resident';
+      const authorInitials = getTwoLetterInitials(authorName);
+      const rawAvatar = person?.profile?.avatarUrl || null;
+      const avatarUrl = resolveAvatarUrl(rawAvatar) || null;
       const parsed = parseReviewBody(r.body);
 
       return {
@@ -135,7 +144,7 @@ export async function getOrganizationReviews(organizationId: string): Promise<Or
         personId: r.personId,
         authorName,
         authorInitials,
-        avatarUrl: person?.profile?.avatarUrl || null,
+        avatarUrl,
         rating: Math.min(5, Math.max(1, Number(r.rating) || 5)),
         text: parsed.text,
         photos: parsed.photos,
@@ -244,6 +253,17 @@ export async function submitBusinessReview(input: {
       } catch {}
     }
 
+    // Resolve reviewer identity so the Newsfeed post unambiguously displays the real name and avatar
+    const reviewerPerson = await db.orm.public.Person.where({ id: personId })
+      .include('profile')
+      .first();
+    const reviewerFirstName = (reviewerPerson?.firstName || '').trim();
+    const reviewerLastName = (reviewerPerson?.lastName || '').trim();
+    const reviewerFullName = `${reviewerFirstName} ${reviewerLastName}`.trim();
+    const authorName = reviewerFullName || (session.user as any)?.name || 'Resident';
+    const authorAvatar = reviewerPerson?.profile?.avatarUrl || (session.user as any)?.image || null;
+    const authorInitials = getTwoLetterInitials(authorName);
+
     const reviewFeedMeta: ReviewFeedMetadata = {
       isReviewCard: true,
       reviewId: review.id,
@@ -256,9 +276,12 @@ export async function submitBusinessReview(input: {
       reviewedOrgCategory: org.storeCategory || org.type || 'Local Business',
       reviewedOrgAddress: org.address || 'Calabar',
       reviewedOrgCover: orgCover,
+      authorName,
+      authorAvatar,
+      authorInitials,
     };
 
-    const postTitle = `Wrote a ${rating}.0 ★ review for ${org.name}`;
+    const postTitle = `${authorName} wrote a ${rating}.0 ★ review for ${org.name}`;
     const postContent =
       cleanText ||
       (tags.length > 0

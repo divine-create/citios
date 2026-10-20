@@ -378,7 +378,7 @@ export default function ResidentShell({
     {
       label: 'Settings',
       items: [
-        { id: 'settings', path: '/profile', label: 'Settings', icon: Settings, iconKey: 'settings' },
+        { id: 'settings', path: '/profile?tab=Settings', label: 'Settings', icon: Settings, iconKey: 'settings' },
         { id: 'help', path: '/ai', label: 'Help', icon: HelpCircle, iconKey: 'help' },
       ],
     },

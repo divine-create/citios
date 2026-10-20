@@ -24,6 +24,9 @@ export interface ReviewFeedMetadata {
   reviewedOrgCategory: string;
   reviewedOrgAddress: string;
   reviewedOrgCover?: string | null;
+  authorName?: string;
+  authorAvatar?: string | null;
+  authorInitials?: string;
 }
 
 export const REVIEW_VIBE_TAGS = [

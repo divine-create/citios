@@ -16,6 +16,7 @@ import { revalidatePath } from 'next/cache'
 import { formatWhatsAppNumber } from '@/lib/whatsapp'
 import { getServicesConfig } from '@/lib/actions/services-config'
 import { parseReviewBody } from '@/lib/reviews'
+import { getTwoLetterInitials, resolveAvatarUrl } from '@/lib/identity'
 
 function toInstant(date: Date) {
   return (globalThis as any).Temporal.Instant.fromEpochMilliseconds(date.getTime());
@@ -810,7 +811,9 @@ export async function getCityServiceCategoryCounts(citySlug?: string): Promise<R
 
 export async function getOrganizationReviews(organizationId: string) {
   try {
-    const reviews = await db.orm.public.Review.where({ organizationId }).all();
+    const reviews = await db.orm.public.Review.where({ organizationId })
+      .include('person', (p: any) => p.include('profile'))
+      .all();
 
     const sorted = reviews.sort((a, b) => {
       const tA = (a.createdAt as any)?.getTime ? (a.createdAt as any).getTime() : 0;
@@ -818,18 +821,14 @@ export async function getOrganizationReviews(organizationId: string) {
       return tB - tA;
     });
 
-    const personMap = new Map<string, { firstName: string; lastName: string }>();
-    for (const r of sorted) {
-      if (!personMap.has(r.personId)) {
-        const person = await db.orm.public.Person.where({ id: r.personId }).all().first();
-        if (person) {
-          personMap.set(r.personId, {
-            firstName: person.firstName || 'Resident',
-            lastName: person.lastName || '',
-          });
-        }
-      }
-    }
+    const missingPersonIds = Array.from(
+      new Set(sorted.filter((r: any) => !r.person).map((r: any) => r.personId).filter(Boolean))
+    );
+    const fallbackPersons =
+      missingPersonIds.length > 0
+        ? await db.orm.public.Person.where((p: any) => p.id.in(missingPersonIds)).include('profile').all()
+        : [];
+    const personMap = new Map<string, any>(fallbackPersons.map((p: any) => [p.id, p]));
 
     const totalReviews = sorted.length;
     const sumRatings = sorted.reduce((acc, r) => acc + r.rating, 0);
@@ -840,11 +839,13 @@ export async function getOrganizationReviews(organizationId: string) {
       averageRating,
       totalReviews,
       reviews: sorted.map((r) => {
-        const p = personMap.get(r.personId);
-        const firstName = p?.firstName || 'Resident';
-        const lastName = p?.lastName || '';
-        const authorName = p ? `${firstName} ${lastName ? lastName[0] + '.' : ''}`.trim() : 'Verified Resident';
-        const authorInitials = `${firstName.charAt(0)}${lastName ? lastName.charAt(0) : ''}`.toUpperCase() || 'R';
+        const p = r.person || personMap.get(r.personId);
+        const firstName = (p?.firstName || '').trim();
+        const lastName = (p?.lastName || '').trim();
+        const authorName = (firstName || lastName) ? `${firstName} ${lastName ? lastName[0] + '.' : ''}`.trim() : 'Resident';
+        const authorInitials = getTwoLetterInitials(authorName);
+        const rawAvatar = p?.profile?.avatarUrl || null;
+        const avatarUrl = resolveAvatarUrl(rawAvatar) || null;
         const parsed = parseReviewBody(r.body);
         return {
           id: r.id,
@@ -858,6 +859,7 @@ export async function getOrganizationReviews(organizationId: string) {
           ownerReply: parsed.ownerReply,
           authorName,
           authorInitials,
+          avatarUrl,
           createdAt: (r.createdAt as any)?.toISOString ? (r.createdAt as any).toISOString() : String(r.createdAt),
         };
       }),

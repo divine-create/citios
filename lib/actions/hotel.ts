@@ -63,7 +63,7 @@ function nightlyRate(baseRate: number, day: Date, weekendMultiplier: number | nu
   return isWeekend && weekendMultiplier ? baseRate * weekendMultiplier : baseRate;
 }
 
-async function computeStayPrice(organizationId: string, baseRate: number, checkIn: Date, checkOut: Date) {
+export async function computeStayPrice(organizationId: string, baseRate: number, checkIn: Date, checkOut: Date) {
   const rules = await db.orm.public.RateRule.where({ organizationId, type: 'WEEKEND_SURGE', isActive: true }).all();
   const weekendMultiplier = rules[0]?.multiplier ?? null;
 
@@ -76,9 +76,50 @@ async function computeStayPrice(organizationId: string, baseRate: number, checkI
   return total;
 }
 
+/**
+ * Authoritative check: determines if a hotel organization has operational,
+ * explicitly configured and enabled reservation functionality in HotelOS.
+ * - Must be an active Organization of type 'HOTEL'
+ * - Must have configured rooms with baseRate > 0 and status != 'OUT_OF_ORDER'
+ * - Must not have reservationEnabled or bookingEnabled explicitly disabled in metadata
+ */
+export type HotelReservationResult =
+  | { success: true; reservationId: string; totalPrice: number; error?: never }
+  | { success: false; error: string; reservationId?: never; totalPrice?: never };
+
+export async function isHotelOSReservationEnabled(organizationId: string): Promise<boolean> {
+  if (!organizationId) return false;
+
+  const org = await db.orm.public.Organization.where({ id: organizationId }).all().first();
+  if (!org || org.type !== 'HOTEL' || org.status !== 'ACTIVE') {
+    return false;
+  }
+
+  const rooms = await db.orm.public.HotelRoom.where({ organizationId }).all();
+  const operationalRooms = rooms.filter(
+    (r: any) => typeof r.baseRate === 'number' && r.baseRate > 0 && r.status !== 'OUT_OF_ORDER'
+  );
+  if (operationalRooms.length === 0) {
+    return false;
+  }
+
+  // Check DiscoveryListing settings metadata for explicit opt-out
+  const listing = await db.orm.public.DiscoveryListing.where({ organizationId }).all().first();
+  if (listing?.metadata) {
+    try {
+      const meta = JSON.parse(listing.metadata);
+      if (meta.reservationEnabled === false || meta.bookingEnabled === false || meta.hotelosReservationEnabled === false) {
+        return false;
+      }
+    } catch {}
+  }
+
+  return true;
+}
+
 export async function updateHotelSettings(
   organizationId: string,
-  input: { name?: string; description?: string; address?: string }
+  input: { name?: string; description?: string; address?: string; reservationEnabled?: boolean }
 ) {
   try {
     await requireMembership(organizationId, ['OWNER', 'ADMIN', 'MANAGER']);
@@ -90,12 +131,54 @@ export async function updateHotelSettings(
     if (input.description !== undefined) data.description = input.description.trim() || undefined;
     if (input.address !== undefined) data.address = input.address.trim() || undefined;
 
-    await db.orm.public.Organization.where({ id: organizationId }).update(data);
+    if (Object.keys(data).length > 0) {
+      await db.orm.public.Organization.where({ id: organizationId }).update(data);
+    }
+
+    if (input.reservationEnabled !== undefined) {
+      const listing = await db.orm.public.DiscoveryListing.where({ organizationId }).all().first();
+      if (listing) {
+        let meta: any = {};
+        try {
+          if (listing.metadata) meta = JSON.parse(listing.metadata);
+        } catch {}
+        meta.reservationEnabled = input.reservationEnabled;
+        meta.bookingEnabled = input.reservationEnabled;
+        await db.orm.public.DiscoveryListing.where({ id: listing.id }).update({
+          metadata: JSON.stringify(meta),
+        });
+      }
+    }
+
     return { success: true };
   } catch (error) {
     console.error('Error updating hotel settings:', error);
     return { error: 'Failed to update settings.' };
   }
+}
+
+export async function bookResidentHotelReservation(input: {
+  organizationId: string;
+  roomId: string;
+  guestName: string;
+  checkInDate: string;
+  checkOutDate: string;
+}) {
+  const isEnabled = await isHotelOSReservationEnabled(input.organizationId);
+  if (!isEnabled) {
+    return {
+      error: 'Direct HotelOS reservation is not configured for this hotel. Please enquire via WhatsApp.',
+    };
+  }
+
+  return await createReservation({
+    organizationId: input.organizationId,
+    roomId: input.roomId,
+    guestName: input.guestName,
+    checkInDate: input.checkInDate,
+    checkOutDate: input.checkOutDate,
+    byResident: true,
+  });
 }
 
 export async function createReservation(input: {
@@ -112,13 +195,13 @@ export async function createReservation(input: {
       await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST']);
     }
     const guestName = input.guestName.trim();
-    if (!guestName) return { error: 'Guest name is required.' };
-    if (!input.roomId) return { error: 'Please select a room.' };
+    if (!guestName) return { success: false, error: 'Guest name is required.' };
+    if (!input.roomId) return { success: false, error: 'Please select a room.' };
 
     const checkIn = new Date(input.checkInDate);
     const checkOut = new Date(input.checkOutDate);
-    if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) return { error: 'Invalid dates.' };
-    if (checkOut.getTime() <= checkIn.getTime()) return { error: 'Check-out must be after check-in.' };
+    if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) return { success: false, error: 'Invalid dates.' };
+    if (checkOut.getTime() <= checkIn.getTime()) return { success: false, error: 'Check-out must be after check-in.' };
 
     return await db.transaction(async (tx: any) => {
       // Acquire a row-level write-lock on the room to prevent concurrent booking races
@@ -129,7 +212,7 @@ export async function createReservation(input: {
       await tx.execute(lockPlan);
 
       const room = await tx.orm.public.HotelRoom.where({ id: input.roomId, organizationId: input.organizationId }).all().first();
-      if (!room) return { error: 'Room not found.' };
+      if (!room) return { success: false, error: 'Room not found.' };
 
       // Check for overlapping reservations inside the transaction (lock acquired above)
       const allReservations = await tx.orm.public.Reservation.where({ roomId: input.roomId }).all();
@@ -141,7 +224,7 @@ export async function createReservation(input: {
         const rOut = epochMs(r.checkOutDate);
         return rIn < checkOutMs && rOut > checkInMs;
       });
-      if (overlaps.length > 0) return { error: 'This room is already booked for part of that date range.' };
+      if (overlaps.length > 0) return { success: false, error: 'This room is already booked for part of that date range.' };
 
       const totalPrice = await computeStayPrice(input.organizationId, room.baseRate, checkIn, checkOut);
 
@@ -157,11 +240,11 @@ export async function createReservation(input: {
         paymentStatus: 'PENDING',
         roomBlockId: input.roomBlockId ?? undefined,
       });
-      return { success: true, reservationId: newReservation.id };
+      return { success: true, reservationId: newReservation.id, totalPrice };
     });
   } catch (error) {
     console.error('Error creating reservation:', error);
-    return { error: 'Failed to create reservation.' };
+    return { success: false, error: 'Failed to create reservation.' };
   }
 }
 

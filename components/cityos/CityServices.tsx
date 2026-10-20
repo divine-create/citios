@@ -24,6 +24,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import RealisticIcon from '@/components/ui/RealisticIcon';
+import { FallbackImg, getTwoLetterInitials, getAvatarGradient } from '@/components/cityos/CityUI';
 import { SERVICE_CATEGORIES } from '@/lib/service-categories';
 import { bookResidentService } from '@/app/actions/service';
 import {
@@ -93,6 +94,7 @@ interface ReviewItem {
   rating: number;
   body: string | null;
   authorName: string;
+  avatarUrl?: string | null;
   createdAt: string;
 }
 
@@ -1323,10 +1325,14 @@ export default function CityServices({
                         className="p-3.5 bg-white rounded-xl border border-slate-100 shadow-2xs space-y-1.5"
                       >
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5">
-                            <span className="w-6 h-6 rounded-full bg-teal-50 text-teal-800 text-[10px] font-bold flex items-center justify-center">
-                              {rev.authorName.slice(0, 1)}
-                            </span>
+                          <div className="flex items-center gap-2">
+                            <FallbackImg
+                              src={rev.avatarUrl || undefined}
+                              alt={rev.authorName}
+                              className="w-6 h-6 rounded-full object-cover border border-slate-200 shrink-0"
+                              icon={<span className="text-white font-bold text-[10px] select-none">{getTwoLetterInitials(rev.authorName)}</span>}
+                              gradient={getAvatarGradient(rev.authorName)}
+                            />
                             <span className="text-xs font-bold text-slate-800">
                               {rev.authorName}
                             </span>

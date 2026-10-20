@@ -3,10 +3,10 @@
 import { db } from '@/src/prisma/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { resolvePersonByEmail } from '@/lib/identity';
+import { resolvePersonByEmail, normalizePhoneNumber } from '@/lib/identity';
 
 export async function getProfileAndWallet() {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOptions).catch(() => null);
 
   if (!session?.user?.email) {
     return null;
@@ -55,7 +55,12 @@ export async function getProfileAndWallet() {
 }
 
 export async function updateProfile(input: { name?: string; image?: string }) {
-  const session = await getServerSession(authOptions);
+  let session: any = null;
+  try {
+    session = await getServerSession(authOptions);
+  } catch {
+    session = null;
+  }
   if (!session?.user?.email || !session?.user?.personId) {
     return { error: 'Not authenticated' };
   }
@@ -108,16 +113,34 @@ export async function updateFullProfile(input: {
   interests?: string[];
 }) {
   try {
-    const session = await getServerSession(authOptions);
+    let session: any = null;
+    try {
+      session = await getServerSession(authOptions);
+    } catch {
+      session = null;
+    }
     if (!session?.user?.email || !session?.user?.personId) {
       return { error: 'Not authenticated' };
     }
 
     const firstName = input.firstName.trim();
     const lastName = input.lastName.trim();
-    const phone = input.phone?.trim() ?? '';
     if (!firstName || !lastName) return { error: 'First and last name are required.' };
-    if (phone.length < 7) return { error: 'A valid phone number is required.' };
+
+    const normalizedPhone = normalizePhoneNumber(input.phone);
+    if (!normalizedPhone) {
+      return { error: 'A valid phone number is required (e.g. 08012345678 or +2348012345678).' };
+    }
+
+    const personId = session.user.personId;
+    const existingPhoneId = await db.orm.public.PersonIdentifier
+      .where({ type: 'PHONE', normalizedValue: normalizedPhone })
+      .all()
+      .first();
+
+    if (existingPhoneId && existingPhoneId.personId !== personId) {
+      return { error: 'This phone number is already linked to another account.' };
+    }
 
     const dateOfBirth = input.dateOfBirth ? new Date(input.dateOfBirth) : null;
     if (input.dateOfBirth && Number.isNaN(dateOfBirth?.getTime())) {
@@ -127,7 +150,6 @@ export async function updateFullProfile(input: {
       ? (globalThis as any).Temporal.Instant.fromEpochMilliseconds(dateOfBirth.getTime())
       : null;
 
-    const personId = session.user.personId;
     const person = await db.orm.public.Person.where({ id: personId }).all().first();
     if (!person) return { error: 'Your profile could not be found.' };
 
@@ -144,9 +166,27 @@ export async function updateFullProfile(input: {
         ...(dateOfBirthInstant && { dateOfBirth: dateOfBirthInstant }),
       });
 
+      const currentPersonPhone = await tx.orm.public.PersonIdentifier
+        .where({ personId, type: 'PHONE' })
+        .all()
+        .first();
+
+      if (currentPersonPhone) {
+        await tx.orm.public.PersonIdentifier.where({ id: currentPersonPhone.id }).update({
+          normalizedValue: normalizedPhone,
+        });
+      } else {
+        await tx.orm.public.PersonIdentifier.create({
+          personId,
+          type: 'PHONE',
+          normalizedValue: normalizedPhone,
+          isVerified: false,
+        });
+      }
+
       const existing = await tx.orm.public.ResidentProfile.where({ personId }).all().first();
       const profileData = {
-        phone,
+        phone: normalizedPhone,
         defaultDeliveryAddress: input.defaultDeliveryAddress?.trim() || null,
         interests: JSON.stringify(Array.isArray(input.interests) ? input.interests : []),
         ...(input.avatarUrl !== undefined && { avatarUrl: input.avatarUrl || null }),

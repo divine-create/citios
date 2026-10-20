@@ -101,16 +101,21 @@ function mapPost(
   let role = 'Resident';
   let isOrg = false;
 
-  if (isReviewPost && post.person) {
-    author = `${post.person.firstName} ${post.person.lastName}`.trim();
+  if (isReviewPost) {
+    const personName = post.person
+      ? `${post.person.firstName || ''} ${post.person.lastName || ''}`.trim()
+      : '';
+    const metaName = parsedRawMeta?.authorName?.trim() || '';
+    author = personName || metaName || 'Resident';
     role = 'Local Reviewer';
     isOrg = false;
-  } else if (post.organization && !isReviewPost) {
+  } else if (post.organization) {
     author = post.organization.name;
     role = post.organization.type ? `${post.organization.type.charAt(0)}${post.organization.type.slice(1).toLowerCase()}` : 'Organization';
     isOrg = true;
   } else if (post.person) {
-    author = `${post.person.firstName} ${post.person.lastName}`.trim();
+    const personName = `${post.person.firstName || ''} ${post.person.lastName || ''}`.trim();
+    author = personName || 'Resident';
   }
 
   const isMyPost = Boolean(
@@ -123,7 +128,11 @@ function mapPost(
   const isReviewedOrgVerified = Boolean(reviewedOrgId && verifiedOrgIds.has(reviewedOrgId));
 
   let avatarImg: string | undefined = undefined;
-  if (isOrg) {
+  if (isReviewPost) {
+    const personAvatar = post.person?.profile?.avatarUrl;
+    const metaAvatar = parsedRawMeta?.authorAvatar;
+    avatarImg = resolveAvatarUrl(personAvatar || metaAvatar);
+  } else if (isOrg) {
     const rawLogo = post.organization?.logoAssetId || (post.organizationId ? orgLogos.get(post.organizationId) : undefined);
     avatarImg = resolveAvatarUrl(rawLogo);
   } else if (post.person) {
@@ -260,7 +269,7 @@ export async function fetchFeed(
   const fetchedPosts = await query
     .orderBy((p: any) => p.createdAt.desc())
     .limit(limit)
-    .include('person', (p: any) => p.select('firstName', 'lastName', 'id').include('profile', (prof: any) => prof.select('avatarUrl')))
+    .include('person', (p: any) => p.include('profile'))
     .include('organization', (o: any) => o.select('name', 'id', 'type', 'logoAssetId'))
     .include('likes', (likes: any) => likes.count())
     .include('comments', (comments: any) => comments.count())
@@ -324,7 +333,7 @@ export async function fetchSinglePost(postId: string) {
   const personId = session?.user?.personId;
 
   const post = await db.orm.public.Post.where({ id: postId })
-    .include('person', (p: any) => p.select('firstName', 'lastName', 'id').include('profile', (prof: any) => prof.select('avatarUrl')))
+    .include('person', (p: any) => p.include('profile'))
     .include('organization', (o: any) => o.select('name', 'id', 'type', 'logoAssetId'))
     .include('likes', (likes: any) => likes.count())
     .include('comments', (comments: any) => comments.count())

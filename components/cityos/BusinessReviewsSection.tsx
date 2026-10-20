@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
+import Link from 'next/link';
 import {
   Star,
   Camera,
@@ -12,6 +13,7 @@ import {
   Reply,
   ShieldCheck,
 } from 'lucide-react';
+import { FallbackImg, getTwoLetterInitials, getAvatarGradient } from '@/components/cityos/CityUI';
 import {
   submitBusinessReview,
   replyToBusinessReview,
@@ -547,20 +549,20 @@ export default function BusinessReviewsSection({
             <div key={r.id} className="py-5 first:pt-2 last:pb-1 space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  {r.avatarUrl ? (
-                    <img
-                      src={r.avatarUrl}
+                  <Link href={`/profile/${r.personId}`} className="shrink-0 group">
+                    <FallbackImg
+                      src={r.avatarUrl || undefined}
                       alt={r.authorName}
-                      className="w-10 h-10 rounded-full object-cover border border-slate-200"
+                      className="w-10 h-10 rounded-full object-cover border border-slate-200 group-hover:opacity-85 transition-opacity"
+                      icon={<span className="text-white font-black text-xs select-none">{getTwoLetterInitials(r.authorName)}</span>}
+                      gradient={getAvatarGradient(r.authorName)}
                     />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-600 to-teal-800 text-white font-black text-xs flex items-center justify-center shrink-0">
-                      {r.authorInitials}
-                    </div>
-                  )}
+                  </Link>
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-black text-slate-900">{r.authorName}</span>
+                      <Link href={`/profile/${r.personId}`} className="text-sm font-black text-slate-900 hover:underline">
+                        {r.authorName}
+                      </Link>
                       {r.isVerifiedCustomer && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-black">
                           <CheckCircle2 className="w-3 h-3" /> Verified Customer

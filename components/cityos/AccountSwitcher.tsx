@@ -338,7 +338,7 @@ export default function AccountSwitcher({ className }: { className?: string }) {
               <span>Business Hub</span>
             </Link>
             <Link
-              href="/profile"
+              href="/profile?tab=Settings"
               onClick={() => setIsOpen(false)}
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors"
             >

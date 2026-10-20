@@ -181,20 +181,20 @@ async function main() {
       );
     }
 
-    // 4. Upsert WhatsApp Contact Point (+2348067154233)
+    // 4. Upsert WhatsApp Contact Point (+2348065373747)
     const waRes = await client.query(
       `SELECT id FROM ${T_CONTACT} WHERE "organizationId" = $1 AND type = 'WHATSAPP' LIMIT 1`,
       [orgId]
     );
     if (waRes.rows.length > 0) {
       await client.query(
-        `UPDATE ${T_CONTACT} SET value = '2348067154233', "isPrimary" = true, "isVerified" = true WHERE id = $1`,
+        `UPDATE ${T_CONTACT} SET value = '2348065373747', "isPrimary" = true, "isVerified" = true WHERE id = $1`,
         [waRes.rows[0].id]
       );
     } else {
       await client.query(
         `INSERT INTO ${T_CONTACT} (id, "organizationId", type, value, "isPrimary", "isVerified")
-         VALUES ($1, $2, 'WHATSAPP', '2348067154233', true, true)`,
+         VALUES ($1, $2, 'WHATSAPP', '2348065373747', true, true)`,
         [crypto.randomUUID(), orgId]
       );
     }
@@ -206,7 +206,7 @@ async function main() {
       area: 'Ettagbor',
       workingHours: 'Mon – Sat · 08:00 AM – 07:00 PM',
       websiteUrl: 'https://cygroup.ng/',
-      whatsappPhone: '2348067154233',
+      whatsappPhone: '2348065373747',
       logoUrl: orgLogo,
       coverImage: coverImg,
       images: [

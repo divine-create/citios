@@ -5,7 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { db } from '@/src/prisma/db';
 import { placeRetailOrder } from '@/app/actions/commerce';
 import { placeRestaurantOrder } from '@/app/actions/food';
-import { createReservation } from '@/lib/actions/hotel';
+import { createReservation, computeStayPrice, isHotelOSReservationEnabled } from '@/lib/actions/hotel';
 import { getPaymentAdapter } from '@/lib/payments/factory';
 import { requireMembership } from '@/lib/actions/tenant';
 import { settleSuccessfulPayment, settleFailedPayment } from '@/lib/actions/payment-settlement';
@@ -36,6 +36,32 @@ export async function initiateCheckout(input: InitiateCheckoutInput) {
 
   // Generate unique canonical payment reference
   const reference = `CC-${input.kind.toUpperCase().slice(0, 3)}-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+
+  // Hotel date range and HotelOS enablement validation
+  if (input.kind === 'hotel') {
+    const item = input.items[0] as any;
+    if (!item || !item.productId || !item.organizationId) {
+      return { error: 'Invalid hotel reservation parameters.' };
+    }
+    const checkIn = new Date(item.checkInDate);
+    const checkOut = new Date(item.checkOutDate);
+    if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) {
+      return { error: 'Invalid check-in or check-out date.' };
+    }
+    if (checkOut.getTime() <= checkIn.getTime()) {
+      return { error: 'Check-out date must be after check-in date.' };
+    }
+    if (checkIn.getTime() < Date.now() - 24 * 60 * 60 * 1000) {
+      return { error: 'Check-in date cannot be in the past.' };
+    }
+
+    const isEnabled = await isHotelOSReservationEnabled(item.organizationId);
+    if (!isEnabled) {
+      return {
+        error: 'In-platform reservation and online payment are not configured for this hotel. Please enquire via WhatsApp.',
+      };
+    }
+  }
 
   // 1. Wallet payment: executes immediately and completes
   if (input.method === 'wallet') {
@@ -76,12 +102,12 @@ export async function initiateCheckout(input: InitiateCheckoutInput) {
   // 2. Gateway payments (Card / Bank Transfer)
   let totalAmount = 0;
   if (input.kind === 'hotel') {
-    // items[0] contains roomId, organizationId, checkIn, checkOut, price, name
     const item = input.items[0] as any;
-    const p = await db.orm.public.HotelRoom.where({ id: item.productId }).all().first();
-    if (!p) return { error: "Room not found." };
-    totalAmount += item.qty; // For hotel, qty in payload acts as total price pre-calculated or we just trust the client payload for now to match the amount, wait, the createReservation calculates it.
-    // Actually, createReservation calculates the price securely. Let's just use item.qty as the expected price for payment initiation.
+    const room = await db.orm.public.HotelRoom.where({ id: item.productId, organizationId: item.organizationId }).all().first();
+    if (!room) return { error: 'Room not found.' };
+    const checkIn = new Date(item.checkInDate);
+    const checkOut = new Date(item.checkOutDate);
+    totalAmount = await computeStayPrice(item.organizationId, room.baseRate, checkIn, checkOut);
   } else if (input.kind === 'retail') {
     for (const item of input.items) {
       const p = await db.orm.public.RetailProduct.where({ id: item.productId }).all().first();
@@ -117,6 +143,9 @@ export async function initiateCheckout(input: InitiateCheckoutInput) {
     });
     if (res.error) return { error: res.error };
     primaryOrderId = (res as any).reservationId;
+    if ((res as any).totalPrice) {
+      totalAmount = (res as any).totalPrice;
+    }
   } else if (input.kind === 'retail') {
     const orderResult: any = await placeRetailOrder({
       items: input.items,

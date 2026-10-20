@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
@@ -13,5 +14,9 @@ export default async function ProfilePage() {
   }
 
   const verticalsConfig = await getVerticalsConfig();
-  return <CityProfile citypayEnabled={verticalsConfig.citypay === true} />;
+  return (
+    <Suspense fallback={<div className="max-w-3xl mx-auto p-8 text-center text-slate-400 font-bold animate-pulse">Loading profile...</div>}>
+      <CityProfile citypayEnabled={verticalsConfig.citypay === true} />
+    </Suspense>
+  );
 }

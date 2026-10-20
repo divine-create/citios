@@ -149,3 +149,40 @@ export function normalizePhoneNumber(raw: string | null | undefined): string | n
   }
   return null;
 }
+
+
+/**
+ * Standard two-letter initials generator for residents, organizations, and fallback avatars.
+ */
+export function getTwoLetterInitials(name?: string | null): string {
+  if (!name || typeof name !== 'string') return '9L';
+  const cleaned = name.replace(/[^\p{L}\p{N}\s]/gu, ' ').trim();
+  const words = cleaned.split(/\s+/).filter(Boolean);
+
+  if (words.length >= 2) {
+    const c1 = Array.from(words[0])[0];
+    const c2 = Array.from(words[1])[0];
+    if (c1 && c2) return (c1 + c2).toUpperCase();
+  }
+
+  if (words.length === 1) {
+    const chars = Array.from(words[0]);
+    if (chars.length >= 2) return (chars[0] + chars[1]).toUpperCase();
+    if (chars.length === 1) return (chars[0] + 'L').toUpperCase();
+  }
+
+  return '9L';
+}
+
+/**
+ * Safely resolves avatar or image assets, normalizing raw asset IDs to /api/assets/[id].
+ */
+export function resolveAvatarUrl(raw?: string | null): string | undefined {
+  if (!raw) return undefined;
+  const trimmed = raw.trim();
+  if (!trimmed) return undefined;
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('/') || trimmed.startsWith('data:')) {
+    return trimmed;
+  }
+  return `/api/assets/${trimmed}`;
+}

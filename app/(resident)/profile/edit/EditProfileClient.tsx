@@ -21,6 +21,8 @@ import Link from 'next/link';
 import StateLgaSelect, { CityOption } from '@/components/cityos/StateLgaSelect';
 import DateOfBirthPicker from '@/components/cityos/DateOfBirthPicker';
 import { INTEREST_CATEGORIES } from '@/components/cityos/interestTags';
+import { getTwoLetterInitials, getAvatarGradient } from '@/components/cityos/CityUI';
+import { cn } from '@/lib/utils';
 
 export default function EditProfileClient({
   cities,
@@ -179,7 +181,7 @@ export default function EditProfileClient({
         setError(result.error);
         return;
       }
-      router.push('/');
+      router.push('/profile?tab=Settings');
       router.refresh();
     } catch (err: any) {
       setError(err.message || 'Something went wrong');
@@ -233,14 +235,16 @@ export default function EditProfileClient({
     }
   };
 
-  const initials = `${(form.firstName || 'U')[0]}${(form.lastName || '')[0] || ''}`.toUpperCase();
+  const fullName = [form.firstName, form.lastName].filter(Boolean).join(' ').trim() || 'Resident';
+  const initials = getTwoLetterInitials(fullName);
+  const avatarGradient = getAvatarGradient(fullName);
 
   return (
     <div className="space-y-6">
       {/* Personal Info Card */}
       <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-          <Link href="/" className="p-2 -ml-2 rounded-full hover:bg-slate-50 text-slate-500">
+          <Link href="/profile?tab=Settings" className="p-2 -ml-2 rounded-full hover:bg-slate-50 text-slate-500" title="Return to Profile">
             <ChevronLeft className="w-5 h-5" />
           </Link>
           <h1 className="text-[15px] font-black text-ink">Personal Information</h1>
@@ -264,7 +268,7 @@ export default function EditProfileClient({
                   className="w-24 h-24 rounded-2xl object-cover border-2 border-white shadow-md"
                 />
               ) : (
-                <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-teal-700 to-teal-500 text-white flex items-center justify-center text-3xl font-black shadow-md">
+                <div className={cn('w-24 h-24 rounded-2xl text-white flex items-center justify-center text-3xl font-black shadow-md bg-gradient-to-br', avatarGradient)}>
                   {initials}
                 </div>
               )}

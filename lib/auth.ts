@@ -93,10 +93,16 @@ export const authOptions: NextAuthOptions = {
 
         const userEmail = emailIdent?.normalizedValue || `${dbPerson.id}@cityconnect.local`;
 
+        const residentProfile = await db.orm.public.ResidentProfile
+          .where({ personId: dbPerson.id })
+          .all()
+          .first();
+
         return {
           id: dbPerson.id,
           email: userEmail,
           name: `${dbPerson.firstName} ${dbPerson.lastName}`.trim() || 'Resident',
+          image: residentProfile?.avatarUrl || null,
         };
       },
     }),
@@ -164,6 +170,10 @@ export const authOptions: NextAuthOptions = {
             }
 
             token.personId = dbPerson.id;
+            token.name = `${dbPerson.firstName || ''} ${dbPerson.lastName || ''}`.trim() || token.name || 'Resident';
+            if (residentProfile?.avatarUrl) {
+              token.picture = residentProfile.avatarUrl;
+            }
             token.memberships = memberships;
             token.isCourier = !!gigProfile;
             token.role = memberships.length > 0 ? "PROVIDER" : gigProfile ? "COURIER" : "RESIDENT";
@@ -188,6 +198,9 @@ export const authOptions: NextAuthOptions = {
             .all()
             .first();
           token.onboardingComplete = residentProfile?.onboardingComplete ?? false;
+          if (residentProfile?.avatarUrl) {
+            token.picture = residentProfile.avatarUrl;
+          }
         } catch (error) {
           console.error("Error refreshing onboarding status:", error);
         }
@@ -197,6 +210,8 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (session?.user) {
         session.user.personId = token.personId as string | undefined;
+        if (token.name) session.user.name = token.name as string;
+        if (token.picture) session.user.image = token.picture as string;
         session.user.role = token.role;
         session.user.memberships = token.memberships ?? [];
         session.user.isCourier = !!token.isCourier;

@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
-import { Wallet, Plus, ChevronRight, Package, Car, Banknote, Truck, Bookmark, Settings, ArrowUp, Camera, Loader2 } from 'lucide-react';
+import { Wallet, Plus, ChevronRight, Package, Car, Banknote, Truck, Bookmark, Settings, ArrowUp, Camera, Loader2, Bell, Shield, Share2, Copy, Check, LogOut, User, MapPin, CreditCard } from 'lucide-react';
 import { useMoney } from '@/components/cityos/CityProvider';
 
 // Client wallet display top-up (fictional until the server ledger is wired).
@@ -21,7 +22,18 @@ type Tab = (typeof ALL_TABS)[number];
 
 export default function CityProfile({ citypayEnabled = false }: { citypayEnabled?: boolean }) {
   const { fmt } = useMoney();
-  const [tab, setTab] = useState<Tab>('Orders');
+  const searchParams = useSearchParams();
+  const tabParam = searchParams?.get('tab');
+  const defaultTab = ALL_TABS.find((t) => t.toLowerCase() === tabParam?.toLowerCase()) || 'Orders';
+  const [tab, setTab] = useState<Tab>(defaultTab);
+  const [copiedCode, setCopiedCode] = useState(false);
+
+  useEffect(() => {
+    if (tabParam) {
+      const matched = ALL_TABS.find((t) => t.toLowerCase() === tabParam.toLowerCase());
+      if (matched) setTab(matched);
+    }
+  }, [tabParam]);
   const { balance, topUp, transactions } = useWallet();
   const { experience } = useExperience();
   const [toppedUp, setToppedUp] = useState(false);
@@ -327,35 +339,114 @@ export default function CityProfile({ citypayEnabled = false }: { citypayEnabled
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-50">
-          {[
-            { label: 'Personal Information', sub: 'Name, phone, and interests', icon: Settings, href: '/profile/edit' },
-            { label: 'Notifications', sub: 'Rides, orders & offers', icon: Settings },
-            ...(citypayEnabled ? [{ label: 'Payment methods', sub: 'CityPay wallet, cards & transfer', icon: Wallet, href: '/wallet' }] : []),
-            { label: 'Privacy', sub: 'Who can see your feed posts', icon: Settings },
-            { label: 'Referral code', sub: userProfile?.id ? `REF-${userProfile.id.slice(0, 4).toUpperCase()}` : '-', icon: Settings },
-            { label: 'Sign out', sub: 'From this device', icon: Settings, action: 'signout' },
-          ].map((s) => {
-            const inner = (
-              <div className="px-5 py-4 flex items-center gap-3 hover:bg-slate-50 transition-colors">
-                <s.icon className="w-4 h-4 text-slate-400" />
-                <div className="flex-1 text-left">
-                  <p className="text-[13px] font-black text-ink">{s.label}</p>
-                  <p className="text-[11px] font-bold text-slate-400">{s.sub}</p>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-300" />
+        <div className="space-y-4">
+          <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-50 overflow-hidden shadow-xs">
+            <Link href="/profile/edit" className="px-5 py-4 flex items-center gap-3.5 hover:bg-slate-50 transition-colors block">
+              <div className="w-9 h-9 rounded-xl bg-teal-50 text-teal-800 flex items-center justify-center shrink-0">
+                <User className="w-4 h-4" />
               </div>
-            );
-            if (s.href) {
-              return <Link key={s.label} href={s.href} className="block">{inner}</Link>;
-            }
-            if (s.action === 'signout') {
-              return <button key={s.label} onClick={() => signOut()} className="block w-full">{inner}</button>;
-            }
-            return (
-              <div key={s.label}>{inner}</div>
-            );
-          })}
+              <div className="flex-1 text-left min-w-0">
+                <p className="text-[13px] font-black text-ink">Personal Information</p>
+                <p className="text-[11px] font-bold text-slate-400 truncate">Name, phone number, DOB, and interests</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
+            </Link>
+
+            <Link href="/profile/edit" className="px-5 py-4 flex items-center gap-3.5 hover:bg-slate-50 transition-colors block">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center shrink-0">
+                <MapPin className="w-4 h-4" />
+              </div>
+              <div className="flex-1 text-left min-w-0">
+                <p className="text-[13px] font-black text-ink">Delivery Address</p>
+                <p className="text-[11px] font-bold text-slate-400 truncate">
+                  {userProfile?.residentProfile?.defaultDeliveryAddress || 'Set your default doorstep delivery address'}
+                </p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
+            </Link>
+
+            <Link href="/notifications" className="px-5 py-4 flex items-center gap-3.5 hover:bg-slate-50 transition-colors block">
+              <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-800 flex items-center justify-center shrink-0">
+                <Bell className="w-4 h-4" />
+              </div>
+              <div className="flex-1 text-left min-w-0">
+                <p className="text-[13px] font-black text-ink">Notifications & Alerts</p>
+                <p className="text-[11px] font-bold text-slate-400 truncate">Orders, service requests, and community alerts</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
+            </Link>
+
+            {citypayEnabled && (
+              <Link href="/wallet" className="px-5 py-4 flex items-center gap-3.5 hover:bg-slate-50 transition-colors block">
+                <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-800 flex items-center justify-center shrink-0">
+                  <CreditCard className="w-4 h-4" />
+                </div>
+                <div className="flex-1 text-left min-w-0">
+                  <p className="text-[13px] font-black text-ink">Payment Methods & Wallet</p>
+                  <p className="text-[11px] font-bold text-slate-400 truncate">Manage CityPay balance, cards, and bank settlements</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
+              </Link>
+            )}
+
+            <Link href="/profile/edit" className="px-5 py-4 flex items-center gap-3.5 hover:bg-slate-50 transition-colors block">
+              <div className="w-9 h-9 rounded-xl bg-violet-50 text-violet-800 flex items-center justify-center shrink-0">
+                <Shield className="w-4 h-4" />
+              </div>
+              <div className="flex-1 text-left min-w-0">
+                <p className="text-[13px] font-black text-ink">Account Security & Password</p>
+                <p className="text-[11px] font-bold text-slate-400 truncate">Set or change your email login password</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
+            </Link>
+
+            <div className="px-5 py-4 flex items-center gap-3.5 bg-slate-50/50">
+              <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-800 flex items-center justify-center shrink-0">
+                <Share2 className="w-4 h-4" />
+              </div>
+              <div className="flex-1 text-left min-w-0">
+                <p className="text-[13px] font-black text-ink">Citizen Referral Code</p>
+                <p className="text-[11px] font-mono font-bold text-slate-500">
+                  {userProfile?.id ? `REF-${userProfile.id.slice(0, 8).toUpperCase()}` : 'REF-9JALIVE'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (userProfile?.id) {
+                    navigator.clipboard.writeText(`REF-${userProfile.id.slice(0, 8).toUpperCase()}`);
+                    setCopiedCode(true);
+                    setTimeout(() => setCopiedCode(false), 2000);
+                  }
+                }}
+                className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-[11px] font-black text-slate-700 transition-colors inline-flex items-center gap-1 shrink-0"
+              >
+                {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                {copiedCode ? 'Copied' : 'Copy'}
+              </button>
+            </div>
+
+            <button
+              onClick={() => signOut()}
+              className="w-full px-5 py-4 flex items-center gap-3.5 hover:bg-red-50/40 transition-colors text-left group"
+            >
+              <div className="w-9 h-9 rounded-xl bg-red-50 text-red-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <LogOut className="w-4 h-4" />
+              </div>
+              <div className="flex-1 text-left min-w-0">
+                <p className="text-[13px] font-black text-red-600">Sign Out</p>
+                <p className="text-[11px] font-bold text-slate-400">Log out of your 9jaLive resident account</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
+            </button>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-teal-50/60 border border-teal-100/80 flex items-start gap-3">
+            <Shield className="w-4 h-4 text-teal-800 shrink-0 mt-0.5" />
+            <div className="text-[11px] text-teal-900 leading-relaxed">
+              <span className="font-black">Privacy First:</span> Your profile is private by default. Only verified orders sent to stores and published community posts are visible to neighbors.
+            </div>
+          </div>
         </div>
       )}
     </div>

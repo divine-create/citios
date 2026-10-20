@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import LoginModal from '@/components/LoginModal';
-import { FallbackImg } from '@/components/cityos/CityUI';
+import { FallbackImg, getTwoLetterInitials, getAvatarGradient } from '@/components/cityos/CityUI';
 import {
   getCityServiceItem,
   bookResidentService,
@@ -44,6 +44,7 @@ interface ReviewItem {
   body: string | null;
   authorName: string;
   authorInitials?: string;
+  avatarUrl?: string | null;
   isVerifiedCustomer?: boolean;
   tags?: string[];
   photos?: string[];
@@ -642,7 +643,6 @@ export default function ServiceDetail({ id }: { id: string }) {
           ) : (
             <div className="space-y-3.5">
               {reviewsList.map((rev) => {
-                const initials = rev.authorInitials || rev.authorName.charAt(0) || 'R';
                 return (
                   <div
                     key={rev.id}
@@ -650,9 +650,13 @@ export default function ServiceDetail({ id }: { id: string }) {
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-teal-800 text-white font-bold text-xs flex items-center justify-center shadow-2xs shrink-0">
-                          {initials}
-                        </div>
+                        <FallbackImg
+                          src={rev.avatarUrl || undefined}
+                          alt={rev.authorName}
+                          className="w-8 h-8 rounded-full object-cover border border-slate-200 shrink-0"
+                          icon={<span className="text-white font-bold text-xs select-none">{getTwoLetterInitials(rev.authorName)}</span>}
+                          gradient={getAvatarGradient(rev.authorName)}
+                        />
                         <div>
                           <div className="flex items-center gap-1.5">
                             <span className="text-xs font-bold text-slate-900">{rev.authorName}</span>
