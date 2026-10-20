@@ -23,6 +23,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { createHotelWhatsAppBooking } from '@/app/actions/checkout';
+import { bookResidentHotelReservation } from '@/lib/actions/hotel';
 import { deleteUniversalStay } from '@/lib/actions/stays';
 import { FallbackImg } from '@/components/cityos/CityUI';
 import { useMoney } from '@/components/cityos/CityProvider';
@@ -84,63 +85,100 @@ export default function CityStayDetail({
   const isNightly = pricePeriod === 'night';
   const calculatedTotal = isNightly ? basePrice * nightsCount : basePrice;
 
+  const [isSuccess, setIsSuccess] = useState(false);
+  const isHotelOSEnabled = Boolean(data?.isHotelOSEnabled);
+
   async function handleBookHotelRoom(room: any) {
     if (!guestName.trim()) {
-      setMessage('Please enter your full name above to book.');
+      setIsSuccess(false);
+      setMessage('Please enter your full name above to proceed.');
       return;
     }
     if (!checkIn || !checkOut) {
+      setIsSuccess(false);
       setMessage('Please select your check-in and check-out dates.');
       return;
     }
     if (new Date(checkOut) <= new Date(checkIn)) {
+      setIsSuccess(false);
       setMessage('Check-out date must be after check-in date.');
       return;
     }
     setLoadingRoomId(room.id);
     setMessage('');
+    setIsSuccess(false);
+
     try {
-      const res = await createHotelWhatsAppBooking({
-        organizationId: data.organizationId || data.id,
-        roomId: room.id,
-        guestName: guestName.trim(),
-        guestPhone: guestPhone.trim() || undefined,
-        checkInDate: checkIn,
-        checkOutDate: checkOut,
-      });
-      if (!res.success || res.error) {
-        setMessage(res.error || 'Booking failed. Please try again.');
-      } else if (res.whatsappUrl) {
-        window.open(res.whatsappUrl, '_blank');
+      if (isHotelOSEnabled) {
+        // HotelOS-configured reservation flow: creates authoritative reservation in HotelOS
+        const res: any = await bookResidentHotelReservation({
+          organizationId: data.organizationId || data.id,
+          roomId: room.id,
+          guestName: guestName.trim(),
+          checkInDate: checkIn,
+          checkOutDate: checkOut,
+        });
+        if (!res.success) {
+          setMessage(res.error);
+        } else {
+          setIsSuccess(true);
+          setMessage(`Reservation confirmed! Booking Reference: #${res.reservationId.slice(0, 8)}. Total: ₦${res.totalPrice.toLocaleString()}.`);
+        }
+      } else {
+        // Default WhatsApp enquiry flow: direct enquiry without false confirmation
+        const res = await createHotelWhatsAppBooking({
+          organizationId: data.organizationId || data.id,
+          hotelName: data.name,
+          roomId: room.id,
+          guestName: guestName.trim(),
+          guestPhone: guestPhone.trim() || undefined,
+          checkInDate: checkIn,
+          checkOutDate: checkOut,
+          guestsCount,
+          enquiryText: `Enquiring about ${room.type} Room (Room #${room.roomNumber}) for ${nightsCount} night(s).`,
+        });
+        if (!res.success || res.error) {
+          setMessage(res.error || 'Enquiry preparation failed. Please try again.');
+        } else if (res.whatsappUrl) {
+          window.open(res.whatsappUrl, '_blank');
+        }
       }
     } catch (e: any) {
-      setMessage(e.message || 'Booking failed. Please try again.');
+      setMessage(e.message || 'Action failed. Please try again.');
     }
     setLoadingRoomId(null);
   }
 
   function handleReserveDirectOnWhatsApp() {
     if (!guestName.trim()) {
-      setMessage('Please enter your name before reserving.');
+      setIsSuccess(false);
+      setMessage('Please enter your name before sending enquiry.');
       return;
     }
     if (isNightly && (!checkIn || !checkOut)) {
+      setIsSuccess(false);
       setMessage('Please select your check-in and check-out dates.');
       return;
     }
     if (isNightly && new Date(checkOut) <= new Date(checkIn)) {
+      setIsSuccess(false);
       setMessage('Check-out date must be after check-in date.');
       return;
     }
     setMessage('');
+    setIsSuccess(false);
 
-    const rawPhone = data.whatsappPhone || '2348000000000';
+    // Canonical default number is +2348065373747; merchant-specific phone overrides if valid
+    const rawPhone = data.whatsappPhone || '2348065373747';
     let cleanPhone = String(rawPhone).replace(/[^\d+]/g, '');
     if (cleanPhone.startsWith('+')) cleanPhone = cleanPhone.substring(1);
     if (cleanPhone.startsWith('0')) cleanPhone = '234' + cleanPhone.substring(1);
+    if (!cleanPhone || cleanPhone === '2348067154233' || cleanPhone === '2348000000000') {
+      cleanPhone = '2348065373747';
+    }
 
     const lines = [
-      `🏡 *NEW STAY RESERVATION REQUEST*`,
+      `🏨 *STAY & HOTEL BOOKING ENQUIRY*`,
       `--------------------------------`,
       `📍 *Property:* ${data.name} (${data.stayCategory || 'Stay'})`,
       `🗺️ *Area:* ${data.neighborhood || data.address || 'Calabar'}`,
@@ -154,7 +192,7 @@ export default function CityStayDetail({
           ]
         : [`💰 *Rate:* ₦${basePrice.toLocaleString()} / ${pricePeriod}`]),
       `--------------------------------`,
-      `Hello! I found your property on 9jaLive and would like to confirm availability.`,
+      `Hello! I found your property on 9jaLive and would like to enquire about room availability and arrangements. Thank you!`,
     ];
 
     const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(lines.join('\n'))}`;
@@ -416,10 +454,24 @@ export default function CityStayDetail({
                     <button
                       disabled={loadingRoomId === r.id}
                       onClick={() => handleBookHotelRoom(r)}
-                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-xl text-xs font-black transition-all shadow-md shadow-emerald-600/20 disabled:opacity-50 active:scale-95 cursor-pointer shrink-0"
+                      className={cn(
+                        "w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 text-white rounded-xl text-xs font-black transition-all disabled:opacity-50 active:scale-95 cursor-pointer shrink-0",
+                        isHotelOSEnabled
+                          ? "bg-teal-700 hover:bg-teal-800 shadow-md shadow-teal-700/20"
+                          : "bg-[#25D366] hover:bg-[#20ba59] shadow-md shadow-emerald-600/20"
+                      )}
                     >
-                      <MessageSquare className="w-4 h-4" />
-                      {loadingRoomId === r.id ? 'Opening WhatsApp…' : 'Book Room via WhatsApp'}
+                      {isHotelOSEnabled ? (
+                        <>
+                          <Check className="w-4 h-4" />
+                          {loadingRoomId === r.id ? 'Reserving Room…' : 'Reserve Room (HotelOS)'}
+                        </>
+                      ) : (
+                        <>
+                          <MessageSquare className="w-4 h-4" />
+                          {loadingRoomId === r.id ? 'Opening WhatsApp…' : 'Enquire via WhatsApp'}
+                        </>
+                      )}
                     </button>
                   </div>
                 );
@@ -442,9 +494,15 @@ export default function CityStayDetail({
                   <span className="text-lg font-black text-slate-900">Select Dates to Book</span>
                 )}
               </div>
-              <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-                <MessageSquare className="w-3 h-3 text-[#25D366]" /> Direct WhatsApp Booking
-              </span>
+              {isHotelOSEnabled ? (
+                <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-teal-800 bg-teal-50 px-2.5 py-1 rounded-full border border-teal-200">
+                  <Zap className="w-3 h-3 text-teal-600" /> HotelOS Instant Reservation
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                  <MessageSquare className="w-3 h-3 text-[#25D366]" /> Direct WhatsApp Enquiry
+                </span>
+              )}
             </div>
 
             <div className="space-y-3.5">
@@ -553,26 +611,43 @@ export default function CityStayDetail({
             )}
 
             {message && (
-              <div className="flex items-center gap-2 p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-bold">
-                <span>⚠</span>
+              <div className={cn(
+                "flex items-center gap-2 p-3 rounded-xl text-xs font-bold border",
+                isSuccess
+                  ? "bg-teal-50 border-teal-200 text-teal-800"
+                  : "bg-rose-50 border-rose-200 text-rose-700"
+              )}>
+                <span>{isSuccess ? '✓' : '⚠'}</span>
                 <span>{message}</span>
               </div>
             )}
 
             {/* Primary Booking CTA */}
             {rooms.length === 0 ? (
-              <button
-                type="button"
-                onClick={handleReserveDirectOnWhatsApp}
-                className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-2xl text-sm font-black transition-all shadow-lg shadow-emerald-600/20 active:scale-95 cursor-pointer"
-              >
-                <MessageSquare className="w-4 h-4" />
-                Reserve on WhatsApp
-              </button>
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={handleReserveDirectOnWhatsApp}
+                  className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-2xl text-sm font-black transition-all shadow-lg shadow-emerald-600/20 active:scale-95 cursor-pointer"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  Enquire on WhatsApp
+                </button>
+                <p className="text-[11px] text-center text-slate-400 font-medium">
+                  Opens a direct conversation to arrange booking with the host. Does not confirm payment.
+                </p>
+              </div>
             ) : (
-              <p className="text-[11px] text-center text-slate-500 font-bold">
-                Enter your dates above, then click <strong className="text-slate-800">Book Room via WhatsApp</strong> on any room on the left.
-              </p>
+              <div className="space-y-2">
+                <p className="text-[11px] text-center text-slate-500 font-bold">
+                  Enter your dates above, then click <strong className="text-slate-800">{isHotelOSEnabled ? 'Reserve Room (HotelOS)' : 'Enquire via WhatsApp'}</strong> on any room on the left.
+                </p>
+                {!isHotelOSEnabled && (
+                  <p className="text-[10.5px] text-center text-slate-400">
+                    This hotel accepts direct bookings via WhatsApp. Opening WhatsApp sends an enquiry and does not confirm a reservation.
+                  </p>
+                )}
+              </div>
             )}
 
             {data.bookingUrl && (

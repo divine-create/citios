@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth';
 import { requireMembership } from '@/lib/actions/tenant';
 import { getCurrentCity, getCityBySlug } from '@/lib/city';
 import { getHotelOrgs, getHotelRooms } from '@/lib/actions/resident';
+import { isHotelOSReservationEnabled } from '@/lib/actions/hotel';
 import { revalidatePath } from 'next/cache';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -40,10 +41,19 @@ export interface CreateStayInput {
   citySlug?: string;
 }
 
-function cleanWhatsAppNumber(raw: string): string {
+const DEFAULT_HOTEL_WHATSAPP = '2348065373747';
+
+export async function getDefaultHotelWhatsApp(): Promise<string> {
+  return DEFAULT_HOTEL_WHATSAPP;
+}
+
+function cleanWhatsAppNumber(raw?: string | null): string {
   let clean = (raw || '').trim().replace(/[^\d+]/g, '');
   if (clean.startsWith('+')) clean = clean.substring(1);
   if (clean.startsWith('0')) clean = '234' + clean.substring(1);
+  if (!clean || clean === '2348067154233' || clean === '2348000000000') {
+    return DEFAULT_HOTEL_WHATSAPP;
+  }
   return clean;
 }
 
@@ -409,6 +419,7 @@ export async function getStayByIdOrSlug(slug: string) {
       stars: typeof meta.stars === 'number' ? meta.stars : null,
       rooms: [],
       isHotelOrg: false,
+      isHotelOSEnabled: false,
       canManage,
     };
   }
@@ -417,6 +428,7 @@ export async function getStayByIdOrSlug(slug: string) {
   const org = await db.orm.public.Organization.where({ id: slug, type: 'HOTEL' }).all().first();
   if (!org) return null;
 
+  const isHotelOSEnabled = await isHotelOSReservationEnabled(org.id);
   const rooms = await getHotelRooms(org.id);
   const hotelListing = allListings.find(
     (l: any) => l.organizationId === org.id && l.vertical !== 'SETTINGS' && !String(l.vertical || '').startsWith('STAY_LISTING_')
@@ -444,7 +456,7 @@ export async function getStayByIdOrSlug(slug: string) {
 
   const contacts = await db.orm.public.OrganizationContactPoint.where({ organizationId: org.id }).all();
   const waContact = contacts.find((c: any) => c.type === 'WHATSAPP') || contacts.find((c: any) => c.type === 'PHONE');
-  const whatsappPhone = waContact?.value ? cleanWhatsAppNumber(waContact.value) : meta.whatsappPhone || null;
+  const whatsappPhone = waContact?.value ? cleanWhatsAppNumber(waContact.value) : (meta.whatsappPhone ? cleanWhatsAppNumber(meta.whatsappPhone) : DEFAULT_HOTEL_WHATSAPP);
 
   const defaultAmenities: string[] = Array.isArray(meta.amenities) ? [...meta.amenities] : [];
   if (meta.hasPowerGuarantee && !defaultAmenities.some((a) => /power/i.test(a))) {
@@ -505,6 +517,7 @@ export async function getStayByIdOrSlug(slug: string) {
     stars: typeof meta.stars === 'number' ? meta.stars : null,
     rooms,
     isHotelOrg: true,
+    isHotelOSEnabled,
     canManage,
   };
 }

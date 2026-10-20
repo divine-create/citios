@@ -34,6 +34,7 @@ interface MenuItemDef {
   label: string;
   href: string;
   iconKey: string;
+  imageUrl?: string;
   fallbackIcon: any;
   verticalId?: VerticalId;
 }
@@ -43,6 +44,7 @@ const TOP_MENU_ITEMS: MenuItemDef[] = [
     label: 'Food', 
     href: '/food', 
     iconKey: 'all',
+    imageUrl: '/icons/portals/food.png',
     fallbackIcon: UtensilsCrossed,
     verticalId: 'food',
   },
@@ -50,6 +52,7 @@ const TOP_MENU_ITEMS: MenuItemDef[] = [
     label: 'Stay', 
     href: '/stay', 
     iconKey: 'stay',
+    imageUrl: '/icons/portals/stay.png',
     fallbackIcon: BedDouble,
     verticalId: 'houses',
   },
@@ -57,6 +60,7 @@ const TOP_MENU_ITEMS: MenuItemDef[] = [
     label: 'Shop', 
     href: '/market', 
     iconKey: 'shop',
+    imageUrl: '/icons/portals/shop.png',
     fallbackIcon: ShoppingBag,
     verticalId: 'shops',
   },
@@ -64,6 +68,7 @@ const TOP_MENU_ITEMS: MenuItemDef[] = [
     label: 'Events', 
     href: '/events', 
     iconKey: 'events',
+    imageUrl: '/icons/portals/events.png',
     fallbackIcon: Calendar,
     verticalId: 'events',
   },
@@ -71,6 +76,7 @@ const TOP_MENU_ITEMS: MenuItemDef[] = [
     label: 'Services', 
     href: '/services', 
     iconKey: 'services',
+    imageUrl: '/icons/portals/services.png',
     fallbackIcon: Wrench,
     verticalId: 'services',
   },
@@ -78,6 +84,7 @@ const TOP_MENU_ITEMS: MenuItemDef[] = [
     label: 'Jobs', 
     href: '/jobs', 
     iconKey: 'jobs',
+    imageUrl: '/icons/portals/jobs.png',
     fallbackIcon: Briefcase,
     verticalId: 'jobs',
   },
@@ -85,6 +92,7 @@ const TOP_MENU_ITEMS: MenuItemDef[] = [
     label: 'Explore', 
     href: '/explore', 
     iconKey: 'explore',
+    imageUrl: '/icons/portals/explore.png',
     fallbackIcon: Compass,
   },
 ];
@@ -129,10 +137,11 @@ export default function CityHome({
                 href={item.href}
                 className="group flex flex-col items-center gap-2 p-2 rounded-2xl transition-all duration-200"
               >
-                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white border border-[#EBEBEB] shadow-[0_2px_8px_rgba(0,0,0,0.04)] flex items-center justify-center p-2 text-[#222222] group-hover:border-[#222222] group-hover:shadow-[0_8px_20px_rgba(0,0,0,0.08)] group-hover:-translate-y-1 transition-all duration-200">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white border border-[#EBEBEB] shadow-[0_2px_8px_rgba(0,0,0,0.04)] flex items-center justify-center p-1.5 sm:p-2 text-[#222222] group-hover:border-[#222222] group-hover:shadow-[0_8px_20px_rgba(0,0,0,0.08)] group-hover:-translate-y-1 transition-all duration-200">
                   <RealisticIcon
                     name={item.iconKey}
-                    size={38}
+                    imageUrl={item.imageUrl}
+                    size={42}
                     fallback={<FallbackIcon className="w-6 h-6 stroke-[1.9] text-[#222222]" />}
                     className="transition-transform duration-200 group-hover:scale-110"
                   />

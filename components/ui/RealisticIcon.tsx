@@ -34,6 +34,7 @@ export default function RealisticIcon({
         alt={name}
         width={size}
         height={size}
+        unoptimized
         className={cn('object-contain drop-shadow-sm select-none', className)}
         onError={() => setImageError(true)}
       />
