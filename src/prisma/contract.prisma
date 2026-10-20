@@ -814,6 +814,10 @@ model Post {
   likes          PostLike[]
 
   @@unique([linkedEntityType, linkedEntityId])
+  @@index([status, createdAt])
+  @@index([category, status])
+  @@index([organizationId])
+  @@index([personId])
 }
 
 model Follow {

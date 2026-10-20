@@ -142,20 +142,25 @@ export const authOptions: NextAuthOptions = {
 
             let memberships: OrgMembership[] = [];
             if (orgMembers.length > 0) {
-              const organizations = await db.orm.public.Organization.all();
-              
-              for (const member of orgMembers) {
-                const roles = await db.orm.public.MembershipRole.where({ membershipId: member.id }).all();
-                const org = organizations.find((o: any) => o.id === member.organizationId);
-                
-                if (org && roles.length > 0) {
-                  memberships.push({
-                    organizationId: member.organizationId,
-                    organizationType: org.type as OrgMembership["organizationType"],
-                    role: roles[0].role as OrgMembership["role"],
-                  });
-                }
-              }
+              const resolvedMemberships = await Promise.all(
+                orgMembers.map(async (member) => {
+                  const [roles, org] = await Promise.all([
+                    db.orm.public.MembershipRole.where({ membershipId: member.id }).all(),
+                    db.orm.public.Organization.where({ id: member.organizationId }).all().first(),
+                  ]);
+
+                  if (org && roles.length > 0) {
+                    return {
+                      organizationId: member.organizationId,
+                      organizationType: org.type as OrgMembership["organizationType"],
+                      role: roles[0].role as OrgMembership["role"],
+                    };
+                  }
+                  return null;
+                })
+              );
+
+              memberships = resolvedMemberships.filter((m): m is OrgMembership => m !== null);
             }
 
             token.personId = dbPerson.id;

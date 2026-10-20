@@ -38,7 +38,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'84227e39979cfa70504a2e0d6df60d2628f51537f94a2e16d181e6c8bdabc302'>;
+  StorageHashBase<'5573023e34d1b6417ac8258ec12db82daf3272249d69106a02d671d7b3729efd'>;
 export type ExecutionHash =
   ExecutionHashBase<'876a24deafdc54ec5930b0d1ad3b8b7306ed1e7ab512c869686e811902a8fed0'>;
 export type ProfileHash =
@@ -18192,6 +18192,18 @@ type ContractBase = Omit<
                 { readonly columns: readonly ['linkedEntityType', 'linkedEntityId'] },
               ];
               indexes: readonly [
+                {
+                  readonly name: 'post_status_createdAt_idx_58610442';
+                  readonly prefix: 'post_status_createdAt_idx';
+                  readonly columns: readonly ['status', 'createdAt'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'post_category_status_idx_31341d58';
+                  readonly prefix: 'post_category_status_idx';
+                  readonly columns: readonly ['category', 'status'];
+                  readonly unique: false;
+                },
                 {
                   readonly name: 'post_organizationId_idx_2e17ef41';
                   readonly prefix: 'post_organizationId_idx';
