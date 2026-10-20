@@ -4,6 +4,9 @@ import React, { useEffect, useState } from 'react';
 import { Download, X, Share, PlusSquare, Smartphone } from 'lucide-react';
 
 export default function PwaInstallPrompt() {
+  // Temporarily disabled for now per user request
+  return null;
+
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [isIos, setIsIos] = useState(false);

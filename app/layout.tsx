@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 import AuthProvider from '@/components/AuthProvider';
-import PwaInstallPrompt from '@/components/common/PwaInstallPrompt';
 import { Toaster } from 'sonner';
 
 const sans = Plus_Jakarta_Sans({ subsets: ['latin'], variable: '--font-sans' });
@@ -41,7 +40,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${sans.variable} font-sans antialiased bg-slate-50 text-slate-900`} suppressHydrationWarning>
         <AuthProvider>
           {children}
-          <PwaInstallPrompt />
           <Toaster position="top-center" />
         </AuthProvider>
       </body>
