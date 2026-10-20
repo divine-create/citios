@@ -324,7 +324,7 @@ export default function ResidentShell({
   const [menuOpen, setMenuOpen] = useState(false);
   const citypayEnabled = verticalsConfig?.citypay === true;
 
-  type NavItem = { id: string; path: string; label: string; icon: any; iconKey?: string; secondary?: boolean; verticalId?: VerticalId };
+  type NavItem = { id: string; path: string; label: string; icon: any; iconKey?: string; imageUrl?: string; secondary?: boolean; verticalId?: VerticalId };
 
   const PRIMARY_NAV: NavItem[] = [
     { id: 'home', path: '/', label: 'Home', icon: LayoutGrid, iconKey: 'home' },
@@ -335,12 +335,12 @@ export default function ResidentShell({
   ];
 
   const ALL_EXPLORE_ITEMS: (NavItem & { verticalId?: VerticalId })[] = [
-    { id: 'market', path: '/market', label: 'Shop', icon: Store, iconKey: 'shop', verticalId: 'shops' },
-    { id: 'food', path: '/food', label: 'Food', icon: UtensilsCrossed, iconKey: 'food', verticalId: 'food' },
-    { id: 'services', path: '/services', label: 'Services', icon: Wrench, iconKey: 'services', verticalId: 'services' },
-    { id: 'jobs', path: '/jobs', label: 'Jobs', icon: Briefcase, iconKey: 'jobs', verticalId: 'jobs' },
-    { id: 'events', path: '/events', label: 'Events', icon: Calendar, iconKey: 'events', verticalId: 'events' },
-    { id: 'stay', path: '/stay', label: 'Stay', icon: Building2, iconKey: 'stay', verticalId: 'houses' },
+    { id: 'market', path: '/market', label: 'Shop', icon: Store, iconKey: 'shop', imageUrl: '/icons/portals/shop.png', verticalId: 'shops' },
+    { id: 'food', path: '/food', label: 'Food', icon: UtensilsCrossed, iconKey: 'food', imageUrl: '/icons/portals/food.png', verticalId: 'food' },
+    { id: 'services', path: '/services', label: 'Services', icon: Wrench, iconKey: 'services', imageUrl: '/icons/portals/services.png', verticalId: 'services' },
+    { id: 'jobs', path: '/jobs', label: 'Jobs', icon: Briefcase, iconKey: 'jobs', imageUrl: '/icons/portals/jobs.png', verticalId: 'jobs' },
+    { id: 'events', path: '/events', label: 'Events', icon: Calendar, iconKey: 'events', imageUrl: '/icons/portals/events.png', verticalId: 'events' },
+    { id: 'stay', path: '/stay', label: 'Stay', icon: Building2, iconKey: 'stay', imageUrl: '/icons/portals/stay.png', verticalId: 'houses' },
   ];
 
   const exploreItems = ALL_EXPLORE_ITEMS.filter((item) => {
@@ -359,7 +359,7 @@ export default function ResidentShell({
         { id: 'feed', path: '/feed', label: 'Newsfeed', icon: Rss, iconKey: 'feed' },
         { id: 'notifications', path: '/notifications', label: 'Notifications', icon: Bell, iconKey: 'notifications' },
         { id: 'map', path: '/map', label: 'Map', icon: MapIcon, iconKey: 'map' },
-        { id: 'nearby', path: '/explore', label: 'Nearby', icon: MapPin, iconKey: 'nearby' },
+        { id: 'nearby', path: '/explore', label: 'Nearby', icon: MapPin, iconKey: 'nearby', imageUrl: '/icons/portals/explore.png' },
         { id: 'saved', path: '/saved', label: 'Saved', icon: Bookmark, iconKey: 'saved' },
         { id: 'ai', path: '/ai', label: 'Ask 9jaLive', icon: Sparkles, iconKey: 'ai' },
         { id: 'news', path: '/news', label: 'News', icon: Newspaper, iconKey: 'news', secondary: true },
@@ -369,8 +369,8 @@ export default function ResidentShell({
       label: 'Your Activity',
       items: [
         { id: 'orders', path: '/orders', label: 'Orders', icon: ShoppingBag, iconKey: 'orders' },
-        { id: 'requests', path: '/tasks', label: 'Service Requests', icon: Wrench, iconKey: 'requests' },
-        { id: 'apps', path: '/jobs', label: 'Job Applications', icon: Briefcase, iconKey: 'apps' },
+        { id: 'requests', path: '/tasks', label: 'Service Requests', icon: Wrench, iconKey: 'requests', imageUrl: '/icons/portals/services.png' },
+        { id: 'apps', path: '/jobs', label: 'Job Applications', icon: Briefcase, iconKey: 'apps', imageUrl: '/icons/portals/jobs.png' },
         { id: 'events', path: '/events', label: 'Events', icon: Calendar, iconKey: 'events' },
         { id: 'communities', path: '/community', label: 'Communities', icon: UsersIcon, iconKey: 'community' },
       ],
@@ -468,10 +468,11 @@ export default function ResidentShell({
                           : 'text-neutral-500 hover:text-[#222222] hover:bg-neutral-50',
                       )}
                     >
-                      <div className="w-6 h-6 rounded-lg bg-neutral-50 border border-neutral-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                      <div className="w-7 h-7 rounded-lg bg-neutral-50 border border-neutral-100/80 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform p-0.5">
                         <RealisticIcon
                           name={item.iconKey || item.id}
-                          size={18}
+                          imageUrl={item.imageUrl}
+                          size={20}
                           fallback={<item.icon className={cn('w-4 h-4', active ? 'text-[#FF385C]' : 'text-neutral-400')} />}
                         />
                       </div>
@@ -508,11 +509,12 @@ export default function ResidentShell({
                       >
                         <div className={cn(
                           'rounded-lg flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform',
-                          secondary ? 'w-5 h-5 bg-transparent' : 'w-6 h-6 bg-slate-50 border border-slate-100/80'
+                          secondary ? 'w-5 h-5 bg-transparent' : 'w-7 h-7 bg-slate-50 border border-slate-100/80 p-0.5'
                         )}>
                           <RealisticIcon
                             name={item.iconKey || item.id}
-                            size={secondary ? 15 : 18}
+                            imageUrl={item.imageUrl}
+                            size={secondary ? 15 : 20}
                             fallback={<item.icon className={cn(secondary ? 'w-3.5 h-3.5' : 'w-4 h-4', active ? 'text-teal-800' : secondary ? 'text-slate-300' : 'text-slate-400')} />}
                           />
                         </div>
@@ -607,9 +609,17 @@ export default function ResidentShell({
                     <button
                       onClick={() => setMenuOpen((o) => !o)}
                       aria-label="Menu"
-                      className="w-9 h-9 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 active:bg-slate-50 transition-colors"
+                      className="w-9 h-9 flex items-center justify-center rounded-xl bg-white border border-slate-200/90 text-slate-700 active:bg-slate-100 transition-colors shadow-2xs"
                     >
-                      {menuOpen ? <X className="w-4 h-4" /> : <MenuIcon className="w-4 h-4" />}
+                      {menuOpen ? (
+                        <X className="w-4 h-4 stroke-[2.2]" />
+                      ) : (
+                        <div className="w-4 h-3.5 flex flex-col justify-between items-end">
+                          <span className="w-full h-[2px] bg-slate-700 rounded-full transition-all" />
+                          <span className="w-3/4 h-[2px] bg-slate-700 rounded-full transition-all" />
+                          <span className="w-full h-[2px] bg-slate-700 rounded-full transition-all" />
+                        </div>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -671,10 +681,11 @@ export default function ResidentShell({
                                 : 'text-slate-600 hover:bg-slate-50',
                             )}
                           >
-                            <div className="w-6 h-6 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
+                            <div className="w-7 h-7 rounded-lg bg-slate-50 border border-slate-100/80 flex items-center justify-center shrink-0 p-0.5">
                               <RealisticIcon
                                 name={item.iconKey || item.id}
-                                size={18}
+                                imageUrl={item.imageUrl}
+                                size={20}
                                 fallback={<item.icon className={cn('w-4 h-4 shrink-0', active ? 'text-teal-800' : 'text-slate-400')} />}
                               />
                             </div>
@@ -711,11 +722,12 @@ export default function ResidentShell({
                             >
                               <div className={cn(
                                 'rounded-lg flex items-center justify-center shrink-0',
-                                secondary ? 'w-5 h-5' : 'w-6 h-6 bg-slate-50 border border-slate-100/80'
+                                secondary ? 'w-5 h-5' : 'w-7 h-7 bg-slate-50 border border-slate-100/80 p-0.5'
                               )}>
                                 <RealisticIcon
                                   name={item.iconKey || item.id}
-                                  size={secondary ? 15 : 18}
+                                  imageUrl={item.imageUrl}
+                                  size={secondary ? 15 : 20}
                                   fallback={<item.icon className={cn('w-4 h-4 shrink-0', active ? 'text-teal-800' : secondary ? 'text-slate-300' : 'text-slate-400')} />}
                                 />
                               </div>

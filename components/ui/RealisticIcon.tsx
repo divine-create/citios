@@ -26,11 +26,45 @@ export default function RealisticIcon({
 }: RealisticIconProps) {
   const [imageError, setImageError] = useState(false);
 
-  // If a custom external image URL is provided and has not errored, render it
-  if (imageUrl && !imageError) {
+  const key = name.toLowerCase().trim();
+
+  // Automatic default resolution for 3D portal icons if no custom imageUrl is passed
+  const DEFAULT_PORTAL_IMAGES: Record<string, string> = {
+    food: '/icons/portals/food.png',
+    all: '/icons/portals/food.png',
+    pizza: '/icons/portals/food.png',
+    stay: '/icons/portals/stay.png',
+    stays: '/icons/portals/stay.png',
+    hotel: '/icons/portals/stay.png',
+    hotels: '/icons/portals/stay.png',
+    citystay: '/icons/portals/stay.png',
+    services: '/icons/portals/services.png',
+    service: '/icons/portals/services.png',
+    artisans: '/icons/portals/services.png',
+    tools: '/icons/portals/services.png',
+    shop: '/icons/portals/shop.png',
+    shops: '/icons/portals/shop.png',
+    market: '/icons/portals/shop.png',
+    retail: '/icons/portals/shop.png',
+    events: '/icons/portals/events.png',
+    event: '/icons/portals/events.png',
+    tickets: '/icons/portals/events.png',
+    ticket: '/icons/portals/events.png',
+    jobs: '/icons/portals/jobs.png',
+    job: '/icons/portals/jobs.png',
+    careers: '/icons/portals/jobs.png',
+    explore: '/icons/portals/explore.png',
+    nearby: '/icons/portals/explore.png',
+    compass: '/icons/portals/explore.png',
+  };
+
+  const resolvedImageUrl = imageUrl || DEFAULT_PORTAL_IMAGES[key];
+
+  // If a custom external image URL or default portal image is available and has not errored, render it
+  if (resolvedImageUrl && !imageError) {
     return (
       <Image
-        src={imageUrl}
+        src={resolvedImageUrl}
         alt={name}
         width={size}
         height={size}
@@ -40,8 +74,6 @@ export default function RealisticIcon({
       />
     );
   }
-
-  const key = name.toLowerCase().trim();
 
   // 1. Soups & Swallow (Traditional Calabar Clay Pot with steaming Afang/Egusi soup and golden swallow)
   if (key === 'soups-swallow' || key === 'soups' || key === 'soup') {
