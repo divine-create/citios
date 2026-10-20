@@ -1,10 +1,11 @@
 export const POST_BACKGROUNDS = [
-  { id: 'auto', label: 'Auto', className: 'bg-gradient-to-br from-purple-600 to-indigo-600' },
+  { id: 'none', label: 'Plain', className: '' },
   { id: 'sunset', label: 'Sunset', className: 'bg-gradient-to-br from-pink-500 to-rose-600' },
   { id: 'citrus', label: 'Citrus', className: 'bg-gradient-to-br from-amber-400 to-orange-500' },
   { id: 'meadow', label: 'Meadow', className: 'bg-gradient-to-br from-emerald-500 to-teal-600' },
   { id: 'ocean', label: 'Ocean', className: 'bg-gradient-to-br from-cyan-500 to-blue-600' },
   { id: 'violet', label: 'Violet', className: 'bg-gradient-to-br from-violet-500 to-purple-600' },
+  { id: 'auto', label: 'Auto', className: 'bg-gradient-to-br from-purple-600 to-indigo-600' },
 ] as const;
 
 export type PostBackgroundId = typeof POST_BACKGROUNDS[number]['id'];
@@ -22,7 +23,11 @@ export function parsePostMetadata(value?: unknown): PostMetadata {
 
   try {
     const parsed = JSON.parse(value) as PostMetadata;
-    return { background: getPostBackground(parsed.background).id };
+    if (!parsed || !parsed.background || parsed.background === 'none') {
+      return { background: 'none' };
+    }
+    const found = POST_BACKGROUNDS.find((b) => b.id === parsed.background);
+    return { background: found ? found.id : 'none' };
   } catch {
     return {};
   }

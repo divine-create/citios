@@ -140,14 +140,20 @@ export default function PostDetailClient({ post }: { post: DBPost }) {
     }
   };
 
-  const autoBackgrounds = ['auto', 'sunset', 'citrus', 'meadow', 'ocean', 'violet'] as const;
-  const autoBackground = autoBackgrounds[(post.id.charCodeAt(post.id.length - 1) || 0) % autoBackgrounds.length];
-  const selectedBackground = currentBackground && currentBackground !== 'auto'
-    ? getPostBackground(currentBackground)
-    : getPostBackground(autoBackground);
-  const isShortText = !post.image && !post.videoUrl && currentBody.length < 130;
+
+
+  const selectedBackground = (currentBackground && currentBackground !== 'auto' && currentBackground !== 'none') ? getPostBackground(currentBackground) : null;
+
+
+
   const isTextOnly = !post.image && !post.videoUrl;
-  const hasCustomBackground = currentBackground && currentBackground !== 'auto';
+  const hasCustomBackground = Boolean(
+    !post.image &&
+    !post.videoUrl &&
+    currentBackground &&
+    currentBackground !== 'auto' &&
+    currentBackground !== 'none'
+  );
 
   return (
     <div className="max-w-2xl mx-auto w-full">
@@ -233,7 +239,7 @@ export default function PostDetailClient({ post }: { post: DBPost }) {
 
         {/* Content */}
         <div className="px-5 pb-3">
-          {isShortText || (isTextOnly && hasCustomBackground) ? (
+          {hasCustomBackground && selectedBackground ? (
             <div className={cn('-mx-5 px-8 py-12 text-white flex flex-col justify-center items-center text-center min-h-[220px]', selectedBackground.className)}>
               {currentTitle && currentTitle !== 'Post' && !currentBody.startsWith(currentTitle) && (
                 <h1 className="text-[18px] font-black leading-snug mb-3 drop-shadow">{currentTitle}</h1>
@@ -388,11 +394,15 @@ export default function PostDetailClient({ post }: { post: DBPost }) {
                         title={bg.label}
                         onClick={() => setEditBackground(bg.id)}
                         className={cn(
-                          'w-7 h-7 rounded-full bg-gradient-to-br ring-offset-2 transition-transform hover:scale-110',
-                          bg.className,
+                          'w-7 h-7 rounded-full transition-transform hover:scale-110 flex items-center justify-center text-[10px] font-black',
+                          bg.id === 'none'
+                            ? 'bg-white border-2 border-slate-300 text-slate-500'
+                            : cn('bg-gradient-to-br ring-offset-2', bg.className),
                           editBackground === bg.id ? 'ring-2 ring-teal-700 scale-110' : 'ring-1 ring-slate-200'
                         )}
-                      />
+                      >
+                        {bg.id === 'none' ? '✕' : null}
+                      </button>
                     ))}
                   </div>
                 </div>

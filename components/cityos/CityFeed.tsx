@@ -315,14 +315,21 @@ function PostCard({ post, follows, onFollowToggle, onDelete, isGuest, onRequireA
     }
   };
 
-  const autoBackgrounds = ['auto', 'sunset', 'citrus', 'meadow', 'ocean', 'violet'] as const;
-  const autoBackground = autoBackgrounds[(post.id.charCodeAt(post.id.length - 1) || 0) % autoBackgrounds.length];
-  const selectedBackground = currentBackground && currentBackground !== 'auto'
-    ? getPostBackground(currentBackground)
-    : getPostBackground(autoBackground);
-  const isShortText = !post.reviewCard && !post.image && !post.videoUrl && currentBody.length < 130;
+
+
+  const selectedBackground = (currentBackground && currentBackground !== 'auto' && currentBackground !== 'none') ? getPostBackground(currentBackground) : null;
+
+
+
   const isTextOnly = !post.reviewCard && !post.image && !post.videoUrl;
-  const hasCustomBackground = !post.reviewCard && currentBackground && currentBackground !== 'auto';
+  const hasCustomBackground = Boolean(
+    !post.reviewCard &&
+    !post.image &&
+    !post.videoUrl &&
+    currentBackground &&
+    currentBackground !== 'auto' &&
+    currentBackground !== 'none'
+  );
 
   const inner = (
     <div className="flex flex-col bg-white border-b border-slate-100 last:border-b-0 pb-2 mb-2 hover:bg-slate-50/30 transition-colors">
@@ -538,7 +545,7 @@ function PostCard({ post, follows, onFollowToggle, onDelete, isGuest, onRequireA
               </div>
             )}
           </div>
-        ) : isShortText || (isTextOnly && hasCustomBackground) ? (
+        ) : (hasCustomBackground && selectedBackground) ? (
           <div className={cn('mt-1 -mx-5 px-8 py-10 text-white flex flex-col justify-center items-center text-center min-h-[180px]', selectedBackground.className)}>
             {currentTitle && currentTitle !== 'Post' && !currentBody.startsWith(currentTitle) && (
               <h3 className="text-[16px] font-black leading-snug mb-2 drop-shadow">{currentTitle}</h3>
@@ -700,11 +707,15 @@ function PostCard({ post, follows, onFollowToggle, onDelete, isGuest, onRequireA
                         title={bg.label}
                         onClick={() => setEditBackground(bg.id)}
                         className={cn(
-                          'w-7 h-7 rounded-full bg-gradient-to-br ring-offset-2 transition-transform hover:scale-110',
-                          bg.className,
+                          'w-7 h-7 rounded-full transition-transform hover:scale-110 flex items-center justify-center text-[10px] font-black',
+                          bg.id === 'none'
+                            ? 'bg-white border-2 border-slate-300 text-slate-500'
+                            : cn('bg-gradient-to-br ring-offset-2', bg.className),
                           editBackground === bg.id ? 'ring-2 ring-teal-700 scale-110' : 'ring-1 ring-slate-200'
                         )}
-                      />
+                      >
+                        {bg.id === 'none' ? '✕' : null}
+                      </button>
                     ))}
                   </div>
                 </div>

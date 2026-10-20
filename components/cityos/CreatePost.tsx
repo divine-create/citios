@@ -86,7 +86,7 @@ export default function CreatePost() {
 
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
-  const [postBackground, setPostBackground] = useState<PostBackgroundId>('auto');
+  const [postBackground, setPostBackground] = useState<PostBackgroundId>('none');
 
   // Media
   const [imageUrl, setImageUrl] = useState('');
@@ -106,7 +106,7 @@ export default function CreatePost() {
   const [showEventDateInput, setShowEventDateInput] = useState(false);
   const [showPhoneInput, setShowPhoneInput] = useState(false);
   const [showVideoInput, setShowVideoInput] = useState(false);
-  const [showBackgroundPicker, setShowBackgroundPicker] = useState(false);
+
 
   const [publishing, setPublishing] = useState(false);
   const [published, setPublished] = useState(false);
@@ -231,11 +231,16 @@ export default function CreatePost() {
     : `Resident Account`;
 
   const needsTitle = category !== 'Update';
-  const canPublish =
-    body.trim().length > 2 &&
-    (!needsTitle || title.trim().length > 2) &&
-    (category !== 'Event' || Boolean(eventDate)) &&
-    !publishing;
+  const hasMinBody = body.trim().length > 2;
+  const hasEventDate = category !== 'Event' || Boolean(eventDate);
+  const canPublish = hasMinBody && hasEventDate && !publishing;
+
+  const publishDisabledReason = (() => {
+    if (!hasMinBody) return 'Write at least 3 characters';
+    if (category === 'Event' && !eventDate) return 'Select event date';
+    if (publishing) return 'Publishing...';
+    return null;
+  })();
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -249,7 +254,7 @@ export default function CreatePost() {
     setPublishError(null);
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
-    setShowBackgroundPicker(false);
+    setPostBackground('none');
   };
 
   const clearImage = () => {
@@ -283,7 +288,7 @@ export default function CreatePost() {
       }
 
       await createPost({
-        title: needsTitle
+        title: title.trim()
           ? title.trim()
           : (body.trim().length > 50 ? body.trim().slice(0, 50) + '...' : body.trim()),
         body: body.trim(),
@@ -294,7 +299,7 @@ export default function CreatePost() {
         location: location.trim() || undefined,
         price: price ? parseFloat(price) : undefined,
         phone: phone.trim() || undefined,
-        postBackground: (imagePreview || finalImageUrl) ? undefined : postBackground,
+        postBackground: (imagePreview || finalImageUrl || postBackground === 'none' || postBackground === 'auto') ? undefined : postBackground,
         organizationId: selectedOrgId || undefined,
       });
 
@@ -359,6 +364,7 @@ export default function CreatePost() {
 
   const activeName = session.user.name || 'Resident';
   const activeInitials = activeName?.slice(0, 1) || 'U';
+  const hasActiveTheme = category === 'Update' && !imagePreview && !imageUrl && postBackground !== 'none' && postBackground !== 'auto';
   const activeBackground = POST_BACKGROUNDS.find((b) => b.id === postBackground) || POST_BACKGROUNDS[0];
 
   // Quick neighborhood suggestions for Calabar / current city
@@ -715,7 +721,7 @@ export default function CreatePost() {
               </div>
 
               {/* Body Content with Gradient Support */}
-              {category === 'Update' && !imagePreview && !imageUrl && postBackground !== 'auto' ? (
+              {hasActiveTheme ? (
                 <div className={cn('px-6 py-8 text-white text-center font-bold', activeBackground.className)}>
                   {title && <h3 className="text-base font-black mb-1 drop-shadow">{title}</h3>}
                   <p className="text-xl font-bold leading-snug drop-shadow whitespace-pre-line">
@@ -803,22 +809,39 @@ export default function CreatePost() {
               />
             )}
 
-            {/* Main Body Text Area (Auto-resizing) */}
-            <div className="relative">
+            {/* Main Body Text Area (Auto-resizing & Facebook-Style Gradient Card) */}
+            <div
+              className={cn(
+                'relative transition-all duration-300',
+                hasActiveTheme
+                  ? cn('rounded-2xl p-6 sm:p-8 min-h-[200px] flex flex-col justify-center items-center text-center shadow-inner overflow-hidden', activeBackground.className)
+                  : 'p-0'
+              )}
+            >
               <textarea
                 ref={textareaRef}
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
-                placeholder={getBodyPlaceholder()}
-                rows={4}
-                className="w-full bg-transparent text-[14px] text-slate-800 placeholder:text-slate-400 outline-none resize-none leading-relaxed"
+                placeholder={hasActiveTheme ? "What's on your mind?..." : getBodyPlaceholder()}
+                rows={hasActiveTheme ? 3 : 4}
+                className={cn(
+                  'w-full bg-transparent outline-none resize-none leading-relaxed transition-all',
+                  hasActiveTheme
+                    ? 'text-white placeholder:text-white/70 font-black text-xl sm:text-2xl text-center drop-shadow'
+                    : 'text-[14px] text-slate-800 placeholder:text-slate-400 font-medium'
+                )}
               />
 
               {/* Character Progress Ring Indicator */}
-              <div className="absolute right-1 bottom-1 flex items-center gap-1.5 text-[10px] font-bold text-slate-400 select-none pointer-events-none">
+              <div
+                className={cn(
+                  'absolute right-2 bottom-2 flex items-center gap-1.5 text-[10px] font-bold select-none pointer-events-none',
+                  hasActiveTheme ? 'text-white/80' : 'text-slate-400'
+                )}
+              >
                 <svg className="w-4 h-4 -rotate-90" viewBox="0 0 36 36">
                   <path
-                    className="text-slate-200"
+                    className={hasActiveTheme ? 'text-white/30' : 'text-slate-200'}
                     strokeWidth="3.5"
                     stroke="currentColor"
                     fill="none"
@@ -826,7 +849,11 @@ export default function CreatePost() {
                   />
                   <path
                     className={cn(
-                      charCount > 800 ? 'text-amber-500' : 'text-teal-600',
+                      hasActiveTheme
+                        ? 'text-white'
+                        : charCount > 800
+                        ? 'text-amber-500'
+                        : 'text-teal-600',
                       charCount >= maxCharLimit && 'text-red-500'
                     )}
                     strokeDasharray={`${charPercent}, 100`}
@@ -841,23 +868,44 @@ export default function CreatePost() {
               </div>
             </div>
 
-            {/* Gradient Card Style Selector */}
-            {category === 'Update' && !imagePreview && !imageUrl && showBackgroundPicker && (
-              <div className="pt-2 pb-3 border-t border-slate-100 flex items-center gap-3 animate-in fade-in">
-                <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Card Theme</span>
+            {/* Hint if background text is getting long */}
+            {hasActiveTheme && charCount > 130 && (
+              <p className="text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200/60 rounded-xl px-3 py-1.5 flex items-center gap-1.5 animate-in fade-in">
+                <span>💡</span>
+                <span>Background cards look best with shorter messages under 130 characters.</span>
+              </p>
+            )}
+
+            {/* Facebook-style Card Theme Selector */}
+            {category === 'Update' && !imagePreview && !imageUrl && (
+              <div className="pt-2 pb-2 border-t border-slate-100 flex items-center gap-3 overflow-x-auto no-scrollbar animate-in fade-in">
+                <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider shrink-0">
+                  Card Theme
+                </span>
                 <div className="flex items-center gap-2">
                   {POST_BACKGROUNDS.map((bg) => (
                     <button
                       key={bg.id}
                       type="button"
-                      title={bg.label}
-                      onClick={() => setPostBackground(bg.id)}
+                      title={bg.id === 'none' ? 'Plain text (No background)' : bg.label}
+                      onClick={() => {
+                        setPostBackground(bg.id);
+                        if (bg.id !== 'none') {
+                          clearImage();
+                        }
+                      }}
                       className={cn(
-                        'w-6 h-6 rounded-full bg-gradient-to-br transition-transform hover:scale-110',
-                        bg.className,
-                        postBackground === bg.id ? 'ring-2 ring-teal-700 scale-110' : 'ring-1 ring-slate-200'
+                        'w-7 h-7 rounded-full transition-transform hover:scale-110 flex items-center justify-center text-[10px] font-black shrink-0',
+                        bg.id === 'none'
+                          ? 'bg-white border-2 border-slate-300 text-slate-400 hover:border-slate-500 hover:text-slate-600'
+                          : cn('bg-gradient-to-br ring-offset-2', bg.className),
+                        postBackground === bg.id
+                          ? 'ring-2 ring-teal-700 scale-110 shadow-sm'
+                          : 'ring-1 ring-slate-200'
                       )}
-                    />
+                    >
+                      {bg.id === 'none' ? '✕' : null}
+                    </button>
                   ))}
                 </div>
               </div>
@@ -1176,12 +1224,18 @@ export default function CreatePost() {
             {category === 'Update' && !imagePreview && (
               <button
                 type="button"
-                onClick={() => setShowBackgroundPicker((v) => !v)}
+                onClick={() => {
+                  if (postBackground === 'none') {
+                    setPostBackground('sunset');
+                  } else {
+                    setPostBackground('none');
+                  }
+                }}
                 className={cn(
                   'p-2 rounded-xl text-slate-600 hover:text-teal-700 hover:bg-slate-200/60 transition-colors',
-                  showBackgroundPicker && 'text-teal-700 bg-teal-100/60'
+                  hasActiveTheme && 'text-teal-700 bg-teal-100/60'
                 )}
-                title="Change card theme"
+                title={hasActiveTheme ? 'Remove card theme' : 'Add card theme'}
               >
                 <Palette className="w-5 h-5" />
               </button>
@@ -1200,11 +1254,17 @@ export default function CreatePost() {
             </button>
           </div>
 
-          {/* Right Action: Keyboard Hint + Publish Button */}
-          <div className="flex items-center gap-3 ml-auto shrink-0">
-            <span className="hidden md:inline-flex text-[11px] font-bold text-slate-400">
-              ⌘ + Enter
-            </span>
+          {/* Right Action: Helper Hint + Publish Button */}
+          <div className="flex items-center gap-2.5 ml-auto shrink-0">
+            {publishDisabledReason ? (
+              <span className="text-[11px] font-bold text-slate-400">
+                {publishDisabledReason}
+              </span>
+            ) : (
+              <span className="hidden md:inline-flex text-[11px] font-bold text-slate-400">
+                ⌘ + Enter
+              </span>
+            )}
 
             <button
               type="button"
