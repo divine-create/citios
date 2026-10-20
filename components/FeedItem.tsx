@@ -4,6 +4,7 @@ import Image from 'next/image';
 import React from 'react';
 
 import Link from 'next/link';
+import { FallbackImg, getTwoLetterInitials, getAvatarGradient } from '@/components/cityos/CityUI';
 export interface FeedItemProps {
     authorId?: string;
     isOrg?: boolean;
@@ -48,9 +49,13 @@ export default function FeedItem({
                 {/* Header */}
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${avatarColor}`}>
-                            {avatarIcon || avatarInitials}
-                        </div>
+                        <FallbackImg
+                            src={avatarImg}
+                            alt={author}
+                            className="w-10 h-10 rounded-full object-cover border border-slate-100"
+                            icon={<span className="text-white font-black text-xs select-none">{avatarIcon || avatarInitials || getTwoLetterInitials(author)}</span>}
+                            gradient={getAvatarGradient(author)}
+                        />
                         <div>
                             <p className="font-bold text-sm text-slate-900">{author}</p>
                             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{time} • {category}</p>

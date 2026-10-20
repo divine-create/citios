@@ -8,7 +8,7 @@ import { Heart, MessageSquare, Share2, ChevronRight, UserPlus, UserCheck, Loader
 const TABS = ['For You', 'Following'] as const;
 const TOPICS = ['All', 'Food', 'Marketplace', 'Services', 'Events', 'Stays', 'Jobs', 'Reviews', 'Community'];
 
-import { FallbackImg, Pill, VerifiedBadge } from '@/components/cityos/CityUI';
+import { FallbackImg, Pill, VerifiedBadge, getTwoLetterInitials, getAvatarGradient } from '@/components/cityos/CityUI';
 import { YelpStarRow } from '@/components/cityos/BusinessReviewsSection';
 import { RATING_LABELS } from '@/lib/reviews';
 import InlineComments from '@/components/InlineComments';
@@ -339,9 +339,9 @@ function PostCard({ post, follows, onFollowToggle, onDelete, isGuest, onRequireA
           <FallbackImg
             src={post.avatarImg}
             alt={post.author}
-            className="w-11 h-11 rounded-full object-cover border border-slate-100 bg-white"
-            icon={<span className="text-white font-black text-sm">{post.author.slice(0, 1)}</span>}
-            gradient="from-teal-400 to-teal-600"
+            className="w-11 h-11 rounded-full object-cover border border-slate-100"
+            icon={<span className="text-white font-black text-xs tracking-wider select-none">{getTwoLetterInitials(post.author)}</span>}
+            gradient={getAvatarGradient(post.author)}
           />
         </div>
         <div className="min-w-0 flex-1">

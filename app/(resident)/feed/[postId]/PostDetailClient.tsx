@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { ArrowLeft, Heart, MessageSquare, Share2, MoreHorizontal, Edit3, Trash2, X, Loader2 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import LoginModal from '@/components/LoginModal';
-import { VerifiedBadge, Pill, FallbackImg } from '@/components/cityos/CityUI';
+import { VerifiedBadge, Pill, FallbackImg, getTwoLetterInitials, getAvatarGradient } from '@/components/cityos/CityUI';
 import InlineComments from '@/components/InlineComments';
 import { cn } from '@/lib/utils';
 import { reactToPost, togglePostLike, deletePost, updatePost, type ReactionType } from '@/app/actions/newsfeed';
@@ -177,9 +177,9 @@ export default function PostDetailClient({ post }: { post: DBPost }) {
             <FallbackImg
               src={post.avatarImg}
               alt={post.author}
-              className="w-12 h-12 rounded-full object-cover border border-slate-100 bg-white"
-              icon={<span className="text-white font-black">{post.author.slice(0, 1)}</span>}
-              gradient="from-teal-400 to-teal-600"
+              className="w-12 h-12 rounded-full object-cover border border-slate-100"
+              icon={<span className="text-white font-black text-xs tracking-wider select-none">{getTwoLetterInitials(post.author)}</span>}
+              gradient={getAvatarGradient(post.author)}
             />
           </Link>
           <div className="flex-1 min-w-0">

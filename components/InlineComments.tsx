@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { getPostDetails, addComment } from '@/lib/actions/post';
 import { Send, Loader2, X, LogIn } from 'lucide-react';
+import { getTwoLetterInitials, getAvatarGradient } from '@/components/cityos/CityUI';
 import LoginModal from './LoginModal';
 
 export default function InlineComments({ postId, onCommentAdded }: { postId: string, onCommentAdded?: () => void }) {
@@ -81,11 +82,11 @@ export default function InlineComments({ postId, onCommentAdded }: { postId: str
 
     const renderComment = (comment: any, isReply = false) => (
         <div key={comment.id} className="flex gap-2">
-            <div className="w-8 h-8 rounded-full bg-slate-200 shrink-0 flex items-center justify-center font-bold text-[11px] text-slate-600 overflow-hidden border border-slate-100">
+            <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center font-bold text-[10px] overflow-hidden border border-slate-100 ${comment.user?.avatarUrl ? 'bg-slate-200' : `text-white bg-gradient-to-br ${getAvatarGradient(comment.user?.name || 'Resident')}`}`}>
                 {comment.user?.avatarUrl ? (
                     <img src={comment.user.avatarUrl} alt={comment.user?.name || 'Resident'} className="w-full h-full object-cover" />
                 ) : (
-                    comment.user?.name?.charAt(0) || 'U'
+                    getTwoLetterInitials(comment.user?.name || 'Resident')
                 )}
             </div>
             <div className="flex flex-col w-full">
@@ -137,11 +138,11 @@ export default function InlineComments({ postId, onCommentAdded }: { postId: str
             {/* Input */}
             <div className={`flex gap-2 items-center ${replyingTo ? 'border border-slate-100 p-2 rounded-b-xl rounded-tr-xl bg-white shadow-sm' : ''}`}>
                 {!replyingTo && (
-                    <div className="w-8 h-8 rounded-full bg-slate-200 shrink-0 flex items-center justify-center font-bold text-[11px] text-slate-600 overflow-hidden border border-slate-100">
+                    <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center font-bold text-[10px] overflow-hidden border border-slate-100 ${session?.user?.image ? 'bg-slate-200' : `text-white bg-gradient-to-br ${getAvatarGradient(session?.user?.name || 'Me')}`}`}>
                         {session?.user?.image ? (
                             <img src={session.user.image} alt={session.user.name || 'Me'} className="w-full h-full object-cover" />
                         ) : (
-                            session?.user?.name?.charAt(0) || 'Me'
+                            getTwoLetterInitials(session?.user?.name || 'Me')
                         )}
                     </div>
                 )}
