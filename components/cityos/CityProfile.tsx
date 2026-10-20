@@ -7,7 +7,7 @@ import { useMoney } from '@/components/cityos/CityProvider';
 
 // Client wallet display top-up (fictional until the server ledger is wired).
 const TOP_UP_AMOUNT = 50000;
-import { Pill, Money, ChipButton } from '@/components/cityos/CityUI';
+import { Pill, Money, ChipButton, getTwoLetterInitials } from '@/components/cityos/CityUI';
 import { useWallet } from '@/components/cityos/WalletStore';
 import { useExperience } from '@/components/cityos/ExperienceStore';
 
@@ -40,8 +40,19 @@ export default function CityProfile({ citypayEnabled = false }: { citypayEnabled
       .catch(console.error);
 
     fetchMyOrders()
-      .then((orders: any) => { setRealOrders(orders); setOrdersError(false); })
-      .catch((err: any) => { console.error(err); setOrdersError(true); });
+      .then((orders: any) => {
+        if (Array.isArray(orders)) {
+          setRealOrders(orders);
+        } else {
+          setRealOrders([]);
+        }
+        setOrdersError(false);
+      })
+      .catch((err: any) => {
+        console.error(err);
+        setRealOrders([]);
+        setOrdersError(true);
+      });
   }, []);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -92,9 +103,10 @@ export default function CityProfile({ citypayEnabled = false }: { citypayEnabled
   );
 
   const displayAvatar = userProfile?.avatarUrl || userProfile?.image;
-  const initials = userProfile?.firstName
-    ? `${userProfile.firstName.charAt(0)}${userProfile.lastName?.charAt(0) || ''}`.toUpperCase()
-    : 'ME';
+  const initials = getTwoLetterInitials(
+    userProfile?.name ||
+    (userProfile?.firstName ? `${userProfile.firstName} ${userProfile.lastName || ''}`.trim() : 'ME')
+  );
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-500">
@@ -214,7 +226,7 @@ export default function CityProfile({ citypayEnabled = false }: { citypayEnabled
             <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center">
               <p className="text-[13px] font-black text-slate-500 animate-pulse">Loading orders...</p>
             </div>
-          ) : realOrders.length === 0 ? (
+          ) : !Array.isArray(realOrders) || realOrders.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center">
               <p className="text-[13px] font-black text-ink">No orders yet</p>
               <p className="text-[11px] text-slate-400 font-medium mt-1 mb-3">
@@ -226,25 +238,34 @@ export default function CityProfile({ citypayEnabled = false }: { citypayEnabled
             </div>
           ) : (
             <>
-              {realOrders.map((o) => (
-                <div key={o.id ?? o.ref} className="bg-white rounded-2xl border border-slate-100 p-4 flex items-center gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-[14px] font-black text-ink truncate">{o.merchant}</p>
-                      <Pill tone={o.status === 'enroute' ? 'orange' : 'green'} className="shrink-0">
-                        {o.status === 'enroute' ? 'En route' : o.status === 'packing' ? 'Packing' : o.status === 'paid' ? 'Paid' : 'Delivered'}
-                      </Pill>
+              {realOrders.map((o: any) => {
+                const merchantName = o.merchant || o.organization?.name || o.org?.name || 'Local Store';
+                const ref = o.ref || (o.id ? `#${o.id.slice(0, 8).toUpperCase()}` : '#ORDER');
+                const itemCount = Array.isArray(o.items) ? o.items.length : (typeof o.items === 'number' || typeof o.items === 'string' ? o.items : 1);
+                const orderTime = o.time || (o.createdAt ? new Date(o.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' }) : 'Recently');
+                const totalVal = typeof o.total === 'number' ? o.total : typeof o.totalAmount === 'number' ? o.totalAmount : 0;
+                const statusLabel = o.status === 'enroute' ? 'En route' : o.status === 'packing' ? 'Packing' : o.status === 'paid' || o.status === 'completed' || o.status === 'COMPLETED' ? 'Paid' : 'Delivered';
+
+                return (
+                  <div key={o.id ?? o.ref} className="bg-white rounded-2xl border border-slate-100 p-4 flex items-center gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-[14px] font-black text-ink truncate">{merchantName}</p>
+                        <Pill tone={o.status === 'enroute' ? 'orange' : 'green'} className="shrink-0">
+                          {statusLabel}
+                        </Pill>
+                      </div>
+                      <p className="text-[11px] font-bold text-slate-400 mt-0.5">{`${ref} · ${itemCount} ${itemCount === 1 ? 'item' : 'items'} · ${orderTime}`}</p>
                     </div>
-                    <p className="text-[11px] font-bold text-slate-400 mt-0.5">{`${o.ref} · ${Array.isArray(o.items) ? o.items.length : o.items} · ${o.time}`}</p>
+                    <div className="text-right shrink-0">
+                      <p className="text-[15px] font-black text-ink">{fmt(totalVal)}</p>
+                      {o.status === 'enroute' ? (
+                        <Link href="/drive/delivery" className="text-[10px] font-bold text-teal-800 hover:underline">Track ▲</Link>
+                      ) : null}
+                    </div>
                   </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-[15px] font-black text-ink">{fmt(o.total)}</p>
-                    {o.status === 'enroute' ? (
-                      <Link href="/drive/delivery" className="text-[10px] font-bold text-teal-800 hover:underline">Track ▲</Link>
-                    ) : null}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
               <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center">
                 <p className="text-[13px] font-black text-ink">Start another order</p>
                 <p className="text-[11px] text-slate-400 font-medium mt-1 mb-3">

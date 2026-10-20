@@ -633,7 +633,7 @@ export async function getCityMartProduct(productId: string) {
 export async function fetchMyOrders() {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.personId) return { error: 'Unauthorized' };
+    if (!session?.user?.personId) return [];
     const customerIds = await resolveResidentCustomerIds(session.user.personId);
     if (customerIds.length === 0) return [];
     const orders = await db.orm.public.RetailOrder
