@@ -178,12 +178,33 @@ export async function toggleJobApplication(jobId: string) {
 export async function getCanonicalEvent(id: string) {
   const event = await db.orm.public.Event.where({ id }).include('organization', o => o.select('name', 'id', 'logoAssetId')).first();
   if (!event) return null;
-  const tiers = await db.orm.public.EventTicketTier.where({ eventId: id }).all();
+  const [tiers, allRegs, allTickets] = await Promise.all([
+    db.orm.public.EventTicketTier.where({ eventId: id }).all(),
+    db.orm.public.EventRegistration.where({ eventId: id }).all(),
+    db.orm.public.Ticket.where({ eventId: id }).all(),
+  ]);
+  const regCount = allRegs.filter((r: any) => r.status === 'REGISTERED' || r.status === 'CHECKED_IN').length;
+  const ticketCount = allTickets.filter((t: any) => t.status === 'VALID' || t.status === 'SCANNED').length;
+
+  let userRegistration: any = null;
+  let userTicket: any = null;
+  try {
+    const session = await getServerSession(authOptions);
+    if (session?.user?.personId) {
+      userRegistration = await db.orm.public.EventRegistration.where({ eventId: id, personId: session.user.personId }).first();
+      const userTickets = await db.orm.public.Ticket.where({ eventId: id, personId: session.user.personId }).all();
+      userTicket = userTickets.find((t: any) => t.status !== 'REFUNDED') || null;
+    }
+  } catch {}
+
   return JSON.parse(JSON.stringify({
     ...event,
     date: event.date ? event.date.toString() : new Date().toISOString(),
     createdAt: event.createdAt ? event.createdAt.toString() : null,
     ticketTiers: tiers,
+    soldCount: regCount + ticketCount,
+    userRegistration,
+    userTicket,
   }));
 }
 

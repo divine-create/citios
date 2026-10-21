@@ -19,6 +19,10 @@ import {
   Ticket,
   Megaphone,
   ExternalLink,
+  ShieldCheck,
+  Plus,
+  Trash2,
+  HelpCircle,
 } from 'lucide-react';
 import { useAccountSwitcher } from '@/components/cityos/AccountSwitcherContext';
 import { useCity } from '@/components/cityos/CityProvider';
@@ -28,6 +32,8 @@ import {
   DEFAULT_EVENT_PLACEHOLDER_IMAGE,
   EVENT_CATEGORIES,
   type EventCategory,
+  type EventCustomQuestion,
+  type CustomFieldType,
 } from '@/lib/event-utils';
 import LoginModal from '@/components/LoginModal';
 
@@ -55,6 +61,18 @@ export default function CreateEventForm() {
   const [imageUrl, setImageUrl] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
   const [shareToFeed, setShareToFeed] = useState(true);
+
+  // Luma-style settings & questions
+  const [requireApproval, setRequireApproval] = useState(false);
+  const [customConfirmationNote, setCustomConfirmationNote] = useState('');
+  const [questions, setQuestions] = useState<EventCustomQuestion[]>([]);
+
+  // Local helper state for building questions
+  const [isAddingQuestion, setIsAddingQuestion] = useState(false);
+  const [newQuestionLabel, setNewQuestionLabel] = useState('');
+  const [newQuestionType, setNewQuestionType] = useState<CustomFieldType>('text');
+  const [newQuestionRequired, setNewQuestionRequired] = useState(false);
+  const [newQuestionOptions, setNewQuestionOptions] = useState('');
 
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -96,6 +114,36 @@ export default function CreateEventForm() {
     }
   };
 
+  const handleAddQuestion = () => {
+    if (!newQuestionLabel.trim()) return;
+    const parsedOptions =
+      newQuestionType === 'select'
+        ? newQuestionOptions
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : undefined;
+
+    const newQ: EventCustomQuestion = {
+      id: `q_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      label: newQuestionLabel.trim(),
+      type: newQuestionType,
+      required: newQuestionRequired,
+      options: parsedOptions && parsedOptions.length > 0 ? parsedOptions : undefined,
+    };
+
+    setQuestions((prev) => [...prev, newQ]);
+    setNewQuestionLabel('');
+    setNewQuestionType('text');
+    setNewQuestionRequired(false);
+    setNewQuestionOptions('');
+    setIsAddingQuestion(false);
+  };
+
+  const handleRemoveQuestion = (id: string) => {
+    setQuestions((prev) => prev.filter((q) => q.id !== id));
+  };
+
   const selectedBusiness = myBusinesses.find((b) => b.id === selectedHost);
   const hostDisplayName =
     selectedHost === 'PERSONAL'
@@ -132,6 +180,11 @@ export default function CreateEventForm() {
         eventUrl: eventUrl.trim() || undefined,
         shareToFeed,
         citySlug: city?.slug,
+        settings: {
+          requireApproval,
+          customConfirmationNote: customConfirmationNote.trim() || undefined,
+          questions: questions.length > 0 ? questions : undefined,
+        },
       });
 
       if (res?.error) {
@@ -499,7 +552,204 @@ export default function CreateEventForm() {
             />
           </div>
 
-          {/* 7. Auto-Share to City Newsfeed */}
+          {/* 7. Registration Settings & Guest Form (Luma-Style Tools) */}
+          <div className="space-y-4 pt-3 border-t border-slate-100">
+            <div>
+              <div className="flex items-center justify-between">
+                <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500">
+                  7. Registration Settings & Guest Form
+                </label>
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200">
+                  Luma-Style Tools
+                </span>
+              </div>
+              <p className="text-[11px] font-medium text-slate-500 mt-1">
+                Customize admissions workflow, collect attendee details, and curate your guest list.
+              </p>
+            </div>
+
+            {/* Require Host Approval Toggle */}
+            <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-1.5 text-xs font-black text-slate-900">
+                  <ShieldCheck className="w-4 h-4 text-teal-700" />
+                  Require Host Approval (Curated Guest List)
+                </div>
+                <p className="text-[11px] font-medium text-slate-600 leading-relaxed">
+                  Attendees will request an RSVP. You will review and approve guests before their boarding pass & ticket are issued.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRequireApproval(!requireApproval)}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  requireApproval ? 'bg-teal-700' : 'bg-slate-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                    requireApproval ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Custom Gate Instructions / Confirmation Note */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                Gate Instructions / Confirmation Note (Shown on Ticket)
+              </label>
+              <textarea
+                rows={2}
+                value={customConfirmationNote}
+                onChange={(e) => setCustomConfirmationNote(e.target.value)}
+                placeholder="e.g. Enter through Gate 2, mention guestlist at security, dress code is All Black..."
+                className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-600"
+              />
+            </div>
+
+            {/* Custom Questions List & Builder */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="block text-[11px] font-bold text-slate-700">
+                  Custom Registration Questions ({questions.length})
+                </label>
+                {!isAddingQuestion && (
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingQuestion(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-teal-200 bg-teal-50 text-teal-800 text-xs font-black hover:bg-teal-100 transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Add Question
+                  </button>
+                )}
+              </div>
+
+              {/* Questions List */}
+              {questions.length > 0 && (
+                <div className="space-y-2">
+                  {questions.map((q, idx) => (
+                    <div
+                      key={q.id}
+                      className="flex items-center justify-between p-3 rounded-xl border border-slate-200 bg-white shadow-xs"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="w-6 h-6 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center text-[10px] font-black shrink-0">
+                          {idx + 1}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-900 truncate">{q.label}</p>
+                          <div className="flex items-center gap-2 text-[10px] font-semibold text-slate-500 mt-0.5">
+                            <span className="capitalize">{q.type}</span>
+                            {q.required && <span className="text-rose-600 font-bold">• Required</span>}
+                            {q.options && <span>• {q.options.length} options</span>}
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveQuestion(q.id)}
+                        className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Add Question Subform */}
+              {isAddingQuestion && (
+                <div className="p-4 rounded-2xl border-2 border-dashed border-teal-300 bg-teal-50/40 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-teal-900">New Registration Question</span>
+                    <button
+                      type="button"
+                      onClick={() => setIsAddingQuestion(false)}
+                      className="text-slate-400 hover:text-slate-700 text-xs font-bold"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
+                        Question Label *
+                      </label>
+                      <input
+                        type="text"
+                        value={newQuestionLabel}
+                        onChange={(e) => setNewQuestionLabel(e.target.value)}
+                        placeholder="e.g. What company or project are you working on?"
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-teal-600"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
+                          Response Type
+                        </label>
+                        <select
+                          value={newQuestionType}
+                          onChange={(e) => setNewQuestionType(e.target.value as CustomFieldType)}
+                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-teal-600"
+                        >
+                          <option value="text">Short Text</option>
+                          <option value="textarea">Long Text / Paragraph</option>
+                          <option value="select">Dropdown Choices</option>
+                          <option value="checkbox">Yes / No Confirmation</option>
+                          <option value="social">Social Handle / Link</option>
+                        </select>
+                      </div>
+
+                      <div className="flex items-center pt-5">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={newQuestionRequired}
+                            onChange={(e) => setNewQuestionRequired(e.target.checked)}
+                            className="rounded border-slate-300 text-teal-700 focus:ring-teal-600"
+                          />
+                          <span className="text-xs font-bold text-slate-700">Required question</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    {newQuestionType === 'select' && (
+                      <div>
+                        <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">
+                          Options (comma-separated)
+                        </label>
+                        <input
+                          type="text"
+                          value={newQuestionOptions}
+                          onChange={(e) => setNewQuestionOptions(e.target.value)}
+                          placeholder="e.g. Founder, Developer, Designer, Student, Investor"
+                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-teal-600"
+                        />
+                      </div>
+                    )}
+
+                    <div className="flex justify-end gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={handleAddQuestion}
+                        disabled={!newQuestionLabel.trim()}
+                        className="px-4 py-2 rounded-xl bg-teal-800 text-white text-xs font-black hover:bg-teal-900 disabled:opacity-50 shadow-sm"
+                      >
+                        Add to Form
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 8. Auto-Share to City Newsfeed */}
           <label className="flex items-start gap-3 p-4 rounded-2xl bg-teal-50/70 border border-teal-200/80 cursor-pointer">
             <input
               type="checkbox"
@@ -593,6 +843,13 @@ export default function CreateEventForm() {
                     <span className="truncate">{location.trim() || cityName}</span>
                   </span>
                 </div>
+
+                {requireApproval && (
+                  <div className="pt-2 flex items-center gap-1.5 text-[10px] font-bold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg">
+                    <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
+                    Host approval required for admission
+                  </div>
+                )}
 
                 {eventUrl.trim() && (
                   <div className="pt-2">
