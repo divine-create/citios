@@ -201,7 +201,7 @@ export default function OutletPOS({
                 }`}
               >
                 <p className="font-semibold">{order.tabName}</p>
-                <p className="text-xs text-gray-400">${order.totalAmount.toFixed(2)}</p>
+                <p className="text-xs text-gray-400">₦{order.totalAmount.toLocaleString()}</p>
               </button>
             ))}
           </div>
@@ -227,7 +227,7 @@ export default function OutletPOS({
                     >
                       <p className="font-semibold text-gray-900 text-sm">{item.name}</p>
                       <p className="text-xs text-gray-400 mb-1">{item.category}</p>
-                      <p className="font-bold text-blue-700">${item.price.toFixed(2)}</p>
+                      <p className="font-bold text-blue-700">₦{item.price.toLocaleString()}</p>
                     </button>
                   ))}
                 </div>
@@ -251,14 +251,14 @@ export default function OutletPOS({
                       <span className="text-gray-700">
                         {line.quantity}× {line.item?.name}
                       </span>
-                      <span className="text-gray-500">${((line.item?.price ?? 0) * line.quantity).toFixed(2)}</span>
+                      <span className="text-gray-500">₦{((line.item?.price ?? 0) * line.quantity).toLocaleString()}</span>
                     </div>
                   ))}
                 </div>
 
                 <div className="border-t border-gray-100 pt-3 flex items-center justify-between mb-4">
                   <span className="font-bold text-gray-900">Total</span>
-                  <span className="font-bold text-lg text-gray-900">${selectedOrder.totalAmount.toFixed(2)}</span>
+                  <span className="font-bold text-lg text-gray-900">₦{selectedOrder.totalAmount.toLocaleString()}</span>
                 </div>
 
                 <div className="space-y-2">

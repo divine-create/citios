@@ -115,7 +115,7 @@ export default function ProfileView({ initialData }: { initialData: any }) {
                                         <CreditCard className="w-5 h-5 text-teal-300" />
                                         <h3 className="font-bold text-teal-100 uppercase tracking-widest text-sm">CityWallet Balance</h3>
                                     </div>
-                                    <p className="text-5xl font-black tracking-tighter mt-2">${wallet.balance.toFixed(2)}</p>
+                                    <p className="text-5xl font-black tracking-tighter mt-2">₦{Math.round(wallet.balance).toLocaleString()}</p>
                                 </div>
                                 <Badge className="bg-white/20 text-white border-none backdrop-blur-md">Active</Badge>
                             </div>

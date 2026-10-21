@@ -12,7 +12,7 @@ import { StatCard } from "./StatCard";
 // Sales & Returns
 // =====================================================================
 
-export function SalesReturnsTab({ organizationId, locationId, currentUserId, onChanged, symbol = "$", salesShiftFilter, setSalesShiftFilter }: {
+export function SalesReturnsTab({ organizationId, locationId, currentUserId, onChanged, symbol = "₦", salesShiftFilter, setSalesShiftFilter }: {
   organizationId: string; locationId?: string | null; currentUserId: string; onChanged: () => void; symbol?: string; salesShiftFilter?: string | null; setSalesShiftFilter?: (id: string | null) => void;
 }) {
   const [orders, setOrders] = useState<any[]>([]);

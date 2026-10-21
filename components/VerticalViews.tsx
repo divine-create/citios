@@ -38,7 +38,7 @@ export function EventsView({ setView }: any) {
 }
 
 export function RentalsView({ setView }: any) {
-    return <CategoryView setView={setView} title="Properties & Rentals" filters={["Apartments", "Under $2000", "Pet Friendly"]} items={[
+    return <CategoryView setView={setView} title="Properties & Rentals" filters={["Apartments", "Under ₦500,000", "Pet Friendly"]} items={[
         { name: "Oak Ridge Apartments", badge: "Available", badgeVariant: "default", rating: "4.6", dist: "1.5 km", address: "400 Oak Lane", img: "73", tags: ["2 Bed", "Pool", "Gym"], primaryAction: "Schedule Tour", secondaryAction: "Apply" },
         { name: "Downtown Lofts", badge: "Waitlist", badgeVariant: "alert", rating: "4.8", dist: "0.2 km", address: "89 Center Ave", img: "74", tags: ["Studio", "Rooftop"], primaryAction: "Join Waitlist", secondaryAction: "Contact" }
     ]} mapImageId="45" mapWidget={

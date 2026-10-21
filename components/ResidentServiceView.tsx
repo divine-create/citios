@@ -65,7 +65,7 @@ export default function ResidentServiceView({ title, description, orgs, items, i
                                     {item.description && <p className="text-xs text-slate-500 line-clamp-2">{item.description}</p>}
                                 </div>
                                 <div className="mt-4 flex justify-between items-end">
-                                    <span className="font-black text-teal-800">${Number(item.price || 0).toFixed(2)}</span>
+                                    <span className="font-black text-teal-800">₦{Number(item.price || 0).toLocaleString()}</span>
                                     <button onClick={() => setCart([...cart, item])} className="w-6 h-6 rounded-full bg-teal-100 text-teal-800 flex items-center justify-center text-lg font-bold hover:bg-teal-200 transition-colors">
                                         +
                                     </button>

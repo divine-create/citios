@@ -31,7 +31,7 @@ function fileToBase64(file: File): Promise<{ base64: string; mimeType: string }>
   });
 }
 
-export function ExpensesTab({ organizationId, currentUserId, symbol = "$" }: { organizationId: string; currentUserId: string; symbol?: string }) {
+export function ExpensesTab({ organizationId, currentUserId, symbol = "₦" }: { organizationId: string; currentUserId: string; symbol?: string }) {
   const [expenses, setExpenses] = useState<any[]>([]);
   const [summary, setSummary] = useState<{ totalThisMonth: number; countThisMonth: number; totalAllTime: number; byCategory: Record<string, number> } | null>(null);
   const [loading, setLoading] = useState(true);

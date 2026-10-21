@@ -585,14 +585,14 @@ export default function FrontDeskCalendar({ organizationId, initialRooms, initia
                       <div className="p-4 bg-white space-y-2">
                         <div className="flex justify-between items-center text-sm">
                           <span className="text-gray-600">Room charge</span>
-                          <span className="font-medium text-gray-900">${folio.roomCharge.toFixed(2)}</span>
+                          <span className="font-medium text-gray-900">₦{folio.roomCharge.toLocaleString()}</span>
                         </div>
                         {folio.charges.map((c) => (
                           <div key={c.id} className="flex justify-between items-center text-sm">
                             <span className="text-gray-600 flex items-center gap-1">
                               <Receipt size={12} className="text-gray-400" /> {c.description}
                             </span>
-                            <span className="font-medium text-gray-900">${c.amount.toFixed(2)}</span>
+                            <span className="font-medium text-gray-900">₦{c.amount.toLocaleString()}</span>
                           </div>
                         ))}
                         <div className="h-px bg-gray-100 w-full my-2" />

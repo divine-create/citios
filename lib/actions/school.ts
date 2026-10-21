@@ -1873,7 +1873,7 @@ export async function recordFeePayment(input: {
       const paymentRef = input.reference || `MANUAL-${Date.now()}`;
       await tx.orm.public.Payment.create({
          amount: input.amount,
-         currency: wallet?.currency || 'USD',
+         currency: wallet?.currency || 'NGN',
          method: (input.method || 'CASH').toUpperCase(),
          status: 'COMPLETED',
          reference: paymentRef,

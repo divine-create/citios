@@ -29,16 +29,16 @@ export default function HotelAdminView({ initialData }: { initialData?: any }) {
                     <div className="flex-1">
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                             {[
-                                { name: "Signature Cocktail", price: 18.00 },
-                                { name: "Draft Beer", price: 8.00 },
-                                { name: "Glass of Wine", price: 14.00 },
-                                { name: "Tapas Platter", price: 24.00 },
-                                { name: "Sparkling Water", price: 6.00 },
-                                { name: "Espresso", price: 5.00 },
+                                { name: "Signature Cocktail", price: 18000 },
+                                { name: "Draft Beer", price: 8000 },
+                                { name: "Glass of Wine", price: 14000 },
+                                { name: "Tapas Platter", price: 24000 },
+                                { name: "Sparkling Water", price: 6000 },
+                                { name: "Espresso", price: 5000 },
                             ].map((item, i) => (
                                 <div key={i} className="bg-white border border-slate-200 p-4 rounded-xl cursor-pointer hover:border-teal-500 hover:shadow-md transition-all text-center flex flex-col justify-center aspect-square active:scale-95">
                                     <p className="font-bold text-slate-900 mb-2">{item.name}</p>
-                                    <p className="text-teal-700 font-bold">${item.price.toFixed(2)}</p>
+                                    <p className="text-teal-700 font-bold">₦{item.price.toLocaleString()}</p>
                                 </div>
                             ))}
                         </div>
@@ -54,28 +54,28 @@ export default function HotelAdminView({ initialData }: { initialData?: any }) {
                                     <p className="font-bold text-sm text-slate-900">2x Signature Cocktail</p>
                                     <p className="text-xs text-slate-500">No ice</p>
                                 </div>
-                                <p className="font-bold text-sm text-slate-900">$36.00</p>
+                                <p className="font-bold text-sm text-slate-900">₦36,000</p>
                             </div>
                             <div className="flex justify-between items-center">
                                 <div>
                                     <p className="font-bold text-sm text-slate-900">1x Tapas Platter</p>
                                 </div>
-                                <p className="font-bold text-sm text-slate-900">$24.00</p>
+                                <p className="font-bold text-sm text-slate-900">₦24,000</p>
                             </div>
                         </div>
 
                         <div className="border-t border-slate-100 pt-4 mt-4">
                             <div className="flex justify-between items-center mb-2 text-sm text-slate-500">
                                 <span>Subtotal</span>
-                                <span>$60.00</span>
+                                <span>₦60,000</span>
                             </div>
                             <div className="flex justify-between items-center mb-4 text-sm text-slate-500">
                                 <span>Tax (8%)</span>
-                                <span>$4.80</span>
+                                <span>₦4,500</span>
                             </div>
                             <div className="flex justify-between items-center mb-6">
                                 <span className="font-bold text-lg text-slate-900">Total</span>
-                                <span className="font-black text-2xl text-slate-900">$64.80</span>
+                                <span className="font-black text-2xl text-slate-900">₦64,500</span>
                             </div>
                             
                             <Button variant="primary" className="w-full mb-3 bg-slate-900 text-white">Pay with CityWallet (QR)</Button>

@@ -6,7 +6,7 @@ import { btnPrimary, inputCls, selectCls } from "./ShopUI";
 import { openShift, createRegister } from '@/lib/actions/retail';
 
 
-export function OpenShiftPrompt({ organizationId, locationId, registers, currentUserId, onOpened, symbol = "$" }: {
+export function OpenShiftPrompt({ organizationId, locationId, registers, currentUserId, onOpened, symbol = "₦" }: {
   organizationId: string; locationId?: string | null; registers: any[]; currentUserId: string; onOpened: () => void; symbol?: string;
 }) {
   const [registerId, setRegisterId] = useState(registers[0]?.id ?? "");

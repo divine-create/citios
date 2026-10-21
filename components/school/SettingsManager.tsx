@@ -30,7 +30,7 @@ export default function SettingsManager({ organizationId, activeTab, settings, s
     email: settings?.email || "",
     currentTerm: settings?.currentTerm || 1,
     timezone: settings?.timezone || "UTC",
-    currencyCode: settings?.currencyCode || "USD",
+    currencyCode: settings?.currencyCode || "NGN",
     logo: settings?.logo || "",
   });
   const [isSaving, setIsSaving] = useState(false);

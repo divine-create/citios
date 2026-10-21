@@ -39,7 +39,7 @@ export default function BookingView({ setView }: any) {
                             </div>
                             CityWallet Payment
                         </div>
-                        <span className="text-xl font-black text-slate-900">$42.50</span>
+                        <span className="text-xl font-black text-slate-900">₦42,500</span>
                     </div>
 
                     {/* Timeline */}

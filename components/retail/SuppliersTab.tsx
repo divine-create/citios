@@ -10,7 +10,7 @@ import { getSuppliers, createSupplier, deleteSupplier, getPurchaseOrders, create
 // Suppliers & POs
 // =====================================================================
 
-export function SuppliersTab({ organizationId, symbol = "$" }: { organizationId: string; symbol?: string }) {
+export function SuppliersTab({ organizationId, symbol = "₦" }: { organizationId: string; symbol?: string }) {
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [pos, setPos] = useState<any[]>([]);
   const [view, setView] = useState<"suppliers" | "pos">("suppliers");

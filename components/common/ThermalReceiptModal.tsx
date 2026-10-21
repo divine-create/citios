@@ -75,7 +75,7 @@ export default function ThermalReceiptModal({
           taxAmount: order.taxAmount || 0,
           totalAmount: order.totalAmount,
           paymentMethod: order.paymentMethod || 'CASH',
-          currencySymbol: settings?.currencySymbol || '$',
+          currencySymbol: settings?.currencySymbol || '₦',
           footerMessage: settings?.receiptMessage || 'Thank you for your patronage!',
         });
       } catch (err) {
@@ -124,7 +124,7 @@ export default function ThermalReceiptModal({
 
   if (!data) return null;
 
-  const sym = data.currencySymbol || '$';
+  const sym = data.currencySymbol || '₦';
   const barcodeBars = generateBarcodeBars(data.orderNumber || data.orderId);
 
   return (

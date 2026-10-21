@@ -42,6 +42,9 @@ export async function sendResendEmail(payload: SendEmailPayload): Promise<SendEm
   // Graceful fallback for local development or mock environments
   if (!apiKey || apiKey === 'mock-key' || apiKey.startsWith('re_mock')) {
     console.info(`[Resend Mock] Email sent to: ${normalizedTo} | Subject: "${payload.subject}"`);
+    if (payload.text) {
+      console.info(`[Resend Mock Content]:\n${payload.text}`);
+    }
     return {
       success: true,
       messageId: `mock_resend_${uuidv4()}`,

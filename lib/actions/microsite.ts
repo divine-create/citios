@@ -80,7 +80,7 @@ export async function getMicrosite(organizationId: string) {
     }));
     const settings = await db.orm.public.RetailSettings.where({ organizationId }).all().first();
 
-    return JSON.parse(JSON.stringify({ ...microsite, pages, navItems, sections, products, currencySymbol: settings?.currencySymbol ?? "$" }));
+    return JSON.parse(JSON.stringify({ ...microsite, pages, navItems, sections, products, currencySymbol: settings?.currencySymbol ?? "₦" }));
   } catch (error) {
     console.error('Error fetching microsite:', error);
     return null;
@@ -170,7 +170,7 @@ export async function getMicrositeBySlug(slug: string, path: string[] = []) {
       products, 
       categories,
       hotelRooms,
-      currencySymbol: retailSettings?.currencySymbol ?? "$",
+      currencySymbol: retailSettings?.currencySymbol ?? "₦",
       organization 
     }));
   } catch (error) {

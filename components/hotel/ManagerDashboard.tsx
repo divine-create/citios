@@ -137,7 +137,7 @@ const CATEGORY_LABELS: Record<InventoryCategory, string> = {
   MAINTENANCE: "Maintenance",
 };
 
-const money = (n: number) => `$${n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+const money = (n: number) => `₦${n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
 export function ManagerDashboard({
   organizationId,
@@ -508,7 +508,7 @@ function RoomsTab({
                 </td>
                 <td className="px-5 py-3">
                   <div className="flex items-center gap-1">
-                    <span className="text-gray-400">$</span>
+                    <span className="text-gray-400">₦</span>
                     <input
                       type="number"
                       defaultValue={room.baseRate}
@@ -1562,7 +1562,7 @@ function OutletSettingsSection({
                     <div key={item.id} className="flex items-center justify-between text-sm">
                       <span className="text-gray-700">{item.name} <span className="text-gray-400 text-xs">({item.category})</span></span>
                       <div className="flex items-center gap-2">
-                        <span className="text-gray-400">$</span>
+                        <span className="text-gray-400">₦</span>
                         <input
                           type="number"
                           defaultValue={item.price}

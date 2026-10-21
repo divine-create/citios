@@ -6,6 +6,8 @@ import { db } from "@/src/prisma/db";
 import Link from "next/link";
 import { Wrench, Plus, ArrowRight } from "lucide-react";
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: "ServiceOS | 9jaLive Service",
   description: "Appointments, jobs, scheduling, and service management.",

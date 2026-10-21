@@ -125,7 +125,7 @@ export async function provisionShopOS(formData: any) {
         currencies: JSON.stringify(currencies || []),
         staffCount: staffCount,
         physicalStores: physicalStores,
-        currencySymbol: COUNTRY_CURRENCY_SYMBOL[country] ?? "$",
+        currencySymbol: COUNTRY_CURRENCY_SYMBOL[country] ?? "₦",
       });
 
       // 6. Provision the online store microsite

@@ -20,7 +20,7 @@ interface Coupon {
 
 const EMPTY_FORM = { code: "", type: "PERCENT" as "PERCENT" | "FIXED", value: "", minSpend: "", usageLimit: "", expiresAt: "", description: "" };
 
-export default function DiscountsTab({ organizationId, symbol = "$" }: { organizationId: string; symbol?: string }) {
+export default function DiscountsTab({ organizationId, symbol = "₦" }: { organizationId: string; symbol?: string }) {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);

@@ -9,7 +9,7 @@ import { openShift, closeShift, getShiftHistory } from '@/lib/actions/retail';
 // Cash & Shifts
 // =====================================================================
 
-export function ShiftsTab({ organizationId, locationId, registers, openShift: openShiftData, currentUserId, onChanged, symbol = "$", setActiveMenu, setSalesShiftFilter }: {
+export function ShiftsTab({ organizationId, locationId, registers, openShift: openShiftData, currentUserId, onChanged, symbol = "₦", setActiveMenu, setSalesShiftFilter }: {
   organizationId: string; locationId?: string | null; registers: any[]; openShift: any | null; currentUserId: string; onChanged: () => void; symbol?: string; setActiveMenu: (m: string) => void; setSalesShiftFilter: (id: string | null) => void;
 }) {
   const [history, setHistory] = useState<any[]>([]);

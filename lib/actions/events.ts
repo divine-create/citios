@@ -538,7 +538,7 @@ export async function claimEventRsvp(input: {
       }
     }
 
-    return await db.transaction(async (tx) => {
+    const result: any = await db.transaction(async (tx) => {
       // 1. Capacity lock and check
       const [regs, tix] = await Promise.all([
         tx.orm.public.EventRegistration.where({ eventId: input.eventId }).all(),
@@ -646,7 +646,8 @@ export async function claimEventRsvp(input: {
 /**
  * Approves a pending attendee registration.
  */
-export async function approveEventRegistration(registrationId: string) {
+export async function approveEventRegistration(input: string | { registrationId: string; eventId?: string }) {
+  const registrationId = typeof input === 'string' ? input : input.registrationId;
   try {
     let session: any = null;
     try {
@@ -714,7 +715,8 @@ export async function approveEventRegistration(registrationId: string) {
 /**
  * Declines a pending attendee registration.
  */
-export async function declineEventRegistration(registrationId: string) {
+export async function declineEventRegistration(input: string | { registrationId: string; eventId?: string }) {
+  const registrationId = typeof input === 'string' ? input : input.registrationId;
   try {
     let session: any = null;
     try {

@@ -230,19 +230,19 @@ export default function FinanceDashboard({
           <div className="flex items-center gap-2 text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1">
             <DollarSign className="w-4 h-4" /> Billed
           </div>
-          <h3 className="text-xl font-bold text-gray-900">${totalBilled.toFixed(2)}</h3>
+          <h3 className="text-xl font-bold text-gray-900">₦{Math.round(totalBilled).toLocaleString()}</h3>
         </div>
         <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
           <div className="flex items-center gap-2 text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1">
             <TrendingUp className="w-4 h-4" /> Collected
           </div>
-          <h3 className="text-xl font-bold text-emerald-600">${totalCollected.toFixed(2)}</h3>
+          <h3 className="text-xl font-bold text-emerald-600">₦{Math.round(totalCollected).toLocaleString()}</h3>
         </div>
         <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
           <div className="flex items-center gap-2 text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1">
             <Clock className="w-4 h-4" /> Outstanding
           </div>
-          <h3 className="text-xl font-bold text-amber-600">${totalOutstanding.toFixed(2)}</h3>
+          <h3 className="text-xl font-bold text-amber-600">₦{Math.round(totalOutstanding).toLocaleString()}</h3>
         </div>
         <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
           <div className="flex items-center gap-2 text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1">
@@ -299,12 +299,12 @@ export default function FinanceDashboard({
                         </div>
                         <div>
                           <p className="text-sm font-medium text-gray-900">{getStudentName(item.studentDataId)}</p>
-                          <p className="text-xs text-gray-500">${item.paidAmount.toFixed(2)} of ${item.totalAmount.toFixed(2)} paid</p>
+                          <p className="text-xs text-gray-500">₦{item.paidAmount.toLocaleString()} of ₦{item.totalAmount.toLocaleString()} paid</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
                         <div className="text-right">
-                          <p className="text-sm font-medium text-gray-900">${item.totalAmount.toFixed(2)}</p>
+                          <p className="text-sm font-medium text-gray-900">₦{item.totalAmount.toLocaleString()}</p>
                           <p className="text-xs text-gray-500">Due {new Date(item.dueDate).toLocaleDateString()}</p>
                         </div>
                         <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -348,7 +348,7 @@ export default function FinanceDashboard({
                     <p className="text-xs text-gray-500 capitalize">{ft.frequency}{ft.description ? ` — ${ft.description}` : ""}</p>
                   </div>
                   <div className="flex items-center gap-4">
-                    <p className="text-sm font-medium text-gray-900">${ft.amount.toFixed(2)}</p>
+                    <p className="text-sm font-medium text-gray-900">₦{ft.amount.toLocaleString()}</p>
                     <button onClick={() => openEditFeeType(ft)} className="p-1.5 text-gray-400 hover:text-blue-600"><Edit2 size={16} /></button>
                     <button onClick={() => removeFeeType(ft.id)} className="p-1.5 text-gray-400 hover:text-red-600"><Trash2 size={16} /></button>
                   </div>

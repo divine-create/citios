@@ -34,9 +34,9 @@ const MOCK_ORDER = {
 };
 
 const REPLACEMENTS = [
-  { id: "r1", name: "Almond Milk (Unsweetened)", size: "64 oz", price: "$3.99" },
-  { id: "r2", name: "Oat Milk", size: "64 oz", price: "$4.49" },
-  { id: "r3", name: "2% Reduced Fat Milk", size: "1 Gallon", price: "$3.49" }
+  { id: "r1", name: "Almond Milk (Unsweetened)", size: "64 oz", price: "₦3,990" },
+  { id: "r2", name: "Oat Milk", size: "64 oz", price: "₦4,490" },
+  { id: "r3", name: "2% Reduced Fat Milk", size: "1 Gallon", price: "₦3,490" }
 ];
 
 export default function PickerApp() {

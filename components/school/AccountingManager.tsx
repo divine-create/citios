@@ -180,8 +180,8 @@ export default function AccountingManager({ organizationId, activeTab, feeInvoic
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 font-semibold text-slate-800">${inv.totalAmount.toFixed(2)}</td>
-                    <td className="px-6 py-4 text-emerald-600 font-medium">${inv.paidAmount.toFixed(2)}</td>
+                    <td className="px-6 py-4 font-semibold text-slate-800">₦{inv.totalAmount.toLocaleString()}</td>
+                    <td className="px-6 py-4 text-emerald-600 font-medium">₦{inv.paidAmount.toLocaleString()}</td>
                     <td className="px-6 py-4 text-slate-600">
                       <span className={isOverdue ? "text-red-600 font-medium" : ""}>
                         {new Date(inv.dueDate).toLocaleDateString()}
@@ -290,7 +290,7 @@ export default function AccountingManager({ organizationId, activeTab, feeInvoic
                       {ft.frequency}
                     </span>
                   </td>
-                  <td className="px-6 py-4 font-medium">${ft.amount.toFixed(2)}</td>
+                  <td className="px-6 py-4 font-medium">₦{ft.amount.toLocaleString()}</td>
                   <td className="px-6 py-4 text-right">
                     <button onClick={() => openEditFeeType(ft)} className="p-1.5 text-slate-400 hover:text-blue-600 transition-colors"><Edit2 size={16} /></button>
                     <button onClick={() => removeFeeType(ft.id)} className="p-1.5 text-slate-400 hover:text-red-600 transition-colors ml-1"><Trash2 size={16} /></button>
@@ -318,15 +318,15 @@ export default function AccountingManager({ organizationId, activeTab, feeInvoic
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white border border-slate-200 rounded-xl p-5">
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Total Billed</p>
-            <p className="text-2xl font-bold text-slate-800">${totalBilled.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-slate-800">₦{totalBilled.toLocaleString()}</p>
           </div>
           <div className="bg-white border border-slate-200 rounded-xl p-5">
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Collected</p>
-            <p className="text-2xl font-bold text-emerald-600">${totalCollected.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-emerald-600">₦{totalCollected.toLocaleString()}</p>
           </div>
           <div className="bg-white border border-slate-200 rounded-xl p-5">
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Outstanding</p>
-            <p className="text-2xl font-bold text-amber-600">${totalOutstanding.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-amber-600">₦{totalOutstanding.toLocaleString()}</p>
           </div>
           <div className="bg-white border border-slate-200 rounded-xl p-5">
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Overdue Invoices</p>

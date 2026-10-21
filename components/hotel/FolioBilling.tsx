@@ -142,13 +142,13 @@ export default function FolioBilling({ reservations = [], rooms = [], folioCharg
                 <tr className="hover:bg-slate-50 transition-colors">
                   <td className="py-4 text-sm text-slate-500">Upon Booking</td>
                   <td className="py-4 text-sm font-medium text-slate-800">Room Rate (Total)</td>
-                  <td className="py-4 text-sm font-bold text-slate-800 text-right">${selectedGuest.roomCharge.toFixed(2)}</td>
+                  <td className="py-4 text-sm font-bold text-slate-800 text-right">₦{selectedGuest.roomCharge.toLocaleString()}</td>
                 </tr>
                 {selectedGuest.charges.map((charge: any) => (
                   <tr key={charge.id} className="hover:bg-slate-50 transition-colors">
                     <td className="py-4 text-sm text-slate-500">{(charge.createdAt ? new Date(charge.createdAt.epochMilliseconds || charge.createdAt).toLocaleDateString() : "Today")}</td>
                     <td className="py-4 text-sm font-medium text-slate-800">{charge.description}</td>
-                    <td className="py-4 text-sm font-bold text-slate-800 text-right">${charge.amount.toFixed(2)}</td>
+                    <td className="py-4 text-sm font-bold text-slate-800 text-right">₦{charge.amount.toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>

@@ -34,6 +34,8 @@ import { deleteUniversalStay } from '@/lib/actions/stays';
 import { FallbackImg } from '@/components/cityos/CityUI';
 import { useMoney } from '@/components/cityos/CityProvider';
 import { cn } from '@/lib/utils';
+import BusinessReviewsSection from '@/components/cityos/BusinessReviewsSection';
+import type { OrganizationReviewsBundle } from '@/lib/actions/reviews';
 
 const DEFAULT_STAY_IMAGE =
   'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80';
@@ -42,10 +44,16 @@ export default function CityStayDetail({
   stay,
   org,
   rooms: legacyRooms,
+  reviewsBundle,
+  isManager = false,
+  isLoggedIn = false,
 }: {
   stay?: any;
   org?: any;
   rooms?: any[];
+  reviewsBundle?: OrganizationReviewsBundle | null;
+  isManager?: boolean;
+  isLoggedIn?: boolean;
 }) {
   const router = useRouter();
   const { fmt } = useMoney();
@@ -97,6 +105,15 @@ export default function CityStayDetail({
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
 
   const orgId = data.organizationId || data.id;
+  const targetOrgId = data.organizationId || (data.isHotelOrg ? data.id : null) || data.id;
+  const totalReviewsCount = reviewsBundle?.distribution?.totalReviews ?? data.reviewCount ?? 0;
+  const avgRating = reviewsBundle?.distribution?.averageRating ?? data.rating ?? null;
+  const displayScore =
+    typeof data.reviewScore === 'number' && data.reviewScore > 0
+      ? data.reviewScore
+      : avgRating
+      ? Number((avgRating * 2).toFixed(1))
+      : null;
   const roomIdsStr = useMemo(() => rooms.map((r: any) => r.id).join(','), [rooms]);
 
   useEffect(() => {
@@ -389,19 +406,45 @@ export default function CityStayDetail({
                 </p>
               </div>
 
-              {typeof data.reviewScore === 'number' && data.reviewScore > 0 && (
-                <div className="flex items-center gap-2 bg-teal-50 border border-teal-200 px-3 py-1.5 rounded-2xl">
-                  <span className="w-8 h-8 rounded-xl bg-teal-800 text-white font-black text-xs flex items-center justify-center">
-                    {data.reviewScore.toFixed(1)}
+              {targetOrgId && (displayScore !== null || totalReviewsCount > 0 ? (
+                <a
+                  href="#reviews"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    document.getElementById('reviews')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="flex items-center gap-2 bg-teal-50 hover:bg-teal-100/80 border border-teal-200 px-3 py-1.5 rounded-2xl transition-all cursor-pointer group shrink-0"
+                >
+                  <span className="w-8 h-8 rounded-xl bg-teal-800 group-hover:bg-teal-900 text-white font-black text-xs flex items-center justify-center transition-colors">
+                    {displayScore ? displayScore.toFixed(1) : (avgRating ? avgRating.toFixed(1) : '5.0')}
                   </span>
                   <div className="text-left">
                     <p className="text-xs font-black text-teal-950 leading-none">Verified Rating</p>
-                    {data.reviewCount > 0 && (
-                      <p className="text-[10px] text-teal-700 font-bold mt-0.5">{data.reviewCount} reviews</p>
-                    )}
+                    <p className="text-[10px] text-teal-700 font-bold mt-0.5">
+                      {totalReviewsCount > 0
+                        ? `${totalReviewsCount} ${totalReviewsCount === 1 ? 'review' : 'reviews'}`
+                        : 'Write a review'}
+                    </p>
                   </div>
-                </div>
-              )}
+                </a>
+              ) : (
+                <a
+                  href="#reviews"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    document.getElementById('reviews')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="flex items-center gap-2 bg-slate-50 hover:bg-teal-50 border border-slate-200 hover:border-teal-200 px-3 py-1.5 rounded-2xl transition-all cursor-pointer group shrink-0"
+                >
+                  <span className="w-8 h-8 rounded-xl bg-slate-200 group-hover:bg-teal-800 text-slate-700 group-hover:text-white font-black text-xs flex items-center justify-center transition-colors">
+                    <Star className="w-4 h-4 fill-current" />
+                  </span>
+                  <div className="text-left">
+                    <p className="text-xs font-black text-slate-900 group-hover:text-teal-950 leading-none">Reviews</p>
+                    <p className="text-[10px] text-slate-500 group-hover:text-teal-700 font-bold mt-0.5">Write a review</p>
+                  </div>
+                </a>
+              ))}
             </div>
 
             {/* Host / Attribution Bar */}
@@ -773,6 +816,27 @@ export default function CityStayDetail({
           </div>
         </div>
       </div>
+
+      {/* Reviews & Community Feedback Section */}
+      {targetOrgId && (
+        <div className="pt-2">
+          <BusinessReviewsSection
+            organizationId={targetOrgId}
+            organizationName={data.name}
+            initialReviews={reviewsBundle?.reviews || []}
+            initialDistribution={
+              reviewsBundle?.distribution || {
+                averageRating: null,
+                totalReviews: 0,
+                counts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+              }
+            }
+            initialMyReview={reviewsBundle?.myReview || null}
+            isManager={isManager}
+            isLoggedIn={isLoggedIn}
+          />
+        </div>
+      )}
     </div>
   );
 }

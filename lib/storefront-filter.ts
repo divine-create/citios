@@ -14,6 +14,9 @@ const TEST_ORG_ID_PREFIXES = [
   'org_a_',
   'org_b_',
   'org_1',
+  'org_',
+  'org-',
+  'org2-',
   'log-',
   'org-hotel-',
   'org-food-',
@@ -24,11 +27,21 @@ const TEST_ORG_NAME_PATTERNS = [
   /^org\s+org_/i,
   /^bistro\s+[0-9a-f]{5,8}$/i,
   /\s[0-9a-f]{6,8}$/i, // Trailing random hex suffix from test suites (e.g., "Victoria Grocers e03e3d", "Test Enterprise 14129a")
-  /\b(test|demo)\s+(enterprise|org|spot|shop|store|hotel|resort|item|product)\b/i,
-  /\b(payout|fulfillment|inventory)\s+test\s+org\b/i,
+  /\s\d{10,}$/i, // Trailing millisecond timestamp suffix from test suites (e.g., "Payout Test Org 1792517889961")
+  /\b(test|demo|mock|sample|staged|unconfigured|dummy)\s+(enterprise|org|spot|shop|store|hotel|resort|item|product|market|supermarket)\b/i,
+  /\b(test|demo|mock|sample|staged|unconfigured|dummy)\b/i,
+  /\b(payout|fulfillment|inventory|retail\s+concurrency)\s+test\s+org\b/i,
   /\b(remediation|demote guard|race|conc|deact)\s+org\b/i,
   /\btenant\s+organization\s+[ab]\b/i,
-  /^merchant\s+[ab]$/i,
+  /^merchant(\s+[a-z0-9]+)?$/i,
+  /^other\s+merchant/i,
+  /^unconfigured\s+shop/i,
+  /^valid\s+supermarket/i,
+  /^another\s+shop/i,
+  /^corner\s+store/i,
+  /^citymart\s+(express|mega|pilot)/i,
+  /^lagos\s+mart/i,
+  /^freshmart\s+grocery/i,
   /^logistics\s+co$/i,
   /^citylogistics\s+provider/i,
   /^calabar\s+fisherman\s+spot$/i,
@@ -81,6 +94,15 @@ export function isTestOrDemoProduct(product: {
   }
   const name = (product.name || '').trim();
   if (/^(test|demo|sample)\s+(item|product|good)/i.test(name)) {
+    return true;
+  }
+  if (/^widget(\s+[a-z0-9]+)?$/i.test(name)) {
+    return true;
+  }
+  if (/^standard\s+bread$/i.test(name)) {
+    return true;
+  }
+  if (/\b(test|demo|sample|dummy|mock)\b/i.test(name)) {
     return true;
   }
   return false;

@@ -82,7 +82,7 @@ export default function CityActivity() {
             <StatusBadge status={a.headline} />
             {a.amount !== null && a.amountKind !== 'none' && (
               <span className="text-xs font-black text-slate-700 ml-auto">
-                {a.currency === 'USD' ? '$' : (a.currency || '$')}{a.amount.toFixed(2)}
+                {a.currency === 'USD' ? '$' : '₦'}{Math.round(a.amount).toLocaleString()}
               </span>
             )}
           </div>

@@ -96,7 +96,7 @@ export default function FeedItem({
                         )}
                         {price !== undefined && (
                             <div className="flex items-center gap-1.5 font-bold text-emerald-700">
-                                <span className="text-emerald-500/70">💲</span> $\{price.toFixed(2)}
+                                <span className="text-emerald-500/70">💲</span> ₦{Math.round(price).toLocaleString()}
                             </div>
                         )}
                     </div>

@@ -270,7 +270,7 @@ export default function ShopDashboard({ organizationId, userRole, currentUserId 
     .map((group) => ({ ...group, items: group.items.filter((item) => item.roles.includes(userRole)) }))
     .filter((group) => group.items.length > 0);
   const openShiftData = dashboard?.openShift ?? null;
-  const currencySymbol = dashboard?.settings?.currencySymbol ?? "$";
+  const currencySymbol = dashboard?.settings?.currencySymbol ?? "₦";
   const roleLabel = userRole === "OWNER" ? "Store Owner" : userRole === "MANAGER" ? "Store Manager" : userRole === "CASHIER" ? "Cashier" : "Inventory";
 
   return (

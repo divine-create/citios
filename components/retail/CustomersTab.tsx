@@ -11,7 +11,7 @@ import { StatCard } from "./StatCard";
 // Customers
 // =====================================================================
 
-export function CustomersTab({ organizationId, symbol = "$" }: { organizationId: string; symbol?: string }) {
+export function CustomersTab({ organizationId, symbol = "₦" }: { organizationId: string; symbol?: string }) {
   const [customers, setCustomers] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -160,7 +160,7 @@ export function CustomersTab({ organizationId, symbol = "$" }: { organizationId:
   );
 }
 
-function CustomerDetailModal({ organizationId, customerDataId, onClose, onChanged, symbol = "$" }: {
+function CustomerDetailModal({ organizationId, customerDataId, onClose, onChanged, symbol = "₦" }: {
   organizationId: string; customerDataId: string; onClose: () => void; onChanged: () => void; symbol?: string;
 }) {
   const [customer, setCustomer] = useState<any>(null);

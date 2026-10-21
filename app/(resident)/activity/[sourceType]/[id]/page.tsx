@@ -72,7 +72,7 @@ export default async function ActivityDetailPage({
               <div className="flex justify-between items-center text-sm">
                 <span className="font-medium text-slate-600">Total</span>
                 <span className="font-black text-ink">
-                  {currency === 'USD' ? '$' : (currency || '$')}{amount.toFixed(2)}
+                  {currency === 'USD' ? '$' : '₦'}{Math.round(amount).toLocaleString()}
                 </span>
               </div>
             )}
@@ -91,7 +91,7 @@ export default async function ActivityDetailPage({
                   </div>
                   {line.unitPrice !== null && (
                     <span className="font-bold text-slate-700">
-                      {currency === 'USD' ? '$' : (currency || '$')}{(line.unitPrice * line.quantity).toFixed(2)}
+                      {currency === 'USD' ? '$' : '₦'}{Math.round(line.unitPrice * line.quantity).toLocaleString()}
                     </span>
                   )}
                 </div>

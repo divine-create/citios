@@ -117,12 +117,12 @@ export default function ScannerApp({
         rawCode: code,
       });
 
-      if (res?.error) {
+      if (res && 'error' in res && res.error) {
         setScanResult({
           success: false,
-          message: res.error,
+          message: String(res.error),
         });
-      } else if (res?.success) {
+      } else if (res && 'success' in res && res.success) {
         setScanResult({
           success: true,
           message: `Admitted: ${res.attendeeName} (${res.type})`,

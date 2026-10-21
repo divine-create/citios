@@ -41,7 +41,7 @@ export interface PrintableReceiptData {
  */
 export function formatReceiptPlainText(data: PrintableReceiptData, rollWidth: 80 | 58 = 80): string {
   const width = rollWidth === 58 ? 32 : 42;
-  const sym = data.currencySymbol || '$';
+  const sym = data.currencySymbol || '₦';
   const sep = '='.repeat(width);
   const dash = '-'.repeat(width);
 

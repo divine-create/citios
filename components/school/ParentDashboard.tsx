@@ -193,7 +193,7 @@ function ParentDashboardContent({ children }: { children: Child[] }) {
                   return (
                     <li key={inv.id} className="px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
                       <div>
-                        <p className="font-medium text-slate-900">${inv.totalAmount.toFixed(2)}</p>
+                        <p className="font-medium text-slate-900">₦{inv.totalAmount.toLocaleString()}</p>
                         <p className="text-xs text-slate-500">Due {new Date(inv.dueDate).toLocaleDateString()} · ${inv.paidAmount.toFixed(2)} paid</p>
                       </div>
                       <div className="flex items-center gap-3">

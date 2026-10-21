@@ -13,7 +13,7 @@ import { StatCard } from "./StatCard";
 
 export function ReportsTab({ organizationId, setActiveMenu }: { organizationId: string; setActiveMenu: (tab: string) => void }) {
   const [reports, setReports] = useState<any>(null);
-  const [symbol, setSymbol] = useState("$");
+  const [symbol, setSymbol] = useState("₦");
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState<string | null>(null);
 
@@ -21,7 +21,7 @@ export function ReportsTab({ organizationId, setActiveMenu }: { organizationId: 
     const r = await getShopReports(organizationId);
     const s = await getRetailSettings(organizationId);
     setReports(r);
-    setSymbol(s?.currencySymbol ?? "$");
+    setSymbol(s?.currencySymbol ?? "₦");
     setLoading(false);
   };
 

@@ -164,9 +164,9 @@ export default function RideHailingView({ setView, organizations = [] }: { setVi
                             </div>
 
                             <div className="bg-slate-100 rounded-3xl p-6 mb-6 flex flex-col items-center border border-slate-200">
-                                <p className="text-sm font-bold text-slate-500 mb-2">Recommended: $12.50</p>
+                                <p className="text-sm font-bold text-slate-500 mb-2">Recommended: ₦2,500</p>
                                 <div className="flex items-center justify-center gap-2">
-                                    <span className="text-4xl font-black text-slate-400">$</span>
+                                    <span className="text-4xl font-black text-slate-400">₦</span>
                                     <input 
                                         type="number" 
                                         value={offerPrice}
@@ -201,7 +201,7 @@ export default function RideHailingView({ setView, organizations = [] }: { setVi
                                         </span>
                                         Finding drivers...
                                     </h2>
-                                    <p className="text-sm font-bold text-slate-500 mt-1">Your offer: <span className="text-teal-700">${offerPrice}</span></p>
+                                    <p className="text-sm font-bold text-slate-500 mt-1">Your offer: <span className="text-teal-700">₦{offerPrice}</span></p>
                                 </div>
                                 <Button variant="outline" size="sm" onClick={() => setStep(2)}>Cancel</Button>
                             </div>
@@ -228,7 +228,7 @@ export default function RideHailingView({ setView, organizations = [] }: { setVi
                                                     </div>
                                                 </div>
                                                 <div className="text-right">
-                                                    <p className={`text-2xl font-black ${bid.isMatch ? 'text-teal-600' : 'text-slate-900'}`}>${bid.price}</p>
+                                                    <p className={`text-2xl font-black ${bid.isMatch ? 'text-teal-600' : 'text-slate-900'}`}>₦{bid.price.toLocaleString()}</p>
                                                     <p className="text-xs font-bold text-slate-500 flex items-center justify-end gap-1"><Clock className="w-3 h-3"/> {bid.time} away</p>
                                                 </div>
                                             </div>
@@ -281,7 +281,7 @@ export default function RideHailingView({ setView, organizations = [] }: { setVi
                             <div className="flex gap-4">
                                 <div className="flex-1 bg-slate-100 p-4 rounded-xl flex flex-col items-center justify-center">
                                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Total Fare</p>
-                                    <p className="text-xl font-black text-slate-900">${acceptedDriver.price}</p>
+                                    <p className="text-xl font-black text-slate-900">₦{acceptedDriver.price.toLocaleString()}</p>
                                 </div>
                                 <div className="flex-1 bg-slate-100 p-4 rounded-xl flex flex-col items-center justify-center">
                                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Payment</p>

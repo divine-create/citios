@@ -45,7 +45,7 @@ export async function sendWhatsAppOrderNotification(input: {
   const recipient = normalizeWhatsAppPhone(input.phone);
   if (!recipient) return { sent: false as const, reason: 'invalid_phone' as const };
 
-  const symbol = input.currencySymbol ?? '$';
+  const symbol = input.currencySymbol ?? '₦';
   const lines = input.items.map((item) => `${item.quantity} x ${item.name} - ${symbol}${item.unitPrice.toFixed(2)}`);
   const body = [
     `Order confirmed${input.storeName ? ` at ${input.storeName}` : ''}.`,

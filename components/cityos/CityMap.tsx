@@ -8,6 +8,7 @@ import { getCityMapEntities } from '@/app/actions/org';
 import { useCity } from '@/components/cityos/CityProvider';
 import { SectionHead, Pill } from '@/components/cityos/CityUI';
 import { MapPin } from 'lucide-react';
+import { getMapTileConfig } from '@/lib/mapping/config';
 
 interface MapEntity {
   id: string;
@@ -26,6 +27,7 @@ export default function CityMap() {
   const [entities, setEntities] = useState<MapEntity[]>([]);
   const [loading, setLoading] = useState(true);
   const [bounds, setBounds] = useState<{ n: number, s: number, e: number, w: number } | null>(null);
+  const tileConfig = useMemo(() => getMapTileConfig(), []);
 
   useEffect(() => {
     getCityMapEntities(city?.slug).then((data) => {
@@ -75,9 +77,9 @@ export default function CityMap() {
               sources: {
                 osm: {
                   type: 'raster',
-                  tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                  tiles: [tileConfig.tileUrl],
                   tileSize: 256,
-                  attribution: '&copy; OpenStreetMap Contributors'
+                  attribution: tileConfig.attribution
                 }
               },
               layers: [

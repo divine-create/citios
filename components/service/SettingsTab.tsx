@@ -17,7 +17,7 @@ export default function SettingsTab({
       quotesEnabled: false,
       onlineBookingEnabled: false,
       taxRate: 0,
-      currencySymbol: "$",
+      currencySymbol: "₦",
     }
   );
   const [saving, setSaving] = useState(false);

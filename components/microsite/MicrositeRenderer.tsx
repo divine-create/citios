@@ -224,7 +224,7 @@ export default function MicrositeRenderer({ data }: { data: MicrositeData }) {
         } catch {
           content = {};
         }
-        return <Section key={section.id} id={section.id} micrositeId={data.id} type={section.type} content={content} theme={theme} products={data.products ?? []} hotelRooms={data.hotelRooms ?? []} currency={data.currencySymbol ?? "$"} />;
+        return <Section key={section.id} id={section.id} micrositeId={data.id} type={section.type} content={content} theme={theme} products={data.products ?? []} hotelRooms={data.hotelRooms ?? []} currency={data.currencySymbol ?? "₦"} />;
       })}
       <div style={{ textAlign: "center", padding: "1.5rem", fontSize: "0.75rem", color: theme.textMuted, borderTop: `1px solid ${theme.surface}` }}>
         Powered by 9jaLive
@@ -234,7 +234,7 @@ export default function MicrositeRenderer({ data }: { data: MicrositeData }) {
 }
 
 function Section({ id, micrositeId, type, content, theme, products, hotelRooms, currency }: { id: string; micrositeId: string; type: string; content: any; theme: typeof THEMES[string]; products: RetailProductSummary[], hotelRooms?: any[]; currency?: string }) {
-  const currencySymbol = currency ?? "$";
+  const currencySymbol = currency ?? "₦";
   const headingStyle: React.CSSProperties = { fontFamily: theme.headingFont, color: theme.text };
   const isLuxury = theme.label === "Horizon (Hotel)";
   const isSchoolTheme = theme.label.includes("School") || theme.label.includes("Elementary") || theme.label.includes("Innovator") || theme.label.includes("Scholastic") || theme.label.includes("Academy") || theme.label.includes("Prestige");

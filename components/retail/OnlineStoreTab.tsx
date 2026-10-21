@@ -13,10 +13,10 @@ export default function OnlineStoreTab({ organizationId, onChanged }: { organiza
   const [slug, setSlug] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [publishedAt, setPublishedAt] = useState<string | null>(null);
-  const [symbol, setSymbol] = useState("$");
+  const [symbol, setSymbol] = useState("₦");
   const [walletEnabled, setWalletEnabled] = useState(false);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
-  const [walletCurrency, setWalletCurrency] = useState("USD");
+  const [walletCurrency, setWalletCurrency] = useState("NGN");
   const [savingMeta, setSavingMeta] = useState(false);
   const [togglingPublish, setTogglingPublish] = useState(false);
   const [togglingWallet, setTogglingWallet] = useState(false);
@@ -32,10 +32,10 @@ export default function OnlineStoreTab({ organizationId, onChanged }: { organiza
     setSlug(sf.site?.slug ?? null);
     setStatus(sf.site?.status ?? null);
     setPublishedAt(sf.site?.publishedAt ?? null);
-    setSymbol(sf.settings?.currencySymbol ?? "$");
+    setSymbol(sf.settings?.currencySymbol ?? "₦");
     setWalletEnabled(!!w.enabled);
     setWalletBalance(w.wallet?.balance ?? null);
-    setWalletCurrency(w.wallet?.currency ?? "USD");
+    setWalletCurrency(w.wallet?.currency ?? "NGN");
     setLoading(false);
   };
 

@@ -87,7 +87,7 @@ export default function InventoryManager({
   products,
   categories,
   onChanged,
-  symbol = "$",
+  symbol = "₦",
 }: {
   organizationId: string;
   locationId?: string | null;

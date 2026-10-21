@@ -33,7 +33,7 @@ export function RestaurantAdminView({ initialData }: { initialData: any }) {
                         <p className="text-xs text-teal-300 font-bold uppercase tracking-wider mt-2">Menu Items</p>
                     </div>
                     <div>
-                        <p className="text-4xl font-black tracking-tighter text-white">$ {orders.reduce((acc: number, o: any) => acc + o.totalAmount, 0).toFixed(2)}</p>
+                        <p className="text-4xl font-black tracking-tighter text-white">₦ {orders.reduce((acc: number, o: any) => acc + o.totalAmount, 0).toLocaleString()}</p>
                         <p className="text-xs text-teal-300 font-bold uppercase tracking-wider mt-2">Today's Sales</p>
                     </div>
                 </div>

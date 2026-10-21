@@ -213,7 +213,7 @@ export default function HotelSearchView() {
                               </ul>
                             </td>
                             <td className="p-3 align-top">
-                              <div className="text-xl font-bold text-gray-900 mb-1">${option.price}</div>
+                              <div className="text-xl font-bold text-gray-900 mb-1">₦{option.price.toLocaleString()}</div>
                               <div className="text-xs text-gray-500 mb-2">Includes taxes and charges</div>
                               {option.scarcity && (
                                 <div className="text-xs font-bold text-red-600 mb-3">{option.scarcity}</div>

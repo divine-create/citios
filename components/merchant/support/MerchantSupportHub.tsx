@@ -109,7 +109,7 @@ export default function MerchantSupportHub({
                   <div>
                     <div className="flex items-center gap-2 mb-2">
                       <Badge variant="default">{r.status}</Badge>
-                      <span className="font-bold text-lg text-slate-900">${r.amount.toFixed(2)}</span>
+                      <span className="font-bold text-lg text-slate-900">₦{r.amount.toLocaleString()}</span>
                       <span className="text-xs text-slate-500">{new Date(r.createdAt).toLocaleString()}</span>
                     </div>
                     <p className="text-slate-700">{r.reason || 'No reason provided'}</p>

@@ -446,7 +446,8 @@ export async function getCityMartStores(citySlug?: string) {
       neighborhood: o.address ? o.address.split(',')[0].trim() : city.name,
       area: o.address ? o.address.split(',')[0].trim() : city.name,
     };
-  });
+  })
+  .filter((s: any) => s.productCount > 0 || s.isVerified);
 }
 
 export async function getCityMarketFeed(citySlug?: string, activeAisle: string = 'All') {

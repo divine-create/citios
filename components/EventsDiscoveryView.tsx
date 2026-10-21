@@ -110,7 +110,7 @@ export default function EventsDiscoveryView() {
                                     <Users className="w-4 h-4 mr-2" />
                                     {event.attendees}
                                 </div>
-                                <span className="font-bold text-neutral-900">{event.price === 0 ? 'Free' : `$${event.price}`}</span>
+                                <span className="font-bold text-neutral-900">{event.price === 0 ? 'Free' : `₦${event.price.toLocaleString()}`}</span>
                             </div>
                         </div>
                     </div>
@@ -133,7 +133,7 @@ export default function EventsDiscoveryView() {
                                 <div className="flex items-center justify-between mb-8">
                                     <div>
                                         <p className="font-medium text-neutral-900">General Admission</p>
-                                        <p className="text-sm text-neutral-500">{selectedEvent.price === 0 ? 'Free Entry' : `$${selectedEvent.price} per ticket`}</p>
+                                        <p className="text-sm text-neutral-500">{selectedEvent.price === 0 ? 'Free Entry' : `₦${selectedEvent.price.toLocaleString()} per ticket`}</p>
                                     </div>
                                     <div className="flex items-center gap-4 bg-neutral-100 rounded-full px-2 py-1">
                                         <button onClick={() => setTicketCount(Math.max(1, ticketCount - 1))} className="w-8 h-8 flex items-center justify-center rounded-full bg-white shadow-sm font-medium hover:bg-neutral-50 text-neutral-900">-</button>
@@ -145,7 +145,7 @@ export default function EventsDiscoveryView() {
                                 <div className="border-t border-neutral-100 pt-6 mb-6">
                                     <div className="flex justify-between font-bold text-lg mb-2">
                                         <span>Total</span>
-                                        <span>{selectedEvent.price === 0 ? 'Free' : `$${selectedEvent.price * ticketCount}`}</span>
+                                        <span>{selectedEvent.price === 0 ? 'Free' : `₦${(selectedEvent.price * ticketCount).toLocaleString()}`}</span>
                                     </div>
                                     <p className="text-sm text-neutral-500 flex items-center gap-1">
                                         <Ticket className="w-4 h-4" /> Paying with CityWallet

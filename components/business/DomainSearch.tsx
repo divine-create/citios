@@ -28,15 +28,15 @@ export default function DomainSearch({ organizationId, currentDomain }: DomainSe
       setResult({
         domain: search.toLowerCase(),
         available: isAvailable,
-        price: isAvailable ? 19.99 : undefined,
+        price: isAvailable ? 25000 : undefined,
         alternatives: isAvailable ? [
-          { domain: `${base}.net`, price: 14.99 },
-          { domain: `${base}.org`, price: 12.99 },
-          { domain: `${base}.co`, price: 24.99 }
+          { domain: `${base}.net`, price: 20000 },
+          { domain: `${base}.org`, price: 18000 },
+          { domain: `${base}.co`, price: 35000 }
         ] : [
-          { domain: `${base}.io`, price: 49.99 },
-          { domain: `${base}.co`, price: 24.99 },
-          { domain: `${base}.net`, price: 14.99 }
+          { domain: `${base}.io`, price: 75000 },
+          { domain: `${base}.co`, price: 35000 },
+          { domain: `${base}.net`, price: 20000 }
         ]
       });
       setSearching(false);
@@ -115,7 +115,7 @@ export default function DomainSearch({ organizationId, currentDomain }: DomainSe
                     {result.available && (
                       <div className="flex items-center gap-8">
                         <div className="text-right">
-                          <p className="text-3xl font-black text-slate-900">${result.price}</p>
+                          <p className="text-3xl font-black text-slate-900">₦{result.price?.toLocaleString()}</p>
                           <p className="text-xs text-slate-500 uppercase tracking-wider font-bold">/ year</p>
                         </div>
                         <button
@@ -138,7 +138,7 @@ export default function DomainSearch({ organizationId, currentDomain }: DomainSe
                           <div key={idx} className="flex items-center justify-between bg-white border border-slate-200 p-5 rounded-xl hover:border-blue-300 transition-colors cursor-pointer group shadow-sm hover:shadow-md">
                             <p className="font-bold text-slate-700 text-xl group-hover:text-blue-700">{alt.domain}</p>
                             <div className="flex items-center gap-5">
-                              <span className="font-black text-slate-900 text-lg">${alt.price} <span className="text-sm font-semibold text-slate-400 font-normal">/yr</span></span>
+                              <span className="font-black text-slate-900 text-lg">₦{alt.price.toLocaleString()} <span className="text-sm font-semibold text-slate-400 font-normal">/yr</span></span>
                               <button
                                 onClick={() => alert(`Starting Stripe checkout for ${alt.domain}...`)}
                                 className="px-5 py-2.5 bg-blue-50 text-blue-700 font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-100"

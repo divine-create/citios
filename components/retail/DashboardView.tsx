@@ -11,7 +11,7 @@ import { StatCard } from "./StatCard";
 // =====================================================================
 
 export function DashboardView({ dashboard, organizationId, setActiveMenu }: { dashboard: any; organizationId: string; setActiveMenu: (tab: string) => void }) {
-  const symbol = dashboard?.settings?.currencySymbol ?? "$";
+  const symbol = dashboard?.settings?.currencySymbol ?? "₦";
   const money = (v: number) => `${symbol}${(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const orderRef = (id: string) => `#${id.slice(0, 8)}`;
 

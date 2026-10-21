@@ -84,4 +84,21 @@ describe('Review Serialization & Distribution Helpers', () => {
     assert.equal(resolveAvatarUrl(null), undefined);
     assert.equal(resolveAvatarUrl(undefined), undefined);
   });
+
+  it('computes stay reviewScore on a 10-point scale from average rating', () => {
+    const dist = computeRatingDistribution([
+      { rating: 5 },
+      { rating: 4 },
+    ]);
+    assert.equal(dist.averageRating, 4.5);
+    const reviewScore = dist.averageRating ? Number((dist.averageRating * 2).toFixed(1)) : null;
+    assert.equal(reviewScore, 9.0);
+  });
+
+  it('handles empty reviews for a stay listing gracefully', () => {
+    const dist = computeRatingDistribution([]);
+    assert.equal(dist.totalReviews, 0);
+    assert.equal(dist.averageRating, null);
+    assert.deepEqual(dist.counts, { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 });
+  });
 });

@@ -990,7 +990,7 @@ export async function createOrder(input: {
           wallet = await tx.orm.public.Wallet.create({
             organizationId: input.organizationId,
             balance: 0,
-            currency: 'USD',
+            currency: 'NGN',
           });
         }
         const transaction = await tx.orm.public.Transaction.create({
@@ -1002,7 +1002,7 @@ export async function createOrder(input: {
           walletId: wallet.id,
           transactionId: transaction.id,
           amount: totalAmount,
-          currency: wallet.currency ?? 'USD',
+          currency: wallet.currency ?? 'NGN',
         });
         await tx.orm.public.Wallet.where({ id: wallet.id }).update({ balance: wallet.balance + totalAmount });
       }

@@ -270,7 +270,7 @@ export default function PostDetailClient({ post }: { post: DBPost }) {
           <div className="mx-5 mb-3 bg-slate-50 rounded-xl p-3 flex flex-wrap gap-x-4 gap-y-2 text-[12px] text-slate-600 font-medium border border-slate-100">
             {post.eventDate && <div className="flex items-center gap-1.5">📅 {new Date(post.eventDate).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</div>}
             {post.location && <div className="flex items-center gap-1.5">📍 {post.location}</div>}
-            {post.price != null && <div className="flex items-center gap-1.5 font-bold text-emerald-700">💲 ${post.price.toFixed(2)}</div>}
+            {post.price != null && <div className="flex items-center gap-1.5 font-bold text-emerald-700">💲 ₦{Math.round(post.price).toLocaleString()}</div>}
           </div>
         )}
 
