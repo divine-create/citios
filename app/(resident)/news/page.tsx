@@ -1,5 +1,5 @@
-import CityNewsList from '@/components/cityos/CityNewsList';
+import { redirect } from 'next/navigation';
 
 export default function NewsPage() {
-  return <CityNewsList />;
+  redirect('/feed');
 }

@@ -1022,20 +1022,35 @@ export default function CityFeed({ hideHeader = false }: { hideHeader?: boolean 
         ) : (
           <div className="rounded-2xl border border-dashed border-slate-200 p-12 text-center mx-4">
             <p className="text-3xl mb-3">🏙️</p>
-            <p className="text-sm font-black text-slate-700">Be the first to post in {cityName}!</p>
-            <p className="text-xs text-slate-400 mt-1 mb-4">Share what's happening in your city.</p>
-            <Link
-              href="/feed/new"
-              onClick={(e) => {
-                if (isGuest) {
-                  e.preventDefault();
-                  promptLogin("Sign in to post", `Be the first to share an update with ${cityName}.`, "/feed/new");
-                }
-              }}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-teal-700 hover:bg-teal-800 text-white text-[13px] font-bold rounded-xl transition-colors"
-            >
-              Create a post
-            </Link>
+            {activeTab === 'Following' ? (
+              <>
+                <p className="text-sm font-black text-slate-700">No posts from accounts you follow</p>
+                <p className="text-xs text-slate-400 mt-1 mb-4">Follow local organizations to see their latest posts and updates here.</p>
+                <button
+                  onClick={() => setActiveTab('For You')}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-teal-700 hover:bg-teal-800 text-white text-[13px] font-bold rounded-xl transition-colors cursor-pointer"
+                >
+                  Explore city feed
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-black text-slate-700">Be the first to post in {cityName}!</p>
+                <p className="text-xs text-slate-400 mt-1 mb-4">Share what&apos;s happening in your city.</p>
+                <Link
+                  href="/feed/new"
+                  onClick={(e) => {
+                    if (isGuest) {
+                      e.preventDefault();
+                      promptLogin("Sign in to post", `Be the first to share an update with ${cityName}.`, "/feed/new");
+                    }
+                  }}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-teal-700 hover:bg-teal-800 text-white text-[13px] font-bold rounded-xl transition-colors"
+                >
+                  Create a post
+                </Link>
+              </>
+            )}
           </div>
         )}
       </div>

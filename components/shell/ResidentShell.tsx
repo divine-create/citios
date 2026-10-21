@@ -16,7 +16,6 @@ import {
   Stethoscope,
   GraduationCap,
   Wrench,
-  Newspaper,
   Settings,
   HelpCircle,
   ShoppingBag,
@@ -362,7 +361,6 @@ export default function ResidentShell({
         { id: 'nearby', path: '/explore', label: 'Nearby', icon: MapPin, iconKey: 'nearby', imageUrl: '/icons/portals/explore.png' },
         { id: 'saved', path: '/saved', label: 'Saved', icon: Bookmark, iconKey: 'saved' },
         { id: 'ai', path: '/ai', label: 'Ask 9jaLive', icon: Sparkles, iconKey: 'ai' },
-        { id: 'news', path: '/news', label: 'News', icon: Newspaper, iconKey: 'news', secondary: true },
       ],
     },
     {

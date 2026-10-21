@@ -260,26 +260,60 @@ export async function fetchFeed(
     }
   }
 
-  // Cursor-based pagination using createdAt
-  if (cursor) {
-    query = query.where((p: any) => p.createdAt.lt(toTemporal(new Date(cursor))));
-  }
-
   const { isTestOrDemoOrganization } = await import('@/lib/storefront-filter');
-  const fetchedPosts = await query
-    .orderBy((p: any) => p.createdAt.desc())
-    .limit(limit)
-    .include('person', (p: any) => p.include('profile'))
-    .include('organization', (o: any) => o.select('name', 'id', 'type', 'logoAssetId'))
-    .include('likes', (likes: any) => likes.count())
-    .include('comments', (comments: any) => comments.count())
-    .all();
 
-  const rawPosts = fetchedPosts.filter(
-    (p: any) =>
-      !p.organizationId ||
-      !isTestOrDemoOrganization({ id: p.organizationId, name: p.organization?.name })
-  );
+  let rawPosts: any[] = [];
+  let hasMore = false;
+  let attempts = 0;
+
+  // Determine pagination mode: numeric offset or legacy timestamp
+  const isOffsetCursor = cursor === undefined || /^\d+$/.test(cursor);
+  let currentOffset = isOffsetCursor ? (cursor ? parseInt(cursor, 10) : 0) : 0;
+  let currentCursor = !isOffsetCursor ? cursor : undefined;
+
+  do {
+    attempts++;
+    let batchQuery = query
+      .orderBy((p: any) => p.createdAt.desc())
+      .orderBy((p: any) => p.id.desc());
+
+    if (isOffsetCursor) {
+      batchQuery = batchQuery.offset(currentOffset).limit(limit);
+    } else {
+      if (currentCursor) {
+        const cursorVal = currentCursor;
+        batchQuery = batchQuery.where((p: any) => p.createdAt.lt(toTemporal(new Date(cursorVal))));
+      }
+      batchQuery = batchQuery.limit(limit);
+    }
+
+    const fetchedPosts = await batchQuery
+      .include('person', (p: any) => p.include('profile'))
+      .include('organization', (o: any) => o.select('name', 'id', 'type', 'logoAssetId'))
+      .include('likes', (likes: any) => likes.count())
+      .include('comments', (comments: any) => comments.count())
+      .all();
+
+    hasMore = fetchedPosts.length === limit;
+
+    const validBatch = fetchedPosts.filter(
+      (p: any) =>
+        !p.organizationId ||
+        !isTestOrDemoOrganization({ id: p.organizationId, name: p.organization?.name })
+    );
+
+    rawPosts.push(...validBatch);
+
+    if (isOffsetCursor) {
+      currentOffset += fetchedPosts.length;
+    } else if (hasMore && fetchedPosts.length > 0) {
+      currentCursor = String(fetchedPosts[fetchedPosts.length - 1].createdAt);
+    }
+
+    if (!hasMore || fetchedPosts.length === 0) {
+      break;
+    }
+  } while (rawPosts.length === 0 && hasMore && attempts < 5);
 
   const myLikes = personId
     ? await db.orm.public.PostLike.where({ personId }).select('postId').all()
@@ -305,7 +339,7 @@ export async function fetchFeed(
   const memberships = personId
     ? await db.orm.public.Membership.where({ personId }).all()
     : [];
-  const myOrgIds = new Set(memberships.map((m: any) => m.organizationId));
+  const myOrgIds = new Set<string>(memberships.map((m: any) => String(m.organizationId)));
 
   // Determine which organizations in these posts are verified and resolve logos
   const allOrgIds = new Set<string>();
@@ -321,9 +355,7 @@ export async function fetchFeed(
   const { verifiedOrgIds, orgLogos } = await getOrgMetadataBatch(Array.from(allOrgIds));
 
   const posts = rawPosts.map((post: any) => mapPost(post, myLikedPostIds, myReactions, personId, myOrgIds, verifiedOrgIds, orgLogos));
-  const nextCursor = rawPosts.length === limit
-    ? String(rawPosts[rawPosts.length - 1].createdAt)
-    : null;
+  const nextCursor = hasMore ? (isOffsetCursor ? String(currentOffset) : currentCursor ?? null) : null;
 
   return { posts, nextCursor };
 }
@@ -512,6 +544,7 @@ export async function createPost(data: {
 
   try {
     const { revalidatePath } = await import('next/cache');
+    revalidatePath('/');
     revalidatePath('/feed');
     revalidatePath('/create');
     revalidatePath('/market');
@@ -683,6 +716,7 @@ export async function deletePost(postId: string) {
 
   try {
     const { revalidatePath } = await import('next/cache');
+    revalidatePath('/');
     revalidatePath('/feed');
     revalidatePath('/events');
     revalidatePath('/stay');

@@ -309,6 +309,7 @@ export default function CreatePost() {
       } catch {}
 
       setPublished(true);
+      router.refresh();
       window.setTimeout(() => router.push('/feed'), 700);
     } catch (e) {
       console.error(e);

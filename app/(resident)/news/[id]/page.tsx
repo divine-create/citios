@@ -1,6 +1,6 @@
-import CityNewsDetail from '@/components/cityos/CityNewsDetail';
+import { redirect } from 'next/navigation';
 
 export default async function NewsDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  return <CityNewsDetail id={id} />;
+  await params;
+  redirect('/feed');
 }
