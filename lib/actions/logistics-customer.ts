@@ -2,38 +2,16 @@
 
 import { db } from '@/src/prisma/db';
 import { v4 as uuidv4 } from 'uuid';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { requireMembership } from '@/lib/actions/tenant';
+import { assertProviderAccess } from './logistics-tenant';
 import { createDeliveryJob, transitionDeliveryStatus } from './logistics-domain';
 import { calculateDeliveryQuote, offerQuote, acceptQuote } from './logistics-pricing';
+import { generateDeliveryOtp } from './logistics-otp';
 
 class LogisticsCustomerError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'LogisticsCustomerError';
   }
-}
-
-async function assertProviderAccess(providerId: string, allowedRoles = ['OWNER', 'ADMIN', 'MANAGER', 'DISPATCHER']) {
-  let session = null;
-  try {
-    session = await getServerSession(authOptions);
-  } catch {
-    session = null;
-  }
-
-  if (session?.user?.personId) {
-    return await requireMembership(providerId, allowedRoles);
-  }
-
-  if (process.env.NODE_ENV === 'test') {
-    const org = await db.orm.public.Organization.where({ id: providerId }).first();
-    if (!org) throw new LogisticsCustomerError(`Provider organization ${providerId} not found`);
-    return { person: null, membership: null };
-  }
-
-  return await requireMembership(providerId, allowedRoles);
 }
 
 /**
@@ -260,6 +238,7 @@ export async function createManualCustomerDelivery(params: {
     packageWeightKg: params.packageWeightKg || 1.0,
     serviceLevel: params.serviceLevel || 'STANDARD',
     customerDataId: params.customerDataId,
+    recipientOtp: generateDeliveryOtp(),
   });
 
   // 2. Generate and accept quote
@@ -280,10 +259,11 @@ export async function createManualCustomerDelivery(params: {
   const readyJob = await transitionDeliveryStatus(job.id, 'CREATED', params.providerId);
 
   return {
-    job: readyJob,
+    job: { ...readyJob, rawOtp: (job as any).rawOtp },
     quote,
     trackingReference: readyJob.trackingReference,
-    recipientOtp: readyJob.recipientOtp,
+    recipientOtp: (job as any).rawOtp || readyJob.recipientOtp,
+    rawOtp: (job as any).rawOtp,
   };
 }
 

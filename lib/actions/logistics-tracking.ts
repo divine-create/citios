@@ -40,17 +40,25 @@ const STATUS_LABELS: Record<string, string> = {
 /**
  * Masks street-level address details for anonymous tracking viewers
  * to prevent leaking private home/unit addresses while preserving district/city context.
+ * Thoroughly scrubs house numbers, flat numbers, estates, and plot numbers.
  */
 export function maskPublicAddress(address?: string | null): string {
   if (!address || typeof address !== 'string') return '';
-  const parts = address.split(',').map((p) => p.trim()).filter(Boolean);
-  if (parts.length > 1) {
-    return `***, ${parts.slice(1).join(', ')}`;
+  const clean = address.trim();
+  if (!clean) return '';
+
+  const parts = clean.split(',').map((p) => {
+    return p
+      .trim()
+      .replace(/^(?:flat|unit|apt|apartment|block|suite|room|shop|house|plot|no\.?|number)\s*[\w\d\-\/]+/gi, '')
+      .replace(/^\s*\d+[\w\d\-\/]*\s*/i, '')
+      .trim();
+  }).filter(Boolean);
+
+  if (parts.length > 0) {
+    return `***, ${parts.join(', ')}`;
   }
-  const words = address.trim().split(/\s+/);
-  if (words.length > 1) {
-    return `*** ${words.slice(1).join(' ')}`;
-  }
+
   return '*** Destination Area';
 }
 

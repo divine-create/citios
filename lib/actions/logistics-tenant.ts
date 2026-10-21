@@ -10,44 +10,20 @@ export type LogisticsTenantResolution =
 /**
  * Validates that the caller has an active, authorized membership in the provider organization.
  * Used across Logistics server actions for defense-in-depth tenant boundary enforcement.
+ * Enforces strict authentication and role checking in all environments without any bypass.
  */
 export async function assertProviderAccess(
   providerId: string,
   allowedRoles: string[] = ['OWNER', 'ADMIN', 'MANAGER', 'DISPATCHER']
 ) {
-  let session = null;
-  try {
-    session = await getServerSession(authOptions);
-  } catch {
-    session = null;
-  }
-
-  if (session?.user?.personId) {
-    return await requireMembership(providerId, allowedRoles);
-  }
-
-  const isTest =
-    process.env.NODE_ENV === 'test' ||
-    Boolean(process.env.NODE_TEST_CONTEXT) ||
-    process.execArgv.includes('--test') ||
-    process.argv.includes('--test') ||
-    process.env.npm_lifecycle_event === 'test';
-
-  if (isTest) {
-    // In headless test environments without session, assert provider organization exists
-    const org = await db.orm.public.Organization.where({ id: providerId }).first();
-    if (!org) throw new Error(`Provider organization ${providerId} not found`);
-    return { session: null, person: null, membership: null, roles: [] };
-  }
-
   return await requireMembership(providerId, allowedRoles);
 }
 
 /**
  * Resolves the authenticated logistics company provider for business workspace pages.
  * Enforces strict multi-tenant boundaries:
- * 1. User must have an authenticated session.
- * 2. User must possess a valid membership in at least one LOGISTICS organization.
+ * 1. User must have an authenticated session and active account.
+ * 2. User must possess a valid membership in at least one non-suspended LOGISTICS organization.
  * 3. If an explicit ?org=<id> parameter is passed, verifies the user belongs to THAT organization.
  * 4. NEVER falls back to an arbitrary organization or the first record in the database.
  */
@@ -60,6 +36,12 @@ export async function resolveLogisticsTenant(requestedOrgId?: string): Promise<L
   }
 
   if (!session?.user?.personId) {
+    return { authorized: false, error: 'UNAUTHENTICATED' };
+  }
+
+  // Account status validation
+  const account = await db.orm.public.Account.where({ personId: session.user.personId }).all().first();
+  if (!account || !account.isActive) {
     return { authorized: false, error: 'UNAUTHENTICATED' };
   }
 

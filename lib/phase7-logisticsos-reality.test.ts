@@ -1,11 +1,83 @@
 import test from 'node:test';
 import assert from 'node:assert';
+import { createRequire } from 'module';
 import { db } from '../src/prisma/db';
 import { v4 as uuidv4 } from 'uuid';
+import { authOptions } from './auth';
+import { encode } from 'next-auth/jwt';
 import { calculateDeliveryQuote, offerQuote, acceptQuote } from './actions/logistics-pricing';
 import { findEligibleCandidates, dispatchDelivery, acceptDispatch } from './actions/logistics-dispatch';
 import { arriveAtPickup, confirmPickup, enterTransit, arriveAtDropoff, completeDelivery, logLocation, getTrackingHistory, closeWorkflow } from './actions/logistics-operations';
 import { settleDelivery } from './actions/logistics-settlement';
+
+// Mock Next.js headers & cookies for getServerSession
+const require = createRequire(import.meta.url);
+const nextHeaders = require('next/headers');
+let mockCookies: Record<string, string> = {};
+nextHeaders.headers = () => new Map();
+nextHeaders.cookies = () => ({
+  get: (name: string) => (mockCookies[name] ? { name, value: mockCookies[name] } : undefined),
+  getAll: () => Object.entries(mockCookies).map(([n, v]) => ({ name: n, value: v })),
+});
+
+function setActiveUserToken(token: string | null) {
+  if (token) {
+    mockCookies['next-auth.session-token'] = token;
+  } else {
+    delete mockCookies['next-auth.session-token'];
+  }
+}
+
+async function createAuthenticatedUser(orgId: string, role = 'OWNER') {
+  const testId = uuidv4().substring(0, 8);
+  const email = `phase7-reality-${testId}@example.com`;
+
+  const person = await db.orm.public.Person.create({
+    id: uuidv4(),
+    firstName: 'Phase7',
+    lastName: `Owner-${testId}`,
+  });
+
+  await db.orm.public.PersonIdentifier.create({
+    personId: person.id,
+    type: 'EMAIL',
+    normalizedValue: email,
+    isVerified: true,
+  });
+
+  await db.orm.public.Account.create({
+    personId: person.id,
+    isActive: true,
+  });
+
+  const membership = await db.orm.public.Membership.create({
+    personId: person.id,
+    organizationId: orgId,
+  });
+
+  await db.orm.public.MembershipRole.create({
+    membershipId: membership.id,
+    role,
+  });
+
+  const token = await encode({
+    token: {
+      email,
+      name: `Phase7 Owner ${testId}`,
+      personId: person.id,
+      memberships: [
+        {
+          organizationId: orgId,
+          organizationType: 'LOGISTICS' as any,
+          role: role as any,
+        },
+      ],
+    },
+    secret: (authOptions.secret as string) || process.env.NEXTAUTH_SECRET || 'super_secret_cityconnect_key_2026_!@#',
+  });
+
+  return { person, membership, token, email };
+}
 
 test('Phase 7 LogisticsOS Reality End-to-End Suite', async (t) => {
   // 1. Setup Provider Organization
@@ -14,6 +86,10 @@ test('Phase 7 LogisticsOS Reality End-to-End Suite', async (t) => {
     type: 'LOGISTICS' as any,
     status: 'ACTIVE',
   });
+
+  // Setup authenticated session for provider
+  const owner = await createAuthenticatedUser(provider.id, 'OWNER');
+  setActiveUserToken(owner.token);
 
   // 2. Setup Pricing Rule
   const pricingRule = await db.orm.public.DeliveryPricingRule.create({

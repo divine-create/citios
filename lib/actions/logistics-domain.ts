@@ -1,4 +1,5 @@
 import { db } from '@/src/prisma/db';
+import { generateDeliveryOtp, hashDeliveryOtp } from './logistics-otp';
 
 export class LogisticsDomainError extends Error {
   constructor(message: string) {
@@ -56,7 +57,7 @@ export function generateTrackingReference(): string {
 }
 
 export function generateRecipientOtp(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return generateDeliveryOtp();
 }
 
 // ---------------------------------------------------------------------------
@@ -96,7 +97,9 @@ export interface CreateDeliveryJobParams {
  */
 export async function createDeliveryJob(params: CreateDeliveryJobParams) {
   const trackingReference = params.trackingReference || generateTrackingReference();
-  const recipientOtp = params.recipientOtp || generateRecipientOtp();
+  const rawOtp = params.recipientOtp ? params.recipientOtp : null;
+  const salt = params.idempotencyKey || trackingReference;
+  const storedOtp = rawOtp ? hashDeliveryOtp(rawOtp, salt) : null;
   const serviceLevel = params.serviceLevel || 'STANDARD';
 
   try {
@@ -111,7 +114,7 @@ export async function createDeliveryJob(params: CreateDeliveryJobParams) {
         if (existing.sourceType !== params.sourceType || existing.sourceId !== params.sourceId) {
           throw new LogisticsDomainError('Idempotency conflict: Different payload provided for same key');
         }
-        return existing;
+        return { ...existing, rawOtp };
       }
 
       const created = await tx.orm.public.DeliveryJob.create({
@@ -133,11 +136,11 @@ export async function createDeliveryJob(params: CreateDeliveryJobParams) {
         packageWeightKg:     params.packageWeightKg,
         serviceLevel,
         trackingReference,
-        recipientOtp,
+        recipientOtp:        storedOtp,
         customerDataId:      params.customerDataId,
         status:              'REQUESTED'
       });
-      return created;
+      return { ...created, rawOtp };
     });
   } catch (error: any) {
     // A concurrent race hit the DB unique constraint — re-read and validate.

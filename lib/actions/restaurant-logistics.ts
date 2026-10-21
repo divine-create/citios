@@ -73,6 +73,14 @@ export async function syncLogisticsStatusToRestaurantOS(jobId: string) {
   const orderId = job.sourceId;
   const deliveryStatus = job.status;
 
+  const order = await db.orm.public.RestaurantOrder.where({ id: orderId }).all().first();
+  if (!order) return;
+
+  // Monotonicity: Do not regress completed orders
+  if (order.status === 'COMPLETED') {
+    return;
+  }
+
   if (deliveryStatus === 'DELIVERED') {
     await db.orm.public.RestaurantOrder.where({ id: orderId }).update({
       status: 'COMPLETED',
@@ -82,8 +90,12 @@ export async function syncLogisticsStatusToRestaurantOS(jobId: string) {
       status: 'DELIVERING',
     });
   } else if (['FAILED', 'CANCELLED'].includes(deliveryStatus)) {
-    await db.orm.public.RestaurantOrder.where({ id: orderId }).update({
+    const updatePayload: { status: 'CANCELLED'; paymentStatus?: 'REFUNDED' } = {
       status: 'CANCELLED',
-    });
+    };
+    if (order.paymentStatus === 'COMPLETED') {
+      updatePayload.paymentStatus = 'REFUNDED';
+    }
+    await db.orm.public.RestaurantOrder.where({ id: orderId }).update(updatePayload);
   }
 }

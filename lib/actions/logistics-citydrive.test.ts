@@ -156,7 +156,12 @@ test('CityDrive Comprehensive Logistics Operating System Suite', async (t) => {
     status: 'ACTIVE',
   });
 
-  // Setup Pricing for Provider A
+  // Create real authenticated users for Company A and Company B
+  const userA = await createAuthenticatedUser(providerA.id, 'OWNER');
+  const userB = await createAuthenticatedUser(providerB.id, 'OWNER');
+
+  // Activate User A session and configure pricing for Provider A
+  setActiveUserToken(userA.token);
   await updatePricingRule({
     providerId: providerA.id,
     baseFee: 600,
@@ -173,14 +178,11 @@ test('CityDrive Comprehensive Logistics Operating System Suite', async (t) => {
     balance: 0,
   });
 
-  // Create real authenticated users for Company A and Company B
-  const userA = await createAuthenticatedUser(providerA.id, 'OWNER');
-  const userB = await createAuthenticatedUser(providerB.id, 'OWNER');
-
   let vehicleA: any = null;
   let driverA: any = null;
   let customerA: any = null;
   let manualJobA: any = null;
+  let manualJobOtp: string | null = null;
 
   await t.test('1. Multi-Tenant Fleet & Vehicle Operations', async () => {
     setActiveUserToken(userA.token);
@@ -301,6 +303,7 @@ test('CityDrive Comprehensive Logistics Operating System Suite', async (t) => {
     assert.ok(booking.job.recipientOtp, 'Must generate recipient verification OTP');
     assert.strictEqual(booking.job.status, 'CREATED');
     manualJobA = booking.job;
+    manualJobOtp = booking.recipientOtp || booking.rawOtp || (booking.job as any).rawOtp;
   });
 
   await t.test('3. Automated Dispatch & Transparent Candidate Scoring', async () => {
@@ -389,7 +392,7 @@ test('CityDrive Comprehensive Logistics Operating System Suite', async (t) => {
 
     const job = await db.orm.public.DeliveryJob.where({ id: manualJobA.id }).first();
     assert.ok(job);
-    const correctOtp = job.recipientOtp || undefined;
+    const correctOtp = manualJobOtp || (manualJobA as any).rawOtp || job.recipientOtp || undefined;
     const wrongOtp = '000000';
 
     // Attempt completion with wrong OTP must fail

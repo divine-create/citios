@@ -1,5 +1,7 @@
 import { db } from '@/src/prisma/db';
 import { LogisticsDomainError, transitionDeliveryStatus } from './logistics-domain';
+import { verifyDeliveryOtp, isDeliveryOtpExpired } from './logistics-otp';
+import { dispatchDeliveryOtp } from './logistics-sms';
 import '@js-temporal/polyfill';
 
 export type TrackingEventType =
@@ -137,13 +139,33 @@ export async function arriveAtPickup(params: { deliveryJobId: string; providerId
 
 // 2. Confirm pickup
 export async function confirmPickup(params: { deliveryJobId: string; providerId: string; driverProfileId: string; idempotencyKey?: string }) {
-  return performOperationalTransition({
+  const res = await performOperationalTransition({
     ...params,
     expectedCurrentState: ['AT_PICKUP'],
     newStatus: 'PICKED_UP',
     eventType: 'PICKED_UP',
     notes: 'Driver confirmed package pickup'
   });
+
+  // Dispatch recipient delivery PIN notification when package is in custody
+  try {
+    const job = res.job;
+    if (job?.recipientOtp) {
+      await dispatchDeliveryOtp({
+        deliveryJobId: job.id,
+        providerId: job.providerId,
+        rawOtp: job.rawOtp || '',
+        trackingReference: job.trackingReference || job.id.slice(0, 8).toUpperCase(),
+        customerDataId: job.customerDataId,
+        recipientPhone: job.dropoffContactPhone,
+        recipientName: job.dropoffContactName,
+      });
+    }
+  } catch (err: any) {
+    console.warn('[CityDrive Pickup] Non-fatal OTP notification warning:', err.message);
+  }
+
+  return res;
 }
 
 // 3. Enter transit
@@ -199,22 +221,30 @@ export async function completeDelivery(params: {
     }
 
     try {
+      // 1. Atomically serialize concurrent completion attempts via row-lock update
+      await tx.orm.public.DeliveryJob.where({ id: params.deliveryJobId }).update({ updatedAt: toTemporal(new Date()) });
+
       const { job, assignment } = await authorizeAndGetAssignment(tx, params.deliveryJobId, params.providerId, params.driverProfileId);
 
       if (job.status !== 'AT_DROPOFF') {
         throw new LogisticsDomainError(`Cannot perform DELIVERED from state ${job.status}`);
       }
 
-      // Check duplicate POD
+      // Check duplicate POD / prevent replay
       const existingPod = await tx.orm.public.ProofOfDelivery.where({ deliveryJobId: params.deliveryJobId }).all();
       if (existingPod.length > 0) {
         throw new LogisticsDomainError('Proof of Delivery already exists for this DeliveryJob');
       }
 
-      // If the delivery job has a recipient OTP configured, it is mandatory and rate-limited
+      // If the delivery job has a recipient OTP configured, it is mandatory, rate-limited, and expires
       if (job.recipientOtp) {
         if (!params.otp || !params.otp.trim()) {
           throw new LogisticsDomainError('Recipient OTP is required to complete this delivery');
+        }
+
+        // Check OTP expiration (default 24h)
+        if (job.createdAt && isDeliveryOtpExpired(job.createdAt)) {
+          throw new LogisticsDomainError('Recipient OTP has expired. Please request a new delivery OTP.');
         }
 
         // Rate limit check: count prior failed attempts for this delivery
@@ -228,7 +258,10 @@ export async function completeDelivery(params: {
           throw new LogisticsDomainError('Maximum OTP verification attempts exceeded. Delivery locked for security.');
         }
 
-        if (params.otp.trim() !== job.recipientOtp.trim()) {
+        const salt = job.idempotencyKey || job.trackingReference || job.id;
+        const isValid = verifyDeliveryOtp(params.otp, job.recipientOtp, salt);
+
+        if (!isValid) {
           // Log failed attempt tracking event using db (outside tx) so it persists across transaction rollbacks
           await db.orm.public.DeliveryTrackingEvent.create({
             deliveryJobId: params.deliveryJobId,
@@ -242,7 +275,7 @@ export async function completeDelivery(params: {
         }
       }
 
-      // 1. Create ProofOfDelivery
+      // 2. Create ProofOfDelivery
       const pod = await tx.orm.public.ProofOfDelivery.create({
         deliveryJobId: params.deliveryJobId,
         providerId: params.providerId,
@@ -255,8 +288,9 @@ export async function completeDelivery(params: {
         longitude: params.longitude
       });
 
-      // 2. State transition
+      // 3. State transition to DELIVERED and consume OTP atomically
       const updatedJob = await transitionDeliveryStatus(params.deliveryJobId, 'DELIVERED', params.providerId, tx);
+      await tx.orm.public.DeliveryJob.where({ id: params.deliveryJobId }).update({ recipientOtp: null });
 
       // 3. Create tracking event
       const event = await tx.orm.public.DeliveryTrackingEvent.create({
@@ -438,4 +472,22 @@ export async function getTrackingHistory(deliveryJobId: string, providerId: stri
   const events = await db.orm.public.DeliveryTrackingEvent.where({ deliveryJobId }).all();
   events.sort((a: any, b: any) => Date.parse(String(a.recordedAt)) - Date.parse(String(b.recordedAt)));
   return events;
+}
+
+// 11. Delivery State Inspection
+export async function getDeliveryState(deliveryJobId: string, providerId: string) {
+  const job = (await db.orm.public.DeliveryJob.where({ id: deliveryJobId }).all())[0];
+  if (!job) throw new LogisticsDomainError('DeliveryJob not found');
+  if (job.providerId !== providerId) throw new LogisticsDomainError('Provider mismatch');
+
+  const events = await db.orm.public.DeliveryTrackingEvent.where({ deliveryJobId }).all();
+  events.sort((a: any, b: any) => Date.parse(String(a.recordedAt)) - Date.parse(String(b.recordedAt)));
+  const latestTrackingEvent = events.length > 0 ? events[events.length - 1] : null;
+
+  return {
+    job,
+    currentStatus: job.status,
+    latestTrackingEvent,
+    trackingEvents: events,
+  };
 }

@@ -1,7 +1,27 @@
 import { test } from 'node:test';
 import * as assert from 'node:assert';
+import { createRequire } from 'module';
+import { encode } from 'next-auth/jwt';
+import { authOptions } from '../auth';
 import { db } from '../../src/prisma/db';
 import { LogisticsDomainError } from './logistics-domain';
+
+const require = createRequire(import.meta.url);
+const nextHeaders = require('next/headers');
+let mockCookies: Record<string, string> = {};
+nextHeaders.headers = () => new Map();
+nextHeaders.cookies = () => ({
+  get: (name: string) => (mockCookies[name] ? { name, value: mockCookies[name] } : undefined),
+  getAll: () => Object.entries(mockCookies).map(([n, v]) => ({ name: n, value: v })),
+});
+
+function setActiveUserToken(token: string | null) {
+  if (token) {
+    mockCookies['next-auth.session-token'] = token;
+  } else {
+    delete mockCookies['next-auth.session-token'];
+  }
+}
 
 // Reusing test utilities
 import { createDeliveryJob } from './logistics-domain';
@@ -17,6 +37,41 @@ function generateId() {
 async function setupProviderAndDriver() {
   const providerId = generateId();
   await db.orm.public.Organization.create({ id: providerId, name: 'Settlement Logistics', type: 'LOGISTICS' });
+
+  // Create authenticated user with membership
+  const person = await db.orm.public.Person.create({
+    id: generateId(),
+    firstName: 'Admin',
+    lastName: 'User',
+  });
+  await db.orm.public.PersonIdentifier.create({
+    personId: person.id,
+    type: 'EMAIL',
+    normalizedValue: `admin-${person.id.slice(0, 8)}@test.com`,
+    isVerified: true,
+  });
+  await db.orm.public.Account.create({
+    personId: person.id,
+    isActive: true,
+  });
+  const membership = await db.orm.public.Membership.create({
+    personId: person.id,
+    organizationId: providerId,
+  });
+  await db.orm.public.MembershipRole.create({
+    membershipId: membership.id,
+    role: 'OWNER',
+  });
+  const token = await encode({
+    token: {
+      email: `admin-${person.id.slice(0, 8)}@test.com`,
+      name: 'Admin User',
+      personId: person.id,
+      memberships: [{ organizationId: providerId, organizationType: 'LOGISTICS' as any, role: 'OWNER' as any }],
+    },
+    secret: (authOptions.secret as string) || process.env.NEXTAUTH_SECRET || 'super_secret_cityconnect_key_2026_!@#',
+  });
+  setActiveUserToken(token);
 
   // Add pricing rule so calculateDeliveryQuote works
   await db.orm.public.DeliveryPricingRule.create({
@@ -155,7 +210,7 @@ test('LogisticsOS Phase 5 Settlement Integration Tests', async (t) => {
 
     await assert.rejects(
       settleDelivery({ providerId: badProvider, deliveryJobId: job.id }),
-      /isolation violation/
+      /isolation violation|FORBIDDEN/
     );
   });
 

@@ -180,18 +180,25 @@ export async function processPartnerWebhook(params: {
       notes: `External Partner Update (${params.externalReference}): ${params.notes || ''}`.trim(),
     });
 
-    // 3. Update job status if appropriate
-    if (params.eventType === 'DELIVERED') {
-      await tx.orm.public.DeliveryJob.where({ id: params.deliveryJobId }).update({
-        status: 'DELIVERED',
-      });
-    } else if (params.eventType === 'FAILED') {
-      await tx.orm.public.DeliveryJob.where({ id: params.deliveryJobId }).update({
-        status: 'FAILED',
-        failureReason: params.notes || 'External partner delivery failure',
-      });
+    // 3. Update job status if appropriate, enforcing monotonicity (no regressions from terminal/delivered)
+    const isTerminalOrDelivered = ['COMPLETED', 'DELIVERED', 'CANCELLED'].includes(job.status);
+    if (!isTerminalOrDelivered) {
+      if (params.eventType === 'DELIVERED') {
+        await tx.orm.public.DeliveryJob.where({ id: params.deliveryJobId }).update({
+          status: 'DELIVERED',
+        });
+      } else if (params.eventType === 'FAILED') {
+        await tx.orm.public.DeliveryJob.where({ id: params.deliveryJobId }).update({
+          status: 'FAILED',
+          failureReason: params.notes || 'External partner delivery failure',
+        });
+      } else if (params.eventType === 'IN_TRANSIT' && ['DISPATCHED', 'ASSIGNED', 'AT_PICKUP', 'PICKED_UP'].includes(job.status)) {
+        await tx.orm.public.DeliveryJob.where({ id: params.deliveryJobId }).update({
+          status: 'IN_TRANSIT',
+        });
+      }
     }
 
-    return { success: true, duplicate: false, event };
+    return { success: true, duplicate: false, event, stateRegressed: false };
   });
 }

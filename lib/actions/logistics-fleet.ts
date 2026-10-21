@@ -2,42 +2,13 @@
 
 import { db } from '@/src/prisma/db';
 import { v4 as uuidv4 } from 'uuid';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { requireMembership } from '@/lib/actions/tenant';
+import { assertProviderAccess } from './logistics-tenant';
 
 class LogisticsFleetError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'LogisticsFleetError';
   }
-}
-
-/**
- * Validates the caller has authorized membership for the provider organization.
- * In automated test environments without an active NextAuth session, verification
- * is relaxed only if explicitly configured or running in test mode.
- */
-async function assertProviderAccess(providerId: string, allowedRoles = ['OWNER', 'ADMIN', 'MANAGER', 'DISPATCHER']) {
-  let session = null;
-  try {
-    session = await getServerSession(authOptions);
-  } catch {
-    session = null;
-  }
-
-  if (session?.user?.personId) {
-    return await requireMembership(providerId, allowedRoles);
-  }
-
-  if (process.env.NODE_ENV === 'test') {
-    // In isolated tests without active session, assert provider organization exists
-    const org = await db.orm.public.Organization.where({ id: providerId }).first();
-    if (!org) throw new LogisticsFleetError(`Provider organization ${providerId} not found`);
-    return { person: null, membership: null };
-  }
-
-  return await requireMembership(providerId, allowedRoles);
 }
 
 /**
