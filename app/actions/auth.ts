@@ -106,7 +106,7 @@ export async function registerUser(input: RegisterInput) {
 }
 
 export async function getUserPasswordStatus() {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOptions).catch(() => null);
   if (!session?.user?.personId) {
     return { error: 'Not authenticated' };
   }
@@ -123,7 +123,7 @@ export async function getUserPasswordStatus() {
 }
 
 export async function setUserPassword(input: { currentPassword?: string; newPassword: string }) {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOptions).catch(() => null);
   if (!session?.user?.personId) {
     return { error: 'You must be signed in to manage your password.' };
   }
@@ -133,16 +133,21 @@ export async function setUserPassword(input: { currentPassword?: string; newPass
     return { error: 'Password must be at least 6 characters long.' };
   }
 
-  const account = await db.orm.public.Account
+  let account = await db.orm.public.Account
     .where({ personId: session.user.personId })
     .all()
     .first();
 
+  // Resilience: ensure Account record exists if user joined via external provider
   if (!account) {
-    return { error: 'Account record not found.' };
+    account = await db.orm.public.Account.create({
+      personId: session.user.personId,
+      isActive: true,
+    });
   }
 
   // If user already has a password set, require and verify the current password
+  const hadPassword = Boolean(account.passwordHash);
   if (account.passwordHash) {
     if (!input.currentPassword) {
       return { error: 'Please enter your current password to set a new one.' };
@@ -161,7 +166,8 @@ export async function setUserPassword(input: { currentPassword?: string; newPass
 
   return {
     success: true,
-    message: account.passwordHash
+    hasPassword: true,
+    message: hadPassword
       ? 'Password changed successfully.'
       : 'Password set successfully! You can now log in using your email and password.',
   };

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -21,9 +21,15 @@ import {
   Sparkles,
   Loader2,
   Plus,
+  AlertCircle,
 } from 'lucide-react';
 import { createHotelWhatsAppBooking } from '@/app/actions/checkout';
-import { bookResidentHotelReservation, type HotelReservationResult } from '@/lib/actions/hotel';
+import {
+  bookResidentHotelReservation,
+  checkHotelRoomsAvailability,
+  type HotelReservationResult,
+  type RoomAvailabilityResult,
+} from '@/lib/actions/hotel';
 import { deleteUniversalStay } from '@/lib/actions/stays';
 import { FallbackImg } from '@/components/cityos/CityUI';
 import { useMoney } from '@/components/cityos/CityProvider';
@@ -87,6 +93,55 @@ export default function CityStayDetail({
 
   const [isSuccess, setIsSuccess] = useState(false);
   const isHotelOSEnabled = Boolean(data?.isHotelOSEnabled);
+  const [availabilityMap, setAvailabilityMap] = useState<Record<string, RoomAvailabilityResult>>({});
+  const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
+
+  const orgId = data.organizationId || data.id;
+  const roomIdsStr = useMemo(() => rooms.map((r: any) => r.id).join(','), [rooms]);
+
+  useEffect(() => {
+    if (!isHotelOSEnabled || rooms.length === 0) {
+      setAvailabilityMap({});
+      return;
+    }
+    if (!checkIn || !checkOut) {
+      setAvailabilityMap({});
+      return;
+    }
+    const d1 = new Date(checkIn);
+    const d2 = new Date(checkOut);
+    if (isNaN(d1.getTime()) || isNaN(d2.getTime()) || d2 <= d1) {
+      setAvailabilityMap({});
+      return;
+    }
+
+    let isMounted = true;
+    setIsCheckingAvailability(true);
+
+    checkHotelRoomsAvailability({
+      organizationId: orgId,
+      checkInDate: checkIn,
+      checkOutDate: checkOut,
+      roomIds: rooms.map((r: any) => r.id),
+    })
+      .then((res) => {
+        if (isMounted) {
+          setAvailabilityMap(res || {});
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to check room availability:', err);
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsCheckingAvailability(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [checkIn, checkOut, isHotelOSEnabled, orgId, roomIdsStr]);
 
   async function handleBookHotelRoom(room: any) {
     if (!guestName.trim()) {
@@ -102,6 +157,11 @@ export default function CityStayDetail({
     if (new Date(checkOut) <= new Date(checkIn)) {
       setIsSuccess(false);
       setMessage('Check-out date must be after check-in date.');
+      return;
+    }
+    if (isHotelOSEnabled && availabilityMap[room.id] && !availabilityMap[room.id].available) {
+      setIsSuccess(false);
+      setMessage(availabilityMap[room.id].reason || 'This room is not available for the selected dates.');
       return;
     }
     setLoadingRoomId(room.id);
@@ -425,22 +485,56 @@ export default function CityStayDetail({
           {/* HotelOS Rooms List (if this is a Hotel with configured rooms) */}
           {rooms.length > 0 && (
             <div className="space-y-3">
-              <h2 className="font-black text-slate-900 text-lg px-1">
-                Available Rooms ({rooms.length})
-              </h2>
+              <div className="flex items-center justify-between px-1">
+                <h2 className="font-black text-slate-900 text-lg">
+                  Available Rooms ({rooms.length})
+                </h2>
+                {isHotelOSEnabled && isCheckingAvailability && (
+                  <span className="inline-flex items-center gap-1.5 text-xs font-bold text-teal-700">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Checking dates…
+                  </span>
+                )}
+              </div>
               {rooms.map((r) => {
-                const roomTotal = (Number(r.baseRate) || 0) * nightsCount;
+                const avail = availabilityMap[r.id];
+                const hasDates = Boolean(checkIn && checkOut && new Date(checkOut) > new Date(checkIn));
+                const isOutOfOrder = r.status === 'OUT_OF_ORDER';
+                const isUnavailable = isHotelOSEnabled && hasDates && avail && !avail.available;
+                const isAvailable = isHotelOSEnabled && hasDates && avail && avail.available;
+                const roomTotal = (avail?.totalPrice ?? (Number(r.baseRate) || 0) * nightsCount);
+
                 return (
                   <div
                     key={r.id}
-                    className="bg-white p-5 rounded-3xl border border-slate-200/90 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xs"
+                    className={cn(
+                      "bg-white p-5 rounded-3xl border transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xs",
+                      isUnavailable ? "border-rose-200/90 bg-rose-50/20" : "border-slate-200/90"
+                    )}
                   >
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-black text-slate-900 text-base">{r.type} Room</p>
                         <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[11px] font-bold">
                           Room #{r.roomNumber}
                         </span>
+
+                        {isHotelOSEnabled && (
+                          <>
+                            {isOutOfOrder ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                <AlertCircle className="w-3 h-3" /> Out of Order
+                              </span>
+                            ) : isAvailable ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <Check className="w-3 h-3 stroke-[3]" /> Available
+                              </span>
+                            ) : isUnavailable ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                <AlertCircle className="w-3 h-3" /> {avail?.reason || 'Booked for dates'}
+                              </span>
+                            ) : null}
+                          </>
+                        )}
                       </div>
                       <p className="text-sm font-black text-teal-800 mt-1.5">
                         {fmt(r.baseRate)}{' '}
@@ -453,16 +547,30 @@ export default function CityStayDetail({
                       </p>
                     </div>
                     <button
-                      disabled={loadingRoomId === r.id}
+                      disabled={loadingRoomId === r.id || isUnavailable || isOutOfOrder}
                       onClick={() => handleBookHotelRoom(r)}
                       className={cn(
                         "w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 text-white rounded-xl text-xs font-black transition-all disabled:opacity-50 active:scale-95 cursor-pointer shrink-0",
-                        isHotelOSEnabled
+                        isOutOfOrder
+                          ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                          : isUnavailable
+                          ? "bg-rose-100 text-rose-700 border border-rose-200 cursor-not-allowed"
+                          : isHotelOSEnabled
                           ? "bg-teal-700 hover:bg-teal-800 shadow-md shadow-teal-700/20"
                           : "bg-[#25D366] hover:bg-[#20ba59] shadow-md shadow-emerald-600/20"
                       )}
                     >
-                      {isHotelOSEnabled ? (
+                      {isOutOfOrder ? (
+                        <>
+                          <AlertCircle className="w-4 h-4" />
+                          Out of Order
+                        </>
+                      ) : isUnavailable ? (
+                        <>
+                          <AlertCircle className="w-4 h-4" />
+                          Booked for Dates
+                        </>
+                      ) : isHotelOSEnabled ? (
                         <>
                           <Check className="w-4 h-4" />
                           {loadingRoomId === r.id ? 'Reserving Room…' : 'Reserve Room (HotelOS)'}

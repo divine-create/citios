@@ -8,8 +8,13 @@ function toInstant(date: Date) {
   return (globalThis as any).Temporal.Instant.fromEpochMilliseconds(date.getTime());
 }
 
-function epochMs(instant: unknown) {
-  return (instant as { epochMilliseconds: number }).epochMilliseconds;
+function epochMs(instant: unknown): number {
+  if (!instant) return 0;
+  if (typeof (instant as any).epochMilliseconds === 'number') {
+    return (instant as any).epochMilliseconds;
+  }
+  const t = new Date(instant as any).getTime();
+  return isNaN(t) ? 0 : t;
 }
 
 export async function getHotelAdminData(organizationId: string) {
@@ -83,6 +88,185 @@ export async function computeStayPrice(organizationId: string, baseRate: number,
  * - Must have configured rooms with baseRate > 0 and status != 'OUT_OF_ORDER'
  * - Must not have reservationEnabled or bookingEnabled explicitly disabled in metadata
  */
+export type RoomAvailabilityResult = {
+  available: boolean;
+  reason?: string;
+  totalPrice?: number;
+  totalNights?: number;
+  baseRate?: number;
+};
+
+/**
+ * Validates ahead-of-time room availability for a given date range.
+ * Checks date interval, past dates, room configuration, out-of-order status,
+ * and overlapping active reservations (CONFIRMED, CHECKED_IN).
+ */
+export async function checkHotelRoomAvailability(input: {
+  roomId: string;
+  organizationId: string;
+  checkInDate: string;
+  checkOutDate: string;
+}): Promise<RoomAvailabilityResult> {
+  if (!input.roomId || !input.organizationId) {
+    return { available: false, reason: 'Room and organization are required.' };
+  }
+  if (!input.checkInDate || !input.checkOutDate) {
+    return { available: false, reason: 'Check-in and check-out dates are required.' };
+  }
+
+  const checkIn = new Date(input.checkInDate);
+  const checkOut = new Date(input.checkOutDate);
+  if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) {
+    return { available: false, reason: 'Invalid dates.' };
+  }
+  if (checkOut.getTime() <= checkIn.getTime()) {
+    return { available: false, reason: 'Check-out must be after check-in.' };
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (checkIn.getTime() < today.getTime()) {
+    return { available: false, reason: 'Check-in date cannot be in the past.' };
+  }
+
+  const room = await db.orm.public.HotelRoom.where({
+    id: input.roomId,
+    organizationId: input.organizationId,
+  }).all().first();
+
+  if (!room) {
+    return { available: false, reason: 'Room not found.' };
+  }
+
+  if (room.status === 'OUT_OF_ORDER') {
+    return { available: false, reason: 'Room is currently out of order.' };
+  }
+
+  if (typeof room.baseRate !== 'number' || room.baseRate <= 0) {
+    return { available: false, reason: 'Room rate is not configured.' };
+  }
+
+  const allReservations = await db.orm.public.Reservation.where({ roomId: input.roomId }).all();
+  const checkInMs = checkIn.getTime();
+  const checkOutMs = checkOut.getTime();
+
+  const overlaps = allReservations.filter((r: any) => {
+    if (r.status === 'CANCELLED' || r.status === 'CHECKED_OUT') return false;
+    const rIn = epochMs(r.checkInDate);
+    const rOut = epochMs(r.checkOutDate);
+    return rIn < checkOutMs && rOut > checkInMs;
+  });
+
+  if (overlaps.length > 0) {
+    return { available: false, reason: 'This room is already booked for part of that date range.' };
+  }
+
+  const totalNights = Math.max(1, Math.round((checkOutMs - checkInMs) / (1000 * 60 * 60 * 24)));
+  const totalPrice = await computeStayPrice(input.organizationId, room.baseRate, checkIn, checkOut);
+
+  return {
+    available: true,
+    totalPrice,
+    totalNights,
+    baseRate: room.baseRate,
+  };
+}
+
+/**
+ * Batch checks room availability for all rooms (or specified room IDs) of a hotel organization.
+ * Used by UI to query availability of all rooms in a single server call.
+ */
+export async function checkHotelRoomsAvailability(input: {
+  organizationId: string;
+  checkInDate: string;
+  checkOutDate: string;
+  roomIds?: string[];
+}): Promise<Record<string, RoomAvailabilityResult>> {
+  const result: Record<string, RoomAvailabilityResult> = {};
+  if (!input.organizationId) return result;
+
+  const checkIn = new Date(input.checkInDate);
+  const checkOut = new Date(input.checkOutDate);
+  const isValidDateRange =
+    !isNaN(checkIn.getTime()) &&
+    !isNaN(checkOut.getTime()) &&
+    checkOut.getTime() > checkIn.getTime();
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const isPast = isValidDateRange && checkIn.getTime() < today.getTime();
+
+  let dateError: string | undefined;
+  if (!input.checkInDate || !input.checkOutDate) {
+    dateError = 'Check-in and check-out dates are required.';
+  } else if (!isValidDateRange) {
+    dateError =
+      isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())
+        ? 'Invalid dates.'
+        : 'Check-out must be after check-in.';
+  } else if (isPast) {
+    dateError = 'Check-in date cannot be in the past.';
+  }
+
+  const allRooms = await db.orm.public.HotelRoom.where({
+    organizationId: input.organizationId,
+  }).all();
+
+  const targetRooms =
+    input.roomIds && input.roomIds.length > 0
+      ? allRooms.filter((r) => input.roomIds!.includes(r.id))
+      : allRooms;
+
+  if (dateError) {
+    for (const r of targetRooms) {
+      result[r.id] = { available: false, reason: dateError };
+    }
+    return result;
+  }
+
+  const allReservations = await db.orm.public.Reservation.where({
+    organizationId: input.organizationId,
+  }).all();
+
+  const checkInMs = checkIn.getTime();
+  const checkOutMs = checkOut.getTime();
+  const totalNights = Math.max(1, Math.round((checkOutMs - checkInMs) / (1000 * 60 * 60 * 24)));
+
+  for (const room of targetRooms) {
+    if (room.status === 'OUT_OF_ORDER') {
+      result[room.id] = { available: false, reason: 'Room is currently out of order.' };
+      continue;
+    }
+    if (typeof room.baseRate !== 'number' || room.baseRate <= 0) {
+      result[room.id] = { available: false, reason: 'Room rate is not configured.' };
+      continue;
+    }
+
+    const roomReservations = allReservations.filter((r: any) => r.roomId === room.id);
+    const overlaps = roomReservations.filter((r: any) => {
+      if (r.status === 'CANCELLED' || r.status === 'CHECKED_OUT') return false;
+      const rIn = epochMs(r.checkInDate);
+      const rOut = epochMs(r.checkOutDate);
+      return rIn < checkOutMs && rOut > checkInMs;
+    });
+
+    if (overlaps.length > 0) {
+      result[room.id] = { available: false, reason: 'This room is already booked for part of that date range.' };
+      continue;
+    }
+
+    const totalPrice = await computeStayPrice(input.organizationId, room.baseRate, checkIn, checkOut);
+    result[room.id] = {
+      available: true,
+      totalPrice,
+      totalNights,
+      baseRate: room.baseRate,
+    };
+  }
+
+  return result;
+}
+
 export type HotelReservationResult =
   | { success: true; reservationId: string; totalPrice: number; error?: never }
   | { success: false; error: string; reservationId?: never; totalPrice?: never };

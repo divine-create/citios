@@ -9,6 +9,8 @@ import {
   bookResidentHotelReservation,
   updateHotelSettings,
   getAuthoritativeHotelListing,
+  checkHotelRoomAvailability,
+  checkHotelRoomsAvailability,
 } from './actions/hotel';
 import {
   resolveHotelWhatsAppDestination,
@@ -26,6 +28,10 @@ nextHeaders.cookies = () => ({
   getAll: () => Object.entries(mockCookies).map(([name, value]) => ({ name, value })),
   has: (name: string) => Boolean(mockCookies[name]),
 });
+
+function toInstant(date: Date) {
+  return (globalThis as any).Temporal.Instant.fromEpochMilliseconds(date.getTime());
+}
 
 async function setSessionForPerson(person: any) {
   const email = `wa-hotel-${person.id.slice(0, 8)}@cityos.test`;
@@ -600,5 +606,134 @@ test('Hotel Reservations & WhatsApp Fallback Product Rule Suite', async (t) => {
 
     const updatedOrg = await db.orm.public.Organization.where({ id: operationalHotel.id }).all().first();
     assert.strictEqual(updatedOrg?.description, 'Premier hospitality destination in the heart of Calabar.');
+  });
+
+  // --------------------------------------------------------------------------
+  // Requirement 12: Ahead-of-time HotelOS Room Availability Verification
+  // --------------------------------------------------------------------------
+  await t.test('12. checkHotelRoomAvailability and checkHotelRoomsAvailability accurately report room status', async (t2) => {
+    // 12a. Overlapping date range is reported as unavailable with reason
+    const bookedOverlap = await checkHotelRoomAvailability({
+      organizationId: operationalHotel.id,
+      roomId: operationalRoom.id,
+      checkInDate: futureCheckIn,
+      checkOutDate: futureCheckOut,
+    });
+    assert.strictEqual(bookedOverlap.available, false);
+    assert.match(bookedOverlap.reason || '', /already booked/i);
+
+    // Partial overlap (starts during existing booking)
+    const partialOverlap = await checkHotelRoomAvailability({
+      organizationId: operationalHotel.id,
+      roomId: operationalRoom.id,
+      checkInDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      checkOutDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    });
+    assert.strictEqual(partialOverlap.available, false);
+    assert.match(partialOverlap.reason || '', /already booked/i);
+
+    // 12b. Non-overlapping dates are reported as available with accurate stay pricing
+    const availableDatesCheck = await checkHotelRoomAvailability({
+      organizationId: operationalHotel.id,
+      roomId: operationalRoom.id,
+      checkInDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      checkOutDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    });
+    assert.strictEqual(availableDatesCheck.available, true);
+    assert.strictEqual(availableDatesCheck.totalNights, 2);
+    assert.strictEqual(availableDatesCheck.baseRate, 45000);
+    assert.strictEqual(availableDatesCheck.totalPrice, 90000);
+
+    // 12c. Adjacent date: check-in on existing check-out day is allowed (interval [checkIn, checkOut))
+    const adjacentDateCheck = await checkHotelRoomAvailability({
+      organizationId: operationalHotel.id,
+      roomId: operationalRoom.id,
+      checkInDate: futureCheckOut,
+      checkOutDate: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    });
+    assert.strictEqual(adjacentDateCheck.available, true, 'Check-in on check-out day must not be treated as overlapping');
+
+    // 12d. Cancelled and Checked-out reservations do not block availability
+    const testRoom2 = await db.orm.public.HotelRoom.create({
+      organizationId: operationalHotel.id,
+      roomNumber: '102',
+      type: 'Executive',
+      status: 'CLEAN',
+      baseRate: 60000,
+    });
+
+    const resInDate = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const resOutDate = new Date(Date.now() + 12 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    // Create a CANCELLED reservation
+    await db.orm.public.Reservation.create({
+      organizationId: operationalHotel.id,
+      roomId: testRoom2.id,
+      guestName: 'Cancelled Guest',
+      status: 'CANCELLED',
+      checkInDate: toInstant(new Date(resInDate)),
+      checkOutDate: toInstant(new Date(resOutDate)),
+      totalPrice: 120000,
+    });
+
+    const checkCancelledRoom = await checkHotelRoomAvailability({
+      organizationId: operationalHotel.id,
+      roomId: testRoom2.id,
+      checkInDate: resInDate,
+      checkOutDate: resOutDate,
+    });
+    assert.strictEqual(checkCancelledRoom.available, true, 'Cancelled reservation must not block room availability');
+
+    // 12e. Out-of-order room is reported as unavailable
+    const outOfOrderRoom = await db.orm.public.HotelRoom.create({
+      organizationId: operationalHotel.id,
+      roomNumber: '103',
+      type: 'Standard',
+      status: 'OUT_OF_ORDER',
+      baseRate: 30000,
+    });
+
+    const checkOoo = await checkHotelRoomAvailability({
+      organizationId: operationalHotel.id,
+      roomId: outOfOrderRoom.id,
+      checkInDate: resInDate,
+      checkOutDate: resOutDate,
+    });
+    assert.strictEqual(checkOoo.available, false);
+    assert.match(checkOoo.reason || '', /out of order/i);
+
+    // 12f. Invalid date intervals
+    const checkInvalidDates = await checkHotelRoomAvailability({
+      organizationId: operationalHotel.id,
+      roomId: testRoom2.id,
+      checkInDate: resOutDate,
+      checkOutDate: resInDate, // inverted
+    });
+    assert.strictEqual(checkInvalidDates.available, false);
+    assert.match(checkInvalidDates.reason || '', /after check-in/i);
+
+    // 12g. Anti-IDOR / Tenant isolation: wrong organization ID
+    const crossTenantCheck = await checkHotelRoomAvailability({
+      organizationId: unconfiguredHotel.id, // wrong org
+      roomId: operationalRoom.id,
+      checkInDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      checkOutDate: new Date(Date.now() + 17 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    });
+    assert.strictEqual(crossTenantCheck.available, false);
+    assert.match(crossTenantCheck.reason || '', /not found/i);
+
+    // 12h. Batch availability checking checkHotelRoomsAvailability
+    const batchResult = await checkHotelRoomsAvailability({
+      organizationId: operationalHotel.id,
+      checkInDate: futureCheckIn,
+      checkOutDate: futureCheckOut,
+    });
+    // operationalRoom is booked
+    assert.strictEqual(batchResult[operationalRoom.id]?.available, false);
+    // testRoom2 is available
+    assert.strictEqual(batchResult[testRoom2.id]?.available, true);
+    // outOfOrderRoom is out of order
+    assert.strictEqual(batchResult[outOfOrderRoom.id]?.available, false);
+    assert.match(batchResult[outOfOrderRoom.id]?.reason || '', /out of order/i);
   });
 });
