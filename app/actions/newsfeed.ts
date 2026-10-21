@@ -313,7 +313,7 @@ export async function fetchFeed(
     if (!hasMore || fetchedPosts.length === 0) {
       break;
     }
-  } while (rawPosts.length === 0 && hasMore && attempts < 5);
+  } while (rawPosts.length < limit && hasMore && attempts < 5);
 
   const myLikes = personId
     ? await db.orm.public.PostLike.where({ personId }).select('postId').all()

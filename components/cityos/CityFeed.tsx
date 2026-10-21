@@ -855,7 +855,7 @@ export default function CityFeed({ hideHeader = false }: { hideHeader?: boolean 
     if (!sentinel) return;
     const observer = new IntersectionObserver(
       (entries) => { if (entries[0].isIntersecting && nextCursor && !loadingMore) loadMore(); },
-      { threshold: 0.1 }
+      { root: sentinel.closest('main'), rootMargin: '400px', threshold: 0 }
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
@@ -1013,6 +1013,16 @@ export default function CityFeed({ hideHeader = false }: { hideHeader?: boolean 
             {loadingMore && (
               <div className="py-6 flex justify-center">
                 <Loader2 className="w-6 h-6 animate-spin text-teal-600 opacity-60" />
+              </div>
+            )}
+            {nextCursor && !loadingMore && (
+              <div className="py-4 flex justify-center">
+                <button
+                  onClick={loadMore}
+                  className="px-5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-[13px] font-bold transition-colors cursor-pointer"
+                >
+                  Load more posts
+                </button>
               </div>
             )}
             {!nextCursor && !loadingMore && posts.length > 5 && (
