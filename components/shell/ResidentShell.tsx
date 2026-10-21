@@ -5,9 +5,9 @@ import { signIn, signOut, useSession } from 'next-auth/react';
 import { PlatformVerticalsConfig, VerticalId } from '@/lib/verticals-constants';
 import {
   LayoutGrid,
+  Home as HomeIcon,
   Sparkles,
   MapPin,
-  Rss,
   User as UserIcon,
   Bell,
   Building2,
@@ -19,10 +19,8 @@ import {
   Settings,
   HelpCircle,
   ShoppingBag,
-  Map as MapIcon,
   PenSquare,
   Briefcase,
-  Users as UsersIcon,
   Store,
   UtensilsCrossed,
   Bookmark,
@@ -326,8 +324,7 @@ export default function ResidentShell({
   type NavItem = { id: string; path: string; label: string; icon: any; iconKey?: string; imageUrl?: string; secondary?: boolean; verticalId?: VerticalId };
 
   const PRIMARY_NAV: NavItem[] = [
-    { id: 'home', path: '/', label: 'Home', icon: LayoutGrid, iconKey: 'home' },
-    { id: 'map', path: '/map', label: 'Map', icon: MapIcon, iconKey: 'map' },
+    { id: 'home', path: '/', label: 'Home', icon: HomeIcon, iconKey: 'home' },
     { id: 'create', path: '/create', label: 'Create', icon: PenSquare, iconKey: 'create' },
     { id: 'activity', path: '/activity', label: 'Activity', icon: ShoppingBag, iconKey: 'activity' },
     { id: 'profile', path: '/profile', label: 'Profile', icon: UserIcon, iconKey: 'profile' },
@@ -355,9 +352,7 @@ export default function ResidentShell({
     {
       label: 'Discover',
       items: [
-        { id: 'feed', path: '/feed', label: 'Newsfeed', icon: Rss, iconKey: 'feed' },
         { id: 'notifications', path: '/notifications', label: 'Notifications', icon: Bell, iconKey: 'notifications' },
-        { id: 'map', path: '/map', label: 'Map', icon: MapIcon, iconKey: 'map' },
         { id: 'nearby', path: '/explore', label: 'Nearby', icon: MapPin, iconKey: 'nearby', imageUrl: '/icons/portals/explore.png' },
         { id: 'saved', path: '/saved', label: 'Saved', icon: Bookmark, iconKey: 'saved' },
         { id: 'ai', path: '/ai', label: 'Ask 9jaLive', icon: Sparkles, iconKey: 'ai' },
@@ -370,7 +365,6 @@ export default function ResidentShell({
         { id: 'requests', path: '/tasks', label: 'Service Requests', icon: Wrench, iconKey: 'requests', imageUrl: '/icons/portals/services.png' },
         { id: 'apps', path: '/jobs', label: 'Job Applications', icon: Briefcase, iconKey: 'apps', imageUrl: '/icons/portals/jobs.png' },
         { id: 'events', path: '/events', label: 'Events', icon: Calendar, iconKey: 'events' },
-        { id: 'communities', path: '/community', label: 'Communities', icon: UsersIcon, iconKey: 'community' },
       ],
     },
     {
@@ -770,8 +764,8 @@ export default function ResidentShell({
           {!isWorkspace && (
             <nav className="md:hidden absolute bottom-0 left-0 right-0 bg-white border-t border-[#EBEBEB] flex items-center justify-between px-3 h-16 z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
               {[
-                { id: 'home', path: '/', label: 'Explore', icon: Search },
-                { id: 'explore', path: '/explore', label: 'Places', icon: LayoutGrid },
+                { id: 'home', path: '/', label: 'Home', icon: HomeIcon },
+                { id: 'explore', path: '/explore', label: 'Explore', icon: Search },
                 citypayEnabled
                   ? { id: 'wallet', path: '/wallet', label: 'CityPay', icon: WalletIcon }
                   : { id: 'create', path: '/create', label: 'Create', icon: PenSquare },
