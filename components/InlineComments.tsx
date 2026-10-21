@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
-import { getPostDetails, addComment } from '@/lib/actions/post';
+import { getPostDetails, addComment, toggleCommentLike } from '@/lib/actions/post';
 import { Send, Loader2, X, LogIn } from 'lucide-react';
 import { getTwoLetterInitials, getAvatarGradient } from '@/components/cityos/CityUI';
 import LoginModal from './LoginModal';
@@ -38,6 +38,43 @@ export default function InlineComments({ postId, onCommentAdded }: { postId: str
         setReplyingTo(comment);
         if (inputRef.current) {
             inputRef.current.focus();
+        }
+    };
+
+    const handleLikeComment = async (commentId: string) => {
+        if (!session?.user) {
+            setIsLoginModalOpen(true);
+            return;
+        }
+
+        // Optimistic update across comment tree (both root comments and nested replies)
+        const updateLikesInTree = (list: any[]): any[] => {
+            return list.map(c => {
+                if (c.id === commentId) {
+                    const nextLiked = !c.hasLiked;
+                    const nextCount = nextLiked ? (c.likesCount || 0) + 1 : Math.max(0, (c.likesCount || 0) - 1);
+                    return { ...c, hasLiked: nextLiked, likesCount: nextCount };
+                }
+                if (c.replies && c.replies.length > 0) {
+                    return { ...c, replies: updateLikesInTree(c.replies) };
+                }
+                return c;
+            });
+        };
+
+        setComments(prev => updateLikesInTree(prev));
+
+        try {
+            const res = await toggleCommentLike(commentId);
+            if (res.error) {
+                // Revert on error
+                setComments(prev => updateLikesInTree(prev));
+                setCommentError(res.error);
+            }
+        } catch (e: any) {
+            // Revert on exception
+            setComments(prev => updateLikesInTree(prev));
+            setCommentError(e.message || "Failed to like comment");
         }
     };
 
@@ -95,8 +132,27 @@ export default function InlineComments({ postId, onCommentAdded }: { postId: str
                     <p className="text-[13px] text-slate-800 leading-snug">{comment.content}</p>
                 </div>
                 <div className="flex items-center gap-3 px-2 mt-1">
-                    <span onClick={() => { if (!session?.user) setIsLoginModalOpen(true); }} className="text-[11px] font-bold text-slate-500 cursor-pointer hover:underline">Like</span>
-                    <span onClick={() => handleReplyClick(comment)} className="text-[11px] font-bold text-slate-500 cursor-pointer hover:underline">Reply</span>
+                    <button
+                        type="button"
+                        onClick={() => handleLikeComment(comment.id)}
+                        className={`text-[11px] font-bold cursor-pointer hover:underline transition-colors ${
+                            comment.hasLiked ? 'text-teal-700' : 'text-slate-500 hover:text-slate-700'
+                        }`}
+                    >
+                        {comment.hasLiked ? 'Liked' : 'Like'}
+                        {(comment.likesCount || 0) > 0 && (
+                            <span className="ml-1 text-[11px] font-semibold text-slate-600">
+                                · {comment.likesCount}
+                            </span>
+                        )}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => handleReplyClick(comment)}
+                        className="text-[11px] font-bold text-slate-500 hover:text-slate-700 cursor-pointer hover:underline"
+                    >
+                        Reply
+                    </button>
                     <span className="text-[11px] text-slate-400">{new Date(comment.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
                 </div>
                 

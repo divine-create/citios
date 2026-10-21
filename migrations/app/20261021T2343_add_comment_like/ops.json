@@ -1,0 +1,245 @@
+[
+  {
+    "id": "table.commentLike",
+    "label": "Create table \"commentLike\"",
+    "summary": "Creates table \"commentLike\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "commentLike"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"commentLike\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"commentLike\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"commentLike\"",
+        "sql": "CREATE TABLE \"public\".\"commentLike\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" text NOT NULL,\n  \"commentId\" text NOT NULL,\n  \"personId\" text NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"commentLike\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"commentLike\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.commentLike.commentLike_commentId_personId_key",
+    "label": "Add unique constraint on \"commentLike\" (commentId, personId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "commentLike_commentId_personId_key",
+        "table": "commentLike"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"commentLike_commentId_personId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "commentLike_commentId_personId_key",
+          "public",
+          "\"public\".\"commentLike\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"commentLike_commentId_personId_key\"",
+        "sql": "ALTER TABLE \"public\".\"commentLike\" ADD CONSTRAINT \"commentLike_commentId_personId_key\" UNIQUE (\"commentId\", \"personId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"commentLike_commentId_personId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "commentLike_commentId_personId_key",
+          "public",
+          "\"public\".\"commentLike\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.commentLike.commentLike_commentId_idx",
+    "label": "Create index \"commentLike_commentId_idx\" on \"commentLike\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "commentLike_commentId_idx",
+        "table": "commentLike"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"commentLike_commentId_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"commentLike_commentId_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"commentLike_commentId_idx\"",
+        "sql": "CREATE INDEX \"commentLike_commentId_idx\" ON \"public\".\"commentLike\" (\"commentId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"commentLike_commentId_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"commentLike_commentId_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.commentLike.commentLike_personId_idx",
+    "label": "Create index \"commentLike_personId_idx\" on \"commentLike\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "commentLike_personId_idx",
+        "table": "commentLike"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"commentLike_personId_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"commentLike_personId_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"commentLike_personId_idx\"",
+        "sql": "CREATE INDEX \"commentLike_personId_idx\" ON \"public\".\"commentLike\" (\"personId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"commentLike_personId_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"commentLike_personId_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.commentLike.commentLike_commentId_fkey",
+    "label": "Add foreign key \"commentLike_commentId_fkey\" on \"commentLike\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "commentLike_commentId_fkey",
+        "table": "commentLike"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"commentLike_commentId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "commentLike_commentId_fkey",
+          "public",
+          "\"public\".\"commentLike\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"commentLike_commentId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"commentLike\"\nADD CONSTRAINT \"commentLike_commentId_fkey\"\nFOREIGN KEY (\"commentId\")\nREFERENCES \"public\".\"comment\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"commentLike_commentId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "commentLike_commentId_fkey",
+          "public",
+          "\"public\".\"commentLike\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.commentLike.commentLike_personId_fkey",
+    "label": "Add foreign key \"commentLike_personId_fkey\" on \"commentLike\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "commentLike_personId_fkey",
+        "table": "commentLike"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"commentLike_personId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "commentLike_personId_fkey",
+          "public",
+          "\"public\".\"commentLike\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"commentLike_personId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"commentLike\"\nADD CONSTRAINT \"commentLike_personId_fkey\"\nFOREIGN KEY (\"personId\")\nREFERENCES \"public\".\"person\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"commentLike_personId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "commentLike_personId_fkey",
+          "public",
+          "\"public\".\"commentLike\""
+        ]
+      }
+    ]
+  }
+]

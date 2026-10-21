@@ -64,6 +64,10 @@
       "model": "Comment",
       "namespace": "public"
     },
+    "commentLike": {
+      "model": "CommentLike",
+      "namespace": "public"
+    },
     "customerData": {
       "model": "CustomerData",
       "namespace": "public"
@@ -3878,6 +3882,21 @@
               }
             },
             "relations": {
+              "likes": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "commentId"
+                  ]
+                },
+                "to": {
+                  "model": "CommentLike",
+                  "namespace": "public"
+                }
+              },
               "parent": {
                 "cardinality": "N:1",
                 "on": {
@@ -3962,6 +3981,88 @@
               },
               "namespaceId": "public",
               "table": "comment"
+            }
+          },
+          "CommentLike": {
+            "fields": {
+              "commentId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "personId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "comment": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "commentId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Comment",
+                  "namespace": "public"
+                }
+              },
+              "person": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "personId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Person",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "commentId": {
+                  "column": "commentId"
+                },
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "personId": {
+                  "column": "personId"
+                }
+              },
+              "namespaceId": "public",
+              "table": "commentLike"
             }
           },
           "CustomerData": {
@@ -16876,6 +16977,21 @@
                 },
                 "to": {
                   "model": "Booking",
+                  "namespace": "public"
+                }
+              },
+              "commentLikes": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "personId"
+                  ]
+                },
+                "to": {
+                  "model": "CommentLike",
                   "namespace": "public"
                 }
               },
@@ -32793,6 +32909,101 @@
                 ]
               },
               "uniques": []
+            },
+            "commentLike": {
+              "columns": {
+                "commentId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "createdAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "personId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "commentId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "commentLike"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "comment"
+                  }
+                },
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "personId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "commentLike"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "person"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "commentId"
+                  ],
+                  "name": "commentLike_commentId_idx_b5a4f615",
+                  "prefix": "commentLike_commentId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "personId"
+                  ],
+                  "name": "commentLike_personId_idx_e5e06b80",
+                  "prefix": "commentLike_personId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "commentId",
+                    "personId"
+                  ]
+                }
+              ]
             },
             "customerData": {
               "columns": {
@@ -54580,10 +54791,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "5a9e61dc878fa51b70eeb6beed56c75de228789a50abf15876e5729892658a11"
+    "storageHash": "110908f680701d91e57d2acb75d0984494451508dcb20065e83ea90489cabe12"
   },
   "execution": {
-    "executionHash": "5825177c6aaed1744ad50b227523270a7a4497f1b193fa8992bed9ea258605e1",
+    "executionHash": "95ee367e3a6b099a75b4205a42721305cdf157a08cdc4360279057cd92b25b92",
     "mutations": {
       "defaults": [
         {
@@ -54749,6 +54960,17 @@
             "column": "id",
             "namespace": "public",
             "table": "comment"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "commentLike"
           }
         },
         {

@@ -1,16 +1,14 @@
-
 'use client';
-import { ArrowLeft, MessageCircle, Send } from 'lucide-react';
+import { ArrowLeft, MessageCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import FeedItem from './FeedItem';
-import { addComment, toggleLike, sharePost } from '@/lib/actions/post';
+import InlineComments from './InlineComments';
+import { toggleLike, sharePost } from '@/lib/actions/post';
 import LoginModal from './LoginModal';
 
 export default function PostView({ post }: { post: any }) {
     const router = useRouter();
-    const [commentText, setCommentText] = useState('');
-    const [isSubmitting, setIsSubmitting] = useState(false);
     
     const [hasLiked, setHasLiked] = useState(post?.hasLiked || false);
     const [likesCount, setLikesCount] = useState(post?.likesCount || 0);
@@ -18,25 +16,6 @@ export default function PostView({ post }: { post: any }) {
     
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
     const [postViewError, setPostViewError] = useState<string | null>(null);
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!commentText.trim()) return;
-        
-        setIsSubmitting(true);
-        const res = await addComment(post.id, commentText);
-        if (res.error) {
-            if (res.error === 'Not logged in') {
-                setIsLoginModalOpen(true);
-            } else {
-                setPostViewError(res.error);
-            }
-        } else {
-            setCommentText('');
-            router.refresh();
-        }
-        setIsSubmitting(false);
-    };
 
     const handleLike = async () => {
         const previousLiked = hasLiked;
@@ -126,49 +105,19 @@ export default function PostView({ post }: { post: any }) {
 
             {/* Comments Section */}
             <div className="px-4">
-                <h3 className="font-bold text-slate-900 mb-6 flex items-center gap-2">
+                <h3 className="font-bold text-slate-900 mb-2 flex items-center gap-2">
                     <MessageCircle className="w-5 h-5" />
-                    Comments ({post.comments?.length || 0})
+                    Discussion
                 </h3>
 
-                <div className="space-y-4 mb-8">
-                    {post.comments?.map((comment: any) => (
-                        <div key={comment.id} className="flex gap-3">
-                            <div className="w-8 h-8 rounded-full bg-slate-200 shrink-0 flex items-center justify-center font-bold text-xs">
-                                {comment.user?.name?.charAt(0) || 'U'}
-                            </div>
-                            <div className="bg-slate-50 p-3 rounded-2xl rounded-tl-none">
-                                <p className="font-bold text-xs text-slate-700 mb-1">{comment.user?.name || 'Resident'}</p>
-                                <p className="text-sm text-slate-800">{comment.content}</p>
-                            </div>
-                        </div>
-                    ))}
-                    {(!post.comments || post.comments.length === 0) && (
-                        <p className="text-slate-500 text-sm text-center py-4">No comments yet. Be the first to share your thoughts!</p>
-                    )}
-                </div>
-
-                {/* Comment Input */}
                 {postViewError && (
                     <p className="text-xs font-bold text-red-500 mb-3">{postViewError}</p>
                 )}
-                <form onSubmit={handleSubmit} className="flex gap-2">
-                    <input
-                        type="text"
-                        placeholder="Write a comment..."
-                        value={commentText}
-                        onChange={(e) => setCommentText(e.target.value)}
-                        className="flex-1 bg-slate-100 border-none rounded-full px-4 py-3 text-sm focus:ring-2 focus:ring-teal-500"
-                        disabled={isSubmitting}
-                    />
-                    <button 
-                        type="submit"
-                        disabled={!commentText.trim() || isSubmitting}
-                        className="w-11 h-11 rounded-full bg-teal-800 text-white flex items-center justify-center hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
-                    >
-                        <Send className="w-4 h-4" />
-                    </button>
-                </form>
+
+                <InlineComments 
+                    postId={post.id} 
+                    onCommentAdded={() => router.refresh()} 
+                />
             </div>
 
             <LoginModal 

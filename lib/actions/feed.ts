@@ -1,8 +1,10 @@
-
 'use server'
 
 import { db } from '@/src/prisma/db'
 import { getCurrentCity } from '@/lib/city'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { findPersonByEmail } from '@/lib/identity'
 
 export async function getCommunityFeed() {
   try {
@@ -26,20 +28,16 @@ export async function getCommunityFeed() {
     const comments = postIds.length > 0 ? await db.orm.public.Comment.where(c => c.postId.in(postIds)).all() : [];
     const likes = postIds.length > 0 ? await db.orm.public.PostLike.where(l => l.postId.in(postIds)).all() : [];
     
-    const userIdsArr = Array.from(new Set([...posts.map(p=>p.personId), ...comments.map(c=>c.personId)].filter(Boolean) as string[]));
-    const users = userIdsArr.length > 0 ? await db.orm.public.Person.where(p => p.id.in(userIdsArr)).all() : [];
-
-    let session;
+    let currentPersonId: string | null = null;
     try {
-        const { getServerSession } = require('next-auth');
-        const { authOptions } = require('@/lib/auth');
-        session = await getServerSession(authOptions);
+        const session = await getServerSession(authOptions);
+        if (session?.user?.personId) {
+            currentPersonId = session.user.personId;
+        } else if (session?.user?.email) {
+            const person = await findPersonByEmail(session.user.email);
+            if (person) currentPersonId = person.id;
+        }
     } catch(e) {}
-
-    let currentUser = null;
-    if (session?.user?.email) {
-        currentUser = users.find(u => u.id === session?.user?.personId);
-    }
 
     // Stitch relations and order by emergency first, then date descending
     const enrichedPosts = posts.map(p => {
@@ -51,7 +49,7 @@ export async function getCommunityFeed() {
         organization: orgs.find(o => o.id === p.organizationId),
         comments: comments.filter(c => c.postId === p.id),
         likesCount: postLikes.length,
-        hasLiked: currentUser ? postLikes.some(l => l.personId === currentUser.id) : false,
+        hasLiked: currentPersonId ? postLikes.some(l => l.personId === currentPersonId) : false,
         shareCount: p.shareCount || 0
       }));
     }).sort((a, b) => {
@@ -66,6 +64,3 @@ export async function getCommunityFeed() {
     return [];
   }
 }
-
-
-

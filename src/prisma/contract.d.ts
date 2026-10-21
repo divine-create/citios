@@ -38,9 +38,9 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'5a9e61dc878fa51b70eeb6beed56c75de228789a50abf15876e5729892658a11'>;
+  StorageHashBase<'110908f680701d91e57d2acb75d0984494451508dcb20065e83ea90489cabe12'>;
 export type ExecutionHash =
-  ExecutionHashBase<'5825177c6aaed1744ad50b227523270a7a4497f1b193fa8992bed9ea258605e1'>;
+  ExecutionHashBase<'95ee367e3a6b099a75b4205a42721305cdf157a08cdc4360279057cd92b25b92'>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
 
@@ -410,6 +410,12 @@ export type FieldOutputTypes = {
       readonly postId: CodecTypes['pg/text@1']['output'];
       readonly personId: CodecTypes['pg/text@1']['output'];
       readonly parentId: CodecTypes['pg/text@1']['output'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    };
+    readonly CommentLike: {
+      readonly id: CodecTypes['pg/text@1']['output'];
+      readonly commentId: CodecTypes['pg/text@1']['output'];
+      readonly personId: CodecTypes['pg/text@1']['output'];
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
     };
     readonly CustomerData: {
@@ -2577,6 +2583,12 @@ export type FieldInputTypes = {
       readonly parentId: CodecTypes['pg/text@1']['input'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
     };
+    readonly CommentLike: {
+      readonly id: CodecTypes['pg/text@1']['input'];
+      readonly commentId: CodecTypes['pg/text@1']['input'];
+      readonly personId: CodecTypes['pg/text@1']['input'];
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+    };
     readonly CustomerData: {
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly personId: CodecTypes['pg/text@1']['input'] | null;
@@ -4718,6 +4730,12 @@ export type StorageColumnTypes = {
       readonly parentId: CodecTypes['pg/text@1']['output'] | null;
       readonly personId: CodecTypes['pg/text@1']['output'];
       readonly postId: CodecTypes['pg/text@1']['output'];
+    };
+    readonly commentLike: {
+      readonly commentId: CodecTypes['pg/text@1']['output'];
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly id: CodecTypes['pg/text@1']['output'];
+      readonly personId: CodecTypes['pg/text@1']['output'];
     };
     readonly customerData: {
       readonly id: CodecTypes['pg/text@1']['output'];
@@ -6883,6 +6901,12 @@ export type StorageColumnInputTypes = {
       readonly parentId: CodecTypes['pg/text@1']['input'] | null;
       readonly personId: CodecTypes['pg/text@1']['input'];
       readonly postId: CodecTypes['pg/text@1']['input'];
+    };
+    readonly commentLike: {
+      readonly commentId: CodecTypes['pg/text@1']['input'];
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly id: CodecTypes['pg/text@1']['input'];
+      readonly personId: CodecTypes['pg/text@1']['input'];
     };
     readonly customerData: {
       readonly id: CodecTypes['pg/text@1']['input'];
@@ -10203,6 +10227,73 @@ type ContractBase = Omit<
                   readonly target: {
                     readonly namespaceId: 'public' & NamespaceId;
                     readonly tableName: 'comment';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+              ];
+            };
+            readonly commentLike: {
+              columns: {
+                readonly id: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly commentId: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly personId: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly createdAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [{ readonly columns: readonly ['commentId', 'personId'] }];
+              indexes: readonly [
+                {
+                  readonly name: 'commentLike_commentId_idx_b5a4f615';
+                  readonly prefix: 'commentLike_commentId_idx';
+                  readonly columns: readonly ['commentId'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'commentLike_personId_idx_e5e06b80';
+                  readonly prefix: 'commentLike_personId_idx';
+                  readonly columns: readonly ['personId'];
+                  readonly unique: false;
+                },
+              ];
+              foreignKeys: readonly [
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'commentLike';
+                    readonly columns: readonly ['commentId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'comment';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'commentLike';
+                    readonly columns: readonly ['personId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'person';
                     readonly columns: readonly ['id'];
                   };
                 },
@@ -27575,6 +27666,10 @@ type ContractBase = Omit<
     readonly follow: { readonly namespace: 'public' & NamespaceId; readonly model: 'Follow' };
     readonly postLike: { readonly namespace: 'public' & NamespaceId; readonly model: 'PostLike' };
     readonly comment: { readonly namespace: 'public' & NamespaceId; readonly model: 'Comment' };
+    readonly commentLike: {
+      readonly namespace: 'public' & NamespaceId;
+      readonly model: 'CommentLike';
+    };
     readonly hotelRoom: { readonly namespace: 'public' & NamespaceId; readonly model: 'HotelRoom' };
     readonly housekeepingLog: {
       readonly namespace: 'public' & NamespaceId;
@@ -29516,6 +29611,17 @@ type ContractBase = Omit<
               };
             };
             readonly relations: {
+              readonly likes: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'CommentLike';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['commentId'];
+                };
+              };
               readonly parent: {
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;
@@ -29567,6 +29673,63 @@ type ContractBase = Omit<
                 readonly postId: { readonly column: 'postId' };
                 readonly personId: { readonly column: 'personId' };
                 readonly parentId: { readonly column: 'parentId' };
+                readonly createdAt: { readonly column: 'createdAt' };
+              };
+            };
+          };
+          readonly CommentLike: {
+            readonly fields: {
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly commentId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly personId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly createdAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                };
+              };
+            };
+            readonly relations: {
+              readonly comment: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'Comment';
+                };
+                readonly cardinality: 'N:1';
+                readonly on: {
+                  readonly localFields: readonly ['commentId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+              readonly person: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'Person';
+                };
+                readonly cardinality: 'N:1';
+                readonly on: {
+                  readonly localFields: readonly ['personId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+            };
+            readonly storage: {
+              readonly table: 'commentLike';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly id: { readonly column: 'id' };
+                readonly commentId: { readonly column: 'commentId' };
+                readonly personId: { readonly column: 'personId' };
                 readonly createdAt: { readonly column: 'createdAt' };
               };
             };
@@ -37842,6 +38005,17 @@ type ContractBase = Omit<
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;
                   readonly model: 'Booking';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['personId'];
+                };
+              };
+              readonly commentLikes: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'CommentLike';
                 };
                 readonly cardinality: '1:N';
                 readonly on: {
@@ -47410,6 +47584,14 @@ type ContractBase = Omit<
           readonly ref: {
             readonly namespace: 'public';
             readonly table: 'comment';
+            readonly column: 'id';
+          };
+          readonly onCreate: { readonly kind: 'generator'; readonly id: 'uuidv4' };
+        },
+        {
+          readonly ref: {
+            readonly namespace: 'public';
+            readonly table: 'commentLike';
             readonly column: 'id';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'uuidv4' };

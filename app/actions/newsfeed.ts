@@ -623,10 +623,12 @@ export async function togglePostLike(postId: string) {
     });
     const post = await db.orm.public.Post.where({ id: postId }).first();
     if (post?.personId && post.personId !== personId) {
+      const liker = await db.orm.public.Person.where({ id: personId }).first();
       await notifyPerson(post.personId, {
-        type: 'SYSTEM',
-        title: 'New Like',
-        body: 'Someone liked your post',
+        type: 'POST_LIKE',
+        title: 'New Like on Your Post',
+        body: `${liker?.firstName || 'Someone'} liked your post`,
+        href: `/feed/${postId}`,
       });
     }
   }

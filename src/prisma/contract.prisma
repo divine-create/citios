@@ -27,6 +27,7 @@ model Person {
         tickets        Ticket[]           @relation("UserTickets")
   bookings       Booking[]          @relation("UserBookings")
         postLikes      PostLike[]
+  commentLikes   CommentLike[]      @relation("PersonCommentLikes")
   savedItems     SavedItem[]
   comments       Comment[]          @relation("UserComments")
   noticeReads    NoticeRead[]       @relation("UserNoticeReads")
@@ -873,8 +874,24 @@ model Comment {
   parentId       String?
   parent         Comment?       @relation("CommentReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   replies        Comment[]      @relation("CommentReplies")
+  likes          CommentLike[]
   
   createdAt      DateTime     @default(now())
+}
+
+model CommentLike {
+  id             String       @id @default(uuid())
+  commentId      String
+  personId       String
+  
+  comment        Comment      @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  person         Person       @relation("PersonCommentLikes", fields: [personId], references: [id], onDelete: Cascade)
+  
+  createdAt      DateTime     @default(now())
+
+  @@unique([commentId, personId])
+  @@index([commentId])
+  @@index([personId])
 }
 
 // ----------------------------------------------------------------------------
