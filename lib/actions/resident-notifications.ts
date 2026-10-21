@@ -1,14 +1,20 @@
 'use server';
 
+import '@js-temporal/polyfill';
 import { db } from '@/src/prisma/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { pusherServer } from '@/lib/pusher';
+import { requirePersonId } from '@/app/actions/notifications';
 
 /**
  * Fetch resident notifications.
  */
 
-export async function getNotificationsForPerson(personId: string, input: { limit?: number; cursor?: string; unreadOnly?: boolean; }) {
+export async function getNotificationsForPerson(
+  personId: string,
+  input: { limit?: number; cursor?: string; unreadOnly?: boolean }
+) {
   const limit = Math.min(input.limit ?? 20, 50);
 
   let query = db.orm.public.Notification.where({ personId });
@@ -17,7 +23,9 @@ export async function getNotificationsForPerson(personId: string, input: { limit
   }
 
   if (input.cursor) {
-    query = query.where((n) => n.createdAt.lt((globalThis as any).Temporal.Instant.from(new Date(input.cursor!).toISOString())));
+    query = query.where((n) =>
+      n.createdAt.lt((globalThis as any).Temporal.Instant.from(new Date(input.cursor!).toISOString()))
+    );
   }
 
   const items = await query
@@ -34,20 +42,26 @@ export async function getNotificationsForPerson(personId: string, input: { limit
   return { items, nextCursor };
 }
 
-export async function fetchResidentNotifications(input: { limit?: number; cursor?: string; unreadOnly?: boolean; }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.personId) throw new Error('Unauthorized');
-  return getNotificationsForPerson(session.user.personId, input);
+export async function fetchResidentNotifications(input: {
+  limit?: number;
+  cursor?: string;
+  unreadOnly?: boolean;
+}) {
+  const personId = await requirePersonId();
+  if (!personId) throw new Error('Unauthorized');
+  return getNotificationsForPerson(personId, input);
 }
 
 export async function countUnreadNotificationsForPerson(personId: string) {
-  return await db.orm.public.Notification.where({ personId, isRead: false }).all().then(items => items.length);
+  return await db.orm.public.Notification.where({ personId, isRead: false })
+    .all()
+    .then((items) => items.length);
 }
 
 export async function getUnreadNotificationCount() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.personId) return 0;
-  return countUnreadNotificationsForPerson(session.user.personId);
+  const personId = await requirePersonId();
+  if (!personId) return 0;
+  return countUnreadNotificationsForPerson(personId);
 }
 
 /**
@@ -55,19 +69,26 @@ export async function getUnreadNotificationCount() {
  */
 
 export async function markPersonNotificationsRead(personId: string, notificationIds: string[]) {
+  if (!notificationIds.length) return;
   await db.orm.public.Notification
     .where((n) => n.id.in(notificationIds))
-    .where({ personId })
+    .where({ personId, isRead: false })
     .updateAndCount({
       isRead: true,
       readAt: (globalThis as any).Temporal.Now.instant(),
     });
+
+  pusherServer
+    .trigger(`private-user-${personId}`, 'notifications-read', {
+      notificationIds,
+    })
+    .catch((e) => console.error('Pusher notification-read error:', e));
 }
 
 export async function markNotificationsRead(notificationIds: string[]) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.personId) throw new Error('Unauthorized');
-  await markPersonNotificationsRead(session.user.personId, notificationIds);
+  const personId = await requirePersonId();
+  if (!personId) throw new Error('Unauthorized');
+  await markPersonNotificationsRead(personId, notificationIds);
 }
 
 export async function markAllPersonNotificationsRead(personId: string) {
@@ -79,13 +100,16 @@ export async function markAllPersonNotificationsRead(personId: string) {
     isRead: true,
     readAt: (globalThis as any).Temporal.Now.instant(),
   });
+
+  pusherServer
+    .trigger(`private-user-${personId}`, 'notifications-read', {
+      all: true,
+    })
+    .catch((e) => console.error('Pusher notification-read error:', e));
 }
 
 export async function markAllNotificationsRead() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.personId) throw new Error('Unauthorized');
-  await markAllPersonNotificationsRead(session.user.personId);
+  const personId = await requirePersonId();
+  if (!personId) throw new Error('Unauthorized');
+  await markAllPersonNotificationsRead(personId);
 }
-
-
-

@@ -5,7 +5,6 @@ import { fetchResidentNotifications, markNotificationsRead, markAllNotifications
 import { useRouter } from 'next/navigation';
 import { getPusherClient } from '@/lib/pusherClient';
 import { useSession } from 'next-auth/react';
-import Link from 'next/link';
 import { ArrowLeft, Bell, CheckCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -33,6 +32,7 @@ const NOTIF_EMOJI: Record<string, string> = {
 
 const CATEGORIES = [
   { id: 'all', label: 'All' },
+  { id: 'unread', label: 'Unread' },
   { id: 'orders', label: 'Orders & Food' },
   { id: 'services', label: 'Services' },
   { id: 'social', label: 'Social & Feed' },
@@ -66,17 +66,48 @@ export default function ResidentNotifications() {
     if (session?.user?.personId) {
       loadNotifications();
 
+      // Synchronize with local custom events (e.g. read from the bell dropdown)
+      const handleLocalSync = (e: Event) => {
+        const customEvent = e as CustomEvent;
+        if (customEvent.detail?.all) {
+          setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+        } else if (Array.isArray(customEvent.detail?.notificationIds)) {
+          const ids = customEvent.detail.notificationIds;
+          setNotifications((prev) =>
+            prev.map((n) => (ids.includes(n.id) ? { ...n, isRead: true } : n))
+          );
+        }
+      };
+
+      window.addEventListener('cityos:notifications-read', handleLocalSync);
+
       const pusherClient = getPusherClient();
-      if (!pusherClient) return;
+      if (!pusherClient) {
+        return () => {
+          window.removeEventListener('cityos:notifications-read', handleLocalSync);
+        };
+      }
 
       const channelName = `private-user-${session.user.personId}`;
       const channel = pusherClient.subscribe(channelName);
-      
+
       channel.bind('new-notification', () => {
         loadNotifications();
       });
 
+      channel.bind('notifications-read', (data: any) => {
+        if (data?.all) {
+          setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+        } else if (Array.isArray(data?.notificationIds)) {
+          const ids = data.notificationIds;
+          setNotifications((prev) =>
+            prev.map((n) => (ids.includes(n.id) ? { ...n, isRead: true } : n))
+          );
+        }
+      });
+
       return () => {
+        window.removeEventListener('cityos:notifications-read', handleLocalSync);
         pusherClient.unsubscribe(channelName);
       };
     }
@@ -84,10 +115,22 @@ export default function ResidentNotifications() {
 
   const handleNotificationClick = async (notif: Notification) => {
     if (!notif.isRead) {
-      await markNotificationsRead([notif.id]);
+      // Optimistic update
       setNotifications((prev) =>
         prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n))
       );
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('cityos:notifications-read', {
+            detail: { notificationIds: [notif.id] },
+          })
+        );
+      }
+      try {
+        await markNotificationsRead([notif.id]);
+      } catch (err) {
+        console.error('Failed to mark notification read:', err);
+      }
     }
     if (notif.href) {
       router.push(notif.href);
@@ -95,11 +138,26 @@ export default function ResidentNotifications() {
   };
 
   const handleMarkAllRead = async () => {
-    await markAllNotificationsRead();
+    // Optimistic update
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('cityos:notifications-read', {
+          detail: { all: true },
+        })
+      );
+    }
+    try {
+      await markAllNotificationsRead();
+    } catch (err) {
+      console.error('Failed to mark all notifications read:', err);
+    }
   };
 
   const filteredNotifications = useMemo(() => {
+    if (selectedCategory === 'unread') {
+      return notifications.filter((n) => !n.isRead);
+    }
     if (selectedCategory === 'orders') {
       return notifications.filter(
         (n) => n.type.includes('ORDER') || n.type.includes('FOOD')
@@ -178,6 +236,11 @@ export default function ResidentNotifications() {
             )}
           >
             {cat.label}
+            {cat.id === 'unread' && unreadCount > 0 && (
+              <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-orange-500 text-white text-[10px]">
+                {unreadCount}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -188,10 +251,22 @@ export default function ResidentNotifications() {
           <div className="w-12 h-12 mx-auto rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-2xl mb-3 shadow-xs">
             <Bell className="w-6 h-6 text-slate-400" />
           </div>
-          <h3 className="text-sm font-extrabold text-slate-800">You're all caught up!</h3>
+          <h3 className="text-sm font-extrabold text-slate-800">
+            {selectedCategory === 'unread' ? "You're all caught up!" : "No notifications found"}
+          </h3>
           <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
-            Order updates, booking confirmations, and community interactions will appear here in real time.
+            {selectedCategory === 'unread'
+              ? "You have no unread notifications. All order updates and alerts are safely archived in the 'All' tab."
+              : "Order updates, booking confirmations, and community interactions will appear here in real time."}
           </p>
+          {selectedCategory === 'unread' && notifications.length > 0 && (
+            <button
+              onClick={() => setSelectedCategory('all')}
+              className="mt-4 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 transition-colors"
+            >
+              View all notifications ({notifications.length})
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-2.5">

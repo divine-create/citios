@@ -5,14 +5,17 @@ import { authOptions } from '@/lib/auth';
 import { findPersonByEmail } from '@/lib/identity';
 import { db } from '@/src/prisma/db';
 import { Temporal } from '@js-temporal/polyfill';
+import { pusherServer } from '@/lib/pusher';
 
 /**
  * Resident notification surface.
  *
- * Identity comes from the canonical helper (session email → Person), never
- * from a client-supplied personId — consistent with the identity foundation.
- * All queries are person-scoped server-side; markRead is ownership-guarded by
- * construction (where({ id, personId })).
+ * Identity resolution prioritizes canonical email -> Person resolution,
+ * with a safe fallback to session.user.personId (verified against the database)
+ * to support phone-only or token-stored resident accounts.
+ *
+ * All queries are person-scoped server-side; markRead operations are ownership-guarded
+ * by construction (where({ id, personId })).
  */
 
 export type ResidentNotification = {
@@ -27,29 +30,52 @@ export type ResidentNotification = {
 
 const PAGE_SIZE = 30;
 
-async function requirePersonId(): Promise<string | null> {
+export async function requirePersonId(): Promise<string | null> {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return null;
-  const person = await findPersonByEmail(session.user.email);
-  return person?.id ?? null;
+  if (!session?.user) return null;
+
+  // 1. Canonical email resolution
+  if (session.user.email) {
+    const person = await findPersonByEmail(session.user.email);
+    if (person?.id) return person.id;
+  }
+
+  // 2. Direct session personId verification against the database
+  if (session.user.personId) {
+    const direct = await db.orm.public.Person.where({ id: session.user.personId }).all().first();
+    if (direct?.id) return direct.id;
+  }
+
+  return null;
 }
 
-export async function getMyNotifications(): Promise<{
+export async function getMyNotifications(options?: {
+  unreadOnly?: boolean;
+  limit?: number;
+}): Promise<{
   notifications: ResidentNotification[];
   unreadCount: number;
 }> {
   const personId = await requirePersonId();
   if (!personId) return { notifications: [], unreadCount: 0 };
 
-  const rows = await db.orm.public.Notification.where({ personId }).all();
-  
+  const limit = Math.min(options?.limit ?? PAGE_SIZE, 50);
+
+  const query = options?.unreadOnly
+    ? db.orm.public.Notification.where({ personId, isRead: false })
+    : db.orm.public.Notification.where({ personId });
+
+  const rows = await query.all();
+
   rows.sort((a: any, b: any) => {
     const aMs = typeof a.createdAt === 'string' ? new Date(a.createdAt).getTime() : a.createdAt.epochMilliseconds;
     const bMs = typeof b.createdAt === 'string' ? new Date(b.createdAt).getTime() : b.createdAt.epochMilliseconds;
     return bMs - aMs;
   });
 
-  const notifications: ResidentNotification[] = rows.slice(0, PAGE_SIZE).map((n: any) => ({
+  const allUnread = await db.orm.public.Notification.where({ personId, isRead: false }).all();
+
+  const notifications: ResidentNotification[] = rows.slice(0, limit).map((n: any) => ({
     id: n.id,
     type: n.type,
     title: n.title,
@@ -61,7 +87,7 @@ export async function getMyNotifications(): Promise<{
 
   return {
     notifications,
-    unreadCount: rows.filter((n: any) => !n.isRead).length,
+    unreadCount: allUnread.length,
   };
 }
 
@@ -73,24 +99,61 @@ export async function getUnreadNotificationCount(): Promise<number> {
 }
 
 /** Mark one notification read. Ownership-guarded: a foreign id matches nothing. */
-export async function markNotificationRead(notificationId: string): Promise<void> {
+export async function markNotificationRead(notificationId: string): Promise<{ success: boolean }> {
   const personId = await requirePersonId();
-  if (!personId) return;
+  if (!personId) return { success: false };
+
   await db.orm.public.Notification.where({ id: notificationId, personId }).update({
     isRead: true,
-    // The DB codec for timestamptz is Temporal.Instant; a JS Date is rejected
-    // (RUNTIME.ENCODE_FAILED), which previously left the row unread.
     readAt: Temporal.Now.instant(),
   });
+
+  pusherServer
+    .trigger(`private-user-${personId}`, 'notifications-read', {
+      notificationIds: [notificationId],
+    })
+    .catch((e) => console.error('Pusher notification-read error:', e));
+
+  return { success: true };
+}
+
+/** Mark specific notifications as read. Ownership-guarded. */
+export async function markNotificationsRead(notificationIds: string[]): Promise<{ success: boolean }> {
+  const personId = await requirePersonId();
+  if (!personId || !notificationIds.length) return { success: false };
+
+  await db.orm.public.Notification
+    .where((n) => n.id.in(notificationIds))
+    .where({ personId, isRead: false })
+    .updateAndCount({
+      isRead: true,
+      readAt: Temporal.Now.instant(),
+    });
+
+  pusherServer
+    .trigger(`private-user-${personId}`, 'notifications-read', {
+      notificationIds,
+    })
+    .catch((e) => console.error('Pusher notification-read error:', e));
+
+  return { success: true };
 }
 
 /** Mark every notification for the authenticated resident read. */
-export async function markAllNotificationsRead(): Promise<void> {
+export async function markAllNotificationsRead(): Promise<{ success: boolean }> {
   const personId = await requirePersonId();
-  if (!personId) return;
-  // update() only touches the first matching row; updateAndCount() updates all.
+  if (!personId) return { success: false };
+
   await db.orm.public.Notification.where({ personId, isRead: false }).updateAndCount({
     isRead: true,
     readAt: Temporal.Now.instant(),
   });
+
+  pusherServer
+    .trigger(`private-user-${personId}`, 'notifications-read', {
+      all: true,
+    })
+    .catch((e) => console.error('Pusher notification-read error:', e));
+
+  return { success: true };
 }

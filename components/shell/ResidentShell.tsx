@@ -92,6 +92,7 @@ function NotificationsDropdown() {
   const [unread, setUnread] = useState(0);
   const [loading, setLoading] = useState(false);
   const [toastNotification, setToastNotification] = useState<any>(null);
+  const [filter, setFilter] = useState<'unread' | 'all'>('unread');
   const previousUnreadRef = useRef<number | null>(null);
 
   const load = async (silent = false) => {
@@ -110,18 +111,72 @@ function NotificationsDropdown() {
       setItems(res.notifications);
       setUnread(res.unreadCount);
     } catch {
-      // Fail closed to the empty state � never fabricate rows.
+      // Fail closed to the empty state — never fabricate rows.
     } finally {
       if (!silent) setLoading(false);
     }
   };
 
-  // Immediate load on session mount + periodic background polling (session-gated)
+  // Immediate load on session mount + Pusher real-time events + local custom event synchronization
   useEffect(() => {
     if (!session) return;
     load();
-    const t = setInterval(() => load(true), 25_000);
-    return () => clearInterval(t);
+
+    const handleLocalSync = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail?.all) {
+        setItems((prev) => prev.map((x) => ({ ...x, isRead: true })));
+        setUnread(0);
+        previousUnreadRef.current = 0;
+      } else if (Array.isArray(customEvent.detail?.notificationIds)) {
+        const ids = customEvent.detail.notificationIds;
+        setItems((prev) =>
+          prev.map((x) => (ids.includes(x.id) ? { ...x, isRead: true } : x))
+        );
+        setUnread((u) => Math.max(0, u - ids.length));
+        if (previousUnreadRef.current !== null) {
+          previousUnreadRef.current = Math.max(0, previousUnreadRef.current - ids.length);
+        }
+      }
+    };
+
+    window.addEventListener('cityos:notifications-read', handleLocalSync);
+
+    const personId = (session.user as any)?.personId || (session.user as any)?.id;
+    const pusherClient = getPusherClient();
+    let channel: any = null;
+    const channelName = personId ? `private-user-${personId}` : null;
+
+    if (pusherClient && channelName) {
+      channel = pusherClient.subscribe(channelName);
+      channel.bind('new-notification', () => load(true));
+      channel.bind('notifications-read', (data: any) => {
+        if (data?.all) {
+          setItems((prev) => prev.map((x) => ({ ...x, isRead: true })));
+          setUnread(0);
+          previousUnreadRef.current = 0;
+        } else if (Array.isArray(data?.notificationIds)) {
+          const ids = data.notificationIds;
+          setItems((prev) =>
+            prev.map((x) => (ids.includes(x.id) ? { ...x, isRead: true } : x))
+          );
+          setUnread((u) => Math.max(0, u - ids.length));
+          if (previousUnreadRef.current !== null) {
+            previousUnreadRef.current = Math.max(0, previousUnreadRef.current - ids.length);
+          }
+        }
+      });
+    }
+
+    const t = setInterval(() => load(true), 30_000);
+
+    return () => {
+      window.removeEventListener('cityos:notifications-read', handleLocalSync);
+      clearInterval(t);
+      if (pusherClient && channel && channelName) {
+        pusherClient.unsubscribe(channelName);
+      }
+    };
   }, [session]);
 
   // Also refresh on manual dropdown toggle
@@ -135,20 +190,47 @@ function NotificationsDropdown() {
     setOpen(false);
     setToastNotification(null);
     if (!n.isRead) {
-      // Optimistic read-state, reconciled by the next load.
+      // Optimistic read-state, dispatched across all tabs and components
       setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, isRead: true } : x)));
       setUnread((u) => Math.max(0, u - 1));
       if (previousUnreadRef.current !== null) {
         previousUnreadRef.current = Math.max(0, previousUnreadRef.current - 1);
       }
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('cityos:notifications-read', {
+            detail: { notificationIds: [n.id] },
+          })
+        );
+      }
       try {
         await markNotificationRead(n.id);
-      } catch {
-        // Non-fatal � read-state reconciles on next open.
+      } catch (err) {
+        console.error('Error marking notification read:', err);
       }
     }
     if (n.href) router.push(n.href);
   };
+
+  const handleMarkAllRead = async () => {
+    setItems((prev) => prev.map((x) => ({ ...x, isRead: true })));
+    setUnread(0);
+    previousUnreadRef.current = 0;
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('cityos:notifications-read', {
+          detail: { all: true },
+        })
+      );
+    }
+    try {
+      await markAllNotificationsRead();
+    } catch (err) {
+      console.error('Error marking all notifications read:', err);
+    }
+  };
+
+  const displayedItems = filter === 'unread' ? items.filter((n) => !n.isRead) : items;
 
   return (
     <div className="relative">
@@ -203,23 +285,44 @@ function NotificationsDropdown() {
                   </span>
                 )}
               </div>
-              {unread > 0 ? (
+              {unread > 0 && (
                 <button
-                  onClick={async () => {
-                    setItems((prev) => prev.map((x) => ({ ...x, isRead: true })));
-                    setUnread(0);
-                    try {
-                      await markAllNotificationsRead();
-                    } catch {
-                      // Reconciles on next open.
-                    }
-                  }}
+                  onClick={handleMarkAllRead}
                   className="text-[10px] font-bold text-teal-700 hover:text-teal-900 uppercase tracking-wider"
                 >
                   Mark all read
                 </button>
-              ) : null}
+              )}
             </div>
+
+            {/* Quick Unread / All Filter Tabs */}
+            <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-100 flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setFilter('unread')}
+                className={cn(
+                  'px-2.5 py-1 rounded-lg text-[11px] font-extrabold transition-colors',
+                  filter === 'unread'
+                    ? 'bg-white text-slate-900 shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-700'
+                )}
+              >
+                Unread {unread > 0 ? `(${unread})` : ''}
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilter('all')}
+                className={cn(
+                  'px-2.5 py-1 rounded-lg text-[11px] font-extrabold transition-colors',
+                  filter === 'all'
+                    ? 'bg-white text-slate-900 shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-700'
+                )}
+              >
+                All ({items.length})
+              </button>
+            </div>
+
             <div className="max-h-[380px] overflow-y-auto">
               {loading && items.length === 0 ? (
                 <div className="p-4 space-y-2">
@@ -227,15 +330,31 @@ function NotificationsDropdown() {
                     <div key={i} className="h-12 rounded-xl bg-slate-50 animate-pulse" />
                   ))}
                 </div>
-              ) : items.length === 0 ? (
+              ) : displayedItems.length === 0 ? (
                 <div className="p-6 text-center">
-                  <span className="text-2xl block mb-1">🔔</span>
-                  <p className="text-[12px] font-bold text-slate-500">No new notifications</p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">Order updates and city alerts will appear here</p>
+                  <span className="text-2xl block mb-1">
+                    {filter === 'unread' ? '🎉' : '🔔'}
+                  </span>
+                  <p className="text-[12px] font-bold text-slate-700">
+                    {filter === 'unread' ? "All caught up!" : "No notifications yet"}
+                  </p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">
+                    {filter === 'unread'
+                      ? "No unread notifications right now"
+                      : "Order updates and city alerts will appear here"}
+                  </p>
+                  {filter === 'unread' && items.length > 0 && (
+                    <button
+                      onClick={() => setFilter('all')}
+                      className="mt-2.5 px-3 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[11px] font-bold text-slate-700 transition-colors"
+                    >
+                      View history ({items.length})
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div className="py-1">
-                  {items.map((n) => (
+                  {displayedItems.map((n) => (
                     <button
                       key={n.id}
                       onClick={() => openItem(n)}

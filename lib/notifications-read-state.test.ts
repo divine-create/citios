@@ -45,6 +45,24 @@ async function signInAs(person: { id: string; firstName: string; lastName: strin
   mockCookies[cookieName] = token;
 }
 
+async function signInAsPhoneOnly(person: { id: string; firstName: string; lastName: string }) {
+  const phone = `+23480${Math.floor(10000000 + Math.random() * 90000000)}`;
+  await db.orm.public.PersonIdentifier.create({
+    personId: person.id,
+    type: 'PHONE',
+    normalizedValue: phone,
+    isVerified: true,
+  });
+  await db.orm.public.Account.create({ personId: person.id, isActive: true });
+  const token = await encode({
+    token: { name: `${person.firstName} ${person.lastName}`, personId: person.id },
+    secret: (authOptions.secret as string) || 'cityos-jwt-secret-key-2026',
+  });
+  const cookieName =
+    process.env.NODE_ENV === 'production' ? '__Secure-next-auth.session-token' : 'next-auth.session-token';
+  mockCookies[cookieName] = token;
+}
+
 // Regression: app/actions/notifications.ts wrote `readAt: new Date()`, which the
 // timestamptz-temporal codec rejects (RUNTIME.ENCODE_FAILED). The update threw,
 // the bell swallowed the error, and the notification stayed unread server-side
@@ -111,4 +129,27 @@ test('Bulk mark-read updates every matching notification (lib/actions path)', as
     assert.equal(await countUnreadNotificationsForPerson(a.id), 0);
     assert.equal(await countUnreadNotificationsForPerson(b.id), 1);
   });
+});
+
+test('Phone-only resident without email can read and mark notifications', async (t) => {
+  const resident = await db.orm.public.Person.create({ firstName: 'Phone', lastName: 'User' });
+  await signInAsPhoneOnly(resident);
+
+  await notifyPerson(resident.id, { type: 'SYSTEM', title: 'phone alert 1' });
+  await notifyPerson(resident.id, { type: 'SYSTEM', title: 'phone alert 2' });
+
+  const initial = await getMyNotifications();
+  assert.equal(initial.unreadCount, 2);
+  assert.equal(initial.notifications.length, 2);
+
+  await markNotificationRead(initial.notifications[0].id);
+
+  const updated = await getMyNotifications();
+  assert.equal(updated.unreadCount, 1);
+  assert.equal(updated.notifications.find((n) => n.id === initial.notifications[0].id)?.isRead, true);
+
+  // Unread-only filter option
+  const unreadOnly = await getMyNotifications({ unreadOnly: true });
+  assert.equal(unreadOnly.notifications.length, 1);
+  assert.equal(unreadOnly.notifications[0].id, initial.notifications[1].id);
 });
