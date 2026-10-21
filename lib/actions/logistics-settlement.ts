@@ -1,5 +1,6 @@
 import { db } from '../../src/prisma/db';
 import { LogisticsDomainError } from './logistics-domain';
+import { assertProviderAccess } from './logistics-tenant';
 
 export type SettleDeliveryParams = {
   providerId: string;
@@ -8,6 +9,7 @@ export type SettleDeliveryParams = {
 };
 
 export async function settleDelivery(params: SettleDeliveryParams) {
+  await assertProviderAccess(params.providerId, ['OWNER', 'ADMIN', 'FINANCE', 'MANAGER']);
   return await db.transaction(async (tx: any) => {
     // 1. Fetch Job and validate ownership
     const jobs = await tx.orm.public.DeliveryJob.where({ id: params.deliveryJobId }).all();
@@ -33,7 +35,6 @@ export async function settleDelivery(params: SettleDeliveryParams) {
     if (params.idempotencyKey) {
       const byKey = await tx.orm.public.LogisticsSettlement.where({ providerId: params.providerId, idempotencyKey: params.idempotencyKey }).all();
       if (byKey.length > 0) {
-        // Different job for same idempotency key?
         throw new LogisticsDomainError('Idempotency key conflict');
       }
     }
@@ -52,10 +53,14 @@ export async function settleDelivery(params: SettleDeliveryParams) {
       platformFeeRate = Number(configs[0].platformFeeRate);
     }
 
-    // 6. Calculate amounts (deterministic arithmetic using number precision up to 2 decimals)
-    const grossAmount = Number(quote.total);
-    const fees = Number((grossAmount * platformFeeRate).toFixed(2));
-    const providerAmount = Number((grossAmount - fees).toFixed(2));
+    // 6. Calculate amounts in minor units (cents / kobo) to prevent floating-point drift
+    const grossMinor = Math.round(Number(quote.total) * 100);
+    const feeMinor = Math.round(grossMinor * platformFeeRate);
+    const providerMinor = grossMinor - feeMinor;
+
+    const grossAmount = Number((grossMinor / 100).toFixed(2));
+    const fees = Number((feeMinor / 100).toFixed(2));
+    const providerAmount = Number((providerMinor / 100).toFixed(2));
 
     // 7. Wallet resolution
     let wallets = await tx.orm.public.Wallet.where({ organizationId: params.providerId }).all();
@@ -84,8 +89,9 @@ export async function settleDelivery(params: SettleDeliveryParams) {
       currency: wallet.currency
     });
 
+    const newBalance = Number((((Number(wallet.balance) * 100) + providerMinor) / 100).toFixed(2));
     await tx.orm.public.Wallet.where({ id: wallet.id }).update({
-      balance: wallet.balance + providerAmount
+      balance: newBalance
     });
 
     // 9. Create Settlement Record
@@ -105,4 +111,41 @@ export async function settleDelivery(params: SettleDeliveryParams) {
 
     return settlement;
   });
+}
+
+/**
+ * Returns settlement overview and financial ledger history for an authorized provider.
+ */
+export async function getProviderSettlementSummary(providerId: string) {
+  await assertProviderAccess(providerId, ['OWNER', 'ADMIN', 'FINANCE']);
+  const [settlements, wallet] = await Promise.all([
+    db.orm.public.LogisticsSettlement
+      .where({ providerId })
+      .include('deliveryJob')
+      .include('quote')
+      .all(),
+    db.orm.public.Wallet.where({ organizationId: providerId }).first(),
+  ]);
+
+  let totalGross = 0;
+  let totalFees = 0;
+  let totalNet = 0;
+
+  for (const s of settlements) {
+    totalGross += Number(s.grossAmount);
+    totalFees += Number(s.fees);
+    totalNet += Number(s.providerAmount);
+  }
+
+  settlements.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  return {
+    walletBalance: wallet ? Number(wallet.balance) : 0,
+    currency: wallet?.currency || 'NGN',
+    totalGross: Number(totalGross.toFixed(2)),
+    totalFees: Number(totalFees.toFixed(2)),
+    totalNet: Number(totalNet.toFixed(2)),
+    settlementCount: settlements.length,
+    recentSettlements: settlements.slice(0, 50),
+  };
 }

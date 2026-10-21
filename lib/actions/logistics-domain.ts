@@ -11,12 +11,12 @@ export class LogisticsDomainError extends Error {
 // State machine
 // ---------------------------------------------------------------------------
 
-type DeliveryStatus =
+export type DeliveryStatus =
   | 'REQUESTED' | 'PRICED' | 'CREATED' | 'DISPATCHED' | 'ASSIGNED'
   | 'AT_PICKUP' | 'PICKED_UP' | 'IN_TRANSIT' | 'AT_DROPOFF'
   | 'DELIVERED' | 'COMPLETED' | 'CANCELLED' | 'FAILED';
 
-const VALID_TRANSITIONS: Record<DeliveryStatus, DeliveryStatus[]> = {
+export const VALID_TRANSITIONS: Record<DeliveryStatus, DeliveryStatus[]> = {
   REQUESTED:  ['PRICED', 'CREATED', 'CANCELLED', 'FAILED'],
   PRICED:     ['CREATED', 'CANCELLED', 'FAILED'],
   CREATED:    ['DISPATCHED', 'CANCELLED', 'FAILED'],
@@ -33,7 +33,7 @@ const VALID_TRANSITIONS: Record<DeliveryStatus, DeliveryStatus[]> = {
 };
 
 // ---------------------------------------------------------------------------
-// Helpers: detect unique constraint violations from Prisma Next / Postgres
+// Helpers: unique constraints and generators
 // ---------------------------------------------------------------------------
 
 export function isUniqueConstraintError(e: any): boolean {
@@ -42,35 +42,70 @@ export function isUniqueConstraintError(e: any): boolean {
     e?.cause?.code === '23505' ||
     e?.message?.includes('23505') ||
     e?.message?.toLowerCase().includes('unique constraint') ||
-    // Prisma 7 legacy code kept for completeness
     e?.code === 'P2002'
   );
+}
+
+export function generateTrackingReference(): string {
+  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+  let code = '';
+  for (let i = 0; i < 8; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return `CD-${code}`;
+}
+
+export function generateRecipientOtp(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 // ---------------------------------------------------------------------------
 // createDeliveryJob
 // ---------------------------------------------------------------------------
 
+export interface CreateDeliveryJobParams {
+  providerId:          string;
+  sourceType:          string;
+  sourceId:            string;
+  idempotencyKey:      string;
+  dropoffAddress:      string;
+  dropoffLat?:         number;
+  dropoffLng?:         number;
+  dropoffContactName?: string;
+  dropoffContactPhone?:string;
+  pickupAddress?:      string;
+  pickupLat?:          number;
+  pickupLng?:          number;
+  pickupContactName?:  string;
+  pickupContactPhone?: string;
+  packageDescription?: string;
+  packageWeightKg?:    number;
+  serviceLevel?:       string;
+  customerDataId?:     string;
+  trackingReference?:  string;
+  recipientOtp?:       string;
+}
+
 /**
  * Creates a DeliveryJob idempotently.
  *
  * Idempotency key is scoped to the provider: @@unique([providerId, idempotencyKey]).
- *
  * Under a concurrent race for the same key+provider:
  *   - Both callers with the same payload receive the same job (no 500).
  *   - A conflicting payload for an existing key is rejected with a domain error.
  */
-export async function createDeliveryJob(params: {
-  providerId:     string;
-  sourceType:     string;
-  sourceId:       string;
-  idempotencyKey: string;
-  dropoffAddress: string;
-}) {
+export async function createDeliveryJob(params: CreateDeliveryJobParams) {
+  const trackingReference = params.trackingReference || generateTrackingReference();
+  const recipientOtp = params.recipientOtp || generateRecipientOtp();
+  const serviceLevel = params.serviceLevel || 'STANDARD';
+
   try {
     return await db.transaction(async (tx: any) => {
       // Check for an existing job with this provider+key first.
-      const existing = (await tx.orm.public.DeliveryJob.where({ providerId: params.providerId, idempotencyKey: params.idempotencyKey }).all())[0];
+      const existing = (await tx.orm.public.DeliveryJob.where({
+        providerId: params.providerId,
+        idempotencyKey: params.idempotencyKey
+      }).all())[0];
 
       if (existing) {
         if (existing.sourceType !== params.sourceType || existing.sourceId !== params.sourceId) {
@@ -80,19 +115,37 @@ export async function createDeliveryJob(params: {
       }
 
       const created = await tx.orm.public.DeliveryJob.create({
-        providerId:     params.providerId,
-        sourceType:     params.sourceType,
-        sourceId:       params.sourceId,
-        idempotencyKey: params.idempotencyKey,
-        dropoffAddress: params.dropoffAddress,
-        status:         'REQUESTED'
+        providerId:          params.providerId,
+        sourceType:          params.sourceType,
+        sourceId:            params.sourceId,
+        idempotencyKey:      params.idempotencyKey,
+        dropoffAddress:      params.dropoffAddress,
+        dropoffLat:          params.dropoffLat,
+        dropoffLng:          params.dropoffLng,
+        dropoffContactName:  params.dropoffContactName,
+        dropoffContactPhone: params.dropoffContactPhone,
+        pickupAddress:       params.pickupAddress,
+        pickupLat:           params.pickupLat,
+        pickupLng:           params.pickupLng,
+        pickupContactName:   params.pickupContactName,
+        pickupContactPhone:  params.pickupContactPhone,
+        packageDescription:  params.packageDescription,
+        packageWeightKg:     params.packageWeightKg,
+        serviceLevel,
+        trackingReference,
+        recipientOtp,
+        customerDataId:      params.customerDataId,
+        status:              'REQUESTED'
       });
       return created;
     });
   } catch (error: any) {
     // A concurrent race hit the DB unique constraint — re-read and validate.
     if (isUniqueConstraintError(error)) {
-      const existing = (await db.orm.public.DeliveryJob.where({ providerId: params.providerId, idempotencyKey: params.idempotencyKey }).all())[0];
+      const existing = (await db.orm.public.DeliveryJob.where({
+        providerId: params.providerId,
+        idempotencyKey: params.idempotencyKey
+      }).all())[0];
       if (existing) {
         if (existing.sourceType !== params.sourceType || existing.sourceId !== params.sourceId) {
           throw new LogisticsDomainError('Idempotency conflict: Different payload provided for same key');
@@ -116,7 +169,8 @@ export async function transitionDeliveryStatus(
   deliveryJobId: string,
   newStatus:     DeliveryStatus,
   providerId?:   string,
-  txClient?:     any
+  txClient?:     any,
+  reason?:       string
 ) {
   const runner = txClient ? async (fn: any) => fn(txClient) : db.transaction;
   return await runner(async (tx: any) => {
@@ -134,8 +188,15 @@ export async function transitionDeliveryStatus(
       throw new LogisticsDomainError(`Invalid transition from ${currentStatus} to ${newStatus}`);
     }
 
+    const updatePayload: any = { status: newStatus };
+    if (newStatus === 'CANCELLED' && reason) {
+      updatePayload.cancellationReason = reason;
+    } else if (newStatus === 'FAILED' && reason) {
+      updatePayload.failureReason = reason;
+    }
+
     const plan = tx.sql.public.deliveryJob
-      .update({ status: newStatus })
+      .update(updatePayload)
       .where((f: any, fns: any) => fns.and(
         fns.eq(f.id, deliveryJobId),
         fns.eq(f.status, currentStatus)
@@ -148,9 +209,9 @@ export async function transitionDeliveryStatus(
     if (result.affectedRows === 0) {
       throw new LogisticsDomainError(`Invalid transition from ${currentStatus} to ${newStatus}`);
     }
-    
-    const updatedJob = await tx.orm.public.DeliveryJob.first({ id: deliveryJobId });
-    return updatedJob;
+
+    const updated = (await tx.orm.public.DeliveryJob.where({ id: deliveryJobId }).all())[0];
+    return updated;
   });
 }
 
@@ -159,27 +220,7 @@ export async function transitionDeliveryStatus(
 // ---------------------------------------------------------------------------
 
 /**
- * Assigns a driver (and optionally a vehicle) to a DeliveryJob.
- *
- * Concurrency strategy — partial unique indexes (DB-level enforcement):
- *   Three partial unique indexes on "deliveryAssignment" guarantee at the
- *   PostgreSQL level that only ONE active (PENDING | ACCEPTED) assignment
- *   can exist per:
- *     - deliveryJobId   → deliveryAssignment_active_job_uidx
- *     - driverProfileId → deliveryAssignment_active_driver_uidx
- *     - vehicleId       → deliveryAssignment_active_vehicle_uidx
- *
- *   These constraints are enforced atomically by the INSERT itself, regardless
- *   of isolation level or PgBouncer connection pooling mode.  No explicit row
- *   locking is needed.
- *
- *   If two concurrent calls race past the pre-flight checks, the losing INSERT
- *   receives error 23505 (unique_violation), caught and surfaced as a
- *   LogisticsDomainError.
- *
- * Provider isolation: job, driver, and vehicle must all share the same
- *   providerId.  Vehicle→Fleet cross-provider is enforced by the composite FK
- *   on logisticsVehicle (fields: [fleetId, providerId]).
+ * Assigns a driver and (optionally) a vehicle to a DeliveryJob atomically.
  */
 export async function assignDelivery(params: {
   deliveryJobId:   string;
@@ -189,12 +230,12 @@ export async function assignDelivery(params: {
 }) {
   try {
     return await db.transaction(async (tx: any) => {
-      // 1. Read and validate the referenced entities.
+      // 1. Fetch entities.
       const job = (await tx.orm.public.DeliveryJob.where({ id: params.deliveryJobId }).all())[0];
       if (!job) throw new LogisticsDomainError('DeliveryJob not found');
 
       const driver = (await tx.orm.public.LogisticsDriverProfile.where({ id: params.driverProfileId }).all())[0];
-      if (!driver) throw new LogisticsDomainError('Driver not found');
+      if (!driver) throw new LogisticsDomainError('Driver profile not found');
 
       let vehicle: any = null;
       if (params.vehicleId) {
@@ -216,10 +257,7 @@ export async function assignDelivery(params: {
         throw new LogisticsDomainError('Vehicle not available');
       }
 
-      // 3. Pre-flight availability checks (best-effort, gives cleaner messages).
-      //    The partial unique indexes below are the authoritative enforcement.
-      //    Note: { in: [] } filter is not supported by this ORM version;
-      //    use plain .where() then filter in-memory.
+      // 3. Pre-flight availability checks.
       const allJobAssignments = await tx.orm.public.DeliveryAssignment
         .where({ deliveryJobId: params.deliveryJobId })
         .all();
@@ -252,9 +290,7 @@ export async function assignDelivery(params: {
         }
       }
 
-
-      // 4. Insert — the partial unique indexes enforce atomicity against concurrent
-      //    inserts for the same job / driver / vehicle.
+      // 4. Insert assignment with PENDING status
       return await tx.orm.public.DeliveryAssignment.create({
         deliveryJobId:   params.deliveryJobId,
         driverProfileId: params.driverProfileId,
@@ -263,8 +299,6 @@ export async function assignDelivery(params: {
       });
     });
   } catch (error: any) {
-    // Translate partial unique index violations (23505) into domain errors when
-    // two concurrent callers race past the pre-flight checks.
     if (isUniqueConstraintError(error)) {
       const msg = (error?.message ?? error?.cause?.message ?? '').toLowerCase();
       if (msg.includes('active_job')) {
@@ -279,5 +313,76 @@ export async function assignDelivery(params: {
       throw new LogisticsDomainError('Concurrency error: Assignment already exists');
     }
     throw error;
+  }
+}
+
+export class Money {
+  readonly cents: number;
+  readonly currency: string;
+
+  constructor(amountInMajorUnits: number, currency = 'NGN') {
+    this.cents = Math.round(amountInMajorUnits * 100);
+    this.currency = currency.toUpperCase();
+  }
+
+  static fromCents(cents: number, currency = 'NGN'): Money {
+    const m = Object.create(Money.prototype);
+    m.cents = Math.round(cents);
+    m.currency = currency.toUpperCase();
+    return m;
+  }
+
+  get amount(): number {
+    return this.cents / 100;
+  }
+
+  add(other: Money): Money {
+    this.assertSameCurrency(other);
+    return Money.fromCents(this.cents + other.cents, this.currency);
+  }
+
+  multiply(factor: number): Money {
+    return Money.fromCents(Math.round(this.cents * factor), this.currency);
+  }
+
+  private assertSameCurrency(other: Money) {
+    if (this.currency !== other.currency) {
+      throw new Error(`Currency mismatch: ${this.currency} !== ${other.currency}`);
+    }
+  }
+}
+
+export class MockPartnerCourierAdapter {
+  providerName = 'CityDrive Partner Express';
+
+  async getQuote(req: any): Promise<any> {
+    const baseFee = 800;
+    const distanceEstimateKm = 6;
+    const distanceFee = distanceEstimateKm * 180;
+    const weightFee = (req.weightKg || 1) * 50;
+    const total = baseFee + distanceFee + weightFee + (req.priority ? 1200 : 0);
+
+    return {
+      courierName: this.providerName,
+      quoteReference: `PARTNER-Q-${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
+      totalAmount: total,
+      currency: 'NGN',
+      estimatedDeliveryMinutes: req.priority ? 45 : 90,
+    };
+  }
+
+  async bookShipment(req: any): Promise<any> {
+    return {
+      success: true,
+      externalTrackingNumber: `CDP-${Math.floor(100000 + Math.random() * 900000)}`,
+      status: 'BOOKED',
+    };
+  }
+
+  async getTracking(externalTrackingNumber: string) {
+    return {
+      status: 'IN_TRANSIT',
+      milestones: ['Shipment Registered', 'Picked up by partner courier', 'In transit to hub'],
+    };
   }
 }

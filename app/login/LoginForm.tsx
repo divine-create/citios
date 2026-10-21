@@ -129,7 +129,7 @@ export default function LoginForm() {
       {/* Forgotten Password link */}
       <div className="text-center pt-1">
         <Link
-          href={`#?callbackUrl=${encodeURIComponent(callbackUrl)}`}
+          href={`/forgot-password?callbackUrl=${encodeURIComponent(callbackUrl)}`}
           className="text-[13px] font-semibold text-teal-700 hover:underline inline-block"
         >
           Forgotten password?

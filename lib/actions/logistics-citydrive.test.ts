@@ -434,6 +434,7 @@ test('CityDrive Comprehensive Logistics Operating System Suite', async (t) => {
     assert.ok(manualJobA);
 
     // Company B attempting to settle Company A's job must fail (IDOR check)
+    setActiveUserToken(userB.token);
     await assert.rejects(
       async () => {
         await settleDelivery({
@@ -444,6 +445,7 @@ test('CityDrive Comprehensive Logistics Operating System Suite', async (t) => {
       /Provider isolation violation/,
       'Cross-company settlement must be rejected'
     );
+    setActiveUserToken(userA.token);
 
     // Settle delivery for Provider A
     const settlement = await settleDelivery({

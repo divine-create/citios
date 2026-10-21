@@ -384,6 +384,10 @@
       "model": "OutletOrderItem",
       "namespace": "public"
     },
+    "passwordResetToken": {
+      "model": "PasswordResetToken",
+      "namespace": "public"
+    },
     "patientData": {
       "model": "PatientData",
       "namespace": "public"
@@ -4744,6 +4748,13 @@
           },
           "DeliveryJob": {
             "fields": {
+              "cancellationReason": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "createdAt": {
                 "nullable": false,
                 "type": {
@@ -4751,8 +4762,29 @@
                   "kind": "scalar"
                 }
               },
+              "customerDataId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "dropoffAddress": {
                 "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "dropoffContactName": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "dropoffContactPhone": {
+                "nullable": true,
                 "type": {
                   "codecId": "pg/text@1",
                   "kind": "scalar"
@@ -4772,6 +4804,13 @@
                   "kind": "scalar"
                 }
               },
+              "failureReason": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "id": {
                 "nullable": false,
                 "type": {
@@ -4786,7 +4825,35 @@
                   "kind": "scalar"
                 }
               },
+              "packageDescription": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "packageWeightKg": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
               "pickupAddress": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "pickupContactName": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "pickupContactPhone": {
                 "nullable": true,
                 "type": {
                   "codecId": "pg/text@1",
@@ -4808,6 +4875,20 @@
                 }
               },
               "providerId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "recipientOtp": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "serviceLevel": {
                 "nullable": true,
                 "type": {
                   "codecId": "pg/text@1",
@@ -4845,6 +4926,20 @@
                   "entityName": "DeliveryStatus",
                   "namespaceId": "public",
                   "plane": "domain"
+                }
+              },
+              "trackingReference": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
                 }
               }
             },
@@ -4957,11 +5052,23 @@
             },
             "storage": {
               "fields": {
+                "cancellationReason": {
+                  "column": "cancellationReason"
+                },
                 "createdAt": {
                   "column": "createdAt"
                 },
+                "customerDataId": {
+                  "column": "customerDataId"
+                },
                 "dropoffAddress": {
                   "column": "dropoffAddress"
+                },
+                "dropoffContactName": {
+                  "column": "dropoffContactName"
+                },
+                "dropoffContactPhone": {
+                  "column": "dropoffContactPhone"
                 },
                 "dropoffLat": {
                   "column": "dropoffLat"
@@ -4969,14 +5076,29 @@
                 "dropoffLng": {
                   "column": "dropoffLng"
                 },
+                "failureReason": {
+                  "column": "failureReason"
+                },
                 "id": {
                   "column": "id"
                 },
                 "idempotencyKey": {
                   "column": "idempotencyKey"
                 },
+                "packageDescription": {
+                  "column": "packageDescription"
+                },
+                "packageWeightKg": {
+                  "column": "packageWeightKg"
+                },
                 "pickupAddress": {
                   "column": "pickupAddress"
+                },
+                "pickupContactName": {
+                  "column": "pickupContactName"
+                },
+                "pickupContactPhone": {
+                  "column": "pickupContactPhone"
                 },
                 "pickupLat": {
                   "column": "pickupLat"
@@ -4987,6 +5109,12 @@
                 "providerId": {
                   "column": "providerId"
                 },
+                "recipientOtp": {
+                  "column": "recipientOtp"
+                },
+                "serviceLevel": {
+                  "column": "serviceLevel"
+                },
                 "sourceId": {
                   "column": "sourceId"
                 },
@@ -4995,6 +5123,12 @@
                 },
                 "status": {
                   "column": "status"
+                },
+                "trackingReference": {
+                  "column": "trackingReference"
+                },
+                "updatedAt": {
+                  "column": "updatedAt"
                 }
               },
               "namespaceId": "public",
@@ -9621,6 +9755,13 @@
                   "kind": "scalar"
                 }
               },
+              "isNetworkParticipant": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
               "organizationId": {
                 "nullable": false,
                 "type": {
@@ -9632,6 +9773,13 @@
                 "nullable": false,
                 "type": {
                   "codecId": "pg/numeric@1",
+                  "kind": "scalar"
+                }
+              },
+              "serviceRadiusKm": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/float8@1",
                   "kind": "scalar"
                 }
               }
@@ -9661,11 +9809,17 @@
                 "id": {
                   "column": "id"
                 },
+                "isNetworkParticipant": {
+                  "column": "isNetworkParticipant"
+                },
                 "organizationId": {
                   "column": "organizationId"
                 },
                 "platformFeeRate": {
                   "column": "platformFeeRate"
+                },
+                "serviceRadiusKm": {
+                  "column": "serviceRadiusKm"
                 }
               },
               "namespaceId": "public",
@@ -16016,6 +16170,103 @@
               "table": "outletOrderItem"
             }
           },
+          "PasswordResetToken": {
+            "fields": {
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "email": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "expiresAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "personId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "tokenHash": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "usedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "person": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "personId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Person",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "email": {
+                  "column": "email"
+                },
+                "expiresAt": {
+                  "column": "expiresAt"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "personId": {
+                  "column": "personId"
+                },
+                "tokenHash": {
+                  "column": "tokenHash"
+                },
+                "usedAt": {
+                  "column": "usedAt"
+                }
+              },
+              "namespaceId": "public",
+              "table": "passwordResetToken"
+            }
+          },
           "PatientData": {
             "fields": {
               "id": {
@@ -16835,6 +17086,21 @@
                 },
                 "to": {
                   "model": "OrganizationClaim",
+                  "namespace": "public"
+                }
+              },
+              "passwordResetTokens": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "personId"
+                  ]
+                },
+                "to": {
+                  "model": "PasswordResetToken",
                   "namespace": "public"
                 }
               },
@@ -33236,6 +33502,11 @@
                 }
               ],
               "columns": {
+                "cancellationReason": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "createdAt": {
                   "codecId": "pg/timestamptz-temporal@1",
                   "default": {
@@ -33245,10 +33516,25 @@
                   "nativeType": "timestamptz",
                   "nullable": false
                 },
+                "customerDataId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "dropoffAddress": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": false
+                },
+                "dropoffContactName": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "dropoffContactPhone": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
                 },
                 "dropoffLat": {
                   "codecId": "pg/float8@1",
@@ -33258,6 +33544,11 @@
                 "dropoffLng": {
                   "codecId": "pg/float8@1",
                   "nativeType": "float8",
+                  "nullable": true
+                },
+                "failureReason": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
                   "nullable": true
                 },
                 "id": {
@@ -33270,7 +33561,27 @@
                   "nativeType": "text",
                   "nullable": true
                 },
+                "packageDescription": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "packageWeightKg": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
+                  "nullable": true
+                },
                 "pickupAddress": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "pickupContactName": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "pickupContactPhone": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": true
@@ -33287,6 +33598,20 @@
                 },
                 "providerId": {
                   "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "recipientOtp": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "serviceLevel": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "STANDARD"
+                  },
                   "nativeType": "text",
                   "nullable": true
                 },
@@ -33320,6 +33645,20 @@
                     "namespaceId": "public",
                     "plane": "storage"
                   }
+                },
+                "trackingReference": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "updatedAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
                 }
               },
               "foreignKeys": [
@@ -33347,6 +33686,14 @@
                   ],
                   "name": "deliveryJob_createdAt_idx_9575dbd7",
                   "prefix": "deliveryJob_createdAt_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "customerDataId"
+                  ],
+                  "name": "deliveryJob_customerDataId_idx_579cb63a",
+                  "prefix": "deliveryJob_customerDataId_idx",
                   "unique": false
                 },
                 {
@@ -33382,6 +33729,14 @@
                   "name": "deliveryJob_status_idx_e98638ab",
                   "prefix": "deliveryJob_status_idx",
                   "unique": false
+                },
+                {
+                  "columns": [
+                    "trackingReference"
+                  ],
+                  "name": "deliveryJob_trackingReference_idx_e69e1f13",
+                  "prefix": "deliveryJob_trackingReference_idx",
+                  "unique": false
                 }
               ],
               "primaryKey": {
@@ -33390,6 +33745,11 @@
                 ]
               },
               "uniques": [
+                {
+                  "columns": [
+                    "trackingReference"
+                  ]
+                },
                 {
                   "columns": [
                     "providerId",
@@ -37242,6 +37602,15 @@
                   "nativeType": "text",
                   "nullable": false
                 },
+                "isNetworkParticipant": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": false
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
                 "organizationId": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -37255,6 +37624,11 @@
                   },
                   "nativeType": "numeric",
                   "nullable": false
+                },
+                "serviceRadiusKm": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
+                  "nullable": true
                 }
               },
               "foreignKeys": [
@@ -41586,6 +41960,107 @@
                 ]
               },
               "uniques": []
+            },
+            "passwordResetToken": {
+              "columns": {
+                "createdAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "email": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "expiresAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "personId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "tokenHash": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "usedAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": true
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "personId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "passwordResetToken"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "person"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "personId",
+                    "expiresAt"
+                  ],
+                  "name": "passwordResetToken_personId_expiresAt_idx_a4346573",
+                  "prefix": "passwordResetToken_personId_expiresAt_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "personId"
+                  ],
+                  "name": "passwordResetToken_personId_idx_e5e06b80",
+                  "prefix": "passwordResetToken_personId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "tokenHash"
+                  ],
+                  "name": "passwordResetToken_tokenHash_idx_79b60c2b",
+                  "prefix": "passwordResetToken_tokenHash_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "tokenHash"
+                  ]
+                }
+              ]
             },
             "patientData": {
               "columns": {
@@ -54105,10 +54580,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "5573023e34d1b6417ac8258ec12db82daf3272249d69106a02d671d7b3729efd"
+    "storageHash": "5a9e61dc878fa51b70eeb6beed56c75de228789a50abf15876e5729892658a11"
   },
   "execution": {
-    "executionHash": "876a24deafdc54ec5930b0d1ad3b8b7306ed1e7ab512c869686e811902a8fed0",
+    "executionHash": "5825177c6aaed1744ad50b227523270a7a4497f1b193fa8992bed9ea258605e1",
     "mutations": {
       "defaults": [
         {
@@ -55143,6 +55618,17 @@
             "column": "id",
             "namespace": "public",
             "table": "outletOrderItem"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "passwordResetToken"
           }
         },
         {

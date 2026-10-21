@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { findPersonByEmail } from '@/lib/identity';
 import { db } from '@/src/prisma/db';
+import { Temporal } from '@js-temporal/polyfill';
 
 /**
  * Resident notification surface.
@@ -77,7 +78,9 @@ export async function markNotificationRead(notificationId: string): Promise<void
   if (!personId) return;
   await db.orm.public.Notification.where({ id: notificationId, personId }).update({
     isRead: true,
-    readAt: new Date(),
+    // The DB codec for timestamptz is Temporal.Instant; a JS Date is rejected
+    // (RUNTIME.ENCODE_FAILED), which previously left the row unread.
+    readAt: Temporal.Now.instant(),
   });
 }
 
@@ -85,9 +88,9 @@ export async function markNotificationRead(notificationId: string): Promise<void
 export async function markAllNotificationsRead(): Promise<void> {
   const personId = await requirePersonId();
   if (!personId) return;
-  const unread = await db.orm.public.Notification.where({ personId, isRead: false }).all();
-  const now = new Date();
-  for (const n of unread) {
-    await db.orm.public.Notification.where({ id: n.id }).update({ isRead: true, readAt: now });
-  }
+  // update() only touches the first matching row; updateAndCount() updates all.
+  await db.orm.public.Notification.where({ personId, isRead: false }).updateAndCount({
+    isRead: true,
+    readAt: Temporal.Now.instant(),
+  });
 }

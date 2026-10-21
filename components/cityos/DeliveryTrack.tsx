@@ -1,206 +1,210 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import { Phone, Truck, Share2, MessageCircle, MapPin, PackageCheck, Navigation } from 'lucide-react';
-import { fmtNaira } from '@/lib/format';
+import { useRouter } from 'next/navigation';
+import { Truck, MapPin, PackageCheck, Navigation, Search, CheckCircle2, Clock, AlertTriangle, ArrowRight } from 'lucide-react';
 import { Pill } from '@/components/cityos/CityUI';
 import { cn } from '@/lib/utils';
+import type { PublicTrackingResponse } from '@/lib/actions/logistics-tracking';
 
-const DRIVER = { name: 'Samuel Edem', car: 'Toyota Corolla', plate: 'TL-941-CR', phone: '0803 456 7890', rating: 4.9, trips: 2140 };
-
-// Prototype tracking narrative — this surface has no canonical delivery
-// entity yet (see architecture audit); it renders under .
-const DELIVERY_ROUTE_STOPS = [
-  { label: 'Calabar Fresh Market', area: 'Marian Road', x: 22, y: 66, state: 'done' as const },
-  { label: 'Marian Road junction', area: 'City centre', x: 34, y: 52, state: 'done' as const },
-  { label: 'Watt Market turn', area: 'Market line', x: 47, y: 40, state: 'done' as const },
-  { label: 'Ekorinim close', area: 'Residential', x: 62, y: 30, state: 'current' as const },
-  { label: 'State Housing Estate', area: 'Delivery address', x: 82, y: 18, state: 'next' as const },
-];
-
-interface StoredOrder {
-  ref: string;
-  items: { name: string; qty: number; price: number }[];
-  total: number;
+interface DeliveryTrackProps {
+  initialTracking?: PublicTrackingResponse | null;
+  initialRef?: string;
 }
 
-export default function DeliveryTrack() {
-  const [order, setOrder] = useState<StoredOrder | null>(null);
-  const [progress, setProgress] = useState(0);
+export default function DeliveryTrack({ initialTracking, initialRef }: DeliveryTrackProps) {
+  const router = useRouter();
+  const [searchInput, setSearchInput] = useState(initialRef || '');
 
-  useEffect(() => {
-    const t = window.setInterval(() => setProgress((p) => (p < 62 ? p + 1 : p)), 2000);
-    const clear = window.setTimeout(() => window.clearInterval(t), 62000);
-    return () => {
-      window.clearInterval(t);
-      window.clearTimeout(clear);
-    };
-  }, []);
+  const tracking = initialTracking;
 
-  const stops = DELIVERY_ROUTE_STOPS;
-  const currentStopIdx = stops.findIndex((s) => s.state === 'current');
-  const doneCount = stops.filter((s) => s.state === 'done').length + (progress > 0 ? 1 : 0);
-  const remaining = stops.length - doneCount;
-  const eta = Math.max(4, 14 - Math.floor(progress / 9));
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchInput.trim()) {
+      router.push(`/drive/delivery?ref=${encodeURIComponent(searchInput.trim())}`);
+    }
+  };
 
-  const routePath = stops.map((s) => `${s.x},${s.y}`).join(' ');
+  const getStageNumber = (status?: string) => {
+    switch (status) {
+      case 'REQUESTED':
+      case 'PRICED':
+      case 'CREATED':
+        return 1;
+      case 'DISPATCHED':
+      case 'ASSIGNED':
+        return 2;
+      case 'AT_PICKUP':
+      case 'PICKED_UP':
+        return 3;
+      case 'IN_TRANSIT':
+      case 'AT_DROPOFF':
+        return 4;
+      case 'DELIVERED':
+      case 'COMPLETED':
+        return 5;
+      default:
+        return 1;
+    }
+  };
+
+  const currentStage = getStageNumber(tracking?.status);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-black text-ink flex items-center gap-2">
-            <PackageCheck className="w-5 h-5 text-teal-800" />
-            {order ? `Delivery ${order.ref} · on the way` : 'Delivery tracking'}
-          </h1>
-          <p className="text-xs text-slate-500 font-medium mt-0.5">{`${eta} min to ${stops[stops.length - 1].area}`}</p>
+    <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500 py-4">
+      
+      {/* Tracking Reference Search Bar */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col sm:flex-row gap-3 items-center justify-between">
+        <div className="flex items-center gap-2 text-slate-800 font-bold text-sm">
+          <Truck className="w-5 h-5 text-teal-600" />
+          <span>CityDrive Live Tracking</span>
         </div>
-        <Pill tone="teal"><span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />Rider en route</Pill>
+        <form onSubmit={handleSearch} className="flex gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:w-64">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="e.g. CD-48F19A"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="w-full pl-9 pr-3 py-1.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 font-mono uppercase"
+            />
+          </div>
+          <button
+            type="submit"
+            className="px-4 py-1.5 bg-teal-700 text-white text-sm font-semibold rounded-xl hover:bg-teal-800 transition-colors shrink-0"
+          >
+            Track
+          </button>
+        </form>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-        {/* Map */}
-        <div className="lg:col-span-3 space-y-4">
-          <div className="rounded-3xl overflow-hidden border border-slate-100 bg-slate-50 relative aspect-[4/3]">
-            {/* stylized city map */}
-            <div className="absolute inset-0 bg-gradient-to-br from-teal-50 via-white to-orange-50/40" />
-            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-              <path d="M-5,30 L105,28" stroke="#A7D7C9" strokeWidth="0.6" fill="none" opacity="0.6" />
-              <path d="M-5,66 L105,64" stroke="#A7D7C9" strokeWidth="0.5" fill="none" opacity="0.5" />
-              <path d="M22,-5 L20,105" stroke="#C9D6E9" strokeWidth="0.5" fill="none" opacity="0.5" />
-              <path d="M64,-5 L62,105" stroke="#C9D6E9" strokeWidth="0.5" fill="none" opacity="0.5" />
-              <path d="M18,70 C 30,40 45,34 62,28" stroke="#199B7F" strokeWidth="1.2" fill="none" strokeDasharray="1.6 1.6" opacity="0.5" />
-              <rect x="2" y="8" width="30" height="9" fill="#BEE3F6" opacity="0.35" rx="2" />
-              <text x="6" y="14" fontSize="2.6" fontWeight="700" fill="#1278C8" opacity="0.6">CALABAR RIVER</text>
-            </svg>
-
-            {/* stops */}
-            {stops.map((s) => (
-              <div
-                key={s.label}
-                className="absolute -translate-x-1/2 -translate-y-1/2"
-                style={{ left: `${s.x}%`, top: `${s.y}%` }}
-              >
-                <div
-                  className={cn(
-                    'w-3.5 h-3.5 rounded-full ring-4',
-                    s.state === 'done' && 'bg-teal-700 ring-teal-100',
-                    s.state === 'current' && 'bg-orange-500 ring-orange-100 animate-pulse',
-                    s.state === 'next' && 'bg-slate-200 ring-slate-100',
-                  )}
-                />
-                <div
-                  className={cn(
-                    'mt-1.5 px-1.5 py-0.5 rounded-md text-[9px] font-black whitespace-nowrap',
-                    s.state === 'current' ? 'bg-white text-orange-600 shadow' : s.state === 'done' ? 'text-slate-400' : 'text-slate-500',
-                  )}
-                >
-                  {s.label.split('·')[0].split(',')[0]}
-                </div>
-              </div>
-            ))}
-
-            {/* rider marker */}
-            <div
-              className="absolute -translate-x-1/2 -translate-y-1/2"
-              style={{ left: `${24 + progress * 0.9}%`, top: `${64 - progress * 0.72}%` }}
-            >
-              <div className="w-9 h-9 rounded-full bg-teal-800 text-white flex items-center justify-center shadow-lg ring-4 ring-white">
-                <Truck className="w-4 h-4" />
-              </div>
-            </div>
-
-            <div className="absolute bottom-3 left-3 rounded-xl bg-white/90 backdrop-blur px-3 py-2 shadow text-[10px] font-bold text-slate-600 inline-flex items-center gap-1.5">
-              <Navigation className="w-3 h-3 text-teal-700" /> Live tracking · Calabar metro
-            </div>
-          </div>
-
-          {/* progress bar */}
-          <div className="bg-white rounded-2xl border border-slate-100 p-5">
-            <div className="flex items-center justify-between text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3">
-              <span>From Marian Road</span>
-              <span className="text-orange-600">{`${remaining} stop${remaining === 1 ? '' : 's'} left`}</span>
-            </div>
-            <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-teal-700 to-teal-400 transition-all duration-1000"
-                style={{ width: `${Math.min(100, progress + 20)}%` }}
-              />
-            </div>
-            <div className="flex items-center justify-between mt-2 text-[11px] text-slate-400 font-bold">
-              <span>{`${doneCount}/${stops.length} stops done`}</span>
-              <span>{`${eta} min ETA`}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Driver + order */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="bg-white rounded-2xl border border-slate-100 p-5">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Your rider</p>
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-700 to-teal-500 text-white flex items-center justify-center text-base font-black">
-                SE
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[14px] font-black text-ink">{DRIVER.name}</p>
-                <p className="text-[11px] font-bold text-slate-400">{`${DRIVER.car} · ${DRIVER.plate}`}</p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-[11px] font-black text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md">Verified Rider</span>
-                  <span className="text-[11px] text-slate-400 font-bold">9jaLive Fleet</span>
-                </div>
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-2 mt-4">
-              <button className="inline-flex flex-col items-center gap-1 py-2.5 rounded-xl bg-teal-800 text-white text-[11px] font-bold hover:bg-teal-900 transition-colors">
-                <Phone className="w-4 h-4" /> Call
-              </button>
-              <button className="inline-flex flex-col items-center gap-1 py-2.5 rounded-xl bg-slate-50 text-slate-600 text-[11px] font-bold hover:bg-slate-100 transition-colors">
-                <MessageCircle className="w-4 h-4" /> Message
-              </button>
-              <button className="inline-flex flex-col items-center gap-1 py-2.5 rounded-xl bg-slate-50 text-slate-600 text-[11px] font-bold hover:bg-slate-100 transition-colors">
-                <Share2 className="w-4 h-4" /> Share
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-slate-100 p-5">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Order contents</p>
-            {order ? (
-              <div className="space-y-2">
-                {order.items.map((it, i) => (
-                  <div key={i} className="flex justify-between text-[13px]">
-                    <span className="text-slate-600 font-medium">{`${it.qty} × ${it.name}`}</span>
-                    <span className="font-black text-ink">{fmtNaira(it.price * it.qty)}</span>
-                  </div>
-                ))}
-                <div className="h-px bg-slate-100" />
-                <div className="flex justify-between text-[13px] font-black text-ink">
-                  <span>Paid via CityPay</span>
-                  <span>{fmtNaira(order.total)}</span>
-                </div>
-              </div>
-            ) : (
-              <p className="text-[13px] text-slate-500 font-medium">
-                Order contents will appear here once an order is placed.
+      {tracking ? (
+        <>
+          {/* Header */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2">
+                <PackageCheck className="w-6 h-6 text-teal-700" />
+                Delivery Ref: <span className="font-mono text-teal-800">{tracking.trackingReference}</span>
+              </h1>
+              <p className="text-xs text-slate-500 font-medium mt-1">
+                Service Level: <span className="font-semibold text-slate-700">{tracking.serviceLevel}</span> · Ordered on {new Date(tracking.createdAt).toLocaleDateString()}
               </p>
-            )}
+            </div>
+            
+            <Pill tone={tracking.isDelivered ? 'teal' : tracking.isFailed ? 'red' : 'orange'}>
+              <span className={cn('w-2 h-2 rounded-full mr-1.5', tracking.isDelivered ? 'bg-teal-500' : tracking.isFailed ? 'bg-red-500' : 'bg-orange-500 animate-pulse')} />
+              {tracking.statusLabel}
+            </Pill>
           </div>
 
-          <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4 flex items-start gap-2.5">
-            <MapPin className="w-4 h-4 text-teal-700 shrink-0 mt-0.5" />
-            <p className="text-[12px] text-slate-500 font-medium leading-relaxed">
-              <span className="font-black text-ink">Destination:</span> Flat 3, Bluebird Court, {stops[stops.length - 1].area}. Leave with security if away.
+          {/* Stepper Progress */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+            <div className="grid grid-cols-5 gap-2 text-center text-xs">
+              {[
+                { stage: 1, label: 'Placed' },
+                { stage: 2, label: 'Assigned' },
+                { stage: 3, label: 'Picked Up' },
+                { stage: 4, label: 'In Transit' },
+                { stage: 5, label: 'Delivered' },
+              ].map((step) => {
+                const isPassed = currentStage >= step.stage && !tracking.isFailed && !tracking.isCancelled;
+                const isCurrent = currentStage === step.stage && !tracking.isFailed && !tracking.isCancelled;
+
+                return (
+                  <div key={step.stage} className="flex flex-col items-center">
+                    <div
+                      className={cn(
+                        'w-8 h-8 rounded-full flex items-center justify-center font-bold mb-2 text-xs transition-colors',
+                        isPassed ? 'bg-teal-700 text-white' : 'bg-slate-100 text-slate-400',
+                        isCurrent && 'ring-4 ring-teal-100 animate-pulse'
+                      )}
+                    >
+                      {isPassed ? <CheckCircle2 className="w-4 h-4" /> : step.stage}
+                    </div>
+                    <span className={cn('font-semibold text-[11px]', isPassed ? 'text-slate-900' : 'text-slate-400')}>
+                      {step.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+            {/* Milestones Timeline */}
+            <div className="lg:col-span-3 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+              <h2 className="text-sm font-black uppercase tracking-wider text-slate-500 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-teal-600" /> Operational Milestones
+              </h2>
+
+              <div className="space-y-4 pt-2">
+                {tracking.milestones.length === 0 ? (
+                  <p className="text-slate-400 text-xs italic">Awaiting first dispatch event...</p>
+                ) : (
+                  tracking.milestones.map((m, idx) => (
+                    <div key={idx} className="flex items-start gap-3 border-l-2 border-teal-200 pl-4 py-1 relative">
+                      <div className="w-3 h-3 rounded-full bg-teal-600 absolute -left-[7px] top-2 ring-2 ring-white" />
+                      <div>
+                        <p className="font-bold text-sm text-slate-900">{m.label}</p>
+                        <p className="text-xs text-slate-400 mt-0.5">{new Date(m.recordedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Address & Destination */}
+            <div className="lg:col-span-2 space-y-4">
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+                <h2 className="text-sm font-black uppercase tracking-wider text-slate-500 flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-teal-600" /> Destination
+                </h2>
+                <div>
+                  <p className="text-xs text-slate-400 font-semibold uppercase">Dropoff Address</p>
+                  <p className="text-sm font-bold text-slate-800 mt-1">{tracking.dropoffAddress}</p>
+                </div>
+
+                {tracking.pickupAddressArea && (
+                  <div>
+                    <p className="text-xs text-slate-400 font-semibold uppercase">Origin Area</p>
+                    <p className="text-sm font-semibold text-slate-700 mt-1">{tracking.pickupAddressArea}</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-teal-50 border border-teal-200 rounded-2xl p-4 text-xs text-teal-800">
+                <p className="font-bold flex items-center gap-1.5">
+                  <Navigation className="w-4 h-4 text-teal-600" /> Secure Handover
+                </p>
+                <p className="mt-1 text-teal-700 leading-relaxed">
+                  Have your 6-digit verification code ready when the rider arrives to confirm recipient identity.
+                </p>
+              </div>
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm space-y-4">
+          <PackageCheck className="w-12 h-12 text-slate-300 mx-auto" />
+          <div>
+            <h2 className="text-lg font-black text-slate-800">Track Any CityDrive Delivery</h2>
+            <p className="text-sm text-slate-500 mt-1 max-w-md mx-auto">
+              Enter your tracking reference above (e.g. from your booking confirmation or order receipt) to view real-time delivery status and milestone progress.
             </p>
           </div>
-
-          <Link href="/" className="block text-center text-[11px] font-bold text-slate-400 hover:text-teal-800 transition-colors">
-            ← Back to 9jaLive home
-          </Link>
         </div>
+      )}
+
+      <div className="text-center pt-4">
+        <Link href="/" className="text-xs font-semibold text-slate-400 hover:text-teal-700 transition-colors">
+          ← Back to CityOS Portal
+        </Link>
       </div>
 
-      </div>
+    </div>
   );
 }

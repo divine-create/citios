@@ -58,7 +58,7 @@ export async function markPersonNotificationsRead(personId: string, notification
   await db.orm.public.Notification
     .where((n) => n.id.in(notificationIds))
     .where({ personId })
-    .update({
+    .updateAndCount({
       isRead: true,
       readAt: (globalThis as any).Temporal.Now.instant(),
     });
@@ -71,10 +71,11 @@ export async function markNotificationsRead(notificationIds: string[]) {
 }
 
 export async function markAllPersonNotificationsRead(personId: string) {
+  // update() only touches the first matching row; updateAndCount() updates all.
   await db.orm.public.Notification.where({
     personId,
     isRead: false,
-  }).update({
+  }).updateAndCount({
     isRead: true,
     readAt: (globalThis as any).Temporal.Now.instant(),
   });

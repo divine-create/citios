@@ -306,3 +306,83 @@ export function verifyResendWebhookSignature(
 
   return false;
 }
+
+
+/**
+ * Generate a responsive HTML template for password reset recovery.
+ */
+export function buildPasswordResetEmailHtml(params: {
+  recipientName: string;
+  resetUrl: string;
+  isOAuthUser?: boolean;
+}): string {
+  const greeting = params.recipientName ? `Hello ${params.recipientName},` : 'Hello,';
+  const oauthNote = params.isOAuthUser
+    ? `<div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 14px 18px; margin-bottom: 24px; color: #166534; font-size: 13px; line-height: 1.5;">
+         <strong>Google Account Notice:</strong> Your account was originally registered via Google Sign-In. You can continue signing in with Google, or click the button below to set a custom password for direct email login.
+       </div>`
+    : '';
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reset Your Password</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 24px 16px; color: #0f172a;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 520px; margin: 0 auto; background-color: #ffffff; border-radius: 20px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);">
+    <tr>
+      <td style="padding: 32px 32px 24px; text-align: center; border-bottom: 1px solid #f1f5f9; background: linear-gradient(180deg, #f0fdfa 0%, #ffffff 100%);">
+        <h1 style="margin: 0; font-size: 24px; font-weight: 900; color: #0f766e; letter-spacing: -0.5px;">9jaLive</h1>
+        <p style="margin: 4px 0 0; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1.5px;">Hyperlocal City Network</p>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 32px;">
+        <h2 style="margin: 0 0 16px; font-size: 18px; font-weight: 800; color: #0f172a;">Reset Your Account Password</h2>
+        <p style="margin: 0 0 16px; font-size: 14px; line-height: 1.6; color: #475569;">
+          ${greeting}
+        </p>
+        <p style="margin: 0 0 24px; font-size: 14px; line-height: 1.6; color: #475569;">
+          We received a request to reset the password for your 9jaLive resident account. Click the button below to choose a new password:
+        </p>
+        ${oauthNote}
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin: 28px 0;">
+          <tr>
+            <td align="center">
+              <a href="${params.resetUrl}" target="_blank" style="display: inline-block; padding: 14px 32px; background-color: #0f766e; color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 800; border-radius: 12px; box-shadow: 0 2px 4px rgba(15, 118, 110, 0.2);">
+                Reset Password
+              </a>
+            </td>
+          </tr>
+        </table>
+        <p style="margin: 0 0 12px; font-size: 13px; line-height: 1.5; color: #64748b;">
+          This password reset link will expire in <strong>30 minutes</strong> for your security.
+        </p>
+        <p style="margin: 0 0 24px; font-size: 12px; line-height: 1.5; color: #94a3b8;">
+          If you did not make this request, you can safely ignore this email. Your account password will remain unchanged.
+        </p>
+        <div style="border-top: 1px solid #f1f5f9; padding-top: 16px;">
+          <p style="margin: 0 0 6px; font-size: 11px; color: #94a3b8;">
+            Button not working? Copy and paste this URL into your browser:
+          </p>
+          <p style="margin: 0; font-size: 11px; word-break: break-all; color: #0f766e;">
+            <a href="${params.resetUrl}" style="color: #0f766e; text-decoration: underline;">${params.resetUrl}</a>
+          </p>
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 20px 32px; background-color: #f8fafc; border-top: 1px solid #f1f5f9; text-align: center;">
+        <p style="margin: 0; font-size: 11px; color: #94a3b8;">
+          &copy; ${new Date().getFullYear()} 9jaLive Hyperlocal Network. All rights reserved.
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
+}

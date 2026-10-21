@@ -1,31 +1,47 @@
+'use server';
+
 import { db } from '@/src/prisma/db';
 import { LogisticsDomainError, isUniqueConstraintError, assignDelivery } from './logistics-domain';
 import '@js-temporal/polyfill';
 
-type DispatchStatus = 'PENDING' | 'OFFERED' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED' | 'CANCELLED' | 'FAILED';
+export type DispatchStatus = 'PENDING' | 'OFFERED' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED' | 'CANCELLED' | 'FAILED';
 
 function toTemporal(date: Date) {
   return (globalThis as any).Temporal.Instant.fromEpochMilliseconds(date.getTime());
 }
 
 /**
- * Deterministically returns eligible candidates for a DeliveryJob.
+ * Deterministically returns eligible candidates for a DeliveryJob,
+ * efficiently scoping queries to prevent unbounded full-table scans.
  */
 export async function findEligibleCandidates(params: { deliveryJobId: string; providerId: string }) {
-  const drivers = await db.orm.public.LogisticsDriverProfile
-    .where({ providerId: params.providerId, status: 'ONLINE', onboardingComplete: true })
-    .all();
-    
-  const vehicles = await db.orm.public.LogisticsVehicle
-    .where({ providerId: params.providerId, status: 'ACTIVE' })
-    .all();
+  const [drivers, vehicles, activeJobs] = await Promise.all([
+    db.orm.public.LogisticsDriverProfile
+      .where({ providerId: params.providerId, status: 'ONLINE', onboardingComplete: true })
+      .include('person')
+      .include('currentVehicle')
+      .all(),
+    db.orm.public.LogisticsVehicle
+      .where({ providerId: params.providerId, status: 'ACTIVE' })
+      .all(),
+    db.orm.public.DeliveryJob
+      .where({ providerId: params.providerId })
+      .include('assignments')
+      .all(),
+  ]);
 
-  // Find active assignments to exclude them
-  const allAssignments = await db.orm.public.DeliveryAssignment.all();
-  const activeAssignments = allAssignments.filter((a: any) => ['PENDING', 'ACCEPTED'].includes(a.status));
+  const activeAssignments = activeJobs
+    .filter((j: any) => ['DISPATCHED', 'ASSIGNED', 'AT_PICKUP', 'PICKED_UP', 'IN_TRANSIT', 'AT_DROPOFF'].includes(j.status))
+    .flatMap((j: any) => j.assignments || [])
+    .filter((a: any) => a.status === 'PENDING' || a.status === 'ACCEPTED');
 
-  const assignedDriverIds = new Set(activeAssignments.map((a: any) => a.driverProfileId));
-  const assignedVehicleIds = new Set(activeAssignments.map((a: any) => a.vehicleId).filter(Boolean));
+  const assignedDriverIds = new Set(
+    activeAssignments.map((a: any) => a.driverProfileId).filter(Boolean)
+  );
+
+  const assignedVehicleIds = new Set(
+    activeAssignments.map((a: any) => a.vehicleId).filter(Boolean)
+  );
 
   return {
     drivers: drivers.filter((d: any) => !assignedDriverIds.has(d.id)),
@@ -94,7 +110,6 @@ export async function dispatchDelivery(params: {
     });
   } catch (error: any) {
     if (isUniqueConstraintError(error)) {
-      // Re-read idempotency
       if (params.idempotencyKey) {
         const existing = (await db.orm.public.DeliveryDispatch.where({ deliveryJobId: params.deliveryJobId, idempotencyKey: params.idempotencyKey }).all())[0];
         if (existing) return existing;
@@ -106,7 +121,7 @@ export async function dispatchDelivery(params: {
 }
 
 /**
- * Driver accepts the dispatch.
+ * Driver accepts the dispatch and locks assignment.
  */
 export async function acceptDispatch(params: {
   dispatchId: string;
@@ -123,24 +138,15 @@ export async function acceptDispatch(params: {
     if (dispatch.status !== 'PENDING' && dispatch.status !== 'OFFERED') {
       throw new LogisticsDomainError(`Dispatch is no longer active (status: ${dispatch.status})`);
     }
-    if (dispatch.expiresAt && dispatch.expiresAt < new Date()) {
+    if (dispatch.expiresAt && Date.parse(String(dispatch.expiresAt)) < Date.now()) {
       throw new LogisticsDomainError('Dispatch expired');
     }
 
-    // Attempt the assignment
-    // We delegate to the Phase 1 canonical assignDelivery which enforces DB-level unique constraints
-    // If it fails with a constraint error, we just throw that back to the caller
-    // NOTE: Because assignDelivery starts its own db.transaction, and Prisma Next transactions do not 
-    // nest well, we need to extract assignDelivery core logic into a reusable inner function OR 
-    // just call the public assignDelivery outside the current tx? 
-    // Since we need to update the dispatch atomically, we can't do that easily without nesting.
-    // Wait, let's just do it directly here using tx.
-    
     // 1. Read Driver
     const driver = (await tx.orm.public.LogisticsDriverProfile.where({ id: params.driverProfileId }).all())[0];
     if (!driver || driver.providerId !== params.providerId) throw new LogisticsDomainError('Driver not found or provider mismatch');
 
-    // 2. Pre-flight checks (best effort)
+    // 2. Pre-flight checks
     const allAssignmentsJob = await tx.orm.public.DeliveryAssignment.where({ deliveryJobId: dispatch.deliveryJobId }).all();
     if (allAssignmentsJob.filter((a: any) => ['PENDING', 'ACCEPTED'].includes(a.status)).length > 0) {
       throw new LogisticsDomainError('Concurrency error: Job already has an active assignment');
@@ -151,7 +157,7 @@ export async function acceptDispatch(params: {
       throw new LogisticsDomainError('Concurrency error: Driver already has an active assignment');
     }
 
-    let vehicleId = dispatch.vehicleId;
+    let vehicleId = dispatch.vehicleId || driver.currentVehicleId;
     if (vehicleId) {
       const allAssignmentsVehicle = await tx.orm.public.DeliveryAssignment.where({ vehicleId }).all();
       if (allAssignmentsVehicle.filter((a: any) => ['PENDING', 'ACCEPTED'].includes(a.status)).length > 0) {
@@ -226,6 +232,30 @@ export async function rejectDispatch(params: {
 }
 
 /**
+ * Cancels an active dispatch attempt.
+ */
+export async function cancelDispatch(params: {
+  dispatchId: string;
+  providerId: string;
+  reason?: string;
+}) {
+  return await db.transaction(async (tx: any) => {
+    const dispatch = (await tx.orm.public.DeliveryDispatch.where({ id: params.dispatchId }).all())[0];
+    if (!dispatch) throw new LogisticsDomainError('Dispatch not found');
+    if (dispatch.providerId !== params.providerId) throw new LogisticsDomainError('Provider isolation violation');
+    if (dispatch.status !== 'PENDING' && dispatch.status !== 'OFFERED') {
+      throw new LogisticsDomainError(`Cannot cancel dispatch in status ${dispatch.status}`);
+    }
+
+    return await tx.orm.public.DeliveryDispatch.where({ id: params.dispatchId }).update({
+      status: 'CANCELLED',
+      cancelledAt: toTemporal(new Date()),
+      failureReason: params.reason || 'Cancelled by dispatcher'
+    });
+  });
+}
+
+/**
  * System expires a dispatch.
  */
 export async function expireDispatch(params: {
@@ -244,4 +274,62 @@ export async function expireDispatch(params: {
       status: 'EXPIRED'
     });
   });
+}
+
+/**
+ * Automated dispatch engine: scores candidates and creates an offer to the best driver.
+ */
+export async function autoDispatchDelivery(params: {
+  deliveryJobId: string;
+  providerId: string;
+  expiryMinutes?: number;
+}) {
+  const job = await db.orm.public.DeliveryJob.where({ id: params.deliveryJobId, providerId: params.providerId }).first();
+  if (!job) throw new LogisticsDomainError('DeliveryJob not found for provider');
+
+  const { drivers, vehicles } = await findEligibleCandidates({
+    deliveryJobId: params.deliveryJobId,
+    providerId: params.providerId,
+  });
+
+  if (drivers.length === 0) {
+    return { success: false, reason: 'NO_ELIGIBLE_DRIVERS', dispatch: null };
+  }
+
+  // Scoring heuristic:
+  // 1. Driver has assigned active vehicle: +10 pts
+  // 2. Heavy package (> 15kg) with car/van/truck: +20 pts
+  // 3. Light package (< 5kg) with motorcycle/bike: +15 pts
+  const scoredDrivers = drivers.map((driver: any) => {
+    let score = 50; // base score
+
+    if (driver.currentVehicleId) {
+      score += 10;
+      const v = vehicles.find((veh: any) => veh.id === driver.currentVehicleId);
+      if (v) {
+        const isHeavy = (job.packageWeightKg ?? 1) > 10;
+        if (isHeavy && ['CAR', 'VAN', 'TRUCK'].includes(v.type)) score += 20;
+        if (!isHeavy && ['BIKE', 'MOTORCYCLE'].includes(v.type)) score += 15;
+      }
+    }
+
+    return { driver, score };
+  });
+
+  scoredDrivers.sort((a, b) => b.score - a.score);
+  const bestCandidate = scoredDrivers[0].driver;
+
+  const expiryMinutes = params.expiryMinutes || 15;
+  const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000);
+
+  const dispatch = await dispatchDelivery({
+    deliveryJobId: params.deliveryJobId,
+    providerId: params.providerId,
+    driverProfileId: bestCandidate.id,
+    vehicleId: bestCandidate.currentVehicleId || undefined,
+    expiresAt,
+    idempotencyKey: `auto-dispatch-${params.deliveryJobId}-${Date.now()}`,
+  });
+
+  return { success: true, dispatch, driver: bestCandidate };
 }

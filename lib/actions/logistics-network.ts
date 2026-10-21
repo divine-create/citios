@@ -2,6 +2,7 @@
 
 import { db } from '@/src/prisma/db';
 import { v4 as uuidv4 } from 'uuid';
+import crypto from 'crypto';
 import { requireMembership } from './tenant';
 import { LogisticsDomainError } from './logistics-domain';
 
@@ -116,6 +117,25 @@ export async function getActiveNetworkProviders() {
   }
 
   return networkProviders;
+}
+
+/**
+ * Validates HMAC-SHA256 signature on incoming partner webhook payloads.
+ */
+export async function verifyPartnerWebhookSignature(
+  rawPayload: string,
+  signatureHeader: string | null | undefined,
+  secret: string
+): Promise<boolean> {
+  if (!signatureHeader || !secret) return false;
+  try {
+    const computed = crypto.createHmac('sha256', secret).update(rawPayload).digest('hex');
+    const cleanSig = signatureHeader.replace(/^sha256=/i, '').trim();
+    if (computed.length !== cleanSig.length) return false;
+    return crypto.timingSafeEqual(Buffer.from(computed), Buffer.from(cleanSig));
+  } catch {
+    return false;
+  }
 }
 
 /**

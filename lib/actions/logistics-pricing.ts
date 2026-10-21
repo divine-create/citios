@@ -1,7 +1,10 @@
+'use server';
+
 import { db } from '../../src/prisma/db';
 import { LogisticsDomainError } from './logistics-domain';
+import { assertProviderAccess } from './logistics-tenant';
 
-export class Money {
+class Money {
   private readonly minorUnits: number;
 
   private constructor(minorUnits: number) {
@@ -55,7 +58,6 @@ export async function calculateDeliveryQuote(params: {
   const job = jobs[0];
   if (!job) throw new LogisticsDomainError('DeliveryJob not found');
 
-  // Using in-memory filter since isActive may not support DB level where equality
   const allRules = await db.orm.public.DeliveryPricingRule.where({ providerId }).all();
   const activeRules = allRules.filter(r => r.isActive).sort((a, b) => b.version - a.version);
   const rule = activeRules[0];
@@ -174,5 +176,45 @@ export async function expireQuote(quoteId: string, providerId: string) {
     
     const qs4 = await ctx.orm.public.DeliveryQuote.where({ id: quoteId }).all();
     return qs4[0];
+  });
+}
+
+export async function getProviderPricingRules(providerId: string) {
+  await assertProviderAccess(providerId, ['OWNER', 'ADMIN', 'MANAGER', 'DISPATCHER', 'FINANCE']);
+  const rules = await db.orm.public.DeliveryPricingRule.where({ providerId }).all();
+  rules.sort((a, b) => b.version - a.version);
+  return rules;
+}
+
+export async function updatePricingRule(params: {
+  providerId: string;
+  baseFee: number;
+  perKmRate: number;
+  perKgRate?: number;
+  prioritySurcharge?: number;
+  currency?: string;
+}) {
+  await assertProviderAccess(params.providerId, ['OWNER', 'ADMIN']);
+  return await db.transaction(async (tx: any) => {
+    const allRules = await tx.orm.public.DeliveryPricingRule.where({ providerId: params.providerId }).all();
+    for (const r of allRules) {
+      if (r.isActive) {
+        await tx.orm.public.DeliveryPricingRule.where({ id: r.id }).update({ isActive: false });
+      }
+    }
+
+    const nextVersion = allRules.length + 1;
+    const newRule = await tx.orm.public.DeliveryPricingRule.create({
+      providerId: params.providerId,
+      version: nextVersion,
+      currency: params.currency || 'NGN',
+      baseFee: params.baseFee.toFixed(2),
+      perKmRate: params.perKmRate.toFixed(2),
+      perKgRate: (params.perKgRate || 0).toFixed(2),
+      prioritySurcharge: (params.prioritySurcharge || 0).toFixed(2),
+      isActive: true,
+    });
+
+    return newRule;
   });
 }

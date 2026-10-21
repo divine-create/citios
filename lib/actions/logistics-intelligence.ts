@@ -29,7 +29,7 @@ export interface StuckDeliveryCriteria {
   maxTransitMinutes?: number;
 }
 
-export async function findStuckDeliveries(criteria: StuckDeliveryCriteria = {}) {
+export async function findStuckDeliveries(criteria: StuckDeliveryCriteria = {}, providerId?: string) {
   const defaults = {
     maxDispatchPendingMinutes: 15,
     maxAssignedMinutes: 30,
@@ -38,8 +38,10 @@ export async function findStuckDeliveries(criteria: StuckDeliveryCriteria = {}) 
   };
   const config = { ...defaults, ...criteria };
 
-  const allDeliveries = await db.orm.public.DeliveryJob.all();
-  const activeDeliveries = allDeliveries.filter((f: any) => !['DELIVERED', 'COMPLETED', 'CANCELLED'].includes(f.status));
+  const deliveries = providerId
+    ? await db.orm.public.DeliveryJob.where({ providerId }).all()
+    : await db.orm.public.DeliveryJob.all();
+  const activeDeliveries = deliveries.filter((f: any) => !['DELIVERED', 'COMPLETED', 'CANCELLED', 'FAILED'].includes(f.status));
 
   const stuck = [];
   const now = new Date().getTime();

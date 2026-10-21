@@ -1,144 +1,65 @@
+import Link from 'next/link';
+import { resolveLogisticsTenant } from '@/lib/actions/logistics-tenant';
 import React from 'react';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { db } from '@/src/prisma/db';
 import { getFleetAndDrivers } from '@/lib/actions/logistics-fleet';
-import { Card, Badge, Button } from '@/components/Shared';
-import { Car, User, Plus, MapPin, Truck, Key, Activity, BadgeCheck, AlertCircle, Users } from 'lucide-react';
+import FleetView from './FleetView';
 
 export const dynamic = 'force-dynamic';
 
-export default async function FleetDriversPage() {
-  const provider = await db.orm.public.Organization.where({ type: 'LOGISTICS' }).first() || 
-                   await db.orm.public.Organization.all().first();
+export default async function FleetDriversPage({ searchParams }: { searchParams?: Promise<{ org?: string }> }) {
+  const params = searchParams ? await searchParams : {};
+  const tenant = await resolveLogisticsTenant(params.org);
 
-  if (!provider) {
-    return <div className="p-10 text-center text-slate-500">No organizations found.</div>;
+  if (!tenant.authorized) {
+    return (
+      <div className="p-12 text-center max-w-lg mx-auto bg-white rounded-2xl border border-slate-200 shadow-sm space-y-4 my-8">
+        <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+          ⚠️
+        </div>
+        <h2 className="text-xl font-bold text-slate-800">
+          {tenant.error === 'UNAUTHENTICATED' && 'Authentication Required'}
+          {tenant.error === 'NO_LOGISTICS_MEMBERSHIP' && 'No Logistics Organization'}
+          {tenant.error === 'FORBIDDEN_ORGANIZATION' && 'Access Denied'}
+        </h2>
+        <p className="text-sm text-slate-500">
+          {tenant.error === 'UNAUTHENTICATED' && 'Please sign in to access the CityDrive Business workspace.'}
+          {tenant.error === 'NO_LOGISTICS_MEMBERSHIP' && 'You do not have an active membership in any logistics company.'}
+          {tenant.error === 'FORBIDDEN_ORGANIZATION' && 'You do not have permission to view records for this organization.'}
+        </p>
+        <div className="pt-2 flex justify-center gap-3">
+          {tenant.error === 'UNAUTHENTICATED' && (
+            <Link href="/auth/signin" className="px-4 py-2 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800">
+              Sign In
+            </Link>
+          )}
+          {tenant.error === 'NO_LOGISTICS_MEMBERSHIP' && (
+            <Link href="/business/register" className="px-4 py-2 bg-teal-700 text-white rounded-xl text-sm font-semibold hover:bg-teal-800">
+              Register Logistics Company
+            </Link>
+          )}
+          {tenant.error === 'FORBIDDEN_ORGANIZATION' && (
+            <Link href="/business/logisticsos/dashboard" className="px-4 py-2 border border-slate-300 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50">
+              Back to My Workspace
+            </Link>
+          )}
+        </div>
+      </div>
+    );
   }
+
+  const provider = tenant.provider;
 
   const { vehicles, drivers } = await getFleetAndDrivers(provider.id);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Fleet & Drivers</h1>
-          <p className="text-slate-500 mt-1">Manage vehicles and dispatch personnel</p>
-        </div>
-        <div className="flex gap-3">
-          <Button variant="outline"><Plus className="w-4 h-4 mr-2" /> Add Vehicle</Button>
-          <Button variant="primary"><User className="w-4 h-4 mr-2" /> Onboard Driver</Button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
-        {/* Drivers Section */}
-        <div className="space-y-6">
-          <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-            <Users className="w-5 h-5 text-teal-600" />
-            Active Drivers ({drivers.length})
-          </h2>
-          
-          <div className="space-y-4">
-            {drivers.length === 0 ? (
-              <Card className="bg-slate-50 border-dashed text-center p-8">
-                <User className="w-8 h-8 text-slate-300 mx-auto mb-3" />
-                <p className="text-slate-500 font-medium">No drivers onboarded yet.</p>
-              </Card>
-            ) : (
-              drivers.map((driver: any) => (
-                <Card key={driver.id} className="hover:border-teal-200 transition-colors">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center text-teal-700 font-bold text-lg">
-                        {driver.person?.firstName?.charAt(0) || 'D'}
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-slate-900">{driver.person?.firstName} {driver.person?.lastName}</h3>
-                        <p className="text-xs text-slate-500">{driver.person?.email}</p>
-                      </div>
-                    </div>
-                    <Badge variant={driver.status === 'ONLINE' ? 'default' : 'outline'} className={driver.status === 'ONLINE' ? 'bg-teal-50 text-teal-700 border-teal-200' : ''}>
-                      {driver.status}
-                    </Badge>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-slate-100">
-                    <div className="flex flex-col">
-                      <span className="text-[10px] uppercase font-bold text-slate-400">Assigned Vehicle</span>
-                      <span className="text-sm font-medium text-slate-700 flex items-center gap-1 mt-0.5">
-                        <Truck className="w-3 h-3" />
-                        {driver.currentVehicle?.licensePlate || 'Unassigned'}
-                      </span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-[10px] uppercase font-bold text-slate-400">Onboarding</span>
-                      <span className="text-sm font-medium text-slate-700 flex items-center gap-1 mt-0.5">
-                        {driver.onboardingComplete ? <BadgeCheck className="w-3 h-3 text-teal-500" /> : <AlertCircle className="w-3 h-3 text-orange-500" />}
-                        {driver.onboardingComplete ? 'Verified' : 'Pending Docs'}
-                      </span>
-                    </div>
-                  </div>
-                </Card>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Vehicles Section */}
-        <div className="space-y-6">
-          <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-            <Car className="w-5 h-5 text-blue-600" />
-            Fleet Vehicles ({vehicles.length})
-          </h2>
-          
-          <div className="space-y-4">
-            {vehicles.length === 0 ? (
-              <Card className="bg-slate-50 border-dashed text-center p-8">
-                <Car className="w-8 h-8 text-slate-300 mx-auto mb-3" />
-                <p className="text-slate-500 font-medium">No vehicles in fleet.</p>
-              </Card>
-            ) : (
-              vehicles.map(vehicle => (
-                <Card key={vehicle.id} className="hover:border-blue-200 transition-colors">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
-                        <Truck className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h3 className="font-black text-slate-900 font-mono tracking-wider">{vehicle.licensePlate}</h3>
-                        <p className="text-xs text-slate-500 font-medium">{vehicle.type}</p>
-                      </div>
-                    </div>
-                    <Badge variant={vehicle.status === 'ACTIVE' ? 'default' : 'outline'}>
-                      {vehicle.status}
-                    </Badge>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-slate-100">
-                    <div className="flex flex-col">
-                      <span className="text-[10px] uppercase font-bold text-slate-400">Payload Cap</span>
-                      <span className="text-sm font-medium text-slate-700 mt-0.5">
-                        {vehicle.capacityPayload ? `${vehicle.capacityPayload} kg` : 'N/A'}
-                      </span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-[10px] uppercase font-bold text-slate-400">Volume Cap</span>
-                      <span className="text-sm font-medium text-slate-700 mt-0.5">
-                        {vehicle.capacityVolume ? `${vehicle.capacityVolume} m3` : 'N/A'}
-                      </span>
-                    </div>
-                  </div>
-                </Card>
-              ))
-            )}
-          </div>
-        </div>
-
-      </div>
-    </div>
+    <FleetView
+      providerId={provider.id}
+      providerName={provider.name}
+      initialVehicles={vehicles}
+      initialDrivers={drivers}
+    />
   );
 }
-
