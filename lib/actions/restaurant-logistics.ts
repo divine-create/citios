@@ -65,6 +65,12 @@ export async function requestRestaurantDelivery(orderId: string, locationId?: st
 
 /**
  * Syncs delivery state changes back into the RestaurantOS order lifecycle.
+ * Enforces the 5 canonical financial & lifecycle stages:
+ * 1. Delivery failure/cancellation trigger.
+ * 2. Refund eligibility determination (checks canonical Payment & refundable amount).
+ * 3. Idempotent Refund record creation.
+ * 4. Atomic Payment status transition to REFUNDED.
+ * 5. Final RestaurantOrder paymentStatus and order status transition (no false refunds).
  */
 export async function syncLogisticsStatusToRestaurantOS(jobId: string) {
   const job = await db.orm.public.DeliveryJob.where({ id: jobId }).all().first();
@@ -90,12 +96,64 @@ export async function syncLogisticsStatusToRestaurantOS(jobId: string) {
       status: 'DELIVERING',
     });
   } else if (['FAILED', 'CANCELLED'].includes(deliveryStatus)) {
-    const updatePayload: { status: 'CANCELLED'; paymentStatus?: 'REFUNDED' } = {
-      status: 'CANCELLED',
-    };
-    if (order.paymentStatus === 'COMPLETED') {
-      updatePayload.paymentStatus = 'REFUNDED';
-    }
-    await db.orm.public.RestaurantOrder.where({ id: orderId }).update(updatePayload);
+    await db.transaction(async (tx: any) => {
+      const currentOrder = await tx.orm.public.RestaurantOrder.where({ id: orderId }).all().first();
+      if (!currentOrder || currentOrder.status === 'COMPLETED') return;
+
+      // 1 & 2: Check canonical Payment and determine refund eligibility
+      const payment = await tx.orm.public.Payment.where({ restaurantOrderId: orderId }).all().first();
+      let refundSuccessful = false;
+
+      if (payment) {
+        // Payment exists: eligibility requires payment status COMPLETED and refundable balance > 0
+        if (payment.status === 'COMPLETED') {
+          const existingRefunds = await tx.orm.public.Refund.where({ paymentId: payment.id }).all();
+          const totalRefunded = existingRefunds.reduce((sum: number, r: any) => sum + (r.amount || 0), 0);
+          const refundable = payment.amount - totalRefunded;
+
+          const refundIdempotencyKey = `refund-delivery-${job.id}`;
+          const alreadyProcessed = existingRefunds.some((r: any) => r.idempotencyKey === refundIdempotencyKey);
+
+          if (alreadyProcessed) {
+            // Idempotent retry: refund already recorded
+            refundSuccessful = true;
+          } else if (refundable > 0) {
+            // 3: Create canonical Refund record with unique idempotency key
+            await tx.orm.public.Refund.create({
+              paymentId: payment.id,
+              amount: refundable,
+              currency: payment.currency,
+              status: 'COMPLETED',
+              reason: `Delivery ${deliveryStatus}: ${job.failureReason || 'Fulfillment failure'}`,
+              idempotencyKey: refundIdempotencyKey,
+            });
+
+            // 4: Update canonical Payment to REFUNDED
+            await tx.orm.public.Payment.where({ id: payment.id }).update({
+              status: 'REFUNDED',
+              refundedAmount: payment.amount,
+            });
+
+            refundSuccessful = true;
+          }
+        } else if (payment.status === 'REFUNDED') {
+          refundSuccessful = true;
+        }
+      } else if (currentOrder.paymentStatus === 'COMPLETED') {
+        // Direct synthetic/legacy order where paymentStatus was recorded on order without separate Payment record
+        refundSuccessful = true;
+      }
+
+      // 5: Final state transition on RestaurantOrder
+      // Only set paymentStatus: 'REFUNDED' if refund was actually determined eligible & executed
+      const updatePayload: { status: 'CANCELLED'; paymentStatus?: 'REFUNDED' } = {
+        status: 'CANCELLED',
+      };
+      if (refundSuccessful) {
+        updatePayload.paymentStatus = 'REFUNDED';
+      }
+
+      await tx.orm.public.RestaurantOrder.where({ id: orderId }).update(updatePayload);
+    });
   }
 }

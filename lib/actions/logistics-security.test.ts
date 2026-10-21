@@ -624,5 +624,103 @@ test('CityDrive Security & Production Hardening Suite', async (t) => {
 
     const checkOrder = await db.orm.public.RestaurantOrder.where({ id: completedRestOrder.id }).first();
     assert.strictEqual(checkOrder?.status, 'COMPLETED', 'Already COMPLETED order must not regress to CANCELLED');
+
+    // Test 2: Canonical Payment record lifecycle and idempotent refund
+    const paidOrderWithPayment = await db.orm.public.RestaurantOrder.create({
+      id: uuidv4(),
+      organizationId: restOrg.id,
+      status: 'DELIVERING' as any,
+      type: 'DELIVERY' as any,
+      paymentStatus: 'COMPLETED' as any,
+      totalAmount: 6000,
+      orderNumber: 305,
+    });
+
+    const canonicalPayment = await db.orm.public.Payment.create({
+      id: uuidv4(),
+      amount: 6000,
+      currency: 'NGN',
+      method: 'WALLET',
+      status: 'COMPLETED' as any,
+      restaurantOrderId: paidOrderWithPayment.id,
+      reference: `PAY-${uuidv4().slice(0, 8)}`,
+    });
+
+    const failedJobWithPayment = await createDeliveryJob({
+      providerId: orgA.id,
+      sourceType: 'RESTAURANT_ORDER',
+      sourceId: paidOrderWithPayment.id,
+      idempotencyKey: `rest-sync-payment-${paidOrderWithPayment.id}`,
+      dropoffAddress: '17 Target Road, Calabar',
+    });
+
+    await transitionDeliveryStatus(failedJobWithPayment.id, 'CREATED', orgA.id);
+    await transitionDeliveryStatus(failedJobWithPayment.id, 'DISPATCHED', orgA.id);
+    await transitionDeliveryStatus(failedJobWithPayment.id, 'FAILED', orgA.id);
+
+    // Initial sync
+    await syncLogisticsStatusToRestaurantOS(failedJobWithPayment.id);
+
+    // Verify canonical Refund record
+    const refunds = await db.orm.public.Refund.where({ paymentId: canonicalPayment.id }).all();
+    assert.strictEqual(refunds.length, 1, 'Exactly one canonical Refund record must be created');
+    assert.strictEqual(refunds[0].amount, 6000);
+    assert.strictEqual(refunds[0].status, 'COMPLETED');
+    assert.strictEqual(refunds[0].idempotencyKey, `refund-delivery-${failedJobWithPayment.id}`);
+
+    // Verify canonical Payment status updated
+    const updatedPayment = await db.orm.public.Payment.where({ id: canonicalPayment.id }).first();
+    assert.strictEqual(updatedPayment?.status, 'REFUNDED');
+    assert.strictEqual(updatedPayment?.refundedAmount, 6000);
+
+    // Idempotent retry: syncing again must not create duplicate refund
+    await syncLogisticsStatusToRestaurantOS(failedJobWithPayment.id);
+    const refundsAfterRetry = await db.orm.public.Refund.where({ paymentId: canonicalPayment.id }).all();
+    assert.strictEqual(refundsAfterRetry.length, 1, 'Retrying sync must not create duplicate refund');
+
+    // Test 3: Unpaid / Pending Payment must NEVER be falsely marked as REFUNDED
+    const unpaidOrder = await db.orm.public.RestaurantOrder.create({
+      id: uuidv4(),
+      organizationId: restOrg.id,
+      status: 'DELIVERING' as any,
+      type: 'DELIVERY' as any,
+      paymentStatus: 'PENDING' as any,
+      totalAmount: 3000,
+      orderNumber: 306,
+    });
+
+    const pendingPayment = await db.orm.public.Payment.create({
+      id: uuidv4(),
+      amount: 3000,
+      currency: 'NGN',
+      method: 'CASH',
+      status: 'PENDING' as any,
+      restaurantOrderId: unpaidOrder.id,
+      reference: `PAY-PENDING-${uuidv4().slice(0, 8)}`,
+    });
+
+    const failedUnpaidJob = await createDeliveryJob({
+      providerId: orgA.id,
+      sourceType: 'RESTAURANT_ORDER',
+      sourceId: unpaidOrder.id,
+      idempotencyKey: `rest-sync-unpaid-${unpaidOrder.id}`,
+      dropoffAddress: '18 Target Road, Calabar',
+    });
+
+    await transitionDeliveryStatus(failedUnpaidJob.id, 'CREATED', orgA.id);
+    await transitionDeliveryStatus(failedUnpaidJob.id, 'DISPATCHED', orgA.id);
+    await transitionDeliveryStatus(failedUnpaidJob.id, 'FAILED', orgA.id);
+
+    await syncLogisticsStatusToRestaurantOS(failedUnpaidJob.id);
+
+    const checkUnpaidOrder = await db.orm.public.RestaurantOrder.where({ id: unpaidOrder.id }).first();
+    assert.strictEqual(checkUnpaidOrder?.status, 'CANCELLED');
+    assert.strictEqual(checkUnpaidOrder?.paymentStatus, 'PENDING', 'Unpaid order must NOT be falsely marked as REFUNDED');
+
+    const checkPendingPayment = await db.orm.public.Payment.where({ id: pendingPayment.id }).first();
+    assert.strictEqual(checkPendingPayment?.status, 'PENDING', 'Pending payment must remain PENDING');
+
+    const pendingRefunds = await db.orm.public.Refund.where({ paymentId: pendingPayment.id }).all();
+    assert.strictEqual(pendingRefunds.length, 0, 'No refund record should be created for unpaid order');
   });
 });
