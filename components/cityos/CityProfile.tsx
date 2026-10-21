@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { fetchMyOrders } from '@/app/actions/commerce';
 import { getProfileAndWallet, updateProfileAvatar } from '@/lib/actions/profile';
 import { signOut } from 'next-auth/react';
+import AccountSecurityModal from '@/components/cityos/AccountSecurityModal';
 
 const ALL_TABS = ['Orders', 'Payments', 'CityHouse', 'Saved', 'Settings'] as const;
 type Tab = (typeof ALL_TABS)[number];
@@ -27,6 +28,7 @@ export default function CityProfile({ citypayEnabled = false }: { citypayEnabled
   const defaultTab = ALL_TABS.find((t) => t.toLowerCase() === tabParam?.toLowerCase()) || 'Orders';
   const [tab, setTab] = useState<Tab>(defaultTab);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [securityModalOpen, setSecurityModalOpen] = useState(false);
 
   useEffect(() => {
     if (tabParam) {
@@ -389,7 +391,11 @@ export default function CityProfile({ citypayEnabled = false }: { citypayEnabled
               </Link>
             )}
 
-            <Link href="/profile/edit" className="px-5 py-4 flex items-center gap-3.5 hover:bg-slate-50 transition-colors block">
+            <button
+              type="button"
+              onClick={() => setSecurityModalOpen(true)}
+              className="w-full px-5 py-4 flex items-center gap-3.5 hover:bg-slate-50 transition-colors text-left cursor-pointer"
+            >
               <div className="w-9 h-9 rounded-xl bg-violet-50 text-violet-800 flex items-center justify-center shrink-0">
                 <Shield className="w-4 h-4" />
               </div>
@@ -398,7 +404,7 @@ export default function CityProfile({ citypayEnabled = false }: { citypayEnabled
                 <p className="text-[11px] font-bold text-slate-400 truncate">Set or change your email login password</p>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
-            </Link>
+            </button>
 
             <div className="px-5 py-4 flex items-center gap-3.5 bg-slate-50/50">
               <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-800 flex items-center justify-center shrink-0">
@@ -449,6 +455,12 @@ export default function CityProfile({ citypayEnabled = false }: { citypayEnabled
           </div>
         </div>
       )}
+
+      <AccountSecurityModal
+        isOpen={securityModalOpen}
+        onClose={() => setSecurityModalOpen(false)}
+        userEmail={userProfile?.email}
+      />
     </div>
   );
 }

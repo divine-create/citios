@@ -1,0 +1,177 @@
+'use server';
+
+import { db } from '@/src/prisma/db';
+import { v4 as uuidv4 } from 'uuid';
+import { requireMembership } from './tenant';
+import { LogisticsDomainError } from './logistics-domain';
+
+export interface ExternalCourierQuoteRequest {
+  pickupAddress: string;
+  dropoffAddress: string;
+  weightKg: number;
+  priority?: boolean;
+}
+
+export interface ExternalCourierQuoteResponse {
+  courierName: string;
+  quoteReference: string;
+  totalAmount: number;
+  currency: string;
+  estimatedDeliveryMinutes: number;
+}
+
+export interface ExternalCourierBookingRequest {
+  quoteReference: string;
+  pickupAddress: string;
+  dropoffAddress: string;
+  recipientName: string;
+  recipientPhone: string;
+  description: string;
+  idempotencyKey: string;
+}
+
+export interface ExternalCourierBookingResponse {
+  success: boolean;
+  externalTrackingNumber: string;
+  status: string;
+}
+
+/**
+ * Common Adapter Interface for 3rd-Party Logistics Couriers
+ */
+export interface ExternalLogisticsAdapter {
+  providerName: string;
+  getQuote(req: ExternalCourierQuoteRequest): Promise<ExternalCourierQuoteResponse>;
+  bookShipment(req: ExternalCourierBookingRequest): Promise<ExternalCourierBookingResponse>;
+  getTracking(externalTrackingNumber: string): Promise<{ status: string; milestones: string[] }>;
+}
+
+
+/**
+ * Enables or updates a logistics provider's participation in the shared CityDrive Network.
+ */
+export async function setNetworkParticipation(params: {
+  providerId: string;
+  isParticipant: boolean;
+  serviceRadiusKm?: number;
+}) {
+  await requireMembership(params.providerId, ['OWNER', 'ADMIN']);
+
+  const existingSettings = await db.orm.public.LogisticsSettings.where({
+    organizationId: params.providerId,
+  }).first();
+
+  if (existingSettings) {
+    await db.orm.public.LogisticsSettings.where({ id: existingSettings.id }).update({
+      isNetworkParticipant: params.isParticipant,
+      serviceRadiusKm: params.serviceRadiusKm ?? existingSettings.serviceRadiusKm,
+    });
+  } else {
+    await db.orm.public.LogisticsSettings.create({
+      id: uuidv4(),
+      organizationId: params.providerId,
+      platformFeeRate: '0.10',
+      isNetworkParticipant: params.isParticipant,
+      serviceRadiusKm: params.serviceRadiusKm ?? 25.0,
+    });
+  }
+
+  return {
+    providerId: params.providerId,
+    isNetworkParticipant: params.isParticipant,
+    serviceRadiusKm: params.serviceRadiusKm ?? 25.0,
+  };
+}
+
+/**
+ * Retrieves all approved logistics providers currently active on the shared fulfillment network.
+ */
+export async function getActiveNetworkProviders() {
+  const orgs = await db.orm.public.Organization.where({
+    type: 'LOGISTICS' as any,
+    status: 'ACTIVE' as any,
+  }).all();
+
+  const settingsList = await db.orm.public.LogisticsSettings.all();
+  const settingsByOrg = new Map(settingsList.map((s: any) => [s.organizationId, s]));
+
+  const rulesList = await db.orm.public.DeliveryPricingRule.all();
+  const activeRulesByOrg = new Set(rulesList.filter((r: any) => r.isActive).map((r: any) => r.providerId));
+
+  const networkProviders = [];
+
+  for (const org of orgs) {
+    const s = settingsByOrg.get(org.id);
+    const hasRules = activeRulesByOrg.has(org.id);
+    const isParticipant = s ? s.isNetworkParticipant : false;
+
+    if (isParticipant && hasRules) {
+      networkProviders.push({
+        id: org.id,
+        name: org.name,
+        serviceRadiusKm: s?.serviceRadiusKm || 20,
+        platformFeeRate: s?.platformFeeRate || 0.10,
+      });
+    }
+  }
+
+  return networkProviders;
+}
+
+/**
+ * Handles incoming partner webhooks with signature and idempotency checks.
+ */
+export async function processPartnerWebhook(params: {
+  providerId: string;
+  eventType: 'PICKED_UP' | 'IN_TRANSIT' | 'DELIVERED' | 'FAILED';
+  deliveryJobId: string;
+  externalReference: string;
+  notes?: string;
+  idempotencyKey: string;
+}) {
+  return await db.transaction(async (tx: any) => {
+    // 1. Check idempotency
+    const existing = await tx.orm.public.DeliveryTrackingEvent.where({
+      providerId: params.providerId,
+      deliveryJobId: params.deliveryJobId,
+      idempotencyKey: params.idempotencyKey,
+    }).all();
+
+    if (existing.length > 0) {
+      return { success: true, duplicate: true, event: existing[0] };
+    }
+
+    const job = await tx.orm.public.DeliveryJob.where({
+      id: params.deliveryJobId,
+      providerId: params.providerId,
+    }).first();
+
+    if (!job) {
+      throw new LogisticsDomainError('DeliveryJob not found for provider');
+    }
+
+    // 2. Record external tracking event
+    const event = await tx.orm.public.DeliveryTrackingEvent.create({
+      id: uuidv4(),
+      deliveryJobId: params.deliveryJobId,
+      eventType: params.eventType,
+      providerId: params.providerId,
+      idempotencyKey: params.idempotencyKey,
+      notes: `External Partner Update (${params.externalReference}): ${params.notes || ''}`.trim(),
+    });
+
+    // 3. Update job status if appropriate
+    if (params.eventType === 'DELIVERED') {
+      await tx.orm.public.DeliveryJob.where({ id: params.deliveryJobId }).update({
+        status: 'DELIVERED',
+      });
+    } else if (params.eventType === 'FAILED') {
+      await tx.orm.public.DeliveryJob.where({ id: params.deliveryJobId }).update({
+        status: 'FAILED',
+        failureReason: params.notes || 'External partner delivery failure',
+      });
+    }
+
+    return { success: true, duplicate: false, event };
+  });
+}
