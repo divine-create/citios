@@ -7,7 +7,7 @@ import { CityCard, FallbackImg, Stars, Pill, LocationRow,  OpenBadge } from '@/c
 import { revalidatePath } from 'next/cache';
 
 export default async function CitySaved() {
-  const { orgs, products, jobs, events, places } = await getResolvedSavedItems();
+  const { orgs, products, jobs, events, places, stays } = await getResolvedSavedItems();
   const city = await getCurrentCity();
   const fmt = (a: number) => formatMoney(a, city?.currency ?? 'NGN');
 
@@ -203,7 +203,39 @@ export default async function CitySaved() {
         </div>
       </section>
 
-      {orgs.length + products.length + jobs.length + events.length + places.length === 0 ? (
+      {/* Stays */}
+      <section>
+        <h2 className="text-base font-black text-ink mb-3 flex items-center justify-between">
+          Stays
+          <span className="text-[11px] font-bold text-slate-400">{stays.length}</span>
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {stays.map((s) => (
+            <CityCard key={s.id} href={`/stay/${s.id}`} className="p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-[13px] font-black text-ink truncate">{s.title}</p>
+                </div>
+                <Pill tone="teal">Stay</Pill>
+              </div>
+              <form action={async () => {
+                'use server';
+                await toggleSavedItem('stay', s.id);
+                revalidatePath('/saved');
+              }}>
+                <button
+                  type="submit"
+                  className="mt-3 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-black hover:bg-rose-50 hover:text-rose-600 transition-colors"
+                >
+                  <Heart className="w-3 h-3 fill-current" /> Unsave
+                </button>
+              </form>
+            </CityCard>
+          ))}
+          {holder(stays.length)}
+        </div>
+      </section>
+      {orgs.length + products.length + jobs.length + events.length + places.length + stays.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-200 p-10 text-center">
           <p className="text-sm font-bold text-slate-500">Nothing saved yet.</p>
           <p className="text-xs text-slate-400 mt-1">Browse the Market, Food, Jobs, Events or Homes to start collecting.</p>

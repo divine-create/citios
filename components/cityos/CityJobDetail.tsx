@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Pill } from '@/components/cityos/CityUI';
 import { parseJobDescription, formatJobTypeLabel } from '@/lib/job-utils';
+import SaveButton from '@/components/cityos/SaveButton';
 
 export default async function CityJobDetail({ id }: { id: string }) {
   const job = await getCanonicalJob(id);
@@ -106,7 +107,7 @@ export default async function CityJobDetail({ id }: { id: string }) {
             )}
           </div>
 
-          <h1 className="mt-4 text-2xl md:text-3xl font-black tracking-tight">{job.title}</h1>
+          <div className="mt-4 flex items-start justify-between gap-3"><h1 className="text-2xl md:text-3xl font-black tracking-tight">{job.title}</h1><SaveButton kind="job" entityId={job.id} variant="overlay" className="shrink-0" /></div>
           <p className="mt-1.5 text-teal-50/90 text-[14px] font-bold">
             Posted by: <span className="text-white underline decoration-teal-400/60 underline-offset-4">{orgName}</span>
           </p>

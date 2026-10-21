@@ -13,6 +13,7 @@ import { QuantitySelector, VariantSelector, MarketBadge, ErrorState } from '@/co
 import { FallbackImg } from '@/components/cityos/CityUI';
 import GlovoProductCard, { GlovoProductItem } from '@/components/cityos/delivery/GlovoProductCard';
 import ChowdeckBasketDock from '@/components/cityos/delivery/ChowdeckBasketDock';
+import SaveButton from '@/components/cityos/SaveButton';
 
 export default function ProductDetail({ id }: { id: string }) {
   const { fmt } = useMoney();
@@ -154,7 +155,7 @@ export default function ProductDetail({ id }: { id: string }) {
                 <Store className="w-3.5 h-3.5" />
                 {p.storeName}
               </Link>
-              <h1 className="text-2xl md:text-4xl font-black text-slate-900 leading-tight">{p.name}</h1>
+              <div className="flex items-start justify-between gap-3"><h1 className="text-2xl md:text-4xl font-black text-slate-900 leading-tight">{p.name}</h1><SaveButton kind="product" entityId={p.id} /></div>
             </div>
             
             {/* PRICE BLOCK */}

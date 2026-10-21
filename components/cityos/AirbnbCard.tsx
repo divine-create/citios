@@ -2,7 +2,9 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Heart, Star } from 'lucide-react';
+import { Star } from 'lucide-react';
+import SaveButton from '@/components/cityos/SaveButton';
+import type { SavedEntityType } from '@/lib/saved-items';
 import { cn } from '@/lib/utils';
 import { FallbackImg } from '@/components/cityos/CityUI';
 
@@ -22,6 +24,9 @@ export interface AirbnbCardProps {
   metaLine?: string; // e.g. "⚡ 25-35 min · Open now"
   className?: string;
   aspectRatio?: '4/3' | '16/10' | 'square';
+  /** When set, a persisted save heart is shown for this entity. */
+  saveKind?: SavedEntityType;
+  saveId?: string;
 }
 
 export default function AirbnbCard({
@@ -40,18 +45,14 @@ export default function AirbnbCard({
   metaLine,
   className,
   aspectRatio = '4/3',
+  saveKind,
+  saveId,
 }: AirbnbCardProps) {
-  const [isLiked, setIsLiked] = useState(false);
   const [activeImageIdx, setActiveImageIdx] = useState(0);
 
   const displayImages = images && images.length > 0 ? images : image ? [image] : [];
   const currentImg = displayImages[activeImageIdx] || image;
 
-  const toggleLike = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsLiked((prev) => !prev);
-  };
 
   const aspectClass =
     aspectRatio === 'square'
@@ -92,22 +93,10 @@ export default function AirbnbCard({
             </div>
           ) : null}
 
-          {/* Wishlist Heart Button */}
-          <button
-            type="button"
-            onClick={toggleLike}
-            aria-label={isLiked ? 'Remove from wishlist' : 'Add to wishlist'}
-            className="absolute top-3 right-3 z-10 p-1.5 rounded-full text-white hover:scale-110 active:scale-90 transition-transform duration-150 focus:outline-none"
-          >
-            <Heart
-              className={cn(
-                'w-6 h-6 stroke-[2px] transition-colors duration-200 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]',
-                isLiked
-                  ? 'fill-[#FF385C] stroke-[#FF385C]'
-                  : 'fill-black/25 stroke-white hover:fill-black/40'
-              )}
-            />
-          </button>
+          {/* Save (wishlist) heart: persisted via SavedItem */}
+          {saveKind && saveId ? (
+            <SaveButton kind={saveKind} entityId={saveId} variant="overlay" className="absolute top-3 right-3 z-10" />
+          ) : null}
 
           {/* Dot navigation if multiple images */}
           {displayImages.length > 1 && (

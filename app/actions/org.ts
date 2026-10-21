@@ -7,6 +7,7 @@ import { authOptions } from '@/lib/auth';
 import { notifyPerson } from '@/lib/notify';
 import { classifyRetailProduct } from '@/lib/taxonomy/retail-categorizer';
 import { isTestOrDemoProduct } from '@/lib/storefront-filter';
+import { isSavedEntityType, savedKey } from '@/lib/saved-items';
 
 export async function getCanonicalOrganization(id: string) {
   let org = await db.orm.public.Organization.where({ id }).first();
@@ -257,48 +258,69 @@ export async function getCityMapEntities(citySlug?: string) {
 export async function toggleSavedItem(entityType: string, entityId: string) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.personId) return false;
-  
+  if (!isSavedEntityType(entityType) || !entityId) {
+    throw new Error(`Unsupported saved item type: ${entityType}`);
+  }
+  const personId = session.user.personId;
+
   const existing = await db.orm.public.SavedItem.where({
-    personId: session.user.personId,
+    personId,
     entityType,
     entityId
   }).first();
-  
+
   if (existing) {
     await db.orm.public.SavedItem.where({ id: existing.id }).delete();
     return false;
-  } else {
-    await db.orm.public.SavedItem.create({
-      personId: session.user.personId,
-      entityType,
-      entityId
-    });
-    return true;
   }
+
+  try {
+    await db.orm.public.SavedItem.create({ personId, entityType, entityId });
+  } catch (err) {
+    // Unique (personId, entityType, entityId): a concurrent request already saved it.
+    const raced = await db.orm.public.SavedItem.where({ personId, entityType, entityId }).first();
+    if (!raced) throw err;
+  }
+  return true;
+}
+
+/** Keys (`type:id`) of everything the signed-in resident has saved. Empty for guests. */
+export async function getMySavedKeys(): Promise<string[]> {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.personId) return [];
+  const saved = await db.orm.public.SavedItem.where({ personId: session.user.personId }).all();
+  return saved
+    .filter((s) => isSavedEntityType(s.entityType))
+    .map((s) => savedKey(s.entityType, s.entityId));
 }
 
 export async function getResolvedSavedItems() {
+  const empty = { orgs: [], products: [], jobs: [], events: [], places: [], stays: [] };
   const session = await getServerSession(authOptions);
-  if (!session?.user?.personId) return { orgs: [], products: [], jobs: [], events: [], places: [] };
-  
+  if (!session?.user?.personId) return empty;
+
   const saved = await db.orm.public.SavedItem.where({ personId: session.user.personId }).all();
-  
-  const bizIds = saved.filter(s => s.entityType === 'biz').map(s => s.entityId);
-  const orgs = bizIds.length > 0 ? await db.orm.public.Organization.all().then(rows => rows.filter(r => bizIds.includes(r.id))) : [];
-  
-  const productIds = saved.filter(s => s.entityType === 'product').map(s => s.entityId);
-  const products = productIds.length > 0 ? await db.orm.public.RetailProduct.all().then(rows => rows.filter(r => productIds.includes(r.id))) : [];
-  
-  const jobIds = saved.filter(s => s.entityType === 'job').map(s => s.entityId);
-  const jobs = jobIds.length > 0 ? await db.orm.public.Job.all().then(rows => rows.filter(r => jobIds.includes(r.id))) : [];
-  
-  const eventIds = saved.filter(s => s.entityType === 'event').map(s => s.entityId);
-  const events = eventIds.length > 0 ? await db.orm.public.Event.all().then(rows => rows.filter(r => eventIds.includes(r.id))) : [];
-  
-  const placeIds = saved.filter(s => s.entityType === 'place').map(s => s.entityId);
-  const places = placeIds.length > 0 ? await db.orm.public.Location.all().then(rows => rows.filter(r => placeIds.includes(r.id))) : [];
-  
-  return { orgs, products, jobs, events, places };
+  const idsOf = (type: string) => saved.filter((s) => s.entityType === type).map((s) => s.entityId);
+
+  const bizIds = idsOf('biz');
+  const orgs = bizIds.length > 0 ? await db.orm.public.Organization.where((r: any) => r.id.in(bizIds)).all() : [];
+
+  const productIds = idsOf('product');
+  const products = productIds.length > 0 ? await db.orm.public.RetailProduct.where((r: any) => r.id.in(productIds)).all() : [];
+
+  const jobIds = idsOf('job');
+  const jobs = jobIds.length > 0 ? await db.orm.public.Job.where((r: any) => r.id.in(jobIds)).all() : [];
+
+  const eventIds = idsOf('event');
+  const events = eventIds.length > 0 ? await db.orm.public.Event.where((r: any) => r.id.in(eventIds)).all() : [];
+
+  const placeIds = idsOf('place');
+  const places = placeIds.length > 0 ? await db.orm.public.Location.where((r: any) => r.id.in(placeIds)).all() : [];
+
+  const stayIds = idsOf('stay');
+  const stays = stayIds.length > 0 ? await db.orm.public.DiscoveryListing.where((r: any) => r.id.in(stayIds)).all() : [];
+
+  return { orgs, products, jobs, events, places, stays };
 }
 
 export async function getResidentOrganization(identifier: string) {

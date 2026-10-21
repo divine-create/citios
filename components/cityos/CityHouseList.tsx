@@ -75,6 +75,8 @@ export default function CityHouse({ stays = [] }: { stays?: any[] }) {
               priceSuffix={price ? 'night' : undefined}
               metaLine={p.roomType || undefined}
               aspectRatio="4/3"
+              saveKind="stay"
+              saveId={String(p.id)}
             />
           );
         })}

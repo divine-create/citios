@@ -51,6 +51,7 @@ export async function searchCityExplore(citySlug: string | undefined, query: str
 
       return {
         slug: l.slug,
+        id: l.organizationId as string,
         name: l.title || l.organization?.name,
         type: l.vertical,
         category: l.vertical,

@@ -143,6 +143,8 @@ export default function CityExplore() {
                   priceSuffix={b.price ? priceSuffix : undefined}
                   metaLine={isFood ? 'Local kitchen' : b.isOpen ? 'Open' : 'Closed'}
                   aspectRatio="4/3"
+                  saveKind={b.id ? 'biz' : undefined}
+                  saveId={b.id}
                 />
               );
             })}

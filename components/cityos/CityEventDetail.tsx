@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { ChevronRight, ExternalLink, Calendar, Globe, Plus, User } from 'lucide-react';
 import { Pill, LocationRow, FallbackImg } from '@/components/cityos/CityUI';
 import { parseEventDescription, DEFAULT_EVENT_PLACEHOLDER_IMAGE } from '@/lib/event-utils';
+import SaveButton from '@/components/cityos/SaveButton';
 
 export default async function CityEventDetail({ id }: { id: string }) {
   const e = await getCanonicalEvent(id);
@@ -67,7 +68,7 @@ export default async function CityEventDetail({ id }: { id: string }) {
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-100 p-6">
-        <h1 className="text-xl font-black text-ink">{e.title}</h1>
+        <div className="flex items-start justify-between gap-3"><h1 className="text-xl font-black text-ink">{e.title}</h1><SaveButton kind="event" entityId={e.id} /></div>
         <p className="text-xs text-slate-500 font-medium mt-1">
           {`Hosted by ${hostDisplayName}`}
           {isPersonalHost ? ' (Community Resident)' : ''}
