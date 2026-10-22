@@ -5,6 +5,11 @@ import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import { requireMembership } from './tenant';
 import { LogisticsDomainError } from './logistics-domain';
+import '@js-temporal/polyfill';
+
+function toTemporal(date: Date) {
+  return (globalThis as any).Temporal.Instant.fromEpochMilliseconds(date.getTime());
+}
 
 export interface ExternalCourierQuoteRequest {
   pickupAddress: string;
@@ -200,5 +205,107 @@ export async function processPartnerWebhook(params: {
     }
 
     return { success: true, duplicate: false, event, stateRegressed: false };
+  });
+}
+
+/**
+ * Fallback booking with approved external logistics partner when internal network capacity is exhausted.
+ * Enforces:
+ * 1. DeliveryJob exists and is in a valid state (not already assigned, completed, or cancelled).
+ * 2. Idempotency to prevent duplicate external bookings.
+ * 3. Records partner tracking number and transitions delivery status.
+ */
+export async function bookPartnerCourierFallback(params: {
+  deliveryJobId: string;
+  providerId: string;
+  adapter: ExternalLogisticsAdapter;
+  idempotencyKey?: string;
+  priority?: boolean;
+}) {
+  return await db.transaction(async (tx: any) => {
+    const policy = process.env.CITYDRIVE_NETWORK_POLICY || 'CITYOS_ONLY';
+    if (policy === 'CITYOS_ONLY') {
+      throw new LogisticsDomainError(
+        'External partner courier fallback is disabled in CityOS-only launch mode.'
+      );
+    }
+
+    const job = (await tx.orm.public.DeliveryJob.where({ id: params.deliveryJobId }).all())[0];
+    if (!job) throw new LogisticsDomainError('DeliveryJob not found');
+
+    if (['COMPLETED', 'DELIVERED', 'CANCELLED'].includes(job.status)) {
+      throw new LogisticsDomainError(`Cannot book partner courier for job in status ${job.status}`);
+    }
+
+    // Check if active internal assignment exists
+    const assignments = await tx.orm.public.DeliveryAssignment
+      .where({ deliveryJobId: params.deliveryJobId, status: 'ACCEPTED' })
+      .all();
+    if (assignments.length > 0) {
+      throw new LogisticsDomainError('Cannot book partner courier: Delivery has active internal assignment');
+    }
+
+    // Check idempotency for existing partner booking
+    if (params.idempotencyKey) {
+      const existingEvents = await tx.orm.public.DeliveryTrackingEvent.where({
+        deliveryJobId: params.deliveryJobId,
+        idempotencyKey: params.idempotencyKey,
+      }).all();
+      if (existingEvents.length > 0) {
+        return {
+          success: true,
+          duplicate: true,
+          partnerName: params.adapter.providerName,
+          trackingEvent: existingEvents[0],
+        };
+      }
+    }
+
+    // 1. Get quote from external partner
+    const quote = await params.adapter.getQuote({
+      pickupAddress: job.pickupAddress,
+      dropoffAddress: job.dropoffAddress,
+      weightKg: job.packageWeightKg || 1.0,
+      priority: params.priority,
+    });
+
+    // 2. Book shipment with external partner
+    const booking = await params.adapter.bookShipment({
+      quoteReference: quote.quoteReference,
+      pickupAddress: job.pickupAddress,
+      dropoffAddress: job.dropoffAddress,
+      recipientName: job.dropoffContactName || 'Resident',
+      recipientPhone: job.dropoffContactPhone || '',
+      description: job.packageDescription || 'Standard Delivery',
+      idempotencyKey: params.idempotencyKey || `partner-booking-${job.id}`,
+    });
+
+    if (!booking.success) {
+      throw new LogisticsDomainError(`External partner booking failed: ${booking.status}`);
+    }
+
+    // 3. Record tracking event & update job
+    const event = await tx.orm.public.DeliveryTrackingEvent.create({
+      id: uuidv4(),
+      deliveryJobId: job.id,
+      eventType: 'ASSIGNED',
+      providerId: params.providerId,
+      idempotencyKey: params.idempotencyKey,
+      notes: `Booked with approved partner courier ${params.adapter.providerName}. External Tracking: ${booking.externalTrackingNumber}`,
+      recordedAt: toTemporal(new Date()),
+    });
+
+    await tx.orm.public.DeliveryJob.where({ id: job.id }).update({
+      status: 'ASSIGNED',
+    });
+
+    return {
+      success: true,
+      duplicate: false,
+      partnerName: params.adapter.providerName,
+      externalTrackingNumber: booking.externalTrackingNumber,
+      quote,
+      trackingEvent: event,
+    };
   });
 }

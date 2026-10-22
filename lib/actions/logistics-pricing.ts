@@ -3,35 +3,9 @@
 import { db } from '../../src/prisma/db';
 import { LogisticsDomainError } from './logistics-domain';
 import { assertProviderAccess } from './logistics-tenant';
-
-class Money {
-  private readonly minorUnits: number;
-
-  private constructor(minorUnits: number) {
-    this.minorUnits = Math.round(minorUnits);
-  }
-
-  static fromMajor(majorString: string | number): Money {
-    const val = typeof majorString === 'string' ? parseFloat(majorString) : majorString;
-    return new Money(Math.round(val * 100));
-  }
-
-  static fromMinor(minorUnits: number): Money {
-    return new Money(minorUnits);
-  }
-
-  add(other: Money): Money {
-    return new Money(this.minorUnits + other.minorUnits);
-  }
-
-  multiply(factor: number): Money {
-    return new Money(Math.round(this.minorUnits * factor));
-  }
-
-  toMajorString(): string {
-    return (this.minorUnits / 100).toFixed(2);
-  }
-}
+import { resolveTrustedDeliveryDistance } from '../mapping/distance-resolver';
+import type { GeoPoint } from '../mapping/types';
+import { Money } from './logistics-money';
 
 export async function calculateDeliveryQuote(params: {
   deliveryJobId: string;
@@ -52,6 +26,10 @@ export async function calculateDeliveryQuote(params: {
       }
       return existing;
     }
+  }
+
+  if (typeof distanceKm !== 'number' || !Number.isFinite(distanceKm) || distanceKm <= 0 || distanceKm > 2000) {
+    throw new LogisticsDomainError(`Invalid delivery distance: ${distanceKm}. Distance must be a positive finite number.`);
   }
 
   const jobs = await db.orm.public.DeliveryJob.where({ id: deliveryJobId }).all();
@@ -94,6 +72,50 @@ export async function calculateDeliveryQuote(params: {
   });
 
   return quote;
+}
+
+/**
+ * Calculates a delivery quote using trusted server-side road routing or explicit Calabar estimates.
+ * Enforces geographic serviceability in Calabar Municipal and Calabar South.
+ */
+export async function quoteDeliveryRoute(params: {
+  deliveryJobId: string;
+  providerId: string;
+  pickup: GeoPoint;
+  dropoff: GeoPoint;
+  weightKg?: number;
+  priority?: boolean;
+  idempotencyKey?: string;
+  allowFallbackEstimate?: boolean;
+}) {
+  const resolution = await resolveTrustedDeliveryDistance(params.pickup, params.dropoff, {
+    allowFallbackEstimate: params.allowFallbackEstimate,
+  });
+
+  if (!resolution.success || !resolution.distanceKm) {
+    throw new LogisticsDomainError(
+      resolution.error || 'Failed to determine trusted delivery distance for route in Calabar.'
+    );
+  }
+
+  const quote = await calculateDeliveryQuote({
+    deliveryJobId: params.deliveryJobId,
+    providerId: params.providerId,
+    distanceKm: resolution.distanceKm,
+    weightKg: params.weightKg,
+    priority: params.priority,
+    idempotencyKey: params.idempotencyKey,
+  });
+
+  return {
+    quote,
+    routingTier: resolution.tier,
+    routingProvider: resolution.provider,
+    distanceKm: resolution.distanceKm,
+    durationMinutes: resolution.durationMinutes,
+    serviceability: resolution.serviceability,
+    notes: resolution.notes,
+  };
 }
 
 export async function offerQuote(quoteId: string, providerId: string) {

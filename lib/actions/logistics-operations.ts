@@ -292,6 +292,21 @@ export async function completeDelivery(params: {
       const updatedJob = await transitionDeliveryStatus(params.deliveryJobId, 'DELIVERED', params.providerId, tx);
       await tx.orm.public.DeliveryJob.where({ id: params.deliveryJobId }).update({ recipientOtp: null });
 
+      // Complete the assignment so the driver is no longer locked on active assignment index
+      if (assignment?.id) {
+        await tx.orm.public.DeliveryAssignment.where({ id: assignment.id }).update({
+          status: 'COMPLETED',
+          completedAt: toTemporal(new Date()),
+        });
+      }
+
+      // Transition driver back to ONLINE for subsequent dispatches
+      if (assignment.driverProfileId) {
+        await tx.orm.public.LogisticsDriverProfile.where({ id: assignment.driverProfileId }).update({
+          status: 'ONLINE' as any,
+        });
+      }
+
       // 3. Create tracking event
       const event = await tx.orm.public.DeliveryTrackingEvent.create({
         deliveryJobId: params.deliveryJobId,
@@ -364,6 +379,12 @@ export async function failDelivery(params: {
     }
 
     const updatedJob = await transitionDeliveryStatus(params.deliveryJobId, 'FAILED', params.providerId, tx, params.reason);
+
+    if (params.driverProfileId) {
+      await tx.orm.public.LogisticsDriverProfile.where({ id: params.driverProfileId }).update({
+        status: 'ONLINE' as any,
+      });
+    }
 
     const event = await tx.orm.public.DeliveryTrackingEvent.create({
       deliveryJobId: params.deliveryJobId,

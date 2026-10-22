@@ -63,20 +63,23 @@ export function normalizeCategory(raw?: string | null): EventCategory {
   if (val.includes('tech') || val.includes('business') || val.includes('startup') || val.includes('developer')) {
     return 'Tech & Business';
   }
-  if (val.includes('music') || val.includes('concert') || val.includes('band') || val.includes('live')) {
-    return 'Live Music & Concerts';
+  if (val.includes('festival') || val.includes('carnival')) {
+    return 'Festival & Carnival';
   }
-  if (val.includes('nightlife') || val.includes('party') || val.includes('parties') || val.includes('club') || val.includes('dj')) {
-    return 'Nightlife & Parties';
+  if (val.includes('music') || val.includes('concert') || val.includes('band') || val.includes('live') || val.includes('nightlife') || val.includes('party') || val.includes('parties') || val.includes('club') || val.includes('dj')) {
+    return 'Music & Nightlife';
   }
-  if (val.includes('food') || val.includes('dining') || val.includes('culinary') || val.includes('bistro') || val.includes('grill')) {
-    return 'Food & Dining';
+  if (val.includes('food') || val.includes('drink') || val.includes('dining') || val.includes('culinary') || val.includes('bistro') || val.includes('grill')) {
+    return 'Food & Drink';
   }
-  if (val.includes('sport') || val.includes('fitness') || val.includes('marathon') || val.includes('run')) {
-    return 'Sports & Fitness';
+  if (val.includes('sport') || val.includes('fitness') || val.includes('marathon') || val.includes('run') || val.includes('wellness')) {
+    return 'Sports & Wellness';
+  }
+  if (val.includes('church') || val.includes('faith') || val.includes('religious') || val.includes('mosque') || val.includes('prayer')) {
+    return 'Religious & Faith';
   }
   if (val.includes('workshop') || val.includes('learning') || val.includes('class') || val.includes('masterclass') || val.includes('bootcamp')) {
-    return 'Workshops & Learning';
+    return 'Workshop & Class';
   }
   return 'Community & Culture';
 }

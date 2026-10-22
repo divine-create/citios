@@ -69,7 +69,7 @@ export async function settleDelivery(params: SettleDeliveryParams) {
       wallet = await tx.orm.public.Wallet.create({
         organizationId: params.providerId,
         balance: 0.0,
-        currency: quote.currency || 'USD'
+        currency: quote.currency || 'NGN'
       });
     } else if (wallet.currency !== quote.currency) {
       throw new LogisticsDomainError('Currency mismatch between quote and provider wallet');

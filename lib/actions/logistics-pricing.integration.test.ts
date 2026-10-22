@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert';
 import { db } from '../../src/prisma/db';
 import { LogisticsDomainError } from './logistics-domain';
-import { calculateDeliveryQuote, offerQuote, acceptQuote, expireQuote, Money } from './logistics-pricing';
+import { calculateDeliveryQuote, offerQuote, acceptQuote, expireQuote } from './logistics-pricing';
+import { Money } from './logistics-money';
 import { Temporal } from '@js-temporal/polyfill';
 
 // Helper to clean db and setup test providers

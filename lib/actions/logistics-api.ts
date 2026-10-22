@@ -1,6 +1,7 @@
 import { db } from '../../src/prisma/db';
 import { LogisticsDomainError, createDeliveryJob, transitionDeliveryStatus } from './logistics-domain';
 import { calculateDeliveryQuote, offerQuote, acceptQuote } from './logistics-pricing';
+import { resolveTrustedDeliveryDistance } from '../mapping/distance-resolver';
 
 export type DeliverySourceType =
   | 'RESTAURANT_ORDER'
@@ -136,12 +137,17 @@ export async function createLogisticsDeliveryRequest(req: LogisticsDeliveryReque
       req.dropoff.latitude &&
       req.dropoff.longitude
     ) {
-      distanceKm = calculateHaversineDistance(
-        req.pickup.latitude,
-        req.pickup.longitude,
-        req.dropoff.latitude,
-        req.dropoff.longitude
+      const resolution = await resolveTrustedDeliveryDistance(
+        { latitude: req.pickup.latitude, longitude: req.pickup.longitude },
+        { latitude: req.dropoff.latitude, longitude: req.dropoff.longitude },
+        { allowFallbackEstimate: true }
       );
+      if (!resolution.success || !resolution.distanceKm) {
+        throw new LogisticsDomainError(
+          resolution.error || 'Delivery coordinates are not serviceable within Calabar.'
+        );
+      }
+      distanceKm = resolution.distanceKm;
     }
 
     const quote = await calculateDeliveryQuote({
