@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { getPostDetails, addComment, toggleCommentLike } from '@/lib/actions/post';
-import { Send, Loader2, X, LogIn } from 'lucide-react';
+import { Send, Loader2, X, LogIn, Heart } from 'lucide-react';
 import { getTwoLetterInitials, getAvatarGradient } from '@/components/cityos/CityUI';
 import LoginModal from './LoginModal';
 
@@ -14,10 +14,18 @@ export default function InlineComments({ postId, onCommentAdded }: { postId: str
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
     const [commentError, setCommentError] = useState<string | null>(null);
+    const [pendingLikeIds, setPendingLikeIds] = useState<Set<string>>(new Set());
     
     // Reply state
     const [replyingTo, setReplyingTo] = useState<any | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+
+    // Auto-dismiss transient errors
+    useEffect(() => {
+        if (!commentError) return;
+        const timer = setTimeout(() => setCommentError(null), 4000);
+        return () => clearTimeout(timer);
+    }, [commentError]);
 
     useEffect(() => {
         let mounted = true;
@@ -47,34 +55,76 @@ export default function InlineComments({ postId, onCommentAdded }: { postId: str
             return;
         }
 
-        // Optimistic update across comment tree (both root comments and nested replies)
-        const updateLikesInTree = (list: any[]): any[] => {
+        if (pendingLikeIds.has(commentId)) {
+            return; // In-flight guard against duplicate clicks
+        }
+
+        setCommentError(null);
+        setPendingLikeIds(prev => new Set(prev).add(commentId));
+
+        // Locate current comment or reply in tree
+        const findCommentInTree = (list: any[]): any | null => {
+            for (const c of list) {
+                if (c.id === commentId) return c;
+                if (c.replies && c.replies.length > 0) {
+                    const found = findCommentInTree(c.replies);
+                    if (found) return found;
+                }
+            }
+            return null;
+        };
+
+        const target = findCommentInTree(comments);
+        const initialLiked = Boolean(target?.hasLiked);
+        const initialCount = Number(target?.likesCount || 0);
+        const nextLiked = !initialLiked;
+        const nextCount = nextLiked ? initialCount + 1 : Math.max(0, initialCount - 1);
+
+        // Helper to set deterministic state in comment/reply tree
+        const setLikeStateInTree = (list: any[], liked: boolean, count: number): any[] => {
             return list.map(c => {
                 if (c.id === commentId) {
-                    const nextLiked = !c.hasLiked;
-                    const nextCount = nextLiked ? (c.likesCount || 0) + 1 : Math.max(0, (c.likesCount || 0) - 1);
-                    return { ...c, hasLiked: nextLiked, likesCount: nextCount };
+                    return { ...c, hasLiked: liked, likesCount: count };
                 }
                 if (c.replies && c.replies.length > 0) {
-                    return { ...c, replies: updateLikesInTree(c.replies) };
+                    return { ...c, replies: setLikeStateInTree(c.replies, liked, count) };
                 }
                 return c;
             });
         };
 
-        setComments(prev => updateLikesInTree(prev));
+        // Optimistically apply target state
+        setComments(prev => setLikeStateInTree(prev, nextLiked, nextCount));
 
         try {
             const res = await toggleCommentLike(commentId);
             if (res.error) {
-                // Revert on error
-                setComments(prev => updateLikesInTree(prev));
-                setCommentError(res.error);
+                // Revert strictly to pre-click state
+                setComments(prev => setLikeStateInTree(prev, initialLiked, initialCount));
+                if (res.error === 'Not logged in' || res.error.includes('logged in') || res.error.includes('Unauthorized') || res.error.includes('UNAUTHORIZED')) {
+                    setIsLoginModalOpen(true);
+                } else {
+                    setCommentError(res.error);
+                }
+            } else if (typeof res.liked === 'boolean') {
+                const confirmedCount = typeof res.likesCount === 'number'
+                    ? res.likesCount
+                    : res.liked
+                        ? (initialLiked ? initialCount : initialCount + 1)
+                        : (initialLiked ? Math.max(0, initialCount - 1) : initialCount);
+
+                setComments(prev => setLikeStateInTree(prev, res.liked, confirmedCount));
             }
         } catch (e: any) {
             // Revert on exception
-            setComments(prev => updateLikesInTree(prev));
+            setComments(prev => setLikeStateInTree(prev, initialLiked, initialCount));
             setCommentError(e.message || "Failed to like comment");
+        } finally {
+            setPendingLikeIds(prev => {
+                const next = new Set(prev);
+                next.delete(commentId);
+                return next;
+            });
         }
     };
 
@@ -94,7 +144,7 @@ export default function InlineComments({ postId, onCommentAdded }: { postId: str
         try {
             const res = await addComment(postId, commentText, actualParentId);
             if (res.error) {
-                if (res.error === 'Not logged in' || res.error.includes('logged in')) {
+                if (res.error === 'Not logged in' || res.error.includes('logged in') || res.error.includes('Unauthorized') || res.error.includes('UNAUTHORIZED')) {
                     setIsLoginModalOpen(true);
                 } else {
                     setCommentError(res.error);
@@ -134,21 +184,29 @@ export default function InlineComments({ postId, onCommentAdded }: { postId: str
                 <div className="flex items-center gap-3 px-2 mt-1">
                     <button
                         type="button"
-                        onClick={() => handleLikeComment(comment.id)}
-                        className={`text-[11px] font-bold cursor-pointer hover:underline transition-colors ${
+                        disabled={pendingLikeIds.has(comment.id)}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleLikeComment(comment.id);
+                        }}
+                        className={`text-[11px] font-bold cursor-pointer hover:underline transition-colors flex items-center gap-1 ${
                             comment.hasLiked ? 'text-teal-700' : 'text-slate-500 hover:text-slate-700'
-                        }`}
+                        } ${pendingLikeIds.has(comment.id) ? 'opacity-60 cursor-not-allowed' : ''}`}
                     >
-                        {comment.hasLiked ? 'Liked' : 'Like'}
+                        <Heart className={`w-3 h-3 ${comment.hasLiked ? 'fill-teal-700 text-teal-700' : 'text-slate-400'}`} />
+                        <span>{comment.hasLiked ? 'Liked' : 'Like'}</span>
                         {(comment.likesCount || 0) > 0 && (
-                            <span className="ml-1 text-[11px] font-semibold text-slate-600">
+                            <span className="font-semibold text-slate-600">
                                 · {comment.likesCount}
                             </span>
                         )}
                     </button>
                     <button
                         type="button"
-                        onClick={() => handleReplyClick(comment)}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleReplyClick(comment);
+                        }}
                         className="text-[11px] font-bold text-slate-500 hover:text-slate-700 cursor-pointer hover:underline"
                     >
                         Reply

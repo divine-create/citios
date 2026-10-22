@@ -625,7 +625,7 @@ function PostCard({ post, follows, onFollowToggle, onDelete, isGuest, onRequireA
       </div>
 
       {showComments && (
-        <div onClick={(e) => { e.stopPropagation(); e.preventDefault(); }} className="cursor-default">
+        <div onClick={(e) => e.stopPropagation()} className="cursor-default">
           <InlineComments postId={post.id} onCommentAdded={() => setCommentCount(c => c + 1)} />
         </div>
       )}

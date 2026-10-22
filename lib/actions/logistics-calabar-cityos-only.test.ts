@@ -100,7 +100,7 @@ async function createTestActor(orgId?: string, role = 'MEMBER') {
       email,
       name: `Test Actor ${uid}`,
       personId: person.id,
-      memberships: orgId ? [{ organizationId: orgId, role }] : [],
+      memberships: orgId ? [{ organizationId: orgId, role, organizationType: 'LOGISTICS' }] : [],
     },
     secret: (authOptions.secret as string) || process.env.NEXTAUTH_SECRET || 'super_secret_cityconnect_key_2026_!@#',
   });

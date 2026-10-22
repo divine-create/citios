@@ -74,7 +74,7 @@ export default function InteractiveFeedItem({
                 onShare={handleShare}
                 onComment={() => setShowComments(!showComments)}
                 comments={localCommentsCount}
-                commentsSection={showComments ? <div onClick={(e) => { e.stopPropagation(); e.preventDefault(); }} className="cursor-default"><InlineComments postId={postId} onCommentAdded={() => setLocalCommentsCount(c => c + 1)} /></div> : null}
+                commentsSection={showComments ? <div onClick={(e) => e.stopPropagation()} className="cursor-default"><InlineComments postId={postId} onCommentAdded={() => setLocalCommentsCount(c => c + 1)} /></div> : null}
             />
             <LoginModal 
                 isOpen={isLoginModalOpen} 

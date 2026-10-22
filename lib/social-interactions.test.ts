@@ -207,6 +207,7 @@ test('Social Interactions: Post Likes, Comments, Comment Replies & Comment Likes
     const replyLikeRes = await toggleCommentLike(replyComment.id);
     assert.equal(replyLikeRes.success, true);
     assert.equal(replyLikeRes.liked, true);
+    assert.equal(replyLikeRes.likesCount, 1);
 
     postDetails = await getPostDetails(post.id);
     assert.equal(postDetails.comments[0].replies[0].likesCount, 1);
@@ -216,9 +217,83 @@ test('Social Interactions: Post Likes, Comments, Comment Replies & Comment Likes
     const unlikeReplyRes = await toggleCommentLike(replyComment.id);
     assert.equal(unlikeReplyRes.success, true);
     assert.equal(unlikeReplyRes.liked, false);
+    assert.equal(unlikeReplyRes.likesCount, 0);
 
     postDetails = await getPostDetails(post.id);
     assert.equal(postDetails.comments[0].replies[0].likesCount, 0);
     assert.equal(postDetails.comments[0].replies[0].hasLiked, false);
+  });
+
+  await t.test('6. social actions succeed for residents with no Account record (pure Person session)', async () => {
+    // Create a resident with NO Account row and NO email PersonIdentifier
+    const residentWithoutAccount = await db.orm.public.Person.create({
+      firstName: 'Emeka',
+      lastName: 'Nnamdi',
+    });
+
+    // Mock session token with personId only (no email, no account)
+    const token = await encode({
+      token: { personId: residentWithoutAccount.id, name: 'Emeka Nnamdi' },
+      secret: (authOptions.secret as string) || 'cityos-jwt-secret-key-2026',
+    });
+    const cookieName =
+      process.env.NODE_ENV === 'production' ? '__Secure-next-auth.session-token' : 'next-auth.session-token';
+    mockCookies[cookieName] = token;
+
+    const details = await getPostDetails(post.id);
+    const replyComment = details.comments[0].replies[0];
+
+    // Liking reply comment must succeed
+    const likeReply = await toggleCommentLike(replyComment.id);
+    assert.equal(likeReply.success, true, 'Liking reply must succeed even without an Account record');
+    assert.equal(likeReply.liked, true);
+    assert.equal(likeReply.likesCount, 1);
+
+    // Verify reply notification was created with title 'New Like on Your Reply'
+    const replyNotifs = await db.orm.public.Notification.where({
+      personId: author.id,
+      type: 'POST_LIKE',
+    }).all();
+    const latestNotif = replyNotifs[replyNotifs.length - 1];
+    assert.ok(latestNotif.title.includes('Reply'), `Expected notification title to mention Reply, got "${latestNotif.title}"`);
+
+    // Adding a reply comment must succeed
+    const addReplyRes = await addComment(post.id, 'Count me in for carnival!', details.comments[0].id);
+    assert.equal(addReplyRes.success, true, 'Adding reply must succeed even without an Account record');
+
+    // Clean unliking
+    const unlikeReply = await toggleCommentLike(replyComment.id);
+    assert.equal(unlikeReply.success, true);
+    assert.equal(unlikeReply.liked, false);
+    assert.equal(unlikeReply.likesCount, 0);
+  });
+
+  await t.test('7. candidatePersonId resolves session.user.id fallback and chronological ordering of replies', async () => {
+    // Resident with token having `id` instead of `personId` (standard NextAuth default)
+    const token = await encode({
+      token: { id: viewer.id, name: 'Tunde Bakare' },
+      secret: (authOptions.secret as string) || 'cityos-jwt-secret-key-2026',
+    });
+    const cookieName =
+      process.env.NODE_ENV === 'production' ? '__Secure-next-auth.session-token' : 'next-auth.session-token';
+    mockCookies[cookieName] = token;
+
+    const details = await getPostDetails(post.id);
+    const replyComment = details.comments[0].replies[0];
+
+    const likeRes = await toggleCommentLike(replyComment.id);
+    assert.equal(likeRes.success, true);
+    assert.equal(likeRes.liked, true);
+    assert.equal(likeRes.likesCount, 1);
+
+    const updatedDetails = await getPostDetails(post.id);
+    assert.equal(updatedDetails.comments[0].replies[0].hasLiked, true);
+    assert.equal(updatedDetails.comments[0].replies[0].likesCount, 1);
+
+    // Unliking restores state
+    const unlikeRes = await toggleCommentLike(replyComment.id);
+    assert.equal(unlikeRes.success, true);
+    assert.equal(unlikeRes.liked, false);
+    assert.equal(unlikeRes.likesCount, 0);
   });
 });
