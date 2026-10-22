@@ -876,8 +876,9 @@ export async function createPosOrder(input: {
   type?: 'DINE_IN' | 'TAKEOUT' | 'DELIVERY';
     locationId?: string;
   tableId?: string;
-  paymentMethod?: 'WALLET' | 'CASH' | 'POS';
+  paymentMethod?: 'WALLET' | 'CASH' | 'POS' | 'TRANSFER';
   customerDataId?: string;
+  shiftId?: string;
 }) {
   try {
     const { membership } = await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER', 'WAITER'], input.locationId);
@@ -888,15 +889,43 @@ export async function createPosOrder(input: {
     // retail.ts createOrder).
     
       // Enforce active shift
-      const activeShift = await db.orm.public.RestaurantShift.where({
-        organizationId: input.organizationId,
-        locationId: input.locationId || null,
-        status: 'OPEN'
-      }).all().first();
+      let activeShift: any = null;
+      if (input.shiftId) {
+        activeShift = await db.orm.public.RestaurantShift.where({
+          id: input.shiftId,
+          organizationId: input.organizationId,
+          status: 'OPEN'
+        }).all().first();
+      }
+
+      if (!activeShift && input.locationId) {
+        activeShift = await db.orm.public.RestaurantShift.where({
+          organizationId: input.organizationId,
+          locationId: input.locationId,
+          status: 'OPEN'
+        }).all().first();
+      }
+
+      if (!activeShift) {
+        activeShift = await db.orm.public.RestaurantShift.where({
+          organizationId: input.organizationId,
+          locationId: null,
+          status: 'OPEN'
+        }).all().first();
+      }
+
+      if (!activeShift) {
+        activeShift = await db.orm.public.RestaurantShift.where({
+          organizationId: input.organizationId,
+          status: 'OPEN'
+        }).all().first();
+      }
 
       if (!activeShift) {
         return { error: 'No active shift. You must open a shift before processing orders.' };
       }
+
+      const effectiveLocationId = input.locationId ?? activeShift.locationId ?? null;
       const orgMenu = await db.orm.public.MenuItem.where({ organizationId: input.organizationId }).all();
     const itemById = new Map(orgMenu.map((m: any) => [m.id, m]));
 
@@ -1033,7 +1062,7 @@ export async function createPosOrder(input: {
     const order = await db.transaction(async (tx: any) => {
       const created = await tx.orm.public.RestaurantOrder.create({
         organizationId: input.organizationId,
-        locationId: input.locationId ?? null,
+        locationId: effectiveLocationId,
         customerDataId: input.customerDataId ?? null,
         totalAmount,
         shiftId: activeShift.id,
@@ -1114,7 +1143,7 @@ export async function createPosOrder(input: {
 }
 
 /** KDS / counter mutation: move an order through its status flow. */
-export async function processRestaurantPayment(orderId: string, paymentMethod: 'CASH'|'POS'|'WALLET') {
+export async function processRestaurantPayment(orderId: string, paymentMethod: 'CASH'|'POS'|'WALLET'|'TRANSFER') {
   try {
     return await db.transaction(async (tx: any) => {
       const lockedCount = await tx.execute(db.raw.sql`SELECT id FROM "restaurantOrder" WHERE id = ${orderId} FOR UPDATE`.affectedCount().build());
@@ -1639,7 +1668,7 @@ export async function getFinancialSummary(organizationId: string, locationId?: s
     const weeksOrders = paidOrders.filter((o: any) =>
       new Date(o.createdAt.toString()).getTime() >= startOfWeek.getTime());
 
-    const revenueByMethod = { WALLET: 0, CASH: 0, POS: 0 };
+    const revenueByMethod = { WALLET: 0, CASH: 0, POS: 0, TRANSFER: 0 };
     for (const o of todaysOrders) {
       const method = (o.paymentMethod ?? 'CASH') as keyof typeof revenueByMethod;
       if (method in revenueByMethod) revenueByMethod[method] += o.totalAmount;
@@ -1897,15 +1926,15 @@ export async function openShift(input: { organizationId: string; locationId?: st
     }
     
     return await db.transaction(async (tx: any) => {
-      // Check for existing open shift at this location
+      // Check for existing open shift at this location or org-wide
       const existing = await tx.orm.public.RestaurantShift.where({
         organizationId: input.organizationId,
-        locationId: input.locationId ?? null,
+        ...(input.locationId ? { locationId: input.locationId } : {}),
         status: 'OPEN',
       }).all();
       
       if (existing.length > 0) {
-        throw new Error('An active shift already exists for this location.');
+        return { success: true, shift: JSON.parse(JSON.stringify(existing[0])), alreadyOpen: true };
       }
 
       const shift = await tx.orm.public.RestaurantShift.create({
@@ -1960,14 +1989,30 @@ export async function closeShift(input: { shiftId: string; actualCash: number; n
   }
 }
 
-export async function getActiveShift(organizationId: string, locationId: string) {
+export async function getActiveShift(organizationId: string, locationId?: string | null) {
   try {
-    await requireMembership(organizationId, undefined, locationId);
-    const shift = await db.orm.public.RestaurantShift.where({
-      organizationId,
-      locationId,
-      status: 'OPEN'
-    }).all().first();
+    await requireMembership(organizationId, undefined, locationId ?? undefined);
+    let shift: any = null;
+    if (locationId) {
+      shift = await db.orm.public.RestaurantShift.where({
+        organizationId,
+        locationId,
+        status: 'OPEN'
+      }).all().first();
+    }
+    if (!shift) {
+      shift = await db.orm.public.RestaurantShift.where({
+        organizationId,
+        locationId: null,
+        status: 'OPEN'
+      }).all().first();
+    }
+    if (!shift) {
+      shift = await db.orm.public.RestaurantShift.where({
+        organizationId,
+        status: 'OPEN'
+      }).all().first();
+    }
     return { shift: shift ? JSON.parse(JSON.stringify(shift)) : null };
   } catch (e: any) {
     return { error: e.message };
@@ -2154,21 +2199,143 @@ export async function createVariant(input: {
   name: string;
   price: number;
 }) {
-  await requireMembership(input.organizationId, ['OWNER', 'MANAGER', 'ADMIN']);
-  await requireRestaurantCapability(input.organizationId, 'enableVariants');
-  const variant = await db.orm.public.MenuItemVariant.create({
-    organizationId: input.organizationId,
-    menuItemId: input.menuItemId,
-    name: input.name,
-    price: input.price
-  });
-  return JSON.parse(JSON.stringify(variant));
+  try {
+    await requireMembership(input.organizationId, ['OWNER', 'MANAGER', 'ADMIN']);
+
+    // Ensure enableVariants capability exists and is active
+    const settings = await db.orm.public.RestaurantSettings.where({ organizationId: input.organizationId }).all().first();
+    if (!settings) {
+      await db.orm.public.RestaurantSettings.create({
+        organizationId: input.organizationId,
+        enableVariants: true,
+      });
+    } else if (!settings.enableVariants) {
+      await db.orm.public.RestaurantSettings.where({ organizationId: input.organizationId }).update({
+        enableVariants: true,
+      });
+    }
+
+    const trimmed = input.name ? String(input.name).trim() : '';
+    if (!trimmed) {
+      return { error: 'Variant name is required.' };
+    }
+
+    const priceNum = typeof input.price === 'string' ? parseFloat(input.price) : Number(input.price);
+    if (isNaN(priceNum) || priceNum < 0) {
+      return { error: 'Price must be 0 or greater.' };
+    }
+
+    const menuItem = await db.orm.public.MenuItem.where({ id: input.menuItemId }).all().first();
+    if (!menuItem || menuItem.organizationId !== input.organizationId) {
+      return { error: 'Menu item not found in this organization.' };
+    }
+
+    const variant = await db.orm.public.MenuItemVariant.create({
+      organizationId: input.organizationId,
+      menuItemId: input.menuItemId,
+      name: trimmed,
+      price: priceNum,
+      isAvailable: true,
+    });
+
+    try {
+      revalidatePath('/', 'layout');
+      revalidatePath(`/workspaces/restaurantos/${input.organizationId}/management/variants`);
+      revalidatePath(`/workspaces/restaurantos/${input.organizationId}/management/menu`);
+      revalidatePath(`/workspaces/restaurantos/${input.organizationId}/pos`);
+      revalidatePath('/food');
+    } catch {}
+
+    return { success: true, variant: JSON.parse(JSON.stringify(variant)) };
+  } catch (error: any) {
+    console.error('Error creating variant:', error);
+    return { error: error?.message || 'Failed to create variant.' };
+  }
 }
 
 export async function updateVariant(variantId: string, input: Partial<{ name: string; price: number; isAvailable: boolean }>) {
-  const variant = await db.orm.public.MenuItemVariant.where({ id: variantId }).all().first();
-  if (!variant) throw new Error("Variant not found.");
-  await requireMembership(variant.organizationId, ['OWNER', 'MANAGER', 'ADMIN']);
-  await db.orm.public.MenuItemVariant.where({ id: variantId }).update(input as any);
-  return { success: true };
+  try {
+    const variant = await db.orm.public.MenuItemVariant.where({ id: variantId }).all().first();
+    if (!variant) return { error: 'Variant not found.' };
+    await requireMembership(variant.organizationId, ['OWNER', 'MANAGER', 'ADMIN']);
+
+    const updateData: any = {};
+    if (input.name !== undefined) {
+      const trimmed = String(input.name).trim();
+      if (!trimmed) return { error: 'Variant name cannot be empty.' };
+      updateData.name = trimmed;
+    }
+    if (input.price !== undefined) {
+      const priceNum = typeof input.price === 'string' ? parseFloat(String(input.price)) : Number(input.price);
+      if (isNaN(priceNum) || priceNum < 0) return { error: 'Price must be 0 or greater.' };
+      updateData.price = priceNum;
+    }
+    if (input.isAvailable !== undefined) {
+      updateData.isAvailable = Boolean(input.isAvailable);
+    }
+
+    await db.orm.public.MenuItemVariant.where({ id: variantId }).update(updateData);
+
+    try {
+      revalidatePath('/', 'layout');
+      revalidatePath(`/workspaces/restaurantos/${variant.organizationId}/management/variants`);
+      revalidatePath(`/workspaces/restaurantos/${variant.organizationId}/management/menu`);
+      revalidatePath(`/workspaces/restaurantos/${variant.organizationId}/pos`);
+      revalidatePath('/food');
+    } catch {}
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error updating variant:', error);
+    return { error: error?.message || 'Failed to update variant.' };
+  }
+}
+
+export async function deleteVariant(variantId: string) {
+  try {
+    const variant = await db.orm.public.MenuItemVariant.where({ id: variantId }).all().first();
+    if (!variant) return { error: 'Variant not found.' };
+    await requireMembership(variant.organizationId, ['OWNER', 'MANAGER', 'ADMIN']);
+
+    await db.orm.public.MenuItemVariant.where({ id: variantId }).delete();
+
+    try {
+      revalidatePath('/', 'layout');
+      revalidatePath(`/workspaces/restaurantos/${variant.organizationId}/management/variants`);
+      revalidatePath(`/workspaces/restaurantos/${variant.organizationId}/management/menu`);
+      revalidatePath(`/workspaces/restaurantos/${variant.organizationId}/pos`);
+      revalidatePath('/food');
+    } catch {}
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error deleting variant:', error);
+    return { error: error?.message || 'Failed to delete variant.' };
+  }
+}
+
+export async function toggleVariantAvailability(variantId: string) {
+  try {
+    const variant = await db.orm.public.MenuItemVariant.where({ id: variantId }).all().first();
+    if (!variant) return { error: 'Variant not found.' };
+    await requireMembership(variant.organizationId, ['OWNER', 'MANAGER', 'ADMIN']);
+
+    const newStatus = !variant.isAvailable;
+    await db.orm.public.MenuItemVariant.where({ id: variantId }).update({
+      isAvailable: newStatus,
+    });
+
+    try {
+      revalidatePath('/', 'layout');
+      revalidatePath(`/workspaces/restaurantos/${variant.organizationId}/management/variants`);
+      revalidatePath(`/workspaces/restaurantos/${variant.organizationId}/management/menu`);
+      revalidatePath(`/workspaces/restaurantos/${variant.organizationId}/pos`);
+      revalidatePath('/food');
+    } catch {}
+
+    return { success: true, isAvailable: newStatus };
+  } catch (error: any) {
+    console.error('Error toggling variant availability:', error);
+    return { error: error?.message || 'Failed to toggle availability.' };
+  }
 }

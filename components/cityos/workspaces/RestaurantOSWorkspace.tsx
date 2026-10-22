@@ -11,7 +11,7 @@ import Link from "next/link";
 import {
   Users, UtensilsCrossed, LayoutDashboard, BarChart3, ShoppingCart, Receipt, Flame,
   Package, Truck, ClipboardList, Trash2, Edit2, Grid3x3, CalendarDays, DollarSign,
-  SettingsIcon, Menu, Bell, Search, X, Plus, Minus, ArrowRightLeft, Loader2, Printer, CheckCircle2, Circle, TrendingUp, Upload, UploadCloud, ImageIcon
+  SettingsIcon, Menu, Bell, Search, X, Plus, Minus, ArrowRightLeft, Loader2, Printer, CheckCircle2, Circle, TrendingUp, Upload, UploadCloud, ImageIcon, Layers
 } from "lucide-react";
 import ThermalReceiptModal from "@/components/common/ThermalReceiptModal";
 import { playOrderChime, playCashRegisterChime } from "@/lib/audio";
@@ -33,6 +33,7 @@ import {
 } from "@/lib/actions/restaurantos";
 import { recordWaste, openShift, closeShift } from "@/lib/actions/restaurantos";
 import { uploadAsset } from "@/lib/actions/microsite";
+import MenuItemImagePicker from "@/components/common/MenuItemImagePicker";
 import { getCustomers } from "@/lib/actions/retail";
 import { getSuppliers, createSupplier, deleteSupplier, getPurchaseOrders, createPurchaseOrder, updatePurchaseOrderStatus } from "@/lib/actions/procurement";
 
@@ -125,6 +126,7 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
       label: "Menu & Pricing",
       items: [
         { label: "Menu Items", icon: UtensilsCrossed, href: `/workspaces/restaurantos/${slug}/management/menu` },
+        { label: "Variants", icon: Layers, href: `/workspaces/restaurantos/${slug}/management/variants` },
         { label: "Modifiers", icon: LayoutDashboard, href: `/workspaces/restaurantos/${slug}/management/modifiers` },
         { label: "Food Costing", icon: TrendingUp, href: `/workspaces/restaurantos/${slug}/management/costing` },
       ],
@@ -385,9 +387,9 @@ function TabDashboard({ finance, orders, tickets, setActiveMenu, showTables, tab
         </SectionCard>
         <SectionCard title="Revenue by Payment Method">
           <div className="p-6 space-y-4">
-             {["WALLET", "CASH", "POS"].map(m => (
+             {["TRANSFER", "CASH", "POS"].map(m => (
                <div key={m} className="flex justify-between items-center">
-                 <span className="text-sm font-medium text-slate-700">{m === 'WALLET' ? 'CityPay Wallet' : m === 'CASH' ? 'Cash' : 'POS Terminal'}</span>
+                 <span className="text-sm font-medium text-slate-700">{m === 'TRANSFER' ? 'Bank Transfer' : m === 'CASH' ? 'Cash' : 'POS Terminal'}</span>
                  <span className="text-sm font-bold text-slate-900">{fmt(finance?.today?.revenueByMethod?.[m] ?? 0)}</span>
                </div>
              ))}
@@ -403,7 +405,7 @@ function TabReports({ finance, orders, expenses }: any) {
   
   if (!finance) return <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-slate-300" size={32} /></div>;
 
-  const today = finance.today || { revenue: 0, orders: 0, averageTicket: 0, revenueByMethod: { CASH: 0, POS: 0, WALLET: 0 } };
+  const today = finance.today || { revenue: 0, orders: 0, averageTicket: 0, revenueByMethod: { CASH: 0, POS: 0, TRANSFER: 0, WALLET: 0 } };
   const week = finance.week || { revenue: 0, orders: 0, expenses: 0, net: 0 };
 
   return (
@@ -715,25 +717,13 @@ function TabMenu({ menu, slug, onDone }: any) {
                  
                  <div><label className="block text-xs font-bold text-slate-500 mb-1">Name</label><input className={inputCls} value={name} onChange={e=>setName(e.target.value)}/></div>
                  <div><label className="block text-xs font-bold text-slate-500 mb-1">Price</label><input type="number" className={inputCls} value={price} onChange={e=>setPrice(e.target.value)}/></div>
-                 <div>
-                   <label className="block text-xs font-bold text-slate-500 mb-1">Image</label>
-                   <div className="flex items-end gap-3">
-                     <div className="flex-1">
-                       <input type="url" className={inputCls} value={imageUrl} onChange={e=>setImageUrl(e.target.value)} placeholder="https://..."/>
-                     </div>
-                     <span className="text-xs font-bold text-slate-400 pb-2">OR</span>
-                     <button onClick={() => fileInputRef.current?.click()} className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl whitespace-nowrap transition-colors flex items-center gap-2">
-                       <UploadCloud size={14} /> {busy ? 'Uploading...' : 'Upload'}
-                     </button>
-                     <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="image/*" className="hidden" />
-                   </div>
-                   {imageUrl && (
-                     <div className="mt-3 relative inline-block">
-                       <img src={imageUrl} alt="Preview" className="w-24 h-24 object-cover rounded-xl border border-slate-200" />
-                       <button onClick={() => setImageUrl("")} className="absolute -top-2 -right-2 w-6 h-6 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-400 hover:text-red-500 shadow-sm"><X size={12} /></button>
-                     </div>
-                   )}
-                 </div>
+                 <MenuItemImagePicker
+                   value={imageUrl}
+                   onChange={setImageUrl}
+                   onOpenLibrary={() => setShowLibrary(true)}
+                   organizationId={slug}
+                   label="Dish / Beverage Photo"
+                 />
                  <div>
                      <label className="block text-xs font-bold text-slate-500 mb-1">Category</label>
                      <select className={selectCls} value={category} onChange={e=>setCategory(e.target.value)}>
