@@ -422,7 +422,7 @@ test('CityDrive Network — Phase 3B.3 Security Remediation & Regression Suite',
     });
 
     assert.strictEqual(dispatchRes.success, false);
-    assert.strictEqual(dispatchRes.outcome, 'NO_RIDER_AVAILABLE');
+    assert.strictEqual(dispatchRes.tier, 'NO_RIDER_AVAILABLE');
     assert.strictEqual(dispatchRes.partnerFallbackEligible, false);
 
     // Restore vehicle1
@@ -456,6 +456,11 @@ test('CityDrive Network — Phase 3B.3 Security Remediation & Regression Suite',
       status: 'OFFERED',
       attempt: 1,
     });
+
+    await db.orm.public.LogisticsDriverProfile.where({ id: driver1.id }).update({ status: 'ONLINE' });
+    await db.orm.public.LogisticsDriverProfile.where({ id: driver2.id }).update({ status: 'ONLINE' });
+    setTestRiderTelemetry(driver1.id, { latitude: 4.9757, longitude: 8.3417 });
+    setTestRiderTelemetry(driver2.id, { latitude: 4.9757, longitude: 8.3417 });
 
     // Driver 1 and Driver 2 race to accept
     const [res1, res2] = await Promise.allSettled([

@@ -248,7 +248,7 @@ async function requireRiderOrAdminAuth(driver: { personId: string; providerId: s
   }
 
   if (!session?.user?.personId) {
-    throw new LogisticsDomainError('UNAUTHENTICATED: Active session required for rider actions.', 'UNAUTHENTICATED');
+    throw new LogisticsDomainError('UNAUTHENTICATED: Active session required for rider actions.');
   }
 
   const personId = session.user.personId;
@@ -272,7 +272,7 @@ async function requireRiderOrAdminAuth(driver: { personId: string; providerId: s
     return { session, personId, isSystemAdmin: false };
   }
 
-  throw new LogisticsDomainError('UNAUTHORIZED: Caller does not own this driver profile and lacks administrative permissions.', 'FORBIDDEN');
+  throw new LogisticsDomainError('UNAUTHORIZED: Caller does not own this driver profile and lacks administrative permissions.');
 }
 
 export async function checkInRider(params: {

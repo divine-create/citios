@@ -273,73 +273,41 @@ test('CityDrive Network — Phase 3B.2 Independent Security Audit & Concurrency 
     console.log('[CONCURRENCY TEST 2] Race results:', results.map(r => r.status));
   });
 
-  // 3. Security: checkInRider without session allows unauthenticated state change
-  await t.test('3. Security: checkInRider called without session allows unauthenticated state change', async () => {
-    // Unauthenticated caller attempting check-in for driverA
-    let unauthenticatedCheckInAllowed = false;
-    try {
-      const res = await checkInRider({
+  // 3. Security: checkInRider without session is rejected explicitly
+  await t.test('3. Security: checkInRider called without session is rejected', async () => {
+    setActiveUserToken(null);
+    await assert.rejects(
+      checkInRider({
         driverProfileId: driverA.id,
         latitude: 4.9757,
         longitude: 8.3417,
-      });
-      unauthenticatedCheckInAllowed = res.status === 'ONLINE';
-      console.log('[SECURITY TEST 3] CRITICAL: checkInRider succeeded without session! Status:', res.status);
-    } catch (err: any) {
-      console.log('[SECURITY TEST 3] checkInRider threw:', err.message);
-    }
-    // We document the finding: unauthenticatedCheckInAllowed is true
-    assert.strictEqual(unauthenticatedCheckInAllowed, true, 'Confirmed vulnerability: unauthenticated caller can check in driver');
+      }),
+      (err: any) => err.message.includes('UNAUTHENTICATED')
+    );
   });
 
-  // 4. Security: checkOutRider without session
-  await t.test('4. Security: checkOutRider called without session', async () => {
-    // Create an idle driver with no active assignments
-    const idleActor = await createTestActor(fleetOrgA.id, 'DRIVER');
-    const idleVehicle = await db.orm.public.LogisticsVehicle.create({
-      id: uuidv4(),
-      providerId: fleetOrgA.id,
-      type: 'MOTORCYCLE',
-      licensePlate: 'CR-IDLE-01',
-      status: 'ACTIVE',
-    });
-    const idleDriver = await db.orm.public.LogisticsDriverProfile.create({
-      id: uuidv4(),
-      personId: idleActor.person.id,
-      providerId: fleetOrgA.id,
-      status: 'ONLINE',
-      onboardingComplete: true,
-      currentVehicleId: idleVehicle.id,
-    });
-
-    let unauthenticatedCheckOutAllowed = false;
-    try {
-      const res = await checkOutRider({
-        driverProfileId: idleDriver.id,
-      });
-      unauthenticatedCheckOutAllowed = res.status === 'OFFLINE';
-      console.log('[SECURITY TEST 4] CRITICAL: checkOutRider succeeded without session! Status:', res.status);
-    } catch (err: any) {
-      console.log('[SECURITY TEST 4] checkOutRider threw:', err.message);
-    }
-    assert.strictEqual(unauthenticatedCheckOutAllowed, true, 'Confirmed vulnerability: unauthenticated caller can check out driver');
+  // 4. Security: checkOutRider without session is rejected explicitly
+  await t.test('4. Security: checkOutRider called without session is rejected', async () => {
+    setActiveUserToken(null);
+    await assert.rejects(
+      checkOutRider({
+        driverProfileId: driverA.id,
+      }),
+      (err: any) => err.message.includes('UNAUTHENTICATED')
+    );
   });
 
-  // 5. Security: updateRiderLocation without session allows unauthenticated telemetry spoofing
-  await t.test('5. Security: updateRiderLocation called without session allows spoofing', async () => {
-    let unauthenticatedLocationAllowed = false;
-    try {
-      const res = await updateRiderLocation({
+  // 5. Security: updateRiderLocation without session is rejected explicitly
+  await t.test('5. Security: updateRiderLocation called without session is rejected', async () => {
+    setActiveUserToken(null);
+    await assert.rejects(
+      updateRiderLocation({
         driverProfileId: driverA.id,
         latitude: 4.9757,
         longitude: 8.3417,
-      });
-      unauthenticatedLocationAllowed = res.success === true;
-      console.log('[SECURITY TEST 5] CRITICAL: updateRiderLocation succeeded without session! Result:', res.success);
-    } catch (err: any) {
-      console.log('[SECURITY TEST 5] updateRiderLocation threw:', err.message);
-    }
-    assert.strictEqual(unauthenticatedLocationAllowed, true, 'Confirmed vulnerability: unauthenticated caller can update rider location');
+      }),
+      (err: any) => err.message.includes('UNAUTHENTICATED')
+    );
   });
 
   // 6. Security: requireOperationsStaff with empty allowlist fails open or closed?
@@ -433,7 +401,7 @@ test('CityDrive Network — Phase 3B.2 Independent Security Audit & Concurrency 
       const allExhausted = await getExhaustedDeliveries({});
       const leakedJob = allExhausted.find(j => j.id === exhaustedJobB.id);
       console.log('[SECURITY TEST 8] Cross-tenant leaked job from Org B found?:', !!leakedJob);
-      assert.ok(leakedJob, 'Confirmed vulnerability: getExhaustedDeliveries({}) leaks cross-tenant jobs when providerId is omitted');
+      assert.strictEqual(leakedJob, undefined, 'Remediated: getExhaustedDeliveries({}) does not leak cross-tenant jobs');
     } finally {
       setActiveUserToken(null);
     }
