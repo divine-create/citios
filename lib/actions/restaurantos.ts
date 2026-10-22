@@ -356,18 +356,87 @@ export async function createMenuItem(input: {
 
 export async function updateMenuItem(
   menuItemId: string,
-  input: Partial<{ name: string; description: string; price: number; locationId?: string;
-  category: string; imageUrl: string }>,
+  input: Partial<{
+    name: string;
+    description: string | null;
+    price: number | string;
+    locationId?: string | null;
+    category: string;
+    imageUrl: string | null;
+    kitchenStation?: string | null;
+    isAvailable?: boolean;
+  }>,
 ) {
   try {
     const menuItem = await db.orm.public.MenuItem.where({ id: menuItemId }).all().first();
     if (!menuItem) return { error: 'Menu item not found.' };
     await requireMembership(menuItem.organizationId, ['OWNER', 'ADMIN', 'MANAGER'], menuItem.locationId);
 
-    await db.orm.public.MenuItem.where({ id: menuItemId }).update(input);
+    const updateData: {
+      name?: string;
+      description?: string | null;
+      price?: number;
+      category?: string;
+      imageUrl?: string | null;
+      kitchenStation?: string;
+      isAvailable?: boolean;
+      locationId?: string | null;
+    } = {};
+
+    if (input.name !== undefined) {
+      const trimmed = String(input.name).trim();
+      if (!trimmed) return { error: 'Item name cannot be empty.' };
+      updateData.name = trimmed;
+    }
+
+    if (input.description !== undefined) {
+      updateData.description = input.description ? String(input.description).trim() : null;
+    }
+
+    if (input.price !== undefined) {
+      const parsedPrice = typeof input.price === 'string' ? parseFloat(input.price) : Number(input.price);
+      if (isNaN(parsedPrice) || parsedPrice < 0) {
+        return { error: 'Price must be zero or greater.' };
+      }
+      updateData.price = parsedPrice;
+    }
+
+    if (input.category !== undefined) {
+      const trimmedCat = String(input.category).trim();
+      if (!trimmedCat) return { error: 'Category cannot be empty.' };
+      updateData.category = trimmedCat;
+    }
+
+    if (input.imageUrl !== undefined) {
+      updateData.imageUrl = input.imageUrl ? String(input.imageUrl).trim() : null;
+    }
+
+    if (input.kitchenStation !== undefined) {
+      updateData.kitchenStation = input.kitchenStation ? String(input.kitchenStation).trim() : 'Main Kitchen';
+    }
+
+    if (input.isAvailable !== undefined) {
+      updateData.isAvailable = Boolean(input.isAvailable);
+    }
+
+    if (input.locationId !== undefined) {
+      if (input.locationId) {
+        const loc = await db.orm.public.Location.where({ id: input.locationId, organizationId: menuItem.organizationId }).all().first();
+        if (!loc) {
+          return { error: 'Location does not belong to this organization.' };
+        }
+        updateData.locationId = input.locationId;
+      } else {
+        updateData.locationId = null;
+      }
+    }
+
+    await db.orm.public.MenuItem.where({ id: menuItemId }).update(updateData);
     const updated = await db.orm.public.MenuItem.where({ id: menuItemId }).all().first();
     try {
       revalidatePath('/', 'layout');
+      revalidatePath('/food');
+      revalidatePath('/workspaces/restaurantos/[slug]/management/menu');
     } catch {
       // Safe fallback when invoked in testing environments
     }
@@ -389,6 +458,8 @@ export async function toggleMenuItemAvailability(menuItemId: string) {
     await db.orm.public.MenuItem.where({ id: menuItemId }).update({ isAvailable: next });
     try {
       revalidatePath('/', 'layout');
+      revalidatePath('/food');
+      revalidatePath('/workspaces/restaurantos/[slug]/management/menu');
     } catch {
       // Safe fallback when invoked in testing environments
     }
@@ -406,7 +477,13 @@ export async function deleteMenuItem(menuItemId: string) {
     await requireMembership(menuItem.organizationId, ['OWNER', 'ADMIN', 'MANAGER'], menuItem.locationId);
 
     await db.orm.public.MenuItem.where({ id: menuItemId }).delete();
-    revalidatePath('/', 'layout');
+    try {
+      revalidatePath('/', 'layout');
+      revalidatePath('/food');
+      revalidatePath('/workspaces/restaurantos/[slug]/management/menu');
+    } catch {
+      // Safe fallback when invoked in testing environments
+    }
     return { success: true };
   } catch (error) {
     console.error('Error deleting menu item:', error);

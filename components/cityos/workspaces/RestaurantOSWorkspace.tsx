@@ -10,7 +10,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   Users, UtensilsCrossed, LayoutDashboard, BarChart3, ShoppingCart, Receipt, Flame,
-  Package, Truck, ClipboardList, Trash2, Grid3x3, CalendarDays, DollarSign,
+  Package, Truck, ClipboardList, Trash2, Edit2, Grid3x3, CalendarDays, DollarSign,
   SettingsIcon, Menu, Bell, Search, X, Plus, Minus, ArrowRightLeft, Loader2, Printer, CheckCircle2, Circle, TrendingUp, Upload, UploadCloud, ImageIcon
 } from "lucide-react";
 import ThermalReceiptModal from "@/components/common/ThermalReceiptModal";
@@ -57,38 +57,11 @@ import {
 import { type PrintableReceiptData } from "@/lib/receiptUtils";
 import { Button, Badge, Input } from "@/components/ui";
 
+import { MENU_LIBRARY, MENU_LIBRARY_CATEGORIES, getMenuLibraryItems } from "@/lib/menu-library";
+
 const MENU_CATEGORIES = ['Rice Dishes','Soups & Stews','Snacks & Sides','Swallow & Fufu','Breakfast','Drinks & Beverages','Desserts','Beans & Legumes','Yam Dishes','Chicken','Beef & Meat','Fish & Seafood','Plantain'];
-const FOOD_LIBRARY = [
-  { name: 'Jollof Rice & Chicken', category: 'Rice Dishes', image: 'https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Fried Rice', category: 'Rice Dishes', image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Ofada Rice & Stew', category: 'Rice Dishes', image: 'https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Egusi Soup & Pounded Yam', category: 'Soups & Stews', image: 'https://images.unsplash.com/photo-1548502632-6b93092aad0b?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Edikaikong Soup', category: 'Soups & Stews', image: 'https://images.unsplash.com/photo-1633504581786-316c8002b1b9?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Afang Soup', category: 'Soups & Stews', image: 'https://images.unsplash.com/photo-1574653853027-5382a3d23a15?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Ogbono Soup', category: 'Soups & Stews', image: 'https://images.unsplash.com/photo-1608897013039-887f21d8c804?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Banga Soup', category: 'Soups & Stews', image: 'https://images.unsplash.com/photo-1542528180-0c79567c66de?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Amala & Ewedu', category: 'Swallow & Fufu', image: 'https://images.unsplash.com/photo-1588691516089-9b4e54817a03?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Eba & Okro Soup', category: 'Swallow & Fufu', image: 'https://images.unsplash.com/photo-1572449043416-55f4685c9bb7?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Asun (Spicy Goat Meat)', category: 'Beef & Meat', image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Beef Suya', category: 'Snacks & Sides', image: 'https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Chicken Suya', category: 'Snacks & Sides', image: 'https://images.unsplash.com/photo-1598514982205-f36b96d1e8d4?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Nkwobi', category: 'Beef & Meat', image: 'https://images.unsplash.com/photo-1615870216519-2f9fa575fa5c?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Isi Ewu', category: 'Beef & Meat', image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Catfish Pepper Soup', category: 'Soups & Stews', image: 'https://images.unsplash.com/photo-1512489816562-b91c01e6ef84?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Goat Meat Pepper Soup', category: 'Soups & Stews', image: 'https://images.unsplash.com/photo-1563379926898-05f452098679?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Moi Moi', category: 'Beans & Legumes', image: 'https://images.unsplash.com/photo-1598515322588-46741b6bfd41?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Akara (Bean Cakes)', category: 'Breakfast', image: 'https://images.unsplash.com/photo-1605333396914-2c67cf761a20?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Ewa Agoyin', category: 'Beans & Legumes', image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Fried Plantain (Dodo)', category: 'Plantain', image: 'https://images.unsplash.com/photo-1541525997-6a75f284d7be?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Roasted Plantain (Boli)', category: 'Plantain', image: 'https://images.unsplash.com/photo-1559181567-c1648b125320?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Yam Porridge (Asaro)', category: 'Yam Dishes', image: 'https://images.unsplash.com/photo-1580879207865-c3f2d25032b4?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Shawarma', category: 'Snacks & Sides', image: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Burger & Fries', category: 'Snacks & Sides', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Chapman Drink', category: 'Drinks & Beverages', image: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Zobo Drink', category: 'Drinks & Beverages', image: 'https://images.unsplash.com/photo-1589146141384-ad4b97148ff6?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Malt Drink', category: 'Drinks & Beverages', image: 'https://images.unsplash.com/photo-1596700858169-d7c71f3074f0?auto=format&fit=crop&q=80&w=600' },
-  { name: 'Palm Wine', category: 'Drinks & Beverages', image: 'https://images.unsplash.com/photo-1575037614876-c3852d2427df?auto=format&fit=crop&q=80&w=600' },
-];
+const FOOD_LIBRARY = MENU_LIBRARY;
+
 export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
   const { fmt } = useMoney();
   const { switchToPersonal } = useAccountSwitcher();
@@ -553,6 +526,7 @@ function TabOrders({ orders }: any) {
 function TabMenu({ menu, slug, onDone }: any) {
   const { fmt } = useMoney();
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<any | null>(null);
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [imageUrl, setImageUrl] = useState("");
@@ -560,13 +534,55 @@ function TabMenu({ menu, slug, onDone }: any) {
   const [kitchenStation, setKitchenStation] = useState("Main Kitchen");
   const [busy, setBusy] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
+  const [libSearch, setLibSearch] = useState("");
+  const [libCategory, setLibCategory] = useState("All");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function openAddModal() {
+    setEditingItem(null);
+    setName("");
+    setPrice("");
+    setImageUrl("");
+    setCategory(MENU_CATEGORIES[0]);
+    setKitchenStation("Main Kitchen");
+    setShowLibrary(false);
+    setModalOpen(true);
+  }
+
+  function openEditModal(item: any) {
+    setEditingItem(item);
+    setName(item.name || "");
+    setPrice(String(item.price ?? ""));
+    setImageUrl(item.imageUrl || "");
+    setCategory(item.category || MENU_CATEGORIES[0]);
+    setKitchenStation(item.kitchenStation || "Main Kitchen");
+    setShowLibrary(false);
+    setModalOpen(true);
+  }
   
   async function save() {
     setBusy(true);
-    await createMenuItem({ organizationId: slug, name, price: Number(price) || 0, category, kitchenStation, imageUrl: imageUrl.trim() || undefined });
+    if (editingItem) {
+      await updateMenuItem(editingItem.id, {
+        name,
+        price: Number(price) || 0,
+        category,
+        kitchenStation,
+        imageUrl: imageUrl.trim() || undefined,
+      });
+    } else {
+      await createMenuItem({
+        organizationId: slug,
+        name,
+        price: Number(price) || 0,
+        category,
+        kitchenStation,
+        imageUrl: imageUrl.trim() || undefined,
+      });
+    }
     setBusy(false);
     setModalOpen(false);
+    setEditingItem(null);
     onDone();
   }
 
@@ -599,7 +615,7 @@ function TabMenu({ menu, slug, onDone }: any) {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Menu Items" actions={<button onClick={() => setModalOpen(true)} className={btnPrimary}><Plus size={16}/> Add Item</button>} />
+      <PageHeader title="Menu Items" actions={<button onClick={openAddModal} className={btnPrimary}><Plus size={16}/> Add Item</button>} />
       <SectionCard>
         <div className="overflow-x-auto">
          <table className="w-full text-sm text-left">
@@ -616,7 +632,10 @@ function TabMenu({ menu, slug, onDone }: any) {
                  <td className="px-4 py-3 text-slate-500">{m.category}</td>
                  <td className="px-4 py-3 font-bold text-orange-600">{fmt(m.price)}</td>
                  <td className="px-4 py-3"><button onClick={async () => { await toggleMenuItemAvailability(m.id); onDone(); }}><StatusPill tone={m.isAvailable ? "emerald" : "red"}>{m.isAvailable ? "Available" : "86'd"}</StatusPill></button></td>
-                 <td className="px-4 py-3 text-right"><button onClick={async () => { if(confirm("Delete?")) { await deleteMenuItem(m.id); onDone(); } }} className="text-red-500 hover:text-red-700"><Trash2 size={16}/></button></td>
+                 <td className="px-4 py-3 text-right whitespace-nowrap">
+                   <button onClick={() => openEditModal(m)} className="text-slate-400 hover:text-slate-700 mr-3" title="Edit"><Edit2 size={16}/></button>
+                   <button onClick={async () => { if(confirm(`Delete "${m.name}"?`)) { await deleteMenuItem(m.id); onDone(); } }} className="text-red-500 hover:text-red-700" title="Delete"><Trash2 size={16}/></button>
+                 </td>
                </tr>
              ))}
            </tbody>
@@ -624,21 +643,61 @@ function TabMenu({ menu, slug, onDone }: any) {
         </div>
       </SectionCard>
       {modalOpen && (
-        <Modal title="Add Menu Item" onClose={() => setModalOpen(false)} footer={<button onClick={save} disabled={busy || !name} className={btnPrimary}>{busy ? 'Saving...' : 'Save Item'}</button>}>
+        <Modal title={editingItem ? "Edit Menu Item" : "Add Menu Item"} onClose={() => { setModalOpen(false); setEditingItem(null); }} footer={<button onClick={save} disabled={busy || !name} className={btnPrimary}>{busy ? 'Saving...' : editingItem ? 'Save Changes' : 'Save Item'}</button>}>
           <div className="p-6 space-y-4">
              {showLibrary ? (
                <div>
-                 <div className="flex items-center justify-between mb-4">
-                   <h3 className="font-bold text-sm text-slate-900">Food Library</h3>
-                   <button onClick={() => setShowLibrary(false)} className="text-xs font-bold text-orange-600">Back to custom form</button>
+                 <div className="flex items-center justify-between mb-3">
+                   <div>
+                     <h3 className="font-bold text-sm text-slate-900">Menu Library ({MENU_LIBRARY.length} Items)</h3>
+                     <p className="text-[11px] text-slate-500">Pick authentic Nigerian dishes, grills, soups & cold drinks</p>
+                   </div>
+                   <button onClick={() => setShowLibrary(false)} className="text-xs font-bold text-orange-600 hover:underline">Back to form</button>
                  </div>
-                 <div className="grid grid-cols-2 gap-3 max-h-64 overflow-y-auto pr-2">
-                   {FOOD_LIBRARY.map((item, idx) => (
-                     <button key={idx} onClick={() => { setName(item.name); setCategory(item.category); setImageUrl(item.image); setShowLibrary(false); }} className="text-left border border-slate-200 rounded-xl overflow-hidden hover:border-orange-400 transition-colors">
-                       <img src={item.image} alt={item.name} className="w-full h-24 object-cover" />
+                 <input
+                   type="text"
+                   placeholder="Search library..."
+                   value={libSearch}
+                   onChange={(e) => setLibSearch(e.target.value)}
+                   className="w-full text-xs px-3 py-1.5 mb-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500"
+                 />
+                 <div className="flex gap-1 overflow-x-auto pb-2 mb-2 scrollbar-hide">
+                   {MENU_LIBRARY_CATEGORIES.map((cat) => (
+                     <button
+                       key={cat}
+                       type="button"
+                       onClick={() => setLibCategory(cat)}
+                       className={`text-[10px] px-2.5 py-1 rounded-full font-bold whitespace-nowrap transition-colors ${
+                         libCategory === cat
+                           ? 'bg-orange-500 text-white'
+                           : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                       }`}
+                     >
+                       {cat}
+                     </button>
+                   ))}
+                 </div>
+                 <div className="grid grid-cols-2 gap-2.5 max-h-72 overflow-y-auto pr-1">
+                   {getMenuLibraryItems(libCategory, libSearch).map((item) => (
+                     <button
+                       key={item.id}
+                       type="button"
+                       onClick={() => {
+                         setName(item.name);
+                         setCategory(item.category);
+                         setImageUrl(item.imageUrl);
+                         setPrice(String(item.price));
+                         setShowLibrary(false);
+                       }}
+                       className="text-left border border-slate-200 rounded-xl overflow-hidden hover:border-orange-400 transition-colors group bg-white shadow-xs"
+                     >
+                       <img src={item.imageUrl} alt={item.name} className="w-full h-24 object-cover group-hover:scale-105 transition-transform duration-200" />
                        <div className="p-2">
-                         <p className="text-xs font-bold truncate">{item.name}</p>
-                         <p className="text-[10px] text-slate-500 truncate">{item.category}</p>
+                         <p className="text-xs font-bold truncate group-hover:text-orange-600">{item.name}</p>
+                         <div className="flex items-center justify-between mt-0.5">
+                           <span className="text-[10px] text-slate-500 truncate">{item.category}</span>
+                           <span className="text-[10px] font-black text-slate-800">₦{item.price.toLocaleString()}</span>
+                         </div>
                        </div>
                      </button>
                    ))}

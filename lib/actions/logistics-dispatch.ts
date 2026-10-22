@@ -81,9 +81,11 @@ export async function dispatchDelivery(params: {
       if (job.providerId && job.providerId !== params.providerId) {
         throw new LogisticsDomainError('Provider isolation violation');
       }
-      if (!job.providerId) {
-        await tx.orm.public.DeliveryJob.where({ id: params.deliveryJobId }).update({ providerId: params.providerId });
-      }
+      // Acquire PostgreSQL exclusive row-level write lock on DeliveryJob to serialize concurrent dispatch attempts
+      await tx.orm.public.DeliveryJob.where({ id: params.deliveryJobId }).update({
+        providerId: job.providerId || params.providerId,
+        updatedAt: toTemporal(new Date()),
+      });
 
       if (params.idempotencyKey) {
         const existing = (await tx.orm.public.DeliveryDispatch.where({ deliveryJobId: params.deliveryJobId, idempotencyKey: params.idempotencyKey }).all())[0];
@@ -219,6 +221,18 @@ export async function acceptDispatch(params: {
     await tx.orm.public.DeliveryJob.where({ id: dispatch.deliveryJobId }).update({
       updatedAt: toTemporal(new Date()),
     });
+
+    // Serialize driver-level concurrency by touching LogisticsDriverProfile row lock
+    await tx.orm.public.LogisticsDriverProfile.where({ id: params.driverProfileId }).update({
+      status: driver.status,
+    });
+
+    if (vehicleId) {
+      // Serialize vehicle-level concurrency by touching LogisticsVehicle row lock
+      await tx.orm.public.LogisticsVehicle.where({ id: vehicleId }).update({
+        status: 'ACTIVE',
+      });
+    }
 
     const allAssignmentsJob = await tx.orm.public.DeliveryAssignment.where({ deliveryJobId: dispatch.deliveryJobId }).all();
     if (allAssignmentsJob.filter((a: any) => ['PENDING', 'ACCEPTED'].includes(a.status)).length > 0) {
@@ -419,9 +433,8 @@ export async function findNetworkCandidates(params: {
   dropoff?: { latitude: number; longitude: number };
   packageWeightKg?: number;
   excludedDriverIds?: string[];
-  policy?: NetworkDispatchPolicy;
 }) {
-  const policy = params.policy || getNetworkDispatchPolicy();
+  const policy = getNetworkDispatchPolicy();
 
   let pickupZone = null;
   if (params.pickup) {
@@ -451,7 +464,7 @@ export async function findNetworkCandidates(params: {
     if (!org || org.status !== 'ACTIVE') continue;
 
     if (policy === 'CITYOS_ONLY') {
-      if (isCityOSPlatformFleet(org.id, org.name)) {
+      if (isCityOSPlatformFleet(org.id)) {
         eligibleNetworkOrgIds.add(org.id);
       }
     } else {
@@ -498,7 +511,11 @@ export async function findNetworkCandidates(params: {
   }
 
   const availableDrivers = networkDrivers.filter(
-    (d: any) => !busyDriverIds.has(d.id) && !excludedDriverSet.has(d.id)
+    (d: any) =>
+      !busyDriverIds.has(d.id) &&
+      !excludedDriverSet.has(d.id) &&
+      d.currentVehicle &&
+      d.currentVehicle.status === 'ACTIVE'
   );
 
   // Rank available candidates
@@ -506,14 +523,10 @@ export async function findNetworkCandidates(params: {
     let score = 50; // base score
     const v = d.currentVehicle;
     if (v) {
-      if (v.status === 'ACTIVE') {
-        score += 10;
-        const isHeavy = (params.packageWeightKg || 1) > 10;
-        if (isHeavy && ['CAR', 'VAN', 'TRUCK'].includes(v.type)) score += 20;
-        if (!isHeavy && ['BIKE', 'MOTORCYCLE'].includes(v.type)) score += 15;
-      } else {
-        score -= 40; // Penalize inactive/maintenance vehicles
-      }
+      score += 10;
+      const isHeavy = (params.packageWeightKg || 1) > 10;
+      if (isHeavy && ['CAR', 'VAN', 'TRUCK'].includes(v.type)) score += 20;
+      if (!isHeavy && ['BIKE', 'MOTORCYCLE'].includes(v.type)) score += 15;
     }
 
     // Proximity ranking using fresh telemetry
@@ -539,6 +552,60 @@ export async function findNetworkCandidates(params: {
 }
 
 /**
+ * Positively verifies whether a delivery job is authorized to enter shared CityDrive Network dispatch.
+ * Enforces:
+ * 1. DeliveryJob exists and is not in a terminal state (COMPLETED, DELIVERED, CANCELLED, FAILED).
+ * 2. If providerId is set: The provider must have active LogisticsSettings with isNetworkParticipant === true.
+ *    Missing settings or isNetworkParticipant !== true strictly rejects the job.
+ * 3. In CITYOS_ONLY mode: Provider must strictly be an authorized CityOS platform fleet organization.
+ * 4. If providerId is unset (e.g. unassigned direct/resident booking):
+ *    Canonical source (sourceType and sourceId) and valid geographic coordinates must be positively present.
+ */
+export async function assertSharedNetworkEligibility(job: any): Promise<void> {
+  if (!job) throw new LogisticsDomainError('DeliveryJob not found');
+
+  if (['COMPLETED', 'DELIVERED', 'CANCELLED', 'FAILED'].includes(job.status)) {
+    throw new LogisticsDomainError(`Cannot dispatch delivery in terminal status ${job.status}`);
+  }
+
+  const policy = getNetworkDispatchPolicy();
+
+  if (job.providerId) {
+    const settings = await db.orm.public.LogisticsSettings.where({
+      organizationId: job.providerId,
+    }).first();
+
+    if (!settings || !settings.isNetworkParticipant) {
+      throw new LogisticsDomainError(
+        `Private CityDrive Business delivery (provider ${job.providerId}) lacks verified network participant settings. Excluded from shared CityDrive Network dispatch.`
+      );
+    }
+
+    if (policy === 'CITYOS_ONLY' && !isCityOSPlatformFleet(job.providerId)) {
+      throw new LogisticsDomainError(
+        `Provider ${job.providerId} is not an authorized CityOS platform fleet in CITYOS_ONLY mode.`
+      );
+    }
+  } else {
+    if (!job.sourceType || !job.sourceId) {
+      throw new LogisticsDomainError(
+        'Unassigned delivery job lacks verified canonical source information. Cannot enter shared network dispatch.'
+      );
+    }
+    if (
+      job.pickupLat === null || job.pickupLat === undefined ||
+      job.pickupLng === null || job.pickupLng === undefined ||
+      job.dropoffLat === null || job.dropoffLat === undefined ||
+      job.dropoffLng === null || job.dropoffLng === undefined
+    ) {
+      throw new LogisticsDomainError(
+        'Delivery job lacks verified geographic coordinates. Cannot enter shared network dispatch.'
+      );
+    }
+  }
+}
+
+/**
  * Executes CityDrive Network dispatch with priority for CityOS network riders,
  * and strictly controlled behavior when network capacity is exhausted.
  * In CITYOS_ONLY mode, external partner fallback is prohibited and returns NO_RIDER_AVAILABLE.
@@ -551,26 +618,14 @@ export async function dispatchNetworkJob(params: {
   packageWeightKg?: number;
   acceptanceWindowSeconds?: number;
   idempotencyKey?: string;
-  policy?: NetworkDispatchPolicy;
 }) {
-  const policy = params.policy || getNetworkDispatchPolicy();
+  const policy = getNetworkDispatchPolicy();
 
   const job = (await db.orm.public.DeliveryJob.where({ id: params.deliveryJobId }).all())[0];
   if (!job) throw new LogisticsDomainError('DeliveryJob not found');
 
-  // Verify private business isolation:
-  // If the delivery belongs to a provider that is not a network participant,
-  // it is a private merchant/business delivery and must NOT enter shared network dispatch!
-  if (job.providerId) {
-    const settings = await db.orm.public.LogisticsSettings.where({
-      organizationId: job.providerId,
-    }).first();
-    if (settings && !settings.isNetworkParticipant) {
-      throw new LogisticsDomainError(
-        `Private CityDrive Business delivery (provider ${job.providerId}) cannot enter shared CityDrive Network dispatch.`
-      );
-    }
-  }
+  // Positively verify shared-network eligibility before evaluating any candidates
+  await assertSharedNetworkEligibility(job);
 
   const targetProviderId = params.providerId || job.providerId || undefined;
 
@@ -588,7 +643,6 @@ export async function dispatchNetworkJob(params: {
         ? { latitude: job.dropoffLat, longitude: job.dropoffLng }
         : undefined),
     packageWeightKg: params.packageWeightKg || job.packageWeightKg || 1.0,
-    policy,
   });
 
   // If network candidates are available, offer job to top candidate
@@ -617,8 +671,8 @@ export async function dispatchNetworkJob(params: {
     };
   }
 
-  // Network capacity exhausted branch:
-  if (policy === 'CITYOS_ONLY') {
+  // If policy is strictly OPEN_NETWORK, proceed to partner fallback
+  if (policy === 'OPEN_NETWORK') {
     let trackingProviderId = targetProviderId;
     if (!trackingProviderId) {
       const fallbackOrg = await db.orm.public.Organization.where({ type: 'LOGISTICS' as any, status: 'ACTIVE' as any }).first();
@@ -629,23 +683,22 @@ export async function dispatchNetworkJob(params: {
         deliveryJobId: params.deliveryJobId,
         eventType: 'DISPATCHED',
         providerId: trackingProviderId,
-        notes: 'CityDrive Network dispatch exhausted: No eligible CityOS fleet riders available. Operations intervention required.',
-      }).catch((e: any) => console.warn('[Dispatch Exhausted Tracking Warning]', e.message));
+        notes: 'CityDrive Network riders exhausted. Flagged for approved partner fallback.',
+      }).catch(() => {});
     }
 
     return {
       success: false,
-      tier: 'NO_RIDER_AVAILABLE' as const,
+      tier: 'PARTNER_FALLBACK' as const,
       dispatch: null,
       driver: null,
       candidateCount: 0,
-      partnerFallbackEligible: false,
-      operationalInterventionRequired: true,
-      reason: 'CityDrive Network riders exhausted. No eligible CityOS fleet riders available.',
+      partnerFallbackEligible: true,
+      reason: 'CityDrive Network capacity exhausted. Fallback to approved logistics partner.',
     };
   }
 
-  // Open-network fallback branch:
+  // Default fail-closed branch (CITYOS_ONLY mode):
   let trackingProviderId = targetProviderId;
   if (!trackingProviderId) {
     const fallbackOrg = await db.orm.public.Organization.where({ type: 'LOGISTICS' as any, status: 'ACTIVE' as any }).first();
@@ -656,18 +709,19 @@ export async function dispatchNetworkJob(params: {
       deliveryJobId: params.deliveryJobId,
       eventType: 'DISPATCHED',
       providerId: trackingProviderId,
-      notes: 'CityDrive Network riders exhausted. Flagged for approved partner fallback.',
-    }).catch(() => {});
+      notes: 'CityDrive Network dispatch exhausted: No eligible CityOS fleet riders available. Operations intervention required.',
+    }).catch((e: any) => console.warn('[Dispatch Exhausted Tracking Warning]', e.message));
   }
 
   return {
     success: false,
-    tier: 'PARTNER_FALLBACK' as const,
+    tier: 'NO_RIDER_AVAILABLE' as const,
     dispatch: null,
     driver: null,
     candidateCount: 0,
-    partnerFallbackEligible: true,
-    reason: 'CityDrive Network capacity exhausted. Fallback to approved logistics partner.',
+    partnerFallbackEligible: false,
+    operationalInterventionRequired: true,
+    reason: 'CityDrive Network riders exhausted. No eligible CityOS fleet riders available.',
   };
 }
 
@@ -681,7 +735,6 @@ export async function declineDispatchOffer(params: {
   providerId: string;
   reason?: string;
   acceptanceWindowSeconds?: number;
-  policy?: NetworkDispatchPolicy;
 }) {
   const rejected = await rejectDispatch(params);
 
@@ -696,7 +749,6 @@ export async function declineDispatchOffer(params: {
   const reassignment = await reassignDeliveryJob({
     deliveryJobId: rejected.deliveryJobId,
     acceptanceWindowSeconds: params.acceptanceWindowSeconds,
-    policy: params.policy,
   });
 
   return { rejected, reassignment };
@@ -710,7 +762,6 @@ export async function handleDispatchOfferTimeout(params: {
   dispatchId: string;
   providerId: string;
   acceptanceWindowSeconds?: number;
-  policy?: NetworkDispatchPolicy;
 }) {
   const expired = await expireDispatch(params);
 
@@ -725,7 +776,6 @@ export async function handleDispatchOfferTimeout(params: {
   const reassignment = await reassignDeliveryJob({
     deliveryJobId: expired.deliveryJobId,
     acceptanceWindowSeconds: params.acceptanceWindowSeconds,
-    policy: params.policy,
   });
 
   return { expired, reassignment };
@@ -738,7 +788,6 @@ export async function handleDispatchOfferTimeout(params: {
 export async function reassignDeliveryJob(params: {
   deliveryJobId: string;
   acceptanceWindowSeconds?: number;
-  policy?: NetworkDispatchPolicy;
 }) {
   const job = (await db.orm.public.DeliveryJob.where({ id: params.deliveryJobId }).all())[0];
   if (!job) throw new LogisticsDomainError('DeliveryJob not found');
@@ -751,7 +800,6 @@ export async function reassignDeliveryJob(params: {
     deliveryJobId: params.deliveryJobId,
     providerId: job.providerId || undefined,
     acceptanceWindowSeconds: params.acceptanceWindowSeconds || 60,
-    policy: params.policy,
   });
 
   return {

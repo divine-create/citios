@@ -44,6 +44,10 @@ import { calculateDeliveryQuote } from './logistics-pricing';
 import { settleDelivery } from './logistics-settlement';
 import { LogisticsDomainError, MockPartnerCourierAdapter } from './logistics-domain';
 
+function uid(prefix = 'id') {
+  return `${prefix}-${uuidv4()}`;
+}
+
 // Mock Next.js headers & cookies for getServerSession
 const require = createRequire(import.meta.url);
 const nextHeaders = require('next/headers');
@@ -119,6 +123,7 @@ test('CityDrive Network — CityOS-Only Launch & Future Open-Network Readiness',
   let cityosVehicle2: any;
   let cityosDriver1: any;
   let cityosDriver2: any;
+  let cityosOpsAdminActor: any;
 
   let independentOrg: any;
   let independentActor: any;
@@ -143,6 +148,8 @@ test('CityDrive Network — CityOS-Only Launch & Future Open-Network Readiness',
       type: 'LOGISTICS' as any,
       status: 'ACTIVE' as any,
     });
+    process.env.CITYOS_FLEET_ORG_IDS = cityosOrg.id;
+    cityosOpsAdminActor = await createTestActor(cityosOrg.id, 'MANAGER');
     await db.orm.public.LogisticsSettings.create({
       id: uuidv4(),
       organizationId: cityosOrg.id,
@@ -311,12 +318,14 @@ test('CityDrive Network — CityOS-Only Launch & Future Open-Network Readiness',
   await t.test('1. CityOS rider can receive a valid network offer', async () => {
     process.env.CITYDRIVE_NETWORK_POLICY = 'CITYOS_ONLY';
     assert.strictEqual(getNetworkDispatchPolicy(), 'CITYOS_ONLY');
-    assert.strictEqual(isCityOSPlatformFleet(cityosOrg.id, cityosOrg.name), true);
+    assert.strictEqual(isCityOSPlatformFleet(cityosOrg.id), true);
     assert.strictEqual(getProviderCategory(cityosOrg), 'CITYOS_FLEET');
 
     const job = await db.orm.public.DeliveryJob.create({
       id: uuidv4(),
       status: 'CREATED',
+      sourceType: 'DIRECT_DELIVERY',
+      sourceId: uid('resident-booking'),
       pickupAddress: '88 Marian Road, Calabar',
       dropoffAddress: 'UNICAL Main Campus Gate, Calabar',
       pickupLat: 4.9757,
@@ -396,7 +405,7 @@ test('CityDrive Network — CityOS-Only Launch & Future Open-Network Readiness',
   // Test 3: Independent rider is rejected in CityOS-only mode
   await t.test('3. Independent rider is rejected in CityOS-only mode', async () => {
     process.env.CITYDRIVE_NETWORK_POLICY = 'CITYOS_ONLY';
-    assert.strictEqual(isCityOSPlatformFleet(independentOrg.id, independentOrg.name), false);
+    assert.strictEqual(isCityOSPlatformFleet(independentOrg.id), false);
     assert.strictEqual(getProviderCategory(independentOrg), 'INDEPENDENT_RIDER');
 
     // Query candidates targeting independent provider in CITYOS_ONLY mode
@@ -421,7 +430,7 @@ test('CityDrive Network — CityOS-Only Launch & Future Open-Network Readiness',
   // Test 4: Third-party logistics partner is rejected in CityOS-only mode
   await t.test('4. Third-party logistics partner is rejected in CityOS-only mode', async () => {
     process.env.CITYDRIVE_NETWORK_POLICY = 'CITYOS_ONLY';
-    assert.strictEqual(isCityOSPlatformFleet(partner3PLOrg.id, partner3PLOrg.name), false);
+    assert.strictEqual(isCityOSPlatformFleet(partner3PLOrg.id), false);
     assert.strictEqual(getProviderCategory(partner3PLOrg), 'THIRD_PARTY_PARTNER');
 
     const job = await db.orm.public.DeliveryJob.create({
@@ -464,6 +473,7 @@ test('CityDrive Network — CityOS-Only Launch & Future Open-Network Readiness',
       type: 'LOGISTICS' as any,
       status: 'ACTIVE' as any,
     });
+    process.env.CITYOS_FLEET_ORG_IDS = [cityosOrg.id, emptyCityosOrg.id].join(',');
     await db.orm.public.LogisticsSettings.create({
       id: uuidv4(),
       organizationId: emptyCityosOrg.id,
@@ -483,7 +493,6 @@ test('CityDrive Network — CityOS-Only Launch & Future Open-Network Readiness',
     const result = await dispatchNetworkJob({
       deliveryJobId: job.id,
       providerId: emptyCityosOrg.id,
-      policy: 'CITYOS_ONLY',
     });
 
     assert.strictEqual(result.success, false);
@@ -512,6 +521,8 @@ test('CityDrive Network — CityOS-Only Launch & Future Open-Network Readiness',
       id: uuidv4(),
       providerId: cityosOrg.id,
       status: 'DISPATCHED',
+      sourceType: 'DIRECT_DELIVERY',
+      sourceId: uid('resident-booking'),
       pickupAddress: '88 Marian Road, Calabar',
       dropoffAddress: 'UNICAL Main Gate, Calabar',
       pickupLat: 4.9757,
@@ -766,6 +777,7 @@ test('CityDrive Network — CityOS-Only Launch & Future Open-Network Readiness',
     setActiveUserToken(null);
 
     // D. Operations Admin Functions
+    setActiveUserToken(cityosOpsAdminActor.token);
     const audit = await getDeliveryDispatchAudit(job.id);
     assert.strictEqual(audit.deliveryJobId, job.id);
     assert.ok(Array.isArray(audit.dispatches));

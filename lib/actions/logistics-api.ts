@@ -2,6 +2,7 @@ import { db } from '../../src/prisma/db';
 import { LogisticsDomainError, createDeliveryJob, transitionDeliveryStatus } from './logistics-domain';
 import { calculateDeliveryQuote, offerQuote, acceptQuote } from './logistics-pricing';
 import { resolveTrustedDeliveryDistance } from '../mapping/distance-resolver';
+import { getNetworkDispatchPolicy, isCityOSPlatformFleet } from './logistics-policy';
 
 export type DeliverySourceType =
   | 'RESTAURANT_ORDER'
@@ -68,7 +69,14 @@ async function selectNetworkProvider(): Promise<string> {
   const allRules = await db.orm.public.DeliveryPricingRule.all();
   const activeProviderIds = new Set(allRules.filter((r: any) => r.isActive).map((r: any) => r.providerId));
   
-  const eligibleProviders = activeProviders.filter((p: any) => activeProviderIds.has(p.id));
+  let eligibleProviders = activeProviders.filter((p: any) => activeProviderIds.has(p.id));
+  const policy = getNetworkDispatchPolicy();
+  if (policy === 'CITYOS_ONLY') {
+    eligibleProviders = eligibleProviders.filter((p: any) => isCityOSPlatformFleet(p.id));
+    if (eligibleProviders.length === 0) {
+      throw new LogisticsDomainError('No active CityOS platform fleet providers available on the network.');
+    }
+  }
 
   if (eligibleProviders.length === 0) {
     throw new LogisticsDomainError('No active logistics providers available on the network.');

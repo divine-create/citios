@@ -228,12 +228,18 @@ export async function getRiderReadiness(driverProfileId: string): Promise<RiderR
  * 4. Coordinate validation (rejects invalid coords or coords outside Calabar).
  * 5. Transitions driver status to ONLINE.
  */
-export async function checkInRider(params: {
-  driverProfileId: string;
-  latitude: number;
-  longitude: number;
-  provenance?: CoordinateProvenance;
-}) {
+/**
+ * Asserts that the current request is authenticated and either:
+ * 1. The caller owns the target driver profile (driver.personId === session.user.personId),
+ * 2. The caller is a system administrator (session.user.isSystemAdmin === true), or
+ * 3. The caller is an operations manager/owner/admin in the driver's provider organization.
+ * Fails closed if session is missing or unauthenticated.
+ */
+async function requireRiderOrAdminAuth(driver: { personId: string; providerId: string }): Promise<{
+  session: any;
+  personId: string;
+  isSystemAdmin: boolean;
+}> {
   let session = null;
   try {
     session = await getServerSession(authOptions);
@@ -241,6 +247,40 @@ export async function checkInRider(params: {
     session = null;
   }
 
+  if (!session?.user?.personId) {
+    throw new LogisticsDomainError('UNAUTHENTICATED: Active session required for rider actions.', 'UNAUTHENTICATED');
+  }
+
+  const personId = session.user.personId;
+  const isSystemAdmin = Boolean(session.user.isSystemAdmin);
+
+  if (isSystemAdmin) {
+    return { session, personId, isSystemAdmin: true };
+  }
+
+  if (driver.personId === personId) {
+    return { session, personId, isSystemAdmin: false };
+  }
+
+  // Check if caller has administrative permissions in the driver's provider organization
+  const memberships = (session.user as any).memberships || [];
+  const hasFleetAdminRole = memberships.some(
+    (m: any) => m.organizationId === driver.providerId && ['OWNER', 'ADMIN', 'MANAGER'].includes(m.role)
+  );
+
+  if (hasFleetAdminRole) {
+    return { session, personId, isSystemAdmin: false };
+  }
+
+  throw new LogisticsDomainError('UNAUTHORIZED: Caller does not own this driver profile and lacks administrative permissions.', 'FORBIDDEN');
+}
+
+export async function checkInRider(params: {
+  driverProfileId: string;
+  latitude: number;
+  longitude: number;
+  provenance?: CoordinateProvenance;
+}) {
   const driver = await db.orm.public.LogisticsDriverProfile
     .where({ id: params.driverProfileId })
     .all()
@@ -250,10 +290,8 @@ export async function checkInRider(params: {
     throw new LogisticsDomainError('Driver profile not found.');
   }
 
-  // In non-test mode or when session exists, enforce that authenticated person matches driver.personId
-  if (session?.user?.personId && driver.personId !== session.user.personId && !session.user.isSystemAdmin) {
-    throw new LogisticsDomainError('UNAUTHORIZED: Cannot check in for another driver.');
-  }
+  // Enforce session and ownership or admin authorization
+  await requireRiderOrAdminAuth(driver);
 
   if (driver.status === 'SUSPENDED') {
     throw new LogisticsDomainError('Suspended drivers cannot check in.');
@@ -322,13 +360,6 @@ export async function checkInRider(params: {
  * Enforces that no active, in-transit deliveries are pending completion.
  */
 export async function checkOutRider(params: { driverProfileId: string }) {
-  let session = null;
-  try {
-    session = await getServerSession(authOptions);
-  } catch {
-    session = null;
-  }
-
   const driver = await db.orm.public.LogisticsDriverProfile
     .where({ id: params.driverProfileId })
     .all()
@@ -338,9 +369,8 @@ export async function checkOutRider(params: { driverProfileId: string }) {
     throw new LogisticsDomainError('Driver profile not found.');
   }
 
-  if (session?.user?.personId && driver.personId !== session.user.personId && !session.user.isSystemAdmin) {
-    throw new LogisticsDomainError('UNAUTHORIZED: Cannot check out for another driver.');
-  }
+  // Enforce session and ownership or admin authorization
+  await requireRiderOrAdminAuth(driver);
 
   // Check for active assignments
   const activeAssignments = (await db.orm.public.DeliveryAssignment
@@ -376,13 +406,6 @@ export async function updateRiderLocation(params: {
   observedAt?: number;
   deliveryJobId?: string;
 }) {
-  let session = null;
-  try {
-    session = await getServerSession(authOptions);
-  } catch {
-    session = null;
-  }
-
   const driver = await db.orm.public.LogisticsDriverProfile
     .where({ id: params.driverProfileId })
     .all()
@@ -392,9 +415,8 @@ export async function updateRiderLocation(params: {
     throw new LogisticsDomainError('Driver profile not found.');
   }
 
-  if (session?.user?.personId && driver.personId !== session.user.personId && !session.user.isSystemAdmin) {
-    throw new LogisticsDomainError('UNAUTHORIZED: Cannot update location for another driver.');
-  }
+  // Enforce session and ownership or admin authorization
+  await requireRiderOrAdminAuth(driver);
 
   if (!isValidCoordinate(params.latitude, params.longitude)) {
     throw new LogisticsDomainError('Valid GPS coordinates required.');
@@ -491,10 +513,58 @@ export async function getAuthenticatedDriverProfile() {
 
 /**
  * Rider toggles their own availability (ONLINE / OFFLINE).
+ * Enforces:
+ * 1. Rider must be authenticated.
+ * 2. Suspended riders CANNOT un-suspend themselves or go online.
+ * 3. Going ONLINE requires completed onboarding, active assigned vehicle, and active provider organization.
  */
 export async function setRiderAvailability(status: 'ONLINE' | 'OFFLINE') {
   const auth = await getAuthenticatedDriverProfile();
   if (!auth) throw new LogisticsRiderError('Unauthorized');
+
+  // Query fresh canonical driver record
+  const driver = await db.orm.public.LogisticsDriverProfile
+    .where({ id: auth.driverProfile.id })
+    .all()
+    .first();
+
+  if (!driver) {
+    throw new LogisticsRiderError('Driver profile not found');
+  }
+
+  if (driver.status === 'SUSPENDED') {
+    throw new LogisticsRiderError(
+      'FORBIDDEN: Suspended rider cannot change availability. Contact operations for administrative reinstatement.'
+    );
+  }
+
+  if (status === 'ONLINE') {
+    if (!driver.onboardingComplete) {
+      throw new LogisticsRiderError('Rider onboarding must be completed before going online.');
+    }
+
+    if (!driver.currentVehicleId) {
+      throw new LogisticsRiderError('An active vehicle must be assigned before going online.');
+    }
+
+    const vehicle = await db.orm.public.LogisticsVehicle
+      .where({ id: driver.currentVehicleId })
+      .all()
+      .first();
+
+    if (!vehicle || vehicle.status !== 'ACTIVE') {
+      throw new LogisticsRiderError('Assigned vehicle is not active.');
+    }
+
+    const provider = await db.orm.public.Organization
+      .where({ id: driver.providerId })
+      .all()
+      .first();
+
+    if (!provider || provider.status !== 'ACTIVE') {
+      throw new LogisticsRiderError('Provider organization is inactive or suspended.');
+    }
+  }
 
   await db.orm.public.LogisticsDriverProfile
     .where({ id: auth.driverProfile.id })

@@ -153,6 +153,7 @@ describe('CityDrive Network — Phase 3A: Single-Delivery Live Dispatch & Rider 
       serviceRadiusKm: 20.0,
       platformFeeRate: '0.10',
     });
+    process.env.CITYOS_FLEET_ORG_IDS = [networkOrgA.id, networkOrgB.id].join(',');
 
     // 3. Create private merchant organization (isolated fleet)
     privateMerchantOrg = await db.orm.public.Organization.create({
@@ -301,6 +302,8 @@ describe('CityDrive Network — Phase 3A: Single-Delivery Live Dispatch & Rider 
 
     const job = await db.orm.public.DeliveryJob.create({
       id: uuidv4(),
+      sourceType: 'DIRECT_DELIVERY',
+      sourceId: 'order-p3a-2',
       status: 'DISPATCHED',
       pickupAddress: '88 Marian Road, Calabar',
       dropoffAddress: 'UNICAL Main Campus Gate, Calabar',
@@ -338,6 +341,8 @@ describe('CityDrive Network — Phase 3A: Single-Delivery Live Dispatch & Rider 
 
     const job = await db.orm.public.DeliveryJob.create({
       id: uuidv4(),
+      sourceType: 'DIRECT_DELIVERY',
+      sourceId: 'order-p3a-3',
       status: 'DISPATCHED',
       pickupAddress: 'Rabana Roundabout, Calabar',
       dropoffAddress: 'State Housing Estate, Calabar',

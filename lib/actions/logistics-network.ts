@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import { requireMembership } from './tenant';
 import { LogisticsDomainError } from './logistics-domain';
+import { getNetworkDispatchPolicy } from './logistics-policy';
 import '@js-temporal/polyfill';
 
 function toTemporal(date: Date) {
@@ -223,8 +224,8 @@ export async function bookPartnerCourierFallback(params: {
   priority?: boolean;
 }) {
   return await db.transaction(async (tx: any) => {
-    const policy = process.env.CITYDRIVE_NETWORK_POLICY || 'CITYOS_ONLY';
-    if (policy === 'CITYOS_ONLY') {
+    const policy = getNetworkDispatchPolicy();
+    if (policy !== 'OPEN_NETWORK') {
       throw new LogisticsDomainError(
         'External partner courier fallback is disabled in CityOS-only launch mode.'
       );

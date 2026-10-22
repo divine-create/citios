@@ -266,7 +266,7 @@ export async function updateDriverStatus(params: {
   driverProfileId: string;
   status: 'ONLINE' | 'OFFLINE' | 'BUSY' | 'SUSPENDED';
 }) {
-  await assertProviderAccess(params.providerId, ['OWNER', 'ADMIN', 'MANAGER', 'DISPATCHER', 'RIDER']);
+  await assertProviderAccess(params.providerId, ['OWNER', 'ADMIN', 'MANAGER']);
 
   const driver = await db.orm.public.LogisticsDriverProfile.where({
     id: params.driverProfileId,

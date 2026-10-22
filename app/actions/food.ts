@@ -15,6 +15,7 @@ import {
   normalizeFoodCategory,
   inferCanonicalCategoriesForRestaurant,
 } from '@/lib/food-categories';
+import { matchImageForMenuItem } from '@/lib/menu-library';
 
 const FOOD_CATS = ['All', 'Restaurant', 'Cafe', 'Campus Eats', 'Food & Market'];
 
@@ -42,7 +43,7 @@ function mapMenuItem(
     category: m.category || normCat.label,
     canonicalCategoryId: normCat.id,
     canonicalCategoryLabel: normCat.label,
-    imageUrl: m.imageUrl,
+    imageUrl: m.imageUrl || matchImageForMenuItem(m.name) || null,
     isAvailable: m.isAvailable,
     organizationId: m.organizationId,
     modifierGroups: modifierGroups.map((g: any) => ({

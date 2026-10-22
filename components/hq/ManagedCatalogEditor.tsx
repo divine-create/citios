@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, Check, X, Utensils, DollarSign, Tag, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Check, X, Utensils, DollarSign, Tag, Loader2, Sparkles } from 'lucide-react';
 import { upsertManagedMenuItem, deleteManagedMenuItem } from '@/lib/actions/hq-managed-business';
 import MediaLinkOrUploadInput from './MediaLinkOrUploadInput';
+import MenuLibraryPickerModal from '@/components/common/MenuLibraryPickerModal';
 import { toast } from 'sonner';
 
 interface MenuItemData {
@@ -31,6 +32,7 @@ export default function ManagedCatalogEditor({
   const [items, setItems] = useState<MenuItemData[]>(initialItems);
   const [editingItem, setEditingItem] = useState<Partial<MenuItemData> | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isMenuLibraryOpen, setIsMenuLibraryOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
 
@@ -339,6 +341,24 @@ export default function ManagedCatalogEditor({
                 />
               </div>
 
+              {/* Quick Pick from Menu Library */}
+              <div className="flex items-center justify-between bg-slate-900/90 border border-slate-800 p-3 rounded-xl">
+                <div>
+                  <p className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    CityOS Menu Library (50 Dishes & Drinks)
+                  </p>
+                  <p className="text-[10px] text-slate-400">Pre-fill name, price, category, and photo from standard library</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsMenuLibraryOpen(true)}
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-teal-400 hover:text-teal-300 text-xs font-bold rounded-lg transition-colors shrink-0"
+                >
+                  Browse Library
+                </button>
+              </div>
+
               {/* Image Input (Link or Upload) */}
               <MediaLinkOrUploadInput
                 label="Item Image (Direct Link or Upload)"
@@ -397,6 +417,23 @@ export default function ManagedCatalogEditor({
           </div>
         </div>
       )}
+      {/* Menu Library Picker Modal */}
+      <MenuLibraryPickerModal
+        isOpen={isMenuLibraryOpen}
+        onClose={() => setIsMenuLibraryOpen(false)}
+        selectedImageUrl={editingItem?.imageUrl || undefined}
+        onSelect={(lib) => {
+          setEditingItem((prev) => ({
+            ...prev,
+            name: prev?.name || lib.name,
+            category: prev?.category || lib.category,
+            price: prev?.price || lib.price,
+            description: prev?.description || lib.description,
+            imageUrl: lib.imageUrl,
+          }));
+          toast.success(`Loaded "${lib.name}" from library!`);
+        }}
+      />
     </div>
   );
 }

@@ -2,34 +2,34 @@
 
 import React, { useState } from 'react';
 import { Button, Badge, Input } from '@/components/ui';
-import { Plus, Search, Edit2 } from 'lucide-react';
+import { Plus, Search, Edit2, Sparkles, Image as ImageIcon, Trash2, X, Check } from 'lucide-react';
 import { formatNaira } from '@/lib/utils';
-import { toggleMenuItemAvailability, createMenuItem } from '@/lib/actions/restaurantos';
+import { toggleMenuItemAvailability, createMenuItem, updateMenuItem, deleteMenuItem } from '@/lib/actions/restaurantos';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { STANDARDIZED_FOOD_CATEGORIES } from '@/lib/food-categories';
+import {
+  MENU_LIBRARY,
+  MENU_LIBRARY_CATEGORIES,
+  getMenuLibraryItems,
+  MenuItemLibraryEntry,
+} from '@/lib/menu-library';
+import MenuLibraryPickerModal from '@/components/common/MenuLibraryPickerModal';
 
 const DEFAULT_CATEGORIES = STANDARDIZED_FOOD_CATEGORIES
   .filter((c) => c.id !== 'other')
   .map((c) => c.label);
 
-const FOOD_LIBRARY = [
-  { name: "Jollof Rice", category: "Jollof & Rice", price: 3500, description: "Classic Nigerian party Jollof rice", imageUrl: "https://images.unsplash.com/photo-1662116765994-6d9b32943324?w=500&q=80" },
-  { name: "Fried Rice", category: "Jollof & Rice", price: 3500, description: "Stir-fried rice with mixed vegetables and liver", imageUrl: "https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&q=80" },
-  { name: "Pounded Yam & Egusi", category: "Soups & Swallow", price: 4000, description: "Smooth pounded yam with rich Egusi soup", imageUrl: "https://images.unsplash.com/photo-1626082929543-5a0224151759?w=500&q=80" },
-  { name: "Afang Soup & Garri", category: "Soups & Swallow", price: 4500, description: "Rich traditional Calabar Afang soup with yellow garri", imageUrl: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80" },
-  { name: "Grilled Chicken", category: "Chicken & Proteins", price: 2500, description: "Flame-grilled quarter chicken", imageUrl: "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=500&q=80" },
-  { name: "Beef Suya", category: "Suya & Street Grills", price: 2000, description: "Spicy roasted beef skewers", imageUrl: "https://images.unsplash.com/photo-1599598425947-330025721118?w=500&q=80" },
-  { name: "Chicken Shawarma Wrap", category: "Shawarma & Fast Eats", price: 2800, description: "Double sausage, grilled chicken and spicy sauce wrap", imageUrl: "https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=500&q=80" },
-  { name: "Fried Plantain (Dodo)", category: "Local & African Classics", price: 1000, description: "Sweet golden fried plantains", imageUrl: "https://images.unsplash.com/photo-1634789547671-33230a84f3cc?w=500&q=80" },
-  { name: "Chapman", category: "Drinks & Smoothies", price: 1500, description: "Classic Nigerian mocktail", imageUrl: "https://images.unsplash.com/photo-1536935338788-846bb9981813?w=500&q=80" },
-  { name: "Bottled Water", category: "Drinks & Smoothies", price: 500, description: "Chilled table water", imageUrl: "https://images.unsplash.com/photo-1548839140-29a749e1abc5?w=500&q=80" }
-];
-
 export default function MenuManager({ slug, menu, settings }: { slug: string; menu: any[]; settings: any }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All");
+
+  // Menu library state
+  const [isLibraryModalOpen, setIsLibraryModalOpen] = useState(false);
+  const [libraryTarget, setLibraryTarget] = useState<'create' | 'edit'>('create');
+  const [libraryCategory, setLibraryCategory] = useState<string>("All");
+  const [librarySearch, setLibrarySearch] = useState<string>("");
 
   const filterCategories = ["All", ...Array.from(new Set(menu.map((m: any) => m.category))).filter(Boolean)] as string[];
   const datalistCategories = Array.from(new Set([...DEFAULT_CATEGORIES, ...menu.map((m: any) => m.category)])).filter(Boolean) as string[];
@@ -48,6 +48,95 @@ export default function MenuManager({ slug, menu, settings }: { slug: string; me
   const [isCreating, setIsCreating] = useState(false);
   const [loading, setLoading] = useState(false);
   const [newItem, setNewItem] = useState({ name: "", description: "", price: "", category: "", imageUrl: "" });
+
+  // Edit item state
+  const [editingItem, setEditingItem] = useState<{
+    id: string;
+    name: string;
+    description: string;
+    price: string;
+    category: string;
+    imageUrl: string;
+    kitchenStation: string;
+    isAvailable: boolean;
+  } | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleOpenEdit = (item: any) => {
+    setEditingItem({
+      id: item.id,
+      name: item.name || '',
+      description: item.description || '',
+      price: String(item.price ?? ''),
+      category: item.category || '',
+      imageUrl: item.imageUrl || '',
+      kitchenStation: item.kitchenStation || 'Main Kitchen',
+      isAvailable: item.isAvailable ?? true,
+    });
+  };
+
+  const handleUpdate = async () => {
+    if (!editingItem) return;
+    if (!editingItem.name.trim() || !editingItem.price || !editingItem.category.trim()) {
+      return toast.error("Name, price, and category are required");
+    }
+    const parsedPrice = parseFloat(editingItem.price);
+    if (isNaN(parsedPrice) || parsedPrice < 0) {
+      return toast.error("Price must be a valid number greater than or equal to 0");
+    }
+
+    setIsUpdating(true);
+    const res: any = await updateMenuItem(editingItem.id, {
+      name: editingItem.name.trim(),
+      description: editingItem.description.trim() || null,
+      price: parsedPrice,
+      category: editingItem.category.trim(),
+      imageUrl: editingItem.imageUrl.trim() || null,
+      kitchenStation: editingItem.kitchenStation.trim() || 'Main Kitchen',
+      isAvailable: editingItem.isAvailable,
+    });
+    setIsUpdating(false);
+
+    if (res?.error) {
+      toast.error(res.error);
+    } else {
+      toast.success(`"${editingItem.name}" updated successfully!`);
+      setEditingItem(null);
+      router.refresh();
+    }
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to delete "${name}"? This action cannot be undone.`)) {
+      return;
+    }
+    setDeletingId(id);
+    const res: any = await deleteMenuItem(id);
+    setDeletingId(null);
+
+    if (res?.error) {
+      toast.error(res.error);
+    } else {
+      toast.success(`"${name}" deleted!`);
+      if (editingItem?.id === id) {
+        setEditingItem(null);
+      }
+      router.refresh();
+    }
+  };
+
+  const handleSelectFromLibrary = (lib: MenuItemLibraryEntry) => {
+    setNewItem({
+      ...newItem,
+      name: lib.name,
+      category: lib.category,
+      imageUrl: lib.imageUrl,
+      price: lib.price.toString(),
+      description: lib.description,
+    });
+    toast.success(`Loaded "${lib.name}" from library!`);
+  };
 
   const handleCreate = async () => {
     if (!newItem.name || !newItem.price || !newItem.category) {
@@ -74,6 +163,8 @@ export default function MenuManager({ slug, menu, settings }: { slug: string; me
     }
   };
 
+  const libraryItems = getMenuLibraryItems(libraryCategory, librarySearch);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
@@ -93,31 +184,96 @@ export default function MenuManager({ slug, menu, settings }: { slug: string; me
             {filterCategories.map((c: any) => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
-        <Button onClick={() => setIsCreating(true)} leftIcon={<Plus size={16} />}>Create Menu Item</Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setLibraryTarget('create');
+              setIsLibraryModalOpen(true);
+            }}
+            leftIcon={<Sparkles size={16} className="text-orange-500" />}
+          >
+            Browse Library ({MENU_LIBRARY.length})
+          </Button>
+          <Button onClick={() => setIsCreating(true)} leftIcon={<Plus size={16} />}>
+            Create Menu Item
+          </Button>
+        </div>
       </div>
 
       {isCreating && (
         <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl animate-in fade-in zoom-in-95 duration-200">
           <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider mb-4">Create New Item</h3>
           
-          <div className="mb-6 border border-slate-200 rounded-xl bg-white overflow-hidden">
-            <div className="bg-slate-100 px-4 py-2 border-b border-slate-200">
-              <p className="text-xs font-bold text-slate-600 uppercase tracking-wider">Quick Add from Library</p>
-            </div>
-            <div className="flex gap-3 overflow-x-auto p-4 scrollbar-hide snap-x">
-              {FOOD_LIBRARY.map(lib => (
-                <button 
-                  key={lib.name} 
-                  onClick={() => setNewItem({...newItem, name: lib.name, category: lib.category, imageUrl: lib.imageUrl, price: lib.price.toString(), description: lib.description})} 
-                  className="shrink-0 flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-2 hover:border-emerald-500 hover:ring-2 hover:ring-emerald-500/20 transition-all text-left w-48 snap-start"
+          {/* Quick Add from Menu Library */}
+          <div className="mb-6 border border-slate-200 rounded-xl bg-white overflow-hidden shadow-xs">
+            <div className="bg-slate-100 px-4 py-3 border-b border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+              <div>
+                <p className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-orange-500" />
+                  Quick Add from Menu Library ({MENU_LIBRARY.length} Items)
+                </p>
+                <p className="text-[11px] text-slate-500">Pick authentic Nigerian dishes, grills, soups & cold drinks with photos</p>
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <input
+                  type="text"
+                  placeholder="Filter library..."
+                  value={librarySearch}
+                  onChange={(e) => setLibrarySearch(e.target.value)}
+                  className="text-xs px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 w-full sm:w-44"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLibraryTarget('create');
+                    setIsLibraryModalOpen(true);
+                  }}
+                  className="text-[11px] font-bold text-orange-600 hover:text-orange-700 whitespace-nowrap px-2 py-1 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors"
                 >
-                  <img src={lib.imageUrl} alt={lib.name} className="w-10 h-10 rounded-lg object-cover ring-1 ring-black/5" />
+                  View All Grid
+                </button>
+              </div>
+            </div>
+
+            {/* Category Pills */}
+            <div className="px-4 py-2 border-b border-slate-100 flex gap-1.5 overflow-x-auto scrollbar-hide bg-slate-50/50">
+              {MENU_LIBRARY_CATEGORIES.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setLibraryCategory(cat)}
+                  className={`text-[11px] px-2.5 py-1 rounded-full font-bold whitespace-nowrap transition-colors ${
+                    libraryCategory === cat
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+
+            {/* Card Scroll Track */}
+            <div className="flex gap-3 overflow-x-auto p-4 scrollbar-hide snap-x">
+              {libraryItems.map((lib) => (
+                <button 
+                  key={lib.id} 
+                  type="button"
+                  onClick={() => handleSelectFromLibrary(lib)}
+                  className="shrink-0 flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-2.5 hover:border-emerald-500 hover:ring-2 hover:ring-emerald-500/20 transition-all text-left w-56 snap-start group"
+                >
+                  <img src={lib.imageUrl} alt={lib.name} className="w-12 h-12 rounded-lg object-cover ring-1 ring-black/5 shrink-0 bg-white" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-slate-800 truncate">{lib.name}</p>
+                    <p className="text-xs font-bold text-slate-800 truncate group-hover:text-emerald-700">{lib.name}</p>
                     <p className="text-[10px] text-slate-500 truncate">{lib.category}</p>
+                    <p className="text-[11px] font-black text-slate-900 mt-0.5">{formatNaira(lib.price)}</p>
                   </div>
                 </button>
               ))}
+              {libraryItems.length === 0 && (
+                <p className="text-xs text-slate-400 py-3 px-2">No library items found matching "{librarySearch}".</p>
+              )}
             </div>
           </div>
 
@@ -138,7 +294,38 @@ export default function MenuManager({ slug, menu, settings }: { slug: string; me
             </div>
             <Input label="Price (₦)" type="number" value={newItem.price} onChange={(e: any) => setNewItem({...newItem, price: e.target.value})} />
             <Input label="Description (Optional)" value={newItem.description} onChange={(e: any) => setNewItem({...newItem, description: e.target.value})} />
-            <Input label="Image URL (Optional)" value={(newItem as any).imageUrl || ""} onChange={(e: any) => setNewItem({...newItem, imageUrl: e.target.value} as any)} />
+            
+            <div className="sm:col-span-2 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Image URL (Optional)</label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLibraryTarget('create');
+                    setIsLibraryModalOpen(true);
+                  }}
+                  className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                >
+                  <ImageIcon size={14} /> Pick image from library
+                </button>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={(newItem as any).imageUrl || ""}
+                  onChange={(e: any) => setNewItem({...newItem, imageUrl: e.target.value} as any)}
+                  className="flex-1 h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-colors"
+                  placeholder="e.g. /images/menu/jollof-rice.jpg"
+                />
+                {newItem.imageUrl && (
+                  <img
+                    src={newItem.imageUrl}
+                    alt="Preview"
+                    className="w-12 h-12 rounded-xl object-cover ring-1 ring-black/10 shrink-0 bg-white"
+                  />
+                )}
+              </div>
+            </div>
           </div>
           <div className="flex gap-2 justify-end">
             <Button variant="ghost" onClick={() => setIsCreating(false)}>Cancel</Button>
@@ -194,8 +381,25 @@ export default function MenuManager({ slug, menu, settings }: { slug: string; me
                     )}
                   </td>
                 )}
-                <td className="px-6 py-4 text-right space-x-2">
-                  <Button variant="ghost" size="sm" leftIcon={<Edit2 size={16} />}>Edit</Button>
+                <td className="px-6 py-4 text-right space-x-2 whitespace-nowrap">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    leftIcon={<Edit2 size={16} />}
+                    onClick={() => handleOpenEdit(item)}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                    leftIcon={<Trash2 size={16} />}
+                    onClick={() => handleDelete(item.id, item.name)}
+                    isLoading={deletingId === item.id}
+                  >
+                    Delete
+                  </Button>
                 </td>
               </tr>
             ))}
@@ -208,6 +412,208 @@ export default function MenuManager({ slug, menu, settings }: { slug: string; me
           </div>
         )}
       </div>
+
+      {/* Edit Item Modal */}
+      {editingItem && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+          onClick={() => setEditingItem(null)}
+        >
+          <div
+            className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/70">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                  <Edit2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-slate-900 text-base">Edit Menu Item</h3>
+                  <p className="text-xs text-slate-500">Update item details, pricing, station, and presentation</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingItem(null)}
+                className="w-8 h-8 rounded-full hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-2">
+                  <Input
+                    label="Item Name"
+                    value={editingItem.name}
+                    onChange={(e: any) => setEditingItem({ ...editingItem, name: e.target.value })}
+                    placeholder="e.g. Special Jollof Rice"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Category</label>
+                  <input
+                    list="edit-cat-list"
+                    value={editingItem.category}
+                    onChange={(e) => setEditingItem({ ...editingItem, category: e.target.value })}
+                    className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-colors"
+                    placeholder="e.g. Mains, Drinks"
+                  />
+                  <datalist id="edit-cat-list">
+                    {datalistCategories.map((c: string) => <option key={c} value={c} />)}
+                  </datalist>
+                </div>
+
+                <Input
+                  label="Price (₦)"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={editingItem.price}
+                  onChange={(e: any) => setEditingItem({ ...editingItem, price: e.target.value })}
+                  placeholder="2500"
+                />
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Kitchen Station</label>
+                  <select
+                    value={editingItem.kitchenStation}
+                    onChange={(e) => setEditingItem({ ...editingItem, kitchenStation: e.target.value })}
+                    className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-colors"
+                  >
+                    {['Main Kitchen', 'Bar', 'Grill', 'Salad Station', 'Bakery', 'Dessert'].map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Availability Status</label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditingItem({ ...editingItem, isAvailable: true })}
+                      className={`flex-1 h-12 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 border ${
+                        editingItem.isAvailable
+                          ? 'bg-emerald-50 border-emerald-500 text-emerald-800 ring-1 ring-emerald-500'
+                          : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                      }`}
+                    >
+                      <Check size={14} /> Available
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingItem({ ...editingItem, isAvailable: false })}
+                      className={`flex-1 h-12 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 border ${
+                        !editingItem.isAvailable
+                          ? 'bg-rose-50 border-rose-500 text-rose-800 ring-1 ring-rose-500'
+                          : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                      }`}
+                    >
+                      86'd (Unavailable)
+                    </button>
+                  </div>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <Input
+                    label="Description (Optional)"
+                    value={editingItem.description}
+                    onChange={(e: any) => setEditingItem({ ...editingItem, description: e.target.value })}
+                    placeholder="Flavor notes, ingredients, or allergens"
+                  />
+                </div>
+
+                <div className="sm:col-span-2 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Item Image</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLibraryTarget('edit');
+                        setIsLibraryModalOpen(true);
+                      }}
+                      className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                    >
+                      <Sparkles size={14} className="text-orange-500" /> Pick from Menu Library
+                    </button>
+                  </div>
+                  <div className="flex gap-3 items-center">
+                    <input
+                      type="text"
+                      value={editingItem.imageUrl}
+                      onChange={(e) => setEditingItem({ ...editingItem, imageUrl: e.target.value })}
+                      className="flex-1 h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-colors"
+                      placeholder="e.g. /images/menu/jollof-rice.jpg"
+                    />
+                    {editingItem.imageUrl ? (
+                      <img
+                        src={editingItem.imageUrl}
+                        alt="Preview"
+                        className="w-12 h-12 rounded-xl object-cover ring-1 ring-black/10 shrink-0 bg-white"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-xl bg-slate-100 ring-1 ring-black/5 flex items-center justify-center text-slate-400 shrink-0">
+                        <ImageIcon size={18} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/70">
+              <Button
+                variant="ghost"
+                className="text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                leftIcon={<Trash2 size={16} />}
+                onClick={() => handleDelete(editingItem.id, editingItem.name)}
+                isLoading={deletingId === editingItem.id}
+              >
+                Delete Item
+              </Button>
+              <div className="flex gap-2">
+                <Button variant="ghost" onClick={() => setEditingItem(null)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleUpdate} isLoading={isUpdating}>
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full Grid Picker Modal */}
+      <MenuLibraryPickerModal
+        isOpen={isLibraryModalOpen}
+        onClose={() => setIsLibraryModalOpen(false)}
+        selectedImageUrl={libraryTarget === 'edit' ? editingItem?.imageUrl : newItem.imageUrl}
+        onSelect={(lib) => {
+          if (libraryTarget === 'edit' && editingItem) {
+            setEditingItem({
+              ...editingItem,
+              imageUrl: lib.imageUrl,
+              category: editingItem.category || lib.category,
+              description: editingItem.description || lib.description,
+            });
+            toast.success(`Applied image from "${lib.name}" to editor!`);
+          } else {
+            if (!isCreating) {
+              setIsCreating(true);
+            }
+            handleSelectFromLibrary(lib);
+          }
+          setIsLibraryModalOpen(false);
+        }}
+      />
     </div>
   );
 }

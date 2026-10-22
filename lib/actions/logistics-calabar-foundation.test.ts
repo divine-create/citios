@@ -283,6 +283,7 @@ test('CityDrive Calabar Geographic Foundation — Network Dispatch & Partner Fal
     type: 'LOGISTICS' as any,
     status: 'ACTIVE' as any,
   });
+  process.env.CITYOS_FLEET_ORG_IDS = networkProv.id;
 
   await db.orm.public.LogisticsSettings.create({
     organizationId: networkProv.id,
@@ -380,8 +381,8 @@ test('CityDrive Calabar Geographic Foundation — Network Dispatch & Partner Fal
     });
 
     assert.strictEqual(fallbackRes.success, false);
-    assert.strictEqual(fallbackRes.tier, 'PARTNER_FALLBACK');
-    assert.strictEqual(fallbackRes.partnerFallbackEligible, true);
+    assert.strictEqual(fallbackRes.tier, 'NO_RIDER_AVAILABLE');
+    assert.strictEqual(fallbackRes.partnerFallbackEligible, false);
     assert.strictEqual(fallbackRes.candidateCount, 0);
     assert.ok(fallbackRes.reason?.includes('exhausted'));
   });

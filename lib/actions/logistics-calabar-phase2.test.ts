@@ -152,6 +152,7 @@ describe('CityDrive Network — Phase 2: Resident Address & Merchant Pickup Read
       type: 'LOGISTICS' as any,
       status: 'ACTIVE' as any,
     });
+    process.env.CITYOS_FLEET_ORG_IDS = networkLogisticsOrg.id;
     await db.orm.public.LogisticsSettings.create({
       organizationId: networkLogisticsOrg.id,
       isNetworkParticipant: true,
@@ -559,6 +560,7 @@ describe('CityDrive Network — Phase 2: Resident Address & Merchant Pickup Read
 
       const result = await findNetworkCandidates({
         deliveryJobId: dummyJob.id,
+        providerId: networkLogisticsOrg.id,
         pickup: { latitude: 4.9757, longitude: 8.3417 },
       });
 
