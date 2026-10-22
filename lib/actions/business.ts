@@ -285,7 +285,8 @@ export async function getMyBusinesses() {
       businesses.push({
         id: org.id,
         name: org.name,
-        type: org.type,
+                type: org.type,
+        status: org.status,
         description: org.description,
         address: org.address || loc?.address || null,
         cityId: city?.id ?? null,
@@ -631,4 +632,19 @@ export async function deleteOrgJob(input: { organizationId: string; jobId: strin
     console.error('Error deleting org job:', error);
     return { error: error?.message || 'Failed to delete job.' };
   }
+}
+
+export async function getBusinessClosureEligibility(organizationId: string) {
+  const mod = await import('./business-lifecycle');
+  return mod.getBusinessClosureEligibility(organizationId);
+}
+
+export async function closeOrDeleteOrganization(organizationId: string) {
+  const mod = await import('./business-lifecycle');
+  return mod.closeOrDeleteOrganization(organizationId);
+}
+
+export async function reopenOrganization(organizationId: string) {
+  const mod = await import('./business-lifecycle');
+  return mod.reopenOrganization(organizationId);
 }

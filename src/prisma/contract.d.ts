@@ -38,7 +38,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'110908f680701d91e57d2acb75d0984494451508dcb20065e83ea90489cabe12'>;
+  StorageHashBase<'4df1e5ec3d74d8d5206016ca950d17d2f60d82362de2d4eef8191fa0bb3a48b3'>;
 export type ExecutionHash =
   ExecutionHashBase<'95ee367e3a6b099a75b4205a42721305cdf157a08cdc4360279057cd92b25b92'>;
 export type ProfileHash =
@@ -1223,7 +1223,7 @@ export type FieldOutputTypes = {
       readonly description: CodecTypes['pg/text@1']['output'] | null;
       readonly address: CodecTypes['pg/text@1']['output'] | null;
       readonly logoAssetId: CodecTypes['pg/text@1']['output'] | null;
-      readonly status: 'ACTIVE' | 'SUSPENDED';
+      readonly status: 'ACTIVE' | 'SUSPENDED' | 'CLOSED' | 'ARCHIVED';
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
     };
     readonly OrganizationClaim: {
@@ -3394,7 +3394,7 @@ export type FieldInputTypes = {
       readonly description: CodecTypes['pg/text@1']['input'] | null;
       readonly address: CodecTypes['pg/text@1']['input'] | null;
       readonly logoAssetId: CodecTypes['pg/text@1']['input'] | null;
-      readonly status: 'ACTIVE' | 'SUSPENDED';
+      readonly status: 'ACTIVE' | 'SUSPENDED' | 'CLOSED' | 'ARCHIVED';
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
     };
     readonly OrganizationClaim: {
@@ -5529,7 +5529,7 @@ export type StorageColumnTypes = {
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly logoAssetId: CodecTypes['pg/text@1']['output'] | null;
       readonly name: CodecTypes['pg/text@1']['output'];
-      readonly status: 'ACTIVE' | 'SUSPENDED';
+      readonly status: 'ACTIVE' | 'SUSPENDED' | 'CLOSED' | 'ARCHIVED';
       readonly storeCategory: CodecTypes['pg/text@1']['output'] | null;
       readonly type:
         | 'GOVERNMENT'
@@ -7700,7 +7700,7 @@ export type StorageColumnInputTypes = {
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly logoAssetId: CodecTypes['pg/text@1']['input'] | null;
       readonly name: CodecTypes['pg/text@1']['input'];
-      readonly status: 'ACTIVE' | 'SUSPENDED';
+      readonly status: 'ACTIVE' | 'SUSPENDED' | 'CLOSED' | 'ARCHIVED';
       readonly storeCategory: CodecTypes['pg/text@1']['input'] | null;
       readonly type:
         | 'GOVERNMENT'
@@ -27381,7 +27381,7 @@ type ContractBase = Omit<
             };
             readonly OrganizationStatus: {
               readonly kind: 'valueSet';
-              readonly values: readonly ['ACTIVE', 'SUSPENDED'];
+              readonly values: readonly ['ACTIVE', 'SUSPENDED', 'CLOSED', 'ARCHIVED'];
             };
             readonly OrgRole: {
               readonly kind: 'valueSet';
@@ -47021,6 +47021,8 @@ type ContractBase = Omit<
             readonly members: readonly [
               { readonly name: 'ACTIVE'; readonly value: 'ACTIVE' },
               { readonly name: 'SUSPENDED'; readonly value: 'SUSPENDED' },
+              { readonly name: 'CLOSED'; readonly value: 'CLOSED' },
+              { readonly name: 'ARCHIVED'; readonly value: 'ARCHIVED' },
             ];
           };
           readonly OrgType: {

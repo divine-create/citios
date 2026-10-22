@@ -425,6 +425,8 @@ model City {
 enum OrganizationStatus {
   ACTIVE
   SUSPENDED
+  CLOSED
+  ARCHIVED
 }
 
 enum OrgType {

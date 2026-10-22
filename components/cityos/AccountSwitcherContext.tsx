@@ -9,6 +9,7 @@ export interface BusinessAccount {
   id: string;
   name: string;
   type: string;
+  status?: string;
   description?: string | null;
   address?: string | null;
   cityId?: string | null;

@@ -14,6 +14,8 @@ import {
   ExternalLink,
   ArrowRight,
   Briefcase,
+  AlertTriangle,
+  Archive,
   CalendarPlus,
   X,
   Loader2,
@@ -30,6 +32,7 @@ import { cn } from '@/lib/utils';
 import { createOrgJob } from '@/lib/actions/business';
 import BranchManagerModal from '@/components/cityos/BranchManagerModal';
 import TeamManagerModal from '@/components/cityos/TeamManagerModal';
+import BusinessClosureModal from '@/components/cityos/BusinessClosureModal';
 
 const VERTICAL_META: Record<
   string,
@@ -85,6 +88,7 @@ export default function BusinessDashboard() {
   const [showBranchModal, setShowBranchModal] = useState(false);
   const [showTeamModal, setShowTeamModal] = useState(false);
   const [showJobModal, setShowJobModal] = useState(false);
+  const [showClosureModal, setShowClosureModal] = useState(false);
 
   // Job form state
   const [jobTitle, setJobTitle] = useState('');
@@ -97,7 +101,7 @@ export default function BusinessDashboard() {
   const [jobError, setJobError] = useState<string | null>(null);
 
   const { data: session } = useSession();
-  const { myBusinesses, activeBusiness, switchToBusiness, openCreateModal, isLoading } = useAccountSwitcher();
+  const { myBusinesses, activeBusiness, switchToBusiness, openCreateModal, isLoading, refreshBusinesses } = useAccountSwitcher();
 
   const currentBusiness = activeBusiness || myBusinesses[0] || null;
 
@@ -296,7 +300,14 @@ export default function BusinessDashboard() {
                       <BizIcon className="w-4 h-4" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-black text-ink truncate">{biz.name}</p>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <p className="text-xs font-black text-ink truncate">{biz.name}</p>
+                        {biz.status === 'CLOSED' && (
+                          <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 border border-amber-500/20 text-[9px] font-black uppercase shrink-0">
+                            Closed
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">
                         {bizMeta?.osName || biz.type} · {biz.role}
                       </p>
@@ -328,12 +339,37 @@ export default function BusinessDashboard() {
       {/* Active Business Dedicated OS Banner & Shared Growth Toolkit */}
       {currentBusiness && (
         <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 rounded-2xl p-6 text-white shadow-lg space-y-5 border border-slate-800">
+          {currentBusiness.status === 'CLOSED' && (
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-amber-200 text-xs font-medium">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>This business is closed & archived. Public marketplace listings are hidden and it operates in read-only mode.</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowClosureModal(true)}
+                className="px-3.5 py-1.5 rounded-xl bg-amber-500 text-slate-950 font-black hover:bg-amber-400 text-xs transition-all cursor-pointer shadow-sm"
+              >
+                Reopen Business
+              </button>
+            </div>
+          )}
+
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-5">
             <div>
               <div className="flex items-center gap-2">
                 <span className="px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30 text-[10px] font-black uppercase tracking-wider">
                   {verticalMeta?.osName || currentBusiness.type}
                 </span>
+                {currentBusiness.status === 'CLOSED' ? (
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
+                    <Archive className="w-3 h-3" /> Closed / Archived
+                  </span>
+                ) : (
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
+                    <BadgeCheck className="w-3 h-3" /> Active
+                  </span>
+                )}
                 <span className="text-xs text-slate-400 font-medium">
                   Role: {currentBusiness.role}
                 </span>
@@ -460,6 +496,33 @@ export default function BusinessDashboard() {
                   <p className="text-[10px] text-slate-400 mt-0.5">Publish an official event for {currentBusiness.name}</p>
                 </div>
               </Link>
+
+              <button
+                type="button"
+                onClick={() => setShowClosureModal(true)}
+                className="p-3.5 rounded-xl bg-slate-800/90 hover:bg-slate-750 border border-slate-700/70 hover:border-red-500/50 transition-all text-left group flex flex-col justify-between gap-2 cursor-pointer"
+              >
+                <div className="flex items-center justify-between">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    currentBusiness.status === 'CLOSED' ? 'bg-amber-500/20 text-amber-400' : 'bg-red-500/20 text-red-400'
+                  }`}>
+                    {currentBusiness.status === 'CLOSED' ? <Archive className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+                  </div>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                    currentBusiness.status === 'CLOSED' ? 'text-amber-400 bg-amber-500/10' : 'text-red-400 bg-red-500/10'
+                  }`}>
+                    {currentBusiness.status === 'CLOSED' ? 'Archived' : 'Lifecycle'}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-xs font-black text-white group-hover:text-red-300 transition-colors">
+                    {currentBusiness.status === 'CLOSED' ? 'Manage Closed Business' : 'Close or Delete Business'}
+                  </p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">
+                    {currentBusiness.status === 'CLOSED' ? 'Reopen business or inspect archive' : 'Fast test purge or safe ledger archival'}
+                  </p>
+                </div>
+              </button>
             </div>
           </div>
         </div>
@@ -479,6 +542,14 @@ export default function BusinessDashboard() {
             onClose={() => setShowTeamModal(false)}
             organizationId={currentBusiness.id}
             organizationName={currentBusiness.name}
+          />
+          <BusinessClosureModal
+            isOpen={showClosureModal}
+            onClose={() => setShowClosureModal(false)}
+            business={currentBusiness}
+            onSuccess={() => {
+              refreshBusinesses();
+            }}
           />
 
           {/* Post a Job Modal */}

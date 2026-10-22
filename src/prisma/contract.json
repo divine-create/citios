@@ -1324,6 +1324,14 @@
               {
                 "name": "SUSPENDED",
                 "value": "SUSPENDED"
+              },
+              {
+                "name": "CLOSED",
+                "value": "CLOSED"
+              },
+              {
+                "name": "ARCHIVED",
+                "value": "ARCHIVED"
               }
             ]
           },
@@ -41276,8 +41284,8 @@
             "organization": {
               "checks": [
                 {
-                  "expression": "\"status\" IN ('ACTIVE', 'SUSPENDED')",
-                  "name": "organization_status_check_1527ac15",
+                  "expression": "\"status\" IN ('ACTIVE', 'SUSPENDED', 'CLOSED', 'ARCHIVED')",
+                  "name": "organization_status_check_ab538858",
                   "prefix": "organization_status_check"
                 },
                 {
@@ -54603,7 +54611,9 @@
               "kind": "valueSet",
               "values": [
                 "ACTIVE",
-                "SUSPENDED"
+                "SUSPENDED",
+                "CLOSED",
+                "ARCHIVED"
               ]
             },
             "OutletOrderStatus": {
@@ -54791,7 +54801,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "110908f680701d91e57d2acb75d0984494451508dcb20065e83ea90489cabe12"
+    "storageHash": "4df1e5ec3d74d8d5206016ca950d17d2f60d82362de2d4eef8191fa0bb3a48b3"
   },
   "execution": {
     "executionHash": "95ee367e3a6b099a75b4205a42721305cdf157a08cdc4360279057cd92b25b92",
