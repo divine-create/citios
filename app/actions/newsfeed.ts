@@ -288,7 +288,7 @@ export async function fetchFeed(
     }
 
     const fetchedPosts = await batchQuery
-      .include('person', (p: any) => p.include('profile'))
+      .include('person', (p: any) => p.include('profile').include('identifiers'))
       .include('organization', (o: any) => o.select('name', 'id', 'type', 'logoAssetId'))
       .include('likes', (likes: any) => likes.count())
       .include('comments', (comments: any) => comments.count())
@@ -296,11 +296,34 @@ export async function fetchFeed(
 
     hasMore = fetchedPosts.length === limit;
 
-    const validBatch = fetchedPosts.filter(
-      (p: any) =>
-        !p.organizationId ||
-        !isTestOrDemoOrganization({ id: p.organizationId, name: p.organization?.name })
-    );
+    const validBatch = fetchedPosts.filter((p: any) => {
+      // 1. Filter test or demo organizations
+      if (
+        p.organizationId &&
+        isTestOrDemoOrganization({ id: p.organizationId, name: p.organization?.name })
+      ) {
+        return false;
+      }
+
+      // 2. Filter diagnostic or synthetic test post titles
+      const title = (p.title || '').trim().toLowerCase();
+      if (title.startsWith('diag ') || title === 'diag post' || title.startsWith('test post')) {
+        return false;
+      }
+
+      // 3. Filter test resident accounts (e.g. social-*@cityos.test, DiagA Author)
+      const authorName = `${p.person?.firstName || ''} ${p.person?.lastName || ''}`.trim().toLowerCase();
+      if (authorName.includes('diaga') || authorName.includes('test author')) {
+        return false;
+      }
+
+      const email = (p.person?.identifiers?.find((i: any) => i.type === 'EMAIL')?.normalizedValue || '').toLowerCase();
+      if (email.endsWith('@cityos.test') || email.includes('@example.com')) {
+        return false;
+      }
+
+      return true;
+    });
 
     rawPosts.push(...validBatch);
 

@@ -15,6 +15,8 @@ import {
   Settings2,
   PhoneCall,
   MapPin,
+  Truck,
+  Navigation,
   Sparkles,
 } from 'lucide-react';
 import { PlatformCheckoutConfig, saveCheckoutConfig } from '@/lib/actions/checkout-settings';
@@ -391,6 +393,161 @@ export default function AdminCheckoutConfig({ initialConfig }: AdminCheckoutConf
                 )}
               />
             </button>
+          </div>
+        </div>
+      </div>
+
+
+      {/* CityDrive Hyperlocal Delivery Pricing (Base Fee & Fare Matrix) */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+          <div>
+            <div className="flex items-center gap-2">
+              <Truck className="w-5 h-5 text-teal-400" />
+              <h2 className="text-lg font-black text-white tracking-tight">CityDrive Hyperlocal Delivery Pricing</h2>
+            </div>
+            <p className="text-xs text-slate-400 mt-1">
+              Configure the baseline delivery tariff applied to all dynamic checkout orders across Calabar.
+            </p>
+          </div>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-400 text-xs font-bold font-mono">
+            <span>Formula: Base + (KM - BaseKM) × Rate</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Base Dropoff Fee */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-300 block">
+              Base Dropoff Fee (₦) <span className="text-teal-400 font-normal">*Required</span>
+            </label>
+            <div className="relative">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-bold">₦</span>
+              <input
+                type="number"
+                min="0"
+                step="50"
+                value={config.deliveryBaseFee ?? 800}
+                onChange={(e) => setConfig({ ...config, deliveryBaseFee: Math.max(0, Number(e.target.value) || 0) })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-4 py-3 text-xs font-bold text-white focus:outline-none focus:border-teal-500"
+                placeholder="800"
+              />
+            </div>
+            <p className="text-[11px] text-slate-500">
+              Minimum fee charged for any delivery.
+            </p>
+          </div>
+
+          {/* Base Distance Included */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-300 block">
+              Base Distance Included (KM)
+            </label>
+            <div className="relative">
+              <input
+                type="number"
+                min="0.5"
+                max="20"
+                step="0.5"
+                value={config.deliveryBaseDistanceKm ?? 2.0}
+                onChange={(e) => setConfig({ ...config, deliveryBaseDistanceKm: Math.max(0.5, Number(e.target.value) || 2.0) })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white focus:outline-none focus:border-teal-500"
+                placeholder="2.0"
+              />
+            </div>
+            <p className="text-[11px] text-slate-500">
+              Distances up to this radius pay only the Base Fee.
+            </p>
+          </div>
+
+          {/* Per-KM Excess Rate */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-300 block">
+              Excess Rate (₦ / KM)
+            </label>
+            <div className="relative">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-bold">₦</span>
+              <input
+                type="number"
+                min="0"
+                step="25"
+                value={config.deliveryPerKmRate ?? 150}
+                onChange={(e) => setConfig({ ...config, deliveryPerKmRate: Math.max(0, Number(e.target.value) || 0) })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-4 py-3 text-xs font-bold text-white focus:outline-none focus:border-teal-500"
+                placeholder="150"
+              />
+            </div>
+            <p className="text-[11px] text-slate-500">
+              Added per kilometer beyond the base distance.
+            </p>
+          </div>
+
+          {/* Free Delivery Minimum Order */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-300 block">
+              Free Delivery Order Min (₦)
+            </label>
+            <div className="relative">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-bold">₦</span>
+              <input
+                type="number"
+                min="0"
+                step="500"
+                value={config.freeDeliveryThreshold ?? 0}
+                onChange={(e) => setConfig({ ...config, freeDeliveryThreshold: Math.max(0, Number(e.target.value) || 0) })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-4 py-3 text-xs font-bold text-white focus:outline-none focus:border-teal-500"
+                placeholder="0"
+              />
+            </div>
+            <p className="text-[11px] text-slate-500">
+              0 disables free delivery subsidies.
+            </p>
+          </div>
+        </div>
+
+        {/* Live Fare Simulation Preview */}
+        <div className="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Navigation className="w-4 h-4 text-teal-400" />
+              <span className="text-xs font-bold text-white uppercase tracking-wider">Live Calabar Fare Simulation</span>
+            </div>
+            <span className="text-[11px] text-slate-400">Updates live as you adjust the fields above</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+            {/* Short Trip */}
+            <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-xl flex items-center justify-between">
+              <div>
+                <p className="text-[11px] font-bold text-slate-300">Short Trip (1.5 km)</p>
+                <p className="text-[10px] text-slate-500">e.g. Marian → State Housing</p>
+              </div>
+              <span className="text-sm font-black text-teal-400 font-mono">
+                ₦{(config.deliveryBaseFee ?? 800).toLocaleString()}
+              </span>
+            </div>
+
+            {/* Mid Trip */}
+            <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-xl flex items-center justify-between">
+              <div>
+                <p className="text-[11px] font-bold text-slate-300">Mid Trip (4.0 km)</p>
+                <p className="text-[10px] text-slate-500">e.g. Marian → Watt / Goldie</p>
+              </div>
+              <span className="text-sm font-black text-teal-400 font-mono">
+                ₦{Math.round((config.deliveryBaseFee ?? 800) + Math.max(0, 4.0 - (config.deliveryBaseDistanceKm ?? 2.0)) * (config.deliveryPerKmRate ?? 150)).toLocaleString()}
+              </span>
+            </div>
+
+            {/* Long Trip */}
+            <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-xl flex items-center justify-between">
+              <div>
+                <p className="text-[11px] font-bold text-slate-300">Long Trip (7.5 km)</p>
+                <p className="text-[10px] text-slate-500">e.g. Airport → 8 Miles</p>
+              </div>
+              <span className="text-sm font-black text-teal-400 font-mono">
+                ₦{Math.round((config.deliveryBaseFee ?? 800) + Math.max(0, 7.5 - (config.deliveryBaseDistanceKm ?? 2.0)) * (config.deliveryPerKmRate ?? 150)).toLocaleString()}
+              </span>
+            </div>
           </div>
         </div>
       </div>

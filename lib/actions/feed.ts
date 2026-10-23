@@ -18,6 +18,13 @@ export async function getCommunityFeed() {
       const locs = await db.orm.public.Location.where({ cityId: city.id }).all();
       const cityOrgIds = new Set(locs.map(l => l.organizationId));
       posts = posts.filter(p => !p.organizationId || cityOrgIds.has(p.organizationId));
+      const { isTestOrDemoOrganization } = await import('@/lib/storefront-filter');
+      posts = posts.filter(p => {
+        if (p.organizationId && isTestOrDemoOrganization({ id: p.organizationId })) return false;
+        const title = (p.title || '').trim().toLowerCase();
+        if (title.startsWith('diag ') || title === 'diag post' || title.startsWith('test post')) return false;
+        return true;
+      });
       const orgIdsArr = Array.from(cityOrgIds);
       orgs = orgIdsArr.length > 0 ? await db.orm.public.Organization.where(o => o.id.in(orgIdsArr)).all() : [];
     } else {

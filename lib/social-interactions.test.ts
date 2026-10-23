@@ -289,11 +289,38 @@ test('Social Interactions: Post Likes, Comments, Comment Replies & Comment Likes
     const updatedDetails = await getPostDetails(post.id);
     assert.equal(updatedDetails.comments[0].replies[0].hasLiked, true);
     assert.equal(updatedDetails.comments[0].replies[0].likesCount, 1);
-
     // Unliking restores state
     const unlikeRes = await toggleCommentLike(replyComment.id);
     assert.equal(unlikeRes.success, true);
     assert.equal(unlikeRes.liked, false);
     assert.equal(unlikeRes.likesCount, 0);
+  });
+
+  t.after(async () => {
+    try {
+      const comments = await db.orm.public.Comment.where({ postId: post.id }).all();
+      const commentIds = comments.map((c: any) => c.id);
+      if (commentIds.length > 0) {
+        const commentLikes = await db.orm.public.CommentLike.where((cl: any) => cl.commentId.in(commentIds)).all();
+        for (const cl of commentLikes) {
+          await db.orm.public.CommentLike.where({ id: cl.id }).delete();
+        }
+      }
+      for (const c of comments.filter((c: any) => Boolean(c.parentId))) {
+        await db.orm.public.Comment.where({ id: c.id }).delete();
+      }
+      for (const c of comments.filter((c: any) => !c.parentId)) {
+        await db.orm.public.Comment.where({ id: c.id }).delete();
+      }
+      const postLikes = await db.orm.public.PostLike.where({ postId: post.id }).all();
+      for (const pl of postLikes) {
+        await db.orm.public.PostLike.where({ id: pl.id }).delete();
+      }
+      await db.orm.public.Post.where({ id: post.id }).delete();
+      await db.orm.public.Person.where({ id: author.id }).delete();
+      await db.orm.public.Person.where({ id: viewer.id }).delete();
+    } catch (e) {
+      console.warn('[social-interactions.test] Teardown warning:', e);
+    }
   });
 });

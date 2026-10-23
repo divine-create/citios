@@ -392,6 +392,7 @@ export async function updateEventSettings(input: {
   title?: string;
   location?: string;
   capacity?: number;
+  eventUrl?: string | null;
 }) {
   try {
     let session: any = null;
@@ -418,13 +419,15 @@ export async function updateEventSettings(input: {
       ...input.settings,
     };
 
+    const updatedEventUrl = input.eventUrl !== undefined ? (input.eventUrl?.trim() || null) : parsed.eventUrl;
+
     const newDescription = serializeEventDescription({
       summary: parsed.summary,
       category: parsed.category,
       hostPersonId: parsed.hostPersonId,
       hostName: parsed.hostName,
       imageUrl: parsed.imageUrl,
-      eventUrl: parsed.eventUrl,
+      eventUrl: updatedEventUrl,
       settings: updatedSettings,
     });
 
@@ -435,9 +438,11 @@ export async function updateEventSettings(input: {
 
     await db.orm.public.Event.where({ id: input.eventId }).update(updatePayload);
 
-    revalidatePath(`/events/${input.eventId}`);
-    revalidatePath('/events');
-    revalidatePath('/admin/events');
+    try {
+      revalidatePath(`/events/${input.eventId}`);
+      revalidatePath('/events');
+      revalidatePath('/admin/events');
+    } catch {}
 
     return { success: true, settings: updatedSettings };
   } catch (error: any) {

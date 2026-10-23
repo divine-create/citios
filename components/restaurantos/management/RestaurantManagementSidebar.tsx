@@ -20,7 +20,8 @@ import {
   Percent, 
   Users, 
   Settings,
-  Scale
+  Scale,
+  Truck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui';
@@ -34,6 +35,7 @@ export default function RestaurantManagementSidebar({ slug, settings, orgName }:
       items: [
         { label: 'POS Terminal', href: `/workspaces/restaurantos/${slug}/pos`, icon: <ShoppingBag size={18} /> },
         { label: 'Kitchen Display', href: `/workspaces/restaurantos/${slug}/kds`, icon: <ChefHat size={18} /> },
+        { label: 'Delivery & Fleet', href: `/workspaces/restaurantos/${slug}/management/delivery`, icon: <Truck size={18} /> },
       ]
     },
     {

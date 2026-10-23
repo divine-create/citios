@@ -223,13 +223,19 @@ export function EventsAdminView({ initialData }: { initialData: any }) {
                         >
                           View <ExternalLink className="w-3 h-3" />
                         </Link>
+                        <Link
+                          href={`/events/organizer?event=${event.id}`}
+                          className="px-3 py-1.5 rounded-lg bg-teal-800 hover:bg-teal-900 text-white text-xs font-bold transition flex items-center gap-1 shadow-xs"
+                        >
+                          Organizer Suite
+                        </Link>
                         <Button
                           onClick={() => setActiveEventForTickets(event)}
                           variant="outline"
                           size="sm"
                           className="bg-white border-slate-200"
                         >
-                          Manage Tickets
+                          Tiers
                         </Button>
                       </div>
                     </div>

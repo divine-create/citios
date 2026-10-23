@@ -327,4 +327,49 @@ describe('CityOS Events Vertical: Reality & Feature Tests', () => {
       await db.orm.public.Event.where({ id: testEventId }).delete();
     });
   });
+
+  describe('4. Event Registration Link & Custom URL Configuration', () => {
+    let linkEventId: string;
+    let orgId: string;
+
+    it('creates an event and updates its registration link/external URL via updateEventSettings', async () => {
+      const org = await db.orm.public.Organization.all().first();
+      orgId = org?.id || 'test-org-123';
+
+      const temporalDate = (globalThis as any).Temporal.Instant.fromEpochMilliseconds(Date.now() + 86400000);
+      const createdEvent = await db.orm.public.Event.create({
+        organizationId: orgId,
+        title: 'Calabar Design Meetup',
+        location: 'Marian Road, Calabar',
+        date: temporalDate,
+        capacity: 100,
+        price: 0,
+        description: 'Monthly meetup for digital product designers in Calabar.',
+      });
+      linkEventId = createdEvent.id;
+
+      // Update settings with a custom registration link
+      const customUrl = 'https://luma.com/calabar-designers-2026';
+      const res = await updateEventSettings({
+        eventId: linkEventId,
+        eventUrl: customUrl,
+        settings: {
+          requireApproval: false,
+          enableWaitlist: true,
+        },
+      });
+
+      assert.equal(res.success, true);
+
+      // Verify the event in DB now has the EVENT_URL serialized and parsed
+      const freshEvent = await db.orm.public.Event.where({ id: linkEventId }).first();
+      assert.ok(freshEvent);
+      const parsed = parseEventDescription(freshEvent.description);
+      assert.equal(parsed.eventUrl, customUrl);
+      assert.equal(parsed.settings.enableWaitlist, true);
+
+      // Clean up
+      await db.orm.public.Event.where({ id: linkEventId }).delete();
+    });
+  });
 });

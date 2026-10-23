@@ -17,5 +17,11 @@ test('Platform Checkout Settings Contract Suite', async (t) => {
       config.defaultMethod === 'transfer',
       'Default method should be valid'
     );
+    assert.equal(typeof config.deliveryBaseFee, 'number');
+    assert.ok(config.deliveryBaseFee! >= 0, 'deliveryBaseFee should be non-negative');
+    assert.equal(typeof config.deliveryBaseDistanceKm, 'number');
+    assert.ok(config.deliveryBaseDistanceKm! > 0, 'deliveryBaseDistanceKm should be positive');
+    assert.equal(typeof config.deliveryPerKmRate, 'number');
+    assert.ok(config.deliveryPerKmRate! >= 0, 'deliveryPerKmRate should be non-negative');
   });
 });

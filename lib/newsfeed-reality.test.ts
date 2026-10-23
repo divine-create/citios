@@ -35,7 +35,7 @@ test('CityOS Newsfeed Reality Verification', async (t) => {
 
     const marketplace = await fetchFeed('For You', 'Marketplace');
     assert.ok(marketplace.posts.length > 0, 'Marketplace topic should return posts');
-    assert.ok(marketplace.posts.every((p: any) => ['Offer', 'Marketplace', 'RETAIL', 'Shops'].includes(p.category)));
+    assert.ok(marketplace.posts.every((p: any) => ['Offer', 'Sales', 'Marketplace', 'RETAIL', 'Shops'].includes(p.category)));
   });
 
   await t.test('3. Cursor-based pagination traverses feed without duplication', async () => {

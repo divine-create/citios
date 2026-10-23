@@ -15,6 +15,10 @@ export interface PlatformCheckoutConfig {
   allowPayOnDelivery: boolean;
   requireDeliveryAddress: boolean;
   minOrderAmount: number;
+  deliveryBaseFee?: number;
+  deliveryBaseDistanceKm?: number;
+  deliveryPerKmRate?: number;
+  freeDeliveryThreshold?: number;
   updatedAt?: string;
   updatedBy?: string;
 }
@@ -29,6 +33,10 @@ const DEFAULT_CHECKOUT_CONFIG: PlatformCheckoutConfig = {
   allowPayOnDelivery: false,
   requireDeliveryAddress: false,
   minOrderAmount: 0,
+  deliveryBaseFee: 800,
+  deliveryBaseDistanceKm: 2.0,
+  deliveryPerKmRate: 150,
+  freeDeliveryThreshold: 0,
 };
 
 const CONFIG_SLUG = 'platform-checkout-config';

@@ -397,4 +397,18 @@ test('ServiceOS Reality & Production Hardening Suite', async (t) => {
     assert.strictEqual(foundItem.orgName, orgA.name);
     assert.strictEqual(foundItem.price, 15000);
   });
+
+  t.after(async () => {
+    try {
+      // Clean up posts created for orgA / orgB
+      const posts = await db.orm.public.Post.where((p: any) => p.organizationId.in([orgA.id, orgB.id])).all();
+      for (const p of posts) {
+        await db.orm.public.Post.where({ id: p.id }).delete();
+      }
+      await db.orm.public.Organization.where({ id: orgA.id }).delete();
+      await db.orm.public.Organization.where({ id: orgB.id }).delete();
+    } catch (e) {
+      console.warn('[serviceos-reality.test] Teardown warning:', e);
+    }
+  });
 });

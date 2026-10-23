@@ -65,7 +65,7 @@ export function generateRecipientOtp(): string {
 // ---------------------------------------------------------------------------
 
 export interface CreateDeliveryJobParams {
-  providerId:          string;
+  providerId?:         string | null;
   sourceType:          string;
   sourceId:            string;
   idempotencyKey:      string;
@@ -106,7 +106,7 @@ export async function createDeliveryJob(params: CreateDeliveryJobParams) {
     return await db.transaction(async (tx: any) => {
       // Check for an existing job with this provider+key first.
       const existing = (await tx.orm.public.DeliveryJob.where({
-        providerId: params.providerId,
+        ...(params.providerId ? { providerId: params.providerId } : {}),
         idempotencyKey: params.idempotencyKey
       }).all())[0];
 
@@ -118,7 +118,7 @@ export async function createDeliveryJob(params: CreateDeliveryJobParams) {
       }
 
       const created = await tx.orm.public.DeliveryJob.create({
-        providerId:          params.providerId,
+        providerId:          params.providerId || null,
         sourceType:          params.sourceType,
         sourceId:            params.sourceId,
         idempotencyKey:      params.idempotencyKey,
