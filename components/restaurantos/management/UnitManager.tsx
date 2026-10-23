@@ -9,8 +9,8 @@ import {
   createUnitOfMeasure,
   updateUnitOfMeasure,
   deleteUnitOfMeasure,
-  DEFAULT_RESTAURANT_UNITS,
 } from '@/lib/actions/restaurantos';
+import { DEFAULT_RESTAURANT_UNITS } from '@/lib/restaurant-units';
 
 interface UnitUsageItem {
   unit: string;

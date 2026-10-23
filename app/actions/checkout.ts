@@ -416,7 +416,9 @@ export async function processHotelWhatsAppCheckout(input: {
   };
 }
 
-export const createHotelWhatsAppBooking = processHotelWhatsAppCheckout;
+export async function createHotelWhatsAppBooking(input: Parameters<typeof processHotelWhatsAppCheckout>[0]) {
+  return processHotelWhatsAppCheckout(input);
+}
 
 export async function getResidentCheckoutDefaults() {
   const session = await getServerSession(authOptions);

@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { requireMembership, getTeamMembers } from '@/lib/actions/tenant';
 import TeamManager from '@/components/restaurantos/management/TeamManager';
 import { db } from '@/src/prisma/db';
@@ -19,6 +19,23 @@ export default async function Page({
   const team = await getTeamMembers(slug);
   const locations = await db.orm.public.Location.where({ organizationId: slug }).all();
 
+  const normalizedTeam = (team || []).map((m: any) => ({
+    id: m.membershipId || m.id,
+    membershipId: m.membershipId || m.id,
+    personId: m.personId || m.person?.id || '',
+    firstName: m.firstName || m.person?.firstName || '',
+    lastName: m.lastName || m.person?.lastName || '',
+    email: m.email || m.person?.email || '',
+    person: {
+      firstName: m.firstName || m.person?.firstName || '',
+      lastName: m.lastName || m.person?.lastName || '',
+      email: m.email || m.person?.email || '',
+    },
+    roles: Array.isArray(m.roles) ? m.roles : [],
+    locations: Array.isArray(m.locations) ? m.locations : [],
+    joinedAt: m.joinedAt ? String(m.joinedAt) : new Date().toISOString(),
+  }));
+
   return (
     <div className="space-y-6 animate-in fade-in">
       <div className="flex items-center justify-between">
@@ -32,7 +49,7 @@ export default async function Page({
 
       <TeamManager 
         slug={slug} 
-        members={JSON.parse(JSON.stringify(team))} 
+        members={JSON.parse(JSON.stringify(normalizedTeam))} 
         locations={JSON.parse(JSON.stringify(locations))} 
       />
     </div>

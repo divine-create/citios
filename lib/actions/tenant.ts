@@ -231,7 +231,7 @@ export async function inviteTeamMember(input: {
       });
     }
     
-    return { success: true };
+    return { success: true, membershipId: mem.id };
   });
 }
 
@@ -277,6 +277,6 @@ export async function removeTeamMember(input: {
     }
     await tx.orm.public.Membership.where({ id: input.membershipId }).delete();
 
-    return { success: true };
+    return { success: true, membershipId: mem.id };
   });
 }

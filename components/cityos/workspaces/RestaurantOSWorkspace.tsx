@@ -166,7 +166,7 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
       label: "Settings",
         items: [
           { label: "Capabilities", icon: SettingsIcon, href: `/workspaces/restaurantos/${slug}/management/capabilities` },
-          { label: "Team", icon: Users },
+          { label: "Team Roles", icon: Users, href: `/workspaces/restaurantos/${slug}/management/team` },
         ],
     },
   ].filter(g => !g.hidden);
@@ -348,6 +348,7 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
             {activeMenu === "Reservations" && showTables && <TabReservations reservations={reservations} tables={tables} slug={slug} onDone={loadData} />}
             {activeMenu === "Finance" && <TabFinance finance={finance} expenses={expenses} slug={slug} onDone={loadData} />}
             {activeMenu === "Settings" && <TabSettings settings={settings} slug={slug} onDone={loadData} />}
+            {(activeMenu === "Team" || activeMenu === "Team Roles") && <TabTeam slug={slug} />}
           </div>
         </div>
       </main>

@@ -1,5 +1,7 @@
 'use server';
 
+import { DEFAULT_RESTAURANT_UNITS } from '@/lib/restaurant-units';
+
 
 async function consumeInventoryForOrder(tx: any, orderId: string, organizationId: string, settings: any) {
   const order = await tx.orm.public.RestaurantOrder.where({ id: orderId }).all().first();
@@ -1571,35 +1573,7 @@ export async function createInventoryItem(input: {
   }
 }
 
-export const DEFAULT_RESTAURANT_UNITS = [
-  'kg',
-  'g',
-  'mg',
-  'L',
-  'ml',
-  'cl',
-  'pcs',
-  'portion',
-  'slice',
-  'plate',
-  'cup',
-  'tbsp',
-  'tsp',
-  'pack',
-  'box',
-  'bottle',
-  'can',
-  'carton',
-  'crate',
-  'bunch',
-  'bag',
-  'loaf',
-  'dozen',
-  'tin',
-  'jar',
-  'tub',
-  'tray',
-] as const;
+
 
 export async function getOrganizationUnits(organizationId: string): Promise<string[]> {
   try {

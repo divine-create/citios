@@ -9,9 +9,9 @@ import {
   createInventoryItem,
   updateInventoryItem,
   deleteInventoryItem,
-  adjustStock,
-  DEFAULT_RESTAURANT_UNITS
+  adjustStock
 } from '@/lib/actions/restaurantos';
+import { DEFAULT_RESTAURANT_UNITS } from '@/lib/restaurant-units';
 import UnitManager from './UnitManager';
 
 interface InventoryManagerProps {
