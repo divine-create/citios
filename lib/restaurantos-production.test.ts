@@ -102,6 +102,7 @@ test('RestaurantOS Production Runs & Batch Prep Suite', async (t) => {
     name: `Baker Flour ${suffix}`,
     unit: 'kg',
     quantity: 50,
+    lowStockLevel: 5,
     cost: 2.0,
     type: 'RAW_MATERIAL',
   });
@@ -113,6 +114,7 @@ test('RestaurantOS Production Runs & Batch Prep Suite', async (t) => {
     name: `Dry Yeast ${suffix}`,
     unit: 'kg',
     quantity: 10,
+    lowStockLevel: 2,
     cost: 5.0,
     type: 'RAW_MATERIAL',
   });
@@ -124,6 +126,7 @@ test('RestaurantOS Production Runs & Batch Prep Suite', async (t) => {
     name: `Pizza Dough Ball ${suffix}`,
     unit: 'pcs',
     quantity: 0,
+    lowStockLevel: 5,
     cost: 0,
     type: 'SUB_ASSEMBLY',
   });
@@ -188,18 +191,15 @@ test('RestaurantOS Production Runs & Batch Prep Suite', async (t) => {
   });
 
   await t.test('3. createProductionRun rejects if raw material stock is insufficient', async () => {
-    // Current flour is 30kg. A 4x batch needs 40kg flour. Should fail.
-    await assert.rejects(
-      async () => {
-        await createProductionRun({
-          organizationId: org.id,
-          recipeId,
-          batchMultiplier: 4,
-          actualYield: 80,
-        });
-      },
-      /Not enough stock/i
-    );
+    // Current flour is 30kg. A 4x batch needs 40kg flour. Should fail safely without throwing unhandled exceptions.
+    const res: any = await createProductionRun({
+      organizationId: org.id,
+      recipeId,
+      batchMultiplier: 4,
+      actualYield: 80,
+    });
+    assert.ok(res.error, 'Should return an error object');
+    assert.match(res.error, /Insufficient stock/i);
 
     // Stock levels should remain untouched after rejected transaction
     const flourStill = await db.orm.public.RestaurantInventoryItem.where({ id: flour.id }).all().first();

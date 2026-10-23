@@ -2,8 +2,9 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button, Input, EmptyState } from '@/components/ui';
-import { Flame, Package, Plus, CheckCircle2 } from 'lucide-react';
+import { Flame, Package, Plus, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { formatNaira } from '@/lib/utils';
 import { createProductionRun } from '@/lib/actions/restaurantos';
 
@@ -18,6 +19,7 @@ export default function ProductionManager({
   inventory: any[];
   productionRuns: any[];
 }) {
+  const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState<any>(null);
   const [batchMultiplier, setBatchMultiplier] = useState<number>(1);
@@ -25,11 +27,35 @@ export default function ProductionManager({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const getInventoryItem = (id: string) => inventory.find((i: any) => i.id === id);
+  const getRecipeName = (id: string) => recipes.find((r: any) => r.id === id)?.name || 'Unknown Recipe';
+
   // Any recipe with at least one ingredient can be produced in a batch.
   // Recipes linked to a Sub-Assembly / Finished Good also add the yield to that item's stock.
   const getProducedItem = (r: any) =>
     inventory.find((inv: any) => inv.recipeId === r.id || (r.producedItemId && inv.id === r.producedItemId));
   const batchRecipes = recipes.filter((r: any) => Array.isArray(r.ingredients) && r.ingredients.length > 0);
+
+  // Check ingredient inventory shortages live based on the selected recipe and multiplier
+  const ingredientShortages = selectedRecipe && Array.isArray(selectedRecipe.ingredients)
+    ? selectedRecipe.ingredients.map((ing: any) => {
+        const item = getInventoryItem(ing.itemId);
+        const needed = Number(ing.quantity) * (batchMultiplier > 0 ? batchMultiplier : 1);
+        const available = item ? Number(item.quantity) : 0;
+        const isShort = available < needed;
+        return {
+          itemId: ing.itemId,
+          name: item?.name || 'Unknown Ingredient',
+          unit: item?.unit || 'units',
+          needed,
+          available,
+          shortfall: needed - available,
+          isShort,
+        };
+      }).filter((s: any) => s.isShort)
+    : [];
+
+  const isInventoryAvailable = ingredientShortages.length === 0;
 
   const handleCreateRun = async () => {
     if (!selectedRecipe || !organizationId) return;
@@ -42,31 +68,37 @@ export default function ProductionManager({
       setError("Batch multiplier must be greater than zero.");
       return;
     }
+    if (!isInventoryAvailable) {
+      setError("Production cannot proceed: raw ingredient inventory is insufficient for this batch.");
+      return;
+    }
 
     try {
       setIsSubmitting(true);
       setError(null);
-      await createProductionRun({
+      const res: any = await createProductionRun({
         organizationId: organizationId,
         recipeId: selectedRecipe.id,
         batchMultiplier: batchMultiplier,
         actualYield: finalYield
       });
+
+      if (res?.error) {
+        setError(res.error);
+        return;
+      }
       
       setIsCreating(false);
       setSelectedRecipe(null);
       setBatchMultiplier(1);
       setActualYield('');
-      window.location.reload();
+      router.refresh();
     } catch (err: any) {
-      setError(err.message || "Failed to log production run. Check raw ingredient stock.");
+      setError(err?.message || "Failed to log production run. Check raw ingredient stock.");
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  const getInventoryItem = (id: string) => inventory.find((i: any) => i.id === id);
-  const getRecipeName = (id: string) => recipes.find((r: any) => r.id === id)?.name || 'Unknown Recipe';
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -86,7 +118,12 @@ export default function ProductionManager({
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 max-w-2xl">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-bold text-slate-900">New Production Run</h2>
-            <button onClick={() => { setIsCreating(false); setSelectedRecipe(null); setError(null); }} className="text-sm font-bold text-slate-500 hover:text-slate-800">Cancel</button>
+            <button 
+              onClick={() => { setIsCreating(false); setSelectedRecipe(null); setError(null); }} 
+              className="text-sm font-bold text-slate-500 hover:text-slate-800"
+            >
+              Cancel
+            </button>
           </div>
 
           <div className="space-y-6">
@@ -109,6 +146,7 @@ export default function ProductionManager({
                     return (
                       <button
                         key={recipe.id}
+                        type="button"
                         onClick={() => {
                           setSelectedRecipe(recipe);
                           setActualYield(recipe.yieldQuantity * batchMultiplier);
@@ -142,19 +180,48 @@ export default function ProductionManager({
                     {selectedRecipe.ingredients?.map((ing: any) => {
                       const item = getInventoryItem(ing.itemId);
                       const need = ing.quantity * batchMultiplier;
-                      const short = item ? Number(item.quantity) < need : true;
+                      const inStock = item ? Number(item.quantity) : 0;
+                      const short = inStock < need;
                       return (
-                        <li key={ing.id} className="flex justify-between text-sm">
-                          <span className="font-medium text-slate-700">{item?.name || 'Unknown Item'}</span>
-                          <span className={`font-bold text-right ${short ? 'text-red-600' : 'text-slate-900'}`}>
+                        <li key={ing.id} className="flex justify-between items-center text-sm py-1 border-b border-slate-200/50 last:border-0">
+                          <div>
+                            <span className="font-medium text-slate-800">{item?.name || 'Unknown Item'}</span>
+                            <span className="ml-2 text-xs text-slate-400">
+                              (in stock: <strong className={short ? 'text-rose-600 font-bold' : 'text-slate-600'}>{inStock.toFixed(2)}</strong> {item?.unit || 'units'})
+                            </span>
+                          </div>
+                          <span className={`font-bold text-right ${short ? 'text-rose-600' : 'text-slate-900'}`}>
                             {need.toFixed(2)} {item?.unit || 'units'}
-                            <span className="ml-2 text-xs font-medium text-slate-400">(in stock: {item ? Number(item.quantity).toFixed(2) : 0})</span>
+                            {short && <span className="ml-1 text-[11px] font-semibold text-rose-500 block">Short by {(need - inStock).toFixed(2)}</span>}
                           </span>
                         </li>
                       );
                     })}
                   </ul>
                 </div>
+
+                {/* Shortage alert blocking production when inventory is insufficient */}
+                {!isInventoryAvailable && (
+                  <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-900 space-y-1.5 animate-in fade-in">
+                    <div className="flex items-center gap-2 font-bold text-sm text-rose-800">
+                      <AlertTriangle size={18} className="text-rose-600 shrink-0" />
+                      Production Blocked: Insufficient Raw Inventory
+                    </div>
+                    <p className="text-xs text-rose-700">
+                      You cannot log this batch because one or more required ingredients do not have enough stock:
+                    </p>
+                    <ul className="text-xs list-disc list-inside space-y-1 mt-1 text-rose-800 font-medium">
+                      {ingredientShortages.map((s: any) => (
+                        <li key={s.itemId}>
+                          <strong>{s.name}</strong>: Need {s.needed.toFixed(2)} {s.unit}, but only {s.available.toFixed(2)} {s.unit} in stock.
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="text-[11px] text-rose-600 pt-1">
+                      Reduce the batch multiplier or restock your ingredients in the Inventory tab before producing.
+                    </p>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -168,6 +235,7 @@ export default function ProductionManager({
                         const m = Number(e.target.value);
                         setBatchMultiplier(m);
                         setActualYield(selectedRecipe.yieldQuantity * m);
+                        setError(null);
                       }} 
                     />
                     <p className="text-xs text-slate-400 mt-1">E.g., 2 = double the recipe</p>
@@ -177,16 +245,29 @@ export default function ProductionManager({
                     <Input 
                       type="number" 
                       value={actualYield} 
-                      onChange={(e) => setActualYield(e.target.value ? Number(e.target.value) : '')} 
+                      onChange={(e) => {
+                        setActualYield(e.target.value ? Number(e.target.value) : '');
+                        setError(null);
+                      }} 
                     />
                     <p className="text-xs text-slate-400 mt-1">What you actually got (accounts for shrinkage)</p>
                   </div>
                 </div>
 
-                {error && <div className="p-3 bg-red-50 text-red-700 text-sm font-medium rounded-xl border border-red-100">{error}</div>}
+                {error && (
+                  <div className="p-3 bg-red-50 text-red-700 text-sm font-medium rounded-xl border border-red-200">
+                    {error}
+                  </div>
+                )}
 
-                <Button className="w-full" size="lg" onClick={handleCreateRun} isLoading={isSubmitting}>
-                  Log Batch &amp; Deduct Inventory
+                <Button 
+                  className="w-full" 
+                  size="lg" 
+                  onClick={handleCreateRun} 
+                  isLoading={isSubmitting}
+                  disabled={!isInventoryAvailable || isSubmitting}
+                >
+                  {!isInventoryAvailable ? 'Insufficient Inventory to Log Batch' : 'Log Batch & Deduct Inventory'}
                 </Button>
               </>
             )}

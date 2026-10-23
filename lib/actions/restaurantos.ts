@@ -1433,10 +1433,18 @@ export async function createProductionRun(input: {
   try {
     const { membership } = await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'CHEF', 'KITCHEN', 'INVENTORY_STAFF']);
 
+    const settings = await db.orm.public.RestaurantSettings.where({ organizationId: input.organizationId }).all().first();
+    if (settings && settings.enableInventory === false) {
+      return { error: 'Inventory capability is disabled for this restaurant.' };
+    }
+    if (settings && settings.enableProduction === false) {
+      return { error: 'Production / batch prep capability is disabled for this restaurant.' };
+    }
+
     const multiplier = Number(input.batchMultiplier);
     const actualYield = Number(input.actualYield);
-    if (!(multiplier > 0)) throw new Error('Batch multiplier must be greater than zero.');
-    if (!(actualYield > 0)) throw new Error('Actual yield must be greater than zero.');
+    if (!(multiplier > 0)) return { error: 'Batch multiplier must be greater than zero.' };
+    if (!(actualYield > 0)) return { error: 'Actual yield must be greater than zero.' };
 
     const run = await db.transaction(async (tx: any) => {
       // 1. Fetch recipe (tenant-scoped) and ingredients
@@ -1448,14 +1456,14 @@ export async function createProductionRun(input: {
 
       let totalCost = 0;
 
-      // 2. Deduct raw materials atomically (stock may never go below zero)
+      // 2. Validate and deduct raw materials atomically (stock may never go below zero)
       for (const ing of ingredients) {
         const requiredQty = Number(ing.quantity) * multiplier;
         const item = await tx.orm.public.RestaurantInventoryItem.where({ id: ing.itemId, organizationId: input.organizationId }).all().first();
         if (!item) throw new Error('A recipe ingredient no longer exists in inventory.');
 
         if (Number(item.quantity) < requiredQty) {
-          throw new Error(`Not enough stock for ${item.name}. Need ${requiredQty} ${item.unit}, have ${item.quantity}.`);
+          throw new Error(`Insufficient stock for "${item.name}": required ${requiredQty.toFixed(2)} ${item.unit}, but only ${Number(item.quantity).toFixed(2)} ${item.unit} available.`);
         }
 
         await tx.orm.public.RestaurantInventoryItem.where({ id: item.id }).update({
@@ -1509,10 +1517,10 @@ export async function createProductionRun(input: {
     });
 
     safeRevalidatePath('/', 'layout');
-    return JSON.parse(JSON.stringify(run));
+    return { success: true, ...JSON.parse(JSON.stringify(run)) };
   } catch (error: any) {
     console.error('Error creating production run:', error);
-    throw new Error(error.message || 'Failed to create production run');
+    return { error: error.message || 'Failed to create production run' };
   }
 }
 
