@@ -1338,6 +1338,7 @@ export async function createRecipe(input: {
        targetLocationId = p.locationId;
     }
 
+    let targetMenuItemId = input.menuItemId || null;
     if (input.menuItemId) {
        const menuItem = await db.orm.public.MenuItem.where({ id: input.menuItemId }).all().first();
        if (!menuItem || menuItem.organizationId !== input.organizationId) {
@@ -1346,6 +1347,18 @@ export async function createRecipe(input: {
        const existing = await db.orm.public.RestaurantRecipe.where({ menuItemId: input.menuItemId }).all().first();
        if (existing) {
          return { error: `Menu item "${menuItem.name}" already has an assigned recipe (${existing.name}).` };
+       }
+    } else if (input.name) {
+       // Auto-associate if a menu item exists with the exact matching name
+       const matchByName = await db.orm.public.MenuItem.where({
+         organizationId: input.organizationId,
+         name: input.name.trim(),
+       }).all().first();
+       if (matchByName) {
+         const existingForMenu = await db.orm.public.RestaurantRecipe.where({ menuItemId: matchByName.id }).all().first();
+         if (!existingForMenu) {
+           targetMenuItemId = matchByName.id;
+         }
        }
     }
     
@@ -1368,7 +1381,7 @@ export async function createRecipe(input: {
         name: input.name.trim(),
         yieldQuantity: yieldQty,
         instructions: input.instructions?.trim() || null,
-        menuItemId: input.menuItemId || null,
+        menuItemId: targetMenuItemId,
       });
 
       // 2. Add ingredients
@@ -1430,6 +1443,36 @@ export async function deleteRecipe(organizationId: string, recipeId: string) {
   } catch (error: any) {
     console.error('Error deleting recipe:', error);
     return { error: error.message || 'Failed to delete recipe' };
+  }
+}
+
+export async function linkRecipeToMenuItem(input: {
+  organizationId: string;
+  recipeId: string;
+  menuItemId: string;
+}) {
+  try {
+    await requireMembership(input.organizationId, ['OWNER', 'MANAGER', 'ADMIN']);
+    const recipe = await db.orm.public.RestaurantRecipe.where({ id: input.recipeId, organizationId: input.organizationId }).all().first();
+    if (!recipe) return { error: 'Recipe not found.' };
+
+    const menuItem = await db.orm.public.MenuItem.where({ id: input.menuItemId, organizationId: input.organizationId }).all().first();
+    if (!menuItem) return { error: 'Menu item not found.' };
+
+    const existing = await db.orm.public.RestaurantRecipe.where({ menuItemId: input.menuItemId }).all().first();
+    if (existing && existing.id !== input.recipeId) {
+      return { error: `Menu item "${menuItem.name}" is already linked to recipe "${existing.name}".` };
+    }
+
+    await db.orm.public.RestaurantRecipe.where({ id: input.recipeId }).update({
+      menuItemId: input.menuItemId,
+    });
+
+    safeRevalidatePath('/', 'layout');
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error linking recipe:', error);
+    return { error: error.message || 'Failed to link recipe' };
   }
 }
 

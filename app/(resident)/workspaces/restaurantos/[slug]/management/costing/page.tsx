@@ -2,6 +2,7 @@ import React from 'react';
 import { requireMembership } from '@/lib/actions/tenant';
 import { db } from '@/src/prisma/db';
 import CostingDashboard from '@/components/restaurantos/management/CostingDashboard';
+import { getRecipes } from '@/lib/actions/restaurantos';
 
 export default async function CostingPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -17,15 +18,34 @@ export default async function CostingPage({ params }: { params: Promise<{ slug: 
     );
   }
 
-  const menu = await db.orm.public.MenuItem.where({ organizationId: slug }).all();
-  const recipes = await db.orm.public.RestaurantRecipe.where({ organizationId: slug }).all();
-  const inventory = await db.orm.public.RestaurantInventoryItem.where({ organizationId: slug }).all();
+  const [menu, recipesRaw, inventory] = await Promise.all([
+    db.orm.public.MenuItem.where({ organizationId: slug }).all(),
+    getRecipes(slug),
+    db.orm.public.RestaurantInventoryItem.where({ organizationId: slug }).all(),
+  ]);
   
-  // We should ideally fetch Recipe Ingredients here, but since this is a summary page, 
-  // we'll pass the base data to the client component to render the cost states.
-  const recipeIds = recipes.map((r: any) => r.id);
-  // @ts-ignore
-  const ingredients = recipeIds.length > 0 ? await db.orm.public.RestaurantRecipeIngredient.where({ recipeId: { in: recipeIds } }).all() : [];
+  // Auto-heal / match: If any recipe is unlinked to menuItemId but matches a menu item by name, link it
+  const recipes = await Promise.all(
+    (recipesRaw as any[]).map(async (r) => {
+      if (!r.menuItemId && r.name) {
+        const matchingMenuItem = (menu as any[]).find(
+          (m) => m.name.trim().toLowerCase() === r.name.trim().toLowerCase()
+        );
+        if (matchingMenuItem) {
+          const alreadyClaimed = (recipesRaw as any[]).some(
+            (other) => other.id !== r.id && other.menuItemId === matchingMenuItem.id
+          );
+          if (!alreadyClaimed) {
+            await db.orm.public.RestaurantRecipe.where({ id: r.id }).update({ menuItemId: matchingMenuItem.id }).catch(() => {});
+            return { ...r, menuItemId: matchingMenuItem.id };
+          }
+        }
+      }
+      return r;
+    })
+  );
+
+  const ingredients = recipes.flatMap((r: any) => r.ingredients || []);
 
   return (
     <div className="space-y-8">

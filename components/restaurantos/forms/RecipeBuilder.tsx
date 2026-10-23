@@ -171,7 +171,14 @@ export function RecipeBuilder({
           <Input
             label="Recipe Name"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              setName(val);
+              if (!selectedMenuItemId && val.trim()) {
+                const match = menu.find((m: any) => m.name.trim().toLowerCase() === val.trim().toLowerCase());
+                if (match) setSelectedMenuItemId(match.id);
+              }
+            }}
             placeholder="e.g. 50L Pasta Sauce or Pepperoni Pizza"
             required
           />

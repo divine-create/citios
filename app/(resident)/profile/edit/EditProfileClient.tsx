@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import StateLgaSelect, { CityOption } from '@/components/cityos/StateLgaSelect';
+import { CalabarAddressPicker } from '@/components/cityos/CalabarAddressPicker';
 import DateOfBirthPicker from '@/components/cityos/DateOfBirthPicker';
 import { INTEREST_CATEGORIES } from '@/components/cityos/interestTags';
 import { getTwoLetterInitials, getAvatarGradient } from '@/components/cityos/CityUI';
@@ -364,21 +365,24 @@ export default function EditProfileClient({
             </p>
           </div>
 
-          {/* Default Delivery Address (Phase 12) */}
-          <div className="space-y-1.5">
+          {/* Default Delivery Address — Stabilized Calabar & OpenStreetMap */}
+          <div className="space-y-2 pt-2 border-t border-slate-100">
             <label className="text-[12px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
               <MapPin className="w-3.5 h-3.5 text-teal-700" />
-              Default Delivery Address
+              Default Delivery Address & Doorstep Landmark
             </label>
-            <input
-              type="text"
-              value={form.defaultDeliveryAddress}
-              onChange={(e) => setForm({ ...form, defaultDeliveryAddress: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl bg-slate-50 border-0 ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-inset focus:ring-teal-500 text-[14px] font-bold text-ink"
-              placeholder="e.g. 42 Hacker Way, San Francisco"
+            <CalabarAddressPicker
+              initialAddress={form.defaultDeliveryAddress}
+              onChange={(stabilized) => {
+                setForm((prev) => ({
+                  ...prev,
+                  defaultDeliveryAddress: stabilized.formattedAddress,
+                }));
+              }}
+              showMapPreview={true}
             />
             <p className="text-[11px] text-slate-400">
-              9jaLive Voice will automatically use this address when you order food or products.
+              CityDrive couriers will use this verified landmark and entrance pin for doorstep delivery.
             </p>
           </div>
 

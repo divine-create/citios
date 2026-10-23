@@ -371,7 +371,11 @@ export default function MenuManager({
                 {settings?.enableRecipes && (
                   <td className="px-6 py-4">
                     {(() => {
-                      const recipe = item.recipe || recipes.find((r: any) => r.menuItemId === item.id || r.id === item.recipeId);
+                      const recipe = item.recipe || recipes.find((r: any) => 
+                        r.menuItemId === item.id || 
+                        r.id === item.recipeId ||
+                        (r.name && item.name && r.name.trim().toLowerCase() === item.name.trim().toLowerCase())
+                      );
                       if (recipe) {
                         return (
                           <Link

@@ -8,7 +8,8 @@ import {
   createRecipe,
   deleteRecipe,
   getRecipes,
-  createInventoryItem
+  createInventoryItem,
+  linkRecipeToMenuItem
 } from './actions/restaurantos';
 
 // Setup mock headers/cookies for Next.js 15 test runner
@@ -213,5 +214,58 @@ test('RestaurantOS Recipe Management & Creation Suite', async (t) => {
     });
 
     assert.ok((failRes as any).error, 'Should reject unauthorized user');
+  });
+
+  await t.test('6. Recipe auto-links to menu item with matching name, and linkRecipeToMenuItem links explicitly', async () => {
+    await setupAndSignInAs(person);
+
+    // Create a menu item with unique name
+    const dishName = `Signature Fried Rice ${suffix}`;
+    const menuItem = await db.orm.public.MenuItem.create({
+      organizationId: org.id,
+      name: dishName,
+      price: 3500,
+      category: 'Mains',
+      isAvailable: true,
+    });
+
+    // Create a recipe with the EXACT name without passing menuItemId
+    const autoRecipe = await createRecipe({
+      organizationId: org.id,
+      name: dishName,
+      yieldQuantity: 1,
+      ingredients: [{ itemId: beefPatty.id, quantity: 1 }],
+    });
+    assert.strictEqual((autoRecipe as any).error, undefined);
+    assert.strictEqual(autoRecipe.menuItemId, menuItem.id, 'Recipe should automatically link to menu item by matching name');
+
+    // Create a standalone recipe
+    const standalone = await createRecipe({
+      organizationId: org.id,
+      name: `Standalone Prep ${suffix}`,
+      yieldQuantity: 5,
+      ingredients: [],
+    });
+    assert.strictEqual((standalone as any).error, undefined);
+
+    // Explicitly link it to another menu item
+    const dish2 = await db.orm.public.MenuItem.create({
+      organizationId: org.id,
+      name: `Dish Two ${suffix}`,
+      price: 4500,
+      category: 'Mains',
+      isAvailable: true,
+    });
+
+    const linkRes = await linkRecipeToMenuItem({
+      organizationId: org.id,
+      recipeId: standalone.id,
+      menuItemId: dish2.id,
+    });
+    assert.strictEqual((linkRes as any).error, undefined);
+    assert.strictEqual(linkRes.success, true);
+
+    const updatedStandalone = await db.orm.public.RestaurantRecipe.where({ id: standalone.id }).all().first();
+    assert.strictEqual(updatedStandalone?.menuItemId, dish2.id, 'Explicit link should update recipe menuItemId');
   });
 });

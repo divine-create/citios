@@ -1,11 +1,12 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { Button, Badge } from '@/components/ui';
 import { formatNaira } from '@/lib/utils';
-import { AlertTriangle, TrendingDown, Percent, FileQuestion, BookX, HelpCircle } from 'lucide-react';
+import { Percent, ArrowUpRight } from 'lucide-react';
 
-export default function CostingDashboard({ slug, menu, recipes, ingredients, inventory, settings }: any) {
+export default function CostingDashboard({ slug, menu = [], recipes = [], ingredients = [], inventory = [], settings }: any) {
   
   // Phase D.1 Hardening: Economic Logic matches Phase C.1 Authoritative COGS
   const costedMenu = menu.map((m: any) => {
@@ -18,23 +19,38 @@ export default function CostingDashboard({ slug, menu, recipes, ingredients, inv
 
     // Rule 1: Recipe takes strict precedence if enabled
     if (settings?.enableRecipes) {
-      const recipe = recipes.find((r: any) => r.menuItemId === m.id);
+      // Robust multi-way recipe resolution (direct link, recipeId, name match, or producedItem)
+      const recipe = recipes.find((r: any) => 
+        r.menuItemId === m.id || 
+        r.id === m.recipeId ||
+        (r.name && m.name && r.name.trim().toLowerCase() === m.name.trim().toLowerCase()) ||
+        (m.inventoryItemId && (r.producedItemId === m.inventoryItemId || inventory.find((i: any) => i.id === m.inventoryItemId)?.recipeId === r.id))
+      );
+
       if (recipe) {
         costBasisFound = true;
-        const recipeIngs = ingredients.filter((i: any) => i.recipeId === recipe.id);
+        const recipeIngs = Array.isArray(recipe.ingredients) && recipe.ingredients.length > 0
+          ? recipe.ingredients
+          : ingredients.filter((i: any) => i.recipeId === recipe.id);
         
         if (recipeIngs.length === 0) {
            costState = 'INCOMPLETE_RECIPE';
         } else {
            costState = 'AVAILABLE';
+           let anyCostMissing = false;
            for (const ing of recipeIngs) {
              const inv = inventory.find((i: any) => i.id === ing.itemId);
              if (inv) {
-               if (inv.cost === null || inv.cost === undefined) costState = 'INGREDIENT_COST_MISSING';
+               if (inv.cost === null || inv.cost === undefined) {
+                 anyCostMissing = true;
+               }
                theoreticalCost += ((inv.cost || 0) * ing.quantity) / (recipe.yieldQuantity || 1);
              } else {
                costState = 'INCOMPLETE_RECIPE';
              }
+           }
+           if (costState === 'AVAILABLE' && anyCostMissing) {
+             costState = 'INGREDIENT_COST_MISSING';
            }
         }
       }
@@ -64,6 +80,8 @@ export default function CostingDashboard({ slug, menu, recipes, ingredients, inv
     };
   });
 
+  const availableItems = costedMenu.filter((m: any) => m.costState === 'AVAILABLE');
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -72,15 +90,15 @@ export default function CostingDashboard({ slug, menu, recipes, ingredients, inv
           <div className="flex items-center gap-2">
             <Percent className="text-emerald-400" size={24} />
             <h2 className="text-2xl font-black text-white">
-              {costedMenu.filter((m: any) => m.costState === 'AVAILABLE').length > 0 
-                ? (costedMenu.filter((m: any) => m.costState === 'AVAILABLE').reduce((s: number, m: any) => s + m.costPercent, 0) / costedMenu.filter((m: any) => m.costState === 'AVAILABLE').length).toFixed(1) + '%'
+              {availableItems.length > 0 
+                ? (availableItems.reduce((s: number, m: any) => s + m.costPercent, 0) / availableItems.length).toFixed(1) + '%'
                 : '--%'}
             </h2>
           </div>
         </div>
       </div>
       
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
         <table className="w-full text-left text-sm">
           <thead className="bg-slate-50 text-slate-500 font-bold text-xs uppercase tracking-wider">
             <tr>
@@ -111,12 +129,36 @@ export default function CostingDashboard({ slug, menu, recipes, ingredients, inv
                   </>
                 ) : (
                   <td colSpan={3} className="px-6 py-4">
-                     <div className="flex items-center gap-2">
-                       <Badge variant="default">
+                     <div className="flex items-center gap-3">
+                       <Badge variant={m.costState === 'RECIPE_MISSING' ? 'warning' : m.costState === 'INCOMPLETE_RECIPE' ? 'warning' : 'default'}>
                          {m.costState === 'RECIPE_MISSING' ? 'Recipe Missing' : 
                           m.costState === 'INGREDIENT_COST_MISSING' ? 'Ingredient Cost Missing' : 
                           m.costState === 'INCOMPLETE_RECIPE' ? 'Incomplete Recipe' : 'Cost Unavailable'}
                        </Badge>
+                       {m.costState === 'RECIPE_MISSING' && (
+                         <Link
+                           href={`/workspaces/restaurantos/${slug}/management/recipes`}
+                           className="text-xs font-bold text-emerald-600 hover:text-emerald-700 hover:underline inline-flex items-center gap-1"
+                         >
+                           Add Recipe <ArrowUpRight size={12} />
+                         </Link>
+                       )}
+                       {m.costState === 'INCOMPLETE_RECIPE' && (
+                         <Link
+                           href={`/workspaces/restaurantos/${slug}/management/recipes`}
+                           className="text-xs font-bold text-amber-600 hover:text-amber-700 hover:underline inline-flex items-center gap-1"
+                         >
+                           Configure Ingredients <ArrowUpRight size={12} />
+                         </Link>
+                       )}
+                       {m.costState === 'INGREDIENT_COST_MISSING' && (
+                         <Link
+                           href={`/workspaces/restaurantos/${slug}/management/inventory`}
+                           className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline inline-flex items-center gap-1"
+                         >
+                           Set Inventory Unit Cost <ArrowUpRight size={12} />
+                         </Link>
+                       )}
                      </div>
                   </td>
                 )}

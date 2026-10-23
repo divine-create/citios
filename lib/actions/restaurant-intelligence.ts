@@ -100,14 +100,17 @@ export async function getOverviewAlerts(
       .all();
     const recipes = await db.orm.public.RestaurantRecipe.where({ organizationId }).all();
     const recipeMenuItemIds = new Set(recipes.map((r: any) => r.menuItemId).filter(Boolean));
+    const recipeNames = new Set(recipes.map((r: any) => r.name?.trim().toLowerCase()).filter(Boolean));
 
     if (settings?.enableRecipes) {
-      missingRecipes = (menu as any[]).filter((m) => !recipeMenuItemIds.has(m.id) && !m.recipeId).length;
+      missingRecipes = (menu as any[]).filter(
+        (m) => !recipeMenuItemIds.has(m.id) && !m.recipeId && !recipeNames.has(m.name?.trim().toLowerCase())
+      ).length;
     }
 
     if (settings?.enableFoodCosting) {
       for (const m of menu as any[]) {
-        const hasRecipe = recipeMenuItemIds.has(m.id) || Boolean(m.recipeId);
+        const hasRecipe = recipeMenuItemIds.has(m.id) || Boolean(m.recipeId) || recipeNames.has(m.name?.trim().toLowerCase());
         if (settings.enableRecipes && !hasRecipe) missingCost++;
         else if (!settings.enableRecipes && !m.inventoryItemId) missingCost++;
       }

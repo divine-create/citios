@@ -3,7 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Wallet, CreditCard, Landmark, ShieldCheck, Loader2, AlertCircle, ArrowLeft, PhoneCall, MessageSquare, MapPin, Minus, Plus, Trash2 } from 'lucide-react';
+import { Wallet, CreditCard, Landmark, ShieldCheck, Loader2, AlertCircle, ArrowLeft, PhoneCall, MessageSquare, MapPin, Minus, Plus, Trash2, Truck } from 'lucide-react';
+import { CalabarAddressPicker } from '@/components/cityos/CalabarAddressPicker';
+import { getCheckoutDeliveryEstimate, CheckoutDeliveryEstimate } from '@/lib/actions/checkout-delivery';
+import { StabilizedAddress } from '@/lib/mapping/address-stabilizer';
 import { useMoney } from '@/components/cityos/CityProvider';
 import { useCart } from '@/components/cityos/CartStore';
 import { getResidentWallet } from '@/app/actions/resident_wallet';
@@ -25,6 +28,8 @@ export default function CheckoutView() {
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [deliveryNotes, setDeliveryNotes] = useState('');
+  const [stabilizedAddress, setStabilizedAddress] = useState<StabilizedAddress | null>(null);
+  const [deliveryEstimate, setDeliveryEstimate] = useState<CheckoutDeliveryEstimate | null>(null);
   const [processing, setProcessing] = useState<string | null>(null); // orgId being processed
   const [errorMsg, setErrorMsg] = useState('');
   const [checkoutConfig, setCheckoutConfig] = useState<PlatformCheckoutConfig | null>(null);
@@ -81,6 +86,23 @@ export default function CheckoutView() {
       }
     }).catch(() => {});
   }, []);
+
+  // Recalculate dynamic CityDrive delivery estimate whenever address or lines change
+  useEffect(() => {
+    const firstOrgId = lines[0]?.orgId;
+    if (!firstOrgId || !stabilizedAddress?.latitude) return;
+
+    getCheckoutDeliveryEstimate({
+      merchantOrgId: firstOrgId,
+      dropoffAddressText: stabilizedAddress.formattedAddress,
+      dropoffLat: stabilizedAddress.latitude,
+      dropoffLng: stabilizedAddress.longitude,
+      landmarkId: stabilizedAddress.landmarkId,
+      zoneId: stabilizedAddress.zoneId,
+    })
+      .then((est) => setDeliveryEstimate(est))
+      .catch((err) => console.warn('Delivery quote error:', err));
+  }, [lines, stabilizedAddress]);
 
   if (lines.length === 0) {
     return (
@@ -200,6 +222,31 @@ export default function CheckoutView() {
             />
           </div>
         </div>
+      </div>
+
+      {/* Delivery Address & CityDrive Logistics */}
+      <div className="bg-white rounded-[24px] border border-slate-100 overflow-hidden p-6 space-y-4 shadow-xs">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <MapPin className="w-4 h-4 text-teal-800" />
+            <h2 className="text-sm font-black text-ink">Delivery Address & Landmark</h2>
+          </div>
+          {deliveryEstimate && deliveryEstimate.success && (
+            <span className="text-[11px] font-black text-teal-800 bg-teal-50 px-2.5 py-1 rounded-full border border-teal-200 flex items-center gap-1">
+              <Truck className="w-3 h-3 text-teal-800" />
+              ~{deliveryEstimate.durationMinutes} mins · {fmt(deliveryEstimate.deliveryFee)}
+            </span>
+          )}
+        </div>
+
+        <CalabarAddressPicker
+          initialAddress={deliveryAddress}
+          onChange={(stabilized) => {
+            setDeliveryAddress(stabilized.formattedAddress);
+            setStabilizedAddress(stabilized);
+          }}
+          showMapPreview={false}
+        />
       </div>
 
       {/* Out-of-stock Substitution Preferences */}
@@ -338,6 +385,16 @@ export default function CheckoutView() {
                     </div>
                   </div>
                 ))}
+
+                {deliveryEstimate && deliveryEstimate.success && (
+                  <div className="py-3 flex items-center justify-between text-xs font-bold text-teal-900 bg-teal-50/50 -mx-4 px-4 border-t border-teal-100">
+                    <div className="flex items-center gap-1.5">
+                      <Truck className="w-3.5 h-3.5 text-teal-800" />
+                      <span>CityDrive Delivery ({deliveryEstimate.distanceKm} km)</span>
+                    </div>
+                    <span className="font-black text-teal-800">+{fmt(deliveryEstimate.deliveryFee)}</span>
+                  </div>
+                )}
               </div>
 
               {isBelowMin && (

@@ -8,3 +8,4 @@ export * from './serviceability';
 export * from './config';
 export * from './routing';
 export * from './distance-resolver';
+export * from './address-stabilizer';

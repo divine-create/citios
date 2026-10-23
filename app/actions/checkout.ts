@@ -10,6 +10,7 @@ import { requestServiceJob } from '@/app/actions/service';
 import { fetchUserCart } from '@/app/actions/cart';
 import { getPaymentAdapter } from '@/lib/payments/factory';
 import { getCheckoutConfig } from '@/lib/actions/checkout-settings';
+import { createCheckoutDeliveryJob } from '@/lib/actions/checkout-delivery';
 
 export type CheckoutResponse = {
   success: boolean;
@@ -21,6 +22,9 @@ export type CheckoutResponse = {
   whatsappMessage?: string;
   errors?: string[];
   requiresPaymentAction?: boolean;
+  trackingReference?: string;
+  recipientOtp?: string;
+  deliveryJobId?: string;
 };
 
 const DEFAULT_HOTEL_WHATSAPP = '2348065373747';
@@ -297,15 +301,42 @@ export async function processMerchantCheckout(
       ? '🔄 Pick closest replacement'
       : '❌ Do not replace (remove item)';
 
+  const itemsSummary = orgLines
+    .map((l) => `• ${l.qty}x ${l.name} (₦${(l.price * l.qty).toLocaleString()})`)
+    .join('\n');
+
+  let deliveryJobInfo: {
+    success: boolean;
+    deliveryJobId?: string;
+    trackingReference?: string | null;
+    recipientOtp?: string | null;
+  } | null = null;
+
+  if (placedOrderId && deliveryAddress) {
+    try {
+      const orderType = foodItems.length > 0 ? 'RESTAURANT_ORDER' : 'RETAIL_ORDER';
+      deliveryJobInfo = await createCheckoutDeliveryJob({
+        orderId: placedOrderId,
+        orderType,
+        merchantOrgId: orgId,
+        customerName,
+        customerPhone,
+        deliveryAddress,
+        orderSummary: itemsSummary,
+      });
+    } catch (e: any) {
+      console.warn('[processMerchantCheckout] Delivery creation notice:', e.message);
+    }
+  }
+
   const shortRef = reference.replace('CC-', 'WA-');
   const origin =
     process.env.NEXT_PUBLIC_APP_URL ||
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://citios.vercel.app');
   const trackingUrl = placedOrderId ? `${origin}/orders/${placedOrderId}` : `${origin}/org/${orgId}`;
-
-  const itemsSummary = orgLines
-    .map((l) => `• ${l.qty}x ${l.name} (₦${(l.price * l.qty).toLocaleString()})`)
-    .join('\n');
+  const deliveryTrackingUrl = deliveryJobInfo?.trackingReference
+    ? `${origin}/track/${deliveryJobInfo.trackingReference}`
+    : null;
 
   const messageLines = [
     `🛍️ *NEW 9JALIVE ORDER* — #${shortRef}`,
@@ -323,6 +354,7 @@ export async function processMerchantCheckout(
     `💬 *Channel:* WhatsApp Direct Order`,
     ``,
     placedOrderId ? `🔐 *Order Link:* ${trackingUrl}` : `🔗 *Store Page:* ${trackingUrl}`,
+    deliveryTrackingUrl ? `🚚 *Live CityDrive Tracking:* ${deliveryTrackingUrl}` : null,
   ].filter(Boolean);
 
   const whatsappMessage = messageLines.join('\n');
@@ -335,6 +367,9 @@ export async function processMerchantCheckout(
     reference,
     whatsappUrl,
     whatsappMessage,
+    trackingReference: deliveryJobInfo?.trackingReference || undefined,
+    recipientOtp: deliveryJobInfo?.recipientOtp || undefined,
+    deliveryJobId: deliveryJobInfo?.deliveryJobId || undefined,
   };
 }
 
