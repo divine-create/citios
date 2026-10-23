@@ -2193,6 +2193,50 @@ export async function attachModifierGroupToMenuItem(input: {
   return JSON.parse(JSON.stringify(link));
 }
 
+export async function deleteModifierGroup(groupId: string) {
+  try {
+    const group = await db.orm.public.ModifierGroup.where({ id: groupId }).all().first();
+    if (!group) return { error: 'Modifier group not found.' };
+    await requireMembership(group.organizationId, ['OWNER', 'MANAGER', 'ADMIN']);
+
+    await db.orm.public.ModifierGroup.where({ id: groupId }).delete();
+
+    try {
+      revalidatePath('/', 'layout');
+      revalidatePath(`/workspaces/restaurantos/${group.organizationId}/management/modifiers`);
+      revalidatePath(`/workspaces/restaurantos/${group.organizationId}/pos`);
+    } catch {}
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error deleting modifier group:', error);
+    return { error: error?.message || 'Failed to delete modifier group.' };
+  }
+}
+
+export async function deleteModifierOption(optionId: string) {
+  try {
+    const option = await db.orm.public.ModifierOption.where({ id: optionId }).all().first();
+    if (!option) return { error: 'Modifier option not found.' };
+    const group = await db.orm.public.ModifierGroup.where({ id: option.modifierGroupId }).all().first();
+    if (!group) return { error: 'Group not found.' };
+    await requireMembership(group.organizationId, ['OWNER', 'MANAGER', 'ADMIN']);
+
+    await db.orm.public.ModifierOption.where({ id: optionId }).delete();
+
+    try {
+      revalidatePath('/', 'layout');
+      revalidatePath(`/workspaces/restaurantos/${group.organizationId}/management/modifiers`);
+      revalidatePath(`/workspaces/restaurantos/${group.organizationId}/pos`);
+    } catch {}
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error deleting modifier option:', error);
+    return { error: error?.message || 'Failed to delete modifier option.' };
+  }
+}
+
 export async function createVariant(input: {
   organizationId: string;
   menuItemId: string;
