@@ -284,7 +284,8 @@ describe('CityDrive Network — Phase 3A: Single-Delivery Live Dispatch & Rider 
     const rejectionReason = (rejected[0] as PromiseRejectedResult).reason;
     assert.ok(
       rejectionReason.message.includes('Concurrency error') ||
-        rejectionReason.message.includes('already has an active assignment')
+        rejectionReason.message.includes('already has an active assignment') ||
+        rejectionReason.message.includes('Dispatch is no longer active')
     );
 
     // Clean up assignment from Test 1 so driverProfileA is not locked

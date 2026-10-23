@@ -12,7 +12,9 @@
     "clean": "next clean",
     "postinstall": "prisma skills sync || exit 0",
     "contract:emit": "prisma contract emit",
-    "test:integration": "tsx --test lib/*.integration.test.ts"
+    "test:integration": "tsx --test lib/*.integration.test.ts",
+    "test:guard": "tsx --test lib/test-database-guard.test.ts",
+    "test:isolated": "tsx --test-concurrency=1 --import ./lib/test-preload.ts --test lib/actions/logistics-calabar-*.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1136.0",

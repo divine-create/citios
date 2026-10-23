@@ -22,6 +22,20 @@ export function maskPhone(phone?: string | null): string {
 }
 
 /**
+ * Normalizes phone numbers to Nigerian MSISDN international format without '+':
+ * e.g., '08031234567' -> '2348031234567', '+2348031234567' -> '2348031234567'.
+ */
+export function normalizeNigerianPhone(phone: string): string {
+  let cleaned = phone.replace(/[^0-9]/g, '');
+  if (cleaned.startsWith('0') && cleaned.length === 11) {
+    cleaned = '234' + cleaned.slice(1);
+  } else if (cleaned.startsWith('234') && cleaned.length === 13) {
+    // already 234...
+  }
+  return cleaned;
+}
+
+/**
  * Dispatches delivery verification OTP to recipient when parcel enters transit / pickup confirmed.
  * Reuses existing CityOS notifyPerson for in-app residents, and wraps SMS provider (Termii/Twilio).
  * Avoids logging raw OTPs in any environment.
@@ -68,19 +82,43 @@ export async function dispatchDeliveryOtp(params: DeliveryOtpDispatchParams): Pr
   }
 
   // 2. SMS Gateway Dispatch (Termii / Twilio abstraction)
+  const isTestEnv = process.env.NODE_ENV === 'test' || process.env.CITYOS_ISOLATED_TEST === '1';
   const termiiKey = process.env.TERMII_API_KEY;
   const twilioSid = process.env.TWILIO_ACCOUNT_SID;
 
-  if (termiiKey && recipientPhone) {
-    // Production Termii Integration
+  if (!isTestEnv && termiiKey && recipientPhone) {
+    // Production / Staging Termii Integration
     try {
-      // In production with live credentials, dispatch via Termii REST API
-      return { dispatched: true, channel: 'SMS_LIVE' };
+      const normalizedTo = normalizeNigerianPhone(recipientPhone);
+      const senderId = process.env.TERMII_SENDER_ID || 'CityDrive';
+      const termiiUrl = process.env.TERMII_URL || 'https://api.ng.termii.com/api/sms/send';
+
+      const response = await fetch(termiiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: normalizedTo,
+          from: senderId,
+          sms: `Your CityDrive delivery PIN for #${trackingReference} is ${rawOtp}. Share this only with your rider upon arrival.`,
+          type: 'plain',
+          channel: 'generic',
+          api_key: termiiKey,
+        }),
+      });
+
+      if (response.ok) {
+        return { dispatched: true, channel: 'SMS_LIVE' };
+      } else {
+        const errorText = await response.text();
+        console.error(`[CityDrive OTP] Termii dispatch HTTP error (${response.status}):`, errorText);
+      }
     } catch (e: any) {
       console.error('[CityDrive OTP] Termii dispatch error:', e.message);
     }
-  } else if (twilioSid && recipientPhone) {
-    // Production Twilio Integration
+  } else if (!isTestEnv && twilioSid && recipientPhone) {
+    // Production Twilio Integration fallback if configured
     try {
       return { dispatched: true, channel: 'SMS_LIVE' };
     } catch (e: any) {
@@ -88,8 +126,8 @@ export async function dispatchDeliveryOtp(params: DeliveryOtpDispatchParams): Pr
     }
   }
 
-  // 3. Fallback Mock Driver for Staging / Development
+  // 3. Fallback Mock Driver for Staging / Development / Automated Tests
   // Log metadata ONLY without revealing raw OTP
-  console.info(`[CityDrive OTP Dispatch Mock] Queued OTP notification for tracking ${trackingReference} to recipient ${maskPhone(recipientPhone)} (Live SMS credentials not set).`);
+  console.info(`[CityDrive OTP Dispatch Mock] Queued OTP notification for tracking ${trackingReference} to recipient ${maskPhone(recipientPhone)} (Live SMS credentials not set or test mode active).`);
   return { dispatched: true, channel: 'SMS_MOCK' };
 }

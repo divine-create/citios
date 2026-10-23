@@ -15,6 +15,7 @@ import {
   MenuItemLibraryEntry,
 } from '@/lib/menu-library';
 import MenuLibraryPickerModal from '@/components/common/MenuLibraryPickerModal';
+import MenuItemImagePicker from '@/components/common/MenuItemImagePicker';
 
 const DEFAULT_CATEGORIES = STANDARDIZED_FOOD_CATEGORIES
   .filter((c) => c.id !== 'other')
@@ -295,36 +296,18 @@ export default function MenuManager({ slug, menu, settings }: { slug: string; me
             <Input label="Price (₦)" type="number" value={newItem.price} onChange={(e: any) => setNewItem({...newItem, price: e.target.value})} />
             <Input label="Description (Optional)" value={newItem.description} onChange={(e: any) => setNewItem({...newItem, description: e.target.value})} />
             
-            <div className="sm:col-span-2 space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Image URL (Optional)</label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLibraryTarget('create');
-                    setIsLibraryModalOpen(true);
-                  }}
-                  className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
-                >
-                  <ImageIcon size={14} /> Pick image from library
-                </button>
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={(newItem as any).imageUrl || ""}
-                  onChange={(e: any) => setNewItem({...newItem, imageUrl: e.target.value} as any)}
-                  className="flex-1 h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-colors"
-                  placeholder="e.g. /images/menu/jollof-rice.jpg"
-                />
-                {newItem.imageUrl && (
-                  <img
-                    src={newItem.imageUrl}
-                    alt="Preview"
-                    className="w-12 h-12 rounded-xl object-cover ring-1 ring-black/10 shrink-0 bg-white"
-                  />
-                )}
-              </div>
+            <div className="sm:col-span-2">
+              <MenuItemImagePicker
+                value={newItem.imageUrl}
+                onChange={(url) => setNewItem({ ...newItem, imageUrl: url })}
+                onOpenLibrary={() => {
+                  setLibraryTarget('create');
+                  setIsLibraryModalOpen(true);
+                }}
+                organizationId={slug}
+                label="Dish / Beverage Photo"
+                description="Pick from our 50-dish authentic library or upload a high-resolution photo."
+              />
             </div>
           </div>
           <div className="flex gap-2 justify-end">
@@ -529,40 +512,18 @@ export default function MenuManager({ slug, menu, settings }: { slug: string; me
                   />
                 </div>
 
-                <div className="sm:col-span-2 space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Item Image</label>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setLibraryTarget('edit');
-                        setIsLibraryModalOpen(true);
-                      }}
-                      className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
-                    >
-                      <Sparkles size={14} className="text-orange-500" /> Pick from Menu Library
-                    </button>
-                  </div>
-                  <div className="flex gap-3 items-center">
-                    <input
-                      type="text"
-                      value={editingItem.imageUrl}
-                      onChange={(e) => setEditingItem({ ...editingItem, imageUrl: e.target.value })}
-                      className="flex-1 h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-colors"
-                      placeholder="e.g. /images/menu/jollof-rice.jpg"
-                    />
-                    {editingItem.imageUrl ? (
-                      <img
-                        src={editingItem.imageUrl}
-                        alt="Preview"
-                        className="w-12 h-12 rounded-xl object-cover ring-1 ring-black/10 shrink-0 bg-white"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 rounded-xl bg-slate-100 ring-1 ring-black/5 flex items-center justify-center text-slate-400 shrink-0">
-                        <ImageIcon size={18} />
-                      </div>
-                    )}
-                  </div>
+                <div className="sm:col-span-2">
+                  <MenuItemImagePicker
+                    value={editingItem.imageUrl}
+                    onChange={(url) => setEditingItem({ ...editingItem, imageUrl: url })}
+                    onOpenLibrary={() => {
+                      setLibraryTarget('edit');
+                      setIsLibraryModalOpen(true);
+                    }}
+                    organizationId={slug}
+                    label="Dish / Beverage Photo"
+                    description="Pick from our 50-dish authentic library or upload a high-resolution photo."
+                  />
                 </div>
               </div>
             </div>

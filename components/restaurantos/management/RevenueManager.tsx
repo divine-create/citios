@@ -3,7 +3,7 @@
 import React from 'react';
 
 import { Badge } from '@/components/ui';
-import { LineChart, DollarSign, Receipt, TrendingUp, CreditCard, Wallet, Banknote, CalendarDays, PieChart } from 'lucide-react';
+import { LineChart, DollarSign, Receipt, TrendingUp, CreditCard, Wallet, Banknote, CalendarDays, PieChart, ArrowRightLeft } from 'lucide-react';
 import { formatNaira } from '@/lib/utils';
 
 export function RevenueManager({
@@ -113,19 +113,19 @@ export function RevenueManager({
           </h3>
           <div className="space-y-4">
             <div className="flex items-center gap-4 p-4 border border-slate-100 rounded-xl hover:bg-slate-50 transition-colors">
-              <div className="w-10 h-10 rounded-lg bg-teal-100 text-teal-700 flex items-center justify-center shrink-0">
-                <Wallet size={20} />
+              <div className="w-10 h-10 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
+                <ArrowRightLeft size={20} />
               </div>
               <div className="flex-1">
-                <h4 className="font-bold text-slate-900">CityPay Wallet</h4>
+                <h4 className="font-bold text-slate-900">Bank Transfer</h4>
                 <div className="w-full bg-slate-100 h-1.5 rounded-full mt-2">
-                  <div className="bg-teal-500 h-1.5 rounded-full" style={{ width: `${today.revenue > 0 ? (today.revenueByMethod.WALLET / today.revenue) * 100 : 0}%` }} />
+                  <div className="bg-indigo-500 h-1.5 rounded-full" style={{ width: `${today.revenue > 0 ? ((today.revenueByMethod?.TRANSFER ?? 0) / today.revenue) * 100 : 0}%` }} />
                 </div>
               </div>
               <div className="text-right">
-                <div className="font-black text-slate-900">{formatNaira(today.revenueByMethod.WALLET)}</div>
+                <div className="font-black text-slate-900">{formatNaira(today.revenueByMethod?.TRANSFER ?? 0)}</div>
                 <div className="text-xs text-slate-500 font-bold mt-1">
-                  {today.revenue > 0 ? Math.round((today.revenueByMethod.WALLET / today.revenue) * 100) : 0}%
+                  {today.revenue > 0 ? Math.round(((today.revenueByMethod?.TRANSFER ?? 0) / today.revenue) * 100) : 0}%
                 </div>
               </div>
             </div>

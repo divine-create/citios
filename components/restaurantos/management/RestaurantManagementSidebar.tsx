@@ -19,7 +19,8 @@ import {
   CreditCard, 
   Percent, 
   Users, 
-  Settings 
+  Settings,
+  Scale
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui';
@@ -56,6 +57,7 @@ export default function RestaurantManagementSidebar({ slug, settings, orgName }:
       title: 'INVENTORY',
       items: [
         { label: 'Stock Levels', href: `/workspaces/restaurantos/${slug}/management/inventory`, icon: <PackageSearch size={18} /> },
+        { label: 'Units of Measure', href: `/workspaces/restaurantos/${slug}/management/units`, icon: <Scale size={18} /> },
         ...(settings?.enableRecipes !== false ? [{ label: 'Recipes', href: `/workspaces/restaurantos/${slug}/management/recipes`, icon: <BookOpen size={18} /> }] : []),
         ...(settings?.enableProduction !== false ? [{ label: 'Production', href: `/workspaces/restaurantos/${slug}/management/production`, icon: <ChefHat size={18} /> }] : []),
       ]
@@ -98,16 +100,21 @@ export default function RestaurantManagementSidebar({ slug, settings, orgName }:
             <div className="space-y-1">
               {group.items.map((item, j) => {
                 const active = pathname === item.href || (Boolean(pathname?.startsWith(item.href)) && item.href !== `/workspaces/restaurantos/${slug}/management/overview`);
+
                 return (
-                  <Link 
+                  <Link
                     key={j}
                     href={item.href}
                     className={cn(
-                      "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors",
-                      active ? "bg-slate-900 text-white shadow-md shadow-slate-900/10" : "text-slate-600 hover:bg-slate-100"
+                      "flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-bold transition-colors",
+                      active 
+                        ? "bg-emerald-50 text-emerald-700" 
+                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                     )}
                   >
-                    <span className={cn(active ? "text-slate-300" : "text-slate-400")}>{item.icon}</span>
+                    <span className={cn(active ? "text-emerald-600" : "text-slate-400")}>
+                      {item.icon}
+                    </span>
                     {item.label}
                   </Link>
                 );

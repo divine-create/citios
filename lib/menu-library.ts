@@ -742,3 +742,12 @@ export function matchImageForMenuItem(name: string): string | null {
 
   return null;
 }
+
+/**
+ * Find library item metadata by image URL
+ */
+export function findLibraryItemByImageUrl(imageUrl?: string | null): MenuItemLibraryEntry | null {
+  if (!imageUrl) return null;
+  const clean = imageUrl.trim();
+  return MENU_LIBRARY.find((item) => item.imageUrl === clean) || null;
+}

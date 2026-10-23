@@ -5,6 +5,7 @@ import { Plus, Edit2, Trash2, Check, X, Utensils, DollarSign, Tag, Loader2, Spar
 import { upsertManagedMenuItem, deleteManagedMenuItem } from '@/lib/actions/hq-managed-business';
 import MediaLinkOrUploadInput from './MediaLinkOrUploadInput';
 import MenuLibraryPickerModal from '@/components/common/MenuLibraryPickerModal';
+import MenuItemImagePicker from '@/components/common/MenuItemImagePicker';
 import { toast } from 'sonner';
 
 interface MenuItemData {
@@ -359,13 +360,15 @@ export default function ManagedCatalogEditor({
                 </button>
               </div>
 
-              {/* Image Input (Link or Upload) */}
-              <MediaLinkOrUploadInput
-                label="Item Image (Direct Link or Upload)"
+              {/* Image Input (Upload or Library) */}
+              <MenuItemImagePicker
+                label="Item Photo"
                 value={editingItem.imageUrl || ''}
                 onChange={(url) => setEditingItem({ ...editingItem, imageUrl: url })}
-                placeholder="https://crunchies.s3.eu-west-1.wasabisys.com/...png"
-                description="Provide direct image URL from official brand site or upload image directly."
+                onOpenLibrary={() => setIsMenuLibraryOpen(true)}
+                organizationId={organizationId}
+                description="Pick from our 50-dish library or upload your own file."
+                theme="dark"
               />
 
               <div className="grid grid-cols-2 gap-4 pt-2">

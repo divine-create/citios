@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Search, Plus, Minus, CreditCard, Banknote, X, ChevronRight, ShoppingCart, Loader2, User, UserPlus, CheckCircle2, Package, Trash2, ArrowRight } from "lucide-react";
+import { Search, Plus, Minus, CreditCard, Banknote, X, ChevronRight, ShoppingCart, Loader2, User, UserPlus, CheckCircle2, Package, Trash2, ArrowRight, ArrowRightLeft } from "lucide-react";
 import { getProducts, getCustomers, createOrder, createCustomer, getRetailSettings, getCouponDiscount } from "@/lib/actions/retail";
 import ReceiptModal from "./ReceiptModal";
 import { inputCls } from "./ShopUI";
@@ -169,7 +169,7 @@ export default function POSTerminal({ organizationId, locationId, products, shif
   const tax = Math.max(0, (subtotal - discountAmount - couponDiscount) * (taxRate / 100));
   const total = Math.max(0, subtotal - discountAmount - couponDiscount + tax);
 
-  const finalizeSale = async (paymentMethod: "CASH" | "CARD") => {
+  const finalizeSale = async (paymentMethod: "CASH" | "CARD" | "TRANSFER") => {
     setError(null);
     setIsProcessing(true);
     try {
@@ -624,6 +624,20 @@ export default function POSTerminal({ organizationId, locationId, products, shif
                   <div className="text-left">
                     <div className="text-lg sm:text-2xl font-black">Cash</div>
                     <div className="text-emerald-700/70 text-xs sm:text-sm font-medium">Record custom cash tender</div>
+                  </div>
+                </button>
+
+                <button
+                  disabled={isProcessing}
+                  onClick={() => finalizeSale('TRANSFER')}
+                  className="w-full flex items-center gap-4 sm:gap-6 p-4 sm:p-6 rounded-2xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition-colors border border-indigo-200 group disabled:opacity-50 active:scale-98"
+                >
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-md group-hover:scale-105 transition-transform shrink-0">
+                    <ArrowRightLeft size={26} />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-lg sm:text-2xl font-black">Bank Transfer</div>
+                    <div className="text-indigo-700/70 text-xs sm:text-sm font-medium">Direct transfer to business account</div>
                   </div>
                 </button>
               </div>

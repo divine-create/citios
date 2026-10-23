@@ -820,7 +820,7 @@ export async function createOrder(input: {
   locationId?: string | null;
   customerDataId?: string;
   items: { productId: string; quantity: number }[];
-  paymentMethod: 'CASH' | 'CARD' | 'SPLIT';
+  paymentMethod: 'CASH' | 'CARD' | 'SPLIT' | 'TRANSFER';
   discountAmount?: number;
     couponCode?: string;
     idempotencyKey?: string;

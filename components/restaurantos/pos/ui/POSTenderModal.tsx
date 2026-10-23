@@ -1,19 +1,19 @@
 'use client';
 import React, { useState } from 'react';
 import { Button, Input } from '@/components/ui';
-import { X } from 'lucide-react';
+import { X, ArrowRightLeft } from 'lucide-react';
 import { useMoney } from '@/components/cityos/CityProvider';
 
 interface POSTenderModalProps {
   totalAmount: number;
   onCancel: () => void;
-  onConfirm: (method: 'CASH' | 'POS' | 'WALLET', amountTendered?: number) => void;
+  onConfirm: (method: 'CASH' | 'POS' | 'TRANSFER' | 'WALLET', amountTendered?: number) => void;
   isProcessing?: boolean;
 }
 
 export function POSTenderModal({ totalAmount, onCancel, onConfirm, isProcessing }: POSTenderModalProps) {
   const { fmt } = useMoney();
-  const [method, setMethod] = useState<'CASH' | 'POS' | 'WALLET' | null>(null);
+  const [method, setMethod] = useState<'CASH' | 'POS' | 'TRANSFER' | null>(null);
   const [cashTendered, setCashTendered] = useState<string>('');
 
   const handleQuickAmount = (amount: number) => {
@@ -78,11 +78,11 @@ export function POSTenderModal({ totalAmount, onCancel, onConfirm, isProcessing 
               Card Terminal
             </Button>
             <Button 
-              variant={method === 'WALLET' ? 'primary' : 'outline'} 
-              className="h-16"
-              onClick={() => setMethod('WALLET')}
+              variant={method === 'TRANSFER' ? 'primary' : 'outline'} 
+              className={method === 'TRANSFER' ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'h-16'}
+              onClick={() => setMethod('TRANSFER')}
             >
-              CityPay
+              Bank Transfer
             </Button>
           </div>
 
@@ -129,10 +129,18 @@ export function POSTenderModal({ totalAmount, onCancel, onConfirm, isProcessing 
             </div>
           )}
 
-          {method === 'WALLET' && (
-            <div className="bg-purple-50 p-6 rounded-2xl border border-purple-100 text-center animate-in fade-in slide-in-from-bottom-2 duration-200">
-              <p className="text-purple-800 font-bold">Scan customer wallet QR.</p>
-              <p className="text-sm text-purple-600 mt-2">(Simulated for Phase 0 - will auto-approve)</p>
+          {method === 'TRANSFER' && (
+            <div className="bg-indigo-50 p-6 rounded-2xl border border-indigo-100 text-center animate-in fade-in slide-in-from-bottom-2 duration-200">
+              <div className="w-12 h-12 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center mx-auto mb-3">
+                <ArrowRightLeft size={24} />
+              </div>
+              <p className="text-indigo-900 font-bold text-base">Direct Bank Transfer</p>
+              <p className="text-sm text-indigo-700 mt-1">
+                Customer should transfer <span className="font-extrabold">{fmt(totalAmount)}</span> to your business bank account.
+              </p>
+              <div className="mt-4 p-3 bg-white/90 rounded-xl border border-indigo-200 text-xs font-semibold text-indigo-800 shadow-xs">
+                ⚠️ Verify the credit alert on your business account before confirming payment.
+              </div>
             </div>
           )}
         </div>

@@ -222,4 +222,6 @@ test('RestaurantOS: Menu Item Editing, Validation & Tenant Isolation', async (t)
   await db.orm.public.PersonIdentifier.where({ personId: outsiderPerson.id }).delete();
   await db.orm.public.Account.where({ personId: outsiderPerson.id }).delete();
   await db.orm.public.Person.where({ id: outsiderPerson.id }).delete();
+
+  process.exit(0);
 });

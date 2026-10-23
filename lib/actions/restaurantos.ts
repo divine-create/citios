@@ -241,7 +241,7 @@ export async function updateRestaurantOSSettings(
       if (logoAssetId !== undefined) {
         await db.orm.public.Organization.where({ id: organizationId }).update({ logoAssetId });
       }
-      revalidatePath('/', 'layout');
+      safeRevalidatePath('/', 'layout');
       return JSON.parse(JSON.stringify(created));
     }
     if (Object.keys(settingsUpdates).length > 0) {
@@ -254,7 +254,7 @@ export async function updateRestaurantOSSettings(
       .where({ organizationId })
       .all()
       .first();
-    revalidatePath('/', 'layout');
+    safeRevalidatePath('/', 'layout');
     return JSON.parse(JSON.stringify(updated));
   } catch (error) {
     console.error('Error updating RestaurantOS settings:', error);
@@ -343,7 +343,7 @@ export async function createMenuItem(input: {
     }
 
     try {
-      revalidatePath('/', 'layout');
+      safeRevalidatePath('/', 'layout');
     } catch {
       // Safe fallback when invoked in testing environments
     }
@@ -434,7 +434,7 @@ export async function updateMenuItem(
     await db.orm.public.MenuItem.where({ id: menuItemId }).update(updateData);
     const updated = await db.orm.public.MenuItem.where({ id: menuItemId }).all().first();
     try {
-      revalidatePath('/', 'layout');
+      safeRevalidatePath('/', 'layout');
       revalidatePath('/food');
       revalidatePath('/workspaces/restaurantos/[slug]/management/menu');
     } catch {
@@ -457,7 +457,7 @@ export async function toggleMenuItemAvailability(menuItemId: string) {
     const next = menuItem.isAvailable === false;
     await db.orm.public.MenuItem.where({ id: menuItemId }).update({ isAvailable: next });
     try {
-      revalidatePath('/', 'layout');
+      safeRevalidatePath('/', 'layout');
       revalidatePath('/food');
       revalidatePath('/workspaces/restaurantos/[slug]/management/menu');
     } catch {
@@ -478,7 +478,7 @@ export async function deleteMenuItem(menuItemId: string) {
 
     await db.orm.public.MenuItem.where({ id: menuItemId }).delete();
     try {
-      revalidatePath('/', 'layout');
+      safeRevalidatePath('/', 'layout');
       revalidatePath('/food');
       revalidatePath('/workspaces/restaurantos/[slug]/management/menu');
     } catch {
@@ -517,7 +517,7 @@ export async function createMenuItemAddon(input: {
       price: input.price,
       isAvailable: true,
     });
-    revalidatePath('/', 'layout');
+    safeRevalidatePath('/', 'layout');
     return JSON.parse(JSON.stringify(addon));
   } catch (error) {
     console.error('Error creating addon:', error);
@@ -547,7 +547,7 @@ export async function createMenuItemVariant(input: {
       price: input.price,
       isAvailable: true,
     });
-    revalidatePath('/', 'layout');
+    safeRevalidatePath('/', 'layout');
     return JSON.parse(JSON.stringify(variant));
   } catch (error) {
     console.error('Error creating variant:', error);
@@ -592,7 +592,7 @@ export async function createMenuItemCombo(input: {
         quantity: it.quantity ?? 1,
       });
     }
-    revalidatePath('/', 'layout');
+    safeRevalidatePath('/', 'layout');
     return JSON.parse(JSON.stringify(combo));
   } catch (error) {
     console.error('Error creating combo:', error);
@@ -769,7 +769,7 @@ export async function createReservation(input: {
       });
     });
 
-    revalidatePath('/', 'layout');
+    safeRevalidatePath('/', 'layout');
     return JSON.parse(JSON.stringify(reservation));
   } catch (error) {
     console.error('Error creating reservation:', error);
@@ -790,7 +790,7 @@ export async function updateReservationStatus(
     await requireMembership(reservation.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'WAITER'], reservation.locationId);
 
     await db.orm.public.RestaurantReservation.where({ id: reservationId }).update({ status });
-    revalidatePath('/', 'layout');
+    safeRevalidatePath('/', 'layout');
     return { success: true, status };
   } catch (error) {
     console.error('Error updating reservation status:', error);
@@ -1221,7 +1221,7 @@ export async function updateOrderStatus(
 
     try {
         const { revalidatePath } = require('next/cache');
-        revalidatePath('/', 'layout');
+        safeRevalidatePath('/', 'layout');
     } catch(e){}
 
     if (updatedOrder.customerDataId) {
@@ -1563,7 +1563,7 @@ export async function createInventoryItem(input: {
         note: 'Initial stock',
       });
     }
-    revalidatePath('/', 'layout');
+    safeRevalidatePath('/', 'layout');
     return JSON.parse(JSON.stringify(item));
   } catch (error) {
     console.error('Error creating inventory item:', error);
@@ -1571,19 +1571,257 @@ export async function createInventoryItem(input: {
   }
 }
 
+export const DEFAULT_RESTAURANT_UNITS = [
+  'kg',
+  'g',
+  'mg',
+  'L',
+  'ml',
+  'cl',
+  'pcs',
+  'portion',
+  'slice',
+  'plate',
+  'cup',
+  'tbsp',
+  'tsp',
+  'pack',
+  'box',
+  'bottle',
+  'can',
+  'carton',
+  'crate',
+  'bunch',
+  'bag',
+  'loaf',
+  'dozen',
+  'tin',
+  'jar',
+  'tub',
+  'tray',
+] as const;
+
+export async function getOrganizationUnits(organizationId: string): Promise<string[]> {
+  try {
+    await requireMembership(organizationId);
+
+    // 1. Fetch customUnits from RetailSettings if present
+    const settings = await db.orm.public.RetailSettings.where({ organizationId }).all().first();
+    let savedUnits: string[] = [];
+    if (settings?.customUnits) {
+      try {
+        const parsed = JSON.parse(settings.customUnits);
+        if (Array.isArray(parsed)) {
+          savedUnits = parsed.map((u: any) => String(u || '').trim()).filter(Boolean);
+        }
+      } catch {
+        savedUnits = [];
+      }
+    }
+
+    // 2. Fetch all distinct units currently in use by RestaurantInventoryItem
+    const items = await db.orm.public.RestaurantInventoryItem.where({ organizationId }).all();
+    const usedUnits = items.map((i: any) => String(i.unit || '').trim()).filter(Boolean);
+
+    // 3. Merge DEFAULT_RESTAURANT_UNITS + savedUnits + usedUnits with deduplication
+    const merged = Array.from(new Set([
+      ...DEFAULT_RESTAURANT_UNITS,
+      ...savedUnits,
+      ...usedUnits
+    ]));
+
+    return merged;
+  } catch (error) {
+    console.error('Error fetching organization units:', error);
+    return [...DEFAULT_RESTAURANT_UNITS];
+  }
+}
+
+export async function getUnitsWithUsage(organizationId: string): Promise<{ unit: string; count: number; isCustom: boolean }[]> {
+  try {
+    await requireMembership(organizationId);
+    const allUnits = await getOrganizationUnits(organizationId);
+    const items = await db.orm.public.RestaurantInventoryItem.where({ organizationId }).all();
+
+    const counts: Record<string, number> = {};
+    for (const item of items) {
+      const u = String(item.unit || '').trim();
+      counts[u] = (counts[u] || 0) + 1;
+    }
+
+    const defaultSet = new Set(DEFAULT_RESTAURANT_UNITS.map(u => u.toLowerCase()));
+
+    return allUnits.map(unit => ({
+      unit,
+      count: counts[unit] || 0,
+      isCustom: !defaultSet.has(unit.toLowerCase()),
+    }));
+  } catch (error) {
+    console.error('Error fetching units with usage:', error);
+    return DEFAULT_RESTAURANT_UNITS.map(unit => ({ unit, count: 0, isCustom: false }));
+  }
+}
+
+export async function createUnitOfMeasure(organizationId: string, unit: string) {
+  try {
+    await requireMembership(organizationId, ['OWNER', 'MANAGER', 'ADMIN', 'INVENTORY_STAFF']);
+    const trimmed = String(unit || '').trim();
+    if (!trimmed) {
+      return { error: 'Unit name is required.' };
+    }
+    if (trimmed.length > 25) {
+      return { error: 'Unit name must be 25 characters or fewer.' };
+    }
+
+    const currentUnits = await getOrganizationUnits(organizationId);
+    if (currentUnits.some(u => u.toLowerCase() === trimmed.toLowerCase())) {
+      return { error: `Unit "${trimmed}" already exists.` };
+    }
+
+    const updatedUnits = [...currentUnits, trimmed];
+
+    // Persist in RetailSettings
+    const settings = await db.orm.public.RetailSettings.where({ organizationId }).all().first();
+    if (!settings) {
+      await db.orm.public.RetailSettings.create({
+        organizationId,
+        customUnits: JSON.stringify(updatedUnits),
+      });
+    } else {
+      await db.orm.public.RetailSettings.where({ organizationId }).update({
+        customUnits: JSON.stringify(updatedUnits),
+      });
+    }
+
+    safeRevalidatePath('/', 'layout');
+    return { success: true, units: updatedUnits };
+  } catch (error: any) {
+    console.error('Error creating unit of measure:', error);
+    return { error: error.message || 'Failed to create unit of measure' };
+  }
+}
+
+export async function updateUnitOfMeasure(organizationId: string, oldUnit: string, newUnit: string) {
+  try {
+    await requireMembership(organizationId, ['OWNER', 'MANAGER', 'ADMIN', 'INVENTORY_STAFF']);
+    const oldTrimmed = String(oldUnit || '').trim();
+    const newTrimmed = String(newUnit || '').trim();
+
+    if (!newTrimmed) {
+      return { error: 'New unit name is required.' };
+    }
+    if (newTrimmed.length > 25) {
+      return { error: 'New unit name must be 25 characters or fewer.' };
+    }
+    if (oldTrimmed.toLowerCase() === newTrimmed.toLowerCase()) {
+      return { success: true, units: await getOrganizationUnits(organizationId) };
+    }
+
+    const currentUnits = await getOrganizationUnits(organizationId);
+    const updatedUnits = currentUnits.map(u => u.toLowerCase() === oldTrimmed.toLowerCase() ? newTrimmed : u);
+    if (!updatedUnits.some(u => u.toLowerCase() === newTrimmed.toLowerCase())) {
+      updatedUnits.push(newTrimmed);
+    }
+    const deduplicated = Array.from(new Set(updatedUnits));
+
+    // 1. Update RetailSettings
+    const settings = await db.orm.public.RetailSettings.where({ organizationId }).all().first();
+    if (!settings) {
+      await db.orm.public.RetailSettings.create({
+        organizationId,
+        customUnits: JSON.stringify(deduplicated),
+      });
+    } else {
+      await db.orm.public.RetailSettings.where({ organizationId }).update({
+        customUnits: JSON.stringify(deduplicated),
+      });
+    }
+
+    // 2. Cascade rename to all inventory items using oldUnit
+    const matchingItems = await db.orm.public.RestaurantInventoryItem.where({ organizationId, unit: oldTrimmed }).all();
+    for (const item of matchingItems) {
+      await db.orm.public.RestaurantInventoryItem.where({ id: item.id }).update({ unit: newTrimmed });
+    }
+
+    safeRevalidatePath('/', 'layout');
+    return { success: true, units: deduplicated, updatedItemsCount: matchingItems.length };
+  } catch (error: any) {
+    console.error('Error updating unit of measure:', error);
+    return { error: error.message || 'Failed to update unit of measure' };
+  }
+}
+
+export async function deleteUnitOfMeasure(organizationId: string, unit: string) {
+  try {
+    await requireMembership(organizationId, ['OWNER', 'MANAGER', 'ADMIN']);
+    const trimmed = String(unit || '').trim();
+
+    // Check if any inventory item in this organization is actively using this unit
+    const matchingItems = await db.orm.public.RestaurantInventoryItem.where({ organizationId, unit: trimmed }).all();
+    if (matchingItems.length > 0) {
+      return {
+        error: `Cannot delete unit "${trimmed}": it is currently assigned to ${matchingItems.length} inventory item(s). Please update those items first.`
+      };
+    }
+
+    const currentUnits = await getOrganizationUnits(organizationId);
+    const filtered = currentUnits.filter(u => u.toLowerCase() !== trimmed.toLowerCase());
+
+    const settings = await db.orm.public.RetailSettings.where({ organizationId }).all().first();
+    if (settings) {
+      await db.orm.public.RetailSettings.where({ organizationId }).update({
+        customUnits: JSON.stringify(filtered),
+      });
+    }
+
+    safeRevalidatePath('/', 'layout');
+    return { success: true, units: filtered };
+  } catch (error: any) {
+    console.error('Error deleting unit of measure:', error);
+    return { error: error.message || 'Failed to delete unit of measure' };
+  }
+}
+
 export async function updateInventoryItem(
   itemId: string,
-  input: Partial<{ name: string; unit: string; lowStockLevel: number; cost: number }>,
+  input: Partial<{
+    name: string;
+    unit: string;
+    lowStockLevel: number;
+    cost: number;
+    type: 'RAW_MATERIAL' | 'SUB_ASSEMBLY' | 'FINISHED_GOOD';
+  }>,
 ) {
   try {
     const item = await db.orm.public.RestaurantInventoryItem.where({ id: itemId }).all().first();
     if (!item) return { error: 'Inventory item not found.' };
     await requireMembership(item.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'INVENTORY_STAFF'], item.locationId);
 
-    await db.orm.public.RestaurantInventoryItem.where({ id: itemId }).update(input);
+    const updateData: any = {};
+    if (input.name !== undefined) {
+      const trimmed = input.name.trim();
+      if (!trimmed) return { error: 'Item name cannot be empty.' };
+      updateData.name = trimmed;
+    }
+    if (input.unit !== undefined) {
+      const trimmedUnit = input.unit.trim();
+      if (!trimmedUnit) return { error: 'Unit cannot be empty.' };
+      updateData.unit = trimmedUnit;
+    }
+    if (input.lowStockLevel !== undefined) {
+      updateData.lowStockLevel = Math.max(0, Number(input.lowStockLevel) || 0);
+    }
+    if (input.cost !== undefined) {
+      updateData.cost = Math.max(0, Number(input.cost) || 0);
+    }
+    if (input.type !== undefined) {
+      updateData.type = input.type;
+    }
+
+    await db.orm.public.RestaurantInventoryItem.where({ id: itemId }).update(updateData);
     const updated = await db.orm.public.RestaurantInventoryItem.where({ id: itemId }).all().first();
-    revalidatePath('/', 'layout');
-    return JSON.parse(JSON.stringify(updated));
+    safeRevalidatePath('/', 'layout');
+    return { success: true, item: JSON.parse(JSON.stringify(updated)) };
   } catch (error) {
     console.error('Error updating inventory item:', error);
     return { error: error instanceof Error ? error.message : 'Failed to update inventory item.' };
@@ -1596,8 +1834,28 @@ export async function deleteInventoryItem(itemId: string) {
     if (!item) return { error: 'Inventory item not found.' };
     await requireMembership(item.organizationId, ['OWNER', 'ADMIN', 'MANAGER'], item.locationId);
 
+    // 1. Safety check: is item used in any recipes?
+    const usedInRecipes = await db.orm.public.RestaurantRecipeIngredient.where({ itemId }).all();
+    if (usedInRecipes.length > 0) {
+      return {
+        error: `Cannot delete "${item.name}": it is used in ${usedInRecipes.length} recipe ingredient(s). Please remove it from recipes first.`
+      };
+    }
+
+    // 2. Unlink any menu items referencing this inventory item
+    const linkedMenuItems = await db.orm.public.MenuItem.where({ inventoryItemId: itemId }).all();
+    for (const m of linkedMenuItems) {
+      await db.orm.public.MenuItem.where({ id: m.id }).update({ inventoryItemId: null });
+    }
+
+    // 3. Delete stock movements and the inventory item
+    const movements = await db.orm.public.RestaurantStockMovement.where({ itemId }).all();
+    for (const mov of movements) {
+      await db.orm.public.RestaurantStockMovement.where({ id: mov.id }).delete();
+    }
+
     await db.orm.public.RestaurantInventoryItem.where({ id: itemId }).delete();
-    revalidatePath('/', 'layout');
+    safeRevalidatePath('/', 'layout');
     return { success: true };
   } catch (error) {
     console.error('Error deleting inventory item:', error);
@@ -1632,7 +1890,7 @@ export async function adjustStock(itemId: string, delta: number, note?: string) 
       return updatedQty;
     });
 
-    revalidatePath('/', 'layout');
+    safeRevalidatePath('/', 'layout');
     return { success: true, quantity: next, lowStock: next <= item.lowStockLevel };
   } catch (error) {
     console.error('Error adjusting stock:', error);
@@ -1679,7 +1937,7 @@ export async function addExpense(input: {
       locationId: input.locationId ?? null,
       note: input.note ?? null,
     });
-    revalidatePath('/', 'layout');
+    safeRevalidatePath('/', 'layout');
     return JSON.parse(JSON.stringify(expense));
   } catch (error) {
     console.error('Error adding expense:', error);
@@ -1969,7 +2227,7 @@ export async function refundRestaurantOrder(orderId: string, input: { reason?: s
       // fulfilling the requirement: Payment refund != Inventory return.
     });
 
-    revalidatePath('/', 'layout');
+    safeRevalidatePath('/', 'layout');
     return { success: true };
   } catch (error) {
     console.error('Error refunding order:', error);
@@ -2268,7 +2526,7 @@ export async function deleteModifierGroup(groupId: string) {
     await db.orm.public.ModifierGroup.where({ id: groupId }).delete();
 
     try {
-      revalidatePath('/', 'layout');
+      safeRevalidatePath('/', 'layout');
       revalidatePath(`/workspaces/restaurantos/${group.organizationId}/management/modifiers`);
       revalidatePath(`/workspaces/restaurantos/${group.organizationId}/pos`);
     } catch {}
@@ -2291,7 +2549,7 @@ export async function deleteModifierOption(optionId: string) {
     await db.orm.public.ModifierOption.where({ id: optionId }).delete();
 
     try {
-      revalidatePath('/', 'layout');
+      safeRevalidatePath('/', 'layout');
       revalidatePath(`/workspaces/restaurantos/${group.organizationId}/management/modifiers`);
       revalidatePath(`/workspaces/restaurantos/${group.organizationId}/pos`);
     } catch {}
@@ -2349,7 +2607,7 @@ export async function createVariant(input: {
     });
 
     try {
-      revalidatePath('/', 'layout');
+      safeRevalidatePath('/', 'layout');
       revalidatePath(`/workspaces/restaurantos/${input.organizationId}/management/variants`);
       revalidatePath(`/workspaces/restaurantos/${input.organizationId}/management/menu`);
       revalidatePath(`/workspaces/restaurantos/${input.organizationId}/pos`);
@@ -2387,7 +2645,7 @@ export async function updateVariant(variantId: string, input: Partial<{ name: st
     await db.orm.public.MenuItemVariant.where({ id: variantId }).update(updateData);
 
     try {
-      revalidatePath('/', 'layout');
+      safeRevalidatePath('/', 'layout');
       revalidatePath(`/workspaces/restaurantos/${variant.organizationId}/management/variants`);
       revalidatePath(`/workspaces/restaurantos/${variant.organizationId}/management/menu`);
       revalidatePath(`/workspaces/restaurantos/${variant.organizationId}/pos`);
@@ -2410,7 +2668,7 @@ export async function deleteVariant(variantId: string) {
     await db.orm.public.MenuItemVariant.where({ id: variantId }).delete();
 
     try {
-      revalidatePath('/', 'layout');
+      safeRevalidatePath('/', 'layout');
       revalidatePath(`/workspaces/restaurantos/${variant.organizationId}/management/variants`);
       revalidatePath(`/workspaces/restaurantos/${variant.organizationId}/management/menu`);
       revalidatePath(`/workspaces/restaurantos/${variant.organizationId}/pos`);
@@ -2436,7 +2694,7 @@ export async function toggleVariantAvailability(variantId: string) {
     });
 
     try {
-      revalidatePath('/', 'layout');
+      safeRevalidatePath('/', 'layout');
       revalidatePath(`/workspaces/restaurantos/${variant.organizationId}/management/variants`);
       revalidatePath(`/workspaces/restaurantos/${variant.organizationId}/management/menu`);
       revalidatePath(`/workspaces/restaurantos/${variant.organizationId}/pos`);

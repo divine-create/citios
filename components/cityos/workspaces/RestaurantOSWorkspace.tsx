@@ -11,7 +11,7 @@ import Link from "next/link";
 import {
   Users, UtensilsCrossed, LayoutDashboard, BarChart3, ShoppingCart, Receipt, Flame,
   Package, Truck, ClipboardList, Trash2, Edit2, Grid3x3, CalendarDays, DollarSign,
-  SettingsIcon, Menu, Bell, Search, X, Plus, Minus, ArrowRightLeft, Loader2, Printer, CheckCircle2, Circle, TrendingUp, Upload, UploadCloud, ImageIcon, Layers
+  SettingsIcon, Menu, Bell, Search, X, Plus, Minus, ArrowRightLeft, Loader2, Printer, CheckCircle2, Circle, TrendingUp, Upload, UploadCloud, ImageIcon, Layers, Scale
 } from "lucide-react";
 import ThermalReceiptModal from "@/components/common/ThermalReceiptModal";
 import { playOrderChime, playCashRegisterChime } from "@/lib/audio";
@@ -144,6 +144,7 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
         items: [
           { label: "Raw Materials", icon: Package },
           { label: "Finished Goods", icon: Package },
+          { label: "Units of Measure", icon: Scale, href: `/workspaces/restaurantos/${slug}/management/units` },
           { label: "Receive Stock", icon: Truck },
         ],
     },
@@ -1244,7 +1245,7 @@ function TabRawMaterials({ inventory, slug, onDone }: any) {
               <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
                 <table className="w-full text-left text-sm">
                   <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-                    <tr><th className="px-4 py-3">Item</th><th className="px-4 py-3">UOM</th><th className="px-4 py-3">Stock Level</th></tr>
+                    <tr><th className="px-4 py-3">Item</th><th className="px-4 py-3">UOM</th><th className="px-4 py-3">Stock Level</th><th className="px-4 py-3 text-right">Actions</th></tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {rawMaterials.map((r:any) => (
@@ -1252,6 +1253,20 @@ function TabRawMaterials({ inventory, slug, onDone }: any) {
                         <td className="px-4 py-3 font-bold text-slate-800">{r.name}</td>
                         <td className="px-4 py-3 text-slate-500">{r.unit}</td>
                         <td className="px-4 py-3 font-medium">{r.quantity}</td>
+                        <td className="px-4 py-3 text-right">
+                          <button
+                            onClick={async () => {
+                              if (!confirm(`Delete "${r.name}"?`)) return;
+                              const res: any = await deleteInventoryItem(r.id);
+                              if (res?.error) alert(res.error);
+                              else onDone();
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
+                            title="Delete Item"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -1286,7 +1301,7 @@ function TabFinishedGoods({ inventory, slug, onDone }: any) {
               <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
                 <table className="w-full text-left text-sm">
                   <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-                    <tr><th className="px-4 py-3">Item</th><th className="px-4 py-3">UOM</th><th className="px-4 py-3">Stock Level</th><th className="px-4 py-3">Cost Price</th></tr>
+                    <tr><th className="px-4 py-3">Item</th><th className="px-4 py-3">UOM</th><th className="px-4 py-3">Stock Level</th><th className="px-4 py-3">Cost Price</th><th className="px-4 py-3 text-right">Actions</th></tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {finishedGoods.map((r:any) => (
@@ -1295,6 +1310,20 @@ function TabFinishedGoods({ inventory, slug, onDone }: any) {
                         <td className="px-4 py-3 text-slate-500">{r.unit}</td>
                         <td className="px-4 py-3 font-medium">{r.quantity}</td>
                         <td className="px-4 py-3 text-slate-500">{r.cost || '-'}</td>
+                        <td className="px-4 py-3 text-right">
+                          <button
+                            onClick={async () => {
+                              if (!confirm(`Delete "${r.name}"?`)) return;
+                              const res: any = await deleteInventoryItem(r.id);
+                              if (res?.error) alert(res.error);
+                              else onDone();
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
+                            title="Delete Item"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>

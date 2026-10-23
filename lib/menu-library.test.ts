@@ -8,6 +8,7 @@ import {
   getMenuLibraryItems,
   findMenuLibraryItem,
   matchImageForMenuItem,
+  findLibraryItemByImageUrl,
 } from './menu-library';
 
 test('Menu Library: Catalog, Physical Assets & Categorization', async (t) => {
@@ -101,5 +102,22 @@ test('Menu Library: Catalog, Physical Assets & Categorization', async (t) => {
     assert.equal(matchImageForMenuItem('Cold Sprite Glass 35cl'), '/images/menu/sprite-35cl.jpg');
     assert.equal(matchImageForMenuItem('Predator Energy Can'), '/images/menu/predator-energy.jpg');
     assert.equal(matchImageForMenuItem('Bottled Mineral Water'), '/images/menu/mineral-water-75cl.png');
+  });
+
+  await t.test('8. findLibraryItemByImageUrl resolves metadata for valid menu library images', () => {
+    const afang = findLibraryItemByImageUrl('/images/menu/afang-soup.webp');
+    assert.ok(afang);
+    assert.equal(afang?.name, 'Afang Soup');
+    assert.equal(afang?.category, 'Soups & Swallow');
+
+    const jollof = findLibraryItemByImageUrl('/images/menu/jollof-rice.jpg');
+    assert.ok(jollof);
+    assert.equal(jollof?.name, 'Jollof Rice');
+
+    const unknown = findLibraryItemByImageUrl('/uploads/custom-photo.jpg');
+    assert.equal(unknown, null);
+
+    const empty = findLibraryItemByImageUrl('');
+    assert.equal(empty, null);
   });
 });

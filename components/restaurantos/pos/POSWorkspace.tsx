@@ -251,12 +251,13 @@ export default function POSWorkspace({ initialMenu, initialTables, settings, act
     setShiftBusy(false);
   };
 
-  const placeOrder = async (method: 'CASH' | 'POS' | 'WALLET', amountTendered?: number) => {
+  const placeOrder = async (method: 'CASH' | 'POS' | 'TRANSFER' | 'WALLET', amountTendered?: number) => {
     if (posLines.length === 0 || !org) return;
     setPosBusy(true);
     const res: any = await createPosOrder({
       organizationId: org.id,
-      ...(org.locations?.[0]?.id ? { locationId: org.locations[0].id } : {}),
+      shiftId: activeShift?.id,
+      ...(activeShift?.locationId ? { locationId: activeShift.locationId } : (org.locations?.[0]?.id ? { locationId: org.locations[0].id } : {})),
       ...((posType === 'DINE_IN' && posTableId) ? { tableId: posTableId } : {}),
       type: posType,
       paymentMethod: method,
@@ -281,7 +282,7 @@ export default function POSWorkspace({ initialMenu, initialTables, settings, act
           items: posLines.map((l: any) => ({ name: l.name, quantity: l.qty, unitPrice: l.price, subtotal: l.qty * l.price })),
             subtotal: posSubtotal,
           totalAmount: res.totalAmount,
-          paymentMethod: method,
+          paymentMethod: method === 'TRANSFER' ? 'BANK TRANSFER' : method,
         });
       }
     }
