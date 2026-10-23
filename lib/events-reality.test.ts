@@ -39,7 +39,7 @@ describe('CityOS Events Vertical: Reality & Feature Tests', () => {
       const questions: EventCustomQuestion[] = [
         { id: 'q1', label: 'Company / Project', type: 'text', required: true },
         { id: 'q2', label: 'Role in Tech', type: 'select', required: false, options: ['Founder', 'Engineer', 'Designer'] },
-        { id: 'q3', label: 'Twitter / X Handle', type: 'social', required: false },
+        { id: 'q3', label: 'Twitter / X Handle', type: 'social_url', required: false },
       ];
 
       const settings: EventSettings = {
@@ -75,13 +75,13 @@ describe('CityOS Events Vertical: Reality & Feature Tests', () => {
 
     it('normalizes legacy or fuzzy category names into valid categories', () => {
       const parsed1 = parseEventDescription('Live music show\n\nEVENT_CATEGORY: Live Bands & Concerts');
-      assert.equal(parsed1.category, 'Live Music & Concerts');
+      assert.equal(parsed1.category, 'Music & Nightlife');
 
       const parsed2 = parseEventDescription('Workshop event\n\nEVENT_CATEGORY: Masterclass and Bootcamp');
-      assert.equal(parsed2.category, 'Workshops & Learning');
+      assert.equal(parsed2.category, 'Workshop & Class');
 
       const parsed3 = parseEventDescription('Food feast\n\nEVENT_CATEGORY: Culinary & Bistro');
-      assert.equal(parsed3.category, 'Food & Dining');
+      assert.equal(parsed3.category, 'Food & Drink');
 
       const direct = normalizeCategory('tech startup pitch');
       assert.equal(direct, 'Tech & Business');
