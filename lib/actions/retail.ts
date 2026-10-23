@@ -1983,8 +1983,57 @@ export async function updateRetailSettings(organizationId: string, input: {
 export async function getReceiptData(orderId: string) {
   try {
     const order = await db.orm.public.RetailOrder.where({ id: orderId }).all().first();
-    if (!order) return null;
-    await requireMembership(order.organizationId);
+    if (!order) {
+      // Check if it is a RestaurantOrder
+      const restOrder = await db.orm.public.RestaurantOrder.where({ id: orderId }).all().first();
+      if (!restOrder) return null;
+
+      const items = await db.orm.public.OrderItem.where({ orderId: restOrder.id }).all();
+      const populatedItems = await Promise.all(items.map(async (item) => {
+        const product = await db.orm.public.MenuItem.where({ id: item.menuItemId }).all().first();
+        return {
+          ...item,
+          product: { name: item.menuItemName || product?.name || 'Item' },
+          unitPrice: Number(item.unitPrice),
+          subtotal: Number(item.unitPrice) * Number(item.quantity),
+        };
+      }));
+
+      const org = await db.orm.public.Organization.where({ id: restOrder.organizationId }).all().first();
+      let cashierName = 'Staff';
+      if (restOrder.servedByMembershipId) {
+        const mem = await db.orm.public.Membership.where({ id: restOrder.servedByMembershipId }).all().first();
+        if (mem) {
+          const person = await db.orm.public.Person.where({ id: mem.personId }).all().first();
+          if (person) cashierName = `${person.firstName} ${person.lastName}`.trim();
+        }
+      }
+
+      const createdAtStr = restOrder.createdAt ? new Date(restOrder.createdAt as any).toISOString() : new Date().toISOString();
+
+      return {
+        order: {
+          id: restOrder.id,
+          orderNumber: restOrder.orderNumber ? String(restOrder.orderNumber) : restOrder.id.slice(-8).toUpperCase(),
+          totalAmount: Number(restOrder.totalAmount),
+          taxAmount: 0,
+          discountAmount: 0,
+          paymentMethod: restOrder.paymentMethod || 'CASH',
+          createdAt: createdAtStr,
+          type: restOrder.type,
+          tableName: restOrder.tableNumber,
+        },
+        items: populatedItems,
+        cashier: cashierName,
+        settings: {
+          storeName: org?.name || 'Restaurant',
+          storeAddress: '',
+          storePhone: '',
+          currencySymbol: '₦',
+          receiptMessage: 'Thank you for dining with us!',
+        }
+      };
+    }
 
     const items = await db.orm.public.RetailOrderItem.where({ orderId }).all();
     const populatedItems = await Promise.all(items.map(async (item) => {
@@ -1996,8 +2045,13 @@ export async function getReceiptData(orderId: string) {
     const cashierPerson = cashierMembership ? await db.orm.public.Person.where({ id: cashierMembership.personId }).all().first() : null;
     const settings = await getRetailSettings(order.organizationId);
 
+    const createdAtStr = order.createdAt ? new Date(order.createdAt as any).toISOString() : new Date().toISOString();
+
     return {
-      order,
+      order: {
+        ...order,
+        createdAt: createdAtStr,
+      },
       items: populatedItems,
       cashier: cashierPerson ? `${cashierPerson.firstName} ${cashierPerson.lastName}`.trim() : 'Staff',
       settings

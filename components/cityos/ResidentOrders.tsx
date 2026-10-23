@@ -5,6 +5,7 @@ import { Package, UtensilsCrossed, Clock, CheckCircle2, ChevronRight, Truck, Pri
 import { fetchMyOrders, cancelMyOrder, requestMyOrderRefund } from '@/app/actions/orders';
 import { useMoney } from '@/components/cityos/CityProvider';
 import ThermalReceiptModal from '@/components/common/ThermalReceiptModal';
+import { formatReceiptDate } from '@/lib/receiptUtils';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -145,7 +146,7 @@ export default function ResidentOrders() {
                         {order.org?.name || 'Unknown Business'}
                       </h3>
                       <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-                        <span>{new Date(order.createdAt).toLocaleDateString()}</span>
+                        <span>{formatReceiptDate(order.createdAt, { dateStyle: 'short' })}</span>
                         <span className="w-1 h-1 rounded-full bg-slate-300"></span>
                         <span className="font-mono text-[10px] text-slate-400">#{order.id.slice(0, 8)}</span>
                       </div>
@@ -277,6 +278,28 @@ export default function ResidentOrders() {
       {receiptOrder && (
         <ThermalReceiptModal
           orderId={receiptOrder.id}
+          initialData={{
+            orderId: receiptOrder.id,
+            orderNumber: receiptOrder.orderNumber ? String(receiptOrder.orderNumber) : receiptOrder.id.slice(-8).toUpperCase(),
+            storeName: receiptOrder.org?.name || 'CityOS Store',
+            storeAddress: receiptOrder.org?.address || '',
+            date: receiptOrder.createdAt || new Date().toISOString(),
+            orderType: receiptOrder.category === 'FOOD' ? (receiptOrder.type || 'DINE_IN') : 'STORE_SALE',
+            tableName: receiptOrder.tableNumber,
+            items: (receiptOrder.items || []).map((i: any) => ({
+              name: i.product?.name || i.menuItemName || 'Item',
+              quantity: i.quantity || 1,
+              unitPrice: Number(i.unitPrice || 0),
+              subtotal: Number(i.subtotal || ((i.unitPrice || 0) * (i.quantity || 1))),
+              notes: i.notes,
+            })),
+            subtotal: Number(receiptOrder.subtotal || receiptOrder.totalAmount || 0),
+            discountAmount: Number(receiptOrder.discountAmount || 0),
+            taxAmount: Number(receiptOrder.taxAmount || 0),
+            totalAmount: Number(receiptOrder.totalAmount || 0),
+            paymentMethod: receiptOrder.paymentMethod || receiptOrder.payment?.paymentMethod || 'CASH',
+            currencySymbol: '₦',
+          }}
           onClose={() => setReceiptOrder(null)}
         />
       )}

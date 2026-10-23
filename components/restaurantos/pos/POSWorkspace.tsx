@@ -278,7 +278,8 @@ export default function POSWorkspace({ initialMenu, initialTables, settings, act
         setReceiptModalData({
           orderId: res.orderId,
           orderNumber: String(res.orderNumber),
-          storeName: org?.name,
+          storeName: org?.name || 'Restaurant',
+          date: new Date().toISOString(),
           items: posLines.map((l: any) => ({ name: l.name, quantity: l.qty, unitPrice: l.price, subtotal: l.qty * l.price })),
             subtotal: posSubtotal,
           totalAmount: res.totalAmount,

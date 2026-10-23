@@ -9,7 +9,7 @@ export interface PrintableReceiptData {
   storeName: string;
   storeAddress?: string;
   storePhone?: string;
-  date: string | Date;
+  date?: string | Date | number | any;
   cashierName?: string;
   orderType?: 'STORE_SALE' | 'DINE_IN' | 'TAKEOUT' | 'DELIVERY';
   tableName?: string;
@@ -34,6 +34,84 @@ export interface PrintableReceiptData {
   currencySymbol?: string;
   footerMessage?: string;
   receiptUrl?: string;
+}
+
+/**
+ * Safely parse any date representation (Date, ISO string, epoch ms, epoch seconds, Temporal Instant).
+ * Guaranteed to never throw and never return an Invalid Date (falls back to current time).
+ */
+export function parseReceiptDate(input: any): Date {
+  if (!input) return new Date();
+
+  // If already a valid Date object
+  if (input instanceof Date && !isNaN(input.getTime())) {
+    return input;
+  }
+
+  // If object with epochMilliseconds, getTime, or seconds
+  if (typeof input === 'object') {
+    if (typeof input.epochMilliseconds === 'number' && !isNaN(input.epochMilliseconds)) {
+      const d = new Date(input.epochMilliseconds);
+      if (!isNaN(d.getTime())) return d;
+    }
+    if (typeof input.getTime === 'function') {
+      try {
+        const d = new Date(input.getTime());
+        if (!isNaN(d.getTime())) return d;
+      } catch {
+        // ignore
+      }
+    }
+    if (typeof input.seconds === 'number' && !isNaN(input.seconds)) {
+      const d = new Date(input.seconds * 1000);
+      if (!isNaN(d.getTime())) return d;
+    }
+  }
+
+  // If numeric timestamp
+  if (typeof input === 'number' && !isNaN(input)) {
+    const ms = input < 10000000000 ? input * 1000 : input;
+    const d = new Date(ms);
+    if (!isNaN(d.getTime())) return d;
+  }
+
+  // If string
+  if (typeof input === 'string') {
+    const trimmed = input.trim();
+    if (!trimmed) return new Date();
+
+    // Check if numeric string timestamp
+    if (/^\d+$/.test(trimmed)) {
+      const num = Number(trimmed);
+      const ms = num < 10000000000 ? num * 1000 : num;
+      const d = new Date(ms);
+      if (!isNaN(d.getTime())) return d;
+    }
+
+    const d = new Date(trimmed);
+    if (!isNaN(d.getTime())) return d;
+  }
+
+  return new Date();
+}
+
+/**
+ * Format receipt date safely into a localized human-readable string.
+ * Guaranteed never to return "Invalid Date".
+ */
+export function formatReceiptDate(input: any, options?: Intl.DateTimeFormatOptions): string {
+  const d = parseReceiptDate(input);
+  try {
+    return d.toLocaleString([], options || {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return d.toISOString();
+  }
 }
 
 /**
@@ -71,7 +149,7 @@ export function formatReceiptPlainText(data: PrintableReceiptData, rollWidth: 80
   }
   lines.push(dash);
 
-  const formattedDate = new Date(data.date).toLocaleString('en-GB', {
+  const formattedDate = formatReceiptDate(data.date, {
     dateStyle: 'short',
     timeStyle: 'short',
   });

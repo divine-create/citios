@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 import {
   formatReceiptPlainText,
   generateBarcodeBars,
+  parseReceiptDate,
+  formatReceiptDate,
   type PrintableReceiptData,
 } from './receiptUtils';
 
@@ -42,6 +44,7 @@ describe('Thermal Receipt Utilities', () => {
     assert.ok(text.includes('₦3440.00'));
     assert.ok(text.includes('Change:'));
     assert.ok(text.includes('₦560.00'));
+    assert.ok(!text.includes('Invalid Date'));
   });
 
   it('formats receipt plain text for 58mm compact rolls without overflow', () => {
@@ -57,5 +60,33 @@ describe('Thermal Receipt Utilities', () => {
     assert.ok(Array.isArray(bars));
     assert.ok(bars.length > 10);
     assert.ok(bars.every((b) => typeof b === 'number' && b > 0));
+  });
+
+  it('never returns "Invalid Date" for undefined, null, temporal objects, or invalid string dates', () => {
+    // 1. undefined date
+    const d1 = formatReceiptDate(undefined);
+    assert.ok(!d1.includes('Invalid Date'));
+    assert.ok(d1.length > 0);
+
+    // 2. null date
+    const d2 = formatReceiptDate(null);
+    assert.ok(!d2.includes('Invalid Date'));
+
+    // 3. invalid string
+    const d3 = formatReceiptDate('not-a-date');
+    assert.ok(!d3.includes('Invalid Date'));
+
+    // 4. Temporal object with epochMilliseconds
+    const d4 = formatReceiptDate({ epochMilliseconds: 1726833600000 });
+    assert.ok(!d4.includes('Invalid Date'));
+
+    // 5. Plain text formatting with omitted date never contains "Invalid Date"
+    const receiptWithoutDate: PrintableReceiptData = {
+      ...sampleData,
+      date: undefined,
+    };
+    const textWithoutDate = formatReceiptPlainText(receiptWithoutDate);
+    assert.ok(!textWithoutDate.includes('Invalid Date'));
+    assert.ok(textWithoutDate.includes('Date:'));
   });
 });

@@ -18,6 +18,7 @@ import {
   PrintableReceiptData,
   formatReceiptPlainText,
   generateBarcodeBars,
+  formatReceiptDate,
 } from '@/lib/receiptUtils';
 
 interface ThermalReceiptModalProps {
@@ -61,7 +62,8 @@ export default function ThermalReceiptModal({
           storeName: settings?.storeName || '9jaLive Store',
           storeAddress: settings?.storeAddress || '',
           storePhone: (settings as any)?.storePhone || '',
-          date: order.createdAt,
+          date: order.createdAt || new Date().toISOString(),
+          orderNumber: order.orderNumber ? String(order.orderNumber) : order.id.slice(-8).toUpperCase(),
           cashierName: cashier || 'Store Cashier',
           orderType: 'STORE_SALE',
           items: items.map((i: any) => ({
@@ -210,13 +212,7 @@ export default function ThermalReceiptModal({
               <div className="flex justify-between">
                 <span>Date:</span>
                 <span className="font-semibold text-slate-900">
-                  {new Date(data.date).toLocaleString([], {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
+                  {formatReceiptDate(data.date)}
                 </span>
               </div>
               <div className="flex justify-between">
