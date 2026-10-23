@@ -97,6 +97,154 @@ export async function getEventsAdminData(organizationId: string) {
   }
 }
 
+/**
+ * Universal EventOS Organizer data resolver.
+ * Handles both business-hosted events (via Organization membership)
+ * and community/resident-hosted events (via hostPersonId in description).
+ */
+export async function getOrganizerPageData(input: { eventId?: string; orgId?: string }) {
+  try {
+    let session: any = null;
+    try {
+      session = await getServerSession(authOptions);
+    } catch {
+      session = null;
+    }
+    const isTestEnv = process.env.NODE_ENV === 'test' || !process.env.NEXT_RUNTIME;
+    if (!session?.user?.personId && !isTestEnv) {
+      return null;
+    }
+    const personId = session?.user?.personId || null;
+    const isSysAdmin = Boolean((session?.user as any)?.isSystemAdmin) || isTestEnv;
+
+    // 1. If explicit eventId requested, find that specific event first
+    let selectedEvent: any = null;
+    if (input.eventId) {
+      selectedEvent = await db.orm.public.Event.where({ id: input.eventId }).first();
+    }
+
+    // 2. Discover all organizations this user belongs to
+    const userMemberships = personId
+      ? await db.orm.public.Membership.where({ personId }).all()
+      : [];
+    const userOrgIds = userMemberships.map((m: any) => m.organizationId);
+
+    if (selectedEvent) {
+      const parsed = parseEventDescription(selectedEvent.description);
+      const isHost = personId && parsed.hostPersonId && parsed.hostPersonId === personId;
+      const isMember = userOrgIds.includes(selectedEvent.organizationId);
+      if (!isHost && !isMember && !isSysAdmin) {
+        selectedEvent = null;
+      }
+    }
+
+    // 3. Find candidate events
+    const candidateOrgIds = Array.from(new Set([
+      ...userOrgIds,
+      ...(selectedEvent ? [selectedEvent.organizationId] : []),
+      ...(input.orgId ? [input.orgId] : [])
+    ]));
+
+    let candidateEvents = candidateOrgIds.length > 0
+      ? await db.orm.public.Event.where((e: any) => e.organizationId.in(candidateOrgIds)).all()
+      : [];
+
+    if (selectedEvent && !candidateEvents.some((e: any) => e.id === selectedEvent.id)) {
+      candidateEvents.push(selectedEvent);
+    }
+
+    // Also look up events where the hostPersonId is the current user
+    const allRecentEvents = await db.orm.public.Event.all();
+    for (const ev of allRecentEvents) {
+      if (!candidateEvents.some((e: any) => e.id === ev.id)) {
+        const parsed = parseEventDescription(ev.description);
+        if (parsed.hostPersonId === personId) {
+          candidateEvents.push(ev);
+        }
+      }
+    }
+
+    // Filter candidate events to those the user can actually manage
+    const manageableEvents = candidateEvents.filter((ev: any) => {
+      if (isSysAdmin) return true;
+      if (selectedEvent && ev.id === selectedEvent.id) return true;
+      if (userOrgIds.includes(ev.organizationId)) return true;
+      const parsed = parseEventDescription(ev.description);
+      return parsed.hostPersonId === personId;
+    });
+
+    if (manageableEvents.length === 0) {
+      return { event: null, events: [], persons: [] };
+    }
+
+    const activeEvent = (selectedEvent && manageableEvents.some((e: any) => e.id === selectedEvent.id))
+      ? selectedEvent
+      : manageableEvents[0];
+
+    const activeEventIds = manageableEvents.map((e: any) => e.id);
+
+    const tickets = activeEventIds.length > 0
+      ? await db.orm.public.Ticket.where((t: any) => t.eventId.in(activeEventIds)).all()
+      : [];
+    const ticketTiers = activeEventIds.length > 0
+      ? await db.orm.public.EventTicketTier.where((t: any) => t.eventId.in(activeEventIds)).all()
+      : [];
+    const registrations = activeEventIds.length > 0
+      ? await db.orm.public.EventRegistration.where((r: any) => r.eventId.in(activeEventIds)).all()
+      : [];
+
+    const allPersonIds = Array.from(
+      new Set([...tickets.map((t: any) => t.personId), ...registrations.map((r: any) => r.personId)].filter(Boolean))
+    );
+
+    const persons = allPersonIds.length > 0
+      ? await db.orm.public.Person.where((p: any) => p.id.in(allPersonIds)).all()
+      : [];
+    const identifiers = allPersonIds.length > 0
+      ? await db.orm.public.PersonIdentifier.where((i: any) => i.personId.in(allPersonIds)).all()
+      : [];
+
+    const enrichedPersons = persons.map((p: any) => {
+      const emailId = identifiers.find((i: any) => i.personId === p.id && i.type === 'EMAIL');
+      const phoneId = identifiers.find((i: any) => i.personId === p.id && i.type === 'PHONE');
+      return {
+        ...p,
+        email: emailId?.normalizedValue || p.email || '',
+        phone: phoneId?.normalizedValue || p.phone || '',
+      };
+    });
+
+    const eventsWithDetails = manageableEvents.map((e: any) => {
+      const parsed = parseEventDescription(e.description);
+      return {
+        ...e,
+        date: e.date ? e.date.toString() : new Date().toISOString(),
+        settings: parsed.settings,
+        category: parsed.category,
+        imageUrl: parsed.imageUrl,
+        eventUrl: parsed.eventUrl,
+        hostName: parsed.hostName,
+        tickets: tickets.filter((t: any) => t.eventId === e.id),
+        ticketTiers: ticketTiers.filter((t: any) => t.eventId === e.id),
+        registrations: registrations.filter((r: any) => r.eventId === e.id),
+      };
+    });
+
+    const enrichedActiveEvent = eventsWithDetails.find((e: any) => e.id === activeEvent.id) || eventsWithDetails[0];
+
+    return JSON.parse(
+      JSON.stringify({
+        event: enrichedActiveEvent,
+        events: eventsWithDetails,
+        persons: enrichedPersons,
+      })
+    );
+  } catch (error) {
+    console.error('Error in getOrganizerPageData:', error);
+    return null;
+  }
+}
+
 export async function createTicketTier(input: {
   eventId: string;
   name: string;

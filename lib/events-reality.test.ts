@@ -19,7 +19,8 @@ import {
   approveEventRegistration, 
   declineEventRegistration, 
   checkInTicket,
-  updateEventSettings
+  updateEventSettings,
+  getOrganizerPageData
 } from './actions/events';
 
 describe('CityOS Events Vertical: Reality & Feature Tests', () => {
@@ -367,6 +368,12 @@ describe('CityOS Events Vertical: Reality & Feature Tests', () => {
       const parsed = parseEventDescription(freshEvent.description);
       assert.equal(parsed.eventUrl, customUrl);
       assert.equal(parsed.settings.enableWaitlist, true);
+
+      // Verify that getOrganizerPageData resolves this event for the organizer suite
+      const organizerData = await getOrganizerPageData({ eventId: linkEventId });
+      assert.ok(organizerData);
+      assert.equal(organizerData.event.id, linkEventId);
+      assert.equal(organizerData.event.eventUrl, customUrl);
 
       // Clean up
       await db.orm.public.Event.where({ id: linkEventId }).delete();
