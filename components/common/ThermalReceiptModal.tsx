@@ -58,7 +58,6 @@ export default function ThermalReceiptModal({
 
         setData({
           orderId: order.id,
-          orderNumber: order.id.slice(-8).toUpperCase(),
           storeName: settings?.storeName || '9jaLive Store',
           storeAddress: settings?.storeAddress || '',
           storePhone: (settings as any)?.storePhone || '',

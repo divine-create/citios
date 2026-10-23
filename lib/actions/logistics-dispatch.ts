@@ -810,3 +810,51 @@ export async function reassignDeliveryJob(params: {
     partnerFallbackEligible: result.partnerFallbackEligible,
   };
 }
+
+
+/**
+ * Production Cron Sweeper:
+ * Periodically identifies all active dispatch offers in 'OFFERED' status whose expiration timestamp
+ * has elapsed, marks them as EXPIRED, records tracking events, and advances dispatch to the next candidate.
+ */
+export async function sweepExpiredDispatchOffers(): Promise<{
+  processedCount: number;
+  results: Array<{ dispatchId: string; deliveryJobId: string; reassigned: boolean }>;
+}> {
+  const nowMs = Date.now();
+  const offeredDispatches = await db.orm.public.DeliveryDispatch.where({
+    status: 'OFFERED',
+  }).all();
+
+  const expiredDispatches = offeredDispatches.filter((d: any) => {
+    if (!d.expiresAt) return false;
+    const expiresTime = Date.parse(String(d.expiresAt));
+    return !isNaN(expiresTime) && expiresTime <= nowMs;
+  });
+
+  const BATCH_LIMIT = 25;
+  const toProcess = expiredDispatches.slice(0, BATCH_LIMIT);
+  const results = [];
+  for (const d of toProcess) {
+    try {
+      const res = await handleDispatchOfferTimeout({
+        dispatchId: d.id,
+        providerId: d.providerId || '',
+      });
+      results.push({
+        dispatchId: d.id,
+        deliveryJobId: d.deliveryJobId,
+        reassigned: res.reassignment.reassigned,
+      });
+    } catch (err: any) {
+      console.error(`[Dispatch Sweeper Error] Failed to process expired dispatch ${d.id}:`, err.message);
+      // Fallback: Terminate the offer so it does not remain stuck in OFFERED status
+      await db.orm.public.DeliveryDispatch.where({ id: d.id, status: 'OFFERED' }).update({ status: 'EXPIRED' }).catch(() => {});
+    }
+  }
+
+  return {
+    processedCount: toProcess.length,
+    results,
+  };
+}

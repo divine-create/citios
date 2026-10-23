@@ -15,9 +15,9 @@ export interface StagingDatabaseIdentity {
  * to ensure staging operations NEVER silently fall back to shared production infrastructure.
  */
 export async function assertStagingDatabase(databaseUrl?: string): Promise<StagingDatabaseIdentity> {
-  const urlString = databaseUrl || process.env.DATABASE_URL;
+  const urlString = databaseUrl !== undefined ? databaseUrl : process.env.DATABASE_URL;
 
-  if (!urlString) {
+  if (!urlString || !urlString.trim()) {
     throw new Error('FAIL-CLOSED STAGING GUARD: DATABASE_URL is not set.');
   }
 
