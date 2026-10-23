@@ -282,13 +282,20 @@ export async function getMenuItems(organizationId: string, locationId?: string) 
     const addons = itemIds.length > 0 ? await db.orm.public.MenuItemAddon.where({ organizationId, menuItemId: { in: itemIds } }).all() : [];
     // @ts-ignore
     const variants = itemIds.length > 0 ? await db.orm.public.MenuItemVariant.where({ organizationId, menuItemId: { in: itemIds } }).all() : [];
+    const recipes = itemIds.length > 0 ? await db.orm.public.RestaurantRecipe.where({ organizationId }).all() : [];
 
     return JSON.parse(JSON.stringify(
-      items.map((i) => ({
-        ...i,
-        addons: addons.filter((a: any) => a.menuItemId === i.id),
-        variants: variants.filter((v: any) => v.menuItemId === i.id),
-      })),
+      items.map((i) => {
+        const recipe = recipes.find((r: any) => r.menuItemId === i.id);
+        return {
+          ...i,
+          addons: addons.filter((a: any) => a.menuItemId === i.id),
+          variants: variants.filter((v: any) => v.menuItemId === i.id),
+          recipeId: recipe ? recipe.id : null,
+          recipeName: recipe ? recipe.name : null,
+          recipe: recipe || null,
+        };
+      }),
     ));
   } catch (error) {
     console.error('Error fetching menu items:', error);
@@ -1385,6 +1392,7 @@ export async function createRecipe(input: {
       return JSON.parse(JSON.stringify(recipe));
     });
 
+    safeRevalidatePath('/', 'layout');
     return { ...created, success: true, recipe: created };
   } catch (error: any) {
     console.error('Error creating recipe:', error);
@@ -1417,6 +1425,7 @@ export async function deleteRecipe(organizationId: string, recipeId: string) {
       await tx.orm.public.RestaurantRecipe.where({ id: recipeId }).delete();
     });
 
+    safeRevalidatePath('/', 'layout');
     return { success: true };
   } catch (error: any) {
     console.error('Error deleting recipe:', error);

@@ -93,22 +93,24 @@ export async function getOverviewAlerts(
 
   // Missing recipes — MenuItem IS location-scoped
   let missingRecipes = 0;
-  if (settings?.enableRecipes) {
-    const menu = await db.orm.public.MenuItem
-      .where(locationId ? { organizationId, locationId } : { organizationId })
-      .all();
-    missingRecipes = (menu as any[]).filter((m) => !m.recipeId).length;
-  }
-
-  // Missing cost basis — same location scope
   let missingCost = 0;
-  if (settings?.enableFoodCosting) {
+  if (settings?.enableRecipes || settings?.enableFoodCosting) {
     const menu = await db.orm.public.MenuItem
       .where(locationId ? { organizationId, locationId } : { organizationId })
       .all();
-    for (const m of menu as any[]) {
-      if (settings.enableRecipes && !m.recipeId) missingCost++;
-      else if (!settings.enableRecipes && !m.inventoryItemId) missingCost++;
+    const recipes = await db.orm.public.RestaurantRecipe.where({ organizationId }).all();
+    const recipeMenuItemIds = new Set(recipes.map((r: any) => r.menuItemId).filter(Boolean));
+
+    if (settings?.enableRecipes) {
+      missingRecipes = (menu as any[]).filter((m) => !recipeMenuItemIds.has(m.id) && !m.recipeId).length;
+    }
+
+    if (settings?.enableFoodCosting) {
+      for (const m of menu as any[]) {
+        const hasRecipe = recipeMenuItemIds.has(m.id) || Boolean(m.recipeId);
+        if (settings.enableRecipes && !hasRecipe) missingCost++;
+        else if (!settings.enableRecipes && !m.inventoryItemId) missingCost++;
+      }
     }
   }
 
@@ -378,11 +380,15 @@ export async function getConfigurationHealth(organizationId: string, locationId?
   let missingCost = 0;
   let unavailableItems = 0;
 
+  const recipes = await db.orm.public.RestaurantRecipe.where({ organizationId }).all();
+  const recipeMenuItemIds = new Set(recipes.map((r: any) => r.menuItemId).filter(Boolean));
+
   for (const m of menu as any[]) {
     if (!m.isAvailable) unavailableItems++;
-    if (settings?.enableRecipes && !m.recipeId) missingRecipes++;
+    const hasRecipe = recipeMenuItemIds.has(m.id) || Boolean(m.recipeId);
+    if (settings?.enableRecipes && !hasRecipe) missingRecipes++;
     if (settings?.enableFoodCosting) {
-      if (settings?.enableRecipes && !m.recipeId) missingCost++;
+      if (settings?.enableRecipes && !hasRecipe) missingCost++;
       else if (!settings?.enableRecipes && !m.inventoryItemId) missingCost++;
     }
   }

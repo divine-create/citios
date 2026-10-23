@@ -2,6 +2,7 @@ import React from 'react';
 import { requireMembership } from '@/lib/actions/tenant';
 import { db } from '@/src/prisma/db';
 import RecipeManager from '@/components/restaurantos/management/RecipeManager';
+import { getRecipes } from '@/lib/actions/restaurantos';
 
 export default async function RecipesPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -21,9 +22,11 @@ export default async function RecipesPage({ params }: { params: Promise<{ slug: 
     });
   }
 
-  const recipes = await db.orm.public.RestaurantRecipe.where({ organizationId: slug }).all();
-  const menu = await db.orm.public.MenuItem.where({ organizationId: slug }).all();
-  const inventory = await db.orm.public.RestaurantInventoryItem.where({ organizationId: slug }).all();
+  const [recipes, menu, inventory] = await Promise.all([
+    getRecipes(slug),
+    db.orm.public.MenuItem.where({ organizationId: slug }).all(),
+    db.orm.public.RestaurantInventoryItem.where({ organizationId: slug }).all(),
+  ]);
 
   return (
     <div className="space-y-8">

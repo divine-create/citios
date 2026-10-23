@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { Button, Badge, Input } from '@/components/ui';
 import { Plus, Search, Edit2, Sparkles, Image as ImageIcon, Trash2, X, Check } from 'lucide-react';
 import { formatNaira } from '@/lib/utils';
@@ -21,7 +22,19 @@ const DEFAULT_CATEGORIES = STANDARDIZED_FOOD_CATEGORIES
   .filter((c) => c.id !== 'other')
   .map((c) => c.label);
 
-export default function MenuManager({ slug, menu, settings }: { slug: string; menu: any[]; settings: any }) {
+export default function MenuManager({
+  slug,
+  menu,
+  recipes = [],
+  settings,
+  locations = [],
+}: {
+  slug: string;
+  menu: any[];
+  recipes?: any[];
+  settings: any;
+  locations?: any[];
+}) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All");
@@ -357,11 +370,36 @@ export default function MenuManager({ slug, menu, settings }: { slug: string; me
                 </td>
                 {settings?.enableRecipes && (
                   <td className="px-6 py-4">
-                    {item.recipeId ? (
-                      <Badge variant="teal">Configured</Badge>
-                    ) : (
-                      <Badge variant="default">No Recipe</Badge>
-                    )}
+                    {(() => {
+                      const recipe = item.recipe || recipes.find((r: any) => r.menuItemId === item.id || r.id === item.recipeId);
+                      if (recipe) {
+                        return (
+                          <Link
+                            href={`/workspaces/restaurantos/${slug}/management/recipes`}
+                            className="inline-flex items-center gap-1.5 group"
+                            title={`Recipe: ${recipe.name}`}
+                          >
+                            <Badge variant="teal" className="group-hover:bg-emerald-200 transition-colors cursor-pointer">
+                              Configured
+                            </Badge>
+                            <span className="text-xs text-slate-500 font-medium hidden md:inline truncate max-w-[130px] group-hover:text-emerald-700">
+                              {recipe.name}
+                            </span>
+                          </Link>
+                        );
+                      }
+                      return (
+                        <Link
+                          href={`/workspaces/restaurantos/${slug}/management/recipes`}
+                          className="inline-flex items-center group"
+                          title="Create recipe for this item"
+                        >
+                          <Badge variant="default" className="group-hover:bg-slate-200 transition-colors cursor-pointer">
+                            No Recipe
+                          </Badge>
+                        </Link>
+                      );
+                    })()}
                   </td>
                 )}
                 <td className="px-6 py-4 text-right space-x-2 whitespace-nowrap">

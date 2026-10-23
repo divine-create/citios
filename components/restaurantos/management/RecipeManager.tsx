@@ -93,6 +93,7 @@ export default function RecipeManager({ slug, recipes = [], menu = [], inventory
           <thead className="bg-slate-50 text-slate-500 font-bold text-xs uppercase tracking-wider">
             <tr>
               <th className="px-6 py-4">Menu Item / Recipe</th>
+              <th className="px-6 py-4">Ingredients (BOM)</th>
               <th className="px-6 py-4">Yield</th>
               <th className="px-6 py-4">Status</th>
               <th className="px-6 py-4 text-right">Actions</th>
@@ -111,6 +112,25 @@ export default function RecipeManager({ slug, recipes = [], menu = [], inventory
                       <span className="text-[11px] font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded mt-0.5 inline-block">
                         Standalone / Batch Prep
                       </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
+                    {Array.isArray(r.ingredients) && r.ingredients.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5 max-w-sm">
+                        {r.ingredients.map((ing: any, idx: number) => {
+                          const invItem = inventory.find((i: any) => i.id === ing.itemId);
+                          return (
+                            <span
+                              key={idx}
+                              className="text-[11px] font-medium bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md border border-slate-200/60"
+                            >
+                              {invItem?.name || 'Item'}: {ing.quantity} {invItem?.unit || ''}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-amber-600 italic">No ingredients added</span>
                     )}
                   </td>
                   <td className="px-6 py-4 text-slate-600 font-medium">

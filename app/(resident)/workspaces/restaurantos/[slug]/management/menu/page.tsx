@@ -2,13 +2,18 @@ import React from 'react';
 import { requireMembership } from '@/lib/actions/tenant';
 import { db } from '@/src/prisma/db';
 import MenuManager from '@/components/restaurantos/management/MenuManager';
+import { getMenuItems, getRecipes } from '@/lib/actions/restaurantos';
 
 export default async function MenuPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   await requireMembership(slug, ['OWNER', 'MANAGER', 'ADMIN']);
 
-  const settings = await db.orm.public.RestaurantSettings.where({ organizationId: slug }).all().first();
-  const menu = await db.orm.public.MenuItem.where({ organizationId: slug }).all();
+  const [settings, menu, recipes, locations] = await Promise.all([
+    db.orm.public.RestaurantSettings.where({ organizationId: slug }).all().first(),
+    getMenuItems(slug),
+    getRecipes(slug),
+    db.orm.public.Location.where({ organizationId: slug }).all(),
+  ]);
 
   return (
     <div className="space-y-8">
@@ -17,7 +22,7 @@ export default async function MenuPage({ params }: { params: Promise<{ slug: str
         <p className="text-slate-500 mt-2">Manage what your restaurant sells and controls basic pricing.</p>
       </div>
 
-      <MenuManager slug={slug} menu={menu} settings={settings} />
+      <MenuManager slug={slug} menu={menu} recipes={recipes} settings={settings} locations={locations} />
     </div>
   );
 }
