@@ -194,9 +194,9 @@ export default function CreateEventForm() {
       }
 
       if (res?.event?.id) {
-        router.push(`/events/${res.event.id}`);
+        router.push(`/events/organizer?event=${res.event.id}`);
       } else {
-        router.push('/events');
+        router.push('/events/organizer');
       }
     } catch (err: any) {
       setErrorMsg(err?.message || 'Something went wrong while creating the event.');

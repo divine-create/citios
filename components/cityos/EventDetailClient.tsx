@@ -19,6 +19,7 @@ import {
   Building2,
   Ticket,
   Sparkles,
+  Settings,
 } from 'lucide-react';
 import { Pill, LocationRow, FallbackImg } from '@/components/cityos/CityUI';
 import SaveButton from '@/components/cityos/SaveButton';
@@ -149,9 +150,13 @@ export default function EventDetailClient({
         </nav>
         <div className="flex items-center gap-2">
           {isHost && (
-            <span className="px-2.5 py-1 rounded-xl bg-amber-50 text-amber-800 text-[10px] font-black border border-amber-200">
-              Your Event
-            </span>
+            <Link
+              href={`/events/organizer?event=${event.id}`}
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-teal-800 hover:bg-teal-900 text-white text-[11px] font-black shadow-xs transition"
+            >
+              <Settings className="w-3.5 h-3.5" />
+              Manage Event Suite →
+            </Link>
           )}
           <Link
             href="/events/create"
