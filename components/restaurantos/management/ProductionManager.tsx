@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { Button, Input, EmptyState } from '@/components/ui';
 import { Flame, Package, Plus, CheckCircle2 } from 'lucide-react';
 import { formatNaira } from '@/lib/utils';
@@ -24,15 +25,21 @@ export default function ProductionManager({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const batchRecipes = recipes.filter((r: any) => 
-    inventory.some((inv: any) => inv.recipeId === r.id)
-  );
+  // Any recipe with at least one ingredient can be produced in a batch.
+  // Recipes linked to a Sub-Assembly / Finished Good also add the yield to that item's stock.
+  const getProducedItem = (r: any) =>
+    inventory.find((inv: any) => inv.recipeId === r.id || (r.producedItemId && inv.id === r.producedItemId));
+  const batchRecipes = recipes.filter((r: any) => Array.isArray(r.ingredients) && r.ingredients.length > 0);
 
   const handleCreateRun = async () => {
     if (!selectedRecipe || !organizationId) return;
     const finalYield = Number(actualYield);
     if (isNaN(finalYield) || finalYield <= 0) {
       setError("Please enter a valid actual yield.");
+      return;
+    }
+    if (!(batchMultiplier > 0)) {
+      setError("Batch multiplier must be greater than zero.");
       return;
     }
 
@@ -58,14 +65,14 @@ export default function ProductionManager({
     }
   };
 
-  const getInventoryName = (id: string) => inventory.find((i: any) => i.id === id)?.name || 'Unknown Item';
+  const getInventoryItem = (id: string) => inventory.find((i: any) => i.id === id);
   const getRecipeName = (id: string) => recipes.find((r: any) => r.id === id)?.name || 'Unknown Recipe';
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Kitchen Prep & Batches</h1>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Kitchen Prep &amp; Batches</h1>
           <p className="text-sm text-slate-500 font-medium mt-1">Log bulk prep to accurately deduct raw ingredients and yield prepped stock.</p>
         </div>
         {!isCreating && (
@@ -79,7 +86,7 @@ export default function ProductionManager({
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 max-w-2xl">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-bold text-slate-900">New Production Run</h2>
-            <button onClick={() => setIsCreating(false)} className="text-sm font-bold text-slate-500 hover:text-slate-800">Cancel</button>
+            <button onClick={() => { setIsCreating(false); setSelectedRecipe(null); setError(null); }} className="text-sm font-bold text-slate-500 hover:text-slate-800">Cancel</button>
           </div>
 
           <div className="space-y-6">
@@ -87,29 +94,42 @@ export default function ProductionManager({
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">1. Select Batch Recipe</label>
               {batchRecipes.length === 0 ? (
                 <div className="p-4 bg-orange-50 border border-orange-100 rounded-xl text-orange-800 text-sm font-medium">
-                  No prep recipes found. Go to Inventory, create a Sub-Assembly item (like "Pizza Dough"), and attach a recipe to it.
+                  {recipes.length === 0
+                    ? 'No recipes found. Create a recipe with at least one ingredient first.'
+                    : 'Your recipes have no ingredients yet. Add ingredients to a recipe so a batch can deduct stock.'}{' '}
+                  <Link href={`/workspaces/restaurantos/${organizationId}/management/recipes`} className="underline font-bold">
+                    Go to Recipes
+                  </Link>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {batchRecipes.map((recipe: any) => (
-                    <button
-                      key={recipe.id}
-                      onClick={() => {
-                        setSelectedRecipe(recipe);
-                        setActualYield(recipe.yieldQuantity * batchMultiplier);
-                      }}
-                      className={`p-4 rounded-xl border text-left transition-all ${
-                        selectedRecipe?.id === recipe.id 
-                          ? 'border-ink bg-slate-900 text-white shadow-md' 
-                          : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
-                      }`}
-                    >
-                      <h3 className="font-bold">{recipe.name}</h3>
-                      <p className={`text-xs mt-1 ${selectedRecipe?.id === recipe.id ? 'text-slate-300' : 'text-slate-500'}`}>
-                        Target Yield: {recipe.yieldQuantity}
-                      </p>
-                    </button>
-                  ))}
+                  {batchRecipes.map((recipe: any) => {
+                    const produced = getProducedItem(recipe);
+                    const active = selectedRecipe?.id === recipe.id;
+                    return (
+                      <button
+                        key={recipe.id}
+                        onClick={() => {
+                          setSelectedRecipe(recipe);
+                          setActualYield(recipe.yieldQuantity * batchMultiplier);
+                          setError(null);
+                        }}
+                        className={`p-4 rounded-xl border text-left transition-all ${
+                          active
+                            ? 'border-ink bg-slate-900 text-white shadow-md' 
+                            : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                        }`}
+                      >
+                        <h3 className="font-bold">{recipe.name}</h3>
+                        <p className={`text-xs mt-1 ${active ? 'text-slate-300' : 'text-slate-500'}`}>
+                          Target Yield: {recipe.yieldQuantity} · {recipe.ingredients.length} ingredient(s)
+                        </p>
+                        <p className={`text-[11px] mt-1 font-semibold ${active ? 'text-emerald-300' : produced ? 'text-emerald-700' : 'text-slate-400'}`}>
+                          {produced ? `Adds to stock: ${produced.name}` : 'Deducts ingredients only (no stock item linked)'}
+                        </p>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -119,14 +139,20 @@ export default function ProductionManager({
                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
                   <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Raw Materials to Deduct</h4>
                   <ul className="space-y-2">
-                    {selectedRecipe.ingredients?.map((ing: any) => (
-                      <li key={ing.id} className="flex justify-between text-sm">
-                        <span className="font-medium text-slate-700">{getInventoryName(ing.itemId)}</span>
-                        <span className="font-bold text-slate-900 text-right">
-                          {(ing.quantity * batchMultiplier).toFixed(2)} units
-                        </span>
-                      </li>
-                    ))}
+                    {selectedRecipe.ingredients?.map((ing: any) => {
+                      const item = getInventoryItem(ing.itemId);
+                      const need = ing.quantity * batchMultiplier;
+                      const short = item ? Number(item.quantity) < need : true;
+                      return (
+                        <li key={ing.id} className="flex justify-between text-sm">
+                          <span className="font-medium text-slate-700">{item?.name || 'Unknown Item'}</span>
+                          <span className={`font-bold text-right ${short ? 'text-red-600' : 'text-slate-900'}`}>
+                            {need.toFixed(2)} {item?.unit || 'units'}
+                            <span className="ml-2 text-xs font-medium text-slate-400">(in stock: {item ? Number(item.quantity).toFixed(2) : 0})</span>
+                          </span>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
 
@@ -160,7 +186,7 @@ export default function ProductionManager({
                 {error && <div className="p-3 bg-red-50 text-red-700 text-sm font-medium rounded-xl border border-red-100">{error}</div>}
 
                 <Button className="w-full" size="lg" onClick={handleCreateRun} isLoading={isSubmitting}>
-                  Log Batch & Deduct Inventory
+                  Log Batch &amp; Deduct Inventory
                 </Button>
               </>
             )}
@@ -177,7 +203,7 @@ export default function ProductionManager({
             />
           ) : (
             <div className="divide-y divide-slate-100">
-              {productionRuns.sort((a:any, b:any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((run: any) => (
+              {[...productionRuns].sort((a:any, b:any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((run: any) => (
                 <div key={run.id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 transition-colors">
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 shrink-0">

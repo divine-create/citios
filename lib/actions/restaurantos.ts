@@ -1268,13 +1268,21 @@ export async function getRecipes(organizationId: string) {
   try {
     await requireMembership(organizationId);
     const recipes = await db.orm.public.RestaurantRecipe.where({ organizationId }).all();
-    const ingredients = await db.orm.public.RestaurantRecipeIngredient.all(); // Naive fetch for now
-    
-    // Attach ingredients
-    const result = recipes.map((r: any) => ({
-      ...r,
-      ingredients: ingredients.filter((i: any) => i.recipeId === r.id)
-    }));
+    const producedItems = await db.orm.public.RestaurantInventoryItem.where({ organizationId }).all();
+
+    // Attach ingredients (scoped per recipe of this organization only) and the produced stock item
+    const result = [];
+    for (const r of recipes as any[]) {
+      const ingredients = await db.orm.public.RestaurantRecipeIngredient.where({ recipeId: r.id }).all();
+      const produced = (producedItems as any[]).find((i) => i.recipeId === r.id) ?? null;
+      result.push({
+        ...r,
+        ingredients,
+        producedItemId: produced?.id ?? null,
+        producedItemName: produced?.name ?? null,
+        producedItemUnit: produced?.unit ?? null,
+      });
+    }
     return JSON.parse(JSON.stringify(result));
   } catch (error) {
     console.error('Error fetching recipes:', error);
@@ -1423,85 +1431,85 @@ export async function createProductionRun(input: {
   actualYield: number;
 }) {
   try {
-    const mem = await requireMembership(input.organizationId);
-    
-    return await db.transaction(async (tx: any) => {
-      // 1. Fetch recipe and ingredients
-      const recipe = await tx.orm.public.RestaurantRecipe.findUnique({
-        where: { id: input.recipeId }
-      });
-      if (!recipe) throw new Error("Recipe not found");
-      
+    const { membership } = await requireMembership(input.organizationId, ['OWNER', 'ADMIN', 'MANAGER', 'CHEF', 'KITCHEN', 'INVENTORY_STAFF']);
+
+    const multiplier = Number(input.batchMultiplier);
+    const actualYield = Number(input.actualYield);
+    if (!(multiplier > 0)) throw new Error('Batch multiplier must be greater than zero.');
+    if (!(actualYield > 0)) throw new Error('Actual yield must be greater than zero.');
+
+    const run = await db.transaction(async (tx: any) => {
+      // 1. Fetch recipe (tenant-scoped) and ingredients
+      const recipe = await tx.orm.public.RestaurantRecipe.where({ id: input.recipeId, organizationId: input.organizationId }).all().first();
+      if (!recipe) throw new Error('Recipe not found.');
+
       const ingredients = await tx.orm.public.RestaurantRecipeIngredient.where({ recipeId: recipe.id }).all();
-      
-      // Calculate total cost of materials used
+      if (ingredients.length === 0) throw new Error(`Recipe "${recipe.name}" has no ingredients to deduct.`);
+
       let totalCost = 0;
 
-      // 2. Deduct Raw Materials
+      // 2. Deduct raw materials atomically (stock may never go below zero)
       for (const ing of ingredients) {
-        const requiredQty = ing.quantity * input.batchMultiplier;
-        const item = await tx.orm.public.RestaurantInventoryItem.findUnique({
-          where: { id: ing.itemId }
-        });
-        if (!item || item.quantity < requiredQty) {
-          throw new Error(`Not enough stock for ${item?.name || 'an ingredient'}. Need ${requiredQty}.`);
-        }
-        
-        const costOfIng = item.cost * requiredQty;
-        totalCost += costOfIng;
+        const requiredQty = Number(ing.quantity) * multiplier;
+        const item = await tx.orm.public.RestaurantInventoryItem.where({ id: ing.itemId, organizationId: input.organizationId }).all().first();
+        if (!item) throw new Error('A recipe ingredient no longer exists in inventory.');
 
-        await tx.orm.public.RestaurantInventoryItem.update({
-          id: item.id,
-          quantity: item.quantity - requiredQty,
+        if (Number(item.quantity) < requiredQty) {
+          throw new Error(`Not enough stock for ${item.name}. Need ${requiredQty} ${item.unit}, have ${item.quantity}.`);
+        }
+
+        await tx.orm.public.RestaurantInventoryItem.where({ id: item.id }).update({
+          quantity: Number(item.quantity) - requiredQty,
         });
-        
+
+        totalCost += Number(item.cost) * requiredQty;
+
         await tx.orm.public.RestaurantStockMovement.create({
           organizationId: input.organizationId,
           itemId: item.id,
           type: 'PRODUCTION_USAGE',
-          quantity: -requiredQty,
-          note: `Production Run for Recipe: ${recipe.name}`
+          delta: -requiredQty,
+          unitCost: Number(item.cost),
+          note: `Production run: ${recipe.name}`,
+          recordedById: membership.id,
         });
       }
-      
-      // 3. Create the Production Run Record
-      const run = await tx.orm.public.RestaurantProductionRun.create({
+
+      // 3. Create the production run record
+      const created = await tx.orm.public.RestaurantProductionRun.create({
         organizationId: input.organizationId,
-        recipeId: input.recipeId,
-        batchMultiplier: input.batchMultiplier,
-        expectedYield: recipe.yieldQuantity * input.batchMultiplier,
-        actualYield: input.actualYield,
-        totalCost: totalCost,
-        recordedById: mem.membership.id
+        recipeId: recipe.id,
+        batchMultiplier: multiplier,
+        expectedYield: Number(recipe.yieldQuantity) * multiplier,
+        actualYield,
+        totalCost,
+        recordedById: membership.id,
       });
-      
-      // 4. Increase Finished Goods Stock
-      const producedItem = await tx.orm.public.RestaurantInventoryItem.findFirst({
-        where: { recipeId: recipe.id }
-      });
-      
+
+      // 4. Increase stock of the produced item (if the recipe yields a stock item)
+      const producedItem = await tx.orm.public.RestaurantInventoryItem.where({ recipeId: recipe.id, organizationId: input.organizationId }).all().first();
       if (producedItem) {
-        // Distribute total cost to the produced item
-        const unitCost = totalCost / input.actualYield;
-        
-        await tx.orm.public.RestaurantInventoryItem.update({
-          id: producedItem.id,
-          quantity: producedItem.quantity + input.actualYield,
-          // Moving average cost or just override? We will just override for MVP
+        const unitCost = totalCost / actualYield;
+        await tx.orm.public.RestaurantInventoryItem.where({ id: producedItem.id }).update({
+          quantity: Number(producedItem.quantity) + actualYield,
           cost: unitCost,
         });
-        
         await tx.orm.public.RestaurantStockMovement.create({
           organizationId: input.organizationId,
           itemId: producedItem.id,
           type: 'PRODUCTION_YIELD',
-          delta: input.actualYield,
-          note: `Production Run: ${run.id}`
+          delta: actualYield,
+          unitCost,
+          note: `Production run: ${recipe.name}`,
+          recordedById: membership.id,
         });
       }
 
-      return JSON.parse(JSON.stringify(run));
+      return created;
     });
+
+    safeRevalidatePath('/', 'layout');
+    return JSON.parse(JSON.stringify(run));
   } catch (error: any) {
     console.error('Error creating production run:', error);
     throw new Error(error.message || 'Failed to create production run');
