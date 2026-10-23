@@ -1287,64 +1287,130 @@ export async function createRecipe(input: {
   yieldQuantity: number;
   instructions?: string;
   producedItemId?: string;
-  ingredients: { itemId: string; quantity: number }[];
+  menuItemId?: string;
+  ingredients?: { itemId: string; quantity: number }[];
 }) {
   try {
     await requireMembership(input.organizationId, ['OWNER', 'MANAGER', 'ADMIN']);
-    await requireRestaurantCapability(input.organizationId, 'enableRecipes');
-    
+
+    // Ensure recipes and inventory capabilities are enabled
+    const settings = await db.orm.public.RestaurantSettings.where({ organizationId: input.organizationId }).all().first();
+    if (!settings) {
+      await db.orm.public.RestaurantSettings.create({
+        organizationId: input.organizationId,
+        enableRecipes: true,
+        enableInventory: true,
+      });
+    } else if (!settings.enableRecipes || !settings.enableInventory) {
+      await db.orm.public.RestaurantSettings.where({ organizationId: input.organizationId }).update({
+        enableRecipes: true,
+        enableInventory: true,
+      });
+    }
+
+    if (!input.name || !input.name.trim()) {
+      return { error: 'Recipe name is required.' };
+    }
+    const yieldQty = Number(input.yieldQuantity) > 0 ? Number(input.yieldQuantity) : 1;
+
     let targetLocationId: string | null | undefined = undefined;
     
     if (input.producedItemId) {
        const p = await db.orm.public.RestaurantInventoryItem.where({ id: input.producedItemId }).all().first();
-       if (!p || p.organizationId !== input.organizationId) throw new Error("Invalid produced item.");
+       if (!p || p.organizationId !== input.organizationId) return { error: "Invalid produced item." };
        targetLocationId = p.locationId;
     }
+
+    if (input.menuItemId) {
+       const menuItem = await db.orm.public.MenuItem.where({ id: input.menuItemId }).all().first();
+       if (!menuItem || menuItem.organizationId !== input.organizationId) {
+         return { error: "Selected menu item does not belong to this restaurant." };
+       }
+       const existing = await db.orm.public.RestaurantRecipe.where({ menuItemId: input.menuItemId }).all().first();
+       if (existing) {
+         return { error: `Menu item "${menuItem.name}" already has an assigned recipe (${existing.name}).` };
+       }
+    }
     
-    for (const ing of input.ingredients) {
+    const ingredients = Array.isArray(input.ingredients) ? input.ingredients : [];
+    for (const ing of ingredients) {
        const i = await db.orm.public.RestaurantInventoryItem.where({ id: ing.itemId }).all().first();
-       if (!i || i.organizationId !== input.organizationId) throw new Error("Invalid ingredient item.");
+       if (!i || i.organizationId !== input.organizationId) return { error: "Invalid ingredient item." };
        
        if (targetLocationId === undefined) {
          targetLocationId = i.locationId;
-       } else if (targetLocationId !== i.locationId) {
-         throw new Error("Cross-location mix detected. All ingredients and produced items must belong to the same location.");
+       } else if (targetLocationId && i.locationId && targetLocationId !== i.locationId) {
+         return { error: "Cross-location mix detected. All ingredients and produced items must belong to the same location." };
        }
     }
 
-    return await db.transaction(async (tx: any) => {
+    const created = await db.transaction(async (tx: any) => {
       // 1. Create the recipe
       const recipe = await tx.orm.public.RestaurantRecipe.create({
         organizationId: input.organizationId,
-        name: input.name,
-        yieldQuantity: input.yieldQuantity,
-        instructions: input.instructions ?? null,
+        name: input.name.trim(),
+        yieldQuantity: yieldQty,
+        instructions: input.instructions?.trim() || null,
+        menuItemId: input.menuItemId || null,
       });
 
       // 2. Add ingredients
-      for (const ing of input.ingredients) {
-        await tx.orm.public.RestaurantRecipeIngredient.create({
-          recipeId: recipe.id,
-          itemId: ing.itemId,
-          quantity: ing.quantity,
-        });
+      for (const ing of ingredients) {
+        if (Number(ing.quantity) > 0) {
+          await tx.orm.public.RestaurantRecipeIngredient.create({
+            recipeId: recipe.id,
+            itemId: ing.itemId,
+            quantity: Number(ing.quantity),
+          });
+        }
       }
       
       // 3. Link produced item if given
       if (input.producedItemId) {
-        // Find item and link it
-        // Wait, the relation is on RestaurantInventoryItem: recipeId
-        await tx.orm.public.RestaurantInventoryItem.update({
-          id: input.producedItemId,
+        await tx.orm.public.RestaurantInventoryItem.where({ id: input.producedItemId }).update({
           recipeId: recipe.id
         });
       }
 
       return JSON.parse(JSON.stringify(recipe));
     });
-  } catch (error) {
+
+    return { ...created, success: true, recipe: created };
+  } catch (error: any) {
     console.error('Error creating recipe:', error);
-    throw new Error('Failed to create recipe');
+    return { error: error.message || 'Failed to create recipe' };
+  }
+}
+
+export async function deleteRecipe(organizationId: string, recipeId: string) {
+  try {
+    await requireMembership(organizationId, ['OWNER', 'MANAGER', 'ADMIN']);
+    const recipe = await db.orm.public.RestaurantRecipe.where({ id: recipeId }).all().first();
+    if (!recipe || recipe.organizationId !== organizationId) {
+      return { error: 'Recipe not found or does not belong to this restaurant.' };
+    }
+
+    await db.transaction(async (tx: any) => {
+      // 1. Delete associated ingredients
+      const ingredients = await tx.orm.public.RestaurantRecipeIngredient.where({ recipeId }).all();
+      for (const ing of ingredients) {
+        await tx.orm.public.RestaurantRecipeIngredient.where({ id: ing.id }).delete();
+      }
+
+      // 2. Unlink any inventory items produced by this recipe
+      const producedItems = await tx.orm.public.RestaurantInventoryItem.where({ recipeId }).all();
+      for (const p of producedItems) {
+        await tx.orm.public.RestaurantInventoryItem.where({ id: p.id }).update({ recipeId: null });
+      }
+
+      // 3. Delete the recipe
+      await tx.orm.public.RestaurantRecipe.where({ id: recipeId }).delete();
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error deleting recipe:', error);
+    return { error: error.message || 'Failed to delete recipe' };
   }
 }
 

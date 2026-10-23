@@ -7,14 +7,18 @@ export default async function RecipesPage({ params }: { params: Promise<{ slug: 
   const { slug } = await params;
   await requireMembership(slug, ['OWNER', 'MANAGER', 'ADMIN']);
 
-  const settings = await db.orm.public.RestaurantSettings.where({ organizationId: slug }).all().first();
-  if (!settings?.enableRecipes) {
-    return (
-      <div className="p-12 text-center bg-white rounded-2xl border border-slate-200">
-        <h2 className="text-xl font-black text-slate-900">Recipes Disabled</h2>
-        <p className="text-slate-500 mt-2">Enable recipes in the Capability Center to use this feature.</p>
-      </div>
-    );
+  let settings = await db.orm.public.RestaurantSettings.where({ organizationId: slug }).all().first();
+  if (!settings) {
+    settings = await db.orm.public.RestaurantSettings.create({
+      organizationId: slug,
+      enableRecipes: true,
+      enableInventory: true,
+    });
+  } else if (!settings.enableRecipes || !settings.enableInventory) {
+    settings = await db.orm.public.RestaurantSettings.where({ organizationId: slug }).update({
+      enableRecipes: true,
+      enableInventory: true,
+    });
   }
 
   const recipes = await db.orm.public.RestaurantRecipe.where({ organizationId: slug }).all();

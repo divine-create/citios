@@ -2,24 +2,47 @@
 
 import React, { useState } from 'react';
 import { Button, Badge } from '@/components/ui';
-import { Plus, BookOpen, AlertCircle, ChefHat } from 'lucide-react';
+import { Plus, BookOpen, ChefHat, Trash2, Layers } from 'lucide-react';
 import { RecipeBuilder } from '@/components/restaurantos/forms/RecipeBuilder';
+import { deleteRecipe } from '@/lib/actions/restaurantos';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 export default function RecipeManager({ slug, recipes = [], menu = [], inventory = [], settings }: any) {
   const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDelete = async (recipeId: string, recipeName: string) => {
+    if (!confirm(`Are you sure you want to delete the recipe "${recipeName}"?`)) {
+      return;
+    }
+    setDeletingId(recipeId);
+    try {
+      const res = await deleteRecipe(slug, recipeId);
+      if (res && (res as any).error) {
+        toast.error((res as any).error);
+      } else {
+        toast.success(`Recipe "${recipeName}" deleted.`);
+        router.refresh();
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || 'Failed to delete recipe');
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   if (isCreating) {
     return (
       <div className="space-y-4">
         <RecipeBuilder
           inventory={inventory}
+          menu={menu}
           organizationId={slug}
           onComplete={() => {
             setIsCreating(false);
-            toast.success('Recipe created successfully!');
             router.refresh();
           }}
           onCancel={() => setIsCreating(false)}
@@ -72,6 +95,7 @@ export default function RecipeManager({ slug, recipes = [], menu = [], inventory
               <th className="px-6 py-4">Menu Item / Recipe</th>
               <th className="px-6 py-4">Yield</th>
               <th className="px-6 py-4">Status</th>
+              <th className="px-6 py-4 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -81,7 +105,13 @@ export default function RecipeManager({ slug, recipes = [], menu = [], inventory
                 <tr key={r.id} className="hover:bg-slate-50 transition-colors">
                   <td className="px-6 py-4">
                     <p className="font-bold text-slate-900">{r.name || m?.name || 'Recipe'}</p>
-                    {m && <p className="text-xs text-slate-400 mt-0.5">Linked to: {m.name}</p>}
+                    {m ? (
+                      <p className="text-xs text-slate-400 mt-0.5">Linked to: {m.name}</p>
+                    ) : (
+                      <span className="text-[11px] font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded mt-0.5 inline-block">
+                        Standalone / Batch Prep
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-slate-600 font-medium">
                     Yields {r.yieldQuantity || 1} unit(s)
@@ -91,6 +121,16 @@ export default function RecipeManager({ slug, recipes = [], menu = [], inventory
                       <div className="w-2 h-2 rounded-full bg-emerald-500" />
                       <span>Active</span>
                     </div>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <button
+                      onClick={() => handleDelete(r.id, r.name)}
+                      disabled={deletingId === r.id}
+                      className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                      title="Delete Recipe"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </td>
                 </tr>
               );

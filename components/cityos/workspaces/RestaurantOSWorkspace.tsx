@@ -336,7 +336,7 @@ export default function RestaurantOSWorkspace({ slug }: { slug: string }) {
             {activeMenu === "Orders" && <TabOrders orders={orders} />}
             
             {activeMenu === "Menu Items" && <TabMenu menu={menu} slug={slug} onDone={loadData} />}
-            {activeMenu === "Recipes" && <TabRecipes recipes={recipes} inventory={inventory} slug={slug} onDone={loadData} org={org} />}
+            {activeMenu === "Recipes" && <TabRecipes recipes={recipes} inventory={inventory} menu={menu} slug={slug} onDone={loadData} org={org} />}
             {activeMenu === "Kitchen Prep & Batches" && <TabProductionRuns runs={productionRuns} recipes={recipes} inventory={inventory} slug={slug} onDone={loadData} org={org} />}
             {activeMenu === "Raw Materials" && <TabRawMaterials inventory={inventory} slug={slug} onDone={loadData} org={org} />}
             {activeMenu === "Finished Goods" && <TabFinishedGoods inventory={inventory} slug={slug} onDone={loadData} org={org} />}
@@ -1144,10 +1144,8 @@ function TabSettings({ settings, slug, onDone }: any) {
 // GRAND INVENTORY & PRODUCTION TABS
 // ---------------------------------------------------------------------
 
-function TabRecipes({ recipes, inventory, slug, onDone }: any) {
+function TabRecipes({ recipes, inventory, menu = [], slug, onDone }: any) {
     const [showForm, setShowForm] = useState(false);
-    // recipes usually needs rawMaterials to pick from
-    const rawMaterials = inventory.filter((i:any) => i.type === 'RAW_MATERIAL');
 
     return (
       <div className="space-y-6">
@@ -1155,7 +1153,13 @@ function TabRecipes({ recipes, inventory, slug, onDone }: any) {
         {showForm ? (
           <div>
             <button onClick={() => setShowForm(false)} className="mb-4 text-xs font-bold text-slate-500 hover:text-slate-800">&larr; Back to Recipes</button>
-            <RecipeBuilder organizationId={slug} inventory={rawMaterials} onComplete={() => { setShowForm(false); onDone(); }} />
+            <RecipeBuilder
+              organizationId={slug}
+              inventory={inventory}
+              menu={menu}
+              onComplete={() => { setShowForm(false); onDone(); }}
+              onCancel={() => setShowForm(false)}
+            />
           </div>
         ) : (
           recipes?.length === 0 || !recipes ? (
