@@ -667,6 +667,12 @@ export function matchImageForMenuItem(name: string): string | null {
   if (q.includes('egusi')) return '/images/menu/egusi-soup.webp';
   if (q.includes('ogbono')) return '/images/menu/ogbono-soup.jpg';
   if (q.includes('oha')) return '/images/menu/oha-soup.webp';
+  if (q.includes('atama') || q.includes('banga soup')) return '/images/menu/banga-rice.jpg';
+  if (q.includes('fisherman') || q.includes('seafood soup')) return '/images/menu/vegetable-soup.jpg';
+  if (q.includes('white soup') || q.includes('afia efere')) return '/images/menu/goat-meat.webp';
+  if (q.includes('pepper soup') || q.includes('peppersoup')) return '/images/menu/goat-meat.webp';
+  if (q.includes('ekpang')) return '/images/menu/porridge-yam.jpg';
+  if (q.includes('palm wine') || q.includes('palmwine')) return '/images/menu/mineral-water-75cl.png';
 
   if (q.includes('jollof')) return '/images/menu/jollof-rice.jpg';
   if (q.includes('fried rice')) return '/images/menu/fried-rice.webp';

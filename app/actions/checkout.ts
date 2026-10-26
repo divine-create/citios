@@ -132,6 +132,8 @@ export async function processMerchantCheckout(
     customerPhone?: string;
     deliveryAddress?: string;
     deliveryNotes?: string;
+    deliveryFee?: number | null;
+    deliveryDistanceKm?: number | null;
     substitutionPreference?: 'call' | 'replace' | 'refund';
     clientItems?: Array<{ productId: string; qty: number; name: string; kind?: string }>;
   }
@@ -305,6 +307,11 @@ export async function processMerchantCheckout(
     .map((l) => `• ${l.qty}x ${l.name} (₦${(l.price * l.qty).toLocaleString()})`)
     .join('\n');
 
+  const deliveryFee = typeof options?.deliveryFee === 'number' && !isNaN(options.deliveryFee)
+    ? Math.max(0, options.deliveryFee)
+    : 0;
+  const grandTotal = calculatedTotal + deliveryFee;
+
   let deliveryJobInfo: {
     success: boolean;
     deliveryJobId?: string;
@@ -323,6 +330,7 @@ export async function processMerchantCheckout(
         customerPhone,
         deliveryAddress,
         orderSummary: itemsSummary,
+        deliveryFee: deliveryFee > 0 ? deliveryFee : undefined,
       });
     } catch (e: any) {
       console.warn('[processMerchantCheckout] Delivery creation notice:', e.message);
@@ -338,6 +346,8 @@ export async function processMerchantCheckout(
     ? `${origin}/track/${deliveryJobInfo.trackingReference}`
     : null;
 
+  const deliveryDistanceLabel = options?.deliveryDistanceKm ? `${options.deliveryDistanceKm} km` : 'Calabar';
+
   const messageLines = [
     `🛍️ *NEW 9JALIVE ORDER* — #${shortRef}`,
     `--------------------------------`,
@@ -350,7 +360,9 @@ export async function processMerchantCheckout(
     `📦 *ITEMS ORDERED:*`,
     itemsSummary,
     `--------------------------------`,
-    `*Total Amount:* ₦${calculatedTotal.toLocaleString()}`,
+    deliveryFee > 0 ? `*Subtotal:* ₦${calculatedTotal.toLocaleString()}` : null,
+    deliveryFee > 0 ? `🚚 *CityDrive Delivery (${deliveryDistanceLabel}):* ₦${deliveryFee.toLocaleString()}` : null,
+    `*Total Amount:* ₦${grandTotal.toLocaleString()}`,
     `💬 *Channel:* WhatsApp Direct Order`,
     ``,
     placedOrderId ? `🔐 *Order Link:* ${trackingUrl}` : `🔗 *Store Page:* ${trackingUrl}`,

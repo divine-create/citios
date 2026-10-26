@@ -131,15 +131,31 @@ export default function CheckoutView() {
   const handleCheckoutOrg = async (orgId: string, orgTotal: number) => {
     if (processing) return;
     setErrorMsg('');
+
+    if (!customerPhone || !customerPhone.trim()) {
+      setErrorMsg('Please enter your WhatsApp contact phone number before placing your order so the store can reach you.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
     setProcessing(orgId);
     
     try {
       const idempotencyKey = `checkout_${orgId}_${Date.now()}`;
       const orgGroup = groupedLines[orgId];
+      const effectiveDeliveryFee = deliveryEstimate?.success && typeof deliveryEstimate.deliveryFee === 'number'
+        ? deliveryEstimate.deliveryFee
+        : 0;
+      const effectiveDistanceKm = deliveryEstimate?.success && typeof deliveryEstimate.distanceKm === 'number'
+        ? deliveryEstimate.distanceKm
+        : undefined;
+
       const res = await processMerchantCheckout(orgId, 'whatsapp', idempotencyKey, undefined, {
-        customerPhone,
-        deliveryAddress,
+        customerPhone: customerPhone.trim(),
+        deliveryAddress: stabilizedAddress?.formattedAddress || deliveryAddress,
         deliveryNotes,
+        deliveryFee: effectiveDeliveryFee,
+        deliveryDistanceKm: effectiveDistanceKm,
         substitutionPreference: substitutionRule,
         clientItems: (orgGroup?.items || []).map((i: any) => ({
           productId: i.productId,
@@ -198,15 +214,21 @@ export default function CheckoutView() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="text-[11px] font-black uppercase text-slate-400 block mb-1">
-              Contact Phone (WhatsApp)
+            <label className="text-[11px] font-black uppercase text-slate-500 block mb-1 flex items-center justify-between">
+              <span>Contact Phone (WhatsApp)</span>
+              <span className="text-[10px] text-emerald-600 font-bold lowercase">required</span>
             </label>
             <input
               type="tel"
               value={customerPhone}
               onChange={(e) => setCustomerPhone(e.target.value)}
               placeholder="e.g. 0803 123 4567"
-              className="w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-teal-700 transition-colors"
+              className={cn(
+                "w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl border focus:outline-none transition-colors",
+                !customerPhone.trim() && errorMsg
+                  ? "border-rose-400 bg-rose-50/30 focus:border-rose-600"
+                  : "border-slate-200 focus:border-teal-700"
+              )}
             />
           </div>
           <div>
@@ -329,12 +351,27 @@ export default function CheckoutView() {
 
         {Object.entries(groupedLines).map(([orgId, group]) => {
           const isBelowMin = !!(checkoutConfig?.minOrderAmount && group.total > 0 && group.total < checkoutConfig.minOrderAmount);
+          const deliveryFee = deliveryEstimate?.success ? deliveryEstimate.deliveryFee : 0;
+          const grandTotal = group.total + deliveryFee;
+
           return (
             <div key={orgId} className="bg-white rounded-[24px] border border-slate-100 overflow-hidden shadow-sm">
               <div className="p-4 border-b border-slate-50 bg-slate-50/50 flex items-center justify-between">
-                <h3 className="text-sm font-black text-ink uppercase tracking-wide">{group.orgName}</h3>
+                <div>
+                  <h3 className="text-sm font-black text-ink uppercase tracking-wide">{group.orgName}</h3>
+                  <p className="text-[11px] text-slate-500 font-medium">
+                    {group.items.reduce((sum: number, it: any) => sum + (it.qty || 1), 0)} items
+                  </p>
+                </div>
                 {group.total > 0 ? (
-                  <PriceTag amount={group.total} />
+                  <div className="text-right">
+                    <PriceTag amount={grandTotal} />
+                    {deliveryFee > 0 && (
+                      <span className="block text-[10px] text-teal-800 font-bold">
+                        incl. {fmt(deliveryFee)} delivery
+                      </span>
+                    )}
+                  </div>
                 ) : (
                   <span className="text-[11px] font-bold text-teal-800 bg-teal-50 px-2 py-0.5 rounded-md">Quote on Request</span>
                 )}
@@ -386,15 +423,38 @@ export default function CheckoutView() {
                   </div>
                 ))}
 
-                {deliveryEstimate && deliveryEstimate.success && (
-                  <div className="py-3 flex items-center justify-between text-xs font-bold text-teal-900 bg-teal-50/50 -mx-4 px-4 border-t border-teal-100">
-                    <div className="flex items-center gap-1.5">
-                      <Truck className="w-3.5 h-3.5 text-teal-800" />
-                      <span>CityDrive Delivery ({deliveryEstimate.distanceKm} km)</span>
-                    </div>
-                    <span className="font-black text-teal-800">+{fmt(deliveryEstimate.deliveryFee)}</span>
+                {/* Financial Summary Breakdown */}
+                <div className="pt-3 pb-2 space-y-2 -mx-4 px-4 bg-slate-50/70 border-t border-slate-100">
+                  <div className="flex items-center justify-between text-xs text-slate-600 font-medium">
+                    <span>Items Subtotal</span>
+                    <span className="font-bold text-slate-900">{fmt(group.total)}</span>
                   </div>
-                )}
+
+                  {deliveryEstimate && deliveryEstimate.success ? (
+                    <div className="flex items-center justify-between text-xs text-teal-900 font-medium">
+                      <div className="flex items-center gap-1.5">
+                        <Truck className="w-3.5 h-3.5 text-teal-800" />
+                        <span>CityDrive Delivery ({deliveryEstimate.distanceKm} km · ~{deliveryEstimate.durationMinutes} mins)</span>
+                      </div>
+                      <span className="font-bold text-teal-800">+{fmt(deliveryEstimate.deliveryFee)}</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
+                      <div className="flex items-center gap-1.5">
+                        <Truck className="w-3.5 h-3.5" />
+                        <span>CityDrive Delivery</span>
+                      </div>
+                      <span className="text-[11px] italic">Pick landmark above</span>
+                    </div>
+                  )}
+
+                  <div className="pt-2 border-t border-slate-200/90 flex items-center justify-between">
+                    <span className="text-xs font-black text-slate-900 uppercase tracking-wider">Grand Total</span>
+                    <div className="text-right">
+                      <span className="text-base font-black text-ink">{fmt(grandTotal)}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {isBelowMin && (
@@ -415,13 +475,16 @@ export default function CheckoutView() {
                   )}
                 >
                   {processing === orgId ? (
-                    <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Processing Order...</>
                   ) : isBelowMin ? (
                     <>Min Order: {fmt(checkoutConfig!.minOrderAmount)}</>
                   ) : method === 'whatsapp' ? (
-                    <><MessageSquare className="w-4 h-4" /> Order from {group.orgName} via WhatsApp</>
+                    <>
+                      <MessageSquare className="w-4 h-4" />
+                      Order via WhatsApp • {fmt(grandTotal)}
+                    </>
                   ) : (
-                    <><ShieldCheck className="w-4 h-4" /> {group.total > 0 ? `Checkout ${group.orgName}` : `Request Service from ${group.orgName}`}</>
+                    <><ShieldCheck className="w-4 h-4" /> {grandTotal > 0 ? `Checkout • ${fmt(grandTotal)}` : `Request Service from ${group.orgName}`}</>
                   )}
                 </button>
               </div>
