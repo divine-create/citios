@@ -286,7 +286,9 @@ export default function CheckoutView() {
                 <p className="text-sm font-black text-ink">WhatsApp Direct Order</p>
                 <span className="text-[10px] bg-emerald-100 text-emerald-800 font-extrabold px-1.5 py-0.5 rounded-full">ACTIVE</span>
               </div>
-              <p className="text-[11px] font-bold text-slate-500">Send order directly to merchant on WhatsApp for instant confirmation</p>
+              <p className="text-[11px] font-bold text-slate-500">
+                Order will be routed to WhatsApp (+2348065373747) for instant confirmation & dispatch
+              </p>
             </div>
           </div>
           <div className="w-5 h-5 rounded-full border-2 border-emerald-600 flex items-center justify-center shrink-0">

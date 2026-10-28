@@ -12,6 +12,7 @@ import {
   Building2,
   LayoutGrid,
   Layers,
+  MessageSquare,
 } from 'lucide-react';
 import { useCity } from '@/components/cityos/CityProvider';
 import { getCityMarketFeed } from '@/app/actions/commerce';
@@ -282,6 +283,21 @@ export default function CityMarket() {
         deliveryHubs={deliveryHubs}
         defaultAddress={defaultAddress}
       />
+
+      {/* WhatsApp Checkout Note */}
+      <div className="bg-emerald-50/80 border border-emerald-200/80 rounded-2xl p-3 px-4 flex items-center justify-between gap-3 text-xs shadow-xs">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-6 h-6 rounded-full bg-[#25D366] text-white flex items-center justify-center shrink-0 shadow-xs">
+            <MessageSquare className="w-3.5 h-3.5" />
+          </div>
+          <p className="text-emerald-950 text-xs font-semibold truncate">
+            <strong className="font-extrabold text-emerald-900">Direct WhatsApp Orders:</strong> Every checkout routes to WhatsApp via <span className="font-extrabold text-emerald-800">+2348065373747</span>
+          </p>
+        </div>
+        <span className="shrink-0 text-[10px] uppercase tracking-wider font-extrabold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+          Instant Dispatch
+        </span>
+      </div>
 
       {/* 2. Shop Sectors & Product Categories */}
       <section className="space-y-3">

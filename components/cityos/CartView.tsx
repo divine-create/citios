@@ -167,7 +167,10 @@ export default function CartView() {
 
             <div className="bg-[#25D366]/10 border border-[#25D366]/25 p-3.5 rounded-2xl flex items-center gap-2.5 text-xs text-slate-800">
               <MessageSquare className="w-4 h-4 text-[#25D366] shrink-0" />
-              <span className="font-bold text-[11px] text-emerald-950">Direct WhatsApp Checkout Only</span>
+              <div>
+                <span className="font-bold text-[11px] text-emerald-950 block">Direct WhatsApp Checkout (+2348065373747)</span>
+                <span className="text-[10px] text-slate-500 font-medium block mt-0.5">Every checkout is routed directly to WhatsApp for rapid confirmation.</span>
+              </div>
             </div>
 
             <Link 
