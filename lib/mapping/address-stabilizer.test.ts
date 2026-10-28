@@ -6,7 +6,9 @@ import {
   scoreAddressConfidence,
   stabilizeAddressInput,
   findNearestLandmark,
+  EXPANDED_CALABAR_LANDMARKS,
 } from './address-stabilizer';
+import { CALABAR_OPERATIONAL_ZONES } from './calabar-coverage';
 
 test('Address Stabilizer — Calabar & Calabar Municipality Unified Mapping', async (t) => {
   await t.test('1. Merges Calabar and Calabar Municipality into unified calabar-municipal LGA', () => {
@@ -97,5 +99,30 @@ test('Address Stabilizer — Calabar & Calabar Municipality Unified Mapping', as
     });
 
     assert.strictEqual(outOfBounds.isServiceable, false);
+  });
+
+  await t.test('7. Complete Calabar Coverage: 16 operational zones and 75+ verified landmarks', () => {
+    assert.strictEqual(CALABAR_OPERATIONAL_ZONES.length, 16);
+    assert.ok(EXPANDED_CALABAR_LANDMARKS.length >= 75, `Expected >= 75 landmarks, got ${EXPANDED_CALABAR_LANDMARKS.length}`);
+
+    // Verify all 16 zones have at least one landmark
+    for (const zone of CALABAR_OPERATIONAL_ZONES) {
+      const landmarksInZone = EXPANDED_CALABAR_LANDMARKS.filter((l) => l.zoneId === zone.id);
+      assert.ok(landmarksInZone.length > 0, `Expected at least 1 landmark in zone ${zone.id}`);
+    }
+
+    // Test text auto-resolution across newly expanded corridors
+    const atimboRes = stabilizeAddressInput({ addressText: 'House 5, Navy Post Service Housing, Atimbo' });
+    assert.strictEqual(atimboRes.zoneId, 'atimbo-corridor');
+
+    const bogobiriRes = stabilizeAddressInput({ addressText: 'Bogobiri Central Mosque Suya Arcade' });
+    assert.strictEqual(bogobiriRes.zoneId, 'bogobiri-central');
+    assert.strictEqual(bogobiriRes.lgaId, 'calabar-south');
+
+    const satelliteRes = stabilizeAddressInput({ addressText: 'Block 3, Satellite Town First Gate, Calabar' });
+    assert.strictEqual(satelliteRes.zoneId, 'satellite-town');
+
+    const eightMilesRes = stabilizeAddressInput({ addressText: '8 Miles Roundabout Gateway' });
+    assert.strictEqual(eightMilesRes.zoneId, 'federal-housing');
   });
 });

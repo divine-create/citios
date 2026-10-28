@@ -35,18 +35,39 @@ export const CANONICAL_CITY_AREAS: Record<string, CityArea[]> = {
       isPopular: true,
     },
     {
-      id: 'calabar-south',
-      name: 'Calabar South & Watt Market',
-      shortName: 'Calabar South',
-      description: 'Watt Market, Target, Goldie, native Calabar bukka kitchens',
-      isPopular: true,
-    },
-    {
       id: 'parliamentary',
       name: 'Parliamentary & Asari Eso',
       shortName: 'Parliamentary',
       description: 'Parliamentary extension, municipal offices & executive dining',
       isPopular: true,
+    },
+    {
+      id: 'satellite-town',
+      name: 'Satellite Town & Ikot Effanga',
+      shortName: 'Satellite Town',
+      description: 'Satellite Town residential layout & Ikot Effanga Mkpa',
+      isPopular: false,
+    },
+    {
+      id: 'mcc-effioette',
+      name: 'MCC Road & Effio-Ette',
+      shortName: 'MCC / Effio-Ette',
+      description: 'MCC Road, Effio-Ette roundabout & Channel View axis',
+      isPopular: true,
+    },
+    {
+      id: 'akai-effa',
+      name: 'Akai Effa & Highway North',
+      shortName: 'Akai Effa',
+      description: 'Akai Effa, scan water & northern bypass corridor',
+      isPopular: false,
+    },
+    {
+      id: 'atimbo-corridor',
+      name: 'Atimbo & Navy Post Service',
+      shortName: 'Atimbo',
+      description: 'Atimbo road, Navy Post Service Housing & riverfront',
+      isPopular: false,
     },
     {
       id: 'unical-campus',
@@ -60,13 +81,48 @@ export const CANONICAL_CITY_AREAS: Record<string, CityArea[]> = {
       name: 'Etta Agbor & Mary Slessor',
       shortName: 'Etta Agbor',
       description: 'Student living corridor, shawarma spots & night eats',
-      isPopular: false,
+      isPopular: true,
     },
     {
       id: 'diamond-hill',
       name: 'Diamond Hill, Marina & Harbor',
       shortName: 'Diamond Hill',
       description: 'Government House axis, waterfront dining & scenic lounges',
+      isPopular: false,
+    },
+    {
+      id: 'esuk-utan-industrial',
+      name: 'Esuk Utan & EPZ / Free Trade Zone',
+      shortName: 'Esuk Utan / EPZ',
+      description: 'Calabar Free Trade Zone, NPA port & Esuk Utan depots',
+      isPopular: false,
+    },
+    {
+      id: 'calabar-south',
+      name: 'Calabar South & Watt Market',
+      shortName: 'Calabar South',
+      description: 'Watt Market, Target, Goldie, native Calabar bukka kitchens',
+      isPopular: true,
+    },
+    {
+      id: 'bogobiri-central',
+      name: 'Bogobiri & Commercial Hub',
+      shortName: 'Bogobiri',
+      description: 'Bogobiri suya hub, central mosque, northern delicacy corridor',
+      isPopular: true,
+    },
+    {
+      id: 'mbukpa-jebbs',
+      name: 'Mbukpa & Jebbs',
+      shortName: 'Mbukpa / Jebbs',
+      description: 'Mbukpa road, Jebbs street, Edgerley & coastal communities',
+      isPopular: false,
+    },
+    {
+      id: 'anantigha-coastal',
+      name: 'Anantigha & UNICROSS / CRUTECH',
+      shortName: 'Anantigha',
+      description: 'Anantigha LGA secretariat, Ekpo Abasi & UNICROSS campus',
       isPopular: false,
     },
   ],
@@ -134,17 +190,23 @@ export function detectAreaFromAddress(citySlug: string | null | undefined, text?
   if (t.includes('marian') || t.includes('ndidem usang iso') || t.includes('lion bank') || t.includes('apex')) {
     return areas.find((a) => a.id === 'marian-road') || null;
   }
-  if (t.includes('state housing') || t.includes('highway') && t.includes('housing')) {
+  if (t.includes('state housing') || (t.includes('highway') && t.includes('housing'))) {
     return areas.find((a) => a.id === 'state-housing') || null;
   }
-  if (t.includes('federal housing') || t.includes('ikot ansa') || t.includes('8 miles') || t.includes('eight miles') || t.includes('murtala mohammed highway')) {
+  if (t.includes('federal housing') || t.includes('ikot ansa') || t.includes('8 miles') || t.includes('eight miles') || t.includes('ikot omin')) {
     return areas.find((a) => a.id === 'federal-housing') || null;
   }
-  if (t.includes('watt') || t.includes('calabar south') || t.includes('target') || t.includes('goldie') || t.includes('anantigha') || t.includes('chamley') || t.includes('bedwell')) {
-    return areas.find((a) => a.id === 'calabar-south') || null;
+  if (t.includes('satellite town') || t.includes('ikot effanga')) {
+    return areas.find((a) => a.id === 'satellite-town') || null;
   }
-  if (t.includes('parliamentary') || t.includes('asari eso') || t.includes('municipal')) {
-    return areas.find((a) => a.id === 'parliamentary') || null;
+  if (t.includes('mcc') || t.includes('effio ette') || t.includes('effioette') || t.includes('channel view')) {
+    return areas.find((a) => a.id === 'mcc-effioette') || null;
+  }
+  if (t.includes('akai effa') || t.includes('scan water') || t.includes('bypass') || t.includes('ikot ekpo')) {
+    return areas.find((a) => a.id === 'akai-effa') || null;
+  }
+  if (t.includes('atimbo') || t.includes('navy post') || t.includes('ediba')) {
+    return areas.find((a) => a.id === 'atimbo-corridor') || null;
   }
   if (t.includes('unical') || t.includes('university of calabar') || t.includes('malabor') || t.includes('campus')) {
     return areas.find((a) => a.id === 'unical-campus') || null;
@@ -152,8 +214,26 @@ export function detectAreaFromAddress(citySlug: string | null | undefined, text?
   if (t.includes('etta agbor') || t.includes('slessor') || t.includes('mary slessor')) {
     return areas.find((a) => a.id === 'etta-agbor') || null;
   }
-  if (t.includes('diamond hill') || t.includes('marina') || t.includes('harbor') || t.includes('harbour') || t.includes('epz') || t.includes('government house')) {
+  if (t.includes('diamond hill') || t.includes('marina') || t.includes('harbor') || t.includes('harbour') || t.includes('government house')) {
     return areas.find((a) => a.id === 'diamond-hill') || null;
+  }
+  if (t.includes('esuk utan') || t.includes('epz') || t.includes('free trade zone') || t.includes('cftz') || t.includes('npa') || t.includes('jetty')) {
+    return areas.find((a) => a.id === 'esuk-utan-industrial') || null;
+  }
+  if (t.includes('bogobiri') || t.includes('hausawa') || t.includes('central mosque')) {
+    return areas.find((a) => a.id === 'bogobiri-central') || null;
+  }
+  if (t.includes('mbukpa') || t.includes('jebbs') || t.includes('edgerley') || t.includes('mayne avenue')) {
+    return areas.find((a) => a.id === 'mbukpa-jebbs') || null;
+  }
+  if (t.includes('anantigha') || t.includes('crutech') || t.includes('unicross') || t.includes('ekpo abasi')) {
+    return areas.find((a) => a.id === 'anantigha-coastal') || null;
+  }
+  if (t.includes('watt') || t.includes('calabar south') || t.includes('target') || t.includes('goldie') || t.includes('chamley') || t.includes('bedwell')) {
+    return areas.find((a) => a.id === 'calabar-south') || null;
+  }
+  if (t.includes('parliamentary') || t.includes('asari eso') || t.includes('municipal')) {
+    return areas.find((a) => a.id === 'parliamentary') || null;
   }
 
   // Generic fallback: check if any short name is contained
