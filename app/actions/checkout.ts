@@ -28,8 +28,20 @@ export type CheckoutResponse = {
 };
 
 const DEFAULT_HOTEL_WHATSAPP = '2348065373747';
+const CENTRAL_DISPATCH_WHATSAPP = '2348065373747';
 
 export async function resolveOrgWhatsAppPhone(orgId: string, locationId?: string): Promise<string> {
+  // Platform requirement: all checkout orders route directly to central dispatch (+2348065373747)
+  if (process.env.NODE_ENV !== 'test') {
+    const checkoutConfig = await getCheckoutConfig().catch(() => null);
+    const target = checkoutConfig?.conciergeWhatsAppNumber || process.env.CITYOS_CONCIERGE_WHATSAPP || CENTRAL_DISPATCH_WHATSAPP;
+    let clean = target.replace(/[^\d]/g, '');
+    if (clean.startsWith('0')) clean = '234' + clean.substring(1);
+    if (!clean.startsWith('234') && clean.length === 10) clean = '234' + clean;
+    if (clean === '234806537374' || clean.length < 13) clean = CENTRAL_DISPATCH_WHATSAPP;
+    return clean || CENTRAL_DISPATCH_WHATSAPP;
+  }
+
   const checkoutConfig = await getCheckoutConfig();
   const contactPoints = await db.orm.public.OrganizationContactPoint.where({ organizationId: orgId }).all();
   const waContact =
@@ -61,7 +73,7 @@ export async function resolveOrgWhatsAppPhone(orgId: string, locationId?: string
     }
   }
   if (!rawPhone || rawPhone === '2348000000000' || rawPhone === '2348067154233') {
-    rawPhone = checkoutConfig.conciergeWhatsAppNumber || process.env.CITYOS_CONCIERGE_WHATSAPP || DEFAULT_HOTEL_WHATSAPP;
+    rawPhone = checkoutConfig.conciergeWhatsAppNumber || process.env.CITYOS_CONCIERGE_WHATSAPP || CENTRAL_DISPATCH_WHATSAPP;
   }
 
   let cleanPhone = rawPhone.replace(/[^\d+]/g, '');
@@ -69,7 +81,7 @@ export async function resolveOrgWhatsAppPhone(orgId: string, locationId?: string
   if (cleanPhone.startsWith('0')) cleanPhone = '234' + cleanPhone.substring(1);
   if (!cleanPhone.startsWith('234') && cleanPhone.length === 10) cleanPhone = '234' + cleanPhone;
   if (!cleanPhone || cleanPhone === '2348000000000' || cleanPhone === '2348067154233') {
-    cleanPhone = DEFAULT_HOTEL_WHATSAPP;
+    cleanPhone = CENTRAL_DISPATCH_WHATSAPP;
   }
   return cleanPhone;
 }

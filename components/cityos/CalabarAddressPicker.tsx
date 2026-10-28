@@ -160,10 +160,8 @@ export function CalabarAddressPicker({
   }), [tileConfig]);
 
   const confidence = currentStabilized.confidenceScore;
-  const confidenceColor =
-    confidence >= 80 ? 'text-emerald-800 bg-emerald-50 border-emerald-200' :
-    confidence >= 50 ? 'text-amber-800 bg-amber-50 border-amber-200' :
-    'text-rose-800 bg-rose-50 border-rose-200';
+  const isHighReady = confidence >= 80;
+  const hasLandmark = Boolean(selectedLandmarkId);
 
   return (
     <div className={`space-y-4 ${className}`}>
@@ -174,9 +172,19 @@ export function CalabarAddressPicker({
             <Compass className="w-3.5 h-3.5 text-teal-800" />
             Metropolitan Area
           </span>
-          <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${confidenceColor}`}>
-            {confidence}% Address Readiness
-          </span>
+          {isHighReady ? (
+            <span className="text-[10px] font-black px-2 py-0.5 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-800 flex items-center gap-1">
+              ✓ {confidence}% Delivery Ready
+            </span>
+          ) : hasLandmark ? (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border border-teal-200 bg-teal-50 text-teal-800 flex items-center gap-1">
+              📍 Landmark Linked
+            </span>
+          ) : (
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border border-slate-200 bg-slate-50 text-slate-500 flex items-center gap-1">
+              📍 Choose landmark below
+            </span>
+          )}
         </label>
         <div className="grid grid-cols-2 gap-2">
           <button
