@@ -295,13 +295,15 @@ export async function processMerchantCheckout(
   const deliveryAddress = options?.deliveryAddress || residentProfile?.defaultDeliveryAddress || '';
   const orderNotes = options?.deliveryNotes || '';
 
-  const substPref = options?.substitutionPreference || 'call';
+  const substPref = options?.substitutionPreference;
   const substText =
     substPref === 'call'
       ? '📞 Call me to choose replacement'
       : substPref === 'replace'
       ? '🔄 Pick closest replacement'
-      : '❌ Do not replace (remove item)';
+      : substPref === 'refund'
+      ? '❌ Do not replace (remove item)'
+      : null;
 
   const itemsSummary = orgLines
     .map((l) => `• ${l.qty}x ${l.name} (₦${(l.price * l.qty).toLocaleString()})`)
@@ -357,7 +359,7 @@ export async function processMerchantCheckout(
     `👤 *Customer:* ${customerName}${customerPhone ? ` (${customerPhone})` : ''}`,
     deliveryAddress ? `📍 *Delivery Address:* ${deliveryAddress}` : null,
     orderNotes ? `📝 *Order Notes:* ${orderNotes}` : null,
-    `🔄 *If item unavailable:* ${substText}`,
+    substText ? `🔄 *If item unavailable:* ${substText}` : null,
     `--------------------------------`,
     `📦 *ITEMS ORDERED:*`,
     itemsSummary,

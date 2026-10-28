@@ -23,7 +23,6 @@ export default function CheckoutView() {
   const { lines, subtotal, deliveryFee, setQty, remove, removeOrg, syncCart } = useCart();
   
   const [method, setMethod] = useState<MethodId>('whatsapp');
-  const [substitutionRule, setSubstitutionRule] = useState<'call' | 'replace' | 'refund'>('call');
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -156,7 +155,6 @@ export default function CheckoutView() {
         deliveryNotes,
         deliveryFee: effectiveDeliveryFee,
         deliveryDistanceKm: effectiveDistanceKm,
-        substitutionPreference: substitutionRule,
         clientItems: (orgGroup?.items || []).map((i: any) => ({
           productId: i.productId,
           qty: i.qty,
@@ -269,50 +267,6 @@ export default function CheckoutView() {
           }}
           showMapPreview={false}
         />
-      </div>
-
-      {/* Out-of-stock Substitution Preferences */}
-      <div className="bg-white rounded-[24px] border border-slate-100 overflow-hidden p-6 space-y-4">
-        <div className="flex items-center gap-2">
-          <PhoneCall className="w-4 h-4 text-[#FF385C]" />
-          <h2 className="text-sm font-black text-ink">If an item is out of stock</h2>
-        </div>
-        <p className="text-xs text-slate-500 leading-relaxed">
-          How should the merchant handle items that are out of stock?
-        </p>
-
-        <div className="space-y-2.5">
-          {[
-            { id: 'call', label: '📞 Call me to choose a replacement', desc: 'The merchant will call your phone' },
-            { id: 'replace', label: '🔄 Pick the closest replacement', desc: 'Merchant will choose the most similar brand or option' },
-            { id: 'refund', label: '❌ Do not replace (remove item)', desc: 'Skip any unavailable item from my order' },
-          ].map((opt) => (
-            <button
-              key={opt.id}
-              type="button"
-              onClick={() => setSubstitutionRule(opt.id as any)}
-              className={cn(
-                'w-full flex items-start gap-3 p-3.5 rounded-xl border text-left transition-all',
-                substitutionRule === opt.id
-                  ? 'border-[#222222] bg-neutral-50/80 shadow-xs'
-                  : 'border-slate-100 hover:border-slate-200'
-              )}
-            >
-              <div
-                className={cn(
-                  'w-4 h-4 rounded-full border-2 mt-0.5 flex items-center justify-center shrink-0',
-                  substitutionRule === opt.id ? 'border-[#FF385C]' : 'border-slate-300'
-                )}
-              >
-                {substitutionRule === opt.id && <div className="w-2 h-2 rounded-full bg-[#FF385C]" />}
-              </div>
-              <div>
-                <p className="text-[13px] font-bold text-[#222222]">{opt.label}</p>
-                <p className="text-[11px] text-slate-500">{opt.desc}</p>
-              </div>
-            </button>
-          ))}
-        </div>
       </div>
 
       <div className="bg-white rounded-[24px] border border-slate-100 overflow-hidden p-6 space-y-4">
