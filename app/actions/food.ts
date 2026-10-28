@@ -171,7 +171,13 @@ export async function getCityFood(citySlug?: string) {
 
   const { isTestOrDemoOrganization } = await import('@/lib/storefront-filter');
   const allOrgs = await db.orm.public.Organization.where({ type: 'RESTAURANT' }).all();
-  const orgs = allOrgs.filter((o: any) => orgIdsWithLoc.includes(o.id) && !isTestOrDemoOrganization(o));
+  let orgs = allOrgs.filter((o: any) => orgIdsWithLoc.includes(o.id) && !isTestOrDemoOrganization(o));
+  if (city.slug === 'calabar') {
+    orgs = orgs.filter((o: any) => {
+      const lower = (o.name || '').toLowerCase();
+      return lower.includes('crunchies') || lower.includes('alyce') || lower.includes('alice');
+    });
+  }
   const orgIds = orgs.map((o) => o.id);
   if (orgIds.length === 0) {
     return {
@@ -374,6 +380,12 @@ export async function getCityFoodRestaurant(orgId: string) {
   if (!org) return null;
 
   const activeCity = await getCurrentCity();
+  if (activeCity?.slug === 'calabar') {
+    const lower = (org.name || '').toLowerCase();
+    const isAllowed = lower.includes('crunchies') || lower.includes('alyce') || lower.includes('alice');
+    if (!isAllowed) return null;
+  }
+
   let locs = await db.orm.public.Location.where({ organizationId: org.id }).all();
   
   if (activeCity) {
@@ -470,6 +482,12 @@ export async function getCityFoodMenuItem(menuItemId: string) {
   const org = await db.orm.public.Organization.where({ id: m.organizationId }).all().first();
   
   const activeCity = await getCurrentCity();
+  if (activeCity?.slug === 'calabar' && org) {
+    const lower = (org.name || '').toLowerCase();
+    const isAllowed = lower.includes('crunchies') || lower.includes('alyce') || lower.includes('alice');
+    if (!isAllowed) return null;
+  }
+
   let locs = await db.orm.public.Location.where({ organizationId: m.organizationId }).all();
 
   if (activeCity) {
