@@ -116,7 +116,7 @@ export default function OrganizerDashboard({
   // Computations
   const publicRegistrationUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/events/${event.id}`
-    : `https://citios.vercel.app/events/${event.id}`;
+    : `https://9jalive.online/events/${event.id}`;
 
   const validTickets = localTickets.filter(t => t.status === 'VALID' || t.status === 'SCANNED');
   

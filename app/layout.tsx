@@ -17,11 +17,11 @@ export const metadata: Metadata = {
   title: '9jaLive - Hyperlocal Smart Commerce & Living',
   description: 'Nigeria’s hyperlocal super platform connecting local shops, restaurants, stays, events, services, and residents.',
   manifest: '/manifest.webmanifest',
-  metadataBase: new URL(process.env.NEXTAUTH_URL || 'https://citios.vercel.app'),
+  metadataBase: new URL(process.env.NEXTAUTH_URL && !process.env.NEXTAUTH_URL.includes('vercel.app') ? process.env.NEXTAUTH_URL : 'https://9jalive.online'),
   openGraph: {
     type: 'website',
     locale: 'en_NG',
-    url: 'https://citios.vercel.app',
+    url: 'https://9jalive.online',
     siteName: '9jaLive',
     title: '9jaLive - Hyperlocal Smart Commerce & Living',
     description: 'Connect with your city, discover verified local stores, stays, services, and neighborhood life.',

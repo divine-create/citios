@@ -339,9 +339,11 @@ export async function processMerchantCheckout(
 
   const shortRef = reference.replace('CC-', 'WA-');
   const origin =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://citios.vercel.app');
-  const trackingUrl = placedOrderId ? `${origin}/orders/${placedOrderId}` : `${origin}/org/${orgId}`;
+    process.env.NEXT_PUBLIC_APP_URL && !process.env.NEXT_PUBLIC_APP_URL.includes('vercel.app')
+      ? process.env.NEXT_PUBLIC_APP_URL
+      : 'https://9jalive.online';
+  const storeUrl = `${origin}/org/${orgId}`;
+  const trackingUrl = placedOrderId ? `${origin}/orders/${placedOrderId}` : null;
   const deliveryTrackingUrl = deliveryJobInfo?.trackingReference
     ? `${origin}/track/${deliveryJobInfo.trackingReference}`
     : null;
@@ -365,7 +367,8 @@ export async function processMerchantCheckout(
     `*Total Amount:* ₦${grandTotal.toLocaleString()}`,
     `💬 *Channel:* WhatsApp Direct Order`,
     ``,
-    placedOrderId ? `🔐 *Order Link:* ${trackingUrl}` : `🔗 *Store Page:* ${trackingUrl}`,
+    `🔗 *Store Page:* ${storeUrl}`,
+    trackingUrl ? `🔐 *Order Link:* ${trackingUrl}` : null,
     deliveryTrackingUrl ? `🚚 *Live CityDrive Tracking:* ${deliveryTrackingUrl}` : null,
   ].filter(Boolean);
 

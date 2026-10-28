@@ -161,7 +161,7 @@ export default function SchoolOnboarding() {
                     className="flex-1 px-4 py-3 bg-slate-50 border border-r-0 border-slate-200 rounded-l-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all font-bold text-slate-900"
                   />
                   <div className="px-4 py-3 bg-slate-100 border border-l-0 border-slate-200 rounded-r-xl text-slate-500 font-medium select-none">
-                    .citios.vercel.app
+                    .9jalive.online
                   </div>
                 </div>
                 <p className="text-xs text-slate-400 mt-2 font-medium">Letters, numbers, and hyphens only.</p>
