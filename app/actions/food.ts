@@ -106,6 +106,8 @@ function mapRestaurant(
     menuItems,
   });
 
+  const logo = o.logoAssetId || meta?.logo || (o.name?.toLowerCase().includes('crunchies') ? '/images/logos/crunchies-logo.png' : undefined);
+
   return {
     id: o.id,
     name: o.name,
@@ -116,6 +118,8 @@ function mapRestaurant(
     menuItems,
     imageUrl: image,
     image: image,
+    logoUrl: logo,
+    logo: logo,
     images: meta?.images && Array.isArray(meta.images) && meta.images.length > 0 ? meta.images : (image ? [image] : []),
     rating,
     reviewCount,

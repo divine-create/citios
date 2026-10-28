@@ -23,6 +23,7 @@ export interface StoreCardData {
   storeCategory?: string;
   image?: string;
   images?: string[];
+  logoUrl?: string;
   rating?: number | null;
   reviewCount?: number;
   deliveryEta?: string | null;
@@ -120,14 +121,21 @@ export default function ChowdeckStoreCard({
         <div>
           {/* Title & Rating */}
           <div className="flex items-start justify-between gap-2">
-            <Link href={href} className="flex-1">
-              <h3 className="text-sm font-bold text-slate-900 group-hover:text-orange-600 transition-colors line-clamp-1 flex items-center gap-1.5">
-                <span>{store.name}</span>
-                {Boolean(store.isVerified) && (
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                )}
-              </h3>
-            </Link>
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              {store.logoUrl && (
+                <div className="w-6 h-6 rounded-md bg-white p-0.5 border border-slate-200 shadow-2xs shrink-0 overflow-hidden flex items-center justify-center">
+                  <img src={store.logoUrl} alt="" className="w-full h-full object-contain" />
+                </div>
+              )}
+              <Link href={href} className="flex-1 min-w-0">
+                <h3 className="text-sm font-bold text-slate-900 group-hover:text-orange-600 transition-colors line-clamp-1 flex items-center gap-1.5">
+                  <span className="truncate">{store.name}</span>
+                  {Boolean(store.isVerified) && (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  )}
+                </h3>
+              </Link>
+            </div>
 
             {/* Rating */}
             {typeof store.rating === 'number' && store.rating > 0 ? (

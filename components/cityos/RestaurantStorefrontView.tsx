@@ -29,6 +29,7 @@ interface RestaurantData {
   address?: string;
   citySlug?: string | null;
   imageUrl?: string;
+  logoUrl?: string;
   rating?: number | null;
   isOpen?: boolean;
   area?: string;
@@ -124,9 +125,15 @@ export default function RestaurantStorefrontView({ restaurant, location, menuIte
 
         <div className="p-5 md:p-6 space-y-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">{restaurant.name}</h1>
-              <div className="flex items-center gap-2 mt-1">
+            <div className="flex items-center gap-3.5">
+              {restaurant.logoUrl && (
+                <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-white p-1 border border-slate-200/80 shadow-sm shrink-0 overflow-hidden flex items-center justify-center">
+                  <img src={restaurant.logoUrl} alt={restaurant.name} className="w-full h-full object-contain" />
+                </div>
+              )}
+              <div>
+                <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">{restaurant.name}</h1>
+                <div className="flex items-center gap-2 mt-1">
                 {restaurant.rating && restaurant.rating > 0 ? (
                   <>
                     <Stars rating={restaurant.rating} />
@@ -143,6 +150,7 @@ export default function RestaurantStorefrontView({ restaurant, location, menuIte
                 <span className="text-xs font-bold text-slate-500">{restaurant.area || cityName}</span>
               </div>
             </div>
+          </div>
 
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1.5 rounded-xl bg-orange-50 text-orange-700 px-3 py-1.5 text-xs font-black border border-orange-100">
