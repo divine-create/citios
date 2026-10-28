@@ -187,7 +187,7 @@ export default function CheckoutView() {
   };
 
   return (
-    <div className="max-w-xl mx-auto space-y-6 animate-in fade-in duration-500 pb-20">
+    <div className="max-w-xl mx-auto space-y-6 animate-in fade-in duration-500 pb-36 sm:pb-24">
       <div>
         <button
           type="button"

@@ -97,7 +97,7 @@ export default function RestaurantStorefrontView({ restaurant, location, menuIte
   };
 
   return (
-    <div className="space-y-6 pb-28 animate-in fade-in duration-500">
+    <div className="space-y-6 pb-36 sm:pb-28 animate-in fade-in duration-500">
       {/* Top Breadcrumb */}
       <Link href="/food" className="inline-flex items-center gap-1.5 text-xs font-black text-slate-500 hover:text-ink transition-colors">
         <ArrowLeft className="w-3.5 h-3.5" />
@@ -258,7 +258,7 @@ export default function RestaurantStorefrontView({ restaurant, location, menuIte
 
       {/* Floating Bottom Checkout Bar */}
       {storeCartCount > 0 && (
-        <div className="fixed bottom-4 left-0 right-0 z-40 px-4 max-w-lg mx-auto animate-in slide-in-from-bottom-5 duration-300">
+        <div className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] md:bottom-6 left-0 right-0 z-50 px-4 max-w-lg mx-auto animate-in slide-in-from-bottom-5 duration-300 pointer-events-auto">
           <Link
             href="/checkout"
             className="w-full p-4 rounded-2xl bg-gradient-to-r from-orange-600 to-amber-600 text-white font-black text-sm flex items-center justify-between shadow-2xl shadow-orange-600/40 active:scale-[0.98] transition-all hover:brightness-105"

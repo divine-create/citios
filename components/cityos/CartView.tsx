@@ -33,7 +33,7 @@ export default function CartView() {
   const hasUnavailableItems = lines.some((l) => l.isAvailable === false);
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 md:space-y-8 animate-in fade-in duration-500 pb-16">
+    <div className="max-w-6xl mx-auto space-y-6 md:space-y-8 animate-in fade-in duration-500 pb-36 sm:pb-24">
       
       {/* Header */}
       <div>

@@ -29,7 +29,7 @@ export default function ChowdeckBasketDock({
     <aside
       aria-label="Checkout Dock"
       className={cn(
-        'fixed bottom-5 left-4 right-4 max-w-lg mx-auto z-40 animate-in slide-in-from-bottom-6 duration-300 pointer-events-auto',
+        'fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] md:bottom-6 left-4 right-4 max-w-lg mx-auto z-50 animate-in slide-in-from-bottom-6 duration-300 pointer-events-auto',
         className
       )}
     >

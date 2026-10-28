@@ -78,7 +78,7 @@ export default function ResidentServiceView({ title, description, orgs, items, i
 
             {/* Cart Checkout Bar */}
             {cart.length > 0 && (
-                <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgb(0,0,0,0.1)] z-40">
+                <div className="fixed bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] md:bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgb(0,0,0,0.1)] z-50">
                     <div className="max-w-2xl mx-auto flex justify-between items-center">
                         <div>
                             <p className="font-bold text-slate-900">{cart.length} item(s) in cart</p>
