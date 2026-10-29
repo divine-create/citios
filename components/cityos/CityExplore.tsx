@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Search, Compass, MapPin, Sparkles } from 'lucide-react';
+import { Search, Compass, MapPin, Sparkles, Building2 } from 'lucide-react';
 import { useMoney } from '@/components/cityos/CityProvider';
 import { searchCityExplore } from '@/app/actions/explore';
 import { useCity } from '@/components/cityos/CityProvider';
@@ -83,6 +83,25 @@ export default function CityExplore() {
         <p className="text-sm text-[#717171] font-medium">
           Restaurants, boutique hotels, supermarkets, and artisan services across {cityName}.
         </p>
+      </div>
+
+      {/* Calabar Business Directory Quick Access */}
+      <div className="bg-emerald-50/80 border border-emerald-200/70 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-teal-800 text-white flex items-center justify-center shrink-0 shadow-sm">
+            <Building2 className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-sm font-black text-slate-900">Looking for other businesses in {cityName}?</h3>
+            <p className="text-xs text-slate-600 font-medium">Browse verified pharmacies, mechanics, technicians, legal chambers, and printers.</p>
+          </div>
+        </div>
+        <Link
+          href="/directory"
+          className="px-4 py-2 bg-teal-900 text-white rounded-xl text-xs font-bold hover:bg-slate-900 transition-colors shrink-0 shadow-xs"
+        >
+          Open Business Directory &rarr;
+        </Link>
       </div>
 
       {/* Category Filter Pills (Airbnb minimal style) */}

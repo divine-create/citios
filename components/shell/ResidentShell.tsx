@@ -471,6 +471,7 @@ export default function ResidentShell({
     {
       label: 'Discover',
       items: [
+        { id: 'directory', path: '/directory', label: 'Directory', icon: Building2, iconKey: 'directory' },
         { id: 'notifications', path: '/notifications', label: 'Notifications', icon: Bell, iconKey: 'notifications' },
         { id: 'nearby', path: '/explore', label: 'Nearby', icon: MapPin, iconKey: 'nearby', imageUrl: '/icons/portals/explore.png' },
         { id: 'saved', path: '/saved', label: 'Saved', icon: Bookmark, iconKey: 'saved' },
@@ -499,6 +500,7 @@ export default function ResidentShell({
     if (!pathname) return '9jaLive';
     if (pathname.startsWith('/ai')) return 'Ask 9jaLive';
     if (pathname.startsWith('/feed')) return 'Newsfeed';
+    if (pathname.startsWith('/directory')) return 'Business Directory';
     if (pathname.startsWith('/explore')) return `Explore ${cityName}`;
     if (pathname.startsWith('/market')) return 'Shop';
     if (pathname.startsWith('/food')) return 'Food';
