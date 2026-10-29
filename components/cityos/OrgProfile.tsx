@@ -35,32 +35,52 @@ export default async function OrgProfile({ id }: { id: string }) {
   }
 
   // Check if current user is an owner/member of this organization
-  const session = await getServerSession(authOptions);
+  let session = null;
   let isManager = false;
   let userRole = 'Member';
 
-  if (session?.user?.personId) {
-    const membership = await db.orm.public.Membership.where({
-      organizationId: org.id,
-      personId: session.user.personId,
-    }).all().first();
+  try {
+    session = await getServerSession(authOptions);
+    if (session?.user?.personId) {
+      const membership = await db.orm.public.Membership.where({
+        organizationId: org.id,
+        personId: session.user.personId,
+      }).all().first();
 
-    if (membership) {
-      const roles = await db.orm.public.MembershipRole.where({ membershipId: membership.id }).all();
-      userRole = roles[0]?.role || 'Member';
-      isManager = true;
+      if (membership) {
+        const roles = await db.orm.public.MembershipRole.where({ membershipId: membership.id }).all();
+        userRole = roles[0]?.role || 'Member';
+        isManager = true;
+      }
     }
+  } catch (err) {
+    console.error('Non-fatal error resolving session membership:', err);
   }
 
-  const [workspaceUrl, reviewsBundle] = await Promise.all([
-    getWorkspaceUrlForOrg(org.id, org.type),
-    getOrganizationReviews(org.id),
-  ]);
+  let workspaceUrl = `/workspaces/shopos/${org.id}`;
+  let reviewsBundle: any = {
+    reviews: [],
+    distribution: { averageRating: null, totalReviews: 0, counts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } },
+    myReview: null,
+  };
+
+  try {
+    const [wsUrl, revs] = await Promise.all([
+      getWorkspaceUrlForOrg(org.id, org.type).catch(() => `/workspaces/shopos/${org.id}`),
+      getOrganizationReviews(org.id).catch(() => null),
+    ]);
+    if (wsUrl) workspaceUrl = wsUrl;
+    if (revs) reviewsBundle = revs;
+  } catch (err) {
+    console.error('Non-fatal error fetching workspace or reviews bundle:', err);
+  }
 
   const { capabilities, jobsData, eventsData, servicesData, productsData, menuData, locations } = org;
   
-  const phoneCp = org.contactPoints?.find((cp: any) => cp.type === 'PHONE')?.value || org.metadata?.phone || null;
-  const whatsappCp = org.contactPoints?.find((cp: any) => cp.type === 'WHATSAPP')?.value || org.metadata?.whatsapp || (phoneCp ? phoneCp : null);
+  const rawPhoneCp = org.contactPoints?.find((cp: any) => cp.type === 'PHONE')?.value || org.metadata?.phone || null;
+  const rawWaCp = org.contactPoints?.find((cp: any) => cp.type === 'WHATSAPP')?.value || org.metadata?.whatsapp || (rawPhoneCp ? rawPhoneCp : null);
+  const phoneCp = rawPhoneCp ? String(rawPhoneCp).trim() : null;
+  const whatsappCp = rawWaCp ? String(rawWaCp).trim() : null;
 
   const shop = capabilities.retail ? { products: productsData } : undefined;
   const restaurant = capabilities.restaurant ? { menu: menuData } : undefined;
@@ -73,7 +93,12 @@ export default async function OrgProfile({ id }: { id: string }) {
   const city = await getCurrentCity();
   const fmt = (a: number) => formatMoney(a, city?.currency ?? 'NGN');
   const addressStr = org.address || locations?.[0]?.address || '';
-  const hours: string | null = org.metadata?.workingHours || org.metadata?.hours || null;
+  const rawHours = org.metadata?.workingHours || org.metadata?.hours || null;
+  const hours: string | null = typeof rawHours === 'string'
+    ? rawHours
+    : (rawHours && typeof rawHours === 'object' && 'open' in rawHours && 'close' in rawHours)
+    ? `${rawHours.open} - ${rawHours.close}`
+    : rawHours ? String(rawHours) : null;
   const category = (org as any).storeCategory || org.type || 'Business';
   const osLabel = capabilities.retail ? 'ShopOS' : capabilities.restaurant ? 'RestaurantOS' : capabilities.school ? 'SchoolOS' : capabilities.services ? 'ServiceOS' : '9jaLive';
   const osPath = osLabel.toLowerCase();
@@ -84,7 +109,7 @@ export default async function OrgProfile({ id }: { id: string }) {
   const factCells: { label: string; sub: string }[] = [
     { label: addressStr || city?.name || 'Local Store', sub: `${(org as any).storeCategory || category}` },
   ];
-  if (hours) {
+  if (hours && typeof hours === 'string') {
     factCells.push({
       label: hours.includes('·') ? hours.split('·')[0].trim() : hours,
       sub: hours.includes('·') ? hours.split('·')[1]?.trim() || 'Working Hours' : 'Working Hours',
@@ -195,15 +220,15 @@ export default async function OrgProfile({ id }: { id: string }) {
                     <span className="text-amber-300/90 font-medium">Public Directory Listing (Unclaimed)</span>
                   )}
                 </span>
-                {reviewsBundle.distribution.averageRating && (
+                {reviewsBundle?.distribution?.averageRating && (
                   <a
                     href="#reviews"
                     className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/15 hover:bg-white/25 text-white text-[11px] font-black transition-colors"
                   >
                     <Star className="w-3 h-3 fill-amber-300 text-amber-300" />
-                    <span>{reviewsBundle.distribution.averageRating.toFixed(1)}</span>
+                    <span>{Number(reviewsBundle.distribution.averageRating).toFixed(1)}</span>
                     <span className="text-white/75 font-bold">
-                      ({reviewsBundle.distribution.totalReviews})
+                      ({reviewsBundle.distribution.totalReviews ?? 0})
                     </span>
                   </a>
                 )}
@@ -224,7 +249,7 @@ export default async function OrgProfile({ id }: { id: string }) {
             )}
             {whatsappCp && (
               <a
-                href={`https://wa.me/${whatsappCp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${org.name}, I found your business on Calabar City Directory and would like to make an enquiry.`)}`}
+                href={`https://wa.me/${String(whatsappCp || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${org.name}, I found your business on Calabar City Directory and would like to make an enquiry.`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-md transition-all active:scale-95"
@@ -293,7 +318,7 @@ export default async function OrgProfile({ id }: { id: string }) {
       <CityMismatchChip citySlug={org.citySlug} />
 
       {/* Storefront Catalog First for Retail Supermarkets & Shops */}
-      {shop && shop.products.length > 0 ? (
+      {shop && Array.isArray(shop.products) && shop.products.length > 0 ? (
         <ClientProductList products={shop.products} storeName={org.name} />
       ) : null}
 
@@ -399,14 +424,17 @@ export default async function OrgProfile({ id }: { id: string }) {
             <span className="text-[11px] font-bold text-slate-400">{org.metadata.services.length} items</span>
           </h2>
           <div className="flex flex-wrap gap-2">
-            {org.metadata.services.map((svc: string, idx: number) => (
-              <span
-                key={idx}
-                className="px-3 py-1.5 rounded-xl bg-slate-50 text-slate-700 text-xs font-semibold border border-slate-200/60"
-              >
-                {svc}
-              </span>
-            ))}
+            {org.metadata.services.map((svc: any, idx: number) => {
+              const svcLabel = typeof svc === 'string' ? svc : (svc?.name || svc?.title || String(svc));
+              return (
+                <span
+                  key={idx}
+                  className="px-3 py-1.5 rounded-xl bg-slate-50 text-slate-700 text-xs font-semibold border border-slate-200/60"
+                >
+                  {svcLabel}
+                </span>
+              );
+            })}
           </div>
         </section>
       )}

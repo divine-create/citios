@@ -138,9 +138,10 @@ export function resolveCalabarZone(rawText?: string | null): string {
 /**
  * Formats Nigerian phone numbers into clean readable spacing (e.g. 0803 708 7777).
  */
-export function formatDisplayPhone(rawPhone?: string | null): string {
+export function formatDisplayPhone(rawPhone?: any): string {
   if (!rawPhone) return '';
-  const digits = rawPhone.replace(/\D/g, '');
+  const str = String(rawPhone).trim();
+  const digits = str.replace(/\D/g, '');
   if (digits.startsWith('234') && digits.length >= 13) {
     const local = '0' + digits.slice(3);
     return `${local.slice(0, 4)} ${local.slice(4, 7)} ${local.slice(7)}`;
@@ -148,14 +149,20 @@ export function formatDisplayPhone(rawPhone?: string | null): string {
   if (digits.startsWith('0') && digits.length === 11) {
     return `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7)}`;
   }
-  return rawPhone;
+  return str;
 }
 
 /**
  * Checks whether a business is currently open in West Africa Time (WAT, UTC+1).
  */
-export function checkIsOpenNow(hoursStr?: string | null): { isOpen: boolean; label: string } {
-  if (!hoursStr) return { isOpen: false, label: 'Hours not listed' };
+export function checkIsOpenNow(rawHours?: any): { isOpen: boolean; label: string } {
+  if (!rawHours) return { isOpen: false, label: 'Hours not listed' };
+  const hoursStr = typeof rawHours === 'string'
+    ? rawHours
+    : (typeof rawHours === 'object' && rawHours !== null && 'open' in rawHours && 'close' in rawHours)
+    ? `${rawHours.open} - ${rawHours.close}`
+    : String(rawHours);
+
   const lower = hoursStr.toLowerCase();
   if (lower.includes('24/7') || lower.includes('open 24 hours') || lower.includes('24 hours')) {
     return { isOpen: true, label: 'Open 24/7' };

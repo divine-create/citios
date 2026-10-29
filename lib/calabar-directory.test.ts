@@ -101,4 +101,38 @@ describe('Calabar City Business Directory', () => {
     assert.ok(verifiedSpot, 'Should have verified directory businesses');
     assert.ok(verifiedSpot.phone, 'Verified business must have phone number');
   });
+
+  it('7. Resolves listing detail pages cleanly and validates full JSON serializability', async () => {
+    const { getResidentOrganization, getCanonicalOrganization } = await import('../app/actions/org');
+    const { checkIsOpenNow, formatDisplayPhone } = await import('./directory-constants');
+
+    // Test resilient helpers with diverse input types
+    assert.doesNotThrow(() => checkIsOpenNow(null));
+    assert.doesNotThrow(() => checkIsOpenNow('Mon - Fri: 8am - 6pm'));
+    assert.doesNotThrow(() => checkIsOpenNow({ open: '08:00', close: '18:00' } as any));
+    assert.doesNotThrow(() => formatDisplayPhone(null));
+    assert.doesNotThrow(() => formatDisplayPhone('08033014488'));
+    assert.doesNotThrow(() => formatDisplayPhone(8033014488 as any));
+
+    const data = await getDirectoryListings({ citySlug: 'calabar' });
+    assert.ok(data.listings.length > 0);
+
+    // Pick top sample listings across verticals
+    const sampleListings = data.listings.slice(0, 5);
+    for (const item of sampleListings) {
+      const resolved = await getResidentOrganization(item.slug || item.id);
+      assert.ok(resolved, `Listing ${item.name} (${item.slug}) should be resolved by slug/id`);
+      assert.ok(resolved.orgId, `Resolved listing must have canonical orgId`);
+
+      const org = await getCanonicalOrganization(resolved.orgId);
+      assert.ok(org, `Canonical organization must be loaded for orgId ${resolved.orgId}`);
+      assert.equal(typeof org.name, 'string');
+
+      // Assert full JSON serializability (no Temporal.Instant or raw class methods across RSC boundary)
+      const serialized = JSON.stringify(org);
+      assert.ok(serialized.length > 0, 'Organization payload must serialize cleanly to JSON');
+      const parsed = JSON.parse(serialized);
+      assert.equal(parsed.id, org.id);
+    }
+  });
 });

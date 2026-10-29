@@ -66,7 +66,7 @@ export async function getCanonicalOrganization(id: string) {
     coverImage: cover,
     images: meta.images || (cover ? [cover] : []),
     metadata: meta,
-    locations,
+    locations: JSON.parse(JSON.stringify(locations)),
     isClaimed,
     isVerified: Boolean(meta.isVerified),
     contactPoints: JSON.parse(JSON.stringify(contactPoints)),
@@ -78,11 +78,11 @@ export async function getCanonicalOrganization(id: string) {
       events: events.length > 0,
       school: false
     },
-    jobsData: jobs,
-    eventsData: events,
-    servicesData: services,
-    productsData: products,
-    menuData: menuItems,
+    jobsData: JSON.parse(JSON.stringify(jobs)),
+    eventsData: JSON.parse(JSON.stringify(events)),
+    servicesData: JSON.parse(JSON.stringify(services)),
+    productsData: JSON.parse(JSON.stringify(products)),
+    menuData: JSON.parse(JSON.stringify(menuItems)),
   };
 }
 
@@ -344,7 +344,7 @@ export async function getResolvedSavedItems() {
   return { orgs, products, jobs, events, places, stays };
 }
 
-export async function getResidentOrganization(identifier: string) {
+export async function getResidentOrganization(rawIdentifier: string) {
   let session = null;
   try {
     session = await getServerSession(authOptions);
@@ -353,7 +353,15 @@ export async function getResidentOrganization(identifier: string) {
   }
   const personId = session?.user?.personId;
 
+  let identifier = rawIdentifier;
+  try {
+    identifier = decodeURIComponent(rawIdentifier).trim();
+  } catch {}
+
   let listing = await db.orm.public.DiscoveryListing.where({ slug: identifier }).first();
+  if (!listing && identifier !== rawIdentifier) {
+    listing = await db.orm.public.DiscoveryListing.where({ slug: rawIdentifier }).first();
+  }
   let orgId = listing?.organizationId;
 
   if (!orgId) {
@@ -387,7 +395,7 @@ export async function getResidentOrganization(identifier: string) {
     const membership = await db.orm.public.Membership.where({
       organizationId: orgId,
       personId: personId,
-    }).first();
+    }).all().first();
     if (membership) isManager = true;
   }
 
@@ -401,5 +409,5 @@ export async function getResidentOrganization(identifier: string) {
     return null;
   }
 
-  return { orgId, isManager, listing: listing || null };
+  return { orgId, isManager, listing: listing ? JSON.parse(JSON.stringify(listing)) : null };
 }
