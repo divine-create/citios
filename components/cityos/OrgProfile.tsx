@@ -578,6 +578,68 @@ export default async function OrgProfile({ id }: { id: string }) {
         </section>
       ) : null}
 
+      {/* Latest Updates & Social Sync Feed */}
+      {Array.isArray((org as any).postsData) && (org as any).postsData.length > 0 && (
+        <section className="bg-white rounded-2xl border border-slate-100 p-5 md:p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-black text-ink">Latest Updates from {org.name}</h2>
+              <p className="text-xs text-slate-400 font-medium mt-0.5">Recent announcements, promos, and social posts</p>
+            </div>
+            <span className="text-[11px] font-bold text-slate-400">{(org as any).postsData.length} update{(org as any).postsData.length === 1 ? '' : 's'}</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {(org as any).postsData.map((p: any) => {
+              let postMeta: any = {};
+              try {
+                if (p.postMetadata) postMeta = typeof p.postMetadata === 'string' ? JSON.parse(p.postMetadata) : p.postMetadata;
+              } catch {}
+              const isInstagram = p.linkedEntityType === 'INSTAGRAM_POST' || postMeta?.source === 'INSTAGRAM';
+              return (
+                <div key={p.id} className="rounded-2xl border border-slate-100 bg-slate-50/50 overflow-hidden flex flex-col justify-between hover:border-slate-200 transition-all">
+                  <div>
+                    {p.imageUrl && (
+                      <div className="relative aspect-square bg-slate-100 overflow-hidden">
+                        <FallbackImg src={p.imageUrl} alt={p.title || org.name} className="w-full h-full object-cover" gradient={heroGradient} />
+                        {isInstagram && (
+                          <span className="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-full bg-slate-900/80 backdrop-blur-sm text-white text-[10px] font-bold tracking-wide">
+                            Instagram
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    <div className="p-4 space-y-1.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md">
+                          {p.category || 'Update'}
+                        </span>
+                        {p.price ? (
+                          <span className="text-xs font-black text-slate-900">{fmt(Number(p.price))}</span>
+                        ) : null}
+                      </div>
+                      <p className="text-xs text-slate-700 font-medium line-clamp-4 leading-relaxed whitespace-pre-line">
+                        {p.content}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="px-4 py-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-medium">
+                    <Link href={`/feed/${p.id}`} className="font-bold text-teal-800 hover:underline">
+                      View on City Feed →
+                    </Link>
+                    {postMeta?.instagramUrl && (
+                      <a href={postMeta.instagramUrl} target="_blank" rel="noopener noreferrer" className="hover:text-slate-600 inline-flex items-center gap-1">
+                        <span>Source</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       {/* Reviews & Ratings Section */}
       <BusinessReviewsSection
         organizationId={org.id}

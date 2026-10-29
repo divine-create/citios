@@ -43,6 +43,8 @@ export async function getCanonicalOrganization(id: string) {
       };
     });
   const menuItems = await db.orm.public.MenuItem.where({ organizationId: org.id }).all();
+  const rawOrgPosts = await db.orm.public.Post.where({ organizationId: org.id, status: 'PUBLISHED' }).all();
+  const recentOrgPosts = JSON.parse(JSON.stringify(rawOrgPosts)).filter((p: any) => p.linkedEntityType !== 'REVIEW' && p.category !== 'Review').sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()).slice(0, 6);
   const memberships = await db.orm.public.Membership.where({ organizationId: org.id }).all();
   const contactPoints = await db.orm.public.OrganizationContactPoint.where({ organizationId: org.id }).all();
   const isClaimed = memberships.length > 0;
@@ -83,6 +85,7 @@ export async function getCanonicalOrganization(id: string) {
     servicesData: JSON.parse(JSON.stringify(services)),
     productsData: JSON.parse(JSON.stringify(products)),
     menuData: JSON.parse(JSON.stringify(menuItems)),
+    postsData: recentOrgPosts,
   };
 }
 

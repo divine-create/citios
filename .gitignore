@@ -13,6 +13,7 @@ dist/
 
 # db backups (sensitive)
 scratch/
+.auth/
 
 # session research/report docs (local-only, not for the repo)
 DAASH_RESEARCH.md
