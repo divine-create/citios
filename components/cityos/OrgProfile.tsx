@@ -3,9 +3,9 @@ import { ArrowRight, Briefcase, BadgeCheck, Users, CalendarDays, ClipboardList, 
 import { getCanonicalOrganization } from '@/app/actions/org';
 import { formatMoney } from '@/lib/format';
 import { getCurrentCity } from '@/lib/city';
-import { Pill, Stars, LocationRow, VerifiedBadge, FallbackImg, getTwoLetterInitials, getAvatarGradient } from '@/components/cityos/CityUI';
+import { Pill, Stars, LocationRow, VerifiedBadge, FallbackImg } from '@/components/cityos/CityUI';
 import { formatDisplayPhone, checkIsOpenNow, resolveCalabarZone } from '@/lib/directory-constants';
-import { cn } from '@/lib/utils';
+import { cn, getTwoLetterInitials, getAvatarGradient } from '@/lib/utils';
 import { MapPin, Navigation, ExternalLink } from 'lucide-react';
 import ClientProductList from '@/components/cityos/ClientProductList';
 import CityMismatchChip from '@/components/cityos/CityMismatchChip';

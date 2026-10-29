@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { ArrowLeft, UserX, MapPin, Calendar, MessageSquare, ExternalLink } from 'lucide-react';
 import { db } from '@/src/prisma/db';
-import { FallbackImg, getTwoLetterInitials, getAvatarGradient, Pill } from '@/components/cityos/CityUI';
+import { FallbackImg, Pill } from '@/components/cityos/CityUI';
+import { getTwoLetterInitials, getAvatarGradient } from '@/lib/utils';
 
 export default async function ProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

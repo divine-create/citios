@@ -4,7 +4,8 @@ import Image from 'next/image';
 import React from 'react';
 
 import Link from 'next/link';
-import { FallbackImg, getTwoLetterInitials, getAvatarGradient } from '@/components/cityos/CityUI';
+import { FallbackImg } from '@/components/cityos/CityUI';
+import { getTwoLetterInitials, getAvatarGradient } from '@/lib/utils';
 export interface FeedItemProps {
     authorId?: string;
     isOrg?: boolean;
