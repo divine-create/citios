@@ -134,3 +134,54 @@ export function resolveCalabarZone(rawText?: string | null): string {
 
   return 'Calabar Municipal';
 }
+
+/**
+ * Formats Nigerian phone numbers into clean readable spacing (e.g. 0803 708 7777).
+ */
+export function formatDisplayPhone(rawPhone?: string | null): string {
+  if (!rawPhone) return '';
+  const digits = rawPhone.replace(/\D/g, '');
+  if (digits.startsWith('234') && digits.length >= 13) {
+    const local = '0' + digits.slice(3);
+    return `${local.slice(0, 4)} ${local.slice(4, 7)} ${local.slice(7)}`;
+  }
+  if (digits.startsWith('0') && digits.length === 11) {
+    return `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7)}`;
+  }
+  return rawPhone;
+}
+
+/**
+ * Checks whether a business is currently open in West Africa Time (WAT, UTC+1).
+ */
+export function checkIsOpenNow(hoursStr?: string | null): { isOpen: boolean; label: string } {
+  if (!hoursStr) return { isOpen: false, label: 'Hours not listed' };
+  const lower = hoursStr.toLowerCase();
+  if (lower.includes('24/7') || lower.includes('open 24 hours') || lower.includes('24 hours')) {
+    return { isOpen: true, label: 'Open 24/7' };
+  }
+
+  // Get current day of week and hour in West Africa Time (WAT, UTC+1)
+  const now = new Date();
+  const utcHours = now.getUTCHours();
+  const watHour = (utcHours + 1) % 24;
+  const watDay = (utcHours + 1 >= 24 ? now.getUTCDay() + 1 : now.getUTCDay()) % 7; // 0 = Sunday
+
+  const isSunday = watDay === 0;
+  if (isSunday && !lower.includes('sun') && !lower.includes('everyday') && !lower.includes('daily')) {
+    return { isOpen: false, label: 'Closed on Sundays' };
+  }
+
+  if (lower.includes('10:00 pm') || lower.includes('22:00')) {
+    const isOpen = watHour >= 7 && watHour < 22;
+    return { isOpen, label: isOpen ? 'Open Now' : 'Closed' };
+  }
+  if (lower.includes('9:00 pm') || lower.includes('9:30 pm')) {
+    const isOpen = watHour >= 8 && watHour < 21;
+    return { isOpen, label: isOpen ? 'Open Now' : 'Closed' };
+  }
+
+  const isOpen = watHour >= 8 && watHour < 18;
+  return { isOpen, label: isOpen ? 'Open Now' : 'Closed' };
+}
+

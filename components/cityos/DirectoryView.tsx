@@ -24,7 +24,10 @@ import {
   DirectoryListingItem,
   DIRECTORY_CATEGORIES,
   DirectoryCategoryId,
+  formatDisplayPhone,
+  checkIsOpenNow,
 } from '@/lib/directory-constants';
+import { getTwoLetterInitials, getAvatarGradient, FallbackImg } from '@/components/cityos/CityUI';
 import { buildWhatsAppInquiryUrl } from '@/lib/whatsapp';
 import { cn } from '@/lib/utils';
 
@@ -246,47 +249,87 @@ export default function DirectoryView({
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredListings.map((item) => {
-            const rawPhone = item.phone || '08065373747';
+            const hasPhone = Boolean(item.phone && item.phone.trim().length > 0);
+            const rawPhone = item.phone || '';
             const cleanWa = item.whatsapp || rawPhone;
-            const waInquiryUrl = buildWhatsAppInquiryUrl({
-              phone: cleanWa,
-              orgName: item.name,
-              cityName,
-            });
+            const waInquiryUrl = cleanWa
+              ? buildWhatsAppInquiryUrl({
+                  phone: cleanWa,
+                  orgName: item.name,
+                  cityName,
+                })
+              : null;
+            const openStatus = checkIsOpenNow(item.hours);
 
             return (
               <div
                 key={item.listingId}
-                className="bg-white rounded-2xl p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-md transition-all flex flex-col justify-between space-y-4"
+                className="bg-white rounded-2xl p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-lg transition-all flex flex-col justify-between space-y-4 group relative"
               >
-                {/* Header Information */}
-                <div className="space-y-2.5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[11px] font-bold uppercase tracking-wider mb-1.5">
-                        {item.categoryLabel}
+                {/* Clickable Card Body Linking to Dedicated Business Page */}
+                <Link
+                  href={`/org/${item.slug || item.id}`}
+                  className="block space-y-3 focus:outline-none focus:ring-2 focus:ring-teal-600 rounded-xl"
+                >
+                  {/* Top Header: Avatar + Identity + Verification Badge */}
+                  <div className="flex items-start gap-3.5">
+                    {/* Visual Avatar / Cover */}
+                    {item.coverAssetId ? (
+                      <FallbackImg
+                        src={item.coverAssetId}
+                        alt={item.name}
+                        className="w-14 h-14 rounded-2xl object-cover shrink-0 ring-1 ring-slate-200/80 shadow-xs group-hover:scale-105 transition-transform"
+                        gradient={getAvatarGradient(item.name)}
+                      />
+                    ) : (
+                      <div
+                        className={cn(
+                          'w-14 h-14 rounded-2xl flex items-center justify-center text-white font-black text-base shrink-0 shadow-xs ring-1 ring-black/5 bg-gradient-to-br group-hover:scale-105 transition-transform select-none',
+                          getAvatarGradient(item.name)
+                        )}
+                      >
+                        {getTwoLetterInitials(item.name)}
                       </div>
-                      <h3 className="text-base font-black text-slate-900 leading-snug">
+                    )}
+
+                    {/* Main Titles */}
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold uppercase tracking-wider">
+                          {item.categoryLabel}
+                        </span>
+                        {item.zone && (
+                          <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-teal-50 text-teal-800 text-[10px] font-bold border border-teal-100">
+                            <MapPin className="w-2.5 h-2.5" />
+                            {item.zone}
+                          </span>
+                        )}
+                      </div>
+
+                      <h3 className="text-base font-black text-slate-900 leading-snug group-hover:text-teal-900 transition-colors">
                         {item.name}
                       </h3>
-                    </div>
 
-                    {item.isVerified ? (
-                      <span
-                        title="Verified Business Owner"
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200 shrink-0"
-                      >
-                        <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                        Verified Owner
-                      </span>
-                    ) : (
-                      <span
-                        title="Public directory listing. Are you the owner? Claim this profile."
-                        className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 text-[10px] font-bold shrink-0 border border-slate-200/60"
-                      >
-                        Unclaimed Listing
-                      </span>
-                    )}
+                      {/* Verification / Claim Badge */}
+                      <div>
+                        {item.isVerified ? (
+                          <span
+                            title="Verified Business Owner"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200 shrink-0"
+                          >
+                            <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                            Verified Owner
+                          </span>
+                        ) : (
+                          <span
+                            title="Public directory listing. Are you the owner? Claim this profile."
+                            className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 text-[10px] font-bold shrink-0 border border-slate-200/60"
+                          >
+                            Unclaimed Listing
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   {/* Description */}
@@ -298,7 +341,7 @@ export default function DirectoryView({
 
                   {/* Services Tags */}
                   {item.services.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 pt-1">
+                    <div className="flex flex-wrap gap-1.5 pt-0.5">
                       {item.services.slice(0, 4).map((service, idx) => (
                         <span
                           key={idx}
@@ -315,51 +358,83 @@ export default function DirectoryView({
                     </div>
                   )}
 
-                  {/* Location & Landmark */}
+                  {/* Location & Landmark & Hours */}
                   <div className="pt-2 border-t border-slate-100 space-y-1.5 text-xs text-slate-600">
                     <div className="flex items-start gap-1.5">
                       <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
-                      <span className="font-medium text-slate-700">{item.address}</span>
+                      <span className="font-medium text-slate-700 line-clamp-1">{item.address}</span>
                     </div>
 
                     {item.landmark && (
                       <div className="flex items-center gap-1.5 pl-5 text-[11px] text-slate-500 font-medium">
                         <span className="text-slate-400">Landmark:</span>
-                        <span>{item.landmark}</span>
+                        <span className="line-clamp-1">{item.landmark}</span>
                       </div>
                     )}
 
                     {item.hours && (
-                      <div className="flex items-center gap-1.5 pl-5 text-[11px] text-slate-500 font-medium">
-                        <Clock className="w-3 h-3 text-slate-400 shrink-0" />
-                        <span>{item.hours}</span>
+                      <div className="flex items-center justify-between pl-5 text-[11px] text-slate-500 font-medium">
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+                          <span>{item.hours}</span>
+                        </div>
+                        {openStatus.isOpen ? (
+                          <span className="inline-flex items-center gap-1 font-bold text-emerald-700">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Open Now
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-slate-400 font-semibold">
+                            <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                            Closed
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>
-                </div>
+                </Link>
 
-                {/* Action Buttons */}
-                <div className="pt-3 border-t border-slate-100 space-y-2">
+                {/* Direct Action Buttons */}
+                <div className="pt-3 border-t border-slate-100 space-y-2" onClick={(e) => e.stopPropagation()}>
                   <div className="grid grid-cols-2 gap-2">
                     {/* Call Button */}
-                    <a
-                      href={`tel:${rawPhone}`}
-                      className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition-colors shadow-sm"
-                    >
-                      <Phone className="w-3.5 h-3.5" />
-                      Call {rawPhone.startsWith('0') ? rawPhone : `0${rawPhone.slice(3)}`}
-                    </a>
+                    {hasPhone ? (
+                      <a
+                        href={`tel:${rawPhone}`}
+                        className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition-colors shadow-sm"
+                      >
+                        <Phone className="w-3.5 h-3.5" />
+                        Call {formatDisplayPhone(rawPhone)}
+                      </a>
+                    ) : (
+                      <Link
+                        href={`/org/${item.slug || item.id}`}
+                        className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 transition-colors"
+                      >
+                        <Info className="w-3.5 h-3.5" />
+                        View Profile
+                      </Link>
+                    )}
 
                     {/* WhatsApp Button */}
-                    <a
-                      href={waInquiryUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-colors shadow-sm"
-                    >
-                      <MessageCircle className="w-3.5 h-3.5" />
-                      WhatsApp
-                    </a>
+                    {waInquiryUrl ? (
+                      <a
+                        href={waInquiryUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-colors shadow-sm"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5" />
+                        WhatsApp
+                      </a>
+                    ) : (
+                      <Link
+                        href={`/org/${item.slug || item.id}`}
+                        className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-teal-50 text-teal-800 text-xs font-bold hover:bg-teal-100 transition-colors"
+                      >
+                        Details &rarr;
+                      </Link>
+                    )}
                   </div>
 
                   {/* Secondary Actions (Copy Address & Claim Profile) */}

@@ -3,7 +3,10 @@ import { ArrowRight, Briefcase, BadgeCheck, Users, CalendarDays, ClipboardList, 
 import { getCanonicalOrganization } from '@/app/actions/org';
 import { formatMoney } from '@/lib/format';
 import { getCurrentCity } from '@/lib/city';
-import { Pill, Stars, LocationRow, VerifiedBadge, FallbackImg } from '@/components/cityos/CityUI';
+import { Pill, Stars, LocationRow, VerifiedBadge, FallbackImg, getTwoLetterInitials, getAvatarGradient } from '@/components/cityos/CityUI';
+import { formatDisplayPhone, checkIsOpenNow, resolveCalabarZone } from '@/lib/directory-constants';
+import { cn } from '@/lib/utils';
+import { MapPin, Navigation, ExternalLink } from 'lucide-react';
 import ClientProductList from '@/components/cityos/ClientProductList';
 import CityMismatchChip from '@/components/cityos/CityMismatchChip';
 import { getServerSession } from 'next-auth';
@@ -56,8 +59,8 @@ export default async function OrgProfile({ id }: { id: string }) {
 
   const { capabilities, jobsData, eventsData, servicesData, productsData, menuData, locations } = org;
   
-  const phoneCp = org.contactPoints?.find((cp: any) => cp.type === 'PHONE')?.value || null;
-  const whatsappCp = org.contactPoints?.find((cp: any) => cp.type === 'WHATSAPP')?.value || null;
+  const phoneCp = org.contactPoints?.find((cp: any) => cp.type === 'PHONE')?.value || org.metadata?.phone || null;
+  const whatsappCp = org.contactPoints?.find((cp: any) => cp.type === 'WHATSAPP')?.value || org.metadata?.whatsapp || (phoneCp ? phoneCp : null);
 
   const shop = capabilities.retail ? { products: productsData } : undefined;
   const restaurant = capabilities.restaurant ? { menu: menuData } : undefined;
@@ -71,9 +74,12 @@ export default async function OrgProfile({ id }: { id: string }) {
   const fmt = (a: number) => formatMoney(a, city?.currency ?? 'NGN');
   const addressStr = org.address || locations?.[0]?.address || '';
   const hours: string | null = org.metadata?.workingHours || org.metadata?.hours || null;
-  const category = org.type || 'Business';
+  const category = (org as any).storeCategory || org.type || 'Business';
   const osLabel = capabilities.retail ? 'ShopOS' : capabilities.restaurant ? 'RestaurantOS' : capabilities.school ? 'SchoolOS' : capabilities.services ? 'ServiceOS' : '9jaLive';
   const osPath = osLabel.toLowerCase();
+  const canonicalZone = org.metadata?.zone || resolveCalabarZone(`${addressStr} ${org.name}`);
+  const openStatus = checkIsOpenNow(hours);
+  const heroGradient = getAvatarGradient(org.name);
 
   const factCells: { label: string; sub: string }[] = [
     { label: addressStr || city?.name || 'Local Store', sub: `${(org as any).storeCategory || category}` },
@@ -128,29 +134,67 @@ export default async function OrgProfile({ id }: { id: string }) {
         </div>
       )}
 
-      {/* Header */}
-      <div className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${gradient} text-white p-7 md:p-9`}>
-        <div className="absolute -right-14 -top-14 w-60 h-60 rounded-full bg-white/10 blur-3xl" />
-        <div className="relative flex flex-col md:flex-row md:items-end gap-4 justify-between">
-          <div className="flex items-center gap-4">
+      {/* Modern High-Aesthetic Header */}
+      <div className={`relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-teal-950 text-white p-6 sm:p-8 md:p-9 border border-slate-800 shadow-xl`}>
+        <div className="absolute -right-14 -top-14 w-72 h-72 rounded-full bg-teal-500/10 blur-3xl pointer-events-none" />
+        <div className="relative flex flex-col md:flex-row md:items-end gap-6 justify-between">
+          <div className="flex items-start gap-4 sm:gap-5">
+            {/* Business Visual / Avatar */}
             {org.coverImage || org.logoAssetId ? (
               <FallbackImg
                 src={org.coverImage || (org.logoAssetId?.startsWith('http') || org.logoAssetId?.startsWith('/') ? org.logoAssetId : `/api/assets/${org.logoAssetId}`)}
                 alt={org.name}
-                className="w-16 h-16 rounded-2xl object-cover shrink-0 bg-white ring-1 ring-white/20"
-                icon={<span className="text-3xl">{emoji}</span>}
+                className="w-20 h-20 rounded-2xl object-cover shrink-0 bg-white ring-2 ring-white/20 shadow-lg"
+                gradient={heroGradient}
               />
             ) : (
-              <span className="w-16 h-16 rounded-2xl bg-white/15 ring-1 ring-white/20 flex items-center justify-center text-3xl shrink-0">
-                {emoji}
-              </span>
-            )}
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-2xl font-black tracking-tight">{org.name}</h1>
+              <div
+                className={cn(
+                  'w-20 h-20 rounded-2xl flex items-center justify-center text-white font-black text-2xl shrink-0 ring-2 ring-white/20 shadow-lg bg-gradient-to-br select-none',
+                  heroGradient
+                )}
+              >
+                {getTwoLetterInitials(org.name)}
               </div>
-              <div className="flex items-center gap-2.5 mt-1.5 flex-wrap">
-                <span className="text-[11px] font-bold text-white/75">{org.isVerified ? 'Verified Org' : org.isClaimed ? 'Registered Org' : 'Directory Listing'}</span>
+            )}
+            <div className="space-y-1.5 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/10 text-white text-[11px] font-bold uppercase tracking-wider backdrop-blur-sm">
+                  {category}
+                </span>
+                {canonicalZone && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 text-[11px] font-bold border border-teal-500/30">
+                    <MapPin className="w-3 h-3" />
+                    {canonicalZone}
+                  </span>
+                )}
+                {hours && (
+                  <span
+                    className={cn(
+                      'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold',
+                      openStatus.isOpen ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-white/10 text-slate-300'
+                    )}
+                  >
+                    <span className={cn('w-2 h-2 rounded-full', openStatus.isOpen ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400')} />
+                    {openStatus.isOpen ? 'Open Now' : 'Closed'}
+                  </span>
+                )}
+              </div>
+
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">{org.name}</h1>
+
+              <div className="flex items-center gap-2.5 mt-1 flex-wrap">
+                <span className="text-[11px] font-bold text-slate-300 flex items-center gap-1">
+                  {org.isVerified ? (
+                    <span className="text-emerald-400 flex items-center gap-1 font-bold">
+                      <ShieldCheck className="w-3.5 h-3.5" /> Verified Business Owner
+                    </span>
+                  ) : org.isClaimed ? (
+                    <span className="text-teal-300">Registered Business</span>
+                  ) : (
+                    <span className="text-amber-300/90 font-medium">Public Directory Listing (Unclaimed)</span>
+                  )}
+                </span>
                 {reviewsBundle.distribution.averageRating && (
                   <a
                     href="#reviews"
@@ -166,25 +210,38 @@ export default async function OrgProfile({ id }: { id: string }) {
               </div>
             </div>
           </div>
+
+          {/* Action Buttons Capsule */}
           <div className="flex items-center gap-2 flex-wrap">
+            {phoneCp && (
+              <a
+                href={`tel:${phoneCp}`}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white text-slate-900 hover:bg-slate-100 text-xs font-black shadow-md transition-all active:scale-95"
+              >
+                <Phone className="w-3.5 h-3.5 text-slate-900" />
+                Call {formatDisplayPhone(phoneCp)}
+              </a>
+            )}
             {whatsappCp && (
               <a
-                href={`https://wa.me/${whatsappCp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${org.name}, I found your business on 9jaLive and would like to make an enquiry.`)}`}
+                href={`https://wa.me/${whatsappCp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${org.name}, I found your business on Calabar City Directory and would like to make an enquiry.`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-sm transition-colors"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-md transition-all active:scale-95"
               >
                 <MessageSquare className="w-3.5 h-3.5" />
                 WhatsApp
               </a>
             )}
-            {phoneCp && (
+            {addressStr && (
               <a
-                href={`tel:${phoneCp}`}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-black shadow-sm transition-colors"
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${org.name} ${addressStr} Calabar`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-black transition-colors"
               >
-                <Phone className="w-3.5 h-3.5" />
-                Call
+                <Navigation className="w-3.5 h-3.5" />
+                Directions
               </a>
             )}
             <a
@@ -192,7 +249,7 @@ export default async function OrgProfile({ id }: { id: string }) {
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#f43939] hover:bg-[#d92b2b] text-white text-xs font-black shadow-sm transition-colors"
             >
               <Star className="w-3.5 h-3.5 fill-white" />
-              Write a Review
+              Write Review
             </a>
             <EnquiryModal
               organizationId={org.id}
@@ -267,6 +324,92 @@ export default async function OrgProfile({ id }: { id: string }) {
           )}
         </div>
       </section>
+
+      {/* Location, Hours & Landmark Breakdown */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Location & Directions */}
+        <section className="bg-white rounded-2xl border border-slate-100 p-5 md:p-6 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-black text-ink flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-teal-700" />
+              Address & Location
+            </h2>
+            {canonicalZone && (
+              <span className="text-[11px] font-bold text-teal-800 bg-teal-50 px-2.5 py-0.5 rounded-md border border-teal-100">
+                {canonicalZone}
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-slate-800 font-medium leading-relaxed">
+            {addressStr || 'Calabar, Cross River State'}
+          </p>
+          {org.metadata?.landmark && (
+            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-700 font-medium space-y-1">
+              <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider block">Landmark / Directions:</span>
+              <p>{org.metadata.landmark}</p>
+            </div>
+          )}
+          {addressStr && (
+            <div className="pt-1">
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${org.name} ${addressStr} Calabar`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-teal-800 hover:text-teal-900 hover:underline"
+              >
+                <span>Get directions on Google Maps</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          )}
+        </section>
+
+        {/* Operating Hours */}
+        <section className="bg-white rounded-2xl border border-slate-100 p-5 md:p-6 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-black text-ink flex items-center gap-2">
+              <Clock className="w-4 h-4 text-teal-700" />
+              Operating Hours
+            </h2>
+            <span
+              className={cn(
+                'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold',
+                openStatus.isOpen ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600'
+              )}
+            >
+              <span className={cn('w-1.5 h-1.5 rounded-full', openStatus.isOpen ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400')} />
+              {openStatus.isOpen ? 'Open Now' : 'Closed'}
+            </span>
+          </div>
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-800 font-semibold space-y-1">
+            <p className="text-slate-500 text-[11px] font-medium">Standard Hours:</p>
+            <p className="text-sm font-black text-slate-900">{hours || 'Mon - Sat: 8:00 AM - 6:00 PM'}</p>
+          </div>
+          <p className="text-[11px] text-slate-400 font-medium">
+            Standard time in West Africa Time (WAT). Public holiday hours may vary.
+          </p>
+        </section>
+      </div>
+
+      {/* Services & Offerings if present in metadata */}
+      {Array.isArray(org.metadata?.services) && org.metadata.services.length > 0 && (
+        <section className="bg-white rounded-2xl border border-slate-100 p-5 md:p-6 space-y-3">
+          <h2 className="text-base font-black text-ink flex items-center justify-between">
+            Services & Specialties
+            <span className="text-[11px] font-bold text-slate-400">{org.metadata.services.length} items</span>
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {org.metadata.services.map((svc: string, idx: number) => (
+              <span
+                key={idx}
+                className="px-3 py-1.5 rounded-xl bg-slate-50 text-slate-700 text-xs font-semibold border border-slate-200/60"
+              >
+                {svc}
+              </span>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Photos Gallery */}
       {org.images && org.images.length > 0 && (

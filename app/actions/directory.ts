@@ -81,8 +81,8 @@ export async function getDirectoryListings(params?: {
       ? meta.zone
       : resolveCalabarZone(`${meta.zone || ''} ${address} ${loc?.name || ''}`);
 
-    const phone = meta.phone || '08065373747';
-    const whatsapp = meta.whatsapp ? formatWhatsAppNumber(meta.whatsapp) : formatWhatsAppNumber(phone);
+    const phone = meta.phone || null;
+    const whatsapp = meta.whatsapp ? formatWhatsAppNumber(meta.whatsapp) : (phone ? formatWhatsAppNumber(phone) : null);
 
     directoryItems.push({
       id: l.organizationId,

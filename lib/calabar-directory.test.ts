@@ -84,10 +84,21 @@ describe('Calabar City Business Directory', () => {
     data.listings.forEach((item) => {
       assert.ok(item.id, 'Every directory item must have an organizationId for claim');
       assert.ok(item.address, 'Every directory item must have a physical address in Calabar');
-      assert.ok(item.phone, 'Every directory item must have a phone contact');
-      assert.ok(item.whatsapp, 'Every directory item must have a formatted WhatsApp number');
+      if (item.phone) {
+        assert.ok(typeof item.phone === 'string' && item.phone.length > 0);
+      }
+      if (item.whatsapp) {
+        assert.ok(typeof item.whatsapp === 'string' && item.whatsapp.length > 0);
+      }
       assert.equal(typeof item.isClaimed, 'boolean');
       assert.equal(typeof item.isVerified, 'boolean');
     });
+
+    // Verify businesses with verified phones (e.g. Axari, Channel View, Medplus) have proper contact channels
+    const verifiedSpot = data.listings.find(
+      (i) => i.name.includes('Axari') || i.name.includes('Medplus') || i.name.includes('Apex') || i.name.includes('Channel View')
+    );
+    assert.ok(verifiedSpot, 'Should have verified directory businesses');
+    assert.ok(verifiedSpot.phone, 'Verified business must have phone number');
   });
 });
