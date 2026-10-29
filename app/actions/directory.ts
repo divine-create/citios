@@ -9,6 +9,8 @@ import {
   DIRECTORY_CATEGORIES,
   DirectoryCategoryId,
   DIRECTORY_CATEGORY_MAP,
+  CALABAR_CANONICAL_ZONES,
+  resolveCalabarZone,
 } from '@/lib/directory-constants';
 
 export async function getDirectoryListings(params?: {
@@ -27,7 +29,7 @@ export async function getDirectoryListings(params?: {
     return {
       listings: [],
       totalCount: 0,
-      zones: [],
+      zones: [...CALABAR_CANONICAL_ZONES],
       cityName: 'Calabar',
     };
   }
@@ -51,7 +53,6 @@ export async function getDirectoryListings(params?: {
   );
 
   const directoryItems: DirectoryListingItem[] = [];
-  const zonesSet = new Set<string>();
 
   for (const l of (validListings as any[])) {
     let meta: any = {};
@@ -74,10 +75,13 @@ export async function getDirectoryListings(params?: {
     const categoryObj = DIRECTORY_CATEGORIES.find((c) => c.id === catId) || DIRECTORY_CATEGORIES[0];
 
     const address = meta.address || loc?.address || org?.address || 'Calabar, Cross River State';
-    const zone = meta.zone || loc?.name || null;
-    if (zone) zonesSet.add(zone);
 
-    const phone = meta.phone || '08065373747'; // fallback to central Calabar desk if not set
+    // Strictly resolve zone to a canonical geographic zone — NEVER use branch names
+    const zone = meta.zone && CALABAR_CANONICAL_ZONES.includes(meta.zone)
+      ? meta.zone
+      : resolveCalabarZone(`${meta.zone || ''} ${address} ${loc?.name || ''}`);
+
+    const phone = meta.phone || '08065373747';
     const whatsapp = meta.whatsapp ? formatWhatsAppNumber(meta.whatsapp) : formatWhatsAppNumber(phone);
 
     directoryItems.push({
@@ -95,11 +99,12 @@ export async function getDirectoryListings(params?: {
       whatsapp,
       hours: meta.hours || 'Mon - Sat: 8:00 AM - 6:00 PM',
       isClaimed: Boolean(meta.claimed),
-      isVerified: meta.verified !== false,
+      // Only claimed organizations with verified owners are verified
+      isVerified: Boolean(meta.claimed),
       services: Array.isArray(meta.services) ? meta.services : [],
       website: meta.website || null,
       coverAssetId: l.coverAssetId || org?.logoAssetId || meta.coverImage || null,
-      rating: typeof meta.rating === 'number' ? meta.rating : 4.8,
+      rating: typeof meta.rating === 'number' ? meta.rating : null,
     });
   }
 
@@ -151,7 +156,7 @@ export async function getDirectoryListings(params?: {
   return {
     listings: paginatedItems,
     totalCount,
-    zones: Array.from(zonesSet).sort(),
+    zones: [...CALABAR_CANONICAL_ZONES],
     cityName: city.name,
   };
 }

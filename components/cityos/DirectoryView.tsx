@@ -100,13 +100,13 @@ export default function DirectoryView({
         <div className="relative z-10 max-w-2xl space-y-3">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 text-xs font-black uppercase tracking-wider border border-teal-500/30">
             <Building2 className="w-3.5 h-3.5" />
-            {cityName} Verified Directory
+            {cityName} Business Directory
           </div>
           <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white">
             Find Any Business in {cityName}
           </h1>
           <p className="text-sm sm:text-base text-slate-300 font-medium leading-relaxed">
-            Search verified pharmacies, mechanics, technicians, law firms, printers, boutiques, and clinics across {cityName}. Call or WhatsApp directly.
+            Search pharmacies, mechanics, technicians, law firms, printers, boutiques, and clinics across {cityName}. Call or WhatsApp directly.
           </p>
         </div>
 
@@ -271,13 +271,20 @@ export default function DirectoryView({
                       </h3>
                     </div>
 
-                    {item.isVerified && (
+                    {item.isVerified ? (
                       <span
-                        title="Verified Calabar Business"
+                        title="Verified Business Owner"
                         className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200 shrink-0"
                       >
                         <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                        Verified
+                        Verified Owner
+                      </span>
+                    ) : (
+                      <span
+                        title="Public directory listing. Are you the owner? Claim this profile."
+                        className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 text-[10px] font-bold shrink-0 border border-slate-200/60"
+                      >
+                        Unclaimed Listing
                       </span>
                     )}
                   </div>

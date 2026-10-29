@@ -69,3 +69,68 @@ export const DIRECTORY_CATEGORY_MAP: Record<string, DirectoryCategoryId> = {
   CLEANING: 'cleaning',
   LAUNDRY: 'cleaning',
 };
+
+// Authoritative Calabar Geographic Zones (Clean Human Names)
+export const CALABAR_CANONICAL_ZONES = [
+  'Marian Road',
+  'State Housing',
+  'Watt Market / Calabar South',
+  'Etta Agbor / UNICAL',
+  'Murtala Mohammed Highway',
+  'MCC Road / Effio-Ette',
+  'Federal Housing / 8 Miles',
+  'Parliamentary Road',
+  'Diamond Hill / Marina',
+  'Satellite Town',
+  'Bogobiri',
+  'Anantigha / UNICROSS',
+] as const;
+
+/**
+ * Normalizes any text (address, landmark, branch) into a canonical Calabar zone.
+ * Never outputs a branch name or raw organization string.
+ */
+export function resolveCalabarZone(rawText?: string | null): string {
+  if (!rawText) return 'Calabar Municipal';
+  const text = rawText.toLowerCase();
+
+  if (text.includes('marian') || text.includes('ndidem usang iso') || text.includes('rabana') || text.includes('atekong')) {
+    if (text.includes('state housing')) return 'State Housing';
+    return 'Marian Road';
+  }
+  if (text.includes('state housing') || text.includes('housing estate')) {
+    return 'State Housing';
+  }
+  if (text.includes('watt') || text.includes('target') || text.includes('bedwell') || text.includes('goldie') || text.includes('calabar road') || text.includes('calabar south')) {
+    return 'Watt Market / Calabar South';
+  }
+  if (text.includes('etta agbor') || text.includes('ettagbor') || text.includes('unical') || text.includes('malabor')) {
+    return 'Etta Agbor / UNICAL';
+  }
+  if (text.includes('mcc') || text.includes('effio-ette') || text.includes('effioette') || text.includes('channel view')) {
+    return 'MCC Road / Effio-Ette';
+  }
+  if (text.includes('8 miles') || text.includes('eight miles') || text.includes('federal housing') || text.includes('ikot ansa') || text.includes('ikot omin')) {
+    return 'Federal Housing / 8 Miles';
+  }
+  if (text.includes('parliamentary') || text.includes('asari eso') || text.includes('secretariat')) {
+    return 'Parliamentary Road';
+  }
+  if (text.includes('diamond hill') || text.includes('marina') || text.includes('mary slessor') || text.includes('government house')) {
+    return 'Diamond Hill / Marina';
+  }
+  if (text.includes('satellite town') || text.includes('ikot effanga')) {
+    return 'Satellite Town';
+  }
+  if (text.includes('bogobiri') || text.includes('central mosque')) {
+    return 'Bogobiri';
+  }
+  if (text.includes('anantigha') || text.includes('crutech') || text.includes('unicross') || text.includes('ekpo abasi') || text.includes('mbukpa') || text.includes('jebbs')) {
+    return 'Anantigha / UNICROSS';
+  }
+  if (text.includes('murtala') || text.includes('highway') || text.includes('ekorinim') || text.includes('zone 6')) {
+    return 'Murtala Mohammed Highway';
+  }
+
+  return 'Calabar Municipal';
+}
